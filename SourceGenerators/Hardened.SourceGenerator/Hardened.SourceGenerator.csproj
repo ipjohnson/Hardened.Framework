@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>10</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Web\WebEndPointModelGenerator.cs~RF3e9741.TMP" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
+		<PackageReference Include="System.Memory" Version="4.5.4" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CSharpAuthor" Version="0.1.0-Beta934">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>build</IncludeAssets>
+	</PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DependencyInjection\" />
+    <Folder Include="Templates\Parser\" />
+  </ItemGroup>
+
+</Project>

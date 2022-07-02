@@ -1,0 +1,47 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
+using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
+using Hardened.Requests.Abstract.Attributes;
+using Hardened.Web.Runtime.Attributes;
+
+namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers
+{
+    public class PersonController
+    {
+        private readonly IPersonService _personService;
+
+        public PersonController(IPersonService personService)
+        {
+            _personService = personService;
+        }
+        
+        [Get("/api/person/")]
+        public IEnumerable<PersonModel> GetAll()
+        {
+            return _personService.All();
+        }
+
+        [Get("/api/person/view")]
+        [Template("personList")]
+        public PersonListModel GetAllWithView()
+        {
+            return new PersonListModel("Person List", _personService.All());
+        }
+
+        //[Get("/api/person/{id}")]
+        //public PersonModel? Get(int id)
+        //{
+        //    return _personService.Get(id);
+        //}
+
+        //[Put()]
+        //public PersonModel Add(PersonModel personModel)
+        //{
+        //    return _personService.Add(personModel);
+        //}
+    }
+}
