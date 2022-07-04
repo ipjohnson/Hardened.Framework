@@ -22,7 +22,11 @@ namespace Hardened.SourceGenerator.Shared
                 {
                     public const string Runtime = "Hardened.Web.Runtime";
 
+                    public const string RuntimeDependencyInjection = "Hardened.Web.Runtime.DependencyInjection";
+
                     public const string RuntimeHandlers = "Hardened.Web.Runtime.Handlers";
+
+                    public const string LambdaRuntimeDependencyInjection = "Hardened.Web.Lambda.Runtime.DependencyInjection";
 
                     public const string LambdaRuntimeImpl = "Hardened.Web.Lambda.Runtime.Impl";
                 }
@@ -32,9 +36,13 @@ namespace Hardened.SourceGenerator.Shared
 
             public const string HardenedSharedRuntimeAttributes = "Hardened.Shared.Runtime.Attributes";
 
+            public const string HardenedSharedRuntimeDependencyInjection = "Hardened.Shared.Runtime.DependencyInjection";
+
             public const string HardenedRequestsRuntimeErrors = "Hardened.Requests.Runtime.Errors";
 
             public const string HardenedRequestsRuntimeExecution = "Hardened.Requests.Runtime.Execution";
+
+            public const string HardenedRequestsRuntimeDependencyInjection = "Hardened.Requests.Runtime.DependencyInjection";
 
             public const string HardenedRequestsAbstractExecution = "Hardened.Requests.Abstract.Execution";
 
@@ -44,6 +52,8 @@ namespace Hardened.SourceGenerator.Shared
 
             public static string HardenedTemplateRuntimeImplNamespace = "Hardened.Templates.Runtime.Impl";
 
+            public static string HardenedTemplateRuntimeDependencyInjection = "Hardened.Templates.Runtime.DependencyInjection";
+
             public static string HardenedTemplateRuntimeNamespace = "Hardened.Templates.Runtime";
         }
         
@@ -51,11 +61,36 @@ namespace Hardened.SourceGenerator.Shared
         {
             public static ITypeDefinition IServiceCollection =
                 TypeDefinition.Get("Microsoft.Extensions.DependencyInjection", "IServiceCollection");
-            public static ITypeDefinition ServiceProvider =
+
+            public static ITypeDefinition ServiceCollection =
+                TypeDefinition.Get("Microsoft.Extensions.DependencyInjection", "ServiceCollection");
+
+            public static ITypeDefinition IServiceProvider =
                 TypeDefinition.Get("System", "IServiceProvider");
 
-            public static ITypeDefinition RegisterAsAttribute =
-                TypeDefinition.Get(Namespace.HardenedSharedRuntimeAttributes, "RegisterAsAttribute");
+            public static ITypeDefinition ExposeAttribute =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeAttributes, "ExposeAttribute");
+
+            public static ITypeDefinition DependencyRegistry =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeDependencyInjection, "DependencyRegistry");
+
+            public static class Registry
+            {
+                public static ITypeDefinition LambdaWebDI =
+                    TypeDefinition.Get(Namespace.Hardened.Web.LambdaRuntimeDependencyInjection, "LambdaWebDI");
+
+                public static ITypeDefinition StandardDependencies =
+                    TypeDefinition.Get(Namespace.HardenedSharedRuntimeDependencyInjection, "StandardDependencies");
+
+                public static ITypeDefinition RequestRuntimeDI =
+                    TypeDefinition.Get(Namespace.HardenedRequestsRuntimeDependencyInjection, "RequestRuntimeDI");
+
+                public static ITypeDefinition TemplateDI =
+                    TypeDefinition.Get(Namespace.HardenedTemplateRuntimeDependencyInjection, "TemplateDI");
+
+                public static ITypeDefinition WebRuntimeDI =
+                    TypeDefinition.Get(Namespace.Hardened.Web.RuntimeDependencyInjection, "WebRuntimeDI");
+            }
         }
 
         public static class Application

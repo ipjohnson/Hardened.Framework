@@ -1,4 +1,6 @@
-﻿using Hardened.SourceGenerator.Templates.Generator;
+﻿using Hardened.SourceGenerator.DependencyInjection;
+using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Templates.Generator;
 using Hardened.SourceGenerator.Web;
 using Microsoft.CodeAnalysis;
 
@@ -9,6 +11,16 @@ namespace Hardened.Web.Lambda.SourceGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+            var dependencyRegistry = new[]
+            {
+                KnownTypes.DI.Registry.StandardDependencies,
+                KnownTypes.DI.Registry.RequestRuntimeDI,
+                KnownTypes.DI.Registry.TemplateDI,
+                KnownTypes.DI.Registry.WebRuntimeDI,
+                KnownTypes.DI.Registry.LambdaWebDI
+            };
+
+            DependencyInjectionIncrementalGenerator.Setup(context, "LambdaWebApplication", dependencyRegistry);
             TemplateIncrementalGenerator.Setup(context, "LambdaWebApplication", new [] {"html"});
             WebIncrementalGenerator.Setup(context, "LambdaWebApplication");
             WebLambdaApplicationBootstrapGenerator.Setup(context);

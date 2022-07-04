@@ -22,6 +22,9 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             var templateProviderClass = CreateTemplateProviderClass(classDefinition, templateData.applicationModel, templateData.templateModels);
 
+            GenerateDependencyInjection(classDefinition, templateProviderClass, templateData.applicationModel,
+                templateData.templateModels);
+
             var templateFileName = templateData.applicationModel.ApplicationType.Name + ".Templates.cs";
 
             var outputContext = new OutputContext();
@@ -31,6 +34,24 @@ namespace Hardened.SourceGenerator.Templates.Generator
             productionContext.AddSource(templateFileName, outputContext.Output());
 
             File.AppendAllText(@"C:\temp\generated\" + templateFileName, outputContext.Output());
+        }
+
+        private static void GenerateDependencyInjection(ClassDefinition classDefinition, ITypeDefinition templateProviderClass, ApplicationSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)
+        {
+            var templateField = classDefinition.AddField(typeof(int), "_templateDependencies");
+
+            templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
+            templateField.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeDependencyInjection);
+            templateField.InitializeValue = $"DependencyRegistry<{classDefinition.Name}>.Register(HardenedTemplateDI)";
+
+            var diMethod = classDefinition.AddMethod("HardenedTemplateDI");
+
+            diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
+
+            var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+            
+            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
+                new[] { KnownTypes.Templates.ITemplateExecutionHandlerProvider, templateProviderClass }));
         }
 
         private static ITypeDefinition CreateTemplateProviderClass(ClassDefinition classDefinition, ApplicationSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)

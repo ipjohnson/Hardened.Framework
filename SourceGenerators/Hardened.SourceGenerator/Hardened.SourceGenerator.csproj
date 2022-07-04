@@ -26,14 +26,13 @@
 	</PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CSharpAuthor" Version="0.1.0-Beta934">
+    <PackageReference Include="CSharpAuthor" Version="0.1.0-Beta935">
 	    <PrivateAssets>all</PrivateAssets>
 	    <IncludeAssets>build</IncludeAssets>
 	</PackageReference>
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DependencyInjection\" />
     <Folder Include="Templates\Parser\" />
   </ItemGroup>
 

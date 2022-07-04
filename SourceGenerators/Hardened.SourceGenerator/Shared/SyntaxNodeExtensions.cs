@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using CSharpAuthor;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -52,12 +53,28 @@ namespace Hardened.SourceGenerator.Shared
             return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd(), classDeclarationSyntax.Identifier.Text);
         }
 
-        public static bool IsAttributed(this SyntaxNode node, string attributeName)
+
+
+        public static bool IsAttributed(this SyntaxNode node, string attributeName, string ns = "")
         {
             return node.DescendantNodes()
                 .OfType<AttributeSyntax>().Any(
-                    a => a.Name.ToString().Equals(attributeName) ||
-                                                    a.Name.ToString().Equals(attributeName + "Attribute"));
+                    a =>
+                    {
+                        var name = a.Name.ToString();
+
+                        return name.Equals(attributeName) || name.Equals(attributeName + "Attribute") ||
+                               name.Equals(ns + "." + attributeName) || name.Equals(ns + "." + attributeName + "Attribute");
+                    });
         }
+
+        public static bool IsAttributed(this SyntaxNode node, ITypeDefinition typeDefinition)
+        {
+            var ns = typeDefinition.Namespace;
+            var attributeName = typeDefinition.Name.Replace("Attribute", "");
+
+            return IsAttributed(node, attributeName, ns);
+        }
+
     }
 }

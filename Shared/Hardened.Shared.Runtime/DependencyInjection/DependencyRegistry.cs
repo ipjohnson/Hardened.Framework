@@ -10,21 +10,23 @@ namespace Hardened.Shared.Runtime.DependencyInjection
 {
     public class DependencyRegistry<T>
     {
-        private static readonly ConcurrentDictionary<string, DependencyRegistrationFunc> _registrations = new ();
+        private static readonly List<DependencyRegistrationFunc> _registrations = new ();
 
-        public static string Register(DependencyRegistrationFunc func, string token)
+        public static int Register(DependencyRegistrationFunc func)
         {
-            _registrations[token] = func;
+            _registrations.Add(func);
 
-            return token;
+            return 1;
         }
 
-        public static IEnumerable<DependencyRegistrationFunc> GetAllRegistrationFunc()
+        public static void ApplyRegistration(IServiceCollection serviceCollection)
         {
-            return _registrations.Values;
+            foreach (var registrationFunc in _registrations)
+            {
+                registrationFunc(serviceCollection);
+            }
         }
 
         public delegate void DependencyRegistrationFunc(IServiceCollection serviceCollection);
-
     }
 }

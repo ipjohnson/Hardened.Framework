@@ -8,7 +8,7 @@ using Hardened.Templates.Runtime.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Hardened.Templates.Runtime
+namespace Hardened.Templates.Runtime.DependencyInjection
 {
     public static class TemplateDI
     {

@@ -6,6 +6,7 @@ using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Templates.Generator;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 
@@ -37,8 +38,7 @@ namespace Hardened.SourceGenerator.Web
             ApplicationSelector.Model appModel, ImmutableArray<WebEndPointModel> endPointModels, CSharpFileDefinition applicationFile)
         {
             var appClass = applicationFile.AddClass(appModel.ApplicationType.Name);
-
-
+            
             appClass.Modifiers |= ComponentModifier.Partial;
 
             var routingClass = appClass.AddClass("RoutingTable");
@@ -50,6 +50,10 @@ namespace Hardened.SourceGenerator.Web
             routingClass.AddBaseType(KnownTypes.Web.IWebExecutionRequestHandlerProvider);
 
             ImplementHandlerMethod(routingClass, endPointModels);
+            var routingType = TypeDefinition.Get(appModel.ApplicationType.Namespace,
+                appModel.ApplicationType.Name + ".RoutingTable");
+
+            GenerateDependencyInjection(appClass, routingType, appModel, endPointModels);
         }
 
         private static void CreateConstructor(ClassDefinition appClass)
@@ -61,6 +65,33 @@ namespace Hardened.SourceGenerator.Web
             var parameter = constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
 
             constructor.Assign(parameter).To(field.Instance);
+        }
+
+        private static void GenerateDependencyInjection(ClassDefinition classDefinition, ITypeDefinition routingTableType, ApplicationSelector.Model applicationModel, ImmutableArray<WebEndPointModel> webEndPointModels)
+        {
+            var templateField = classDefinition.AddField(typeof(int), "_routingTableDependencies");
+
+            templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
+            templateField.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeDependencyInjection);
+            templateField.InitializeValue = $"DependencyRegistry<{classDefinition.Name}>.Register(RoutingTableDI)";
+
+            var diMethod = classDefinition.AddMethod("RoutingTableDI");
+
+            diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
+
+            var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+            
+            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
+                new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
+
+            var distinctControllers =
+                webEndPointModels.Select(model => model.ControllerType).Distinct();
+
+            foreach (var controllerType in distinctControllers)
+            {
+                diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
+                    new[] { controllerType }));
+            }
         }
 
         private static void ImplementHandlerMethod(ClassDefinition routingClass, ImmutableArray<WebEndPointModel> endPointModels)

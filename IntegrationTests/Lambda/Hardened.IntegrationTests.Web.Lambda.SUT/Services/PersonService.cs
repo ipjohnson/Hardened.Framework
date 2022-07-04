@@ -20,7 +20,13 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services
     [Expose]
     public class PersonService : IPersonService
     {
-        private readonly Dictionary<int, PersonModel> _persons = new();
+        private readonly Dictionary<int, PersonModel> _persons = new()
+        {
+            { 10, new PersonModel { Id = 10, FirstName = "Test", LastName = "LastTest" } },
+            { 20, new PersonModel { Id = 20, FirstName = "Test 20", LastName = "LastTest20" } },
+            { 30, new PersonModel { Id = 30, FirstName = "Test 30", LastName = "LastTest30" } },
+            { 40, new PersonModel { Id = 40, FirstName = "Test 40", LastName = "LastTest40" } }
+        };
 
         public IEnumerable<PersonModel> All()
         {

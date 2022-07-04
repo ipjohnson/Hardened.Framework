@@ -31,7 +31,7 @@ namespace Hardened.Web.Lambda.SourceGenerator
 
             field.Modifiers |= ComponentModifier.Readonly | ComponentModifier.Private;
             
-            var provider = appClass.AddProperty(KnownTypes.DI.ServiceProvider, "Provider");
+            var provider = appClass.AddProperty(KnownTypes.DI.IServiceProvider, "Provider");
 
             provider.Set.Modifiers |= ComponentModifier.Private;
 
