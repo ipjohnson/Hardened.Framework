@@ -182,14 +182,20 @@ namespace Hardened.SourceGenerator.Shared
             public static ITypeDefinition TemplateHelperFactory { get; } =
                 TypeDefinition.Get(Namespace.HardenedTemplateAbstractNamespace, "TemplateHelperFactory");
 
+
             public static ITypeDefinition TemplateExecutionService { get; } =
                 TypeDefinition.Get(Namespace.HardenedTemplateAbstractNamespace, "ITemplateExecutionService");
 
             public static ITypeDefinition TemplateExecutionFunction { get; } =
                 TypeDefinition.Get(Namespace.HardenedTemplateAbstractNamespace, "TemplateExecutionFunction");
 
+            public static ITypeDefinition TemplateHelperAttribute { get; } =
+                TypeDefinition.Get(Namespace.HardenedTemplateAbstractNamespace, "TemplateHelperAttribute");
+
             public static ITypeDefinition DefaultHelpers { get; } =
                 TypeDefinition.Get("Hardened.Templates.Runtime.Helpers", "DefaultHelpers");
+
+
         }
 
         public class Web

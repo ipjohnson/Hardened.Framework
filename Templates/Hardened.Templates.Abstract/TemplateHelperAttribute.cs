@@ -21,7 +21,6 @@ namespace Hardened.Templates.Abstract
         /// <summary>
         /// One instance is created per template generation
         /// </summary>
-        PerUse,
         Transient,
     }
 

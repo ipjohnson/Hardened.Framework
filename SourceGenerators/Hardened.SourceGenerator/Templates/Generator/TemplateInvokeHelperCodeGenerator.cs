@@ -18,7 +18,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             var variableName = AssignNodeToVariable(context);
 
             context.CurrentBlock.AddCode(
-                $"builder.Append(_services.DataFormattingService.FormatData(executionContext, \"{context.CurrentNode.ActionText}\", {variableName}));");
+                $"writer.Write(_services.DataFormattingService.FormatData(executionContext, \"{context.CurrentNode.ActionText}\", {variableName}));");
         }
 
         public string AssignNodeToVariable(TemplateImplementationGenerator.GenerationContext context)
@@ -26,7 +26,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             var argumentList = ProcessNodeArguments(context);
 
             var functionName = InitializeHelper(context);
-            var variableName = "";
+            var variableName = context.InvokeMethod.GetUniqueVariable("helperOutput");
             
             context.CurrentBlock.Assign(Await($"{functionName}(serviceProvider).Execute(executionContext{argumentList})"))
                 .ToVar(variableName);

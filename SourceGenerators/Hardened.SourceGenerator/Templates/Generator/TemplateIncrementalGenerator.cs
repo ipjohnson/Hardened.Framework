@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
 using CSharpAuthor;
+using Hardened.SourceGenerator.DependencyInjection;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Templates.Parser;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Templates.Generator
 {
@@ -41,6 +43,34 @@ namespace Hardened.SourceGenerator.Templates.Generator
             var templateHandlerProviders = applicationModel.Combine(templateModels.Collect());
 
             initializationContext.RegisterSourceOutput(templateHandlerProviders, TemplateApplicationPartialGenerator.Generate);
+
+            var helperSelector = new ClassSelector(KnownTypes.Templates.TemplateHelperAttribute);
+
+            var templateHelperModels = initializationContext.SyntaxProvider.CreateSyntaxProvider(
+                helperSelector.Where,
+                TemplateHelperModelGenerator
+            );
+            
+            var templateHelperProviders = applicationModel.Combine(templateHelperModels.Collect());
+
+            initializationContext.RegisterSourceOutput(templateHelperProviders, TemplateHelperGenerator.Generate);
+        }
+
+        private static TemplateHelperModel TemplateHelperModelGenerator(GeneratorSyntaxContext arg1, CancellationToken arg2)
+        {
+            if (arg1.Node is not ClassDeclarationSyntax classDeclarationSyntax)
+            {
+                return null;
+            }
+
+            var attribute = 
+                arg1.Node.DescendantNodes().OfType<AttributeSyntax>().First(a => a.Name.ToString().Contains("TemplateHelper"));
+
+            var helperName = attribute.ArgumentList.Arguments.First().ToString().Trim('"');
+
+            return new TemplateHelperModel(helperName,
+                TypeDefinition.Get(classDeclarationSyntax.GetNamespace(), classDeclarationSyntax.Identifier.ToString()),
+                DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle.Singleton);
         }
 
         private static void GenerateTemplateSource(SourceProductionContext sourceProductionContext, (TemplateModel templateModel, ImmutableArray<ApplicationSelector.Model> applicationModels) templateData)
@@ -70,6 +100,25 @@ namespace Hardened.SourceGenerator.Templates.Generator
                 fileName,
                 extension,
                 _generator.ParseCSharpFile(additionalTextString, _tokenInfo));
+        }
+
+        public class TemplateHelperModel
+        {
+            public TemplateHelperModel(string name, ITypeDefinition helper, DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle lifestyle)
+            {
+                Name = name;
+                Helper = helper;
+                Lifestyle = lifestyle;
+            }
+
+            public string Name { get; }
+
+            public ITypeDefinition Helper { get; }
+            
+            public DependencyInjection.DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle Lifestyle
+            {
+                get;
+            }
         }
 
         public class TemplateModel

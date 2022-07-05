@@ -59,7 +59,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             var templateProviderClass = classDefinition.AddClass("TemplateProvider");
 
             templateProviderClass.AddBaseType(KnownTypes.Templates.ITemplateExecutionHandlerProvider);
-
+            
             GenerateConstructor(templateProviderClass);
 
             GenerateProviderMethod(classDefinition, templateProviderClass, applicationModel, templateModels);

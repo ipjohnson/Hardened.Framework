@@ -11,6 +11,7 @@ namespace Hardened.Web.Lambda.SourceGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+
             var dependencyRegistry = new[]
             {
                 KnownTypes.DI.Registry.StandardDependencies,
