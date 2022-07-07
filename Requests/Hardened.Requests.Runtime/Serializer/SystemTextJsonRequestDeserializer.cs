@@ -7,7 +7,7 @@ namespace Hardened.Requests.Runtime.Serializer
     {
         public bool CanProcessContext(IExecutionContext context)
         {
-            return context.Request.ContentType.Contains("application/json");
+            return context.Request.ContentType?.Contains("application/json") ?? false;
         }
 
         public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context)

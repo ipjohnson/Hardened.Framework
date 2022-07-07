@@ -10,7 +10,11 @@ namespace Hardened.SourceGenerator.Web
         {
             var handlerInfoField = classDefinition.AddField(KnownTypes.Requests.ExecutionRequestHandlerInfo, "_handlerInfo");
 
-            handlerInfoField.InitializeValue = "new ()";
+            handlerInfoField.Modifiers =
+                ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+
+            handlerInfoField.InitializeValue =
+                    $"new ExecutionRequestHandlerInfo(\"{endPointModel.RouteInformation.PathTemplate}\", \"{endPointModel.RouteInformation.Method}\", typeof({endPointModel.ControllerType.Name}), \"{endPointModel.HandlerMethod}\")";
 
             var handlerProperty = classDefinition.AddProperty(KnownTypes.Requests.IExecutionRequestHandlerInfo, "HandlerInfo");
 

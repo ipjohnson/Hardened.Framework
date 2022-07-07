@@ -19,14 +19,14 @@ namespace Hardened.Shared.Runtime.DependencyInjection
             return 1;
         }
 
-        public static void ApplyRegistration(IServiceCollection serviceCollection)
+        public static void ApplyRegistration(IServiceCollection serviceCollection, T entryPoint)
         {
             foreach (var registrationFunc in _registrations)
             {
-                registrationFunc(serviceCollection);
+                registrationFunc(serviceCollection, entryPoint);
             }
         }
 
-        public delegate void DependencyRegistrationFunc(IServiceCollection serviceCollection);
+        public delegate void DependencyRegistrationFunc(IServiceCollection serviceCollection, T entryPoint);
     }
 }

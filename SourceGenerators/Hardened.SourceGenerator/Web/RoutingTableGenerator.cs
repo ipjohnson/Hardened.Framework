@@ -80,6 +80,7 @@ namespace Hardened.SourceGenerator.Web
             diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
             var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+            var entryPoint = diMethod.AddParameter(applicationModel.ApplicationType, "entryPoint");
             
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
                 new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));

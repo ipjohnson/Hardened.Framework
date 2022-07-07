@@ -32,7 +32,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             var fileName = dependencyData.Left.ApplicationType.Name + ".DependencyInjection.cs";
 
-            File.WriteAllText(@"C:\temp\generated\" + fileName, outputContext.Output());
+            File.WriteAllText(@"C:\temp\generated\New_" + fileName, outputContext.Output());
 
             sourceProductionContext.AddSource(fileName, outputContext.Output());
         }
@@ -68,7 +68,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             providerMethod.NewLine();
 
-            providerMethod.AddCode("{arg1}<[arg2]>.ApplyRegistration(serviceCollection);",
+            providerMethod.AddCode("{arg1}<[arg2]>.ApplyRegistration(serviceCollection, this);",
                 KnownTypes.DI.DependencyRegistry, model.ApplicationType.Name);
 
             providerMethod.NewLine();
@@ -93,6 +93,14 @@ namespace Hardened.SourceGenerator.DependencyInjection
             }
 
             providerMethod.NewLine();
+
+            var method = model.MethodDefinitions.FirstOrDefault(m => m.Name == "RegisterDependencies");
+            
+            if (method != null)
+            {
+                providerMethod.AddIndentedStatement(method.Name + "(serviceCollection)");
+                providerMethod.NewLine();
+            }
 
             providerMethod.AddIndentedStatement("overrideDependencies?.Invoke(serviceCollection)");
             

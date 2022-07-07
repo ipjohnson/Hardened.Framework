@@ -67,6 +67,7 @@ namespace Hardened.SourceGenerator.Web
                 "StandardFilterEmptyParameters",
                 new[] { webEndPointModel.ControllerType },
                 "serviceProvider",
+                "_handlerInfo",
                 "InvokeMethod");
             var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 

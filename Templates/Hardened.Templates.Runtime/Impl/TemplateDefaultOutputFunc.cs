@@ -11,8 +11,8 @@ namespace Hardened.Templates.Runtime.Impl
 {
     public class TemplateDefaultOutputFunc
     {
-        private IStringBuilderPool _stringBuilderPool;
-        private TemplateExecutionFunction _templateExecutionFunction;
+        private readonly IStringBuilderPool _stringBuilderPool;
+        private readonly TemplateExecutionFunction _templateExecutionFunction;
 
         public TemplateDefaultOutputFunc(IStringBuilderPool stringBuilderPool, TemplateExecutionFunction templateExecutionFunction)
         {

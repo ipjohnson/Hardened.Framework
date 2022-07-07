@@ -2,6 +2,12 @@
 {
     public interface IExecutionRequestHandlerInfo
     {
+        string Path { get; }
 
+        string Method { get; }
+
+        Type HandlerType { get; }
+
+        string InvokeMethod { get; }
     }
 }
