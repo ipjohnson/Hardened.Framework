@@ -98,6 +98,9 @@ namespace Hardened.SourceGenerator.Shared
             public static ITypeDefinition IApplicationRoot =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "IApplicationRoot");
 
+            public static ITypeDefinition IStartupService =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "IStartupService");
+
             public static ITypeDefinition ApplicationLogic =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "ApplicationLogic");
         }
@@ -205,6 +208,9 @@ namespace Hardened.SourceGenerator.Shared
 
             public static ITypeDefinition IWebExecutionHandlerService =
                 TypeDefinition.Get(Namespace.Hardened.Web.RuntimeHandlers, "IWebExecutionHandlerService");
+
+            public static ITypeDefinition FilterRegistryStartupService =
+                TypeDefinition.Get(Namespace.Hardened.Web.RuntimeDependencyInjection, "FilterRegistryStartupService");
 
         }
 

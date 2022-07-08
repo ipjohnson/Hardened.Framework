@@ -45,10 +45,13 @@ namespace Hardened.Web.Testing
                 }
             }
 
-            void ApplyMethod(IServiceCollection collection) =>
-                providerList.ForEach(p => p.RegisterService(collection));
+            var testExposeAttributes = methodInfo.GetAttributes<ITestExposeAttribute>().ToList();
 
-            var applicationInstance = CreateApplicationInstance(bootstrap.Application, ApplyMethod);
+            var applicationInstance = CreateApplicationInstance(bootstrap.Application, collection =>
+            {
+                providerList.ForEach(provider => provider.RegisterService(collection));
+                testExposeAttributes.ForEach(exposeAction => exposeAction.ExposeDependencies(methodInfo, collection));
+            });
 
             if (applicationInstance == null)
             {

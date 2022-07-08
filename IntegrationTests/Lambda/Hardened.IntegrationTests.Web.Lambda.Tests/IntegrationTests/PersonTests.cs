@@ -1,9 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using AngleSharp.Dom;
+using AngleSharp.Html.Parser;
+using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
+using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
+using Hardened.IntegrationTests.Web.Lambda.Tests.Extensions;
+using Hardened.Shared.Testing;
 using Hardened.Web.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
@@ -12,13 +20,40 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
     {
         [Theory]
         [WebIntegration]
+        [TestExposeMethod("ExposeMethod")]
         public async Task PersonWebPageTest(ITestWebApp app)
         {
             var viewResponse = await app.Get("/api/person/view");
 
             viewResponse.Assert.Ok();
-            var streamReader = new StreamReader(viewResponse.Body);
-            var fullString = await streamReader.ReadToEndAsync();
+            var document = await viewResponse.ParseDocument();
+
+            var results = document.QuerySelector("#id5");
+
+            Assert.NotNull(results);
+        }
+
+        private static void ExposeMethod(MethodInfo testMethod, IServiceCollection collection)
+        {
+            collection.AddSingleton<IPersonService, PersonService>();
+        }
+
+        public class TestPersonService : IPersonService
+        {
+            public IEnumerable<PersonModel> All()
+            {
+                return new[] { new PersonModel { Id = 5, FirstName = "Test", LastName = "Testing" } };
+            }
+
+            public PersonModel? Get(int id)
+            {
+                return null;
+            }
+
+            public PersonModel Add(PersonModel person)
+            {
+                return person;
+            }
         }
     }
 }

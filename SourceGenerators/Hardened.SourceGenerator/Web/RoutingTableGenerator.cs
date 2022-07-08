@@ -93,6 +93,18 @@ namespace Hardened.SourceGenerator.Web
                 diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
                     new[] { controllerType }));
             }
+
+            var registerFiltersMethod = applicationModel.MethodDefinitions.FirstOrDefault(m => m.Name == "RegisterFilters");
+
+            if (registerFiltersMethod != null)
+            {
+                diMethod.AddIndentedStatement(
+                    serviceCollection.InvokeGeneric(
+                        "AddSingleton", 
+                        new []{ KnownTypes.Application.IStartupService}, 
+                        New(KnownTypes.Web.FilterRegistryStartupService, "entryPoint.RegisterFilters")
+                ));
+            }
         }
 
         private static void ImplementHandlerMethod(ClassDefinition routingClass, ImmutableArray<WebEndPointModel> endPointModels)
