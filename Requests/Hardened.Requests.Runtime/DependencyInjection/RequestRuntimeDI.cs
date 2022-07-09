@@ -4,6 +4,7 @@ using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Middleware;
 using Hardened.Requests.Runtime.Serializer;
+using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -11,7 +12,7 @@ namespace Hardened.Requests.Runtime.DependencyInjection
 {
     public static class RequestRuntimeDI
     {
-        public static void Register(IServiceCollection serviceCollection)
+        public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
         {
             serviceCollection.TryAddSingleton<IMiddlewareService, MiddlewareService>();
             serviceCollection.TryAddSingleton<IContextSerializationService, ContextSerializationService>();

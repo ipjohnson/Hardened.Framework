@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
 using Hardened.Shared.Runtime.Attributes;
+using Hardened.IntegrationTests.Web.Lambda.SUT.Configuration;
 
 namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services
 {
@@ -20,6 +21,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services
     [Expose]
     public class PersonService : IPersonService
     {
+        private IPersonServiceConfiguration _configuration;
         private readonly Dictionary<int, PersonModel> _persons = new()
         {
             { 10, new PersonModel { Id = 10, FirstName = "Test", LastName = "LastTest" } },
@@ -27,6 +29,11 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services
             { 30, new PersonModel { Id = 30, FirstName = "Test 30", LastName = "LastTest30" } },
             { 40, new PersonModel { Id = 40, FirstName = "Test 40", LastName = "LastTest40" } }
         };
+
+        public PersonService(IPersonServiceConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
 
         public IEnumerable<PersonModel> All()
         {

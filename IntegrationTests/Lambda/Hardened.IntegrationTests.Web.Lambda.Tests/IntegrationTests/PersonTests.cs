@@ -20,7 +20,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
     {
         [Theory]
         [WebIntegration]
-        [TestExposeMethod("ExposeMethod")]
+        [TestExposeMethod(nameof(ExposeMethod))]
         public async Task PersonWebPageTest(ITestWebApp app)
         {
             var viewResponse = await app.Get("/api/person/view");
@@ -33,9 +33,9 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             Assert.NotNull(results);
         }
 
-        private static void ExposeMethod(MethodInfo testMethod, IServiceCollection collection)
+        public static void ExposeMethod(MethodInfo testMethod, IServiceCollection collection)
         {
-            collection.AddSingleton<IPersonService, PersonService>();
+            collection.AddSingleton<IPersonService, TestPersonService>();
         }
 
         public class TestPersonService : IPersonService

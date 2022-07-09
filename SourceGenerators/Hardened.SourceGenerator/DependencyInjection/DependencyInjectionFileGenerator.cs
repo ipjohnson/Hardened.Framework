@@ -51,6 +51,8 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var providerMethod = applicationDefinition.AddMethod("CreateServiceProvider");
             providerMethod.SetReturnType(KnownTypes.DI.IServiceProvider);
 
+            var environment = providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+
             var overrideDependenciesDefinition = providerMethod.AddParameter(
                 TypeDefinition.Action(KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
@@ -63,12 +65,12 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             foreach (var typeDefinition in _dependencies)
             {
-                providerMethod.AddIndentedStatement(Invoke(typeDefinition, "Register", serviceCollectionDefinition));
+                providerMethod.AddIndentedStatement(Invoke(typeDefinition, "Register", environment, serviceCollectionDefinition));
             }
 
             providerMethod.NewLine();
 
-            providerMethod.AddCode("{arg1}<[arg2]>.ApplyRegistration(serviceCollection, this);",
+            providerMethod.AddCode("{arg1}<[arg2]>.ApplyRegistration(environment, serviceCollection, this);",
                 KnownTypes.DI.DependencyRegistry, model.ApplicationType.Name);
 
             providerMethod.NewLine();

@@ -60,14 +60,16 @@ namespace Hardened.Web.Lambda.SourceGenerator
         private static void CreateConstructors(ClassDefinition appClass, ITypeDefinition applicationType,
             InstanceDefinition providerInstanceDefinition)
         {
-            appClass.AddConstructor(This(Null()));
+            appClass.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl), Null()));
 
             var constructor = appClass.AddConstructor();
+
+            var environment = constructor.AddParameter(KnownTypes.Application.IEnvironment, "environment");
 
             var overrides = 
                 constructor.AddParameter(TypeDefinition.Action(KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
-            constructor.Assign(Invoke("CreateServiceProvider", overrides)).To(providerInstanceDefinition);
+            constructor.Assign(Invoke("CreateServiceProvider",environment, overrides)).To(providerInstanceDefinition);
             
             constructor.AddIndentedStatement(
                 Invoke(KnownTypes.Application.ApplicationLogic, "StartWithWait", providerInstanceDefinition,

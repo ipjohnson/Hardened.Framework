@@ -12,6 +12,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
 	  <ProjectReference Include="..\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
 	</ItemGroup>
 

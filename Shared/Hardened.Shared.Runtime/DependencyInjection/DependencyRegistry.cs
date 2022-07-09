@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Shared.Runtime.DependencyInjection
@@ -19,14 +20,14 @@ namespace Hardened.Shared.Runtime.DependencyInjection
             return 1;
         }
 
-        public static void ApplyRegistration(IServiceCollection serviceCollection, T entryPoint)
+        public static void ApplyRegistration(IEnvironment environment, IServiceCollection serviceCollection, T entryPoint)
         {
             foreach (var registrationFunc in _registrations)
             {
-                registrationFunc(serviceCollection, entryPoint);
+                registrationFunc(environment, serviceCollection, entryPoint);
             }
         }
 
-        public delegate void DependencyRegistrationFunc(IServiceCollection serviceCollection, T entryPoint);
+        public delegate void DependencyRegistrationFunc(IEnvironment environment, IServiceCollection serviceCollection, T entryPoint);
     }
 }

@@ -10,7 +10,7 @@ namespace Hardened.Requests.Runtime.Filters
 {
     public class GlobalFilterRegistry : IGlobalFilterRegistry
     {
-        private List<IRequestFilterProvider> _filterProviders;
+        private readonly List<IRequestFilterProvider> _filterProviders;
 
         public GlobalFilterRegistry(IEnumerable<IRequestFilterProvider> filterProviders)
         {

@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Templates.Generator
 {
-    public static class TemplateApplicationPartialGenerator
+    public static class TemplateEntryPointGenerator
     {
         public static void Generate(SourceProductionContext productionContext, 
             (ApplicationSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels) templateData)
@@ -48,6 +48,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
+            var environment = diMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
             var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
             var entryPoint = diMethod.AddParameter(applicationModel.ApplicationType, "entryPoint");
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Hardened.Shared.Runtime.Application;
 using Hardened.Templates.Abstract;
 using Hardened.Templates.Runtime.Impl;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +13,7 @@ namespace Hardened.Templates.Runtime.DependencyInjection
 {
     public static class TemplateDI
     {
-        public static void Register(IServiceCollection serviceCollection)
+        public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
         {
             serviceCollection.TryAddSingleton<IBooleanLogicService, BooleanLogicService>();
             serviceCollection.TryAddSingleton<IDataFormattingService, DataFormattingService>();

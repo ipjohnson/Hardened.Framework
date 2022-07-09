@@ -36,6 +36,8 @@ namespace Hardened.SourceGenerator.Shared
 
             public const string HardenedSharedRuntimeAttributes = "Hardened.Shared.Runtime.Attributes";
 
+            public const string HardenedSharedRuntimeConfiguration = "Hardened.Shared.Runtime.Configuration";
+
             public const string HardenedSharedRuntimeDependencyInjection = "Hardened.Shared.Runtime.DependencyInjection";
 
             public const string HardenedRequestsRuntimeErrors = "Hardened.Requests.Runtime.Errors";
@@ -57,6 +59,24 @@ namespace Hardened.SourceGenerator.Shared
             public static string HardenedTemplateRuntimeNamespace = "Hardened.Templates.Runtime";
         }
         
+        public static class Configuration
+        {
+            public static readonly ITypeDefinition ConfigurationModelAttribute =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeAttributes, "ConfigurationModelAttribute");
+
+            public static readonly ITypeDefinition IConfigurationManager =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeConfiguration, "IConfigurationManager");
+
+            public static readonly ITypeDefinition IConfigurationPackage = 
+                    TypeDefinition.Get(Namespace.HardenedSharedRuntimeConfiguration, "IConfigurationPackage");
+
+            public static readonly ITypeDefinition IConfigurationValueProvider =
+            TypeDefinition.Get(Namespace.HardenedSharedRuntimeConfiguration, "IConfigurationValueProvider");
+
+            public static readonly ITypeDefinition IConfigurationValueAmender =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeConfiguration, "IConfigurationValueAmender");
+        }
+
         public static class DI
         {
             public static ITypeDefinition IServiceCollection =
@@ -103,6 +123,12 @@ namespace Hardened.SourceGenerator.Shared
 
             public static ITypeDefinition ApplicationLogic =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "ApplicationLogic");
+
+            public static ITypeDefinition IEnvironment =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "IEnvironment");
+
+            public static ITypeDefinition EnvironmentImpl =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "EnvironmentImpl");
         }
 
         public static class Requests

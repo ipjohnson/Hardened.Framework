@@ -47,7 +47,10 @@ namespace Hardened.Web.Testing
 
             var testExposeAttributes = methodInfo.GetAttributes<ITestExposeAttribute>().ToList();
 
-            var applicationInstance = CreateApplicationInstance(bootstrap.Application, collection =>
+            var applicationInstance = CreateApplicationInstance(
+                GetEnvironment(methodInfo),
+                bootstrap.Application,
+                collection =>
             {
                 providerList.ForEach(provider => provider.RegisterService(collection));
                 testExposeAttributes.ForEach(exposeAction => exposeAction.ExposeDependencies(methodInfo, collection));
@@ -59,6 +62,20 @@ namespace Hardened.Web.Testing
             }
 
             return GetParameterValues(methodInfo, applicationInstance);
+        }
+
+        private static IEnvironment GetEnvironment(MethodInfo methodInfo)
+        {
+            var name = methodInfo.GetAttribute<EnvironmentNameAttribute>()?.Name ?? "test";
+
+            var variables = new Dictionary<string, object>();
+
+            foreach (var environmentValueAttribute in methodInfo.GetAttributes<EnvironmentValueAttribute>())
+            {
+                variables[environmentValueAttribute.Variable] = environmentValueAttribute.Value;
+            }
+
+            return new TestEnvironment(name, variables);
         }
 
         private static object[] GetParameterValues(MethodInfo methodInfo, IApplicationRoot applicationInstance)
@@ -83,9 +100,10 @@ namespace Hardened.Web.Testing
             return returnArray;
         }
 
-        private static IApplicationRoot? CreateApplicationInstance(Type applicationType, Action<IServiceCollection> applyMethod)
+        private static IApplicationRoot? CreateApplicationInstance(IEnvironment environment, Type applicationType, Action<IServiceCollection> applyMethod)
         {
-            return Activator.CreateInstance(applicationType, applyMethod) as IApplicationRoot;
+            return Activator.CreateInstance(
+                applicationType, environment, applyMethod) as IApplicationRoot;
         }
     }
 }

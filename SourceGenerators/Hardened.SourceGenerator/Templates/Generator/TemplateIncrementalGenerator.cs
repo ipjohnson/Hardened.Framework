@@ -42,7 +42,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             var templateHandlerProviders = applicationModel.Combine(templateModels.Collect());
 
-            initializationContext.RegisterSourceOutput(templateHandlerProviders, TemplateApplicationPartialGenerator.Generate);
+            initializationContext.RegisterSourceOutput(templateHandlerProviders, TemplateEntryPointGenerator.Generate);
 
             var helperSelector = new ClassSelector(KnownTypes.Templates.TemplateHelperAttribute);
 
