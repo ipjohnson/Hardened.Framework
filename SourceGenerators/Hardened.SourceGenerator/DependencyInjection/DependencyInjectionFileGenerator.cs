@@ -74,7 +74,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             {
                 providerMethod.AddIndentedStatement(
                     serviceCollectionDefinition.Invoke(
-                        "TryAddTransient", "typeof(ILogger<>)", "typeof(LoggerImpl)"));
+                        "TryAddTransient", "typeof(ILogger<>)", "typeof(LoggerImpl<>)"));
                 providerMethod.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeLogging);
 
                 providerMethod.AddIndentedStatement(

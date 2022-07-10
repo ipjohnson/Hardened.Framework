@@ -5,6 +5,7 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.DependencyInjection;
+using MSLogging = Microsoft.Extensions.Logging;
 
 namespace Hardened.Web.Lambda.Runtime.Impl
 {
@@ -13,24 +14,29 @@ namespace Hardened.Web.Lambda.Runtime.Impl
         Task<APIGatewayHttpApiV2ProxyResponse> Process(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext context);
     }
 
-    public class ApiGatewayEventProcessor : IApiGatewayEventProcessor
+    public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
     {
+        private readonly MSLogging.ILogger<ApiGatewayEventProcessor> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly IMiddlewareService _middlewareService;
         private readonly IMemoryStreamPool _memoryStreamPool;
 
         public ApiGatewayEventProcessor(
-            IServiceProvider serviceProvider, IMiddlewareService middlewareService, IMemoryStreamPool memoryStreamPool)
+            IServiceProvider serviceProvider, 
+            IMiddlewareService middlewareService, 
+            IMemoryStreamPool memoryStreamPool, 
+            MSLogging.ILogger<ApiGatewayEventProcessor> logger)
         {
             _serviceProvider = serviceProvider;
             _middlewareService = middlewareService;
             _memoryStreamPool = memoryStreamPool;
+            _logger = logger;
         }
 
         public async Task<APIGatewayHttpApiV2ProxyResponse> Process(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext context)
         {
-            context.Logger.LogInformation("Got here");
-            
+            LogRequestStarted(request.RequestContext.Http.Method, request.RequestContext.Http.Path);
+
             var response = new APIGatewayHttpApiV2ProxyResponse
             {
                 Headers = new Dictionary<string, string>(),
@@ -57,7 +63,7 @@ namespace Hardened.Web.Lambda.Runtime.Impl
 
             response.Body = Encoding.UTF8.GetString(memoryStreamReservation.Item.ToArray());
 
-            context.Logger.LogInformation("Finished here");
+            LogRequestFinished(response.StatusCode);
 
             return response;
         }
@@ -72,5 +78,17 @@ namespace Hardened.Web.Lambda.Runtime.Impl
                 new ApiGatewayV2ExecutionRequest(request),
                 new ApiGatewayV2ExecutionResponse(response));
         }
+        
+        [MSLogging.LoggerMessage(
+            EventId = 0,
+            Level = MSLogging.LogLevel.Information,
+            Message = "{httpMethod} {path} Request received")]
+        private partial void LogRequestStarted(string httpMethod, string path);
+
+        [MSLogging.LoggerMessage(
+            EventId = 0,
+            Level = MSLogging.LogLevel.Information,
+            Message = "Finished request status code {statusCode}")]
+        private partial void LogRequestFinished(int statusCode);
     }
 }

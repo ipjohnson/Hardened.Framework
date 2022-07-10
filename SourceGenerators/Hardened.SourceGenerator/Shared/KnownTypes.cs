@@ -48,6 +48,8 @@ namespace Hardened.SourceGenerator.Shared
 
             public const string HardenedSharedRuntimeDependencyInjection = "Hardened.Shared.Runtime.DependencyInjection";
 
+            public const string HardenedSharedRuntimeLogging = "Hardened.Shared.Runtime.Logging";
+
             public const string HardenedRequestsRuntimeErrors = "Hardened.Requests.Runtime.Errors";
 
             public const string HardenedRequestsRuntimeExecution = "Hardened.Requests.Runtime.Execution";
@@ -66,7 +68,6 @@ namespace Hardened.SourceGenerator.Shared
 
             public static readonly string HardenedTemplateRuntimeNamespace = "Hardened.Templates.Runtime";
 
-            public static readonly string HardenedSharedRuntimeLogging = "Hardened.Templates.Runtime.Logging";
         }
         
         public static class Configuration
