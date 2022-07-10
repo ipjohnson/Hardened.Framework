@@ -6,7 +6,9 @@ namespace Hardened.SourceGenerator.Web
 {
     public static class WebIncrementalGenerator
     {
-        public static void Setup(IncrementalGeneratorInitializationContext initializationContext, string libraryAttribute)
+        public static void Setup(
+            IncrementalGeneratorInitializationContext initializationContext,
+            IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider)
         {
             var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 WebEndPointModelGenerator.SelectWebRequestMethods,
@@ -21,13 +23,8 @@ namespace Hardened.SourceGenerator.Web
                 );
 
             var collection = modelProvider.Collect();
-
-            var applicationModel = initializationContext.SyntaxProvider.CreateSyntaxProvider(
-                ApplicationSelector.UsingAttribute(libraryAttribute),
-                ApplicationSelector.TransformModel
-            );
-
-            var routeProvider = applicationModel.Combine(collection);
+            
+            var routeProvider = entryPointProvider.Combine(collection);
             initializationContext.RegisterSourceOutput(routeProvider, RoutingTableGenerator.GenerateRoute);
         }
     }

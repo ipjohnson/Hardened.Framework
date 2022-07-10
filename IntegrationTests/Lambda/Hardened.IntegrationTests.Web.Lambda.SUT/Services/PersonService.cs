@@ -22,17 +22,18 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services
     public class PersonService : IPersonService
     {
         private IPersonServiceConfiguration _configuration;
-        private readonly Dictionary<int, PersonModel> _persons = new()
-        {
-            { 10, new PersonModel { Id = 10, FirstName = "Test", LastName = "LastTest" } },
-            { 20, new PersonModel { Id = 20, FirstName = "Test 20", LastName = "LastTest20" } },
-            { 30, new PersonModel { Id = 30, FirstName = "Test 30", LastName = "LastTest30" } },
-            { 40, new PersonModel { Id = 40, FirstName = "Test 40", LastName = "LastTest40" } }
-        };
+        private readonly Dictionary<int, PersonModel> _persons;
 
         public PersonService(IPersonServiceConfiguration configuration)
         {
             _configuration = configuration;
+            _persons = new()
+            {
+                { 10, new PersonModel { Id = 10, FirstName = _configuration.FirstNamePrefix + "Test", LastName = _configuration.LastNamePrefix + "Test"} },
+                { 20, new PersonModel { Id = 20, FirstName = _configuration.FirstNamePrefix + "Test 20", LastName = _configuration.LastNamePrefix + "LastTest20" } },
+                { 30, new PersonModel { Id = 30, FirstName = _configuration.FirstNamePrefix + "Test 30", LastName = _configuration.LastNamePrefix + "LastTest30" } },
+                { 40, new PersonModel { Id = 40, FirstName = _configuration.FirstNamePrefix + "Test 40", LastName = _configuration.LastNamePrefix + "LastTest40" } }
+            };
         }
 
         public IEnumerable<PersonModel> All()

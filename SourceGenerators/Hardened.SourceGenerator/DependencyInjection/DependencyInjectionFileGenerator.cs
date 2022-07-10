@@ -56,12 +56,33 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var overrideDependenciesDefinition = providerMethod.AddParameter(
                 TypeDefinition.Action(KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
+            ParameterDefinition? loggerFactory = null;
+
+            if (model.RootEntryPoint)
+            {
+                loggerFactory = providerMethod.AddParameter(KnownTypes.Logging.ILoggerFactory, "loggerFactory");
+            }
+
             providerMethod.AddUsingNamespace("Microsoft.Extensions.DependencyInjection.Extensions");
 
             var serviceCollectionDefinition =
                 providerMethod.Assign(New(KnownTypes.DI.ServiceCollection)).ToVar("serviceCollection");
 
             providerMethod.NewLine();
+
+            if (loggerFactory!= null)
+            {
+                providerMethod.AddIndentedStatement(
+                    serviceCollectionDefinition.Invoke(
+                        "TryAddTransient", "typeof(ILogger<>)", "typeof(LoggerImpl)"));
+                providerMethod.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeLogging);
+
+                providerMethod.AddIndentedStatement(
+                    serviceCollectionDefinition.InvokeGeneric(
+                        "AddSingleton", new []{KnownTypes.Logging.ILoggerFactory}, "_ => loggerFactory"));
+
+                providerMethod.NewLine();
+            }
 
             foreach (var typeDefinition in _dependencies)
             {

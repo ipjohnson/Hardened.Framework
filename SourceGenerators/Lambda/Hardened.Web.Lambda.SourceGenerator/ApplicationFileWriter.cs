@@ -6,11 +6,11 @@ namespace Hardened.Web.Lambda.SourceGenerator
 {
     public static class ApplicationFileWriter
     {
-        public static string WriteFile(ITypeDefinition applicationType)
+        public static string WriteFile(ApplicationSelector.Model entryPoint)
         {
-            var applicationFile = new CSharpFileDefinition(applicationType.Namespace);
+            var applicationFile = new CSharpFileDefinition(entryPoint.ApplicationType.Namespace);
 
-            CreateApplicationClass(applicationFile, applicationType);
+            CreateApplicationClass(applicationFile, entryPoint);
 
             var context = new OutputContext();
 
@@ -19,9 +19,9 @@ namespace Hardened.Web.Lambda.SourceGenerator
             return context.Output();
         }
 
-        private static void CreateApplicationClass(CSharpFileDefinition applicationFile, ITypeDefinition applicationType)
+        private static void CreateApplicationClass(CSharpFileDefinition applicationFile, ApplicationSelector.Model entryPoint)
         {
-            var appClass = applicationFile.AddClass(applicationType.Name);
+            var appClass = applicationFile.AddClass(entryPoint.ApplicationType.Name);
 
             appClass.Modifiers |= ComponentModifier.Partial;
 
@@ -35,12 +35,12 @@ namespace Hardened.Web.Lambda.SourceGenerator
 
             provider.Set.Modifiers |= ComponentModifier.Private;
 
-            CreateConstructors(appClass, applicationType, provider.Instance);
+            CreateConstructors(appClass, entryPoint, provider.Instance);
 
-            CreateHandlerMethod(appClass, applicationType, provider.Instance, field.Instance);
+            CreateHandlerMethod(appClass, entryPoint, provider.Instance, field.Instance);
         }
 
-        private static void CreateHandlerMethod(ClassDefinition appClass, ITypeDefinition applicationType,
+        private static void CreateHandlerMethod(ClassDefinition appClass, ApplicationSelector.Model entryPoint,
             InstanceDefinition providerInstance, InstanceDefinition eventProcessor)
         {
             var handler = appClass.AddMethod("FunctionHandlerAsync");
@@ -57,7 +57,8 @@ namespace Hardened.Web.Lambda.SourceGenerator
             handler.Return(eventProcessor.Invoke("Process", request, context));
         }
 
-        private static void CreateConstructors(ClassDefinition appClass, ITypeDefinition applicationType,
+        private static void CreateConstructors(ClassDefinition appClass,
+            ApplicationSelector.Model entryPoint,
             InstanceDefinition providerInstanceDefinition)
         {
             appClass.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl), Null()));
@@ -69,11 +70,24 @@ namespace Hardened.Web.Lambda.SourceGenerator
             var overrides = 
                 constructor.AddParameter(TypeDefinition.Action(KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
-            constructor.Assign(Invoke("CreateServiceProvider",environment, overrides)).To(providerInstanceDefinition);
-            
+            var loggerFactory = SetupLoggerFactory(entryPoint, constructor, environment);
+
+            constructor.Assign(Invoke("CreateServiceProvider",environment, overrides, loggerFactory)).To(providerInstanceDefinition);
+
+            var startupMethod = "null";
+
+            if (entryPoint.MethodDefinitions.Any(m => m.Name == "Startup"))
+            {
+                startupMethod = "Startup";
+            }
+
             constructor.AddIndentedStatement(
-                Invoke(KnownTypes.Application.ApplicationLogic, "StartWithWait", providerInstanceDefinition,
-                15));
+                Invoke(
+                    KnownTypes.Application.ApplicationLogic, 
+                    "StartWithWait", 
+                    providerInstanceDefinition,
+                    startupMethod,
+                    15));
 
             var handler = 
                 constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
@@ -87,6 +101,38 @@ namespace Hardened.Web.Lambda.SourceGenerator
 
             constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
                     new[] { KnownTypes.Lambda.IApiGatewayEventProcessor })).To("_eventProcessor");
+        }
+
+        private static InstanceDefinition SetupLoggerFactory(
+            ApplicationSelector.Model entryPoint,
+            ConstructorDefinition constructorDefinition, 
+            ParameterDefinition environment)
+        {
+            var loggingMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogging");
+            var logLevelMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogLevel");
+
+            IOutputComponent? logCreateMethod;
+
+            if (loggingMethod != null)
+            {
+                logCreateMethod = CodeOutputComponent.Get("LoggerFactory.Create(builder => ConfigureLogging(environment, builder))");
+            }
+            else if (logLevelMethod != null)
+            {
+                logCreateMethod = CodeOutputComponent.Get(
+                    $"LoggerFactory.Create(LambdaWebLoggerHelper.CreateAction(ConfigureLogLevel(environment), \"{entryPoint.ApplicationType.Namespace}\"))");
+                logCreateMethod.AddUsingNamespace("Hardened.Web.Lambda.Runtime.Logging");
+            }
+            else
+            {
+                logCreateMethod = CodeOutputComponent.Get(
+                    $"LoggerFactory.Create(LambdaWebLoggerHelper.CreateAction(environment, \"{entryPoint.ApplicationType.Namespace}\"))");
+                logCreateMethod.AddUsingNamespace("Hardened.Web.Lambda.Runtime.Logging");
+            }
+
+            logCreateMethod.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.Logging);
+
+            return constructorDefinition.Assign(logCreateMethod).ToVar("loggerFactory");
         }
     }
 }

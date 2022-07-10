@@ -10,13 +10,10 @@ namespace Hardened.SourceGenerator.Configuration
 {
     public static class ConfigurationIncrementalGenerator
     {
-        public static void Setup(IncrementalGeneratorInitializationContext initializationContext, string libraryAttribute)
+        public static void Setup(
+            IncrementalGeneratorInitializationContext initializationContext, 
+            IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider)
         {
-            var applicationModel = initializationContext.SyntaxProvider.CreateSyntaxProvider(
-                ApplicationSelector.UsingAttribute(libraryAttribute),
-                ApplicationSelector.TransformModel
-            );
-
             var classSelector = new ClassSelector(KnownTypes.Configuration.ConfigurationModelAttribute);
 
             var configurationFileModels = initializationContext.SyntaxProvider.CreateSyntaxProvider(
@@ -27,7 +24,7 @@ namespace Hardened.SourceGenerator.Configuration
             initializationContext.RegisterSourceOutput(configurationFileModels, ConfigurationPropertyImplementationGenerator.Generate);
 
             var modelCollection = configurationFileModels.Collect();
-            initializationContext.RegisterSourceOutput(applicationModel.Combine(modelCollection),
+            initializationContext.RegisterSourceOutput(entryPointProvider.Combine(modelCollection),
                 ConfigurationEntryPointGenerator.Generate);
         }
 

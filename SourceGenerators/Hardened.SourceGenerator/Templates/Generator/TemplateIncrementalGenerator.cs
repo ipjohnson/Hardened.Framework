@@ -22,11 +22,9 @@ namespace Hardened.SourceGenerator.Templates.Generator
                 new TemplateWhiteSpaceCleaner());
 
         public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
-            string libraryAttribute, ICollection<string> fileExtension)
+            IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider, ICollection<string> fileExtension)
         {
-            var applicationModel = initializationContext.GetEntryPoint(libraryAttribute);
-
-            var applicationModelCollection = applicationModel.Collect();
+            var applicationModelCollection = entryPointProvider.Collect();
 
             var templateFiles = initializationContext.AdditionalTextsProvider.Where(textFile =>
             {
@@ -40,7 +38,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             initializationContext.RegisterSourceOutput(templateModelsProvider, GenerateTemplateSource);
 
-            var templateHandlerProviders = applicationModel.Combine(templateModels.Collect());
+            var templateHandlerProviders = entryPointProvider.Combine(templateModels.Collect());
 
             initializationContext.RegisterSourceOutput(templateHandlerProviders, TemplateEntryPointGenerator.Generate);
 
@@ -51,7 +49,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
                 TemplateHelperModelGenerator
             );
             
-            var templateHelperProviders = applicationModel.Combine(templateHelperModels.Collect());
+            var templateHelperProviders = entryPointProvider.Combine(templateHelperModels.Collect());
 
             initializationContext.RegisterSourceOutput(templateHelperProviders, TemplateHelperGenerator.Generate);
         }

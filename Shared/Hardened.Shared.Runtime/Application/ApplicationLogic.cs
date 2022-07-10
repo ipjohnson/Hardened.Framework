@@ -4,17 +4,31 @@ namespace Hardened.Shared.Runtime.Application
 {
     public class ApplicationLogic
     {
-        public static async Task Start(IServiceProvider serviceProvider)
+        public static Task Start(IServiceProvider serviceProvider, Func<IServiceProvider, Task>? startupTask)
         {
+            var startupTasks = new List<Task>();
+
             foreach (var startupService in serviceProvider.GetServices<IStartupService>())
             {
-                await startupService.Startup(serviceProvider);
+                startupTasks.Add(startupService.Startup(serviceProvider));
             }
+
+            if (startupTask != null)
+            {
+                startupTasks.Add(startupTask(serviceProvider));
+            }
+
+            if (startupTasks.Count > 0)
+            {
+                return Task.WhenAll(startupTasks);
+            }
+
+            return Task.CompletedTask;
         }
 
-        public static void StartWithWait(IServiceProvider serviceProvider, int timeoutInSeconds)
+        public static void StartWithWait(IServiceProvider serviceProvider, Func<IServiceProvider, Task>? startup, int timeoutInSeconds)
         {
-            Start(serviceProvider).Wait(timeoutInSeconds * 1000);
+            Start(serviceProvider, startup).Wait(timeoutInSeconds * 1000);
         }
     }
 }

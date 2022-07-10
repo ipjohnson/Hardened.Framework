@@ -21,11 +21,17 @@ namespace Hardened.Web.Lambda.SourceGenerator
                 KnownTypes.DI.Registry.LambdaWebDI
             };
 
-            DependencyInjectionIncrementalGenerator.Setup(context, "LambdaWebApplication", dependencyRegistry);
-            ConfigurationIncrementalGenerator.Setup(context, "LambdaWebApplication");
-            TemplateIncrementalGenerator.Setup(context, "LambdaWebApplication", new [] {"html"});
-            WebIncrementalGenerator.Setup(context, "LambdaWebApplication");
-            WebLambdaApplicationBootstrapGenerator.Setup(context);
+
+            var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
+                ApplicationSelector.UsingAttribute("LambdaWebApplication"),
+                ApplicationSelector.TransformModel(true)
+            );
+
+            DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
+            ConfigurationIncrementalGenerator.Setup(context, applicationModel);
+            TemplateIncrementalGenerator.Setup(context, applicationModel, new [] {"html"});
+            WebIncrementalGenerator.Setup(context, applicationModel);
+            WebLambdaApplicationBootstrapGenerator.Setup(context, applicationModel);
         }
     }
 }

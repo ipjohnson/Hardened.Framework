@@ -7,16 +7,19 @@ using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Web.Runtime.Attributes;
+using Microsoft.Extensions.Logging;
 
 namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers
 {
     public class PersonController
     {
         private readonly IPersonService _personService;
+        private readonly ILogger<PersonController> _logger;
 
-        public PersonController(IPersonService personService)
+        public PersonController(IPersonService personService, ILogger<PersonController> logger)
         {
             _personService = personService;
+            _logger = logger;
         }
         
         [Get("/api/person/")]
@@ -29,6 +32,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers
         [Template("personList")]
         public PersonListModel GetAllWithView()
         {
+            _logger.LogInformation("Person list is executing");
             return new PersonListModel("Person List", _personService.All());
         }
 

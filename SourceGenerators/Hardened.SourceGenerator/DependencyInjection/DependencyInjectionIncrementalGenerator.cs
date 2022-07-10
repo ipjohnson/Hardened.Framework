@@ -10,25 +10,22 @@ namespace Hardened.SourceGenerator.DependencyInjection
 {
     public static class DependencyInjectionIncrementalGenerator
     {
-        public static void Setup(IncrementalGeneratorInitializationContext initializationContext, string libraryAttribute, IReadOnlyList<ITypeDefinition> defaultLibraries)
+        public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
+            IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider,
+            IReadOnlyList<ITypeDefinition> defaultLibraries)
         {
-            var applicationModel = initializationContext.SyntaxProvider.CreateSyntaxProvider(
-                ApplicationSelector.UsingAttribute(libraryAttribute),
-                ApplicationSelector.TransformModel
-            );
-
             var classSelector = new ClassSelector(KnownTypes.DI.ExposeAttribute);
 
             var services = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 classSelector.Where,
-                DependencyInjectionIncrementalGenerator.GenerateServiceModel
+                GenerateServiceModel
             );
 
             var servicesCollection = services.Collect();
 
             var generator = new DependencyInjectionFileGenerator(defaultLibraries);
 
-            initializationContext.RegisterSourceOutput(applicationModel.Combine(servicesCollection), generator.GenerateFile);
+            initializationContext.RegisterSourceOutput(entryPointProvider.Combine(servicesCollection), generator.GenerateFile);
         }
 
         private static ServiceModel GenerateServiceModel(GeneratorSyntaxContext arg1, CancellationToken arg2)

@@ -16,6 +16,14 @@ namespace Hardened.SourceGenerator.Shared
                     "Amazon.Lambda.Serialization.SystemTextJson";
             }
 
+            public static class Microsoft
+            {
+                public static class Extensions
+                {
+                    public const string Logging = "Microsoft.Extensions.Logging";
+                }
+            }
+
             public static class Hardened
             {
                 public static class Web
@@ -50,13 +58,15 @@ namespace Hardened.SourceGenerator.Shared
 
             public const string HardenedRequestsAbstractMiddleware = "Hardened.Requests.Abstract.Middleware";
 
-            public static string HardenedTemplateAbstractNamespace = "Hardened.Templates.Abstract";
+            public static readonly string HardenedTemplateAbstractNamespace = "Hardened.Templates.Abstract";
 
-            public static string HardenedTemplateRuntimeImplNamespace = "Hardened.Templates.Runtime.Impl";
+            public static readonly string HardenedTemplateRuntimeImplNamespace = "Hardened.Templates.Runtime.Impl";
 
-            public static string HardenedTemplateRuntimeDependencyInjection = "Hardened.Templates.Runtime.DependencyInjection";
+            public static readonly string HardenedTemplateRuntimeDependencyInjection = "Hardened.Templates.Runtime.DependencyInjection";
 
-            public static string HardenedTemplateRuntimeNamespace = "Hardened.Templates.Runtime";
+            public static readonly string HardenedTemplateRuntimeNamespace = "Hardened.Templates.Runtime";
+
+            public static readonly string HardenedSharedRuntimeLogging = "Hardened.Templates.Runtime.Logging";
         }
         
         public static class Configuration
@@ -79,91 +89,91 @@ namespace Hardened.SourceGenerator.Shared
 
         public static class DI
         {
-            public static ITypeDefinition IServiceCollection =
+            public static readonly ITypeDefinition IServiceCollection =
                 TypeDefinition.Get("Microsoft.Extensions.DependencyInjection", "IServiceCollection");
 
-            public static ITypeDefinition ServiceCollection =
+            public static readonly ITypeDefinition ServiceCollection =
                 TypeDefinition.Get("Microsoft.Extensions.DependencyInjection", "ServiceCollection");
 
-            public static ITypeDefinition IServiceProvider =
+            public static readonly ITypeDefinition IServiceProvider =
                 TypeDefinition.Get("System", "IServiceProvider");
 
-            public static ITypeDefinition ExposeAttribute =
+            public static readonly ITypeDefinition ExposeAttribute =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeAttributes, "ExposeAttribute");
 
-            public static ITypeDefinition DependencyRegistry =
+            public static readonly ITypeDefinition DependencyRegistry =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeDependencyInjection, "DependencyRegistry");
 
             public static class Registry
             {
-                public static ITypeDefinition LambdaWebDI =
+                public static readonly ITypeDefinition LambdaWebDI =
                     TypeDefinition.Get(Namespace.Hardened.Web.LambdaRuntimeDependencyInjection, "LambdaWebDI");
 
-                public static ITypeDefinition StandardDependencies =
+                public static readonly ITypeDefinition StandardDependencies =
                     TypeDefinition.Get(Namespace.HardenedSharedRuntimeDependencyInjection, "StandardDependencies");
 
-                public static ITypeDefinition RequestRuntimeDI =
+                public static readonly ITypeDefinition RequestRuntimeDI =
                     TypeDefinition.Get(Namespace.HardenedRequestsRuntimeDependencyInjection, "RequestRuntimeDI");
 
-                public static ITypeDefinition TemplateDI =
+                public static readonly ITypeDefinition TemplateDI =
                     TypeDefinition.Get(Namespace.HardenedTemplateRuntimeDependencyInjection, "TemplateDI");
 
-                public static ITypeDefinition WebRuntimeDI =
+                public static readonly ITypeDefinition WebRuntimeDI =
                     TypeDefinition.Get(Namespace.Hardened.Web.RuntimeDependencyInjection, "WebRuntimeDI");
             }
         }
 
         public static class Application
         {
-            public static ITypeDefinition IApplicationRoot =
+            public static readonly ITypeDefinition IApplicationRoot =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "IApplicationRoot");
 
-            public static ITypeDefinition IStartupService =
+            public static readonly ITypeDefinition IStartupService =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "IStartupService");
 
-            public static ITypeDefinition ApplicationLogic =
+            public static readonly ITypeDefinition ApplicationLogic =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "ApplicationLogic");
 
-            public static ITypeDefinition IEnvironment =
+            public static readonly ITypeDefinition IEnvironment =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "IEnvironment");
 
-            public static ITypeDefinition EnvironmentImpl =
+            public static readonly ITypeDefinition EnvironmentImpl =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "EnvironmentImpl");
         }
 
         public static class Requests
         {
-            public static ITypeDefinition IExecutionContext =
+            public static readonly ITypeDefinition IExecutionContext =
                 TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionContext");
 
             public static ITypeDefinition DefaultOutputFunc =
                 TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "DefaultOutputFunc");
 
-            public static ITypeDefinition IExecutionFilter =
+            public static readonly ITypeDefinition IExecutionFilter =
                 TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionFilter");
 
-            public static ITypeDefinition ExecutionHelper =
+            public static readonly ITypeDefinition ExecutionHelper =
                 TypeDefinition.Get(Namespace.HardenedRequestsRuntimeExecution, "ExecutionHelper");
 
             public static ITypeDefinition BaseExecutionHandler =
                 TypeDefinition.Get(Namespace.HardenedRequestsRuntimeExecution, "BaseExecutionHandler");
 
-            public static ITypeDefinition ExecutionRequestHandlerInfo =
+            public static readonly ITypeDefinition ExecutionRequestHandlerInfo =
                 TypeDefinition.Get(Namespace.HardenedRequestsRuntimeExecution, "ExecutionRequestHandlerInfo");
 
-            public static ITypeDefinition IExecutionRequestHandler =
+            public static readonly ITypeDefinition IExecutionRequestHandler =
                 TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionRequestHandler");
 
-            public static ITypeDefinition IExecutionRequestHandlerInfo =
+            public static readonly ITypeDefinition IExecutionRequestHandlerInfo =
                 TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionRequestHandlerInfo");
 
-            public static ITypeDefinition IMiddlewareService =
+            public static readonly ITypeDefinition IMiddlewareService =
                 TypeDefinition.Get(Namespace.HardenedRequestsAbstractMiddleware, "IMiddlewareService");
 
-            public static ITypeDefinition FilterFunc =
+            public static readonly ITypeDefinition FilterFunc =
                 new GenericTypeDefinition(typeof(Func<,>), new[] { IExecutionContext, IExecutionFilter }, false);
 
-            public static ITypeDefinition FilterFuncArray =
+            public static readonly ITypeDefinition FilterFuncArray =
                 new GenericTypeDefinition(typeof(Func<,>), new[] { IExecutionContext, IExecutionFilter }, true);
 
             public static ITypeDefinition IExecutionChain = 
@@ -171,6 +181,22 @@ namespace Hardened.SourceGenerator.Shared
 
             public static ITypeDefinition ControllerErrorHelper =
                 TypeDefinition.Get(Namespace.HardenedRequestsRuntimeErrors, "ControllerErrorHelper");
+        }
+
+        public static class Logging
+        {
+            public static ITypeDefinition ILoggerT(ITypeDefinition typeDefinition)
+            {
+                return new GenericTypeDefinition(TypeDefinitionEnum.ClassDefinition, "ILogger",
+                    Namespace.Microsoft.Extensions.Logging, new[] { typeDefinition });
+            }
+
+            public static ITypeDefinition ILogger =
+                TypeDefinition.Get(Namespace.Microsoft.Extensions.Logging, "ILogger");
+
+            public static readonly ITypeDefinition ILoggerFactory =
+                TypeDefinition.Get(Namespace.Microsoft.Extensions.Logging, "ILoggerFactory");
+            
         }
 
         public static class Templates
@@ -229,35 +255,35 @@ namespace Hardened.SourceGenerator.Shared
 
         public class Web
         {
-            public static ITypeDefinition IWebExecutionRequestHandlerProvider = 
+            public static readonly ITypeDefinition IWebExecutionRequestHandlerProvider = 
                     TypeDefinition.Get(Namespace.Hardened.Web.RuntimeHandlers, "IWebExecutionRequestHandlerProvider");
 
-            public static ITypeDefinition IWebExecutionHandlerService =
+            public static readonly ITypeDefinition IWebExecutionHandlerService =
                 TypeDefinition.Get(Namespace.Hardened.Web.RuntimeHandlers, "IWebExecutionHandlerService");
 
-            public static ITypeDefinition FilterRegistryStartupService =
+            public static readonly ITypeDefinition FilterRegistryStartupService =
                 TypeDefinition.Get(Namespace.Hardened.Web.RuntimeDependencyInjection, "FilterRegistryStartupService");
 
         }
 
         public static class Lambda
         {
-            public static ITypeDefinition LambdaSerializer =
+            public static readonly ITypeDefinition LambdaSerializer =
                 TypeDefinition.Get(Namespace.Amazon.LambdaCore, "LambdaSerializerAttribute");
 
-            public static ITypeDefinition ILambdaContext =
+            public static readonly ITypeDefinition ILambdaContext =
                 TypeDefinition.Get(Namespace.Amazon.LambdaCore, "ILambdaContext");
 
             public static ITypeDefinition DefaultLambdaJsonSerializer =
                 TypeDefinition.Get(Namespace.Amazon.LambdaSerializationSystemTextJson, "DefaultLambdaJsonSerializer");
 
-            public static ITypeDefinition APIGatewayHttpApiV2ProxyRequest =
+            public static readonly ITypeDefinition APIGatewayHttpApiV2ProxyRequest =
                 TypeDefinition.Get(Namespace.Amazon.LambdaAPIGatewayEvents, "APIGatewayHttpApiV2ProxyRequest");
 
-            public static ITypeDefinition APIGatewayHttpApiV2ProxyResponse =
+            public static readonly ITypeDefinition APIGatewayHttpApiV2ProxyResponse =
                 TypeDefinition.Get(Namespace.Amazon.LambdaAPIGatewayEvents, "APIGatewayHttpApiV2ProxyResponse");
 
-            public static ITypeDefinition IApiGatewayEventProcessor =
+            public static readonly ITypeDefinition IApiGatewayEventProcessor =
                 TypeDefinition.Get(Namespace.Hardened.Web.LambdaRuntimeImpl, "IApiGatewayEventProcessor");
 
         }

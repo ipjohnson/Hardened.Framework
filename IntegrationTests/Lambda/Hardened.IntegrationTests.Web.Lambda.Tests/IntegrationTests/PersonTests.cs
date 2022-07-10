@@ -9,6 +9,7 @@ using AngleSharp.Html.Parser;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
 using Hardened.IntegrationTests.Web.Lambda.Tests.Extensions;
+using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,8 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
         [Theory]
         [WebIntegration]
         [TestExposeMethod(nameof(ExposeMethod))]
+        [EnvironmentValue("Testing", "Value")]
+        [EnvironmentName("SomeEnv")]
         public async Task PersonWebPageTest(ITestWebApp app)
         {
             var viewResponse = await app.Get("/api/person/view");
@@ -40,6 +43,13 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
 
         public class TestPersonService : IPersonService
         {
+            private IEnvironment _environment;
+
+            public TestPersonService(IEnvironment environment)
+            {
+                _environment = environment;
+            }
+
             public IEnumerable<PersonModel> All()
             {
                 return new[] { new PersonModel { Id = 5, FirstName = "Test", LastName = "Testing" } };

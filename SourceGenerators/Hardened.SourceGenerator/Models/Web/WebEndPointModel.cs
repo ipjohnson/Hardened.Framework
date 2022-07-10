@@ -4,7 +4,7 @@ namespace Hardened.SourceGenerator.Models
 {
     public class WebEndPointModel
     {
-        public static WebEndPointModel Empty =
+        public static readonly WebEndPointModel Empty =
             new (
                 TypeDefinition.Get(typeof(object)),
                 TypeDefinition.Get(typeof(object)),

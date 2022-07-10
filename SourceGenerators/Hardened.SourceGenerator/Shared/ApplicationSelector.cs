@@ -13,23 +13,16 @@ namespace Hardened.SourceGenerator.Shared
         {
             public ITypeDefinition ApplicationType { get; set; }
 
+            public bool RootEntryPoint { get; set; }
+
             public IReadOnlyCollection<HardenedMethodDefinition> MethodDefinitions { get; set; }
+
+
         }
 
         public static Func<SyntaxNode, CancellationToken, bool> UsingAttribute(string libraryAttribute)
         {
             return (node, _) => node is ClassDeclarationSyntax && node.IsAttributed(libraryAttribute);
-        }
-
-        public static Model TransformModel(GeneratorSyntaxContext syntaxContext, CancellationToken cancellationToken)
-        {
-            var methods = syntaxContext.Node.DescendantNodes().OfType<MethodDeclarationSyntax>();
-            
-            return new Model
-            {
-                ApplicationType = ((ClassDeclarationSyntax)syntaxContext.Node).GetTypeDefinition(),
-                MethodDefinitions = GenerateMethodDefinitions(syntaxContext, methods)
-            };
         }
 
         private static IReadOnlyCollection<HardenedMethodDefinition> GenerateMethodDefinitions(
@@ -44,6 +37,21 @@ namespace Hardened.SourceGenerator.Shared
             }
 
             return returnList;
+        }
+
+        public static Func<GeneratorSyntaxContext, CancellationToken, Model> TransformModel(bool rootEntryPoint)
+        {
+            return (syntaxContext, token) =>
+            {
+                var methods = syntaxContext.Node.DescendantNodes().OfType<MethodDeclarationSyntax>();
+
+                return new Model
+                {
+                    ApplicationType = ((ClassDeclarationSyntax)syntaxContext.Node).GetTypeDefinition(),
+                    MethodDefinitions = GenerateMethodDefinitions(syntaxContext, methods),
+                    RootEntryPoint = rootEntryPoint
+                };
+            };
         }
     }
 }
