@@ -20,4 +20,8 @@
 		<PackageReference Include="SimpleFixture.xUnit" Version="4.0.0-Nightly188" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
+	</ItemGroup>
+
 </Project>
