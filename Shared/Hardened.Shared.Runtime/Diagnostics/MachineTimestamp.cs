@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace Hardened.Shared.Runtime.Diagnostics
 {
+    /// <summary>
+    /// Timestamp that uses the machine ticks, it is only valid on the local machine.
+    /// </summary>
     public struct MachineTimestamp
     {
         public static readonly double SecondsToTicksRatio = TimeSpan.TicksPerSecond / (double)Stopwatch.Frequency;
@@ -18,13 +21,25 @@ namespace Hardened.Shared.Runtime.Diagnostics
             _timestamp = timestamp;
         }
 
+        /// <summary>
+        /// Create timestamp from machine ticks
+        /// </summary>
+        /// <param name="ticks"></param>
+        /// <returns></returns>
         public static MachineTimestamp FromTicks(long ticks)
         {
             return new MachineTimestamp(ticks);
         }
 
+        /// <summary>
+        /// Get timestamp for now
+        /// </summary>
         public static MachineTimestamp Now => FromTicks(Stopwatch.GetTimestamp());
 
+        /// <summary>
+        /// Get the elapsed milliseconds from now to the timestamp
+        /// </summary>
+        /// <returns></returns>
         public double GetElapsedMilliseconds()
         {
             if (_timestamp == 0)
@@ -38,6 +53,11 @@ namespace Hardened.Shared.Runtime.Diagnostics
             return (totalElapsedTime * SecondsToTicksRatio) * MillisecondsToTicksRatio;
         }
 
+        /// <summary>
+        /// Get elapsed time from when timestamp was created to now
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public TimeSpan GetElapsedTime()
         {
             if (_timestamp == 0)

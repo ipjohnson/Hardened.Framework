@@ -50,15 +50,18 @@ namespace Hardened.SourceGenerator.Models
 
     public class FilterInformation
     {
-        public FilterInformation(ITypeDefinition typeDefinition, string arguments)
+        public FilterInformation(ITypeDefinition typeDefinition, string arguments, string propertyAssignment)
         {
             TypeDefinition = typeDefinition;
             Arguments = arguments;
+            PropertyAssignment = propertyAssignment;
         }
 
         public ITypeDefinition TypeDefinition { get; }
 
         public string Arguments { get; }
+
+        public string PropertyAssignment { get; }
     }
 
     public class PathToken

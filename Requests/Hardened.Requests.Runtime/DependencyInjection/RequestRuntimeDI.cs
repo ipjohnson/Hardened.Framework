@@ -4,6 +4,7 @@ using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Errors;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Logging;
 using Hardened.Requests.Runtime.Middleware;
@@ -29,6 +30,7 @@ namespace Hardened.Requests.Runtime.DependencyInjection
             serviceCollection.TryAddSingleton<IExceptionResponseSerializer, ExceptionResponseSerializer>();
             serviceCollection.TryAddSingleton<ISerializationLocatorService, SerializationLocatorService>();
             serviceCollection.TryAddSingleton<IExceptionToModelConverter, ExceptionToModelConverter>();
+            serviceCollection.TryAddSingleton<IIOFilterProvider, IOFilterProvider>();
         }
     }
 }

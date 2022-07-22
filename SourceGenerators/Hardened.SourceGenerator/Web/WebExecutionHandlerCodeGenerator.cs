@@ -62,17 +62,40 @@ namespace Hardened.SourceGenerator.Web
                 : Invoke(KnownTypes.Templates.DefaultOutputFuncHelper, "GetTemplateOut",
                     "serviceProvider", QuoteString(templateName!));
 
+            var filterEnumerable = GenerateFilterEnumerable(webEndPointModel, classDefinition);
+
             var filterMethod = InvokeGeneric(
                 KnownTypes.Requests.ExecutionHelper,
                 "StandardFilterEmptyParameters",
                 new[] { webEndPointModel.ControllerType },
                 "serviceProvider",
                 "_handlerInfo",
-                "InvokeMethod");
+                "InvokeMethod",
+                GenerateFilterEnumerable(webEndPointModel,classDefinition)
+            );
             var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
             var serviceProvider = 
                 constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        }
+
+        private IOutputComponent GenerateFilterEnumerable(WebEndPointModel webEndPointModel, ClassDefinition classDefinition)
+        {
+            var arguments = new List<object>();
+
+            foreach (var filterInformation in webEndPointModel.Filters)
+            {
+                var newValue = New(filterInformation.TypeDefinition, filterInformation.Arguments);
+
+                if (!string.IsNullOrEmpty(filterInformation.PropertyAssignment))
+                {
+                    newValue.AddInitValue(filterInformation.PropertyAssignment);
+                }
+
+                arguments.Add(newValue);
+            }
+
+            return Invoke(KnownTypes.Requests.ExecutionHelper, "GetFilterInfo", arguments.ToArray());
         }
     }
 }

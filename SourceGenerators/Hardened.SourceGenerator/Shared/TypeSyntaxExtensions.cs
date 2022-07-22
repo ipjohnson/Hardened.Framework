@@ -9,7 +9,7 @@ namespace Hardened.SourceGenerator.Shared
 {
     public static class TypeSyntaxExtensions
     {
-        public static ITypeDefinition? GetTypeDefinition(this TypeSyntax typeSyntax,
+        public static ITypeDefinition? GetTypeDefinition(this SyntaxNode typeSyntax,
             GeneratorSyntaxContext generatorSyntaxContext)
         {
             var symbolInfo = generatorSyntaxContext.SemanticModel.GetSymbolInfo(typeSyntax);
@@ -17,7 +17,25 @@ namespace Hardened.SourceGenerator.Shared
             return GetTypeDefinitionFromSymbolInfo(symbolInfo);
         }
 
-        private static ITypeDefinition? GetTypeDefinitionFromSymbolInfo(SymbolInfo symbolInfo)
+        public static string GetFullName(this INamespaceSymbol namespaceSymbol)
+        {
+            var baseString = namespaceSymbol.ContainingNamespace?.GetFullName();
+
+            if (string.IsNullOrEmpty(baseString))
+            {
+                return namespaceSymbol.Name;
+            }
+
+            return baseString + "." + namespaceSymbol.Name;
+        }
+
+        public static ITypeDefinition GetTypeDefinition(this ITypeSymbol typeSymbol)
+        {
+
+            return TypeDefinition.Get(typeSymbol.ContainingNamespace.GetFullName(), typeSymbol.Name);
+        }
+
+        public static ITypeDefinition? GetTypeDefinitionFromSymbolInfo(SymbolInfo symbolInfo)
         {
             if (symbolInfo.Symbol is INamedTypeSymbol namedTypeSymbol)
             {

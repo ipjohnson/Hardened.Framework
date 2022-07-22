@@ -9,6 +9,21 @@ namespace Hardened.Requests.Runtime.Execution
 
     public static class ExecutionHelper
     {
+        private static readonly Task<IExecutionRequestParameters> _emptyRequestParameters = Task.FromResult(EmptyParameters.Instance);
+        private static readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> 
+            _emptyDeserializeRequest = _ =>  _emptyRequestParameters;
+
+        public static IEnumerable<IRequestFilterProvider> GetFilterInfo(params object[] attributes)
+        {
+            foreach (var attribute in attributes)
+            {
+                if (attribute is IRequestFilterProvider filterProvider)
+                {
+                    yield return filterProvider;
+                }
+            }
+        }
+
         #region sync invoke no parameters
 
         public delegate void InvokeNoParameters<T>(IExecutionContext context, T controller);
@@ -16,15 +31,17 @@ namespace Hardened.Requests.Runtime.Execution
         public static Func<IExecutionContext, IExecutionFilter>[] StandardFilterEmptyParameters<TController>(
             IServiceProvider serviceProvider,
             IExecutionRequestHandlerInfo handlerInfo,
-            InvokeNoParameters<TController> invokeMethod)
+            InvokeNoParameters<TController> invokeMethod,
+            IEnumerable<IRequestFilterProvider> filterProviders)
         {
-            var contextSerializationService = serviceProvider.GetRequiredService<IContextSerializationService>();
+            var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
+
             var filterList = 
                 serviceProvider.GetRequiredService<IGlobalFilterRegistry>().GetFilters(handlerInfo);
             
-            var ioFilter = new IOFilter<object>(
-                _ => Task.FromResult(EmptyParameters.Instance),
-                contextSerializationService.SerializeResponse
+            var ioFilter = ioFilterProvider.ProvideFilter(
+                handlerInfo,
+                _emptyDeserializeRequest
             );
 
             filterList.Add(new RequestFilterInfo(_ => ioFilter, FilterOrder.Serialization));
@@ -32,6 +49,11 @@ namespace Hardened.Requests.Runtime.Execution
             var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
 
             filterList.Add(new RequestFilterInfo(_ => invokeFilter, FilterOrder.EndPointInvoke));
+
+            foreach (var requestFilterProvider in filterProviders)
+            {
+                filterList.AddRange(requestFilterProvider.GetFilters(handlerInfo));
+            }
 
             filterList.Sort((x,y) => 
                 Comparer<int>.Default.Compare(x.Order ?? FilterOrder.DefaultValue, y.Order ?? FilterOrder.DefaultValue));
@@ -41,7 +63,7 @@ namespace Hardened.Requests.Runtime.Execution
 
         #endregion
 
-        #region invoke parameters
+        #region sync invoke parameters
         
         public delegate void InvokeWithParameters<TController, TParameter>(IExecutionContext context, TController controller, TParameter parameter);
 
@@ -54,7 +76,7 @@ namespace Hardened.Requests.Runtime.Execution
 
             var filterArray = new Func<IExecutionContext, IExecutionFilter>[2];
 
-            var ioFilter = new IOFilter<object>(
+            var ioFilter = new IOFilter(
                 _ => Task.FromResult(EmptyParameters.Instance),
                 contextSerializationService.SerializeResponse
             );
@@ -77,24 +99,34 @@ namespace Hardened.Requests.Runtime.Execution
         public static Func<IExecutionContext, IExecutionFilter>[] AsyncStandardFilterEmptyParameters<TController>(
             IServiceProvider serviceProvider,
             IExecutionRequestHandlerInfo handlerInfo,
-            AsyncInvokeNoParameters<TController> invokeMethod) where TController : class
+            AsyncInvokeNoParameters<TController> invokeMethod,
+            IEnumerable<IRequestFilterProvider> filterProviders) where TController : class
         {
-            var contextSerializationService = serviceProvider.GetRequiredService<IContextSerializationService>();
+            var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-            var filterArray = new Func<IExecutionContext, IExecutionFilter>[2];
+            var filterList =
+                serviceProvider.GetRequiredService<IGlobalFilterRegistry>().GetFilters(handlerInfo);
 
-            var ioFilter = new IOFilter<object>(
-                _ => Task.FromResult(EmptyParameters.Instance),
-                contextSerializationService.SerializeResponse
+            var ioFilter = ioFilterProvider.ProvideFilter(
+                handlerInfo,
+                _emptyDeserializeRequest
             );
 
-            filterArray[0] = _ => ioFilter;
+            filterList.Add(new RequestFilterInfo(_ => ioFilter, FilterOrder.Serialization));
 
             var invokeFilter = new AsyncInvokeNoParametersFilter<TController>(invokeMethod);
 
-            filterArray[1] = _ => invokeFilter;
+            filterList.Add(new RequestFilterInfo(_ => invokeFilter, FilterOrder.EndPointInvoke));
 
-            return filterArray;
+            foreach (var requestFilterProvider in filterProviders)
+            {
+                filterList.AddRange(requestFilterProvider.GetFilters(handlerInfo));
+            }
+
+            filterList.Sort((x, y) =>
+                Comparer<int>.Default.Compare(x.Order ?? FilterOrder.DefaultValue, y.Order ?? FilterOrder.DefaultValue));
+
+            return filterList.Select(f => f.FilterFunc).ToArray();
         }
 
         #endregion
@@ -113,7 +145,7 @@ namespace Hardened.Requests.Runtime.Execution
 
             var filterArray = new Func<IExecutionContext, IExecutionFilter>[2];
 
-            var ioFilter = new IOFilter<object>(
+            var ioFilter = new IOFilter(
                 _ => Task.FromResult(EmptyParameters.Instance),
                 contextSerializationService.SerializeResponse
             );

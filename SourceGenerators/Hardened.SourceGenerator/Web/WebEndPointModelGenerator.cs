@@ -1,5 +1,6 @@
 ﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Models;
+using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -28,7 +29,7 @@ namespace Hardened.SourceGenerator.Web
                routeInformation,
                 parameterInfo,
                 GetResponseInformation(context),
-                GetFilters(context)
+                GetFilters(context, methodDeclaration)
                 );
         }
 
@@ -74,9 +75,101 @@ namespace Hardened.SourceGenerator.Web
             return new ResponseInformation{ TemplateName = template};
         }
         
-        private static IReadOnlyCollection<FilterInformation> GetFilters(GeneratorSyntaxContext context)
+        private static IReadOnlyCollection<FilterInformation> GetFilters(GeneratorSyntaxContext context,
+            MethodDeclarationSyntax methodDeclarationSyntax)
         {
-            return new List<FilterInformation>();
+            var filterList = new List<FilterInformation>();
+
+            filterList.AddRange(GetFiltersForMethod(context, methodDeclarationSyntax));
+            //filterList.AddRange(GetFiltersForClass(context, methodDeclarationSyntax.Parent as ClassDeclarationSyntax));
+            return filterList;
+        }
+
+        private static IEnumerable<FilterInformation> GetFiltersForClass(GeneratorSyntaxContext context, ClassDeclarationSyntax? parent)
+        {
+            if (parent == null)
+            {
+                yield break;
+            }
+
+            foreach (var attributeList in parent.AttributeLists)
+            {
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    if (IsNotFilterAttribute(attribute))
+                    {
+                        var attributeType = attribute.GetTypeDefinition(context);
+
+                        File.WriteAllText(@"C:\temp\generated\attributes.txt", attribute.ArgumentList.ToString());
+
+                        yield return new FilterInformation(attributeType, attribute.ArgumentList.ToString(), "");
+                    }
+                }
+            }
+        }
+
+        private static bool IsNotFilterAttribute(AttributeSyntax attribute)
+        {
+            var attributeName = attribute.Name.ToString().Replace("Attribute","");
+
+            switch (attributeName)
+            {
+                case "Delete":
+                case "Get":
+                case "Path":
+                case "Post":
+                case "Put":
+                case "Template":
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static IEnumerable<FilterInformation> GetFiltersForMethod(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclarationSyntax)
+        {
+            foreach (var attributeList in methodDeclarationSyntax.AttributeLists)
+            {
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    if (IsNotFilterAttribute(attribute))
+                    {
+                        var operation = context.SemanticModel.GetOperation(attribute);
+
+                        if (operation is { Type: { } })
+                        {
+                            var arguments = "";
+                            var propertyAssignment = "";
+
+                            if (attribute.ArgumentList != null)
+                            {
+                                foreach (var attributeArgumentSyntax in attribute.ArgumentList.Arguments)
+                                {
+                                    if (attributeArgumentSyntax.ToString().Contains("="))
+                                    {
+                                        if (propertyAssignment.Length > 0)
+                                        {
+                                            propertyAssignment += ", ";
+                                        }
+                                        propertyAssignment += attributeArgumentSyntax.ToString();
+                                    }
+                                    else
+                                    {
+                                        if (arguments.Length > 0)
+                                        {
+                                            arguments += ", ";
+                                        }
+
+                                        arguments += attributeArgumentSyntax.ToString();
+                                    }
+                                }
+                            }
+
+                            yield return new FilterInformation(operation.Type.GetTypeDefinition(), arguments, propertyAssignment);
+                        }
+                    }
+                }
+            }
         }
 
         public static bool SelectWebRequestMethods(SyntaxNode arg1, CancellationToken arg2)

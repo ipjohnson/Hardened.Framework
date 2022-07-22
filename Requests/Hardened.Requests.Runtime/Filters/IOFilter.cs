@@ -4,7 +4,7 @@ using Hardened.Shared.Runtime.Diagnostics;
 
 namespace Hardened.Requests.Runtime.Filters
 {
-    public class IOFilter <T>: IExecutionFilter
+    public class IOFilter : IExecutionFilter
     {
         private readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> _deserializeRequest;
         private readonly Func<IExecutionContext, Task> _serializeResponse;
