@@ -35,5 +35,9 @@ namespace Hardened.Web.Lambda.Runtime.Impl
         public Stream? Body { get; set; }
 
         public IHeaderCollection Headers { get; }
+
+        public Exception? ExceptionValue { get; set; }
+
+        public bool ResponseStarted => Body?.Position > 0;
     }
 }

@@ -1,33 +1,31 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
+using Microsoft.Extensions.Logging;
 
 namespace Hardened.Requests.Runtime.Serializer
 {
     public class ContextSerializationService : IContextSerializationService
     {
-        private readonly IRequestDeserializer[] _requestDeserializers;
-        private readonly IResponseSerializer[] _responseSerializers;
+        private readonly ILogger<ContextSerializationService> _logger;
+        private readonly ISerializationLocatorService _serializationLocatorService;
+        private readonly INullValueResponseHandler _nullValueResponse;
+        private readonly IExceptionResponseSerializer _exceptionResponseSerializer;
 
-        public ContextSerializationService(IEnumerable<IRequestDeserializer> requestDeserializers, IEnumerable<IResponseSerializer> responseSerializers)
+        public ContextSerializationService(
+            ILogger<ContextSerializationService> logger,
+            ISerializationLocatorService serializationLocatorService, 
+            INullValueResponseHandler nullValueResponse, 
+            IExceptionResponseSerializer exceptionResponseSerializer)
         {
-            _requestDeserializers = requestDeserializers.Reverse().ToArray();
-            _responseSerializers = responseSerializers.Reverse().ToArray();
+            _logger = logger;
+            _serializationLocatorService = serializationLocatorService;
+            _nullValueResponse = nullValueResponse;
+            _exceptionResponseSerializer = exceptionResponseSerializer;
         }
 
         public ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context)
         {
-            for (var i = 0; i < _requestDeserializers.Length; i++)
-            {
-                var requestDeserializer = _requestDeserializers[i];
-
-                if (requestDeserializer.CanProcessContext(context))
-                {
-                    return requestDeserializer.DeserializeRequestBody<T>(context);
-                }
-            }
-
-            // TODO: add special handler for when no serializer found
-            throw new Exception("Could not find serializer: " + context.Request.ContentType);
+            return _serializationLocatorService.FindRequestDeserializer(context).DeserializeRequestBody<T>(context);
         }
 
         public Task SerializeResponse(IExecutionContext context)
@@ -37,29 +35,17 @@ namespace Hardened.Requests.Runtime.Serializer
                 return context.DefaultOutput(context);
             }
 
-            IResponseSerializer? defaultSerializer = null;
-
-            for (var i = 0; i < _responseSerializers.Length; i++)
+            if (context.Response.ExceptionValue != null)
             {
-                var responseSerializer = _responseSerializers[i];
-
-                if (responseSerializer.CanProcessContext(context))
-                {
-                    return responseSerializer.SerializeResponse(context);
-                }
-                
-                if (responseSerializer.IsDefaultSerializer)
-                {
-                    defaultSerializer = responseSerializer;
-                }
+                return _exceptionResponseSerializer.Handle(context, context.Response.ExceptionValue);
             }
 
-            if (defaultSerializer != null)
+            if (context.Response.ResponseValue == null)
             {
-                return defaultSerializer.SerializeResponse(context);
+                return _nullValueResponse.Handle(context);
             }
 
-            throw new Exception("Could not locate response serialize: " + context.Request.ContentType);
+            return _serializationLocatorService.FindResponseSerializer(context).SerializeResponse(context);
         }
     }
 }

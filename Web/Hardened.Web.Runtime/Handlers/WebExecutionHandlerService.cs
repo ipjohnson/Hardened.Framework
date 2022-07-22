@@ -1,4 +1,6 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Errors;
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Web.Runtime.Handlers
@@ -11,11 +13,16 @@ namespace Hardened.Web.Runtime.Handlers
     public partial class WebExecutionHandlerService : IWebExecutionHandlerService
     {
         private readonly IEnumerable<IWebExecutionRequestHandlerProvider> _handlers;
-        private readonly ILogger<WebExecutionHandlerService> _logger;
+        private readonly IResourceNotFoundHandler _resourceNotFoundHandler;
+        private readonly IRequestLogger _requestLogger;
 
-        public WebExecutionHandlerService(IEnumerable<IWebExecutionRequestHandlerProvider> handlers, ILogger<WebExecutionHandlerService> logger)
+        public WebExecutionHandlerService(
+            IEnumerable<IWebExecutionRequestHandlerProvider> handlers, 
+            IResourceNotFoundHandler resourceNotFoundHandler, 
+            IRequestLogger requestLogger)
         {
-            _logger = logger;
+            _resourceNotFoundHandler = resourceNotFoundHandler;
+            _requestLogger = requestLogger;
             _handlers = handlers.Reverse();
         }
 
@@ -29,11 +36,9 @@ namespace Hardened.Web.Runtime.Handlers
 
                 if (handler != null)
                 {
-                    RequestHandlerLog(
-                        handler.HandlerInfo.HandlerType.Name, 
-                        handler.HandlerInfo.InvokeMethod, 
-                        context.Request.Method, 
-                        context.Request.Path);
+                    context.HandlerInfo = handler.HandlerInfo;
+
+                    _requestLogger.RequestMapped(context);
 
                     var handlerChain = handler.GetExecutionChain(chain.Context);
 
@@ -41,13 +46,7 @@ namespace Hardened.Web.Runtime.Handlers
                 }
             }
 
-            return chain.Next();
+            return _resourceNotFoundHandler.Handle(chain);
         }
-
-        [LoggerMessage(
-            EventId = 0,
-            Level = LogLevel.Information,
-            Message = "{httpMethod} {path} handled by {className}.{methodName} ")]
-        private partial void RequestHandlerLog(string className, string methodName, string httpMethod, string path);
     }
 }

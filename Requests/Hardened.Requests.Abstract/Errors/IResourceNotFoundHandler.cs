@@ -4,6 +4,6 @@ namespace Hardened.Requests.Abstract.Errors
 {
     public interface IResourceNotFoundHandler
     {
-        Task Handle(IExecutionContext context);
+        Task Handle(IExecutionChain chain);
     }
 }

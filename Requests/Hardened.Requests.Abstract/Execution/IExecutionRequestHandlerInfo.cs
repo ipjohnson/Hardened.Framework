@@ -9,5 +9,11 @@
         Type HandlerType { get; }
 
         string InvokeMethod { get; }
+
+        int? SuccessStatus => null;
+
+        int? FailureStatus => null;
+
+        int? NullResponseStatus => null;
     }
 }

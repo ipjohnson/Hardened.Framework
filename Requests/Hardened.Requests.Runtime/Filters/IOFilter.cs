@@ -1,4 +1,6 @@
 ﻿using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Metrics;
+using Hardened.Shared.Runtime.Diagnostics;
 
 namespace Hardened.Requests.Runtime.Filters
 {
@@ -18,12 +20,43 @@ namespace Hardened.Requests.Runtime.Filters
         public async Task Execute(IExecutionChain chain)
         {
             var context = chain.Context;
+            var bindParameterStartTimestamp = MachineTimestamp.Now;
 
-            context.Request.Parameters = await _deserializeRequest(chain.Context);
+            try
+            {
+                context.Request.Parameters = await _deserializeRequest(chain.Context);
+            }
+            catch (Exception exp)
+            {
+                chain.Context.Response.ExceptionValue = exp;
+            }
+            finally
+            {
+                context.RequestMetrics.Record(RequestMetrics.ParameterBindDuration, bindParameterStartTimestamp.GetElapsedMilliseconds());
+            }
 
-            await chain.Next();
+            if (chain.Context.Response.ExceptionValue == null)
+            {
+                try
+                {
+                    await chain.Next();
+                }
+                catch (Exception exp)
+                {
+                    chain.Context.Response.ExceptionValue = exp;
+                }
+            }
 
-            await _serializeResponse(chain.Context);
+            var responseTimestamp = MachineTimestamp.Now;
+
+            try
+            {
+                await _serializeResponse(chain.Context);
+            }
+            finally
+            {
+                context.RequestMetrics.Record(RequestMetrics.ResponseDuration, responseTimestamp.GetElapsedMilliseconds());
+            }
         }
     }
 }

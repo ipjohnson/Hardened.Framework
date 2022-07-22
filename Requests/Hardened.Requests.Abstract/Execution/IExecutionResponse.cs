@@ -17,5 +17,9 @@ namespace Hardened.Requests.Abstract.Execution
         Stream Body { get; set; }
 
         IHeaderCollection Headers { get; }
+
+        Exception? ExceptionValue { get; set; }
+
+        bool ResponseStarted { get; }
     }
 }

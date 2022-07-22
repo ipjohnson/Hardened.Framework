@@ -64,10 +64,14 @@ namespace Hardened.SourceGenerator.Configuration
 
             foreach (var configurationFileModel in configFiles)
             {
+                var ioptionsType =
+                    new GenericTypeDefinition(TypeDefinitionEnum.ClassDefinition, "IOptions",
+                        "Microsoft.Extensions.Options", new[] { configurationFileModel.InterfaceType });
+
                 var providerString =
-                    $"serviceProvider => serviceProvider.GetRequiredService<IConfigurationManager>().GetConfiguration<{configurationFileModel.InterfaceType.Name}>()";
+                    $"serviceProvider => Microsoft.Extensions.Options.Options.Create(serviceProvider.GetRequiredService<IConfigurationManager>().GetConfiguration<{configurationFileModel.InterfaceType.Name}>())";
                 diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-                    new[] { configurationFileModel.InterfaceType }, providerString));
+                    new[] { ioptionsType }, providerString));
             }
 
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",

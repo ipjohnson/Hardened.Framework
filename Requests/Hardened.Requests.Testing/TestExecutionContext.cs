@@ -1,4 +1,7 @@
 ﻿using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Execution;
+using Hardened.Shared.Runtime.Diagnostics;
+using Hardened.Shared.Runtime.Metrics;
 
 namespace Hardened.Requests.Testing
 {
@@ -14,6 +17,8 @@ namespace Hardened.Requests.Testing
             RequestServices = requestServices;
             Request = request;
             Response = response;
+            RequestMetrics = new NullMetricsLogger();
+            StartTime = MachineTimestamp.Now;
         }
 
         public object Clone()
@@ -34,5 +39,8 @@ namespace Hardened.Requests.Testing
         public IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
 
         public DefaultOutputFunc? DefaultOutput { get; set; }
+
+        public IMetricLogger RequestMetrics { get; }
+        public MachineTimestamp StartTime { get; }
     }
 }

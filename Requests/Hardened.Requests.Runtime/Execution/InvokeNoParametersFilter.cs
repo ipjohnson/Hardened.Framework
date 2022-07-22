@@ -1,5 +1,7 @@
 ﻿using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Runtime.Errors;
+using Hardened.Shared.Runtime.Diagnostics;
 
 namespace Hardened.Requests.Runtime.Execution
 {
@@ -23,12 +25,16 @@ namespace Hardened.Requests.Runtime.Execution
                     throw new Exception($"HandlerInstance was not instance of {typeof(TController)}");
                 }
 
+                var startTimestamp = MachineTimestamp.Now;
+
                 try
                 {
                     _invoke(chain.Context, controller);
+                    context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
                 }
                 catch (Exception e)
                 {
+                    context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
                     return ControllerErrorHelper.HandleException(context, e);
                 }
             }

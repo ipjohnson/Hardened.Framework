@@ -1,4 +1,7 @@
-﻿namespace Hardened.Requests.Abstract.Execution
+﻿using Hardened.Shared.Runtime.Diagnostics;
+using Hardened.Shared.Runtime.Metrics;
+
+namespace Hardened.Requests.Abstract.Execution
 {
     public delegate Task DefaultOutputFunc(IExecutionContext executionContext);
 
@@ -41,5 +44,15 @@
         /// Default output function, used to assign template
         /// </summary>
         DefaultOutputFunc? DefaultOutput { get; set; }
+
+        /// <summary>
+        /// Metric logger for the request
+        /// </summary>
+        IMetricLogger RequestMetrics { get; }
+
+        /// <summary>
+        /// Request StartTime
+        /// </summary>
+        MachineTimestamp StartTime { get; }
     }
 }

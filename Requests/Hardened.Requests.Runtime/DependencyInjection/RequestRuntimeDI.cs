@@ -1,7 +1,11 @@
-﻿using Hardened.Requests.Abstract.Middleware;
+﻿using Hardened.Requests.Abstract.Errors;
+using Hardened.Requests.Abstract.Logging;
+using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Filters;
+using Hardened.Requests.Runtime.Logging;
 using Hardened.Requests.Runtime.Middleware;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Shared.Runtime.Application;
@@ -19,6 +23,12 @@ namespace Hardened.Requests.Runtime.DependencyInjection
             serviceCollection.TryAddSingleton<IRequestDeserializer, SystemTextJsonRequestDeserializer>();
             serviceCollection.TryAddSingleton<IResponseSerializer, SystemTextJsonResponseSerializer>();
             serviceCollection.TryAddSingleton<IGlobalFilterRegistry, GlobalFilterRegistry>();
+            serviceCollection.TryAddSingleton<IRequestLogger, RequestLogger>();
+            serviceCollection.TryAddSingleton<INullValueResponseHandler, NullValueResponseHandler>();
+            serviceCollection.TryAddSingleton<IResourceNotFoundHandler, ResourceNotFoundHandler>();
+            serviceCollection.TryAddSingleton<IExceptionResponseSerializer, ExceptionResponseSerializer>();
+            serviceCollection.TryAddSingleton<ISerializationLocatorService, SerializationLocatorService>();
+            serviceCollection.TryAddSingleton<IExceptionToModelConverter, ExceptionToModelConverter>();
         }
     }
 }

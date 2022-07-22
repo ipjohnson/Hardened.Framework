@@ -1,4 +1,6 @@
 ﻿using Hardened.Requests.Abstract.Execution;
+using Hardened.Shared.Runtime.Diagnostics;
+using Hardened.Shared.Runtime.Metrics;
 
 namespace Hardened.Web.Lambda.Runtime.Impl
 {
@@ -8,12 +10,16 @@ namespace Hardened.Web.Lambda.Runtime.Impl
             IServiceProvider rootServiceProvider, 
             IServiceProvider requestServices, 
             IExecutionRequest request, 
-            IExecutionResponse response)
+            IExecutionResponse response, 
+            IMetricLogger requestMetrics, 
+            MachineTimestamp startTime)
         {
             RootServiceProvider = rootServiceProvider;
             RequestServices = requestServices;
             Request = request;
             Response = response;
+            RequestMetrics = requestMetrics;
+            StartTime = startTime;
         }
 
         public object Clone()
@@ -34,5 +40,9 @@ namespace Hardened.Web.Lambda.Runtime.Impl
         public IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
 
         public DefaultOutputFunc? DefaultOutput { get; set; }
+
+        public IMetricLogger RequestMetrics { get; }
+
+        public MachineTimestamp StartTime { get; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using System.ComponentModel.DataAnnotations;
+using Hardened.Requests.Abstract.Execution;
 
 namespace Hardened.Requests.Runtime.Errors
 {
@@ -6,7 +7,7 @@ namespace Hardened.Requests.Runtime.Errors
     {
         public static async Task HandleException(IExecutionContext context, Exception exception)
         {
-
+            context.Response.ExceptionValue = exception;
         }
     }
 }
