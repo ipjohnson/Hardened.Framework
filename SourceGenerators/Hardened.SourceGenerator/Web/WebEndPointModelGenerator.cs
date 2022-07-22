@@ -81,7 +81,7 @@ namespace Hardened.SourceGenerator.Web
             var filterList = new List<FilterInformation>();
 
             filterList.AddRange(GetFiltersForMethod(context, methodDeclarationSyntax));
-            //filterList.AddRange(GetFiltersForClass(context, methodDeclarationSyntax.Parent as ClassDeclarationSyntax));
+            filterList.AddRange(GetFiltersForClass(context, methodDeclarationSyntax.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault()));
             return filterList;
         }
 
@@ -89,23 +89,10 @@ namespace Hardened.SourceGenerator.Web
         {
             if (parent == null)
             {
-                yield break;
+                return Enumerable.Empty<FilterInformation>();
             }
 
-            foreach (var attributeList in parent.AttributeLists)
-            {
-                foreach (var attribute in attributeList.Attributes)
-                {
-                    if (IsNotFilterAttribute(attribute))
-                    {
-                        var attributeType = attribute.GetTypeDefinition(context);
-
-                        File.WriteAllText(@"C:\temp\generated\attributes.txt", attribute.ArgumentList.ToString());
-
-                        yield return new FilterInformation(attributeType, attribute.ArgumentList.ToString(), "");
-                    }
-                }
-            }
+            return GetFiltersFromAttributes(context, parent.AttributeLists);
         }
 
         private static bool IsNotFilterAttribute(AttributeSyntax attribute)
@@ -128,7 +115,13 @@ namespace Hardened.SourceGenerator.Web
 
         private static IEnumerable<FilterInformation> GetFiltersForMethod(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclarationSyntax)
         {
-            foreach (var attributeList in methodDeclarationSyntax.AttributeLists)
+            return GetFiltersFromAttributes(context, methodDeclarationSyntax.AttributeLists);
+        }
+
+        private static IEnumerable<FilterInformation> GetFiltersFromAttributes(GeneratorSyntaxContext context,
+            SyntaxList<AttributeListSyntax> attributeListSyntax)
+        {
+            foreach (var attributeList in attributeListSyntax)
             {
                 foreach (var attribute in attributeList.Attributes)
                 {
