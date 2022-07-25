@@ -38,5 +38,7 @@ namespace Hardened.Requests.Runtime.Execution
         {
             return new ExecutionChain(_filterChain, context, _index);
         }
+
+        public bool IsLastFilter => _index >= _filterChain.Count;
     }
 }

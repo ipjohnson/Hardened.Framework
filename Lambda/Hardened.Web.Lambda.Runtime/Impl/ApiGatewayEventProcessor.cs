@@ -11,6 +11,7 @@ using Hardened.Requests.Runtime.Execution;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
+using Hardened.Web.Runtime.Headers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MSLogging = Microsoft.Extensions.Logging;
@@ -75,10 +76,18 @@ namespace Hardened.Web.Lambda.Runtime.Impl
                 response.StatusCode = executionContext.Response.Status.Value;
             }
             
-            response.Headers["Content-Type"] = executionContext.Response.ContentType;
+            response.Headers[KnownHeaders.ContentType] = executionContext.Response.ContentType;
 
-            response.Body = Encoding.UTF8.GetString(memoryStreamReservation.Item.ToArray());
-            
+            if (executionContext.Response.IsBinary)
+            {
+                response.IsBase64Encoded = true;
+                response.Body = Convert.ToBase64String(memoryStreamReservation.Item.ToArray());
+            }
+            else
+            {
+                response.Body = Encoding.UTF8.GetString(memoryStreamReservation.Item.ToArray());
+            }
+
             executionContext.RequestMetrics.Record(RequestMetrics.TotalRequestDuration, requestStartTimestamp.GetElapsedMilliseconds());
 
             _requestLogger.RequestEnd(executionContext);

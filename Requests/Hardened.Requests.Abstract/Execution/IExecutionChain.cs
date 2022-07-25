@@ -20,5 +20,10 @@
         /// <param name="context"></param>
         /// <returns></returns>
         IExecutionChain Fork(IExecutionContext context);
+
+        /// <summary>
+        /// True if the chain is on it's last filter.
+        /// </summary>
+        bool IsLastFilter { get; }
     }
 }

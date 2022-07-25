@@ -13,8 +13,4 @@
 		<PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
 	</ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Utilities\" />
-  </ItemGroup>
-
 </Project>

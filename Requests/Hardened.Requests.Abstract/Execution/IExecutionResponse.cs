@@ -21,5 +21,7 @@ namespace Hardened.Requests.Abstract.Execution
         Exception? ExceptionValue { get; set; }
 
         bool ResponseStarted { get; }
+
+        bool IsBinary { get; set; }
     }
 }

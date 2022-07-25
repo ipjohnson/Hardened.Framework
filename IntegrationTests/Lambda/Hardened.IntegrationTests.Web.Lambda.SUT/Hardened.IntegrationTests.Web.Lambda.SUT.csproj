@@ -11,6 +11,12 @@
 	  <SelfContained>true</SelfContained>
   </PropertyGroup>
 
+	<ItemGroup>
+		<Content Include="wwwroot\**\*">
+			<CopyToPublishDirectory>Always</CopyToPublishDirectory>
+		</Content>
+	</ItemGroup>
+
   <ItemGroup>
     <None Remove="Templates\personList.html" />
   </ItemGroup>
@@ -19,6 +25,7 @@
     <AdditionalFiles Include="Templates\personList.html" />
   </ItemGroup>
 
+	
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Lambda\Hardened.Web.Lambda.Runtime\Hardened.Web.Lambda.Runtime.csproj" />
@@ -40,6 +47,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\Test.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

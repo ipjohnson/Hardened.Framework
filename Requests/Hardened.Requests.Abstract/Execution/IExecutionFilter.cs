@@ -14,7 +14,7 @@
 
         Normal = 100,
         
-        Last = Int32.MaxValue, 
+        Last = int.MaxValue, 
     }
     
     public interface IExecutionFilter
