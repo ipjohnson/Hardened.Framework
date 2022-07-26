@@ -1,15 +1,15 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Testing
 {
     public class TestExecutionRequest : IExecutionRequest
     {
-        public TestExecutionRequest(string method, string path, string? contentType, string? accepts)
+        public TestExecutionRequest(string method, string path, string? accepts)
         {
             Method = method;
             Path = path;
-            ContentType = contentType;
             Accepts = accepts;
         }
 
@@ -22,7 +22,7 @@ namespace Hardened.Requests.Testing
 
         public string Path { get; }
 
-        public string? ContentType { get; }
+        public string? ContentType => Headers.Get("Content-Type");
 
         public string? Accepts { get; }
 
@@ -30,6 +30,6 @@ namespace Hardened.Requests.Testing
 
         public Stream Body { get; set; }
         
-        public IHeaderCollection Headers { get; }
+        public IHeaderCollection Headers { get; set; }
     }
 }

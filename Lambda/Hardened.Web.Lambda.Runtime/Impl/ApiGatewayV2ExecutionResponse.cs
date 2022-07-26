@@ -39,5 +39,7 @@ namespace Hardened.Web.Lambda.Runtime.Impl
         public Exception? ExceptionValue { get; set; }
 
         public bool ResponseStarted => Body?.Position > 0;
+
+        public bool IsBinary { get; set; }
     }
 }

@@ -3,9 +3,11 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Runtime.Headers;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Diagnostics;
+using Hardened.Web.Runtime.Headers;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Web.Testing
@@ -44,6 +46,15 @@ namespace Hardened.Web.Testing
 
             var context = CreateContext(httpMethod, path, webRequest, responseBody, scope);
             
+            context.Request.Headers.Set(KnownHeaders.AcceptEncoding, "gzip");
+            
+            if (bodyValue != null && string.IsNullOrEmpty(context.Request.ContentType))
+            {
+                context.Request.Headers.Set(KnownHeaders.ContentType, "application/json");
+            }
+
+            webRequest?.Invoke(new TestWebRequest{ Headers = context.Request.Headers });
+
             context.Request.Body = SetupBodyStream(bodyValue);
 
             var chain = middlewareService.GetExecutionChain(context);
@@ -87,12 +98,10 @@ namespace Hardened.Web.Testing
         private IExecutionContext CreateContext(string httpMethod, string path, ConfigureWebRequest? webRequest,
             MemoryStream responseBody, IServiceScope serviceScope)
         {
-            var testWebRequest = new TestWebRequest();
+            var header = new HeaderCollectionImpl();
 
-            webRequest?.Invoke(testWebRequest);
-
-            var request = new TestExecutionRequest(httpMethod, path, "", "");
-            var response = new TestExecutionResponse(responseBody);
+            var request = new TestExecutionRequest(httpMethod, path, "") { Headers = header };
+            var response = new TestExecutionResponse(responseBody) { Headers = new HeaderCollectionImpl() };
 
             return new TestExecutionContext(_applicationRoot.Provider, serviceScope.ServiceProvider, request, response);
         }

@@ -15,7 +15,11 @@ namespace Hardened.Requests.Testing
             throw new NotImplementedException();
         }
 
-        public string? ContentType { get; set; }
+        public string? ContentType
+        {
+            get => Headers.Get("Content-Type"); 
+            set => Headers.Set("Content-Type", value);
+        }
 
         public object? ResponseValue { get; set; }
 
@@ -27,7 +31,7 @@ namespace Hardened.Requests.Testing
         
         public Stream Body { get; set; }
 
-        public IHeaderCollection Headers { get; }
+        public IHeaderCollection Headers { get; set; }
 
         public Exception? ExceptionValue { get; set; }
 

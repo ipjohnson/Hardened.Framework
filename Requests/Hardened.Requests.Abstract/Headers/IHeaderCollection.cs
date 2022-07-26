@@ -4,9 +4,13 @@ namespace Hardened.Requests.Abstract.Headers
 {
     public interface IHeaderCollection : IEnumerable<KeyValuePair<string, StringValues>>
     {
+        StringValues Append(string key, object value);
+
         bool ContainsKey(string key);
 
         StringValues Get(String key);
+
+        StringValues Set(String key, object? value);
 
         StringValues Set(String key, StringValues value);
 

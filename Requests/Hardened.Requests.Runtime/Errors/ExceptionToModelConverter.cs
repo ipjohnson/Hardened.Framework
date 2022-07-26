@@ -17,10 +17,11 @@ namespace Hardened.Requests.Runtime.Errors
             var statusCode = 500;
             var model = new ErrorModel
             {
-                Type =  exp.GetType().Name, Message = exp.Message
+                Type =  exp.GetType().Name, 
+                Message = exp.Message
             };
 
-            if (exp.GetType().Name.Contains("Validation"))
+            if (exp.GetType().Name.Contains("Validation") || exp.GetType().Name.Contains("Bad"))
             {
                 statusCode = 400;
             }

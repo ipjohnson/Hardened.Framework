@@ -15,19 +15,28 @@ namespace Hardened.Shared.Runtime.Utilities
     {
         public (string, bool) GetMimeTypeInfo(string fileExtension)
         {
-            switch (fileExtension.ToLowerInvariant())
+            switch (fileExtension.ToLowerInvariant().TrimStart('.'))
             {
+                case "bz2":
+                    return ("application/x-bzip2", true);
+
                 case "css":
                     return ("text/css", false);
 
                 case "csv":
                     return ("text/csv", false);
 
+                case "docx":
+                    return ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", false);
+
+                case "gz":
+                    return ("application/gzip", true);
+
                 case "gif":
                     return ("image/gif",true);
 
                 case "html":
-                    return ("text/html",true);
+                    return ("text/html", false);
 
                 case "jpeg":
                 case "jpg":
@@ -39,12 +48,24 @@ namespace Hardened.Shared.Runtime.Utilities
                 case "png":
                     return ("image/png", true);
 
+                case "pptx":
+                    return ("image/pptx", true);
+
                 case "txt":
                 case "text":
                     return ("text/plain", false);
+
+                case "xml":
+                    return ("text/xml", false);
+
+                case "xlsx":
+                    return ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", true);
+
+                case "zip":
+                    return ("application/zip", true);
             }
 
-            return ("application/" + fileExtension, true);
+            return ("application/bin", true);
         }
     }
 }

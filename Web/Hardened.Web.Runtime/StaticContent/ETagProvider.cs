@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Hardened.Shared.Runtime.Collections;
 
 namespace Hardened.Web.Runtime.StaticContent
 {
@@ -15,13 +16,20 @@ namespace Hardened.Web.Runtime.StaticContent
 
     public class ETagProvider : IETagProvider
     {
-        private MD5 _md5 = MD5.Create();
+        private readonly IItemPool<MD5> _md5Pool;
+
+        public ETagProvider(IItemPool<MD5> md5Pool)
+        {
+            _md5Pool = md5Pool;
+        }
 
         public string GenerateETag(byte[] content)
         {
-            var hash = _md5.ComputeHash(content);
+            using var md5Rental = _md5Pool.Get();
 
-            return Convert.ToBase64String(hash);
+            var hashBytes = md5Rental.Item.ComputeHash(content);
+
+            return Convert.ToBase64String(hashBytes);
         }
     }
 }

@@ -17,4 +17,8 @@
 	  <ProjectReference Include="..\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Configuration\" />
+	</ItemGroup>
+
 </Project>

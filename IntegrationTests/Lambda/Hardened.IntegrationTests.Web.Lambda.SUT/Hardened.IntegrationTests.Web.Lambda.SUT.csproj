@@ -13,7 +13,8 @@
 
 	<ItemGroup>
 		<Content Include="wwwroot\**\*">
-			<CopyToPublishDirectory>Always</CopyToPublishDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
 
@@ -23,11 +24,9 @@
 
   <ItemGroup>
     <AdditionalFiles Include="Templates\personList.html" />
-  </ItemGroup>
+  </ItemGroup>	
 
-	
-
-  <ItemGroup>
+	<ItemGroup>
     <ProjectReference Include="..\..\..\Lambda\Hardened.Web.Lambda.Runtime\Hardened.Web.Lambda.Runtime.csproj" />
     <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
     <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
@@ -48,11 +47,4 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Content Update="wwwroot\Test.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
 </Project>

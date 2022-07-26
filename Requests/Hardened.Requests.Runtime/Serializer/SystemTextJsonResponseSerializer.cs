@@ -1,4 +1,5 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using System.IO.Compression;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 
 namespace Hardened.Requests.Runtime.Serializer
@@ -12,17 +13,27 @@ namespace Hardened.Requests.Runtime.Serializer
             return context.Request.Accepts?.Contains("application/json") ?? false;
         }
 
-        public Task SerializeResponse(IExecutionContext context)
+        public async Task SerializeResponse(IExecutionContext context)
         {
-            if (context.Response.ResponseValue == null)
-            {
-                return Task.CompletedTask;
-            }
-
             context.Response.ContentType = "application/json";
 
-            return System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body,
-                context.Response.ResponseValue);
+            if (context.Response.ResponseValue == null)
+            {
+                return;
+            }
+
+            if (context.Response.ShouldCompress)
+            {
+                await using var gzipStream = new GZipStream(context.Response.Body, CompressionLevel.Fastest, true);
+
+                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue);
+
+                await gzipStream.FlushAsync();
+            }
+            else
+            {
+                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue);
+            }
         }
     }
 }

@@ -16,8 +16,8 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="SimpleFixture.NSubstitute" Version="4.0.0-Nightly188" />
-		<PackageReference Include="SimpleFixture.xUnit" Version="4.0.0-Nightly188" />
+		<PackageReference Include="SimpleFixture.NSubstitute" Version="4.0.0-RC190" />
+		<PackageReference Include="SimpleFixture.xUnit" Version="4.0.0-RC190" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Hardened.Web.Runtime.CacheControl
 {
     [Flags]
-    public enum CacheControlType
+    public enum CacheControlEnum
     {
         MaxAge = 1,
 

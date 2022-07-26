@@ -41,6 +41,7 @@ namespace Hardened.Requests.Testing
         public DefaultOutputFunc? DefaultOutput { get; set; }
 
         public IMetricLogger RequestMetrics { get; }
+
         public MachineTimestamp StartTime { get; }
     }
 }

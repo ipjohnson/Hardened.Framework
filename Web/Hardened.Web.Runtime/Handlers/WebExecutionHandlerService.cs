@@ -50,12 +50,19 @@ namespace Hardened.Web.Runtime.Handlers
                 }
             }
 
-            if (_staticContentHandler.CanHandleRequest(context))
-            {
-                return _staticContentHandler.HandleRequest(context);
-            }
+            return ResolvedFromSecondarySources(chain, context);
+        }
 
-            return _resourceNotFoundHandler.Handle(chain);
+        private async Task ResolvedFromSecondarySources(IExecutionChain chain, IExecutionContext context)
+        {
+            if (await _staticContentHandler.Handle(context))
+            {
+                
+            }
+            else
+            {
+                await _resourceNotFoundHandler.Handle(chain);
+            }
         }
     }
 }

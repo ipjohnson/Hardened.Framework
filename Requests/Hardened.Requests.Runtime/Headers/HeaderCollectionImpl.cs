@@ -28,6 +28,24 @@ namespace Hardened.Requests.Runtime.Headers
             return GetEnumerator();
         }
 
+        public StringValues Append(string key, object value)
+        {
+            value ??= "";
+
+            if (TryGet(key, out var stringValues))
+            {
+                stringValues = StringValues.Concat(stringValues, value.ToString());
+            }
+            else
+            {
+                stringValues = value.ToString();
+            }
+
+            _headers[key] = stringValues;
+
+            return stringValues;
+        }
+
         public bool ContainsKey(string key)
         {
             return _headers.ContainsKey(key);
@@ -35,7 +53,24 @@ namespace Hardened.Requests.Runtime.Headers
 
         public StringValues Get(string key)
         {
-            return _headers[key];
+            if (_headers.TryGetValue(key, out var stringValues))
+            {
+                return stringValues;
+            }
+
+            return StringValues.Empty;
+        }
+
+        public StringValues Set(string key, object? value)
+        {
+            if (value == null)
+            {
+                _headers.Remove(key);
+
+                return StringValues.Empty;
+            }
+
+            return Set(key, value.ToString());
         }
 
         public StringValues Set(string key, StringValues value)

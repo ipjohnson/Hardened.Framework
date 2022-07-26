@@ -12,13 +12,15 @@ namespace Hardened.Web.Runtime.Configuration
     {
         string Path { get; }
 
-        CacheControlType CacheControlType { get; }
+        CacheControlEnum CacheControlType { get; }
 
         int CacheMaxAge { get; }
 
         bool EnableETag { get; }
 
         string? FallBackFile { get; }
+
+        bool CompressTextContent { get; }
 
         Action<IExecutionContext>? OnPrepareResponse { get; }
     }
@@ -27,7 +29,7 @@ namespace Hardened.Web.Runtime.Configuration
     {
         public string Path { get; set; } = "wwwroot";
 
-        public CacheControlType CacheControlType { get; set; } = CacheControlType.MaxAge | CacheControlType.Public;
+        public CacheControlEnum CacheControlType { get; set; } = CacheControlEnum.MaxAge | CacheControlEnum.Public;
 
         public int CacheMaxAge { get; set; } = 0;
 

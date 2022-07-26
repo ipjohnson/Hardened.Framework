@@ -26,7 +26,7 @@ namespace Hardened.Web.Runtime.StaticContent
         public byte[] CompressContent(byte[] bytes)
         {
             using var memoryStreamRes = _memoryStreamPool.Get();
-            using var gzipStream = new GZipStream(memoryStreamRes.Item, CompressionLevel.Fastest);
+            using var gzipStream = new GZipStream(memoryStreamRes.Item, CompressionLevel.Fastest, true);
 
             gzipStream.Write(bytes, 0, bytes.Length);
             gzipStream.Flush();
