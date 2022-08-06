@@ -18,18 +18,9 @@ namespace Hardened.IntegrationTests.Function.Lambda.SUT
     [LambdaFunctionApplication]
     public partial class Application
     {
-        public Application(IEnvironment environment, Action<IServiceCollection>? overrideDependencies)
-        {
-            var loggerFactory = LoggerFactory.Create(LambdaLoggerHelper.CreateAction(environment, "Hardened.IntegrationTests.Web.Lambda.SUT"));
-            Provider = CreateServiceProvider(environment, overrideDependencies, loggerFactory);
-            ApplicationLogic.StartWithWait(Provider, null, 15);
-        }
-
         private void RegisterDependencies(IServiceCollection serviceCollection)
         {
             serviceCollection.AddTransient<PersonFunctions>();
         }
-
-        public IServiceProvider Provider { get; }
     }
 }

@@ -30,6 +30,9 @@ namespace Hardened.Function.Lambda.SourceGenerator
             DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
             ConfigurationIncrementalGenerator.Setup(context, applicationModel);
             TemplateIncrementalGenerator.Setup(context, applicationModel, new[] { "html" });
+
+            LambdaEntryIncrementalGenerator.Setup(context, applicationModel);
+            LambdaFunctionApplicationBootstrapGenerator.Setup(context, applicationModel);
         }
     }
 }
