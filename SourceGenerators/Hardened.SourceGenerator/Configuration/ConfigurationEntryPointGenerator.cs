@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
 using CSharpAuthor;
+using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
@@ -78,6 +79,17 @@ namespace Hardened.SourceGenerator.Configuration
                 new[] { KnownTypes.Application.IEnvironment }, environment));
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
                 new[] { KnownTypes.Configuration.IConfigurationPackage, providerType }));
+
+            var configureMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "Configure");
+
+            if (configureMethod != null)
+            {
+                diMethod.NewLine();
+                var fluentConfig = diMethod.Assign(New(KnownTypes.Configuration.AppConfig)).ToVar("fluentConfig");
+                diMethod.AddIndentedStatement(entryPointDef.Invoke("Configure", fluentConfig));
+                diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
+                    new[] { KnownTypes.Configuration.IConfigurationPackage }, fluentConfig));
+            }
         }
 
         private static ITypeDefinition GenerateProviderType(
@@ -91,6 +103,7 @@ namespace Hardened.SourceGenerator.Configuration
 
             var providerMethod = configurationProvider.AddMethod("ConfigurationValueProviders");
 
+            providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
             providerMethod.SetReturnType(
                 TypeDefinition.IEnumerable(KnownTypes.Configuration.IConfigurationValueProvider));
             
@@ -101,8 +114,9 @@ namespace Hardened.SourceGenerator.Configuration
                     $"yield return new NewConfigurationValueProvider<{configurationFileModel.InterfaceType.Name}, {configurationFileModel.ModelType.Name}>()");
             }
 
-            var amendersMethod = configurationProvider.AddMethod("Amenders");
+            var amendersMethod = configurationProvider.AddMethod("ConfigurationValueAmenders");
 
+            amendersMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
             amendersMethod.SetReturnType(
                 TypeDefinition.IEnumerable(KnownTypes.Configuration.IConfigurationValueAmender));
 

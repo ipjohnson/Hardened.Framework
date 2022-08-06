@@ -26,7 +26,7 @@ namespace Hardened.Web.Lambda.Runtime.Impl
 
         public string? ContentType => "application/json";
 
-        public string? Accepts => "application/json";
+        public string? Accept => "application/json";
 
         public IExecutionRequestParameters? Parameters { get; set; }
 

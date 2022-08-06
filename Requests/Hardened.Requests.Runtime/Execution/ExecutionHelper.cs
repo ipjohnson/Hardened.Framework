@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Execution
 {
-
     public static class ExecutionHelper
     {
         private static readonly Task<IExecutionRequestParameters> _emptyRequestParameters = Task.FromResult(EmptyParameters.Instance);

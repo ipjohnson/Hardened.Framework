@@ -9,6 +9,7 @@ namespace Hardened.Shared.Runtime.Configuration
 {
     public interface IConfigurationValueAmender
     {
-        T ApplyConfiguration<T>(IEnvironment environment, T configurationValue) where T : class;
+        object ApplyConfiguration(IEnvironment environment, object configurationValue);
     }
+    
 }

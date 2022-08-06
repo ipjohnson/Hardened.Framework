@@ -10,7 +10,7 @@ namespace Hardened.Requests.Abstract.Execution
 
         string? ContentType { get; }
 
-        string? Accepts { get; }
+        string? Accept { get; }
 
         IExecutionRequestParameters? Parameters { get; set; }
         

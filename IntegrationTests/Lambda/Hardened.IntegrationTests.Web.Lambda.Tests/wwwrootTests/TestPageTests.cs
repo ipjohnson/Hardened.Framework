@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
 using Hardened.IntegrationTests.Web.Lambda.Tests.Extensions;
+using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing;
+using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.Primitives;
@@ -44,6 +46,11 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.wwwrootTests
 
             Assert.NotNull(testPage);
             Assert.Equal(StringValues.Empty, response.Headers.Get(KnownHeaders.ContentEncoding));
+        }
+
+        public static void Configure(IAppConfig appConfig)
+        {
+            appConfig.Amend<StaticContentConfiguration>(c => c.CacheMaxAge = 20);
         }
     }
 }

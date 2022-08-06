@@ -15,7 +15,7 @@ namespace Hardened.Requests.Runtime.Tests.Execution
         [AutoData]
         public async Task ExecuteZeroHandler(IExecutionContext context)
         {
-            var chain = new ExecutionChain(new List<IExecutionFilter>(), context);
+            var chain = new ExecutionChain(new List<Func<IExecutionContext,IExecutionFilter>>(), context);
 
             await chain.Next();
         }
@@ -24,7 +24,7 @@ namespace Hardened.Requests.Runtime.Tests.Execution
         [AutoData]
         public async Task ExecuteOneHandler(IExecutionFilter filter, IExecutionContext context)
         {
-            var chain = new ExecutionChain(new List<IExecutionFilter> { filter }, context);
+            var chain = new ExecutionChain(new List<Func<IExecutionContext, IExecutionFilter>> { _=> filter }, context);
 
             filter.Execute(chain).Returns(Task.CompletedTask);
 
@@ -37,7 +37,7 @@ namespace Hardened.Requests.Runtime.Tests.Execution
         [AutoData]
         public async Task ExecuteOneHandlerMultiple(IExecutionFilter filter, IExecutionContext context)
         {
-            var chain = new ExecutionChain(new List<IExecutionFilter> { filter }, context);
+            var chain = new ExecutionChain(new List<Func<IExecutionContext, IExecutionFilter>> { _ => filter }, context);
 
             filter.Execute(chain).Returns(Task.CompletedTask);
 
@@ -57,7 +57,7 @@ namespace Hardened.Requests.Runtime.Tests.Execution
             var filter1 = Substitute.For<IExecutionFilter>();
             var filter2 = Substitute.For<IExecutionFilter>();
 
-            var chain = new ExecutionChain(new List<IExecutionFilter> { filter1, filter2 }, context);
+            var chain = new ExecutionChain(new List<Func<IExecutionContext, IExecutionFilter>> { _ => filter1, _ => filter2 }, context);
 
             filter1.Execute(chain).Returns(c =>
             {

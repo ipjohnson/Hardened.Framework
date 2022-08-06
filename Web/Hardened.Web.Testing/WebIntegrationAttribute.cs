@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Sdk;
@@ -45,8 +46,9 @@ namespace Hardened.Web.Testing
                 }
             }
 
+            var configValueAttributes = methodInfo.GetAttributes<AppConfigAmendAttribute>().ToList();
             var testExposeAttributes = methodInfo.GetAttributes<ITestExposeAttribute>().ToList();
-
+            
             var applicationInstance = CreateApplicationInstance(
                 GetEnvironment(methodInfo),
                 bootstrap.Application,
@@ -54,6 +56,8 @@ namespace Hardened.Web.Testing
             {
                 providerList.ForEach(provider => provider.RegisterService(collection));
                 testExposeAttributes.ForEach(exposeAction => exposeAction.ExposeDependencies(methodInfo, collection));
+                collection.AddSingleton(new TestConfigurationPackage(configValueAttributes));
+                ConfigureStaticConfigMethods(methodInfo, collection);
             });
 
             if (applicationInstance == null)
@@ -62,6 +66,31 @@ namespace Hardened.Web.Testing
             }
 
             return GetParameterValues(methodInfo, applicationInstance);
+        }
+
+        private static void ConfigureStaticConfigMethods(MethodInfo methodInfo, IServiceCollection collection)
+        {
+            var staticMethods = 
+                methodInfo.DeclaringType?.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic) ??
+                                       Array.Empty<MethodInfo>();
+
+            var registerDependenciesMethod = staticMethods.FirstOrDefault(m => m.Name == "RegisterDependencies");
+
+            if (registerDependenciesMethod != null)
+            {
+                registerDependenciesMethod.Invoke(null, new object[] { collection });
+            }
+
+            var configureMethod = staticMethods.FirstOrDefault(m => m.Name == "Configure");
+
+            if (configureMethod != null)
+            {
+                var appConfig = new AppConfig();
+
+                configureMethod.Invoke(null, new object[]{ appConfig });
+
+                collection.AddSingleton<IConfigurationPackage>(appConfig);
+            }
         }
 
         private static IEnvironment GetEnvironment(MethodInfo methodInfo)

@@ -10,7 +10,7 @@ namespace Hardened.Requests.Testing
         {
             Method = method;
             Path = path;
-            Accepts = accepts;
+            Accept = accepts;
         }
 
         public object Clone()
@@ -24,7 +24,7 @@ namespace Hardened.Requests.Testing
 
         public string? ContentType => Headers.Get("Content-Type");
 
-        public string? Accepts { get; }
+        public string? Accept { get; }
 
         public IExecutionRequestParameters? Parameters { get; set; }
 

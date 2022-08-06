@@ -21,15 +21,8 @@ namespace Hardened.Requests.Runtime.Execution
             context.HandlerInstance = context.RequestServices.GetRequiredService(typeof(TController));
             context.HandlerInfo = HandlerInfo;
             context.DefaultOutput = _outputFunc;
-
-            var filterArray = new IExecutionFilter[_filters.Length];
-
-            for (var i = 0; i < _filters.Length; i++)
-            {
-                filterArray[i] = _filters[i](context);
-            }
-
-            return new ExecutionChain(filterArray, context);
+            
+            return new ExecutionChain(_filters, context);
         }
     }
 }

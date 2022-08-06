@@ -19,8 +19,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Filters
             yield return new RequestFilterInfo(c => new TestingFilter(), FilterOrder.DefaultValue);
         }
     }
-
-
+    
     public class TestingFilter : IExecutionFilter
     {
         public Task Execute(IExecutionChain chain)

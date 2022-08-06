@@ -9,11 +9,17 @@ namespace Hardened.Shared.Runtime.Configuration
 {
     public class NewConfigurationValueProvider<TInterface, TImpl> : IConfigurationValueProvider where TImpl : class, TInterface, new()
     {
-        public Type ProvidedType => typeof(TInterface);
-
-        public TV ProvideValue<TV>(IEnvironment environment, IConfigurationValueAmender amender) where TV : class
+        public object ProvideValue(IEnvironment environment, Action<IEnvironment, object> amender)
         {
-            return amender.ApplyConfiguration(environment, (TV)(object)new TImpl());
+            var tValue = new TImpl();
+
+            amender(environment, tValue);
+
+            return tValue;
         }
+
+        public Type InterfaceType => typeof(TInterface);
+
+        public Type ImplementationType => typeof(TImpl);
     }
 }

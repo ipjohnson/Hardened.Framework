@@ -9,8 +9,10 @@ namespace Hardened.Shared.Runtime.Configuration
 {
     public interface IConfigurationValueProvider
     {
-        Type ProvidedType { get; }
+        Type InterfaceType { get; }
 
-        T ProvideValue<T>(IEnvironment environment, IConfigurationValueAmender amender) where T : class;
+        Type ImplementationType { get; }
+
+        object ProvideValue(IEnvironment environment, Action<IEnvironment, object> amender);
     }
 }

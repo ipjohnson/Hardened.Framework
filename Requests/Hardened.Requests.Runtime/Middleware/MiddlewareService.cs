@@ -15,14 +15,7 @@ namespace Hardened.Requests.Runtime.Middleware
 
         public IExecutionChain GetExecutionChain(IExecutionContext context)
         {
-            var filters = new IExecutionFilter[_filters.Count];
-
-            for (var i = 0; i < filters.Length; i++)
-            {
-                filters[i] = _filters[i](context);
-            }
-
-            return new ExecutionChain(filters, context);
+            return new ExecutionChain(_filters, context);
         }
     }
 }

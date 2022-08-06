@@ -4,16 +4,16 @@ namespace Hardened.Requests.Runtime.Execution
 {
     public class ExecutionChain : IExecutionChain
     {
-        private readonly IReadOnlyList<IExecutionFilter> _filterChain;
+        private readonly IReadOnlyList<Func<IExecutionContext,IExecutionFilter>> _filterChain;
         private int _index;
 
-        public ExecutionChain(IReadOnlyList<IExecutionFilter> filterChain, IExecutionContext context)
+        public ExecutionChain(IReadOnlyList<Func<IExecutionContext, IExecutionFilter>> filterChain, IExecutionContext context)
         {
             _filterChain = filterChain;
             Context = context;
         }
 
-        private ExecutionChain(IReadOnlyList<IExecutionFilter> filterChain, IExecutionContext context, int index)
+        private ExecutionChain(IReadOnlyList<Func<IExecutionContext, IExecutionFilter>> filterChain, IExecutionContext context, int index)
         {
             _index = index;
             _filterChain = filterChain;
@@ -27,9 +27,7 @@ namespace Hardened.Requests.Runtime.Execution
                 return Task.CompletedTask;
             }
 
-            var filter = _filterChain[_index++];
-
-            return filter.Execute(this);
+            return _filterChain[_index++](Context).Execute(this);
         }
 
         public IExecutionContext Context { get; }

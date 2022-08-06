@@ -75,9 +75,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.Shared.Testing", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.Requests.Testing", "Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj", "{3A3209C6-9DE4-4003-A372-95DE7658FDF4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Templates.Abstract", "Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj", "{F77F2D69-2D63-418D-82A0-6EF58E815062}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.Templates.Abstract", "Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj", "{F77F2D69-2D63-418D-82A0-6EF58E815062}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.SourceGenerator.Tests", "SourceGenerators\Hardened.SourceGenerator.Tests\Hardened.SourceGenerator.Tests.csproj", "{02DEB912-BB31-4458-85EB-5BFB53B5348C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.Shared.Lambda.Runtime", "Lambda\Hardened.Shared.Lambda.Runtime\Hardened.Shared.Lambda.Runtime.csproj", "{BD312BB8-6E3A-46FF-94DD-9CDDAED13A20}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Function.Lambda.Testing", "Lambda\Hardened.Function.Lambda.Testing\Hardened.Function.Lambda.Testing.csproj", "{0700B694-B3D7-4E52-9635-F755C15BE787}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -197,6 +201,14 @@ Global
 		{02DEB912-BB31-4458-85EB-5BFB53B5348C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{02DEB912-BB31-4458-85EB-5BFB53B5348C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{02DEB912-BB31-4458-85EB-5BFB53B5348C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD312BB8-6E3A-46FF-94DD-9CDDAED13A20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD312BB8-6E3A-46FF-94DD-9CDDAED13A20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD312BB8-6E3A-46FF-94DD-9CDDAED13A20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD312BB8-6E3A-46FF-94DD-9CDDAED13A20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0700B694-B3D7-4E52-9635-F755C15BE787}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0700B694-B3D7-4E52-9635-F755C15BE787}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0700B694-B3D7-4E52-9635-F755C15BE787}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0700B694-B3D7-4E52-9635-F755C15BE787}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -233,6 +245,8 @@ Global
 		{3A3209C6-9DE4-4003-A372-95DE7658FDF4} = {F21B194A-B804-4677-AD5B-E0B44D3EC45F}
 		{F77F2D69-2D63-418D-82A0-6EF58E815062} = {77AB779A-D5B3-4CD2-9B64-3B3EC4504DE8}
 		{02DEB912-BB31-4458-85EB-5BFB53B5348C} = {EABCDDC0-6E72-43FB-9AF7-04E6681B83FD}
+		{BD312BB8-6E3A-46FF-94DD-9CDDAED13A20} = {42416EEA-9CFE-40C7-BFF6-7BF083624F36}
+		{0700B694-B3D7-4E52-9635-F755C15BE787} = {42416EEA-9CFE-40C7-BFF6-7BF083624F36}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF6CD1AB-6B41-427D-BA1B-C4803CF67E97}

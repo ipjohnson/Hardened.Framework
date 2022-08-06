@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Hardened.Shared.Runtime.Application;
 
 namespace Hardened.Shared.Runtime.Configuration
 {
@@ -17,12 +18,12 @@ namespace Hardened.Shared.Runtime.Configuration
             _amenders = amenders;
         }
 
-        public IEnumerable<IConfigurationValueProvider> ConfigurationValueProviders()
+        public IEnumerable<IConfigurationValueProvider> ConfigurationValueProviders(IEnvironment env)
         {
             return _valueProviders;
         }
 
-        public IEnumerable<IConfigurationValueAmender> Amenders()
+        public IEnumerable<IConfigurationValueAmender> ConfigurationValueAmenders(IEnvironment env)
         {
             return _amenders;
         }

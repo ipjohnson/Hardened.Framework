@@ -10,7 +10,7 @@ namespace Hardened.Requests.Runtime.Serializer
 
         public bool CanProcessContext(IExecutionContext context)
         {
-            return context.Request.Accepts?.Contains("application/json") ?? false;
+            return context.Request.Accept?.Contains("application/json") ?? false;
         }
 
         public async Task SerializeResponse(IExecutionContext context)
