@@ -26,6 +26,13 @@ namespace Hardened.SourceGenerator.Shared
 
             public static class Hardened
             {
+                public static class Lambda
+                {
+                    public const string LambdaRuntime = "Hardened.Function.Lambda.Runtime";
+
+                    public const string LambdaRuntimeDI = "Hardened.Function.Lambda.Runtime.DependencyInjection";
+                }
+
                 public static class Web
                 {
                     public const string Runtime = "Hardened.Web.Runtime";
@@ -124,6 +131,9 @@ namespace Hardened.SourceGenerator.Shared
 
                 public static readonly ITypeDefinition WebRuntimeDI =
                     TypeDefinition.Get(Namespace.Hardened.Web.RuntimeDependencyInjection, "WebRuntimeDI");
+
+                public static readonly ITypeDefinition LambdaFunctionRuntimeDI =
+                    TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntimeDI, "LambdaFunctionDI");
             }
         }
 

@@ -22,6 +22,10 @@ namespace Hardened.SourceGenerator.DependencyInjection
         public void GenerateFile(SourceProductionContext sourceProductionContext,
             (ApplicationSelector.Model Left, ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> Right) dependencyData)
         {
+
+
+            File.AppendAllText(@"C:\temp\generated\" + dependencyData.Left.ApplicationType.Namespace + "." + "Gothere.txt", dependencyData.Left.ApplicationType.Name + "\r\n");
+
             var diFile = new CSharpFileDefinition(dependencyData.Left.ApplicationType.Namespace);
 
             GeneratedCode(dependencyData.Left, dependencyData.Right, diFile);
@@ -32,7 +36,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             var fileName = dependencyData.Left.ApplicationType.Name + ".DependencyInjection.cs";
 
-            File.WriteAllText(@"C:\temp\generated\New_" + fileName, outputContext.Output());
+            File.AppendAllText(@"C:\temp\generated\" + dependencyData.Left.ApplicationType.Namespace + "." + fileName, outputContext.Output());
 
             sourceProductionContext.AddSource(fileName, outputContext.Output());
         }

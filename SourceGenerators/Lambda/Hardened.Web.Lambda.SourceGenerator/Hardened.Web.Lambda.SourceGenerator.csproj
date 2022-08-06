@@ -56,7 +56,4 @@
 		</Compile>
 	</ItemGroup>
 
-	<ItemGroup>
-		<Compile Remove="..\..\Hardened.SourceGenerator\Shared\SyntaxProviderExtensions.cs" />
-	</ItemGroup>
 </Project>

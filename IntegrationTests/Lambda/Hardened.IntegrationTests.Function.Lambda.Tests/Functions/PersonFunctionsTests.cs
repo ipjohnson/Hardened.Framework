@@ -17,7 +17,9 @@ namespace Hardened.IntegrationTests.Function.Lambda.Tests.Functions
         [LambdaAppIntegration]
         public async Task GetAllPeople(PersonFunctions_GetAllPeople lambda)
         {
-            var test = await lambda.Invoke();
+            var personListModel = await lambda.Invoke();
+
+            Assert.NotNull(personListModel);
         }
     }
 }

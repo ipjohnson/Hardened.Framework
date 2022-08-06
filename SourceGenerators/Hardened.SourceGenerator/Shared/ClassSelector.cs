@@ -39,17 +39,24 @@ namespace Hardened.SourceGenerator.Shared
 
         public bool Where(SyntaxNode node, CancellationToken token)
         {
-            if (node is not ClassDeclarationSyntax)
+            
+            if (node is not ClassDeclarationSyntax classDeclaration)
             {
                 return false;
             }
-            
-            return node.DescendantNodes()
+            var found = node.DescendantNodes()
                 .OfType<AttributeSyntax>().Any(a =>
                 {
                     var name = a.Name.ToString();
                     return _names.Contains(name);
                 });
+
+            if (found)
+            {
+                File.AppendAllText(@"C:\temp\generated\inspect.txt", classDeclaration.Identifier.Value + " found " + found + "\r\n");
+            }
+
+            return found;
         }
     }
 }

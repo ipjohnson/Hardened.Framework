@@ -24,7 +24,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var servicesCollection = services.Collect();
 
             var generator = new DependencyInjectionFileGenerator(defaultLibraries);
-
+            
             initializationContext.RegisterSourceOutput(entryPointProvider.Combine(servicesCollection), generator.GenerateFile);
         }
 
@@ -58,6 +58,8 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             var classTypeDef = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
                 classDeclarationSyntax.Identifier.ToString());
+
+            File.AppendAllText(@"C:\temp\generated\ServiceModel." + classDeclarationSyntax.Identifier.Value + ".txt", exposeTypeDef!.Name + " " + classTypeDef .Name+ "\r\n");
 
             return new ServiceModel(exposeTypeDef!, classTypeDef, ServiceModel.ServiceLifestyle.Singleton);
         }

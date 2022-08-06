@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
     <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
     <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
+    <ProjectReference Include="..\..\..\SourceGenerators\Lambda\Hardened.Function.Lambda.SourceGenerator\Hardened.Function.Lambda.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\..\Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj" />
     <ProjectReference Include="..\..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
   </ItemGroup>

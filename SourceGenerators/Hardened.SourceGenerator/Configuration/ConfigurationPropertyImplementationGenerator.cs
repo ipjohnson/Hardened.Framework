@@ -30,7 +30,7 @@ namespace Hardened.SourceGenerator.Configuration
             csharpFile.WriteOutput(outputContext);
 
             arg1.AddSource("ConfigurationModels_" + arg2.ModelType.Name + ".Properties.cs", outputContext.Output());
-            File.WriteAllText(@"C:\temp\generated\" + arg2.ModelType.Name + ".cs", outputContext.Output());
+            File.WriteAllText(@"C:\temp\generated\" +arg2.InterfaceType.Namespace + "." + arg2.ModelType.Name + ".cs", outputContext.Output());
         }
 
         private static void ProcessModelDefinition(

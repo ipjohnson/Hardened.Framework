@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Hardened.Function.Lambda.Runtime.Attributes
+namespace Hardened.Function.Lambda.Runtime
 {
     public class LambdaFunctionAttribute : Attribute
     {
-        public string FunctionName { get; set; }
+        public string? FunctionName { get; set; }
     }
 }
