@@ -1,4 +1,5 @@
 ﻿using CSharpAuthor;
+using Hardened.SourceGenerator.Models.Request;
 
 namespace Hardened.SourceGenerator.Models
 {
@@ -12,7 +13,7 @@ namespace Hardened.SourceGenerator.Models
                 new WebRouteInformation("", "", Array.Empty<PathToken>()),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformation(),
-                new List<FilterInformation>()
+                new List<FilterInformationModel>()
             );
 
         public WebEndPointModel(
@@ -22,7 +23,7 @@ namespace Hardened.SourceGenerator.Models
             WebRouteInformation routeInformation,
             IReadOnlyList<RequestParameterInformation> requestParameterInformationList,
             ResponseInformation responseInformation, 
-            IReadOnlyCollection<FilterInformation> filters)
+            IReadOnlyCollection<FilterInformationModel> filters)
         {
             HandlerType = handlerType;
             ControllerType = controllerType;
@@ -45,23 +46,7 @@ namespace Hardened.SourceGenerator.Models
 
         public ResponseInformation ResponseInformation { get; }
 
-        public IReadOnlyCollection<FilterInformation> Filters { get; }
-    }
-
-    public class FilterInformation
-    {
-        public FilterInformation(ITypeDefinition typeDefinition, string arguments, string propertyAssignment)
-        {
-            TypeDefinition = typeDefinition;
-            Arguments = arguments;
-            PropertyAssignment = propertyAssignment;
-        }
-
-        public ITypeDefinition TypeDefinition { get; }
-
-        public string Arguments { get; }
-
-        public string PropertyAssignment { get; }
+        public IReadOnlyCollection<FilterInformationModel> Filters { get; }
     }
 
     public class PathToken
@@ -135,5 +120,7 @@ namespace Hardened.SourceGenerator.Models
         public bool IsAsync { get; set; }
 
         public string? TemplateName { get; set; }
+
+        public ITypeDefinition? ReturnType { get; set; }
     }
 }

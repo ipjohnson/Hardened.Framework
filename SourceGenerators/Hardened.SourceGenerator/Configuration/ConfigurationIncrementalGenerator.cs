@@ -14,7 +14,7 @@ namespace Hardened.SourceGenerator.Configuration
             IncrementalGeneratorInitializationContext initializationContext, 
             IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider)
         {
-            var classSelector = new ClassSelector(KnownTypes.Configuration.ConfigurationModelAttribute);
+            var classSelector = new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.Configuration.ConfigurationModelAttribute);
 
             var configurationFileModels = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 classSelector.Where,

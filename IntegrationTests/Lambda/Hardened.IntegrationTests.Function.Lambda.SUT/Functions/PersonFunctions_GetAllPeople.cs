@@ -16,34 +16,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Hardened.IntegrationTests.Function.Lambda.SUT.Functions
 {
-    public class PersonFunctions_GetAllPeople : ILambdaHandler<PersonListModel>
+    public partial class PersonFunctions_GetAllPeople : ILambdaHandler<PersonListModel>
     {
-        private readonly ILambdaFunctionImplService _lambdaFunctionImplService;
-        private readonly Application _application;
-
-        public PersonFunctions_GetAllPeople()
-        : this(new EnvironmentImpl(), null)
-        {
-
-        }
-
-        public PersonFunctions_GetAllPeople(IEnvironment environment, Action<IServiceCollection>? overrideDependencies)
-        {
-            _application = new Application(environment, overrideDependencies);
-            var filter = new LambdaInvokeFilter(new InvokeFilter(_application.Provider));
-
-            _application.Provider.GetService<IMiddlewareService>()!.Use(_ => filter);
-            _lambdaFunctionImplService = _application.Provider.GetRequiredService<ILambdaFunctionImplService>();
-        }
-        
-
-        public Task<Stream> Invoke(Stream inputStream, ILambdaContext context)
-        {
-            return _lambdaFunctionImplService.InvokeFunction(inputStream, context);
-        }
-
-        public IServiceProvider Provider => _application.Provider;
-
         public class InvokeFilter : BaseExecutionHandler<PersonFunctions>
         {
             private static readonly ExecutionRequestHandlerInfo _handlerInfo = 

@@ -1,47 +1,28 @@
-﻿using CSharpAuthor;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using CSharpAuthor;
 using Hardened.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Hardened.SourceGenerator.Web
+namespace Hardened.Function.Lambda.SourceGenerator
 {
-    public static class WebEndPointModelGenerator
+    public static class LambdaFunctionModelGenerator
     {
-        private static readonly HashSet<string> _attributeNames = GetAttributeNames();
 
-        public static WebEndPointModel GenerateWebModel(GeneratorSyntaxContext context, CancellationToken cancellationToken)
+        public static LambdaFunctionEntryModel GenerateWebModel(GeneratorSyntaxContext context, CancellationToken cancellation)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
-            var attribute = GetWebAttribute(methodDeclaration, cancellationToken);
 
-            if (attribute == null)
-            {
-                return WebEndPointModel.Empty;
-            }
+            var methodName = GetControllerMethod(methodDeclaration);
+            var controllerType = GetControllerType(methodDeclaration);
+            var response = GetResponseInformation(context, methodDeclaration);
+            var filters = GetFilters(context, methodDeclaration);
 
-            var (routeInformation, parameterInfo) = WebRequestInformationProcessor.ProcessParameterInfo(context, methodDeclaration, attribute);
-
-            return new WebEndPointModel(
-                GetHandlerType(methodDeclaration),
-                GetControllerType(context.Node),
-                GetControllerMethod(methodDeclaration),
-               routeInformation,
-                parameterInfo,
-                GetResponseInformation(context),
-                GetFilters(context, methodDeclaration)
-                );
-        }
-
-        private static ITypeDefinition GetHandlerType(MethodDeclarationSyntax contextNode)
-        {
-            var classDeclarationSyntax =
-                contextNode.Ancestors().OfType<ClassDeclarationSyntax>().First();
-
-            var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<NamespaceDeclarationSyntax>().First();
-
-            return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated", classDeclarationSyntax.Identifier + "_" + contextNode.Identifier.Text);
+            return new LambdaFunctionEntryModel(methodName, controllerType, response, Array.Empty<LambdaFunctionParameterModel>(), filters);
         }
 
         private static string GetControllerMethod(MethodDeclarationSyntax methodDeclaration)
@@ -59,7 +40,8 @@ namespace Hardened.SourceGenerator.Web
             return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd(), classDeclarationSyntax.Identifier.Text);
         }
 
-        private static ResponseInformation GetResponseInformation(GeneratorSyntaxContext context)
+
+        private static ResponseInformation GetResponseInformation(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration)
         {
             var templateAttribute =
                 context.Node.DescendantNodes()
@@ -73,10 +55,11 @@ namespace Hardened.SourceGenerator.Web
                 template = templateAttribute.ArgumentList.Arguments[0].ToString().Trim('"');
             }
 
-            return new ResponseInformation{ TemplateName = template};
+            var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
+            
+            return new ResponseInformation { TemplateName = template, ReturnType = returnType};
         }
-        
-        private static IReadOnlyCollection<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
+        private static IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
             MethodDeclarationSyntax methodDeclarationSyntax)
         {
             var filterList = new List<FilterInformationModel>();
@@ -98,15 +81,11 @@ namespace Hardened.SourceGenerator.Web
 
         private static bool IsNotFilterAttribute(AttributeSyntax attribute)
         {
-            var attributeName = attribute.Name.ToString().Replace("Attribute","");
+            var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
             switch (attributeName)
             {
-                case "Delete":
-                case "Get":
-                case "Path":
-                case "Post":
-                case "Put":
+                case "LambdaFunction":
                 case "Template":
                     return false;
             }
@@ -164,49 +143,6 @@ namespace Hardened.SourceGenerator.Web
                     }
                 }
             }
-        }
-
-        public static bool SelectWebRequestMethods(SyntaxNode arg1, CancellationToken arg2)
-        {
-            return arg1 is MethodDeclarationSyntax methodDeclarationSyntax &&
-                   GetWebAttribute(methodDeclarationSyntax, arg2) != null;
-        }
-
-        private static AttributeSyntax? GetWebAttribute(MethodDeclarationSyntax node, CancellationToken cancellationToken)
-        {
-            var attributeNames =
-                node.DescendantNodes().OfType<AttributeSyntax>();
-
-            foreach (var attributeNode in attributeNames)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                var name = attributeNode.Name.ToString();
-
-                if (_attributeNames.Contains(name))
-                {
-                    return attributeNode;
-                }
-            }
-
-            return null;
-        }
-
-        private static HashSet<string> GetAttributeNames()
-        {
-            var returnSet = new HashSet<string>();
-            var names = new List<string> { "Get", "Put", "Post", "Patch", "Delete", "HttpMethod" };
-
-            foreach (var name in names)
-            {
-                returnSet.Add(name);
-                returnSet.Add(name + "Attribute");
-            }
-
-            return returnSet;
         }
     }
 }

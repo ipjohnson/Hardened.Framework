@@ -7,13 +7,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Shared
 {
-    public class ClassSelector
+    public class SyntaxSelector<T> where T : SyntaxNode
     {
         private const string _attributeString = "Attribute";
         private readonly ITypeDefinition _attribute;
         private readonly List<string> _names;
 
-        public ClassSelector(ITypeDefinition attribute)
+        public SyntaxSelector(ITypeDefinition attribute)
         {
             _attribute = attribute;
             _names = GetAttributeStrings(attribute);
@@ -39,22 +39,17 @@ namespace Hardened.SourceGenerator.Shared
 
         public bool Where(SyntaxNode node, CancellationToken token)
         {
-            
-            if (node is not ClassDeclarationSyntax classDeclaration)
+            if (node is not T)
             {
                 return false;
             }
+
             var found = node.DescendantNodes()
                 .OfType<AttributeSyntax>().Any(a =>
                 {
                     var name = a.Name.ToString();
                     return _names.Contains(name);
                 });
-
-            if (found)
-            {
-                File.AppendAllText(@"C:\temp\generated\inspect.txt", classDeclaration.Identifier.Value + " found " + found + "\r\n");
-            }
 
             return found;
         }

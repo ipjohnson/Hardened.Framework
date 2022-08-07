@@ -11,7 +11,7 @@ namespace Hardened.IntegrationTests.Function.Lambda.SUT.Functions
 {
     public class PersonFunctions
     {
-        private IPersonService _personService;
+        private readonly IPersonService _personService;
 
         public PersonFunctions(IPersonService personService)
         {

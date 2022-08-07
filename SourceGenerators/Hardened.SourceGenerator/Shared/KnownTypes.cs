@@ -31,6 +31,8 @@ namespace Hardened.SourceGenerator.Shared
                     public const string LambdaRuntime = "Hardened.Function.Lambda.Runtime";
 
                     public const string LambdaRuntimeDI = "Hardened.Function.Lambda.Runtime.DependencyInjection";
+
+                    public const string LambdaRuntimeImpl = "Hardened.Function.Lambda.Runtime.Impl";
                 }
 
                 public static class Web
@@ -299,6 +301,19 @@ namespace Hardened.SourceGenerator.Shared
 
             public static readonly ITypeDefinition IApiGatewayEventProcessor =
                 TypeDefinition.Get(Namespace.Hardened.Web.LambdaRuntimeImpl, "IApiGatewayEventProcessor");
+
+            public static readonly ITypeDefinition ILambdaFunctionImplService =
+                TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntimeImpl, "ILambdaFunctionImplService");
+
+            public static readonly ITypeDefinition LambdaFunctionAttribute =
+                TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntime, "LambdaFunctionAttribute");
+
+
+            public static readonly ITypeDefinition LambdaInvokeFilter =
+                TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntimeImpl, "LambdaInvokeFilter");
+
+            public static readonly ITypeDefinition ILambdaHandler =
+                TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntimeImpl, "ILambdaHandler");
 
         }
 

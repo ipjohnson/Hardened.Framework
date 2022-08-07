@@ -52,7 +52,7 @@ namespace Hardened.SourceGenerator.Shared
                 {
                 }
 
-                return TypeDefinition.Get(namedTypeSymbol.ContainingNamespace.Name, namedTypeSymbol.Name);
+                return TypeDefinition.Get(namedTypeSymbol.ContainingNamespace.GetFullName(), namedTypeSymbol.Name);
             }
 
             return null;
@@ -84,7 +84,7 @@ namespace Hardened.SourceGenerator.Shared
                     return TypeDefinition.Get(typeof(string));
             }
 
-            return TypeDefinition.Get(typeSymbol.ContainingNamespace.Name, typeSymbol.Name);
+            return TypeDefinition.Get(typeSymbol.ContainingNamespace.GetFullName(), typeSymbol.Name);
         }
 
         private static bool IsKnownType(string name)

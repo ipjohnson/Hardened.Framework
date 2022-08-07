@@ -14,7 +14,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider,
             IReadOnlyList<ITypeDefinition> defaultLibraries)
         {
-            var classSelector = new ClassSelector(KnownTypes.DI.ExposeAttribute);
+            var classSelector = new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.DI.ExposeAttribute);
 
             var services = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 classSelector.Where,
