@@ -31,8 +31,17 @@ namespace Hardened.SourceGenerator.Shared
 
         public static ITypeDefinition GetTypeDefinition(this ITypeSymbol typeSymbol)
         {
+            return TypeDefinition.Get(typeSymbol.ContainingNamespace.GetFullName(), GetTypeName(typeSymbol));
+        }
 
-            return TypeDefinition.Get(typeSymbol.ContainingNamespace.GetFullName(), typeSymbol.Name);
+        private static string GetTypeName(ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol.ContainingType != null)
+            {
+                return GetTypeName(typeSymbol.ContainingType) + "." + typeSymbol.Name;
+            }
+
+            return typeSymbol.Name;
         }
 
         public static ITypeDefinition? GetTypeDefinitionFromSymbolInfo(SymbolInfo symbolInfo)
@@ -52,7 +61,7 @@ namespace Hardened.SourceGenerator.Shared
                 {
                 }
 
-                return TypeDefinition.Get(namedTypeSymbol.ContainingNamespace.GetFullName(), namedTypeSymbol.Name);
+                return TypeDefinition.Get(namedTypeSymbol.ContainingNamespace.GetFullName(), GetTypeName(namedTypeSymbol));
             }
 
             return null;

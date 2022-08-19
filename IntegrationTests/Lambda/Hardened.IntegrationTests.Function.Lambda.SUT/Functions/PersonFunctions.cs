@@ -17,11 +17,16 @@ namespace Hardened.IntegrationTests.Function.Lambda.SUT.Functions
         {
             _personService = personService;
         }
-
+        
         [LambdaFunction]
-        public PersonListModel GetAllPeople()
+        public PersonListModel GetAllPeople(GetAllPeopleRequest request)
         {
             return new PersonListModel("test", new List<PersonModel>());
+        }
+
+        public class GetAllPeopleRequest
+        {
+            public int MaxCount { get; set; } = 10;
         }
     }
 }

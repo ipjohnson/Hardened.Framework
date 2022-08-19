@@ -17,9 +17,10 @@ namespace Hardened.IntegrationTests.Function.Lambda.Tests.Functions
         [LambdaAppIntegration]
         public async Task GetAllPeople(PersonFunctions_GetAllPeople lambda)
         {
-            var personListModel = await lambda.Invoke();
+            var personListModel = await lambda.Invoke(new PersonFunctions.GetAllPeopleRequest { MaxCount = 20 });
 
             Assert.NotNull(personListModel);
+            Assert.Equal("test", personListModel.Title);
         }
     }
 }

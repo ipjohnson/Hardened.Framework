@@ -32,6 +32,8 @@ namespace Hardened.Function.Lambda.Testing
             
             JsonSerializer.Serialize(memoryStreamReservation.Item, request);
 
+            memoryStreamReservation.Item.Position = 0;
+
             await using var response = await tHandler.Invoke(memoryStreamReservation.Item,
                 lambdaContext ?? ConstructLambda(tHandler.GetType()));
 

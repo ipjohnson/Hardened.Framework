@@ -35,30 +35,16 @@ namespace Hardened.Requests.Runtime.Execution
         {
             var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-            var filterList = 
-                serviceProvider.GetRequiredService<IGlobalFilterRegistry>().GetFilters(handlerInfo);
-            
             var ioFilter = ioFilterProvider.ProvideFilter(
                 handlerInfo,
                 _emptyDeserializeRequest
             );
-
-            filterList.Add(new RequestFilterInfo(_ => ioFilter, FilterOrder.Serialization));
-
+            
             var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
 
-            filterList.Add(new RequestFilterInfo(_ => invokeFilter, FilterOrder.EndPointInvoke));
-
-            foreach (var requestFilterProvider in filterProviders)
-            {
-                filterList.AddRange(requestFilterProvider.GetFilters(handlerInfo));
-            }
-
-            filterList.Sort((x,y) => 
-                Comparer<int>.Default.Compare(x.Order ?? FilterOrder.DefaultValue, y.Order ?? FilterOrder.DefaultValue));
-
-            return filterList.Select(f => f.FilterFunc).ToArray();
+            return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter);
         }
+
 
         #endregion
 
@@ -69,24 +55,20 @@ namespace Hardened.Requests.Runtime.Execution
         public static Func<IExecutionContext, IExecutionFilter>[] StandardFilterWithParameters<TController, TParameter>(
             IServiceProvider serviceProvider,
             IExecutionRequestHandlerInfo handlerInfo,
-            InvokeWithParameters<TController, TParameter> invokeMethod) where TController : class
+            Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
+            InvokeWithParameters<TController, TParameter> invokeMethod,
+            IEnumerable<IRequestFilterProvider> filterProviders) where TController : class
         {
             var contextSerializationService = serviceProvider.GetRequiredService<IContextSerializationService>();
 
-            var filterArray = new Func<IExecutionContext, IExecutionFilter>[2];
-
             var ioFilter = new IOFilter(
-                _ => Task.FromResult(EmptyParameters.Instance),
+                deserializeRequestFunc,
                 contextSerializationService.SerializeResponse
             );
-
-            filterArray[0] = _ => ioFilter;
-
+            
             var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
 
-            filterArray[1] = _ => invokeFilter;
-
-            return filterArray;
+            return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter);
         }
 
         #endregion
@@ -158,6 +140,34 @@ namespace Hardened.Requests.Runtime.Execution
             return filterArray;
         }
 
+        #endregion
+
+        #region create filter array
+
+        private static Func<IExecutionContext, IExecutionFilter>[] CreateFilterArray(
+            IServiceProvider serviceProvider,
+            IExecutionRequestHandlerInfo handlerInfo, 
+            IEnumerable<IRequestFilterProvider> filterProviders, 
+            IExecutionFilter ioFilter,
+            IExecutionFilter invokeFilter)
+        {
+            var filterList =
+                serviceProvider.GetRequiredService<IGlobalFilterRegistry>().GetFilters(handlerInfo);
+
+            filterList.Add(new RequestFilterInfo(_ => ioFilter, FilterOrder.Serialization));
+
+            filterList.Add(new RequestFilterInfo(_ => invokeFilter, FilterOrder.EndPointInvoke));
+
+            foreach (var requestFilterProvider in filterProviders)
+            {
+                filterList.AddRange(requestFilterProvider.GetFilters(handlerInfo));
+            }
+
+            filterList.Sort((x, y) =>
+                Comparer<int>.Default.Compare(x.Order ?? FilterOrder.DefaultValue, y.Order ?? FilterOrder.DefaultValue));
+
+            return filterList.Select(f => f.FilterFunc).ToArray();
+        }
         #endregion
     }
 }

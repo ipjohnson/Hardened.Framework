@@ -9,6 +9,8 @@ namespace Hardened.Requests.Runtime.Serializer
 {
     public class SystemTextJsonRequestDeserializer : IRequestDeserializer
     {
+        public bool IsDefaultSerializer => true;
+
         public bool CanProcessContext(IExecutionContext context)
         {
             return context.Request.ContentType?.Contains("application/json") ?? false;

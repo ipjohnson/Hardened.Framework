@@ -16,7 +16,7 @@ namespace Hardened.Requests.Runtime.Execution
             return false;
         }
 
-        public IReadOnlyList<IExecutionRequestParameter> ParameterInfos => Array.Empty<IExecutionRequestParameter>();
+        public IReadOnlyList<IExecutionRequestParameter> Info => Array.Empty<IExecutionRequestParameter>();
 
         public object this[int index]
         {

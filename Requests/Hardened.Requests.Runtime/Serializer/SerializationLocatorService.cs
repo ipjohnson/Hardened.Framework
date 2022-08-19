@@ -17,12 +17,15 @@ namespace Hardened.Requests.Runtime.Serializer
             IEnumerable<IRequestDeserializer> requestDeserializers,
             IEnumerable<IResponseSerializer> responseSerializers)
         {
+            // reverse lists so user registered serializers are tested first
             _requestDeserializers = requestDeserializers.Reverse().ToArray();
             _responseSerializers = responseSerializers.Reverse().ToArray();
         }
 
         public IRequestDeserializer FindRequestDeserializer(IExecutionContext context)
         {
+            IRequestDeserializer? defaultSerializer = null;
+
             for (var i = 0; i < _requestDeserializers.Length; i++)
             {
                 var requestDeserializer = _requestDeserializers[i];
@@ -31,9 +34,18 @@ namespace Hardened.Requests.Runtime.Serializer
                 {
                     return requestDeserializer;
                 }
+
+                if (requestDeserializer.IsDefaultSerializer)
+                {
+                    defaultSerializer = requestDeserializer;
+                }
             }
 
-            // TODO: add special handler for when no serializer found
+            if (defaultSerializer != null)
+            {
+                return defaultSerializer;
+            }
+
             throw new Exception("Could not find serializer: " + context.Request.ContentType);
         }
 

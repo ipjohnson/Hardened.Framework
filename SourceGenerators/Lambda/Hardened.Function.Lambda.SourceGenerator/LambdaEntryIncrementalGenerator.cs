@@ -16,7 +16,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 methodSelector.Where,
-                LambdaFunctionModelGenerator.GenerateWebModel
+                LambdaFunctionModelGenerator.GenerateRequestModel
             );
 
             var applicationCollect = applicationValuesProvider.Collect();

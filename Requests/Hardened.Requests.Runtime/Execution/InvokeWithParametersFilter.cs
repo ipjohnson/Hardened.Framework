@@ -32,11 +32,13 @@ namespace Hardened.Requests.Runtime.Execution
                 }
                 
                 _invoke(chain.Context, controller, parameter);
+
                 context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
             }
             catch (Exception e)
             {
                 context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
+
                 return ControllerErrorHelper.HandleException(context, e);
             }
 

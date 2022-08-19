@@ -21,6 +21,8 @@ namespace Hardened.SourceGenerator.Shared
                 public static class Extensions
                 {
                     public const string Logging = "Microsoft.Extensions.Logging";
+
+                    public const string DependencyInjection = "Microsoft.Extensions.DependencyInjection";
                 }
             }
 
@@ -69,6 +71,8 @@ namespace Hardened.SourceGenerator.Shared
 
             public const string HardenedRequestsAbstractMiddleware = "Hardened.Requests.Abstract.Middleware";
 
+            public const string HardenedRequestsAbstractSerializer = "Hardened.Requests.Abstract.Serializer";
+
             public static readonly string HardenedTemplateAbstractNamespace = "Hardened.Templates.Abstract";
 
             public static readonly string HardenedTemplateRuntimeImplNamespace = "Hardened.Templates.Runtime.Impl";
@@ -103,10 +107,10 @@ namespace Hardened.SourceGenerator.Shared
         public static class DI
         {
             public static readonly ITypeDefinition IServiceCollection =
-                TypeDefinition.Get("Microsoft.Extensions.DependencyInjection", "IServiceCollection");
+                TypeDefinition.Get(Namespace.Microsoft.Extensions.DependencyInjection, "IServiceCollection");
 
             public static readonly ITypeDefinition ServiceCollection =
-                TypeDefinition.Get("Microsoft.Extensions.DependencyInjection", "ServiceCollection");
+                TypeDefinition.Get(Namespace.Microsoft.Extensions.DependencyInjection, "ServiceCollection");
 
             public static readonly ITypeDefinition IServiceProvider =
                 TypeDefinition.Get("System", "IServiceProvider");
@@ -192,11 +196,23 @@ namespace Hardened.SourceGenerator.Shared
             public static readonly ITypeDefinition FilterFuncArray =
                 new GenericTypeDefinition(typeof(Func<,>), new[] { IExecutionContext, IExecutionFilter }, true);
 
-            public static ITypeDefinition IExecutionChain = 
+            public static readonly ITypeDefinition IExecutionChain = 
                     TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionChain");
 
-            public static ITypeDefinition ControllerErrorHelper =
+            public static readonly ITypeDefinition ControllerErrorHelper =
                 TypeDefinition.Get(Namespace.HardenedRequestsRuntimeErrors, "ControllerErrorHelper");
+
+            public static readonly ITypeDefinition IExecutionRequestParameters =
+                TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionRequestParameters");
+
+            public static readonly ITypeDefinition IContextSerializationService =
+                TypeDefinition.Get(Namespace.HardenedRequestsAbstractSerializer, "IContextSerializationService");
+
+            public static readonly ITypeDefinition IExecutionRequestParameter =
+                TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionRequestParameter");
+
+            public static readonly ITypeDefinition IReadOnlyListExecutionRequestParameter =
+                new GenericTypeDefinition(typeof(IReadOnlyList<>), new []{IExecutionRequestParameter});
         }
 
         public static class Logging

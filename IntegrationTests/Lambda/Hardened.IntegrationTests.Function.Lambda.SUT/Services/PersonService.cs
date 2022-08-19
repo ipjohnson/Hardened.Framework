@@ -24,7 +24,7 @@ namespace Hardened.IntegrationTests.Function.Lambda.SUT.Services
     {
         private readonly Dictionary<int, PersonModel> _persons;
 
-        public FunctionPersonService(IOptions<IPersonServiceConfiguration2> configuration)
+        public FunctionPersonService(IOptions<IPersonServiceConfiguration> configuration)
         {
 
             _persons = new()

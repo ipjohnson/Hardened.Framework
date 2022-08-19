@@ -12,8 +12,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
 {
     public static class LambdaFunctionModelGenerator
     {
-
-        public static LambdaFunctionEntryModel GenerateWebModel(GeneratorSyntaxContext context, CancellationToken cancellation)
+        public static RequestHandlerModel GenerateRequestModel(GeneratorSyntaxContext context, CancellationToken cancellation)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
@@ -21,10 +20,55 @@ namespace Hardened.Function.Lambda.SourceGenerator
             var controllerType = GetControllerType(methodDeclaration);
             var response = GetResponseInformation(context, methodDeclaration);
             var filters = GetFilters(context, methodDeclaration);
-
-            return new LambdaFunctionEntryModel(methodName, controllerType, response, Array.Empty<LambdaFunctionParameterModel>(), filters);
+            
+            return new RequestHandlerModel(
+                new RequestHandlerNameModel(methodName, "Invoke"),
+                controllerType, 
+                methodName,
+                TypeDefinition.Get("", "InvokeFilter"),
+                GetParameters(context, methodDeclaration, cancellation), response, filters);
         }
 
+        private static IReadOnlyList<RequestParameterInformation> GetParameters(
+            GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclaration,
+            CancellationToken cancellation)
+        {
+            var parameters = new List<RequestParameterInformation>();
+
+            foreach (var parameter in methodDeclaration.ParameterList.Parameters)
+            {
+                RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(parameter);
+
+                if (parameterInformation == null)
+                {
+                    parameterInformation = GetParameterInfo(generatorSyntaxContext, parameter);
+                }
+
+                parameters.Add(parameterInformation);
+            }
+
+            return parameters;
+        }
+
+        private static RequestParameterInformation GetParameterInfo(GeneratorSyntaxContext generatorSyntaxContext,
+            ParameterSyntax parameter)
+        {
+            var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+            
+            return new RequestParameterInformation(
+                parameterType,
+                parameter.Identifier.Text,
+                !parameterType.IsNullable,
+                null,
+                ParameterBindType.Body,
+                    null);
+        }
+
+        private static RequestParameterInformation? GetParameterInfoFromAttributes(ParameterSyntax parameter)
+        {
+            return null;
+        }
+        
         private static string GetControllerMethod(MethodDeclarationSyntax methodDeclaration)
         {
             return methodDeclaration.Identifier.Text;

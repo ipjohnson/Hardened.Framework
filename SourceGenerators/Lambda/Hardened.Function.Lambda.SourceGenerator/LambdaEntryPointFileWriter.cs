@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
 using CSharpAuthor;
+using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
@@ -13,21 +15,21 @@ namespace Hardened.Function.Lambda.SourceGenerator
     {
         public void GenerateSource(
             SourceProductionContext sourceContext, 
-            (LambdaFunctionEntryModel entryModel, ImmutableArray<ApplicationSelector.Model> appModel) data)
+            (RequestHandlerModel entryModel, ImmutableArray<ApplicationSelector.Model> appModel) data)
         {
             var entryModel = data.entryModel;
             var appModel = data.appModel.First();
 
             var generatedFile = GenerateFile(entryModel, appModel);
 
-            File.AppendAllText(@"C:\temp\generated\"+ entryModel.Handler.Name + ".FunctionHandler.cs", generatedFile);
+            File.AppendAllText(@"C:\temp\generated\"+ entryModel.Name.Path + ".FunctionHandler.cs", generatedFile);
             
-            sourceContext.AddSource(entryModel.Handler.Name + ".FunctionHandler.cs", generatedFile);
+            sourceContext.AddSource(entryModel.Name.Path + ".FunctionHandler.cs", generatedFile);
         }
 
-        private string GenerateFile(LambdaFunctionEntryModel entryModel, ApplicationSelector.Model appModel)
+        private string GenerateFile(RequestHandlerModel entryModel, ApplicationSelector.Model appModel)
         {
-            var csharpFile = new CSharpFileDefinition(entryModel.Handler.Namespace);
+            var csharpFile = new CSharpFileDefinition(entryModel.ControllerType.Namespace);
 
             GenerateEntryPointClass(csharpFile, entryModel, appModel);
 
@@ -39,10 +41,10 @@ namespace Hardened.Function.Lambda.SourceGenerator
         }
 
         private void GenerateEntryPointClass(CSharpFileDefinition csharpFile,
-            LambdaFunctionEntryModel lambdaFunctionEntryModel,
+            RequestHandlerModel lambdaFunctionEntryModel,
             ApplicationSelector.Model appModel)
         {
-            var lambdaClass = csharpFile.AddClass(lambdaFunctionEntryModel.Handler.Name + "_" + lambdaFunctionEntryModel.Name);
+            var lambdaClass = csharpFile.AddClass(lambdaFunctionEntryModel.ControllerType.Name + "_" + lambdaFunctionEntryModel.Name.Path);
 
             lambdaClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
 
@@ -53,12 +55,12 @@ namespace Hardened.Function.Lambda.SourceGenerator
             GenerateInvokeClass(lambdaClass, lambdaFunctionEntryModel, appModel);
         }
 
-        private void GenerateInvokeClass(ClassDefinition lambdaClass, LambdaFunctionEntryModel lambdaFunctionEntryModel, ApplicationSelector.Model appModel)
+        private void GenerateInvokeClass(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, ApplicationSelector.Model appModel)
         {
-            LambdaFunctionInvokeWriter.GenerateInvokeClass(lambdaClass, lambdaFunctionEntryModel, appModel);
+            InvokeClassGenerator.GenerateInvokeClass(lambdaFunctionEntryModel, lambdaClass);
         }
 
-        private void GenerateClassImpl(ClassDefinition lambdaClass, LambdaFunctionEntryModel lambdaFunctionEntryModel, ApplicationSelector.Model appModel)
+        private void GenerateClassImpl(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, ApplicationSelector.Model appModel)
         {
             var lambdaFunctionImplField = lambdaClass.AddField(KnownTypes.Lambda.ILambdaFunctionImplService,
                 "_lambdaFunctionImplService");
@@ -72,7 +74,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             GenerateProviderProperty(lambdaClass, lambdaFunctionEntryModel, applicationField);
         }
 
-        private void GenerateProviderProperty(ClassDefinition lambdaClass, LambdaFunctionEntryModel lambdaFunctionEntryModel, FieldDefinition applicationField)
+        private void GenerateProviderProperty(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, FieldDefinition applicationField)
         {
             var property = lambdaClass.AddProperty(KnownTypes.DI.IServiceProvider, "Provider");
 
@@ -82,7 +84,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
         }
 
         private void GenerateInvokeMethod(ClassDefinition lambdaClass,
-            LambdaFunctionEntryModel lambdaFunctionEntryModel,
+            RequestHandlerModel lambdaFunctionEntryModel,
             FieldDefinition applicationField,
             FieldDefinition lambdaFunctionImplField)
         {
@@ -95,7 +97,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             invokeMethod.Return(lambdaFunctionImplField.Instance.Invoke("InvokeFunction", inputStream, lambdaContext));
         }
 
-        private void GenerateConstructors(ClassDefinition lambdaClass, LambdaFunctionEntryModel lambdaFunctionEntryModel, ApplicationSelector.Model appModel, FieldDefinition lambdaFunctionImplField, FieldDefinition applicationField)
+        private void GenerateConstructors(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, ApplicationSelector.Model appModel, FieldDefinition lambdaFunctionImplField, FieldDefinition applicationField)
         {
             lambdaClass.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl), Null()));
 
@@ -115,14 +117,34 @@ namespace Hardened.Function.Lambda.SourceGenerator
             constructor.AddIndentedStatement("_lambdaFunctionImplService = _application.Provider.GetRequiredService<ILambdaFunctionImplService>()");
         }
 
-        private void AssignBaseType(ClassDefinition lambdaClass, LambdaFunctionEntryModel lambdaFunctionEntryModel)
+        private void AssignBaseType(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel)
         {
-            var interfaceType =
-                new GenericTypeDefinition(
-                    TypeDefinitionEnum.ClassDefinition, 
-                    KnownTypes.Lambda.ILambdaHandler.Name, 
+            var bodyParameter = 
+                lambdaFunctionEntryModel.RequestParameterInformationList.FirstOrDefault(
+                    p => p.BindingType == ParameterBindType.Body);
+
+            ITypeDefinition? interfaceType = null;
+
+            if (bodyParameter != null)
+            {
+                interfaceType = new GenericTypeDefinition(
+                    TypeDefinitionEnum.ClassDefinition,
+                    KnownTypes.Lambda.ILambdaHandler.Name,
+                    KnownTypes.Lambda.ILambdaHandler.Namespace,
+                    new[]
+                    {
+                        bodyParameter.ParameterType, 
+                        lambdaFunctionEntryModel.ResponseInformation.ReturnType!
+                    });
+            }
+            else
+            {
+                interfaceType = new GenericTypeDefinition(
+                    TypeDefinitionEnum.ClassDefinition,
+                    KnownTypes.Lambda.ILambdaHandler.Name,
                     KnownTypes.Lambda.ILambdaHandler.Namespace,
                     new[] { lambdaFunctionEntryModel.ResponseInformation.ReturnType! });
+            }
 
             File.AppendAllText(@"C:\temp\generated\response.txt", lambdaFunctionEntryModel.ResponseInformation.ReturnType!.Namespace + "\r\n");
             lambdaClass.AddUsingNamespace(lambdaFunctionEntryModel.ResponseInformation.ReturnType!.Namespace);

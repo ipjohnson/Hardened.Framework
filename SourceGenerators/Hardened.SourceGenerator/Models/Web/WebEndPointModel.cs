@@ -81,40 +81,6 @@ namespace Hardened.SourceGenerator.Models
         public IEnumerable<PathToken> Tokens { get; }
     }
 
-    public class RequestParameterInformation
-    {
-        public RequestParameterInformation(string name, bool required, string? defaultValue, ParameterBindType bindingType, PathToken? pathToken)
-        {
-            Name = name;
-            Required = required;
-            DefaultValue = defaultValue;
-            BindingType = bindingType;
-            PathToken = pathToken;
-        }
-
-        public string Name { get; }
-
-        public bool Required { get; }
-
-        public string? DefaultValue { get; }
-
-        public ParameterBindType BindingType { get; }
-
-        public PathToken? PathToken { get; }
-    }
-
-    public enum ParameterBindType
-    {
-        Path,
-        QueryString,
-        Header,
-        Body,
-        ServiceProvider,
-        ExecutionContext,
-        ExecutionRequest,
-        ExecutionResponse
-    }
-
     public class ResponseInformation
     {
         public bool IsAsync { get; set; }

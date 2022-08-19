@@ -4,6 +4,8 @@
     {
         string Name { get; }
 
+        int Index { get; }
+
         Type Type { get; }
     }
 
@@ -28,7 +30,7 @@
         /// <summary>
         /// List of parameter info object for the call
         /// </summary>
-        IReadOnlyList<IExecutionRequestParameter> ParameterInfos { get; }
+        IReadOnlyList<IExecutionRequestParameter> Info { get; }
 
         /// <summary>
         /// Access parameters based on index

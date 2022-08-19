@@ -1,4 +1,5 @@
 ﻿using Hardened.SourceGenerator.Models;
+using Hardened.SourceGenerator.Models.Request;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 

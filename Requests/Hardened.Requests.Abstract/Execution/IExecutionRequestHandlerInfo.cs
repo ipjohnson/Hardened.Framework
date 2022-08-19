@@ -15,5 +15,7 @@
         int? FailureStatus => null;
 
         int? NullResponseStatus => null;
+
+        IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
     }
 }
