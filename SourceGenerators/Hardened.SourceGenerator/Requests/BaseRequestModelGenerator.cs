@@ -2,17 +2,16 @@
 using System.Collections.Generic;
 using System.Text;
 using CSharpAuthor;
-using Hardened.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Hardened.Function.Lambda.SourceGenerator
+namespace Hardened.SourceGenerator.Requests
 {
-    public static class LambdaFunctionModelGenerator
+    public abstract class BaseRequestModelGenerator
     {
-        public static RequestHandlerModel GenerateRequestModel(GeneratorSyntaxContext context, CancellationToken cancellation)
+        public virtual RequestHandlerModel GenerateRequestModel(GeneratorSyntaxContext context, CancellationToken cancellation)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
@@ -20,16 +19,20 @@ namespace Hardened.Function.Lambda.SourceGenerator
             var controllerType = GetControllerType(methodDeclaration);
             var response = GetResponseInformation(context, methodDeclaration);
             var filters = GetFilters(context, methodDeclaration);
-            
+
             return new RequestHandlerModel(
-                new RequestHandlerNameModel(methodName, "Invoke"),
-                controllerType, 
+                GetRequestNameModel(context, methodDeclaration, cancellation),
+                controllerType,
                 methodName,
-                TypeDefinition.Get("", "InvokeFilter"),
+                GetInvokeHandlerType(context, methodDeclaration, cancellation),
                 GetParameters(context, methodDeclaration, cancellation), response, filters);
         }
 
-        private static IReadOnlyList<RequestParameterInformation> GetParameters(
+        protected abstract RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation);
+
+        protected abstract ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation);
+        
+        protected virtual IReadOnlyList<RequestParameterInformation> GetParameters(
             GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclaration,
             CancellationToken cancellation)
         {
@@ -50,11 +53,11 @@ namespace Hardened.Function.Lambda.SourceGenerator
             return parameters;
         }
 
-        private static RequestParameterInformation GetParameterInfo(GeneratorSyntaxContext generatorSyntaxContext,
+        protected virtual RequestParameterInformation GetParameterInfo(GeneratorSyntaxContext generatorSyntaxContext,
             ParameterSyntax parameter)
         {
             var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
-            
+
             return new RequestParameterInformation(
                 parameterType,
                 parameter.Identifier.Text,
@@ -64,17 +67,17 @@ namespace Hardened.Function.Lambda.SourceGenerator
                     string.Empty);
         }
 
-        private static RequestParameterInformation? GetParameterInfoFromAttributes(ParameterSyntax parameter)
+        protected virtual RequestParameterInformation? GetParameterInfoFromAttributes(ParameterSyntax parameter)
         {
             return null;
         }
-        
-        private static string GetControllerMethod(MethodDeclarationSyntax methodDeclaration)
+
+        protected virtual string GetControllerMethod(MethodDeclarationSyntax methodDeclaration)
         {
             return methodDeclaration.Identifier.Text;
         }
 
-        private static ITypeDefinition GetControllerType(SyntaxNode contextNode)
+        protected virtual ITypeDefinition GetControllerType(SyntaxNode contextNode)
         {
             var classDeclarationSyntax =
                 contextNode.Ancestors().OfType<ClassDeclarationSyntax>().First();
@@ -83,9 +86,8 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd(), classDeclarationSyntax.Identifier.Text);
         }
-
-
-        private static ResponseInformationModel GetResponseInformation(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration)
+        
+        protected virtual ResponseInformationModel GetResponseInformation(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration)
         {
             var templateAttribute =
                 context.Node.DescendantNodes()
@@ -100,10 +102,10 @@ namespace Hardened.Function.Lambda.SourceGenerator
             }
 
             var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
-            
-            return new ResponseInformationModel { TemplateName = template, ReturnType = returnType};
+
+            return new ResponseInformationModel { TemplateName = template, ReturnType = returnType };
         }
-        private static IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
+        protected virtual IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
             MethodDeclarationSyntax methodDeclarationSyntax)
         {
             var filterList = new List<FilterInformationModel>();
@@ -114,7 +116,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             return filterList;
         }
 
-        private static IEnumerable<FilterInformationModel> GetFiltersForClass(GeneratorSyntaxContext context, ClassDeclarationSyntax? parent)
+        protected virtual IEnumerable<FilterInformationModel> GetFiltersForClass(GeneratorSyntaxContext context, ClassDeclarationSyntax? parent)
         {
             if (parent == null)
             {
@@ -124,33 +126,21 @@ namespace Hardened.Function.Lambda.SourceGenerator
             return GetFiltersFromAttributes(context, parent.AttributeLists);
         }
 
-        private static bool IsNotFilterAttribute(AttributeSyntax attribute)
-        {
-            var attributeName = attribute.Name.ToString().Replace("Attribute", "");
+        protected abstract bool IsFilterAttribute(AttributeSyntax attribute);
 
-            switch (attributeName)
-            {
-                case "LambdaFunction":
-                case "Template":
-                    return false;
-            }
-
-            return true;
-        }
-
-        private static IEnumerable<FilterInformationModel> GetFiltersForMethod(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclarationSyntax)
+        protected virtual IEnumerable<FilterInformationModel> GetFiltersForMethod(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclarationSyntax)
         {
             return GetFiltersFromAttributes(context, methodDeclarationSyntax.AttributeLists);
         }
 
-        private static IEnumerable<FilterInformationModel> GetFiltersFromAttributes(GeneratorSyntaxContext context,
+        protected virtual IEnumerable<FilterInformationModel> GetFiltersFromAttributes(GeneratorSyntaxContext context,
             SyntaxList<AttributeListSyntax> attributeListSyntax)
         {
             foreach (var attributeList in attributeListSyntax)
             {
                 foreach (var attribute in attributeList.Attributes)
                 {
-                    if (IsNotFilterAttribute(attribute))
+                    if (IsFilterAttribute(attribute))
                     {
                         var operation = context.SemanticModel.GetOperation(attribute);
 

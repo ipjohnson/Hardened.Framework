@@ -46,7 +46,7 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Compile>
 		<Compile Include="../../Hardened.SourceGenerator/Requests/**/*">
-			<Link>Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+			<Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Compile>
 		<Compile Include="../../Hardened.SourceGenerator/Shared/**/*">

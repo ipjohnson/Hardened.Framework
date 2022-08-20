@@ -9,8 +9,9 @@ namespace Hardened.SourceGenerator.Models.Request
             ITypeDefinition controllerType, 
             string handlerMethod, 
             ITypeDefinition invokeHandlerType, 
-            IReadOnlyList<RequestParameterInformation> requestParameterInformationList, 
-            ResponseInformation responseInformation, IReadOnlyCollection<FilterInformationModel> filters)
+            IReadOnlyList<RequestParameterInformation> requestParameterInformationList,
+            ResponseInformationModel responseInformation, 
+            IReadOnlyCollection<FilterInformationModel> filters)
         {
             Name = name;
             ControllerType = controllerType;
@@ -31,7 +32,7 @@ namespace Hardened.SourceGenerator.Models.Request
 
         public IReadOnlyList<RequestParameterInformation> RequestParameterInformationList { get; }
 
-        public ResponseInformation ResponseInformation { get; }
+        public ResponseInformationModel ResponseInformation { get; }
 
         public IReadOnlyCollection<FilterInformationModel> Filters { get; }
     }

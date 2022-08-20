@@ -1,6 +1,8 @@
 ﻿using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models;
+using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
@@ -8,21 +10,19 @@ namespace Hardened.SourceGenerator.Web
 {
     public class WebExecutionHandlerCodeGenerator
     {
-        public void GenerateSource(SourceProductionContext sourceProductionContext, WebEndPointModel endPointModel)
+        public void GenerateSource(SourceProductionContext sourceProductionContext, RequestHandlerModel requestHandlerModel)
         {
-            var sourceFile = GenerateFile(endPointModel);
+            var sourceFile = GenerateFile(requestHandlerModel);
 
             File.AppendAllText(@"C:\temp\invoker.cs", sourceFile);
-            sourceProductionContext.AddSource(endPointModel.HandlerType.Name, sourceFile);
+            sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, sourceFile);
         }
         
-        public string GenerateFile(WebEndPointModel endPointModel)
+        public string GenerateFile(RequestHandlerModel requestHandlerModel)
         {
-            var csharpFile = new CSharpFileDefinition(endPointModel.HandlerType.Namespace);
-
-            var classDefinition = csharpFile.AddClass(endPointModel.HandlerType.Name);
-
-            ImplementInvokerClass(endPointModel, classDefinition);
+            var csharpFile = new CSharpFileDefinition(requestHandlerModel.InvokeHandlerType.Namespace);
+            
+            InvokeClassGenerator.GenerateInvokeClass(requestHandlerModel, csharpFile);
 
             var outputContext = new OutputContext();
 
@@ -30,72 +30,6 @@ namespace Hardened.SourceGenerator.Web
 
             return outputContext.Output();
         }
-
-        private void ImplementInvokerClass(
-            WebEndPointModel endPointModel, 
-            ClassDefinition classDefinition)
-        {
-            var baseType = new GenericTypeDefinition(
-                TypeDefinitionEnum.ClassDefinition,
-                "BaseExecutionHandler",
-                KnownTypes.Namespace.HardenedRequestsRuntimeExecution,
-                new []{ endPointModel.ControllerType }
-            );
-
-            classDefinition.AddBaseType(baseType);
-
-            CreateConstructor(endPointModel, classDefinition);
-
-            //GetFilterListCodeGenerator.Implement(endPointModel, classDefinition);
-
-            HandlerInfoCodeGenerator.Implement(endPointModel, classDefinition);
-            
-            InvokeMethodCodeGenerator.Implement(endPointModel, classDefinition);
-        }
         
-        private void CreateConstructor(WebEndPointModel webEndPointModel, ClassDefinition classDefinition)
-        {
-            var templateName = webEndPointModel.ResponseInformation.TemplateName;
-
-            var defaultOutput = string.IsNullOrEmpty(templateName)
-                ? Null()
-                : Invoke(KnownTypes.Templates.DefaultOutputFuncHelper, "GetTemplateOut",
-                    "serviceProvider", QuoteString(templateName!));
-
-            var filterEnumerable = GenerateFilterEnumerable(webEndPointModel, classDefinition);
-
-            var filterMethod = InvokeGeneric(
-                KnownTypes.Requests.ExecutionHelper,
-                "StandardFilterEmptyParameters",
-                new[] { webEndPointModel.ControllerType },
-                "serviceProvider",
-                "_handlerInfo",
-                "InvokeMethod",
-                GenerateFilterEnumerable(webEndPointModel,classDefinition)
-            );
-            var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
-
-            var serviceProvider = 
-                constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
-        }
-
-        private IOutputComponent GenerateFilterEnumerable(WebEndPointModel webEndPointModel, ClassDefinition classDefinition)
-        {
-            var arguments = new List<object>();
-
-            foreach (var filterInformation in webEndPointModel.Filters)
-            {
-                var newValue = New(filterInformation.TypeDefinition, filterInformation.Arguments);
-
-                if (!string.IsNullOrEmpty(filterInformation.PropertyAssignment))
-                {
-                    newValue.AddInitValue(filterInformation.PropertyAssignment);
-                }
-
-                arguments.Add(newValue);
-            }
-
-            return Invoke(KnownTypes.Requests.ExecutionHelper, "GetFilterInfo", arguments.ToArray());
-        }
     }
 }

@@ -12,15 +12,15 @@ namespace Hardened.SourceGenerator.Models.Request
             string name, 
             bool required, 
             string? defaultValue,
-            ParameterBindType bindingType,
-            PathToken? pathToken)
+            ParameterBindType bindingType, 
+            string bindingName)
         {
             ParameterType = parameterType;
             Name = name;
             Required = required;
             DefaultValue = defaultValue;
             BindingType = bindingType;
-            PathToken = pathToken;
+            BindingName = bindingName;
         }
 
         public ITypeDefinition ParameterType { get; }
@@ -33,7 +33,7 @@ namespace Hardened.SourceGenerator.Models.Request
 
         public ParameterBindType BindingType { get; }
 
-        public PathToken? PathToken { get; }
+        public string BindingName { get; }
     }
 
     public enum ParameterBindType

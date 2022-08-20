@@ -5,6 +5,7 @@ using System.Text;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models;
+using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Templates.Generator;
 using Hardened.SourceGenerator.Web.Routing;
@@ -15,7 +16,7 @@ namespace Hardened.SourceGenerator.Web
     public static class RoutingTableGenerator
     {
         public static void GenerateRoute(SourceProductionContext context, 
-            (ApplicationSelector.Model Left, ImmutableArray<WebEndPointModel> Right) models)
+            (ApplicationSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models)
         {
             var applicationFile = new CSharpFileDefinition(models.Left.ApplicationType.Namespace);
 
@@ -29,13 +30,13 @@ namespace Hardened.SourceGenerator.Web
 
             File.AppendAllText(@"c:\temp\" + fileName + ".cs", outputContext.Output());
 
-            File.AppendAllLines(@"c:\temp\paths.txt", models.Right.Select(m => m.RouteInformation.PathTemplate));
+            File.AppendAllLines(@"c:\temp\paths.txt", models.Right.Select(m => m.Name.Path));
 
             context.AddSource(fileName, outputContext.Output());
         }
 
         private static void CreateRoutingTable(
-            ApplicationSelector.Model appModel, ImmutableArray<WebEndPointModel> endPointModels, CSharpFileDefinition applicationFile)
+            ApplicationSelector.Model appModel, ImmutableArray<RequestHandlerModel> endPointModels, CSharpFileDefinition applicationFile)
         {
             var appClass = applicationFile.AddClass(appModel.ApplicationType.Name);
             
@@ -67,7 +68,7 @@ namespace Hardened.SourceGenerator.Web
             constructor.Assign(parameter).To(field.Instance);
         }
 
-        private static void GenerateDependencyInjection(ClassDefinition classDefinition, ITypeDefinition routingTableType, ApplicationSelector.Model applicationModel, ImmutableArray<WebEndPointModel> webEndPointModels)
+        private static void GenerateDependencyInjection(ClassDefinition classDefinition, ITypeDefinition routingTableType, ApplicationSelector.Model applicationModel, ImmutableArray<RequestHandlerModel> webEndPointModels)
         {
             var templateField = classDefinition.AddField(typeof(int), "_routingTableDependencies");
 
@@ -108,7 +109,7 @@ namespace Hardened.SourceGenerator.Web
             }
         }
 
-        private static void ImplementHandlerMethod(ClassDefinition routingClass, ImmutableArray<WebEndPointModel> endPointModels)
+        private static void ImplementHandlerMethod(ClassDefinition routingClass, ImmutableArray<RequestHandlerModel> endPointModels)
         {
             var handlerMethod = routingClass.AddMethod("GetExecutionRequestHandler");
 
@@ -122,7 +123,7 @@ namespace Hardened.SourceGenerator.Web
         }
 
         private static void WriteRoutingTable(ClassDefinition routingClass, MethodDefinition handlerMethod,
-            ImmutableArray<WebEndPointModel> endPointModels, InstanceDefinition methodString)
+            ImmutableArray<RequestHandlerModel> endPointModels, InstanceDefinition methodString)
         {
             var routeNode = GetRoutingNodes(endPointModels);
 
@@ -131,7 +132,7 @@ namespace Hardened.SourceGenerator.Web
             handlerMethod.Return(Invoke(routeTestMethod, "pathSpan", 0, methodString));
         }
 
-        private static string WriteRouteNode(ClassDefinition routingClass, RouteTreeNode<WebEndPointModel> routeNode, bool pathTest)
+        private static string WriteRouteNode(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode, bool pathTest)
         {
             var routeMethodName = GetRouteMethodName(routingClass, routeNode);
 
@@ -183,10 +184,10 @@ namespace Hardened.SourceGenerator.Web
                             EqualsStatement(methodString, QuoteString(leafNode.Method)));
 
                         var field = 
-                            routingClass.AddField(leafNode.Value.HandlerType, "_field" + leafNode.Value.HandlerType.Name);
+                            routingClass.AddField(leafNode.Value.InvokeHandlerType, "_field" + leafNode.Value.InvokeHandlerType.Name);
 
                         var coalesceHandler = NullCoalesceEqual(field.Instance,
-                            New(leafNode.Value.HandlerType, "_rootServiceProvider"));
+                            New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"));
 
                         leafIfBlock.Assign(coalesceHandler).To(handler);
                     }
@@ -236,7 +237,7 @@ namespace Hardened.SourceGenerator.Web
             ParameterDefinition index,
             ParameterDefinition methodString,
             BaseBlockDefinition block,
-            RouteTreeNode<WebEndPointModel> routeNode,
+            RouteTreeNode<RequestHandlerModel> routeNode,
             bool pathTest)
         {
             if (routeNode.ChildNodes.Count > 0)
@@ -256,7 +257,7 @@ namespace Hardened.SourceGenerator.Web
             ParameterDefinition index,
             ParameterDefinition methodString,
             BaseBlockDefinition baseBlockDefinition,
-            RouteTreeNode<WebEndPointModel> routeNode,
+            RouteTreeNode<RequestHandlerModel> routeNode,
             bool pathTest)
         {
             var indexLength = routeNode.Path.Length + 1;
@@ -287,7 +288,7 @@ namespace Hardened.SourceGenerator.Web
             }
         }
 
-        private static string GetRouteMethodName(ClassDefinition routingClass, RouteTreeNode<WebEndPointModel> routeNode)
+        private static string GetRouteMethodName(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode)
         {
             var baseName = "TestPath_" +
                 routeNode.Path.Replace("/", "Slash").Replace("-","Dash").Replace(".","Period").Replace("%", "Per");
@@ -301,14 +302,14 @@ namespace Hardened.SourceGenerator.Web
             return testMethodName;
         }
 
-        private static RouteTreeNode<WebEndPointModel> GetRoutingNodes(ImmutableArray<WebEndPointModel> endPointModels)
+        private static RouteTreeNode<RequestHandlerModel> GetRoutingNodes(ImmutableArray<RequestHandlerModel> endPointModels)
         {
-            var generator = new RouteTreeGenerator<WebEndPointModel>();
+            var generator = new RouteTreeGenerator<RequestHandlerModel>();
 
             return generator.GenerateTree(endPointModels.Select(
-                m => new RouteTreeGenerator<WebEndPointModel>.Entry(
-                    m.RouteInformation.PathTemplate,
-                    m.RouteInformation.Method,
+                m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
+                    m.Name.Path,
+                    m.Name.Method,
                     m
                 )).ToList());
         }
