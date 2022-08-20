@@ -12,7 +12,7 @@ namespace Hardened.Shared.Testing
 {
     public class TestConfigurationPackage : IConfigurationPackage, IConfigurationValueAmender
     {
-        private List<AppConfigAmendAttribute> _amendAttributes;
+        private readonly List<AppConfigAmendAttribute> _amendAttributes;
 
         public TestConfigurationPackage(List<AppConfigAmendAttribute> amendAttributes)
         {

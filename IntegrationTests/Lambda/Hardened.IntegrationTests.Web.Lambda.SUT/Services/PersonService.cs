@@ -28,12 +28,14 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services
         public PersonService(IOptions<IPersonServiceConfiguration> configuration)
         {
             _configuration = configuration;
+
             _persons = new()
             {
                 { 10, new PersonModel { Id = 10, FirstName = _configuration.Value.FirstNamePrefix + "Test", LastName = _configuration.Value.LastNamePrefix + "Test"} },
                 { 20, new PersonModel { Id = 20, FirstName = _configuration.Value.FirstNamePrefix + "Test 20", LastName = _configuration.Value.LastNamePrefix + "LastTest20" } },
                 { 30, new PersonModel { Id = 30, FirstName = _configuration.Value.FirstNamePrefix + "Test 30", LastName = _configuration.Value.LastNamePrefix + "LastTest30" } },
-                { 40, new PersonModel { Id = 40, FirstName = _configuration.Value.FirstNamePrefix + "Test 40", LastName = _configuration.Value.LastNamePrefix + "LastTest40" } }
+                { 40, new PersonModel { Id = 40, FirstName = _configuration.Value.FirstNamePrefix + "Test 40", LastName = _configuration.Value.LastNamePrefix + "LastTest40" } },
+                { 40, new PersonModel { Id = 40, FirstName = _configuration.Value.FirstNamePrefix + "Test 40", LastName = _configuration.Value.LastNamePrefix + "LastTest40" } },
             };
         }
 

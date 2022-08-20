@@ -9,8 +9,8 @@ namespace Hardened.Shared.Runtime.Configuration
 {
     public class AppConfig : IAppConfig, IConfigurationPackage
     {
-        private List<IConfigurationValueProvider> _providers = new();
-        private List<(IConfigurationValueAmender amend,string env)> _amenders = new();
+        private readonly List<IConfigurationValueProvider> _providers = new();
+        private readonly List<(IConfigurationValueAmender amend,string env)> _amenders = new();
 
         public IAppConfig ProvideValue<TInterface, TImpl>(Func<IEnvironment, TImpl> valueProvider) where TImpl : class, TInterface
         {

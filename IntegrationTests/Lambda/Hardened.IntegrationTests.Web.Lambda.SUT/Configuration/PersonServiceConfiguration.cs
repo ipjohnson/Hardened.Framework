@@ -13,5 +13,6 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Configuration
         private string _firstNamePrefix = "";
         private string _lastNamePrefix = "";
         private int? _ageBase;
+        private bool _locked;
     }
 }

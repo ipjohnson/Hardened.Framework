@@ -12,7 +12,7 @@ namespace Hardened.Web.Lambda.Runtime.Metrics
     {
         private readonly IDimensionSetProvider _dimensionSetProvider;
         private readonly ILoggerFactory _loggerFactory;
-        private ILogger<EmbeddedMetricLoggerProvider> _logger;
+        private readonly ILogger<EmbeddedMetricLoggerProvider> _logger;
 
         public EmbeddedMetricLoggerProvider(IDimensionSetProvider dimensionSetProvider, ILoggerFactory loggerFactory, ILogger<EmbeddedMetricLoggerProvider> logger)
         {

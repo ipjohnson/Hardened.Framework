@@ -11,7 +11,7 @@ namespace Hardened.SourceGenerator.Web
 {
     public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
     {
-        private static HashSet<string> _attributeNames = GetAttributeNames();
+        private static readonly HashSet<string> _attributeNames = GetAttributeNames();
 
         protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration,
             CancellationToken cancellation)

@@ -23,7 +23,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             var homeModel = response.Deserialize<HomeModel>();
 
             Assert.Equal(10, homeModel.Id);
-            Assert.Equal("Blah 5", homeModel.Name);
+            Assert.Equal("Blah Test 5", homeModel.Name);
         }
     }
 }
