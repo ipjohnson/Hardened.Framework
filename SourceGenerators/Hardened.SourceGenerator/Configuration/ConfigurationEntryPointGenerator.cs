@@ -66,8 +66,8 @@ namespace Hardened.SourceGenerator.Configuration
             foreach (var configurationFileModel in configFiles)
             {
                 var ioptionsType =
-                    new GenericTypeDefinition(TypeDefinitionEnum.ClassDefinition, "IOptions",
-                        "Microsoft.Extensions.Options", new[] { configurationFileModel.InterfaceType });
+                    new GenericTypeDefinition(TypeDefinitionEnum.ClassDefinition, 
+                        "Microsoft.Extensions.Options", "IOptions", new[] { configurationFileModel.InterfaceType });
 
                 var providerString =
                     $"serviceProvider => Microsoft.Extensions.Options.Options.Create(serviceProvider.GetRequiredService<IConfigurationManager>().GetConfiguration<{configurationFileModel.InterfaceType.Name}>())";

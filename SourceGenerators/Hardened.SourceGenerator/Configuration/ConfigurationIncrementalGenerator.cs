@@ -19,7 +19,7 @@ namespace Hardened.SourceGenerator.Configuration
             var configurationFileModels = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 classSelector.Where,
                 GenerateConfigurationFileModel
-            );
+            ).WithComparer(new ConfigurationFileModelComparer());
 
             initializationContext.RegisterSourceOutput(configurationFileModels, ConfigurationPropertyImplementationGenerator.Generate);
 
@@ -31,9 +31,7 @@ namespace Hardened.SourceGenerator.Configuration
         private static ConfigurationFileModel GenerateConfigurationFileModel(GeneratorSyntaxContext context, CancellationToken cancellationToken)
         {
             var classDeclarationSyntax = (ClassDeclarationSyntax)context.Node;
-
-            File.AppendAllText(@"C:\temp\generated\ConfigurationModels.txt", $"{classDeclarationSyntax.Identifier.ValueText}\r\n");
-
+            
             var classTypeDef = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
                 classDeclarationSyntax.Identifier.ToString());
 
@@ -77,7 +75,7 @@ namespace Hardened.SourceGenerator.Configuration
 
         public class ConfigurationFileModel
         {
-            public ConfigurationFileModel(ITypeDefinition modelType, ITypeDefinition interfaceType, IEnumerable<ConfigurationFieldModel> fieldModels)
+            public ConfigurationFileModel(ITypeDefinition modelType, ITypeDefinition interfaceType, IReadOnlyList<ConfigurationFieldModel> fieldModels)
             {
                 ModelType = modelType;
                 FieldModels = fieldModels;
@@ -88,7 +86,38 @@ namespace Hardened.SourceGenerator.Configuration
 
             public ITypeDefinition InterfaceType { get; }
 
-            public IEnumerable<ConfigurationFieldModel> FieldModels { get; }
+            public IReadOnlyList<ConfigurationFieldModel> FieldModels { get; }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is not ConfigurationFileModel model)
+                {
+                    return false;
+                }
+
+                if (!ModelType.Equals(model.ModelType))
+                {
+                    return false;
+                }
+
+                if (!InterfaceType.Equals(model.InterfaceType))
+                {
+                    return false;
+                }
+
+                return FieldModels.DeepEquals(model.FieldModels);
+            }
+            
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = ModelType.GetHashCode();
+                    hashCode = (hashCode * 397) ^ InterfaceType.GetHashCode();
+                    hashCode = (hashCode * 397) ^ FieldModels.GetHashCodeAggregation();
+                    return hashCode;
+                }
+            }
         }
 
         public class ConfigurationFieldModel
@@ -105,6 +134,28 @@ namespace Hardened.SourceGenerator.Configuration
             public string Name { get; }
 
             public string PropertyName { get; }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is not ConfigurationFieldModel configurationFieldModel)
+                {
+                    return false;
+                }
+                return FieldType.Equals(configurationFieldModel.FieldType) &&
+                       Name.Equals(configurationFieldModel.Name) &&
+                       PropertyName.Equals(configurationFieldModel.PropertyName);
+            }
+            
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = FieldType.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Name.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PropertyName.GetHashCode();
+                    return hashCode;
+                }
+            }
         }
     }
 }

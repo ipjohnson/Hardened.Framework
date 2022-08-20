@@ -17,6 +17,6 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers
 
         [Get("/Home")]
         public HomeModel GetMethod() =>  
-            new() { Id = 10, Name = "Blah " + _mathService.Add(2,2)};
+            new() { Id = 10, Name = "Blah Test " + _mathService.Add(2,2)};
     }
 }

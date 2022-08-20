@@ -24,7 +24,7 @@ namespace Hardened.SourceGenerator.Shared
             return methodDeclarationSyntax.ReturnType.GetTypeDefinition(generatorSyntaxContext);
         }
 
-        private static IReadOnlyCollection<HardenedParameterDefinition> GenerateSyntaxParameters(
+        private static IReadOnlyList<HardenedParameterDefinition> GenerateSyntaxParameters(
             MethodDeclarationSyntax methodDeclarationSyntax, GeneratorSyntaxContext generatorSyntaxContext)
         {
             var parameters = new List<HardenedParameterDefinition>();

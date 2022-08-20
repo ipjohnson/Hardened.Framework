@@ -12,17 +12,19 @@ namespace Hardened.SourceGenerator.Web
     {
         public void GenerateSource(SourceProductionContext sourceProductionContext, RequestHandlerModel requestHandlerModel)
         {
-            var sourceFile = GenerateFile(requestHandlerModel);
+            sourceProductionContext.CancellationToken.ThrowIfCancellationRequested();
+
+            var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken);
 
             File.AppendAllText(@"C:\temp\invoker.cs", sourceFile);
             sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, sourceFile);
         }
         
-        public string GenerateFile(RequestHandlerModel requestHandlerModel)
+        public string GenerateFile(RequestHandlerModel requestHandlerModel, CancellationToken cancellationToken)
         {
             var csharpFile = new CSharpFileDefinition(requestHandlerModel.InvokeHandlerType.Namespace);
             
-            InvokeClassGenerator.GenerateInvokeClass(requestHandlerModel, csharpFile);
+            InvokeClassGenerator.GenerateInvokeClass(requestHandlerModel, csharpFile, cancellationToken);
 
             var outputContext = new OutputContext();
 

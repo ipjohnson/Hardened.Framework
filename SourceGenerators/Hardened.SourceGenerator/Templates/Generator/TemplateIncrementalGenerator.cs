@@ -47,11 +47,27 @@ namespace Hardened.SourceGenerator.Templates.Generator
             var templateHelperModels = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 helperSelector.Where,
                 TemplateHelperModelGenerator
-            );
+            ).WithComparer(new TemplateHelperModelComparer());
             
             var templateHelperProviders = entryPointProvider.Combine(templateHelperModels.Collect());
 
             initializationContext.RegisterSourceOutput(templateHelperProviders, TemplateHelperGenerator.Generate);
+        }
+
+        public class TemplateHelperModelComparer : IEqualityComparer<TemplateHelperModel>
+        {
+            public bool Equals(TemplateHelperModel x, TemplateHelperModel y)
+            {
+                if (ReferenceEquals(x, y)) return true;
+                if (ReferenceEquals(x, null)) return false;
+                if (ReferenceEquals(y, null)) return false;
+                return x.Equals(y);
+            }
+
+            public int GetHashCode(TemplateHelperModel obj)
+            {
+                return obj.GetHashCode();
+            }
         }
 
         private static TemplateHelperModel TemplateHelperModelGenerator(GeneratorSyntaxContext arg1, CancellationToken arg2)
@@ -113,9 +129,28 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             public ITypeDefinition Helper { get; }
             
-            public DependencyInjection.DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle Lifestyle
+            public DependencyInjection.DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle Lifestyle { get; }
+
+            public override bool Equals(object obj)
             {
-                get;
+                if (obj is not TemplateHelperModel templateHelperModel)
+                {
+                    return false;
+                }
+                return Name.Equals(templateHelperModel.Name) &&
+                       Helper.Equals(templateHelperModel.Helper) &&
+                       Lifestyle.Equals(templateHelperModel.Lifestyle);
+            }
+            
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = Name.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Helper.GetHashCode();
+                    hashCode = (hashCode * 397) ^ (int)Lifestyle;
+                    return hashCode;
+                }
             }
         }
 

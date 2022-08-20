@@ -13,7 +13,8 @@ namespace Hardened.SourceGenerator.Requests
     {
         public static readonly ITypeDefinition GenericParameters = TypeDefinition.Get("", "Parameters");
 
-        public static void GenerateInvokeClass(RequestHandlerModel handlerModel, IConstructContainer constructContainer)
+        public static void GenerateInvokeClass(RequestHandlerModel handlerModel, IConstructContainer constructContainer,
+            CancellationToken cancellationToken)
         {
             var invokeClass = constructContainer.AddClass(handlerModel.InvokeHandlerType.Name);
 
@@ -21,6 +22,7 @@ namespace Hardened.SourceGenerator.Requests
 
             AssignBaseTypes(handlerModel, invokeClass);
             
+            cancellationToken.ThrowIfCancellationRequested();
             HandlerInfoCodeGenerator.Implement(handlerModel, invokeClass);
 
             CreateConstructor(handlerModel, invokeClass);
@@ -29,6 +31,8 @@ namespace Hardened.SourceGenerator.Requests
 
             if (handlerModel.RequestParameterInformationList.Count > 0)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 BindRequestParametersMethodGenerator.Implement(handlerModel, invokeClass);
                 ParametersClassGenerator.GenerateParametersClass(handlerModel, invokeClass);
             }
@@ -39,8 +43,8 @@ namespace Hardened.SourceGenerator.Requests
             invokeClass.AddBaseType(
                 new GenericTypeDefinition(
                     TypeDefinitionEnum.ClassDefinition,
-                    "BaseExecutionHandler",
                     KnownTypes.Namespace.HardenedRequestsRuntimeExecution,
+                    "BaseExecutionHandler",
                     new[] { handlerModel.ControllerType }));
         }
 

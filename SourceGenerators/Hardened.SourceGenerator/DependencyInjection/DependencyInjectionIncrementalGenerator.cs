@@ -19,7 +19,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var services = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 classSelector.Where,
                 GenerateServiceModel
-            );
+            ).WithComparer(new ServiceModelComparer());
 
             var servicesCollection = services.Collect();
 
@@ -59,8 +59,6 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var classTypeDef = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
                 classDeclarationSyntax.Identifier.ToString());
 
-            File.AppendAllText(@"C:\temp\generated\ServiceModel." + classDeclarationSyntax.Identifier.Value + ".txt", exposeTypeDef!.Name + " " + classTypeDef .Name+ "\r\n");
-
             return new ServiceModel(exposeTypeDef!, classTypeDef, ServiceModel.ServiceLifestyle.Singleton);
         }
 
@@ -85,6 +83,29 @@ namespace Hardened.SourceGenerator.DependencyInjection
             public ITypeDefinition ImplementationType { get; }
 
             public ServiceLifestyle Lifestyle { get; }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is not ServiceModel serviceModel)
+                {
+                    return false;
+                }
+
+                return ServiceType.Equals(serviceModel.ServiceType) &&
+                       ImplementationType.Equals(serviceModel.ImplementationType) &&
+                       Lifestyle.Equals(serviceModel.Lifestyle);
+            }
+            
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = ServiceType.GetHashCode();
+                    hashCode = (hashCode * 397) ^ ImplementationType.GetHashCode();
+                    hashCode = (hashCode * 397) ^ (int)Lifestyle;
+                    return hashCode;
+                }
+            }
         }
     }
 }

@@ -19,5 +19,35 @@ namespace Hardened.SourceGenerator.Models.Request
         public string Arguments { get; }
 
         public string PropertyAssignment { get; }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not FilterInformationModel filterInformationModel)
+            {
+                return false;
+            }
+
+            if (!TypeDefinition.Equals(filterInformationModel.TypeDefinition))
+            {
+                return false;
+            }
+
+            if (Arguments != filterInformationModel.Arguments)
+            {
+                return false;
+            }
+
+            if (PropertyAssignment != filterInformationModel.PropertyAssignment)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public override string ToString()
+        {
+            return $"{TypeDefinition}:{Arguments}:{PropertyAssignment}";
+        }
     }
 }

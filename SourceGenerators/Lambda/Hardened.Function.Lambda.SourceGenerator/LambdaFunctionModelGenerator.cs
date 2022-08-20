@@ -100,8 +100,9 @@ namespace Hardened.Function.Lambda.SourceGenerator
             }
 
             var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
-            
-            return new ResponseInformationModel { TemplateName = template, ReturnType = returnType};
+            var isAsync = returnType is GenericTypeDefinition { Name: "Task" or "ValueTask" };
+
+            return new ResponseInformationModel(isAsync, template, returnType);
         }
         private static IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
             MethodDeclarationSyntax methodDeclarationSyntax)

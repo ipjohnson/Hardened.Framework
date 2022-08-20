@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -17,7 +18,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 methodSelector.Where,
                 LambdaFunctionModelGenerator.GenerateRequestModel
-            );
+            ).WithComparer(new RequestHandlerModelComparer());
 
             var applicationCollect = applicationValuesProvider.Collect();
 

@@ -11,21 +11,23 @@ namespace Hardened.SourceGenerator.Requests
 {
     public abstract class BaseRequestModelGenerator
     {
-        public virtual RequestHandlerModel GenerateRequestModel(GeneratorSyntaxContext context, CancellationToken cancellation)
+        public virtual RequestHandlerModel GenerateRequestModel(GeneratorSyntaxContext context, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
             var methodName = GetControllerMethod(methodDeclaration);
             var controllerType = GetControllerType(methodDeclaration);
             var response = GetResponseInformation(context, methodDeclaration);
-            var filters = GetFilters(context, methodDeclaration);
+            var filters = GetFilters(context, methodDeclaration, cancellationToken);
 
             return new RequestHandlerModel(
-                GetRequestNameModel(context, methodDeclaration, cancellation),
+                GetRequestNameModel(context, methodDeclaration, cancellationToken),
                 controllerType,
                 methodName,
-                GetInvokeHandlerType(context, methodDeclaration, cancellation),
-                GetParameters(context, methodDeclaration, cancellation), response, filters);
+                GetInvokeHandlerType(context, methodDeclaration, cancellationToken),
+                GetParameters(context, methodDeclaration, cancellationToken), response, filters);
         }
 
         protected abstract RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation);
@@ -34,12 +36,14 @@ namespace Hardened.SourceGenerator.Requests
         
         protected virtual IReadOnlyList<RequestParameterInformation> GetParameters(
             GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclaration,
-            CancellationToken cancellation)
+            CancellationToken cancellationToken)
         {
             var parameters = new List<RequestParameterInformation>();
 
             foreach (var parameter in methodDeclaration.ParameterList.Parameters)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(parameter);
 
                 if (parameterInformation == null)
@@ -103,43 +107,49 @@ namespace Hardened.SourceGenerator.Requests
 
             var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
 
-            return new ResponseInformationModel { TemplateName = template, ReturnType = returnType };
+            var isAsync = returnType is GenericTypeDefinition { Name: "Task" or "ValueTask" };
+
+            return new ResponseInformationModel(isAsync, template, returnType );
         }
         protected virtual IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
-            MethodDeclarationSyntax methodDeclarationSyntax)
+            MethodDeclarationSyntax methodDeclarationSyntax, CancellationToken cancellationToken)
         {
             var filterList = new List<FilterInformationModel>();
 
-            filterList.AddRange(GetFiltersForMethod(context, methodDeclarationSyntax));
-            filterList.AddRange(GetFiltersForClass(context, methodDeclarationSyntax.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault()));
+            filterList.AddRange(GetFiltersForMethod(context, methodDeclarationSyntax, cancellationToken));
+            filterList.AddRange(GetFiltersForClass(context, methodDeclarationSyntax.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault(), cancellationToken));
 
             return filterList;
         }
 
-        protected virtual IEnumerable<FilterInformationModel> GetFiltersForClass(GeneratorSyntaxContext context, ClassDeclarationSyntax? parent)
+        protected virtual IEnumerable<FilterInformationModel> GetFiltersForClass(GeneratorSyntaxContext context,
+            ClassDeclarationSyntax? parent, CancellationToken cancellationToken)
         {
             if (parent == null)
             {
                 return Enumerable.Empty<FilterInformationModel>();
             }
 
-            return GetFiltersFromAttributes(context, parent.AttributeLists);
+            return GetFiltersFromAttributes(context, parent.AttributeLists, cancellationToken);
         }
 
         protected abstract bool IsFilterAttribute(AttributeSyntax attribute);
 
-        protected virtual IEnumerable<FilterInformationModel> GetFiltersForMethod(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclarationSyntax)
+        protected virtual IEnumerable<FilterInformationModel> GetFiltersForMethod(GeneratorSyntaxContext context,
+            MethodDeclarationSyntax methodDeclarationSyntax, CancellationToken cancellationToken)
         {
-            return GetFiltersFromAttributes(context, methodDeclarationSyntax.AttributeLists);
+            return GetFiltersFromAttributes(context, methodDeclarationSyntax.AttributeLists, cancellationToken);
         }
 
         protected virtual IEnumerable<FilterInformationModel> GetFiltersFromAttributes(GeneratorSyntaxContext context,
-            SyntaxList<AttributeListSyntax> attributeListSyntax)
+            SyntaxList<AttributeListSyntax> attributeListSyntax, CancellationToken cancellationToken)
         {
             foreach (var attributeList in attributeListSyntax)
             {
                 foreach (var attribute in attributeList.Attributes)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     if (IsFilterAttribute(attribute))
                     {
                         var operation = context.SemanticModel.GetOperation(attribute);

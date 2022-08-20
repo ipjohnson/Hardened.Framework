@@ -17,21 +17,24 @@ namespace Hardened.Function.Lambda.SourceGenerator
             SourceProductionContext sourceContext, 
             (RequestHandlerModel entryModel, ImmutableArray<ApplicationSelector.Model> appModel) data)
         {
+            sourceContext.CancellationToken.ThrowIfCancellationRequested();
+
             var entryModel = data.entryModel;
             var appModel = data.appModel.First();
 
-            var generatedFile = GenerateFile(entryModel, appModel);
+            var generatedFile = GenerateFile(entryModel, appModel, sourceContext.CancellationToken);
 
             File.AppendAllText(@"C:\temp\generated\"+ entryModel.Name.Path + ".FunctionHandler.cs", generatedFile);
             
             sourceContext.AddSource(entryModel.Name.Path + ".FunctionHandler.cs", generatedFile);
         }
 
-        private string GenerateFile(RequestHandlerModel entryModel, ApplicationSelector.Model appModel)
+        private string GenerateFile(RequestHandlerModel entryModel, ApplicationSelector.Model appModel,
+            CancellationToken cancellationToken)
         {
             var csharpFile = new CSharpFileDefinition(entryModel.ControllerType.Namespace);
 
-            GenerateEntryPointClass(csharpFile, entryModel, appModel);
+            GenerateEntryPointClass(csharpFile, entryModel, appModel, cancellationToken);
 
             var outputContext=  new OutputContext();
 
@@ -42,7 +45,8 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
         private void GenerateEntryPointClass(CSharpFileDefinition csharpFile,
             RequestHandlerModel lambdaFunctionEntryModel,
-            ApplicationSelector.Model appModel)
+            ApplicationSelector.Model appModel, 
+            CancellationToken cancellationToken)
         {
             var lambdaClass = csharpFile.AddClass(lambdaFunctionEntryModel.ControllerType.Name + "_" + lambdaFunctionEntryModel.Name.Path);
 
@@ -50,18 +54,22 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             AssignBaseType(lambdaClass, lambdaFunctionEntryModel);
 
-            GenerateClassImpl(lambdaClass, lambdaFunctionEntryModel, appModel);
+            GenerateClassImpl(lambdaClass, lambdaFunctionEntryModel, appModel, cancellationToken);
 
-            GenerateInvokeClass(lambdaClass, lambdaFunctionEntryModel, appModel);
+            GenerateInvokeClass(lambdaClass, lambdaFunctionEntryModel, appModel, cancellationToken);
         }
 
-        private void GenerateInvokeClass(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, ApplicationSelector.Model appModel)
+        private void GenerateInvokeClass(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel,
+            ApplicationSelector.Model appModel, CancellationToken cancellationToken)
         {
-            InvokeClassGenerator.GenerateInvokeClass(lambdaFunctionEntryModel, lambdaClass);
+            InvokeClassGenerator.GenerateInvokeClass(lambdaFunctionEntryModel, lambdaClass, cancellationToken);
         }
 
-        private void GenerateClassImpl(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, ApplicationSelector.Model appModel)
+        private void GenerateClassImpl(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel,
+            ApplicationSelector.Model appModel, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var lambdaFunctionImplField = lambdaClass.AddField(KnownTypes.Lambda.ILambdaFunctionImplService,
                 "_lambdaFunctionImplService");
             var applicationField = lambdaClass.AddField(appModel.ApplicationType, "_application");
@@ -129,8 +137,8 @@ namespace Hardened.Function.Lambda.SourceGenerator
             {
                 interfaceType = new GenericTypeDefinition(
                     TypeDefinitionEnum.ClassDefinition,
-                    KnownTypes.Lambda.ILambdaHandler.Name,
                     KnownTypes.Lambda.ILambdaHandler.Namespace,
+                    KnownTypes.Lambda.ILambdaHandler.Name,
                     new[]
                     {
                         bodyParameter.ParameterType, 
@@ -141,8 +149,8 @@ namespace Hardened.Function.Lambda.SourceGenerator
             {
                 interfaceType = new GenericTypeDefinition(
                     TypeDefinitionEnum.ClassDefinition,
-                    KnownTypes.Lambda.ILambdaHandler.Name,
                     KnownTypes.Lambda.ILambdaHandler.Namespace,
+                    KnownTypes.Lambda.ILambdaHandler.Name,
                     new[] { lambdaFunctionEntryModel.ResponseInformation.ReturnType! });
             }
 

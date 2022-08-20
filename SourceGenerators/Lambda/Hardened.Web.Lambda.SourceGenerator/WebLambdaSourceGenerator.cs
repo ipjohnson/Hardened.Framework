@@ -21,11 +21,10 @@ namespace Hardened.Web.Lambda.SourceGenerator
                 KnownTypes.DI.Registry.LambdaWebDI
             };
 
-
             var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
                 ApplicationSelector.UsingAttribute("LambdaWebApplication"),
                 ApplicationSelector.TransformModel(true)
-            );
+            ).WithComparer(new ApplicationSelector.Comparer());
 
             DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
             ConfigurationIncrementalGenerator.Setup(context, applicationModel);

@@ -219,8 +219,8 @@ namespace Hardened.SourceGenerator.Shared
         {
             public static ITypeDefinition ILoggerT(ITypeDefinition typeDefinition)
             {
-                return new GenericTypeDefinition(TypeDefinitionEnum.ClassDefinition, "ILogger",
-                    Namespace.Microsoft.Extensions.Logging, new[] { typeDefinition });
+                return new GenericTypeDefinition(TypeDefinitionEnum.ClassDefinition, 
+                    Namespace.Microsoft.Extensions.Logging, "ILogger", new[] { typeDefinition });
             }
 
             public static ITypeDefinition ILogger =
