@@ -106,9 +106,14 @@ namespace Hardened.SourceGenerator.Requests
             }
 
             var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
+            
+            var isAsync = false;
 
-            var isAsync = returnType is GenericTypeDefinition { Name: "Task" or "ValueTask" };
-
+            if (returnType is GenericTypeDefinition genericType)
+            {
+                isAsync = genericType.Name.Equals("Task") || genericType.Name.Equals("ValueTask");
+            }
+            File.AppendAllText(@"C:\temp\generated\responseInfo.txt", $"{returnType} {isAsync} {returnType.GetType()}\r\n");
             return new ResponseInformationModel(isAsync, template, returnType );
         }
         protected virtual IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,

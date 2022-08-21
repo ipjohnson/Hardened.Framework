@@ -56,6 +56,21 @@ namespace Hardened.SourceGenerator.Shared
 
                         return GetTypeDefinitionFromType(baseType).MakeNullable();
                     }
+
+                    var closingTypeSymbols = namedTypeSymbol.TypeParameters;
+                    var closingTypes = new List<ITypeDefinition>();
+
+                    foreach (var typeSymbol in closingTypeSymbols)
+                    {
+                        closingTypes.Add(GetTypeDefinitionFromType(typeSymbol));
+                    }
+
+                    return new GenericTypeDefinition(
+                        TypeDefinitionEnum.ClassDefinition,
+                        namedTypeSymbol.ContainingNamespace.GetFullName(),
+                        GetTypeName(namedTypeSymbol),
+                        closingTypes
+                    );
                 }
                 else if (IsKnownType(namedTypeSymbol.Name))
                 {

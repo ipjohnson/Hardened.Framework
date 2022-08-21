@@ -32,7 +32,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers
 
         [Get("/api/person/view")]
         [Template("personList")]
-        public PersonListModel GetAllWithView()
+        public async Task<PersonListModel> GetAllWithView()
         {
             _logger.LogInformation("Person list is executing");
             return new PersonListModel("Person List", _personService.All());
