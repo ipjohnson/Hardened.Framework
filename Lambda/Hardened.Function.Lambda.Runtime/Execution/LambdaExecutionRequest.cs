@@ -5,11 +5,15 @@ using System.Text;
 using System.Threading.Tasks;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.PathTokens;
+using Hardened.Requests.Runtime.PathTokens;
 
 namespace Hardened.Function.Lambda.Runtime.Execution
 {
     public class LambdaExecutionRequest : IExecutionRequest
     {
+        private IPathTokenCollection? _pathTokens;
+
         public LambdaExecutionRequest(string method, string path, Stream body, IHeaderCollection headers)
         {
             Method = method;
@@ -36,5 +40,11 @@ namespace Hardened.Function.Lambda.Runtime.Execution
         public Stream Body { get; set; }
 
         public IHeaderCollection Headers { get; }
+
+        public IPathTokenCollection PathTokens
+        {
+            get => _pathTokens ?? PathTokenCollection.Empty;
+            set => _pathTokens = value;
+        }
     }
 }

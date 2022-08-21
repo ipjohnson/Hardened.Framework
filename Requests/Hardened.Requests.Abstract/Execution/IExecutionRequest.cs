@@ -1,4 +1,5 @@
 ﻿using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.PathTokens;
 
 namespace Hardened.Requests.Abstract.Execution
 {
@@ -15,7 +16,9 @@ namespace Hardened.Requests.Abstract.Execution
         IExecutionRequestParameters? Parameters { get; set; }
         
         Stream Body { get; set; }
-
+        
         IHeaderCollection Headers { get; }
+
+        IPathTokenCollection PathTokens { get; set; }
     }
 }

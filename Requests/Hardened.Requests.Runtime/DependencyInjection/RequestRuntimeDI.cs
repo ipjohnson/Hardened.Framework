@@ -1,4 +1,5 @@
 ﻿using Hardened.Requests.Abstract.Errors;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Abstract.RequestFilter;
@@ -31,6 +32,8 @@ namespace Hardened.Requests.Runtime.DependencyInjection
             serviceCollection.TryAddSingleton<ISerializationLocatorService, SerializationLocatorService>();
             serviceCollection.TryAddSingleton<IExceptionToModelConverter, ExceptionToModelConverter>();
             serviceCollection.TryAddSingleton<IIOFilterProvider, IOFilterProvider>();
+            serviceCollection.TryAddSingleton<IStringConverterService, StringConverterService>();
+            serviceCollection.TryAddSingleton<IKnownServices, KnownServices>();
         }
     }
 }

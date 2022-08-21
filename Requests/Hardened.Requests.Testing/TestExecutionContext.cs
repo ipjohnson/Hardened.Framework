@@ -9,7 +9,8 @@ namespace Hardened.Requests.Testing
     {
         public TestExecutionContext(
             IServiceProvider rootServiceProvider,
-            IServiceProvider requestServices,
+            IServiceProvider requestServices, 
+            IKnownServices knownServices,
             IExecutionRequest request,
             IExecutionResponse response)
         {
@@ -17,6 +18,7 @@ namespace Hardened.Requests.Testing
             RequestServices = requestServices;
             Request = request;
             Response = response;
+            KnownServices = knownServices;
             RequestMetrics = new NullMetricsLogger();
             StartTime = MachineTimestamp.Now;
         }
@@ -27,6 +29,8 @@ namespace Hardened.Requests.Testing
         }
 
         public IServiceProvider RootServiceProvider { get; }
+
+        public IKnownServices KnownServices { get; }
 
         public IServiceProvider RequestServices { get; }
 

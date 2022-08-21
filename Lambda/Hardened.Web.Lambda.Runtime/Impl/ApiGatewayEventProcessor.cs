@@ -31,6 +31,7 @@ namespace Hardened.Web.Lambda.Runtime.Impl
         private readonly IRequestLogger _requestLogger;
         private readonly IMetricLoggerProvider _metricLoggerProvider;
         private readonly MSLogging.ILogger<ApiGatewayEventProcessor> _logger;
+        private readonly IKnownServices _knownServices;
 
         public ApiGatewayEventProcessor(
             IServiceProvider serviceProvider, 
@@ -38,7 +39,8 @@ namespace Hardened.Web.Lambda.Runtime.Impl
             IMemoryStreamPool memoryStreamPool,
             IRequestLogger requestLogger, 
             MSLogging.ILogger<ApiGatewayEventProcessor> logger, 
-            IMetricLoggerProvider metricLoggerProvider)
+            IMetricLoggerProvider metricLoggerProvider,
+            IKnownServices knownServices)
         {
             _serviceProvider = serviceProvider;
             _middlewareService = middlewareService;
@@ -46,6 +48,7 @@ namespace Hardened.Web.Lambda.Runtime.Impl
             _requestLogger = requestLogger;
             _logger = logger;
             _metricLoggerProvider = metricLoggerProvider;
+            _knownServices = knownServices;
         }
 
         public async Task<APIGatewayHttpApiV2ProxyResponse> Process(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext context)
@@ -104,6 +107,7 @@ namespace Hardened.Web.Lambda.Runtime.Impl
             return new ApiGatewayV2ExecutionContext(
                 _serviceProvider,
                 scope.ServiceProvider,
+                _knownServices,
                 new ApiGatewayV2ExecutionRequest(request),
                 new ApiGatewayV2ExecutionResponse(response),
                 _metricLoggerProvider.CreateLogger("HardenedRequests"), 

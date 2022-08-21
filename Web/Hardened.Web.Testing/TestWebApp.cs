@@ -103,7 +103,12 @@ namespace Hardened.Web.Testing
             var request = new TestExecutionRequest(httpMethod, path, "") { Headers = header };
             var response = new TestExecutionResponse(responseBody) { Headers = new HeaderCollectionImpl() };
 
-            return new TestExecutionContext(_applicationRoot.Provider, serviceScope.ServiceProvider, request, response);
+            return new TestExecutionContext(
+                _applicationRoot.Provider, 
+                serviceScope.ServiceProvider, 
+                serviceScope.ServiceProvider.GetRequiredService<IKnownServices>(), 
+                request,
+                response);
         }
     }
 }

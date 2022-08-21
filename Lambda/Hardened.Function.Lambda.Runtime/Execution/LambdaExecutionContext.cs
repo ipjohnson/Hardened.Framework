@@ -13,7 +13,8 @@ namespace Hardened.Function.Lambda.Runtime.Execution
     {
         public LambdaExecutionContext(
             IServiceProvider rootServiceProvider, 
-            IServiceProvider requestServices,
+            IServiceProvider requestServices, 
+            IKnownServices knownServices,
             IExecutionRequest request, 
             IExecutionResponse response, 
             IMetricLogger requestMetrics, 
@@ -25,6 +26,7 @@ namespace Hardened.Function.Lambda.Runtime.Execution
             Response = response;
             RequestMetrics = requestMetrics;
             StartTime = startTime;
+            KnownServices = knownServices;
         }
 
         public object Clone()
@@ -33,13 +35,23 @@ namespace Hardened.Function.Lambda.Runtime.Execution
         }
 
         public IServiceProvider RootServiceProvider { get; }
+
+        public IKnownServices KnownServices { get; }
+
         public IServiceProvider RequestServices { get; }
+
         public IExecutionRequest Request { get; }
+
         public IExecutionResponse Response { get; }
+
         public object? HandlerInstance { get; set; }
+
         public IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
+
         public DefaultOutputFunc? DefaultOutput { get; set; }
+
         public IMetricLogger RequestMetrics { get; }
+
         public MachineTimestamp StartTime { get; }
     }
 }

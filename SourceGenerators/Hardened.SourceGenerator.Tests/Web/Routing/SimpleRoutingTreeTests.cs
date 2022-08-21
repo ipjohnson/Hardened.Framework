@@ -83,7 +83,23 @@ namespace Hardened.SourceGenerator.Tests.Web.Routing
                 Assert.Equal((assertValue * 10) + 2, nestedLeafNode.Value);
             }
         }
-        
+
+        [Fact]
+        public void SimpleRouteDifferentOverlap()
+        {
+            var routes = new List<RouteTreeGenerator<int>.Entry>
+            {
+                new("/Home", "GET", 1),
+                new("/Header", "GET", 2),
+                new("/api/person", "GET", 3),
+                new("/api/person/view", "GET", 4),
+            };
+
+            var generator = new RouteTreeGenerator<int>();
+
+            var routeTree = generator.GenerateTree(routes);
+
+        }
 
         [Fact]
         public void SimpleRouteMoreOverlap()

@@ -25,5 +25,20 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             Assert.Equal(10, homeModel.Id);
             Assert.Equal("Blah Test 5", homeModel.Name);
         }
+
+        [Theory]
+        [WebIntegration]
+        public async Task HeaderTest(ITestWebApp app)
+        {
+            var response = await app.Get("/Header", request => request.Headers.Set("headerString", "testing 123"));
+
+            response.Assert.Ok();
+            
+            var homeModel = response.Deserialize<HomeModel>();
+
+            Assert.Equal(20, homeModel.Id);
+            Assert.Equal("testing 123", homeModel.Name);
+
+        }
     }
 }

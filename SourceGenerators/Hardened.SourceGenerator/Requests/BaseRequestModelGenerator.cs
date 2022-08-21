@@ -44,7 +44,7 @@ namespace Hardened.SourceGenerator.Requests
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(parameter);
+                RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(generatorSyntaxContext, parameter);
 
                 if (parameterInformation == null)
                 {
@@ -71,10 +71,8 @@ namespace Hardened.SourceGenerator.Requests
                     string.Empty);
         }
 
-        protected virtual RequestParameterInformation? GetParameterInfoFromAttributes(ParameterSyntax parameter)
-        {
-            return null;
-        }
+        protected abstract RequestParameterInformation? GetParameterInfoFromAttributes(
+            GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter);
 
         protected virtual string GetControllerMethod(MethodDeclarationSyntax methodDeclaration)
         {

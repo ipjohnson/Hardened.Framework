@@ -16,6 +16,11 @@ namespace Hardened.Requests.Abstract.Execution
         IServiceProvider RootServiceProvider { get; }
 
         /// <summary>
+        /// Set of request services
+        /// </summary>
+        IKnownServices KnownServices { get; }
+
+        /// <summary>
         /// Service provider that is created/used for the life of the request
         /// </summary>
         IServiceProvider RequestServices { get; }

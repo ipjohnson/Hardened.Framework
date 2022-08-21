@@ -8,7 +8,8 @@ namespace Hardened.Web.Lambda.Runtime.Impl
     {
         public ApiGatewayV2ExecutionContext(
             IServiceProvider rootServiceProvider, 
-            IServiceProvider requestServices, 
+            IServiceProvider requestServices,
+            IKnownServices knownServices,
             IExecutionRequest request, 
             IExecutionResponse response, 
             IMetricLogger requestMetrics, 
@@ -20,6 +21,7 @@ namespace Hardened.Web.Lambda.Runtime.Impl
             Response = response;
             RequestMetrics = requestMetrics;
             StartTime = startTime;
+            KnownServices = knownServices;
         }
 
         public object Clone()
@@ -28,7 +30,8 @@ namespace Hardened.Web.Lambda.Runtime.Impl
         }
 
         public IServiceProvider RootServiceProvider { get; }
-        
+        public IKnownServices KnownServices { get; }
+
         public IServiceProvider RequestServices { get; }
         
         public IExecutionRequest Request { get; }

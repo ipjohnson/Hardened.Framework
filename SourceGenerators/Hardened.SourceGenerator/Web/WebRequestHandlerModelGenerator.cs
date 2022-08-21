@@ -4,6 +4,7 @@ using System.Text;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
+using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -46,6 +47,61 @@ namespace Hardened.SourceGenerator.Web
             var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<NamespaceDeclarationSyntax>().First();
 
             return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated", classDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text);
+        }
+
+        protected override RequestParameterInformation? GetParameterInfoFromAttributes(
+            GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter)
+        {
+
+            foreach (var attributeList in parameter.AttributeLists)
+            {
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    var attributeName = attribute.Name.ToString().Replace("Attribute", "");
+
+                    switch (attributeName)
+                    {
+                        case "FromHeader":
+                            var headerName =
+                                attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
+
+                            return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                                ParameterBindType.Header, headerName);
+
+                        case "FromQueryString":
+                            var queryName =
+                                attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
+
+                            return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                                ParameterBindType.Header, queryName);
+
+                        case "FromServices":
+                            return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                                ParameterBindType.ServiceProvider, "");
+
+                        case "FromBody":
+                            return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                                ParameterBindType.Body, "");
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private RequestParameterInformation GetParameterInfoWithBinding(
+            GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType, string bindingName)
+        {
+            var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+            var name = parameter.Identifier.Text;
+
+            return new RequestParameterInformation(
+                parameterType,
+                name,
+                !parameterType.IsNullable,
+                null,
+                bindingType,
+                string.IsNullOrEmpty(bindingName) ? name : bindingName);
         }
 
         protected override bool IsFilterAttribute(AttributeSyntax attribute)

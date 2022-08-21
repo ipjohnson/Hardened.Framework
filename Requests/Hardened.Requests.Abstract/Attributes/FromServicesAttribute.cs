@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Hardened.Requests.Abstract.Attributes
 {
-    public class FromServicesAttribute
+    public class FromServicesAttribute : Attribute
     {
     }
 }
