@@ -6,8 +6,13 @@ using System.Threading.Tasks;
 
 namespace Hardened.Function.Lambda.Runtime
 {
-    public class FromContextAttribute
+    public class FromContextAttribute : Attribute
     {
-        public string? Name { get; set; }
+        public FromContextAttribute(string? name = null)
+        {
+            Name = name;
+        }
+
+        public string? Name { get; }
     }
 }

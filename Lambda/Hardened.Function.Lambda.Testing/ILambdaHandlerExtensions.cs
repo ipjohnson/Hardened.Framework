@@ -25,6 +25,17 @@ namespace Hardened.Function.Lambda.Testing
             return (await JsonSerializer.DeserializeAsync<TResponse>(response))!;
         }
 
+        public static Task<TResponse> Invoke<TRequest, TResponse>(
+            this ILambdaHandler<TRequest, TResponse> tHandler, TRequest request,
+            Action<IDictionary<string,string>> customContextData)
+        {
+            var customContextDataDictionary = new Dictionary<string, string>();
+
+            customContextData.Invoke(customContextDataDictionary);
+
+            return Invoke(tHandler, request, TestLambdaContext.FromHandlerType(typeof(TRequest), customContextDataDictionary));
+        }
+
         public static async Task<TResponse> Invoke<TRequest, TResponse>(this ILambdaHandler<TRequest,TResponse> tHandler, TRequest request,
             ILambdaContext? lambdaContext = null) 
         {

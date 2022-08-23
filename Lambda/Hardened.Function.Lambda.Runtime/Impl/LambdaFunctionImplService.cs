@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Amazon.Lambda.Core;
 using Hardened.Function.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Runtime.Headers;
 using Hardened.Shared.Runtime.Collections;
@@ -47,8 +48,14 @@ namespace Hardened.Function.Lambda.Runtime.Impl
             await using var requestContext = _serviceProvider.CreateAsyncScope();
             var responseStream = new MemoryStreamPoolWrapper(_memoryStreamPool.Get());
 
+            var customContext = context.ClientContext.Custom;
+
+            IHeaderCollection headerCollection = customContext != null
+                ? new ContextHeaderCollection(customContext)
+                : new HeaderCollectionImpl();
+
             var request =
-                new LambdaExecutionRequest("Invoke", context.FunctionName, stream, new HeaderCollectionImpl());
+                new LambdaExecutionRequest("Invoke", context.FunctionName, stream, headerCollection);
             var response = new LambdaExecutionResponse(responseStream, new HeaderCollectionImpl());
 
             var lambdaExecutionContext = new LambdaExecutionContext(

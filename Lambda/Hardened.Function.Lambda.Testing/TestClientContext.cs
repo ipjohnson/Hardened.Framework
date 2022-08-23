@@ -15,6 +15,12 @@ namespace Hardened.Function.Lambda.Testing
 
         }
 
+        public TestClientContext(IDictionary<string, string> custom)
+            : this(new Dictionary<string, string>(), new TestClientApplication(), custom)
+        {
+
+        }
+
         public TestClientContext(IDictionary<string, string> environment, IClientApplication client, IDictionary<string, string> custom)
         {
             Environment = environment;

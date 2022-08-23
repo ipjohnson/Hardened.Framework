@@ -37,7 +37,9 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             foreach (var parameter in methodDeclaration.ParameterList.Parameters)
             {
-                RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(parameter);
+                cancellation.ThrowIfCancellationRequested();
+
+                RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(generatorSyntaxContext, parameter);
 
                 if (parameterInformation == null)
                 {
@@ -64,11 +66,44 @@ namespace Hardened.Function.Lambda.SourceGenerator
                     string.Empty);
         }
 
-        private static RequestParameterInformation? GetParameterInfoFromAttributes(ParameterSyntax parameter)
+        private static RequestParameterInformation? GetParameterInfoFromAttributes(GeneratorSyntaxContext generatorSyntaxContext,
+            ParameterSyntax parameter)
         {
+            foreach (var attributeList in parameter.AttributeLists)
+            {
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    var attributeName = attribute.Name.ToString().Replace("Attribute", "");
+
+                    switch (attributeName)
+                    {
+                        case "FromContext":
+                            var headerName =
+                                attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
+
+                            return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                                ParameterBindType.Header, headerName);
+                    }
+                }
+            }
+
             return null;
         }
-        
+
+        private static RequestParameterInformation GetParameterInfoWithBinding(
+            GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType, string bindingName)
+        {
+            var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+            var name = parameter.Identifier.Text;
+
+            return new RequestParameterInformation(
+                parameterType,
+                name,
+                !parameterType.IsNullable,
+                null,
+                bindingType,
+                string.IsNullOrEmpty(bindingName) ? name : bindingName);
+        }
         private static string GetControllerMethod(MethodDeclarationSyntax methodDeclaration)
         {
             return methodDeclaration.Identifier.Text;

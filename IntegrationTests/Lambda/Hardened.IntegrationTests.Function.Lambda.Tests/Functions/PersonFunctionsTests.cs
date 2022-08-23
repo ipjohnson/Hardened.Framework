@@ -22,5 +22,18 @@ namespace Hardened.IntegrationTests.Function.Lambda.Tests.Functions
             Assert.NotNull(personListModel);
             Assert.Equal("test", personListModel.Title);
         }
+
+
+        [Theory]
+        [LambdaAppIntegration]
+        public async Task GetAllPeopleWithContext(PersonFunctions_GetAllPeople lambda)
+        {
+            var personListModel = await lambda.Invoke(
+                new PersonFunctions.GetAllPeopleRequest { MaxCount = 20 }, 
+                customData => customData.Add("contextString", "contextString123"));
+
+            Assert.NotNull(personListModel);
+            Assert.Equal("contextString123", personListModel.Title);
+        }
     }
 }

@@ -35,13 +35,13 @@ namespace Hardened.Function.Lambda.Testing
             RemainingTime = remainingTime;
         }
 
-        public static TestLambdaContext FromHandlerType(Type type)
+        public static TestLambdaContext FromHandlerType(Type type, IDictionary<string,string>? customData = null)
         {
             var name = type.Name.Split('_').Last();
 
             return new TestLambdaContext(
                 Guid.NewGuid().ToString(),
-                new TestClientContext(),
+                new TestClientContext(customData ?? new Dictionary<string, string>()),
                 name,
                 "1",
                 new TestCognitoIdentity(),
