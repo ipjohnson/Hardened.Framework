@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Runtime.PathTokens
 {
@@ -25,17 +26,17 @@ namespace Hardened.Requests.Runtime.PathTokens
             return _pathTokens[index];
         }
 
-        public PathToken? Get(string id)
+        public StringValues Get(string id)
         {
             for (var i = 0; i < _pathTokens.Length; i++)
             {
                 if (_pathTokens[i]?.TokenName == id)
                 {
-                    return _pathTokens[i];
+                    return _pathTokens[i].TokenValue;
                 }
             }
 
-            return null;
+            return StringValues.Empty;
         }
 
         public void Set(int index, PathToken pathToken)

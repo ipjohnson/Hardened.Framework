@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
+using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Runtime.QueryString;
 
 namespace Hardened.Function.Lambda.Runtime.Execution
 {
@@ -40,6 +42,8 @@ namespace Hardened.Function.Lambda.Runtime.Execution
         public Stream Body { get; set; }
 
         public IHeaderCollection Headers { get; }
+
+        public IQueryStringCollection QueryString => EmptyQueryStringCollection.Instance;
 
         public IPathTokenCollection PathTokens
         {

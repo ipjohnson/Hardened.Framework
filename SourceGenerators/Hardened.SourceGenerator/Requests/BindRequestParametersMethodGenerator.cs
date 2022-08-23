@@ -37,18 +37,66 @@ namespace Hardened.SourceGenerator.Requests
                         break;
 
                     case ParameterBindType.Header:
-                        BindHeaderParameter(parameterInformation, invokeMethod, context, parametersVar);
+                    case ParameterBindType.QueryString:
+                    case ParameterBindType.Path:
+                        BindRequestValueToParameter(parameterInformation, invokeMethod, context, parametersVar);
+                        break;
+
+                    case ParameterBindType.ExecutionContext:
+                    case ParameterBindType.ExecutionRequest:
+                    case ParameterBindType.ExecutionResponse:
+                        BindExecutionSpecialType(parameterInformation, invokeMethod, context, parametersVar);
+                        break;
+
+                    case ParameterBindType.ServiceProvider:
+                        BindServiceProviderType(parameterInformation, invokeMethod, context, parametersVar);
                         break;
 
                     default:
-                        throw new NotImplementedException("Not supported yet");
+                        throw new NotImplementedException("Binding not supported yet: " + parameterInformation.BindingType);
                 }
             }
 
             invokeMethod.Return(parametersVar);
         }
 
-        private static void BindHeaderParameter(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
+        private static void BindServiceProviderType(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
+        {
+            IOutputComponent invokeStatement;
+
+            if (parameterInformation.Required)
+            {
+                invokeStatement = context.Property("RequestServices")
+                    .InvokeGeneric("GetRequiredService", new[] { parameterInformation.ParameterType });
+            }
+            else
+            {
+                invokeStatement = context.Property("RequestServices")
+                        .InvokeGeneric("GetService", new[] { parameterInformation.ParameterType });
+            }
+
+            invokeStatement.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
+            invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
+        }
+
+        private static void BindExecutionSpecialType(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
+        {
+            IOutputComponent invokeStatement = context;
+
+            if (parameterInformation.BindingType == ParameterBindType.ExecutionRequest)
+            {
+                invokeStatement = context.Property("Request");
+            }
+            else if (parameterInformation.BindingType != ParameterBindType.ExecutionResponse)
+            {
+                invokeStatement = context.Property("Response");
+            }
+
+            invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
+        }
+
+        private static void BindRequestValueToParameter(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
         {
             var bindingName = parameterInformation.BindingName;
 
@@ -57,22 +105,34 @@ namespace Hardened.SourceGenerator.Requests
                 bindingName = parameterInformation.Name;
             }
 
-            var header = context.Property("Request").Property("Headers").Invoke("Get", QuoteString(bindingName));
+            var instance =  "QueryString";
+
+            switch (parameterInformation.BindingType)
+            {
+                case ParameterBindType.Path:
+                    instance = "PathTokens";
+                    break;
+                case ParameterBindType.Header:
+                    instance = "Headers";
+                    break;
+            }
+
+            var valueStatement = context.Property("Request").Property(instance).Invoke("Get", QuoteString(bindingName));
 
             var stringInvokeStatement = context.Property("KnownServices").Property("StringConverterService");
 
             IOutputComponent? invokeStatement;
             if (parameterInformation.Required)
             {
-                invokeStatement = 
+                invokeStatement =
                     stringInvokeStatement.InvokeGeneric("ParseRequired", new[] { parameterInformation.ParameterType },
-                        header, QuoteString(bindingName));
+                        valueStatement, QuoteString(bindingName));
             }
             else
             {
                 invokeStatement =
                     stringInvokeStatement.InvokeGeneric("ParseOptional", new[] { parameterInformation.ParameterType },
-                        header, QuoteString(bindingName));
+                        valueStatement, QuoteString(bindingName));
             }
 
             invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));

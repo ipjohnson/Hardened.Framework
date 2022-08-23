@@ -38,11 +38,11 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers
             return new PersonListModel("Person List", _personService.All());
         }
 
-        //[Get("/api/person/{id}")]
-        //public PersonModel? Get(int id)
-        //{
-        //    return _personService.Get(id);
-        //}
+        [Get("/api/person/{id}")]
+        public PersonModel? Get(int id)
+        {
+            return _personService.Get(id);
+        }
 
         //[Put()]
         //public PersonModel Add(PersonModel personModel)

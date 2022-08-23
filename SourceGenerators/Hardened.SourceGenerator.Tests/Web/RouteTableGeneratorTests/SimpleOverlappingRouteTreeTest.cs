@@ -54,10 +54,20 @@ namespace Hardened.SourceGenerator.Tests.Web.RouteTableGeneratorTests
             ));
 
             list.Add(new RequestHandlerModel(
-                new RequestHandlerNameModel("/api/person", "GET"),
+                new RequestHandlerNameModel("/Api/person", "GET"),
                 TypeDefinition.Get("Testing", "Person"),
                 "GetAll",
                 TypeDefinition.Get("Testing", "Person_GetAll"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel(false, null, null),
+                Array.Empty<FilterInformationModel>()
+            ));
+
+            list.Add(new RequestHandlerModel(
+                new RequestHandlerNameModel("/Api/person/{id}", "GET"),
+                TypeDefinition.Get("Testing", "Person"),
+                "GetPerson",
+                TypeDefinition.Get("Testing", "Person_GetPerson"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel(false, null, null),
                 Array.Empty<FilterInformationModel>()

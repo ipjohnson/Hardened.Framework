@@ -2,7 +2,9 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
+using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Runtime.QueryString;
 
 namespace Hardened.Web.Lambda.Runtime.Impl
 {
@@ -10,6 +12,7 @@ namespace Hardened.Web.Lambda.Runtime.Impl
     {
         private readonly APIGatewayHttpApiV2ProxyRequest _proxyRequest;
         private IPathTokenCollection? _pathTokens;
+        private IQueryStringCollection? _queryStringCollection;
 
         public ApiGatewayV2ExecutionRequest(APIGatewayHttpApiV2ProxyRequest request)
         {
@@ -35,6 +38,9 @@ namespace Hardened.Web.Lambda.Runtime.Impl
         public Stream Body { get; set; }
 
         public IHeaderCollection Headers { get; }
+
+        public IQueryStringCollection QueryString => _queryStringCollection ??=
+            new SimpleQueryStringCollection(_proxyRequest.QueryStringParameters);
 
         public IPathTokenCollection PathTokens
         {

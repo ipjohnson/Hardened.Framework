@@ -5,14 +5,12 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Primitives;
 
-namespace Hardened.Requests.Abstract.PathTokens
+namespace Hardened.Requests.Abstract.QueryString
 {
-    public interface IPathTokenCollection
+    public interface IQueryStringCollection
     {
         int Count { get; }
 
-        PathToken Get(int index);
-
-        StringValues Get(string id);
+        StringValues Get(string key);
     }
 }

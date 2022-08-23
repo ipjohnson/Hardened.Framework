@@ -142,7 +142,6 @@ namespace Hardened.SourceGenerator.Web
             IReadOnlyList<RequestHandlerModel> endPointModels,
             InstanceDefinition methodString)
         {
-
             var routeNode = GetRoutingNodes(endPointModels);
 
             var routeTestMethod = WriteRouteNode(routingClass, routeNode, 0);
@@ -246,10 +245,14 @@ namespace Hardened.SourceGenerator.Web
 
             foreach (var childNode in routeNode.ChildNodes)
             {
-                var lowerChar = Char.ToLowerInvariant(childNode.Path.First());
-                var upperChar = Char.ToUpperInvariant(lowerChar);
+                var lowerChar = char.ToLowerInvariant(childNode.Path.First());
+                var upperChar = char.ToUpperInvariant(lowerChar);
 
-                switchStatement.AddCase($"'{upperChar}'");
+                if (upperChar != lowerChar)
+                {
+                    switchStatement.AddCase($"'{upperChar}'");
+                }
+
                 var caseStatement = switchStatement.AddCase($"'{lowerChar}'");
 
                 var newMethodName = WriteRouteNode(routingClass, childNode, 1);
@@ -269,9 +272,67 @@ namespace Hardened.SourceGenerator.Web
             BaseBlockDefinition block,
             ParameterDefinition span,
             ParameterDefinition index,
-            ParameterDefinition methodString, InstanceDefinition instanceDefinition)
+            ParameterDefinition methodString,
+            InstanceDefinition handler)
         {
-            
+            var ifBlock = block.If("handler == null");
+
+            var wildCardMethod = WriteWildCardMethod(routingClass, routeNode);
+
+            var invoke = Invoke(wildCardMethod, span, index, methodString);
+
+            ifBlock.Assign(invoke).To(handler);
+        }
+
+        private static string WriteWildCardMethod(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode)
+        {
+            var methodName = GetRouteMethodName(routingClass, routeNode.Path, "WildCard");
+
+            var wildCardMethod = routingClass.AddMethod(methodName);
+
+            wildCardMethod.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
+            var span = wildCardMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
+            var index = wildCardMethod.AddParameter(typeof(int), "index");
+            var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
+
+
+            var handler =
+                wildCardMethod.Assign(Null()).ToLocal(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable(), "handler");
+
+            for (var i  = 0; i < routeNode.WildCardNodes.Count; i ++)
+            {
+                var wildCardNode = routeNode.WildCardNodes[i];
+                BaseBlockDefinition currentBlock = wildCardMethod;
+
+                if (i > 0)
+                {
+                    currentBlock = wildCardMethod.If("handler == null");
+                }
+
+                var matchWildCardMethod = WriteWildCardMatchMethod(routingClass, wildCardNode);
+
+                currentBlock.Assign(Invoke(matchWildCardMethod, span, index, methodString)).To(handler);
+            }
+
+            wildCardMethod.Return(handler);
+
+            return methodName;
+        }
+
+        private static string WriteWildCardMatchMethod(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> wildCardNode)
+        {
+            var methodName = GetRouteMethodName(routingClass, wildCardNode.Path, "WildCardMatch");
+
+            var wildCardMethod = routingClass.AddMethod(methodName);
+
+            wildCardMethod.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
+            var span = wildCardMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
+            var index = wildCardMethod.AddParameter(typeof(int), "index");
+            var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
+
+            wildCardMethod.Return(Null());
+
+            return methodName;
         }
 
         private static void ProcessLeafNodes(

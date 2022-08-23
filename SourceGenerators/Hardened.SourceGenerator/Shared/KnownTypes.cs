@@ -165,7 +165,13 @@ namespace Hardened.SourceGenerator.Shared
         {
             public static readonly ITypeDefinition IExecutionContext =
                 TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionContext");
+            
+            public static readonly ITypeDefinition IExecutionRequest =
+                TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionRequest");
 
+            public static readonly ITypeDefinition IExecutionResponse =
+                TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionResponse");
+            
             public static ITypeDefinition DefaultOutputFunc =
                 TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "DefaultOutputFunc");
 

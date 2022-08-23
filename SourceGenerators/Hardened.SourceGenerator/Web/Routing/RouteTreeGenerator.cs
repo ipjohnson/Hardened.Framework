@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
 namespace Hardened.SourceGenerator.Web.Routing
@@ -31,26 +32,27 @@ namespace Hardened.SourceGenerator.Web.Routing
 
             entries.Sort(((x, y) => string.Compare(x.PathTemplate, y.PathTemplate, StringComparison.Ordinal)));
             
-            return ProcessEntries("/", entries, 1);
+            return ProcessEntries("/", entries, 1, 0);
         }
         
-        private RouteTreeNode<T> ProcessEntries(string path, List<Entry> entries, int stringIndex)
+        private RouteTreeNode<T> ProcessEntries(string path, List<Entry> entries, int stringIndex, int wildCardDepth)
         {
             var longestMatch = LongestCharacterMatch(entries, stringIndex);
 
             if (longestMatch > 0)
             {
                 return new RouteTreeNode<T>(path,
-                    new[] { ProcessLongMatchingNodes(entries, stringIndex, longestMatch) },
+                    new[] { ProcessLongMatchingNodes(entries, stringIndex, longestMatch, wildCardDepth) },
                     Array.Empty<RouteTreeNode<T>>(),
-                    Array.Empty<RouteTreeLeafNode<T>>()
+                    Array.Empty<RouteTreeLeafNode<T>>(),
+                    wildCardDepth
                     );
             }
 
-            return ProcessSingleCharacterNodes(path, entries, stringIndex);
+            return ProcessSingleCharacterNodes(path, entries, stringIndex, wildCardDepth);
         }
 
-        private RouteTreeNode<T> ProcessSingleCharacterNodes(string path, List<Entry> entries, int stringIndex)
+        private RouteTreeNode<T> ProcessSingleCharacterNodes(string path, List<Entry> entries, int stringIndex, int wildCardDepth)
         {
             IReadOnlyList<RouteTreeLeafNode<T>> leafNodes = Array.Empty<RouteTreeLeafNode<T>>();
             var childNodes = new List<RouteTreeNode<T>>();
@@ -67,11 +69,11 @@ namespace Hardened.SourceGenerator.Web.Routing
                         break;
 
                     case '{':
-                        wildCardNodes = ProcessWildCardNodes(grouping.Value, stringIndex);
+                        wildCardNodes = ProcessWildCardNodes(grouping.Value, stringIndex, wildCardDepth + 1);
                         break;
 
                     default:
-                        childNodes.Add(ProcessEntries(grouping.Key.ToString(), grouping.Value, stringIndex + 1));
+                        childNodes.Add(ProcessEntries(grouping.Key.ToString(), grouping.Value, stringIndex + 1, wildCardDepth));
                         break;
                 }
             }
@@ -81,19 +83,21 @@ namespace Hardened.SourceGenerator.Web.Routing
             return new RouteTreeNode<T>(path,
                 childNodes,
                 wildCardNodes,
-                leafNodes
+                leafNodes,
+                wildCardDepth
             );
         }
 
-        private RouteTreeNode<T> ProcessLongMatchingNodes(List<Entry> entries, int stringIndex, int longestMatch)
+        private RouteTreeNode<T> ProcessLongMatchingNodes(List<Entry> entries, int stringIndex, int longestMatch, int wildCardDepth)
         {
             var matchPath = entries[0].PathTemplate.Substring(stringIndex, longestMatch);
 
-            return ProcessEntries(matchPath, entries, stringIndex + longestMatch);
+            return ProcessEntries(matchPath, entries, stringIndex + longestMatch, wildCardDepth);
         }
 
 
-        private IReadOnlyList<RouteTreeNode<T>> ProcessWildCardNodes(List<Entry> keyValuePair, int stringIndex)
+        private IReadOnlyList<RouteTreeNode<T>> ProcessWildCardNodes(List<Entry> keyValuePair, int stringIndex,
+            int wildCardDepth)
         {
             stringIndex += "{TOKEN}".Length;
 
@@ -102,7 +106,7 @@ namespace Hardened.SourceGenerator.Web.Routing
 
             foreach (var group in grouping)
             {
-                returnList.Add(ProcessEntries(group.Key.ToString(), group.Value, stringIndex + 1));
+                returnList.Add(ProcessEntries(group.Key.ToString(), group.Value, stringIndex + 1, wildCardDepth));
             }
 
             return returnList;

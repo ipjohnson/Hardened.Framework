@@ -3,7 +3,9 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.Headers;
+using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Diagnostics;
@@ -100,7 +102,13 @@ namespace Hardened.Web.Testing
         {
             var header = new HeaderCollectionImpl();
 
-            var request = new TestExecutionRequest(httpMethod, path, "") { Headers = header };
+            var pathMinusQuery = path;
+            var questionMark = path.IndexOf('?');
+            if (questionMark > -1)
+            {
+                pathMinusQuery = path.Substring(0, questionMark);
+            }
+            var request = new TestExecutionRequest(httpMethod, pathMinusQuery, "", ParseQueryStringFromPath(path)) { Headers = header };
             var response = new TestExecutionResponse(responseBody) { Headers = new HeaderCollectionImpl() };
 
             return new TestExecutionContext(
@@ -109,6 +117,37 @@ namespace Hardened.Web.Testing
                 serviceScope.ServiceProvider.GetRequiredService<IKnownServices>(), 
                 request,
                 response);
+        }
+
+        private IQueryStringCollection ParseQueryStringFromPath(string path)
+        {
+            var questionMarkIndex = path.IndexOf('?');
+
+            if (questionMarkIndex == -1 || questionMarkIndex == path.Length)
+            {
+                return EmptyQueryStringCollection.Instance;
+            }
+
+            var queryString = path.Substring(questionMarkIndex + 1);
+
+            var queryStringValues = new Dictionary<string, string>();
+            var pairs = queryString.Split('&');
+
+            foreach (var kvp in pairs)
+            {
+                var values = kvp.Split('=');
+
+                if (values.Length == 2)
+                {
+                    queryStringValues[values[0]] = values[1];
+                }
+                else
+                {
+                    queryStringValues[kvp] = "";
+                }
+            }
+
+            return new SimpleQueryStringCollection(queryStringValues);
         }
     }
 }

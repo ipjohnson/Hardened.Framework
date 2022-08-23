@@ -50,7 +50,9 @@ namespace Hardened.SourceGenerator.Web
         }
 
         protected override RequestParameterInformation? GetParameterInfoFromAttributes(
-            GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter)
+            GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
+            RequestHandlerNameModel requestHandlerNameModel,
+            ParameterSyntax parameter)
         {
 
             foreach (var attributeList in parameter.AttributeLists)
@@ -73,7 +75,7 @@ namespace Hardened.SourceGenerator.Web
                                 attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
 
                             return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                                ParameterBindType.Header, queryName);
+                                ParameterBindType.QueryString, queryName);
 
                         case "FromServices":
                             return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,

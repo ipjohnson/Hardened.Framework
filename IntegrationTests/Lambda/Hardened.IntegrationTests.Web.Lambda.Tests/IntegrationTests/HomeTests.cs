@@ -40,5 +40,20 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             Assert.Equal("testing 123", homeModel.Name);
 
         }
+
+        [Theory]
+        [WebIntegration]
+        public async Task QueryStringPathTest(ITestWebApp app)
+        {
+            var response = await app.Get("/QueryStringPath?testString=SomeValue");
+
+            response.Assert.Ok();
+
+            var homeModel = response.Deserialize<HomeModel>();
+
+            Assert.Equal(30, homeModel.Id);
+            Assert.Equal("SomeValue", homeModel.Name);
+
+        }
     }
 }

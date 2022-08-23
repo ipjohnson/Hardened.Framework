@@ -22,12 +22,16 @@ namespace Hardened.SourceGenerator.Requests
             var response = GetResponseInformation(context, methodDeclaration);
             var filters = GetFilters(context, methodDeclaration, cancellationToken);
 
+            var nameModel = GetRequestNameModel(context, methodDeclaration, cancellationToken);
+
             return new RequestHandlerModel(
-                GetRequestNameModel(context, methodDeclaration, cancellationToken),
+                nameModel,
                 controllerType,
                 methodName,
                 GetInvokeHandlerType(context, methodDeclaration, cancellationToken),
-                GetParameters(context, methodDeclaration, cancellationToken), response, filters);
+                GetParameters(context, methodDeclaration, nameModel, cancellationToken), 
+                response, 
+                filters);
         }
 
         protected abstract RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation);
@@ -36,6 +40,7 @@ namespace Hardened.SourceGenerator.Requests
         
         protected virtual IReadOnlyList<RequestParameterInformation> GetParameters(
             GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclaration,
+            RequestHandlerNameModel requestHandlerNameModel,
             CancellationToken cancellationToken)
         {
             var parameters = new List<RequestParameterInformation>();
@@ -44,11 +49,12 @@ namespace Hardened.SourceGenerator.Requests
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(generatorSyntaxContext, parameter);
+                RequestParameterInformation? parameterInformation = 
+                    GetParameterInfoFromAttributes(generatorSyntaxContext, methodDeclaration, requestHandlerNameModel, parameter);
 
                 if (parameterInformation == null)
                 {
-                    parameterInformation = GetParameterInfo(generatorSyntaxContext, parameter);
+                    parameterInformation = GetParameterInfo(generatorSyntaxContext, methodDeclaration, requestHandlerNameModel, parameter);
                 }
 
                 parameters.Add(parameterInformation);
@@ -58,9 +64,68 @@ namespace Hardened.SourceGenerator.Requests
         }
 
         protected virtual RequestParameterInformation GetParameterInfo(GeneratorSyntaxContext generatorSyntaxContext,
+            MethodDeclarationSyntax methodDeclarationSyntax,
+            RequestHandlerNameModel requestHandlerNameModel,
             ParameterSyntax parameter)
         {
             var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+
+            if (KnownTypes.Requests.IExecutionContext.Equals(parameterType))
+            {
+                return new RequestParameterInformation(
+                    parameterType,
+                    parameter.Identifier.Text,
+                    true,
+                    null,
+                    ParameterBindType.ExecutionContext,
+                    string.Empty);
+            }
+
+            if (KnownTypes.Requests.IExecutionRequest.Equals(parameterType))
+            {
+                return new RequestParameterInformation(
+                    parameterType,
+                    parameter.Identifier.Text,
+                    true,
+                    null,
+                    ParameterBindType.ExecutionRequest,
+                    string.Empty);
+            }
+
+            if (KnownTypes.Requests.IExecutionResponse.Equals(parameterType))
+            {
+                return new RequestParameterInformation(
+                    parameterType,
+                    parameter.Identifier.Text,
+                    true,
+                    null,
+                    ParameterBindType.ExecutionResponse,
+                    string.Empty);
+            }
+            
+            if (parameterType.TypeDefinitionEnum == TypeDefinitionEnum.InterfaceDefinition)
+            {
+                return new RequestParameterInformation(
+                    parameterType,
+                    parameter.Identifier.Text,
+                    !parameterType.IsNullable,
+                    null,
+                    ParameterBindType.ServiceProvider,
+                    string.Empty);
+            }
+
+            var id = parameter.Identifier.Text;
+
+            if (requestHandlerNameModel.Path.Contains($"{{{id}}}"))
+            {
+                return new RequestParameterInformation(
+                    parameterType,
+                    parameter.Identifier.Text,
+                    !parameterType.IsNullable,
+                    null,
+                    ParameterBindType.Path,
+                    string.Empty);
+            }
 
             return new RequestParameterInformation(
                 parameterType,
@@ -72,7 +137,9 @@ namespace Hardened.SourceGenerator.Requests
         }
 
         protected abstract RequestParameterInformation? GetParameterInfoFromAttributes(
-            GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter);
+            GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
+            RequestHandlerNameModel requestHandlerNameModel,
+            ParameterSyntax parameter);
 
         protected virtual string GetControllerMethod(MethodDeclarationSyntax methodDeclaration)
         {

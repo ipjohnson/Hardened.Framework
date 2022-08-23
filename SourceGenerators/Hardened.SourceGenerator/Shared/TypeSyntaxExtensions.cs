@@ -31,7 +31,25 @@ namespace Hardened.SourceGenerator.Shared
 
         public static ITypeDefinition GetTypeDefinition(this ITypeSymbol typeSymbol)
         {
-            return TypeDefinition.Get(typeSymbol.ContainingNamespace.GetFullName(), GetTypeName(typeSymbol));
+            var typeEnum = GetTypeSymbolKind(typeSymbol);
+
+            return TypeDefinition.Get(typeEnum, typeSymbol.ContainingNamespace.GetFullName(), GetTypeName(typeSymbol));
+        }
+
+        private static TypeDefinitionEnum GetTypeSymbolKind(ITypeSymbol typeSymbol)
+        {
+            var typeEnum = TypeDefinitionEnum.ClassDefinition;
+
+            if (typeSymbol.TypeKind == TypeKind.Enum)
+            {
+                typeEnum = TypeDefinitionEnum.EnumDefinition;
+            }
+            else if (typeSymbol.TypeKind == TypeKind.Interface)
+            {
+                typeEnum = TypeDefinitionEnum.InterfaceDefinition;
+            }
+
+            return typeEnum;
         }
 
         private static string GetTypeName(ITypeSymbol typeSymbol)
@@ -66,7 +84,7 @@ namespace Hardened.SourceGenerator.Shared
                     }
 
                     return new GenericTypeDefinition(
-                        TypeDefinitionEnum.ClassDefinition,
+                        GetTypeSymbolKind(namedTypeSymbol),
                         namedTypeSymbol.ContainingNamespace.GetFullName(),
                         GetTypeName(namedTypeSymbol),
                         closingTypes
@@ -76,7 +94,9 @@ namespace Hardened.SourceGenerator.Shared
                 {
                 }
 
-                return TypeDefinition.Get(namedTypeSymbol.ContainingNamespace.GetFullName(), GetTypeName(namedTypeSymbol));
+                return TypeDefinition.Get(
+                    GetTypeSymbolKind(namedTypeSymbol),
+                    namedTypeSymbol.ContainingNamespace.GetFullName(), GetTypeName(namedTypeSymbol));
             }
 
             return null;
