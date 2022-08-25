@@ -244,10 +244,10 @@ namespace Hardened.Web.Runtime.StaticContent
 
         private StringValues GetRequestETag(IExecutionContext context)
         {
-            if (context.Request.Headers.TryGet(KnownHeaders.IfMatch, out var ifMatch))
-            {
-                return ifMatch;
-            }
+            //if (context.Request.Headers.TryGet(KnownHeaders.IfMatch, out var ifMatch))
+            //{
+            //    return ifMatch;
+            //}
 
             return StringValues.Empty;
         }

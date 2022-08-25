@@ -100,7 +100,7 @@ namespace Hardened.Web.Testing
         private IExecutionContext CreateContext(string httpMethod, string path, ConfigureWebRequest? webRequest,
             MemoryStream responseBody, IServiceScope serviceScope)
         {
-            var header = new HeaderCollectionImpl();
+            var header = new HeaderCollectionStringValues();
 
             var pathMinusQuery = path;
             var questionMark = path.IndexOf('?');
@@ -109,7 +109,7 @@ namespace Hardened.Web.Testing
                 pathMinusQuery = path.Substring(0, questionMark);
             }
             var request = new TestExecutionRequest(httpMethod, pathMinusQuery, "", ParseQueryStringFromPath(path)) { Headers = header };
-            var response = new TestExecutionResponse(responseBody) { Headers = new HeaderCollectionImpl() };
+            var response = new TestExecutionResponse(responseBody) { Headers = new HeaderCollectionStringValues() };
 
             return new TestExecutionContext(
                 _applicationRoot.Provider, 

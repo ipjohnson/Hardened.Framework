@@ -51,12 +51,12 @@ namespace Hardened.Function.Lambda.Runtime.Impl
             var customContext = context.ClientContext.Custom;
 
             IHeaderCollection headerCollection = customContext != null
-                ? new ContextHeaderCollection(customContext)
-                : new HeaderCollectionImpl();
+                ? new HeaderCollectionStringDictionary(customContext)
+                : new HeaderCollectionStringValues();
 
             var request =
                 new LambdaExecutionRequest("Invoke", context.FunctionName, stream, headerCollection);
-            var response = new LambdaExecutionResponse(responseStream, new HeaderCollectionImpl());
+            var response = new LambdaExecutionResponse(responseStream, new HeaderCollectionStringValues());
 
             var lambdaExecutionContext = new LambdaExecutionContext(
                 _serviceProvider, 

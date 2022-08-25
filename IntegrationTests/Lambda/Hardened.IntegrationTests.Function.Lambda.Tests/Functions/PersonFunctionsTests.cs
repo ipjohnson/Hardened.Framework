@@ -23,7 +23,6 @@ namespace Hardened.IntegrationTests.Function.Lambda.Tests.Functions
             Assert.Equal("test", personListModel.Title);
         }
 
-
         [Theory]
         [LambdaAppIntegration]
         public async Task GetAllPeopleWithContext(PersonFunctions_GetAllPeople lambda)

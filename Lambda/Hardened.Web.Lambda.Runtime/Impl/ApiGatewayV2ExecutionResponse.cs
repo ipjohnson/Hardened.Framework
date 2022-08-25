@@ -1,13 +1,14 @@
 ﻿using Amazon.Lambda.APIGatewayEvents;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Runtime.Headers;
 
 namespace Hardened.Web.Lambda.Runtime.Impl
 {
     public class ApiGatewayV2ExecutionResponse : IExecutionResponse
     {
         private readonly APIGatewayHttpApiV2ProxyResponse _proxyResponse;
-
+        private IHeaderCollection? _headerCollection;
         public ApiGatewayV2ExecutionResponse(APIGatewayHttpApiV2ProxyResponse response)
         {
             _proxyResponse = response;
@@ -34,7 +35,8 @@ namespace Hardened.Web.Lambda.Runtime.Impl
 
         public Stream? Body { get; set; }
 
-        public IHeaderCollection Headers { get; }
+        public IHeaderCollection Headers =>
+            _headerCollection ??= new HeaderCollectionStringDictionary(_proxyResponse.Headers);
 
         public Exception? ExceptionValue { get; set; }
 

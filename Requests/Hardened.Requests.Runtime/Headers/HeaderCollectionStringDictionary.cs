@@ -7,20 +7,20 @@ using System.Threading.Tasks;
 using Hardened.Requests.Abstract.Headers;
 using Microsoft.Extensions.Primitives;
 
-namespace Hardened.Function.Lambda.Runtime.Impl
+namespace Hardened.Requests.Runtime.Headers
 {
-    public class ContextHeaderCollection : IHeaderCollection
+    public class HeaderCollectionStringDictionary : IHeaderCollection
     {
-        private readonly IDictionary<string, string> _customContext;
+        private readonly IDictionary<string, string> _dictionary;
 
-        public ContextHeaderCollection(IDictionary<string, string> customContext)
+        public HeaderCollectionStringDictionary(IDictionary<string, string> dictionary)
         {
-            _customContext = customContext;
+            _dictionary = dictionary;
         }
 
         public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator()
         {
-            foreach (var kvp in _customContext)
+            foreach (var kvp in _dictionary)
             {
                 yield return new KeyValuePair<string, StringValues>(kvp.Key, kvp.Value);
             }
@@ -38,12 +38,12 @@ namespace Hardened.Function.Lambda.Runtime.Impl
 
         public bool ContainsKey(string key)
         {
-            return _customContext.ContainsKey(key);
+            return _dictionary.ContainsKey(key);
         }
 
         public StringValues Get(string key)
         {
-            if (_customContext.TryGetValue(key, out var value))
+            if (_dictionary.TryGetValue(key, out var value))
             {
                 return value;
             }
@@ -61,11 +61,11 @@ namespace Hardened.Function.Lambda.Runtime.Impl
             throw new NotSupportedException("Collection cannot be modified");
         }
 
-        public int Count => _customContext.Count;
+        public int Count => _dictionary.Count;
 
         public bool TryGet(string key, out StringValues value)
         {
-            var returnValue = _customContext.TryGetValue(key, out var tempValue);
+            var returnValue = _dictionary.TryGetValue(key, out var tempValue);
 
             if (returnValue)
             {
@@ -80,3 +80,4 @@ namespace Hardened.Function.Lambda.Runtime.Impl
         }
     }
 }
+

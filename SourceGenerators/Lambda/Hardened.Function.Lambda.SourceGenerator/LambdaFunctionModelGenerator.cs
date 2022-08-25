@@ -4,6 +4,7 @@ using System.Text;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -40,6 +41,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
                 cancellation.ThrowIfCancellationRequested();
 
                 RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(generatorSyntaxContext, parameter);
+                File.AppendAllText(@"C:\temp\generated\parameters.txt", parameter.Identifier + " mod:" + parameter.Modifiers.ToFullString() + " default: " + parameter.Default?.Value + " display:" +parameter.ToFullString() +"\r\n");
 
                 if (parameterInformation == null)
                 {
@@ -56,14 +58,10 @@ namespace Hardened.Function.Lambda.SourceGenerator
             ParameterSyntax parameter)
         {
             var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
-            
-            return new RequestParameterInformation(
+
+            return BaseRequestModelGenerator.CreateRequestParameterInformation(parameter,
                 parameterType,
-                parameter.Identifier.Text,
-                !parameterType.IsNullable,
-                null,
-                ParameterBindType.Body,
-                    string.Empty);
+                ParameterBindType.Body);
         }
 
         private static RequestParameterInformation? GetParameterInfoFromAttributes(GeneratorSyntaxContext generatorSyntaxContext,
@@ -94,15 +92,12 @@ namespace Hardened.Function.Lambda.SourceGenerator
             GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType, string bindingName)
         {
             var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
-            var name = parameter.Identifier.Text;
 
-            return new RequestParameterInformation(
+            return BaseRequestModelGenerator.CreateRequestParameterInformation(parameter,
                 parameterType,
-                name,
-                !parameterType.IsNullable,
-                null,
                 bindingType,
-                string.IsNullOrEmpty(bindingName) ? name : bindingName);
+                null,
+                bindingName);
         }
         private static string GetControllerMethod(MethodDeclarationSyntax methodDeclaration)
         {

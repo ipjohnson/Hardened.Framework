@@ -4,16 +4,16 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Runtime.Headers
 {
-    public class HeaderCollectionImpl : IHeaderCollection
+    public class HeaderCollectionStringValues : IHeaderCollection
     {
         private readonly IDictionary<string,StringValues> _headers;
 
-        public HeaderCollectionImpl() : this(new Dictionary<string, StringValues>())
+        public HeaderCollectionStringValues() : this(new Dictionary<string, StringValues>())
         {
 
         }
 
-        public HeaderCollectionImpl(IDictionary<string, StringValues> headers)
+        public HeaderCollectionStringValues(IDictionary<string, StringValues> headers)
         {
             _headers = headers;
         }

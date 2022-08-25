@@ -71,7 +71,6 @@ namespace Hardened.SourceGenerator.Shared
                     if (namedTypeSymbol.Name == "Nullable")
                     {
                         var baseType = namedTypeSymbol.TypeArguments.First();
-
                         return GetTypeDefinitionFromType(baseType).MakeNullable();
                     }
 

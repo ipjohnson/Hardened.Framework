@@ -70,70 +70,61 @@ namespace Hardened.SourceGenerator.Requests
         {
             var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
 
+            File.AppendAllText(@"C:\temp\generated\parameters.txt", parameter.Identifier + " " + parameter.Modifiers.ToFullString() + " default: " + parameter.Default?.Value);
+
             if (KnownTypes.Requests.IExecutionContext.Equals(parameterType))
             {
-                return new RequestParameterInformation(
-                    parameterType,
-                    parameter.Identifier.Text,
-                    true,
-                    null,
-                    ParameterBindType.ExecutionContext,
-                    string.Empty);
+                return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ExecutionContext, true);
             }
 
             if (KnownTypes.Requests.IExecutionRequest.Equals(parameterType))
             {
-                return new RequestParameterInformation(
-                    parameterType,
-                    parameter.Identifier.Text,
-                    true,
-                    null,
-                    ParameterBindType.ExecutionRequest,
-                    string.Empty);
+                return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ExecutionRequest, true);
             }
 
             if (KnownTypes.Requests.IExecutionResponse.Equals(parameterType))
             {
-                return new RequestParameterInformation(
-                    parameterType,
-                    parameter.Identifier.Text,
-                    true,
-                    null,
-                    ParameterBindType.ExecutionResponse,
-                    string.Empty);
+                return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ExecutionResponse, true);
             }
             
             if (parameterType.TypeDefinitionEnum == TypeDefinitionEnum.InterfaceDefinition)
             {
-                return new RequestParameterInformation(
-                    parameterType,
-                    parameter.Identifier.Text,
-                    !parameterType.IsNullable,
-                    null,
-                    ParameterBindType.ServiceProvider,
-                    string.Empty);
+                return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ServiceProvider);
             }
 
             var id = parameter.Identifier.Text;
 
             if (requestHandlerNameModel.Path.Contains($"{{{id}}}"))
             {
-                return new RequestParameterInformation(
-                    parameterType,
-                    parameter.Identifier.Text,
-                    !parameterType.IsNullable,
-                    null,
-                    ParameterBindType.Path,
-                    string.Empty);
+                return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.Path);
+            }
+
+
+            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.Body);
+        }
+
+        public static RequestParameterInformation CreateRequestParameterInformation(ParameterSyntax parameter,
+            ITypeDefinition parameterType, ParameterBindType parameterBindType, bool? required = null, string? bindingName = null)
+        {
+            if (!parameterType.IsNullable && parameter.ToFullString().Contains("?"))
+            {
+                parameterType = parameterType.MakeNullable();
+            }
+
+            string? defaultValue = null;
+
+            if (parameter.Default != null)
+            {
+                defaultValue = parameter.Default.Value.ToFullString();
             }
 
             return new RequestParameterInformation(
                 parameterType,
                 parameter.Identifier.Text,
-                !parameterType.IsNullable,
-                null,
-                ParameterBindType.Body,
-                    string.Empty);
+                required ?? !parameterType.IsNullable,
+                defaultValue,
+                parameterBindType,
+                bindingName ?? string.Empty);
         }
 
         protected abstract RequestParameterInformation? GetParameterInfoFromAttributes(
