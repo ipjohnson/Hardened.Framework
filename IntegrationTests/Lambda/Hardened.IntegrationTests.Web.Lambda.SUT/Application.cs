@@ -1,5 +1,6 @@
 ﻿using Hardened.IntegrationTests.Web.Lambda.SUT.Filters;
 using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Requests.Runtime.Configuration;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Runtime.Logging;
@@ -17,6 +18,12 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT
         {
             config.Amend<StaticContentConfiguration>( 
                 staticConfig => staticConfig.CacheMaxAge = 15);
+
+            config.Amend<ResponseHeaderConfiguration>(responseHeader =>
+            {
+                responseHeader.Add("TestResponseHeader", "TestValue");
+                responseHeader.Add(c => c.Response.Headers.Set("OtherTest", "OtherValue"));
+            });
         }
 
         //private void ConfigureLogging(IEnvironment environment, ILoggingBuilder builder)

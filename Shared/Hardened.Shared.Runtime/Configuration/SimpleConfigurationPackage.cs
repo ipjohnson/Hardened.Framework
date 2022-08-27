@@ -10,7 +10,14 @@ namespace Hardened.Shared.Runtime.Configuration
     public class SimpleConfigurationPackage : IConfigurationPackage
     {
         private readonly IReadOnlyList<IConfigurationValueProvider> _valueProviders;
-        private readonly IReadOnlyCollection<IConfigurationValueAmender > _amenders;
+        private readonly IReadOnlyCollection<IConfigurationValueAmender> _amenders;
+
+        public SimpleConfigurationPackage(IReadOnlyList<IConfigurationValueProvider> valueProviders)
+        {
+            _valueProviders = valueProviders;
+            _amenders = Array.Empty<IConfigurationValueAmender>();
+        }
+
 
         public SimpleConfigurationPackage(IReadOnlyList<IConfigurationValueProvider> valueProviders, IReadOnlyCollection<IConfigurationValueAmender> amenders)
         {

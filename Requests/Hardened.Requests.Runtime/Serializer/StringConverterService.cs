@@ -33,6 +33,23 @@ namespace Hardened.Requests.Runtime.Serializer
             return InternalParseRequired<T>(value);
         }
 
+        public T ParseWithDefault<T>(string value, string valueName, T defaultValue)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return defaultValue;
+            }
+
+            try
+            {
+                return InternalParseRequired<T>(value);
+            }
+            catch
+            {
+                return defaultValue;
+            }
+        }
+
         public T? ParseOptional<T>(string value, string valueName)
         {
             if (string.IsNullOrEmpty(value))

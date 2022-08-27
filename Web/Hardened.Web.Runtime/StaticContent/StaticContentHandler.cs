@@ -56,7 +56,6 @@ namespace Hardened.Web.Runtime.StaticContent
             _cachedStaticContentEntries = new ConcurrentDictionary<string, CachedStaticContentEntry>();
         }
         
-
         public Task<bool> Handle(IExecutionContext context)
         {
             if (!_pathExists)
@@ -164,6 +163,8 @@ namespace Hardened.Web.Runtime.StaticContent
             {
                 context.Response.Status = (int)HttpStatusCode.NotModified;
 
+                _configuration.OnPrepareResponse?.Invoke(context);
+
                 return TrueComplete;
             }
 
@@ -244,10 +245,10 @@ namespace Hardened.Web.Runtime.StaticContent
 
         private StringValues GetRequestETag(IExecutionContext context)
         {
-            //if (context.Request.Headers.TryGet(KnownHeaders.IfMatch, out var ifMatch))
-            //{
-            //    return ifMatch;
-            //}
+            if (context.Request.Headers.TryGet(KnownHeaders.IfMatch, out var ifMatch))
+            {
+                return ifMatch;
+            }
 
             return StringValues.Empty;
         }

@@ -8,13 +8,15 @@ namespace Hardened.Requests.Runtime.Filters
     {
         private readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> _deserializeRequest;
         private readonly Func<IExecutionContext, Task> _serializeResponse;
+        private readonly Action<IExecutionContext>? _headerActions;
 
-        public IOFilter(
-            Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest, 
-            Func<IExecutionContext, Task> serializeResponse)
+        public IOFilter(Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
+            Func<IExecutionContext, Task> serializeResponse, 
+            Action<IExecutionContext>? headerActions)
         {
             _deserializeRequest = deserializeRequest;
             _serializeResponse = serializeResponse;
+            _headerActions = headerActions;
         }
 
         public async Task Execute(IExecutionChain chain)
@@ -51,6 +53,8 @@ namespace Hardened.Requests.Runtime.Filters
 
             try
             {
+                _headerActions?.Invoke(chain.Context);
+
                 await _serializeResponse(chain.Context);
             }
             finally

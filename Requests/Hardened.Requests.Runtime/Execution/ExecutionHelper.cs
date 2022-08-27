@@ -58,11 +58,11 @@ namespace Hardened.Requests.Runtime.Execution
             InvokeWithParameters<TController, TParameter> invokeMethod,
             IEnumerable<IRequestFilterProvider> filterProviders) where TController : class
         {
-            var contextSerializationService = serviceProvider.GetRequiredService<IContextSerializationService>();
+            var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-            var ioFilter = new IOFilter(
-                deserializeRequestFunc,
-                contextSerializationService.SerializeResponse
+            var ioFilter = ioFilterProvider.ProvideFilter(
+                handlerInfo,
+                deserializeRequestFunc
             );
             
             var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
@@ -108,11 +108,11 @@ namespace Hardened.Requests.Runtime.Execution
             AsyncInvokeWithParameters<TController, TParameter> invokeMethod,
             IEnumerable<IRequestFilterProvider> filterProviders) where TController : class where TParameter : class
         {
-            var contextSerializationService = serviceProvider.GetRequiredService<IContextSerializationService>();
+            var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-            var ioFilter = new IOFilter(
-                deserializeRequestFunc,
-                contextSerializationService.SerializeResponse
+            var ioFilter = ioFilterProvider.ProvideFilter(
+                handlerInfo,
+                deserializeRequestFunc
             );
 
             var invokeFilter = new AsyncInvokeWithParametersFilter<TController, TParameter>(invokeMethod);

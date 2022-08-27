@@ -19,10 +19,8 @@ namespace Hardened.IntegrationTests.Function.Lambda.SUT.Functions
         }
         
         [LambdaFunction]
-        public PersonListModel GetAllPeople(GetAllPeopleRequest request, [FromContext] string? contextString = null)
+        public PersonListModel GetAllPeople(GetAllPeopleRequest request, [FromContext] string contextString = "test")
         {
-            contextString ??= "test";
-
             return new PersonListModel(contextString, new List<PersonModel>());
         }
         

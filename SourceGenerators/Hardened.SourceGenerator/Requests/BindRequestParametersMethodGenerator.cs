@@ -122,7 +122,14 @@ namespace Hardened.SourceGenerator.Requests
             var stringInvokeStatement = context.Property("KnownServices").Property("StringConverterService");
 
             IOutputComponent? invokeStatement;
-            if (parameterInformation.Required)
+
+            if (!string.IsNullOrEmpty(parameterInformation.DefaultValue))
+            {
+                invokeStatement =
+                    stringInvokeStatement.InvokeGeneric("ParseWithDefault", new[] { parameterInformation.ParameterType },
+                        valueStatement, QuoteString(bindingName), parameterInformation.DefaultValue!);
+            }
+            else if (parameterInformation.Required)
             {
                 invokeStatement =
                     stringInvokeStatement.InvokeGeneric("ParseRequired", new[] { parameterInformation.ParameterType },

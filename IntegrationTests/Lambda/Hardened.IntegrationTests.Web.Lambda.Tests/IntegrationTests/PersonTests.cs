@@ -34,6 +34,8 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             var results = document.QuerySelector("#id5");
 
             Assert.NotNull(results);
+            Assert.Equal("TestValue", viewResponse.Headers.Get("TestResponseHeader"));
+            Assert.Equal("OtherValue", viewResponse.Headers.Get("OtherTest"));
         }
 
         public static void ExposeMethod(MethodInfo testMethod, IServiceCollection collection)

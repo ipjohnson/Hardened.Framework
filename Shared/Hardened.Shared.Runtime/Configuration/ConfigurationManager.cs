@@ -67,17 +67,5 @@ namespace Hardened.Shared.Runtime.Configuration
                 value = _amenders[i].ApplyConfiguration(env, value);
             }
         }
-
-        public T ApplyConfiguration<T>(IEnvironment environment, T configurationValue) where T : class
-        {
-            var value = configurationValue;
-
-            foreach (var amender in _amenders)
-            {
-                //value = amender.ApplyConfiguration(environment, value);
-            }
-
-            return value;
-        }
     }
 }
