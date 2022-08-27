@@ -187,6 +187,9 @@ namespace Hardened.SourceGenerator.Shared
             public static readonly ITypeDefinition ExecutionRequestHandlerInfo =
                 TypeDefinition.Get(Namespace.HardenedRequestsRuntimeExecution, "ExecutionRequestHandlerInfo");
 
+            public static readonly ITypeDefinition ExecutionRequestParameter =
+                TypeDefinition.Get(Namespace.HardenedRequestsRuntimeExecution, "ExecutionRequestParameter");
+
             public static readonly ITypeDefinition IExecutionRequestHandler =
                 TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "IExecutionRequestHandler");
 

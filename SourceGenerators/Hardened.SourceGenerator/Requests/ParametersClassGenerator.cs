@@ -55,6 +55,8 @@ namespace Hardened.SourceGenerator.Requests
                 parametersClass.AddProperty(KnownTypes.Requests.IReadOnlyListExecutionRequestParameter, "Info");
 
             parametersProperty.Set = null;
+            parametersProperty.Get.LambdaSyntax = true;
+            parametersProperty.Get.AddCode("_parameterInfo;");
         }
 
         private static void WriteParameterCount(RequestHandlerModel handlerModel, ClassDefinition parametersClass)

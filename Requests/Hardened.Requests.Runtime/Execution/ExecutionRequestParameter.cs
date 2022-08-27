@@ -21,6 +21,5 @@ namespace Hardened.Requests.Runtime.Execution
         public int Index { get; }
 
         public Type Type { get; }
-
     }
 }
