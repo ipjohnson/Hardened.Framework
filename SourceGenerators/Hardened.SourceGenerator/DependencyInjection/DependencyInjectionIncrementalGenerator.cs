@@ -11,7 +11,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
     public static class DependencyInjectionIncrementalGenerator
     {
         public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
-            IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider,
+            IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider,
             IReadOnlyList<ITypeDefinition> defaultLibraries)
         {
             var classSelector = new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.DI.ExposeAttribute);

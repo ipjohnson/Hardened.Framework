@@ -20,13 +20,13 @@ namespace Hardened.SourceGenerator.DependencyInjection
         }
 
         public void GenerateFile(SourceProductionContext sourceProductionContext,
-            (ApplicationSelector.Model Left, ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> Right) dependencyData)
+            (EntryPointSelector.Model Left, ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> Right) dependencyData)
         {
 
 
-            File.AppendAllText(@"C:\temp\generated\" + dependencyData.Left.ApplicationType.Namespace + "." + "Gothere.txt", dependencyData.Left.ApplicationType.Name + "\r\n");
+            File.AppendAllText(@"C:\temp\generated\" + dependencyData.Left.EntryPointType.Namespace + "." + "Gothere.txt", dependencyData.Left.EntryPointType.Name + "\r\n");
 
-            var diFile = new CSharpFileDefinition(dependencyData.Left.ApplicationType.Namespace);
+            var diFile = new CSharpFileDefinition(dependencyData.Left.EntryPointType.Namespace);
 
             GeneratedCode(dependencyData.Left, dependencyData.Right, diFile);
 
@@ -34,19 +34,19 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             diFile.WriteOutput(outputContext);
 
-            var fileName = dependencyData.Left.ApplicationType.Name + ".DependencyInjection.cs";
+            var fileName = dependencyData.Left.EntryPointType.Name + ".DependencyInjection.cs";
 
-            File.AppendAllText(@"C:\temp\generated\" + dependencyData.Left.ApplicationType.Namespace + "." + fileName, outputContext.Output());
+            File.AppendAllText(@"C:\temp\generated\" + dependencyData.Left.EntryPointType.Namespace + "." + fileName, outputContext.Output());
 
             sourceProductionContext.AddSource(fileName, outputContext.Output());
         }
 
         private void GeneratedCode(
-            ApplicationSelector.Model model,
+            EntryPointSelector.Model model,
             ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> dependencyDataRight, 
             CSharpFileDefinition diFile)
         {
-            var applicationDefinition = diFile.AddClass(model.ApplicationType.Name);
+            var applicationDefinition = diFile.AddClass(model.EntryPointType.Name);
 
             applicationDefinition.AddConstructor().Modifiers = ComponentModifier.Static;
 
@@ -96,7 +96,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             providerMethod.NewLine();
 
             providerMethod.AddCode("{arg1}<[arg2]>.ApplyRegistration(environment, serviceCollection, this);",
-                KnownTypes.DI.DependencyRegistry, model.ApplicationType.Name);
+                KnownTypes.DI.DependencyRegistry, model.EntryPointType.Name);
 
             providerMethod.NewLine();
 

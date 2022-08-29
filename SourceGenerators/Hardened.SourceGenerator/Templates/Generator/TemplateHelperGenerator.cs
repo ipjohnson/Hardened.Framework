@@ -14,24 +14,24 @@ namespace Hardened.SourceGenerator.Templates.Generator
     {
         public static void Generate(
             SourceProductionContext context,
-            (ApplicationSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel> helperModels) helperData)
+            (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel> helperModels) helperData)
         {
             if (!helperData.helperModels.Any())
             {
                 return;
             }
 
-            var helperFile = new CSharpFileDefinition(helperData.applicationModel.ApplicationType.Namespace);
+            var helperFile = new CSharpFileDefinition(helperData.applicationModel.EntryPointType.Namespace);
 
-            var appClass = helperFile.AddClass(helperData.applicationModel.ApplicationType.Name);
+            var appClass = helperFile.AddClass(helperData.applicationModel.EntryPointType.Name);
 
             appClass.Modifiers = ComponentModifier.Partial | ComponentModifier.Public;
 
             CreateHelperProviderClass(helperData, appClass);
 
-            SetupDependencyInjection(helperData.applicationModel.ApplicationType, appClass, helperData.helperModels);
+            SetupDependencyInjection(helperData.applicationModel.EntryPointType, appClass, helperData.helperModels);
 
-            var fileName = helperData.applicationModel.ApplicationType.Name + ".TemplateHelpers.cs";
+            var fileName = helperData.applicationModel.EntryPointType.Name + ".TemplateHelpers.cs";
 
             var outputContext = new OutputContext();
 
@@ -91,7 +91,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             }
         }
 
-        private static void CreateHelperProviderClass((ApplicationSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel> helperModels) helperData,
+        private static void CreateHelperProviderClass((EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel> helperModels) helperData,
             ClassDefinition appClass)
         {
             var templateHelperProvider = appClass.AddClass("TemplateHelperProvider");

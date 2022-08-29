@@ -12,11 +12,11 @@ namespace Hardened.SourceGenerator.Templates.Generator
     public static class TemplateEntryPointGenerator
     {
         public static void Generate(SourceProductionContext productionContext, 
-            (ApplicationSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels) templateData)
+            (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels) templateData)
         {
-            var applicationFile = new CSharpFileDefinition(templateData.applicationModel.ApplicationType.Namespace);
+            var applicationFile = new CSharpFileDefinition(templateData.applicationModel.EntryPointType.Namespace);
 
-            var classDefinition = applicationFile.AddClass(templateData.applicationModel.ApplicationType.Name);
+            var classDefinition = applicationFile.AddClass(templateData.applicationModel.EntryPointType.Name);
 
             classDefinition.Modifiers |= ComponentModifier.Partial | ComponentModifier.Public;
 
@@ -25,7 +25,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             GenerateDependencyInjection(classDefinition, templateProviderClass, templateData.applicationModel,
                 templateData.templateModels);
 
-            var templateFileName = templateData.applicationModel.ApplicationType.Name + ".Templates.cs";
+            var templateFileName = templateData.applicationModel.EntryPointType.Name + ".Templates.cs";
 
             var outputContext = new OutputContext();
 
@@ -36,7 +36,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             File.AppendAllText(@"C:\temp\generated\" + templateFileName, outputContext.Output());
         }
 
-        private static void GenerateDependencyInjection(ClassDefinition classDefinition, ITypeDefinition templateProviderClass, ApplicationSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)
+        private static void GenerateDependencyInjection(ClassDefinition classDefinition, ITypeDefinition templateProviderClass, EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)
         {
             var templateField = classDefinition.AddField(typeof(int), "_templateDependencies");
 
@@ -50,13 +50,13 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             var environment = diMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
             var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-            var entryPoint = diMethod.AddParameter(applicationModel.ApplicationType, "entryPoint");
+            var entryPoint = diMethod.AddParameter(applicationModel.EntryPointType, "entryPoint");
 
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
                 new[] { KnownTypes.Templates.ITemplateExecutionHandlerProvider, templateProviderClass }));
         }
 
-        private static ITypeDefinition CreateTemplateProviderClass(ClassDefinition classDefinition, ApplicationSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)
+        private static ITypeDefinition CreateTemplateProviderClass(ClassDefinition classDefinition, EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)
         {
             var templateProviderClass = classDefinition.AddClass("TemplateProvider");
 
@@ -66,8 +66,8 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             GenerateProviderMethod(classDefinition, templateProviderClass, applicationModel, templateModels);
 
-            return TypeDefinition.Get(applicationModel.ApplicationType.Namespace,
-                applicationModel.ApplicationType.Name + "." + "TemplateProvider");
+            return TypeDefinition.Get(applicationModel.EntryPointType.Namespace,
+                applicationModel.EntryPointType.Name + "." + "TemplateProvider");
         }
 
         private static void GenerateConstructor(ClassDefinition templateProviderClass)
@@ -84,7 +84,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
         private static void GenerateProviderMethod(
             ClassDefinition classDefinition, 
             ClassDefinition templateProviderClass, 
-            ApplicationSelector.Model applicationModel, 
+            EntryPointSelector.Model applicationModel, 
             ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)
         {
             var templateExecutionService = templateProviderClass.AddProperty(
@@ -100,7 +100,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
                 applicationModel, templateModels, templateProviderClass, handlerMethod, templateNameParameter, templateExecutionService);
         }
 
-        private static void GenerateProviderMethodBody(ApplicationSelector.Model applicationModel,
+        private static void GenerateProviderMethodBody(EntryPointSelector.Model applicationModel,
             ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels,
             ClassDefinition templateProviderClass,
             MethodDefinition handlerMethod,

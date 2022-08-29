@@ -12,11 +12,11 @@ namespace Hardened.SourceGenerator.Configuration
     public static class ConfigurationEntryPointGenerator
     {
         public static void Generate(SourceProductionContext arg1, 
-            (ApplicationSelector.Model AppModel, ImmutableArray<ConfigurationIncrementalGenerator.ConfigurationFileModel> ConfigFiles) arg2)
+            (EntryPointSelector.Model AppModel, ImmutableArray<ConfigurationIncrementalGenerator.ConfigurationFileModel> ConfigFiles) arg2)
         {
-            var cSharpFile = new CSharpFileDefinition(arg2.AppModel.ApplicationType.Namespace);
+            var cSharpFile = new CSharpFileDefinition(arg2.AppModel.EntryPointType.Namespace);
 
-            var classDefinition = cSharpFile.AddClass(arg2.AppModel.ApplicationType.Name);
+            var classDefinition = cSharpFile.AddClass(arg2.AppModel.EntryPointType.Name);
 
             classDefinition.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
 
@@ -26,14 +26,14 @@ namespace Hardened.SourceGenerator.Configuration
 
             cSharpFile.WriteOutput(outputContext);
 
-            arg1.AddSource(arg2.AppModel.ApplicationType.Name + ".Configuration.cs", outputContext.Output());
+            arg1.AddSource(arg2.AppModel.EntryPointType.Name + ".Configuration.cs", outputContext.Output());
 
             File.AppendAllText(@"C:\temp\generated\Application.Configration.cs", outputContext.Output());
         }
 
         private static void GenerateConfiguration(
             ClassDefinition classDefinition,
-            ApplicationSelector.Model entryPoint, 
+            EntryPointSelector.Model entryPoint, 
             ImmutableArray<ConfigurationIncrementalGenerator.ConfigurationFileModel> configFiles)
         {
             var providerType = GenerateProviderType(classDefinition, entryPoint, configFiles);
@@ -43,7 +43,7 @@ namespace Hardened.SourceGenerator.Configuration
 
         private static void GenerateDependencyInjectionRegistration(
             ClassDefinition classDefinition, 
-            ApplicationSelector.Model entryPoint, 
+            EntryPointSelector.Model entryPoint, 
             ImmutableArray<ConfigurationIncrementalGenerator.ConfigurationFileModel> configFiles, 
             ITypeDefinition providerType)
         {
@@ -61,7 +61,7 @@ namespace Hardened.SourceGenerator.Configuration
 
             var environment = diMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
             var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-            var entryPointDef = diMethod.AddParameter(entryPoint.ApplicationType, "entryPoint");
+            var entryPointDef = diMethod.AddParameter(entryPoint.EntryPointType, "entryPoint");
 
             foreach (var configurationFileModel in configFiles)
             {
@@ -94,7 +94,7 @@ namespace Hardened.SourceGenerator.Configuration
 
         private static ITypeDefinition GenerateProviderType(
             ClassDefinition classDefinition, 
-            ApplicationSelector.Model entryPoint, 
+            EntryPointSelector.Model entryPoint, 
             ImmutableArray<ConfigurationIncrementalGenerator.ConfigurationFileModel> configFiles)
         {
             var configurationProvider = classDefinition.AddClass("ConfigurationProvider");
@@ -122,7 +122,7 @@ namespace Hardened.SourceGenerator.Configuration
 
             amendersMethod.AddIndentedStatement("yield break");
 
-            return TypeDefinition.Get(entryPoint.ApplicationType.Namespace, entryPoint.ApplicationType.Name + ".ConfigurationProvider");
+            return TypeDefinition.Get(entryPoint.EntryPointType.Namespace, entryPoint.EntryPointType.Name + ".ConfigurationProvider");
         }
     }
 }

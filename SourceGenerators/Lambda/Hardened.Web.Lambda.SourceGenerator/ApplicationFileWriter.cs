@@ -6,9 +6,9 @@ namespace Hardened.Web.Lambda.SourceGenerator
 {
     public static class ApplicationFileWriter
     {
-        public static string WriteFile(ApplicationSelector.Model entryPoint)
+        public static string WriteFile(EntryPointSelector.Model entryPoint)
         {
-            var applicationFile = new CSharpFileDefinition(entryPoint.ApplicationType.Namespace);
+            var applicationFile = new CSharpFileDefinition(entryPoint.EntryPointType.Namespace);
 
             CreateApplicationClass(applicationFile, entryPoint);
 
@@ -19,9 +19,9 @@ namespace Hardened.Web.Lambda.SourceGenerator
             return context.Output();
         }
 
-        private static void CreateApplicationClass(CSharpFileDefinition applicationFile, ApplicationSelector.Model entryPoint)
+        private static void CreateApplicationClass(CSharpFileDefinition applicationFile, EntryPointSelector.Model entryPoint)
         {
-            var appClass = applicationFile.AddClass(entryPoint.ApplicationType.Name);
+            var appClass = applicationFile.AddClass(entryPoint.EntryPointType.Name);
 
             appClass.Modifiers |= ComponentModifier.Partial;
 
@@ -40,7 +40,7 @@ namespace Hardened.Web.Lambda.SourceGenerator
             CreateHandlerMethod(appClass, entryPoint, provider.Instance, field.Instance);
         }
 
-        private static void CreateHandlerMethod(ClassDefinition appClass, ApplicationSelector.Model entryPoint,
+        private static void CreateHandlerMethod(ClassDefinition appClass, EntryPointSelector.Model entryPoint,
             InstanceDefinition providerInstance, InstanceDefinition eventProcessor)
         {
             var handler = appClass.AddMethod("FunctionHandlerAsync");
@@ -58,7 +58,7 @@ namespace Hardened.Web.Lambda.SourceGenerator
         }
 
         private static void CreateConstructors(ClassDefinition appClass,
-            ApplicationSelector.Model entryPoint,
+            EntryPointSelector.Model entryPoint,
             InstanceDefinition providerInstanceDefinition)
         {
             appClass.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl), Null()));
@@ -104,7 +104,7 @@ namespace Hardened.Web.Lambda.SourceGenerator
         }
 
         private static InstanceDefinition SetupLoggerFactory(
-            ApplicationSelector.Model entryPoint,
+            EntryPointSelector.Model entryPoint,
             ConstructorDefinition constructorDefinition, 
             ParameterDefinition environment)
         {
@@ -120,13 +120,13 @@ namespace Hardened.Web.Lambda.SourceGenerator
             else if (logLevelMethod != null)
             {
                 logCreateMethod = CodeOutputComponent.Get(
-                    $"LoggerFactory.Create(LambdaWebLoggerHelper.CreateAction(ConfigureLogLevel(environment), \"{entryPoint.ApplicationType.Namespace}\"))");
+                    $"LoggerFactory.Create(LambdaWebLoggerHelper.CreateAction(ConfigureLogLevel(environment), \"{entryPoint.EntryPointType.Namespace}\"))");
                 logCreateMethod.AddUsingNamespace("Hardened.Web.Lambda.Runtime.Logging");
             }
             else
             {
                 logCreateMethod = CodeOutputComponent.Get(
-                    $"LoggerFactory.Create(LambdaWebLoggerHelper.CreateAction(environment, \"{entryPoint.ApplicationType.Namespace}\"))");
+                    $"LoggerFactory.Create(LambdaWebLoggerHelper.CreateAction(environment, \"{entryPoint.EntryPointType.Namespace}\"))");
                 logCreateMethod.AddUsingNamespace("Hardened.Web.Lambda.Runtime.Logging");
             }
 

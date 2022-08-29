@@ -9,9 +9,9 @@ namespace Hardened.Function.Lambda.SourceGenerator
 {
     public static class ApplicationFileWriter
     {
-        public static string WriteFile(ApplicationSelector.Model entryPoint)
+        public static string WriteFile(EntryPointSelector.Model entryPoint)
         {
-            var applicationFile = new CSharpFileDefinition(entryPoint.ApplicationType.Namespace);
+            var applicationFile = new CSharpFileDefinition(entryPoint.EntryPointType.Namespace);
 
             CreateApplicationClass(applicationFile, entryPoint);
 
@@ -22,9 +22,9 @@ namespace Hardened.Function.Lambda.SourceGenerator
             return context.Output();
         }
 
-        private static void CreateApplicationClass(CSharpFileDefinition applicationFile, ApplicationSelector.Model entryPoint)
+        private static void CreateApplicationClass(CSharpFileDefinition applicationFile, EntryPointSelector.Model entryPoint)
         {
-            var appClass = applicationFile.AddClass(entryPoint.ApplicationType.Name);
+            var appClass = applicationFile.AddClass(entryPoint.EntryPointType.Name);
 
             appClass.Modifiers |= ComponentModifier.Partial;
 
@@ -39,7 +39,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
     
         private static void CreateConstructors(ClassDefinition appClass,
-            ApplicationSelector.Model entryPoint,
+            EntryPointSelector.Model entryPoint,
             InstanceDefinition providerInstanceDefinition)
         {
             appClass.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl), Null()));
@@ -72,7 +72,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
         }
 
         private static InstanceDefinition SetupLoggerFactory(
-            ApplicationSelector.Model entryPoint,
+            EntryPointSelector.Model entryPoint,
             ConstructorDefinition constructorDefinition,
             ParameterDefinition environment)
         {
@@ -88,13 +88,13 @@ namespace Hardened.Function.Lambda.SourceGenerator
             else if (logLevelMethod != null)
             {
                 logCreateMethod = CodeOutputComponent.Get(
-                    $"LoggerFactory.Create(LambdaLoggerHelper.CreateAction(ConfigureLogLevel(environment), \"{entryPoint.ApplicationType.Namespace}\"))");
+                    $"LoggerFactory.Create(LambdaLoggerHelper.CreateAction(ConfigureLogLevel(environment), \"{entryPoint.EntryPointType.Namespace}\"))");
                 logCreateMethod.AddUsingNamespace("Hardened.Shared.Lambda.Runtime.Logging");
             }
             else
             {
                 logCreateMethod = CodeOutputComponent.Get(
-                    $"LoggerFactory.Create(LambdaLoggerHelper.CreateAction(environment, \"{entryPoint.ApplicationType.Namespace}\"))");
+                    $"LoggerFactory.Create(LambdaLoggerHelper.CreateAction(environment, \"{entryPoint.EntryPointType.Namespace}\"))");
                 logCreateMethod.AddUsingNamespace("Hardened.Shared.Lambda.Runtime.Logging");
             }
 

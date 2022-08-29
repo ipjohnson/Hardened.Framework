@@ -12,7 +12,7 @@ namespace Hardened.SourceGenerator.Configuration
     {
         public static void Setup(
             IncrementalGeneratorInitializationContext initializationContext, 
-            IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider)
+            IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider)
         {
             var classSelector = new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.Configuration.ConfigurationModelAttribute);
 

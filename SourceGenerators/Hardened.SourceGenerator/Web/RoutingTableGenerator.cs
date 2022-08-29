@@ -16,11 +16,11 @@ namespace Hardened.SourceGenerator.Web
     public static class RoutingTableGenerator
     {
         public static void GenerateRoute(SourceProductionContext context,
-            (ApplicationSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models)
+            (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models)
         {
             var outputString = GenerateCSharpRouteFile(models.Left, models.Right);
 
-            var fileName = models.Left.ApplicationType.Name + ".Routing";
+            var fileName = models.Left.EntryPointType.Name + ".Routing";
 
             File.AppendAllText(@"c:\temp\" + fileName + ".cs", outputString);
 
@@ -29,10 +29,10 @@ namespace Hardened.SourceGenerator.Web
             context.AddSource(fileName, outputString);
         }
 
-        public static string GenerateCSharpRouteFile(ApplicationSelector.Model appModel,
+        public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
             IReadOnlyList<RequestHandlerModel> handlers)
         {
-            var applicationFile = new CSharpFileDefinition(appModel.ApplicationType.Namespace);
+            var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
             CreateRoutingTable(appModel, handlers, applicationFile);
 
@@ -44,10 +44,10 @@ namespace Hardened.SourceGenerator.Web
         }
 
         private static void CreateRoutingTable(
-            ApplicationSelector.Model appModel, IReadOnlyList<RequestHandlerModel> endPointModels,
+            EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> endPointModels,
             CSharpFileDefinition applicationFile)
         {
-            var appClass = applicationFile.AddClass(appModel.ApplicationType.Name);
+            var appClass = applicationFile.AddClass(appModel.EntryPointType.Name);
 
             appClass.Modifiers |= ComponentModifier.Partial;
 
@@ -60,8 +60,8 @@ namespace Hardened.SourceGenerator.Web
             routingClass.AddBaseType(KnownTypes.Web.IWebExecutionRequestHandlerProvider);
 
             ImplementHandlerMethod(routingClass, endPointModels);
-            var routingType = TypeDefinition.Get(appModel.ApplicationType.Namespace,
-                appModel.ApplicationType.Name + ".RoutingTable");
+            var routingType = TypeDefinition.Get(appModel.EntryPointType.Namespace,
+                appModel.EntryPointType.Name + ".RoutingTable");
 
             GenerateDependencyInjection(appClass, routingType, appModel, endPointModels);
         }
@@ -79,7 +79,7 @@ namespace Hardened.SourceGenerator.Web
 
         private static void GenerateDependencyInjection(
             ClassDefinition classDefinition, ITypeDefinition routingTableType,
-            ApplicationSelector.Model applicationModel, IReadOnlyList<RequestHandlerModel> webEndPointModels)
+            EntryPointSelector.Model applicationModel, IReadOnlyList<RequestHandlerModel> webEndPointModels)
         {
             var templateField = classDefinition.AddField(typeof(int), "_routingTableDependencies");
 
@@ -93,7 +93,7 @@ namespace Hardened.SourceGenerator.Web
 
             var environment = diMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
             var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-            var entryPoint = diMethod.AddParameter(applicationModel.ApplicationType, "entryPoint");
+            var entryPoint = diMethod.AddParameter(applicationModel.EntryPointType, "entryPoint");
 
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
                 new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));

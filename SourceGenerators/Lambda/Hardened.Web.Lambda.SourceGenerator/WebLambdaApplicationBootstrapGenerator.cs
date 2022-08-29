@@ -8,7 +8,7 @@ namespace Hardened.Web.Lambda.SourceGenerator
     public static class WebLambdaApplicationBootstrapGenerator
     {
         public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
-            IncrementalValuesProvider<ApplicationSelector.Model> incrementalValuesProvider)
+            IncrementalValuesProvider<EntryPointSelector.Model> incrementalValuesProvider)
         {
             initializationContext.RegisterSourceOutput(
                 incrementalValuesProvider,
@@ -16,13 +16,13 @@ namespace Hardened.Web.Lambda.SourceGenerator
                 );
         }
 
-        private static void ModelWriter(SourceProductionContext arg1, ApplicationSelector.Model entryPoint)
+        private static void ModelWriter(SourceProductionContext arg1, EntryPointSelector.Model entryPoint)
         {
             var applicationFile = ApplicationFileWriter.WriteFile(entryPoint);
 
             File.WriteAllText(@"c:\temp\Application.App.cs", applicationFile);
 
-            arg1.AddSource(entryPoint.ApplicationType.Name + ".App", applicationFile);
+            arg1.AddSource(entryPoint.EntryPointType.Name + ".App", applicationFile);
         }
 
         private static ApplicationModel ApplicationClassTransformer(GeneratorSyntaxContext arg1, CancellationToken arg2)

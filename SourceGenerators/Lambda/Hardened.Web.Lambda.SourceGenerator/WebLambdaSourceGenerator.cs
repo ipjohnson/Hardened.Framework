@@ -22,9 +22,9 @@ namespace Hardened.Web.Lambda.SourceGenerator
             };
 
             var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-                ApplicationSelector.UsingAttribute("LambdaWebApplication"),
-                ApplicationSelector.TransformModel(true)
-            ).WithComparer(new ApplicationSelector.Comparer());
+                EntryPointSelector.UsingAttribute("LambdaWebApplication"),
+                EntryPointSelector.TransformModel(true)
+            ).WithComparer(new EntryPointSelector.Comparer());
 
             DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
             ConfigurationIncrementalGenerator.Setup(context, applicationModel);

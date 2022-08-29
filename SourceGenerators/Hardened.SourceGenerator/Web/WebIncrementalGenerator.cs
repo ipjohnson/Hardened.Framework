@@ -11,7 +11,7 @@ namespace Hardened.SourceGenerator.Web
     {
         public static void Setup(
             IncrementalGeneratorInitializationContext initializationContext,
-            IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider)
+            IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider)
         {
             var requestModelGenerator = new WebRequestHandlerModelGenerator();
 
@@ -33,14 +33,14 @@ namespace Hardened.SourceGenerator.Web
             initializationContext.RegisterSourceOutput(routeProvider, RoutingTableGenerator.GenerateRoute);
         }
 
-        public class CombinedComparer : IEqualityComparer<(ApplicationSelector.Model Left, ImmutableArray<RequestHandlerModel> Right)>
+        public class CombinedComparer : IEqualityComparer<(EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right)>
         {
-            public bool Equals((ApplicationSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) x, (ApplicationSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) y)
+            public bool Equals((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) x, (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) y)
             {
                 return x.Item1.Equals(y.Item1) && ((Object)x.Item2).Equals(y.Item2);
             }
 
-            public int GetHashCode((ApplicationSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) obj)
+            public int GetHashCode((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) obj)
             {
                 unchecked
                 {

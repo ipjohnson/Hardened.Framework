@@ -15,7 +15,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
     {
         public void GenerateSource(
             SourceProductionContext sourceContext, 
-            (RequestHandlerModel entryModel, ImmutableArray<ApplicationSelector.Model> appModel) data)
+            (RequestHandlerModel entryModel, ImmutableArray<EntryPointSelector.Model> appModel) data)
         {
             sourceContext.CancellationToken.ThrowIfCancellationRequested();
 
@@ -29,7 +29,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             sourceContext.AddSource(entryModel.Name.Path + ".FunctionHandler.cs", generatedFile);
         }
 
-        private string GenerateFile(RequestHandlerModel entryModel, ApplicationSelector.Model appModel,
+        private string GenerateFile(RequestHandlerModel entryModel, EntryPointSelector.Model appModel,
             CancellationToken cancellationToken)
         {
             var csharpFile = new CSharpFileDefinition(entryModel.ControllerType.Namespace);
@@ -45,7 +45,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
         private void GenerateEntryPointClass(CSharpFileDefinition csharpFile,
             RequestHandlerModel lambdaFunctionEntryModel,
-            ApplicationSelector.Model appModel, 
+            EntryPointSelector.Model appModel, 
             CancellationToken cancellationToken)
         {
             var lambdaClass = csharpFile.AddClass(lambdaFunctionEntryModel.ControllerType.Name + "_" + lambdaFunctionEntryModel.Name.Path);
@@ -60,19 +60,19 @@ namespace Hardened.Function.Lambda.SourceGenerator
         }
 
         private void GenerateInvokeClass(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel,
-            ApplicationSelector.Model appModel, CancellationToken cancellationToken)
+            EntryPointSelector.Model appModel, CancellationToken cancellationToken)
         {
             InvokeClassGenerator.GenerateInvokeClass(lambdaFunctionEntryModel, lambdaClass, cancellationToken);
         }
 
         private void GenerateClassImpl(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel,
-            ApplicationSelector.Model appModel, CancellationToken cancellationToken)
+            EntryPointSelector.Model appModel, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var lambdaFunctionImplField = lambdaClass.AddField(KnownTypes.Lambda.ILambdaFunctionImplService,
                 "_lambdaFunctionImplService");
-            var applicationField = lambdaClass.AddField(appModel.ApplicationType, "_application");
+            var applicationField = lambdaClass.AddField(appModel.EntryPointType, "_application");
 
             GenerateConstructors(lambdaClass, lambdaFunctionEntryModel, appModel, lambdaFunctionImplField,
                 applicationField);
@@ -105,7 +105,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             invokeMethod.Return(lambdaFunctionImplField.Instance.Invoke("InvokeFunction", inputStream, lambdaContext));
         }
 
-        private void GenerateConstructors(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, ApplicationSelector.Model appModel, FieldDefinition lambdaFunctionImplField, FieldDefinition applicationField)
+        private void GenerateConstructors(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, EntryPointSelector.Model appModel, FieldDefinition lambdaFunctionImplField, FieldDefinition applicationField)
         {
             lambdaClass.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl), Null()));
 
@@ -115,7 +115,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             var overrides =
                 constructor.AddParameter(TypeDefinition.Action(KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
-            constructor.Assign(New(appModel.ApplicationType, envParam, overrides)).To(applicationField.Instance);
+            constructor.Assign(New(appModel.EntryPointType, envParam, overrides)).To(applicationField.Instance);
             var filterVariable = constructor.Assign(New(KnownTypes.Lambda.LambdaInvokeFilter, "new InvokeFilter(_application.Provider)"))
                 .ToVar("filter");
 

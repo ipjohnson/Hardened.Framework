@@ -17,9 +17,9 @@ namespace Hardened.SourceGenerator.Tests.Web.RouteTableGeneratorTests
         public void GenerateRoutingTree()
         {
             var handlerDefinitions = CreateHandlerModels();
-            var applicationModel = new ApplicationSelector.Model
+            var applicationModel = new EntryPointSelector.Model
             {
-                ApplicationType = TypeDefinition.Get("Testing", "App"),
+                EntryPointType = TypeDefinition.Get("Testing", "App"),
                 MethodDefinitions = Array.Empty<HardenedMethodDefinition>(),
                 RootEntryPoint = true
             };

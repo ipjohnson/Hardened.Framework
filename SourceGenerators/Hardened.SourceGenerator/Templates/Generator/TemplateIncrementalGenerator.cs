@@ -22,7 +22,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
                 new TemplateWhiteSpaceCleaner());
 
         public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
-            IncrementalValuesProvider<ApplicationSelector.Model> entryPointProvider, ICollection<string> fileExtension)
+            IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider, ICollection<string> fileExtension)
         {
             var applicationModelCollection = entryPointProvider.Collect();
 
@@ -87,12 +87,12 @@ namespace Hardened.SourceGenerator.Templates.Generator
                 DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle.Singleton);
         }
 
-        private static void GenerateTemplateSource(SourceProductionContext sourceProductionContext, (TemplateModel templateModel, ImmutableArray<ApplicationSelector.Model> applicationModels) templateData)
+        private static void GenerateTemplateSource(SourceProductionContext sourceProductionContext, (TemplateModel templateModel, ImmutableArray<EntryPointSelector.Model> applicationModels) templateData)
         {
             var templateModel = templateData.templateModel;
             var applicationModel = templateData.applicationModels.First();
             templateModel.TemplateDefinitionType = TypeDefinition.Get(
-                applicationModel.ApplicationType.Namespace + ".Generated", "Template_" + templateModel.TemplateName);
+                applicationModel.EntryPointType.Namespace + ".Generated", "Template_" + templateModel.TemplateName);
 
             var templateSource = _generator.GenerateCSharpFile(templateModel.TemplateActionNodes,
                 templateModel.TemplateName, templateModel.TemplateExtension, templateModel.TemplateDefinitionType.Namespace);

@@ -7,13 +7,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Shared
 {
-    public static class ApplicationSelector
+    public static class EntryPointSelector
     {
         
 
         public class Model
         {
-            public ITypeDefinition ApplicationType { get; set; }
+            public ITypeDefinition EntryPointType { get; set; }
 
             public bool RootEntryPoint { get; set; }
 
@@ -35,7 +35,7 @@ namespace Hardened.SourceGenerator.Shared
                 if (ReferenceEquals(x, null)) return false;
                 if (ReferenceEquals(y, null)) return false;
                 
-                return x.ApplicationType.Equals(y.ApplicationType) &&
+                return x.EntryPointType.Equals(y.EntryPointType) &&
                        x.RootEntryPoint == y.RootEntryPoint &&
                        CompareMethodDefinitions(x, y);
             }
@@ -65,7 +65,7 @@ namespace Hardened.SourceGenerator.Shared
             {
                 unchecked
                 {
-                    var hashCode = obj.ApplicationType.GetHashCode();
+                    var hashCode = obj.EntryPointType.GetHashCode();
                     hashCode = (hashCode * 397) ^ obj.RootEntryPoint.GetHashCode();
                     hashCode = (hashCode * 397) ^ obj.MethodDefinitions.GetHashCode();
                     return hashCode;
@@ -100,7 +100,7 @@ namespace Hardened.SourceGenerator.Shared
 
                 return new Model
                 {
-                    ApplicationType = ((ClassDeclarationSyntax)syntaxContext.Node).GetTypeDefinition(),
+                    EntryPointType = ((ClassDeclarationSyntax)syntaxContext.Node).GetTypeDefinition(),
                     MethodDefinitions = GenerateMethodDefinitions(syntaxContext, methods),
                     RootEntryPoint = rootEntryPoint
                 };

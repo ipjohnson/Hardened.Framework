@@ -11,7 +11,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
     internal class LambdaEntryIncrementalGenerator
     {
         public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
-            IncrementalValuesProvider<ApplicationSelector.Model> applicationValuesProvider)
+            IncrementalValuesProvider<EntryPointSelector.Model> applicationValuesProvider)
         {
             var methodSelector = new SyntaxSelector<MethodDeclarationSyntax>(KnownTypes.Lambda.LambdaFunctionAttribute);
 

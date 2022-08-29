@@ -23,8 +23,8 @@ namespace Hardened.Function.Lambda.SourceGenerator
             };
 
             var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-                ApplicationSelector.UsingAttribute("LambdaFunctionApplication"),
-                ApplicationSelector.TransformModel(true)
+                EntryPointSelector.UsingAttribute("LambdaFunctionApplication"),
+                EntryPointSelector.TransformModel(true)
             );
 
             DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
