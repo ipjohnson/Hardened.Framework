@@ -26,6 +26,7 @@ namespace Hardened.Web.Lambda.SourceGenerator
             appClass.Modifiers |= ComponentModifier.Partial;
 
             appClass.AddBaseType(KnownTypes.Application.IApplicationRoot);
+            appClass.AddBaseType(KnownTypes.Lambda.IApiGatewayV2Handler);
 
             var field = appClass.AddField(KnownTypes.Lambda.IApiGatewayEventProcessor, "_eventProcessor");
 

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Amazon.Lambda.Core;
 
-namespace Hardened.Function.Lambda.Testing
+namespace Hardened.Shared.Lambda.Testing
 {
     public class TestCognitoIdentity : ICognitoIdentity
     {

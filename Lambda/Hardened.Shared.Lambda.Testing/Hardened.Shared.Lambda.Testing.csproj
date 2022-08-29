@@ -5,24 +5,19 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
+	
 	<ItemGroup>
 		<PackageReference Include="Amazon.Lambda.Core" Version="2.1.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
-		<PackageReference Include="xunit" Version="2.4.1" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
 		<ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
 		<ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
-		<ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj" />
 		<ProjectReference Include="..\..\Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj" />
 		<ProjectReference Include="..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
-		<ProjectReference Include="..\Hardened.Function.Lambda.Runtime\Hardened.Function.Lambda.Runtime.csproj" />
-		<ProjectReference Include="..\Hardened.Shared.Lambda.Runtime\Hardened.Shared.Lambda.Runtime.csproj" />
-		<ProjectReference Include="..\Hardened.Shared.Lambda.Testing\Hardened.Shared.Lambda.Testing.csproj" />
 	</ItemGroup>
 
 </Project>

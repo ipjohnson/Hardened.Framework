@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Amazon.Lambda.Core;
 using Hardened.Function.Lambda.Runtime.Impl;
-using Hardened.Requests.Abstract.Serializer;
+using Hardened.Shared.Lambda.Testing;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.DependencyInjection;
 

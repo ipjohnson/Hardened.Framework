@@ -333,12 +333,14 @@ namespace Hardened.SourceGenerator.Shared
             public static readonly ITypeDefinition LambdaFunctionAttribute =
                 TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntime, "LambdaFunctionAttribute");
 
-
             public static readonly ITypeDefinition LambdaInvokeFilter =
                 TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntimeImpl, "LambdaInvokeFilter");
 
             public static readonly ITypeDefinition ILambdaHandler =
                 TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntimeImpl, "ILambdaHandler");
+
+            public static readonly ITypeDefinition IApiGatewayV2Handler =
+                TypeDefinition.Get(Namespace.Amazon.LambdaAPIGatewayEvents, "IApiGatewayV2Handler");
 
         }
 
