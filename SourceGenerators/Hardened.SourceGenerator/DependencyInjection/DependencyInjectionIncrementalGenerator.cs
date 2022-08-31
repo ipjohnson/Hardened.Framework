@@ -24,7 +24,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var servicesCollection = services.Collect();
 
             var generator = new DependencyInjectionFileGenerator(defaultLibraries);
-            
+
             initializationContext.RegisterSourceOutput(entryPointProvider.Combine(servicesCollection), generator.GenerateFile);
         }
 
@@ -59,16 +59,17 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var classTypeDef = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
                 classDeclarationSyntax.Identifier.ToString());
 
-            return new ServiceModel(exposeTypeDef!, classTypeDef, ServiceModel.ServiceLifestyle.Singleton);
+            return new ServiceModel(exposeTypeDef!, classTypeDef, ServiceModel.ServiceLifestyle.Singleton, false);
         }
 
         public class ServiceModel
         {
-            public ServiceModel(ITypeDefinition serviceType, ITypeDefinition implementationType, ServiceLifestyle lifestyle)
+            public ServiceModel(ITypeDefinition serviceType, ITypeDefinition implementationType, ServiceLifestyle lifestyle, bool @try)
             {
                 ServiceType = serviceType;
                 ImplementationType = implementationType;
                 Lifestyle = lifestyle;
+                Try = @try;
             }
 
             public enum ServiceLifestyle
@@ -84,6 +85,8 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             public ServiceLifestyle Lifestyle { get; }
 
+            public bool Try { get; set; }
+
             public override bool Equals(object obj)
             {
                 if (obj is not ServiceModel serviceModel)
@@ -91,11 +94,11 @@ namespace Hardened.SourceGenerator.DependencyInjection
                     return false;
                 }
 
-                return ServiceType.Equals(serviceModel.ServiceType) &&
-                       ImplementationType.Equals(serviceModel.ImplementationType) &&
+                return ServiceType != null && ServiceType.Equals(serviceModel.ServiceType) &&
+                       ImplementationType != null && ImplementationType.Equals(serviceModel.ImplementationType) &&
                        Lifestyle.Equals(serviceModel.Lifestyle);
             }
-            
+
             public override int GetHashCode()
             {
                 unchecked

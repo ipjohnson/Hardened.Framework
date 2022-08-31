@@ -114,6 +114,11 @@ namespace Hardened.SourceGenerator.Configuration
                     $"yield return new NewConfigurationValueProvider<{configurationFileModel.InterfaceType.Name}, {configurationFileModel.ModelType.Name}>()");
             }
 
+            if (configFiles.Length == 0)
+            {
+                providerMethod.AddIndentedStatement("yield break");
+            }
+
             var amendersMethod = configurationProvider.AddMethod("ConfigurationValueAmenders");
 
             amendersMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");

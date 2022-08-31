@@ -35,6 +35,7 @@
     <ProjectReference Include="..\..\..\Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj" />
     <ProjectReference Include="..\..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
     <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj" />
+    <ProjectReference Include="..\..\Web\Hardened.IntegrationTests.Web.SUT\Hardened.IntegrationTests.Web.SUT.csproj" />
   </ItemGroup>
 
   <ItemGroup>

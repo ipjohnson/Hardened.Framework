@@ -159,6 +159,10 @@ namespace Hardened.SourceGenerator.Shared
 
             public static readonly ITypeDefinition EnvironmentImpl =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "EnvironmentImpl");
+
+            public static readonly ITypeDefinition IApplicationModule =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "IApplicationModule");
+
         }
 
         public static class Requests

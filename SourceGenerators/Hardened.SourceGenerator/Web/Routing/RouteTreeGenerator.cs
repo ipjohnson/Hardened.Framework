@@ -7,6 +7,13 @@ namespace Hardened.SourceGenerator.Web.Routing
 {
     public class RouteTreeGenerator<T>
     {
+        private CancellationToken _cancellationToken;
+
+        public RouteTreeGenerator(CancellationToken? cancellationToken = null)
+        {
+            _cancellationToken = cancellationToken ?? CancellationToken.None;
+        }
+
         public class Entry
         {
             public Entry(string pathTemplate, string method, T value)
@@ -37,6 +44,8 @@ namespace Hardened.SourceGenerator.Web.Routing
         
         private RouteTreeNode<T> ProcessEntries(string path, List<Entry> entries, int stringIndex, int wildCardDepth)
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
             var longestMatch = LongestCharacterMatch(entries, stringIndex);
 
             if (longestMatch > 0)
@@ -54,6 +63,8 @@ namespace Hardened.SourceGenerator.Web.Routing
 
         private RouteTreeNode<T> ProcessSingleCharacterNodes(string path, List<Entry> entries, int stringIndex, int wildCardDepth)
         {
+            _cancellationToken.ThrowIfCancellationRequested();
+
             IReadOnlyList<RouteTreeLeafNode<T>> leafNodes = Array.Empty<RouteTreeLeafNode<T>>();
             var childNodes = new List<RouteTreeNode<T>>();
             IReadOnlyList<RouteTreeNode<T>> wildCardNodes = Array.Empty<RouteTreeNode<T>>();
@@ -94,8 +105,7 @@ namespace Hardened.SourceGenerator.Web.Routing
 
             return ProcessEntries(matchPath, entries, stringIndex + longestMatch, wildCardDepth);
         }
-
-
+        
         private IReadOnlyList<RouteTreeNode<T>> ProcessWildCardNodes(List<Entry> keyValuePair, int stringIndex,
             int wildCardDepth)
         {
@@ -106,6 +116,8 @@ namespace Hardened.SourceGenerator.Web.Routing
 
             foreach (var group in grouping)
             {
+                _cancellationToken.ThrowIfCancellationRequested();
+
                 returnList.Add(ProcessEntries(group.Key.ToString(), group.Value, stringIndex + 1, wildCardDepth));
             }
 
@@ -118,6 +130,8 @@ namespace Hardened.SourceGenerator.Web.Routing
 
             foreach (var entry in entries)
             {
+                _cancellationToken.ThrowIfCancellationRequested();
+
                 leafNodes.Add(new RouteTreeLeafNode<T>(entry.Method, entry.Value));
             }
 
@@ -126,11 +140,18 @@ namespace Hardened.SourceGenerator.Web.Routing
 
         private int LongestCharacterMatch(List<Entry> entries, int stringIndex)
         {
+            if (entries.Count == 0)
+            {
+                return 0;
+            }
+
             int matchLength = 0;
             char currentChar = '\0';
 
             do
             {
+                _cancellationToken.ThrowIfCancellationRequested();
+
                 foreach (var entry in entries)
                 {
                     if (entry.PathTemplate.Length > (stringIndex + matchLength))
@@ -166,6 +187,8 @@ namespace Hardened.SourceGenerator.Web.Routing
 
             foreach (var entry in entries)
             {
+                _cancellationToken.ThrowIfCancellationRequested();
+
                 char charEntry = '\0';
 
                 if (entry.PathTemplate.Length > stringIndex)
@@ -184,7 +207,6 @@ namespace Hardened.SourceGenerator.Web.Routing
 
             return returnValue;
         }
-
 
         public static string StandardizeToken(string pathTemplate)
         {

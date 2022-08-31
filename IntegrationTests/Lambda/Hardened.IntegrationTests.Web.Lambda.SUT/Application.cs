@@ -1,4 +1,5 @@
 ﻿using Hardened.IntegrationTests.Web.Lambda.SUT.Filters;
+using Hardened.IntegrationTests.Web.SUT;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Shared.Runtime.Application;
@@ -14,6 +15,11 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT
     [LambdaWebApplication]
     public partial class Application
     {
+        private IEnumerable<IApplicationModule> Modules()
+        {
+            yield return new WebLibraryEntryPoint();
+        }
+
         private void Configure(IAppConfig config)
         {
             config.Amend<StaticContentConfiguration>( 

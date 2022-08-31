@@ -22,10 +22,6 @@ namespace Hardened.SourceGenerator.DependencyInjection
         public void GenerateFile(SourceProductionContext sourceProductionContext,
             (EntryPointSelector.Model Left, ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> Right) dependencyData)
         {
-
-
-            File.AppendAllText(@"C:\temp\generated\" + dependencyData.Left.EntryPointType.Namespace + "." + "Gothere.txt", dependencyData.Left.EntryPointType.Name + "\r\n");
-
             var diFile = new CSharpFileDefinition(dependencyData.Left.EntryPointType.Namespace);
 
             GeneratedCode(dependencyData.Left, dependencyData.Right, diFile);
@@ -43,7 +39,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
         private void GeneratedCode(
             EntryPointSelector.Model model,
-            ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> dependencyDataRight, 
+            ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> dependencyDataRight,
             CSharpFileDefinition diFile)
         {
             var applicationDefinition = diFile.AddClass(model.EntryPointType.Name);
@@ -52,6 +48,32 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             applicationDefinition.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
 
+            if (model.RootEntryPoint)
+            {
+                GenerateCreateServiceProvider(model, dependencyDataRight, applicationDefinition);
+            }
+            else
+            {
+                GenerateConfigureServiceCollection(model, dependencyDataRight, applicationDefinition);
+            }
+        }
+
+        private void GenerateConfigureServiceCollection(EntryPointSelector.Model model, ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> dependencyDataRight, ClassDefinition applicationDefinition)
+        {
+            var providerMethod = applicationDefinition.AddMethod("ConfigureServiceCollection");
+
+            providerMethod.Modifiers |= ComponentModifier.Private;
+
+            var environment = providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+            var serviceCollectionDefinition =
+                providerMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+
+            GenerateRegistrationStatements(model, dependencyDataRight, providerMethod, environment, serviceCollectionDefinition);
+        }
+
+        private void GenerateCreateServiceProvider(EntryPointSelector.Model model, ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> dependencyDataRight,
+            ClassDefinition applicationDefinition)
+        {
             var providerMethod = applicationDefinition.AddMethod("CreateServiceProvider");
             providerMethod.SetReturnType(KnownTypes.DI.IServiceProvider);
 
@@ -60,12 +82,8 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var overrideDependenciesDefinition = providerMethod.AddParameter(
                 TypeDefinition.Action(KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
-            ParameterDefinition? loggerFactory = null;
-
-            if (model.RootEntryPoint)
-            {
-                loggerFactory = providerMethod.AddParameter(KnownTypes.Logging.ILoggerFactory, "loggerFactory");
-            }
+            ParameterDefinition loggerFactory
+                = providerMethod.AddParameter(KnownTypes.Logging.ILoggerFactory, "loggerFactory");
 
             providerMethod.AddUsingNamespace("Microsoft.Extensions.DependencyInjection.Extensions");
 
@@ -74,23 +92,50 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             providerMethod.NewLine();
 
-            if (loggerFactory!= null)
-            {
-                providerMethod.AddIndentedStatement(
+            providerMethod.AddIndentedStatement(
                     serviceCollectionDefinition.Invoke(
                         "TryAddTransient", "typeof(ILogger<>)", "typeof(LoggerImpl<>)"));
-                providerMethod.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeLogging);
+            providerMethod.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeLogging);
 
-                providerMethod.AddIndentedStatement(
-                    serviceCollectionDefinition.InvokeGeneric(
-                        "AddSingleton", new []{KnownTypes.Logging.ILoggerFactory}, "_ => loggerFactory"));
+            providerMethod.AddIndentedStatement(
+                serviceCollectionDefinition.InvokeGeneric(
+                    "AddSingleton", new[] { KnownTypes.Logging.ILoggerFactory }, "_ => loggerFactory"));
 
-                providerMethod.NewLine();
-            }
+            providerMethod.NewLine();
 
+            GenerateRegistrationStatements(model, dependencyDataRight, providerMethod, environment, serviceCollectionDefinition);
+
+            providerMethod.AddIndentedStatement("overrideDependencies?.Invoke(serviceCollection)");
+
+            providerMethod.NewLine();
+
+            providerMethod.Return(serviceCollectionDefinition.Invoke("BuildServiceProvider"));
+        }
+
+        private void GenerateRegistrationStatements(EntryPointSelector.Model model, ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> dependencyDataRight,
+            MethodDefinition providerMethod, ParameterDefinition environment, InstanceDefinition serviceCollectionDefinition)
+        {
             foreach (var typeDefinition in _dependencies)
             {
-                providerMethod.AddIndentedStatement(Invoke(typeDefinition, "Register", environment, serviceCollectionDefinition));
+                providerMethod.AddIndentedStatement(
+                    Invoke(typeDefinition, "Register", environment, serviceCollectionDefinition));
+            }
+
+            providerMethod.NewLine();
+
+            var moduleMethod = model.MethodDefinitions.FirstOrDefault(m => m.Name == "Modules");
+            
+            if (moduleMethod != null)
+            {
+                var moduleInvoke =
+                    moduleMethod.Parameters.Count == 0 ? Invoke("Modules") : Invoke("Modules", environment);
+
+                providerMethod.AddIndentedStatement(Invoke(
+                    KnownTypes.DI.Registry.StandardDependencies,
+                    "ProcessModules",
+                    environment, 
+                    serviceCollectionDefinition,
+                    moduleInvoke));
             }
 
             providerMethod.NewLine();
@@ -114,26 +159,25 @@ namespace Hardened.SourceGenerator.DependencyInjection
                         break;
                 }
 
+                if (serviceModel.Try)
+                {
+                    registerMethod = "Try" + registerMethod;
+                }
+
                 providerMethod.AddIndentedStatement(
-                    serviceCollectionDefinition.InvokeGeneric(registerMethod, 
-                        new []{ serviceModel.ServiceType, serviceModel.ImplementationType}));
+                    serviceCollectionDefinition.InvokeGeneric(registerMethod,
+                        new[] { serviceModel.ServiceType, serviceModel.ImplementationType }));
             }
 
             providerMethod.NewLine();
 
             var method = model.MethodDefinitions.FirstOrDefault(m => m.Name == "RegisterDependencies");
-            
+
             if (method != null)
             {
                 providerMethod.AddIndentedStatement(method.Name + "(serviceCollection)");
                 providerMethod.NewLine();
             }
-
-            providerMethod.AddIndentedStatement("overrideDependencies?.Invoke(serviceCollection)");
-            
-            providerMethod.NewLine();
-            
-            providerMethod.Return(serviceCollectionDefinition.Invoke("BuildServiceProvider"));
         }
     }
 }

@@ -18,7 +18,7 @@ namespace Hardened.SourceGenerator.Web
         public static void GenerateRoute(SourceProductionContext context,
             (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models)
         {
-            var outputString = GenerateCSharpRouteFile(models.Left, models.Right);
+            var outputString = GenerateCSharpRouteFile(models.Left, models.Right, context.CancellationToken);
 
             var fileName = models.Left.EntryPointType.Name + ".Routing";
 
@@ -30,11 +30,11 @@ namespace Hardened.SourceGenerator.Web
         }
 
         public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
-            IReadOnlyList<RequestHandlerModel> handlers)
+            IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken)
         {
             var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
-            CreateRoutingTable(appModel, handlers, applicationFile);
+            CreateRoutingTable(appModel, handlers, applicationFile, cancellationToken);
 
             var outputContext = new OutputContext();
 
@@ -43,10 +43,12 @@ namespace Hardened.SourceGenerator.Web
             return outputContext.Output();
         }
 
-        private static void CreateRoutingTable(
-            EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> endPointModels,
-            CSharpFileDefinition applicationFile)
+        private static void CreateRoutingTable(EntryPointSelector.Model appModel,
+            IReadOnlyList<RequestHandlerModel> endPointModels,
+            CSharpFileDefinition applicationFile, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var appClass = applicationFile.AddClass(appModel.EntryPointType.Name);
 
             appClass.Modifiers |= ComponentModifier.Partial;
@@ -59,11 +61,12 @@ namespace Hardened.SourceGenerator.Web
 
             routingClass.AddBaseType(KnownTypes.Web.IWebExecutionRequestHandlerProvider);
 
-            ImplementHandlerMethod(routingClass, endPointModels);
+            ImplementHandlerMethod(routingClass, endPointModels, cancellationToken);
+
             var routingType = TypeDefinition.Get(appModel.EntryPointType.Namespace,
                 appModel.EntryPointType.Name + ".RoutingTable");
 
-            GenerateDependencyInjection(appClass, routingType, appModel, endPointModels);
+            GenerateDependencyInjection(appClass, routingType, appModel, endPointModels, cancellationToken);
         }
 
         private static void CreateConstructor(ClassDefinition appClass)
@@ -77,10 +80,13 @@ namespace Hardened.SourceGenerator.Web
             constructor.Assign(parameter).To(field.Instance);
         }
 
-        private static void GenerateDependencyInjection(
-            ClassDefinition classDefinition, ITypeDefinition routingTableType,
-            EntryPointSelector.Model applicationModel, IReadOnlyList<RequestHandlerModel> webEndPointModels)
+        private static void GenerateDependencyInjection(ClassDefinition classDefinition,
+            ITypeDefinition routingTableType,
+            EntryPointSelector.Model applicationModel, IReadOnlyList<RequestHandlerModel> webEndPointModels,
+            CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var templateField = classDefinition.AddField(typeof(int), "_routingTableDependencies");
 
             templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
@@ -103,6 +109,8 @@ namespace Hardened.SourceGenerator.Web
 
             foreach (var controllerType in distinctControllers)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
                     new[] { controllerType }));
             }
@@ -122,7 +130,7 @@ namespace Hardened.SourceGenerator.Web
         }
 
         private static void ImplementHandlerMethod(ClassDefinition routingClass,
-            IReadOnlyList<RequestHandlerModel> endPointModels)
+            IReadOnlyList<RequestHandlerModel> endPointModels, CancellationToken cancellationToken)
         {
             var handlerMethod = routingClass.AddMethod("GetExecutionRequestHandler");
 
@@ -133,23 +141,25 @@ namespace Hardened.SourceGenerator.Web
             handlerMethod.Assign(context.Property("Request").Property("Path").Invoke("AsSpan")).ToVar("pathSpan");
 
             WriteRoutingTable(routingClass, handlerMethod, endPointModels,
-                context.Property("Request").Property("Method"));
+                context.Property("Request").Property("Method"), cancellationToken);
         }
 
-        private static void WriteRoutingTable(
-            ClassDefinition routingClass,
+        private static void WriteRoutingTable(ClassDefinition routingClass,
             MethodDefinition handlerMethod,
             IReadOnlyList<RequestHandlerModel> endPointModels,
-            InstanceDefinition methodString)
+            InstanceDefinition methodString, CancellationToken cancellationToken)
         {
-            var routeNode = GetRoutingNodes(endPointModels);
+            var routeNode = GetRoutingNodes(endPointModels, cancellationToken);
 
-            var routeTestMethod = WriteRouteNode(routingClass, routeNode, 0);
+            var routeTestMethod = WriteRouteNode(routingClass, routeNode, 0, cancellationToken);
 
             handlerMethod.Return(Invoke(routeTestMethod, "pathSpan", 0, methodString));
         }
-        private static string WriteRouteNode(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode, int pathIndex)
+        private static string WriteRouteNode(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode,
+            int pathIndex, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var path = routeNode.Path;
 
             if (pathIndex > 0)
@@ -180,7 +190,7 @@ namespace Hardened.SourceGenerator.Web
 
             if (!string.IsNullOrEmpty(path))
             {
-                var pathIfStatement = CreatePathIfStatement(span, routeNode.Path);
+                var pathIfStatement = CreatePathIfStatement(span, routeNode.Path, cancellationToken);
 
                 block = testMethod.If(And(pathIfStatement));
 
@@ -189,17 +199,17 @@ namespace Hardened.SourceGenerator.Web
 
             if (routeNode.LeafNodes.Count > 0)
             {
-                ProcessLeafNodes(routingClass, routeNode, block, span, index, methodString);
+                ProcessLeafNodes(routingClass, routeNode, block, span, index, methodString, cancellationToken);
             }
 
             if (routeNode.ChildNodes.Count > 0)
             {
-                ProcessChildNodes(routingClass, routeNode, block, span, index, methodString, handler);
+                ProcessChildNodes(routingClass, routeNode, block, span, index, methodString, handler, cancellationToken);
             }
 
             if (routeNode.WildCardNodes.Count > 0)
             {
-                ProcessWildCardNodes(routingClass, routeNode, block, span, index, methodString, handler);
+                ProcessWildCardNodes(routingClass, routeNode, block, span, index, methodString, handler, cancellationToken);
             }
 
             testMethod.Return(handler);
@@ -213,23 +223,24 @@ namespace Hardened.SourceGenerator.Web
             ParameterDefinition span,
             ParameterDefinition index,
             ParameterDefinition methodString, 
-            InstanceDefinition handler)
+            InstanceDefinition handler,
+            CancellationToken cancellationToken)
         {
             var childMethod = "";
             
             if (routeNode.ChildNodes.Count == 1)
             {
-                childMethod = WriteRouteNode(routingClass, routeNode.ChildNodes.First(), 0);
+                childMethod = WriteRouteNode(routingClass, routeNode.ChildNodes.First(), 0, cancellationToken);
             }
             else
             {
-                childMethod = WriteSwitchChildNode(routingClass, routeNode);
+                childMethod = WriteSwitchChildNode(routingClass, routeNode, cancellationToken);
             }
 
             block.Assign(Invoke(childMethod, span, index, methodString)).To(handler);
         }
 
-        private static string WriteSwitchChildNode(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode)
+        private static string WriteSwitchChildNode(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode, CancellationToken cancellationToken)
         {
             var switchMethodName = GetRouteMethodName(routingClass, routeNode.Path,"CaseStatement");
 
@@ -245,6 +256,8 @@ namespace Hardened.SourceGenerator.Web
 
             foreach (var childNode in routeNode.ChildNodes)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var lowerChar = char.ToLowerInvariant(childNode.Path.First());
                 var upperChar = char.ToUpperInvariant(lowerChar);
 
@@ -255,7 +268,7 @@ namespace Hardened.SourceGenerator.Web
 
                 var caseStatement = switchStatement.AddCase($"'{lowerChar}'");
 
-                var newMethodName = WriteRouteNode(routingClass, childNode, 1);
+                var newMethodName = WriteRouteNode(routingClass, childNode, 1, cancellationToken);
 
                 var invoke = Invoke(newMethodName, span, "index + 1", methodString);
 
@@ -273,18 +286,19 @@ namespace Hardened.SourceGenerator.Web
             ParameterDefinition span,
             ParameterDefinition index,
             ParameterDefinition methodString,
-            InstanceDefinition handler)
+            InstanceDefinition handler, 
+            CancellationToken cancellationToken)
         {
             var ifBlock = block.If("handler == null");
 
-            var wildCardMethod = WriteWildCardMethod(routingClass, routeNode);
+            var wildCardMethod = WriteWildCardMethod(routingClass, routeNode, cancellationToken);
 
             var invoke = Invoke(wildCardMethod, span, index, methodString);
 
             ifBlock.Assign(invoke).To(handler);
         }
 
-        private static string WriteWildCardMethod(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode)
+        private static string WriteWildCardMethod(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode, CancellationToken cancellationToken)
         {
             var methodName = GetRouteMethodName(routingClass, routeNode.Path, "WildCard");
 
@@ -301,6 +315,8 @@ namespace Hardened.SourceGenerator.Web
 
             for (var i  = 0; i < routeNode.WildCardNodes.Count; i ++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var wildCardNode = routeNode.WildCardNodes[i];
                 BaseBlockDefinition currentBlock = wildCardMethod;
 
@@ -335,13 +351,12 @@ namespace Hardened.SourceGenerator.Web
             return methodName;
         }
 
-        private static void ProcessLeafNodes(
-            ClassDefinition routingClass, 
+        private static void ProcessLeafNodes(ClassDefinition routingClass,
             RouteTreeNode<RequestHandlerModel> routeNode,
-            BaseBlockDefinition block, 
-            ParameterDefinition span, 
-            ParameterDefinition index, 
-            ParameterDefinition methodString)
+            BaseBlockDefinition block,
+            ParameterDefinition span,
+            ParameterDefinition index,
+            ParameterDefinition methodString, CancellationToken cancellationToken)
         {
             var ifLengthMatch = block.If("charSpan.Length == index");
 
@@ -349,6 +364,8 @@ namespace Hardened.SourceGenerator.Web
 
             foreach (var leafNode in routeNode.LeafNodes)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var caseStatement = switchStatement.AddCase(QuoteString(leafNode.Method));
 
                 var field =
@@ -364,7 +381,7 @@ namespace Hardened.SourceGenerator.Web
         }
 
         private static IReadOnlyList<IOutputComponent> CreatePathIfStatement(ParameterDefinition span,
-            string routeNodePath)
+            string routeNodePath, CancellationToken cancellationToken)
         {
             var returnList = new List<IOutputComponent>();
 
@@ -373,6 +390,8 @@ namespace Hardened.SourceGenerator.Web
             int index = 0;
             foreach (var pathChar in routeNodePath)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var upperChar = char.ToUpper(pathChar);
 
                 var lowerEqualStatement = EqualsStatement($"{span.Name}[index + {index}]", "'" + pathChar + "'");
@@ -413,7 +432,8 @@ namespace Hardened.SourceGenerator.Web
             return testMethodName;
         }
 
-        private static RouteTreeNode<RequestHandlerModel> GetRoutingNodes(IReadOnlyList<RequestHandlerModel> endPointModels)
+        private static RouteTreeNode<RequestHandlerModel> GetRoutingNodes(
+            IReadOnlyList<RequestHandlerModel> endPointModels, CancellationToken cancellationToken)
         {
             var generator = new RouteTreeGenerator<RequestHandlerModel>();
 
@@ -422,7 +442,7 @@ namespace Hardened.SourceGenerator.Web
                     m.Name.Path,
                     m.Name.Method,
                     m
-                )).ToList());
+                )).ToList(), cancellationToken);
         }
     }
 }
