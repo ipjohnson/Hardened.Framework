@@ -12,24 +12,11 @@ namespace Hardened.Web.Lambda.SourceGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            var dependencyRegistry = new[]
-            {
-                KnownTypes.DI.Registry.StandardDependencies,
-                KnownTypes.DI.Registry.RequestRuntimeDI,
-                KnownTypes.DI.Registry.TemplateDI,
-                KnownTypes.DI.Registry.WebRuntimeDI,
-                KnownTypes.DI.Registry.LambdaWebDI
-            };
-
             var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-                EntryPointSelector.UsingAttribute("LambdaWebApplication"),
+                EntryPointSelector.UsingAttribute(),
                 EntryPointSelector.TransformModel(true)
             ).WithComparer(new EntryPointSelector.Comparer());
-
-            DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
-            ConfigurationIncrementalGenerator.Setup(context, applicationModel);
-            TemplateIncrementalGenerator.Setup(context, applicationModel, new [] {"html"});
-            WebIncrementalGenerator.Setup(context, applicationModel);
+            
             WebLambdaApplicationBootstrapGenerator.Setup(context, applicationModel);
         }
     }

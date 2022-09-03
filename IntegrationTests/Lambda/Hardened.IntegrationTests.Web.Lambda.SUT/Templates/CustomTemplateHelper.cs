@@ -12,7 +12,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Templates
     {
         public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments)
         {
-            return new ValueTask<object>( DateTime.Now);
+            return new ValueTask<object>(DateTime.Now);
         }
     }
 }

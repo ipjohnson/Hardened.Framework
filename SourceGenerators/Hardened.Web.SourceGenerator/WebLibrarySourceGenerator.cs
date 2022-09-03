@@ -18,15 +18,11 @@ namespace Hardened.Web.SourceGenerator
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-                EntryPointSelector.UsingAttribute("WebLibrary"),
+                EntryPointSelector.UsingAttribute(),
                 EntryPointSelector.TransformModel(false)
             ).WithComparer(new EntryPointSelector.Comparer());
 
-            DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, Array.Empty<ITypeDefinition>());
-            ConfigurationIncrementalGenerator.Setup(context, applicationModel);
-            TemplateIncrementalGenerator.Setup(context, applicationModel, new[] { "html" });
             WebIncrementalGenerator.Setup(context, applicationModel);
-            ModuleCodeGenerator.Setup(context, applicationModel);
         }
     }
 }

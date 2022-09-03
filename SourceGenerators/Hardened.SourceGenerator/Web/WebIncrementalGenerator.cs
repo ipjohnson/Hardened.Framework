@@ -48,10 +48,5 @@ namespace Hardened.SourceGenerator.Web
                 }
             }
         }
-
-        private static void GenerateInvokeEntryPoint(SourceProductionContext sourceProductionContext, RequestHandlerModel handlerModel)
-        {
-            
-        }
     }
 }

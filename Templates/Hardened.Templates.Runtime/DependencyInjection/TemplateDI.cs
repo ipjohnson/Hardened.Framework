@@ -13,15 +13,20 @@ namespace Hardened.Templates.Runtime.DependencyInjection
 {
     public static class TemplateDI
     {
+        private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new(null);
         public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
         {
-            serviceCollection.TryAddSingleton<IBooleanLogicService, BooleanLogicService>();
-            serviceCollection.TryAddSingleton<IDataFormattingService, DataFormattingService>();
-            serviceCollection.TryAddSingleton<ITemplateExecutionService, TemplateExecutionService>();
-            serviceCollection.TryAddSingleton<ITemplateHelperService, TemplateHelperService>();
-            serviceCollection.TryAddSingleton<IStringEscapeServiceProvider, StringEscapeServiceProvider>();
-            serviceCollection.TryAddSingleton<IStringEscapeService, HtmlEscapeStringService>();
-            serviceCollection.TryAddSingleton<IInternalTemplateServices, InternalTemplateServices>();
+            if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
+                !ReferenceEquals(lastServiceCollection, serviceCollection))
+            {
+                serviceCollection.TryAddSingleton<IBooleanLogicService, BooleanLogicService>();
+                serviceCollection.TryAddSingleton<IDataFormattingService, DataFormattingService>();
+                serviceCollection.TryAddSingleton<ITemplateExecutionService, TemplateExecutionService>();
+                serviceCollection.TryAddSingleton<ITemplateHelperService, TemplateHelperService>();
+                serviceCollection.TryAddSingleton<IStringEscapeServiceProvider, StringEscapeServiceProvider>();
+                serviceCollection.TryAddSingleton<IStringEscapeService, HtmlEscapeStringService>();
+                serviceCollection.TryAddSingleton<IInternalTemplateServices, InternalTemplateServices>();
+            }
         }
     }
 }

@@ -52,6 +52,9 @@ namespace Hardened.SourceGenerator.Templates.Generator
             var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
             var entryPoint = diMethod.AddParameter(applicationModel.EntryPointType, "entryPoint");
 
+            diMethod.AddIndentedStatement(Invoke(
+                KnownTypes.DI.Registry.TemplateDI, "Register", environment, serviceCollection));
+
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
                 new[] { KnownTypes.Templates.ITemplateExecutionHandlerProvider, templateProviderClass }));
         }

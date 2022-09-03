@@ -36,8 +36,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             CreateConstructors(appClass, entryPoint, provider.Instance);
         }
-
-    
+        
         private static void CreateConstructors(ClassDefinition appClass,
             EntryPointSelector.Model entryPoint,
             InstanceDefinition providerInstanceDefinition)

@@ -100,6 +100,12 @@ namespace Hardened.SourceGenerator.Web
             var environment = diMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
             var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
             var entryPoint = diMethod.AddParameter(applicationModel.EntryPointType, "entryPoint");
+            
+            diMethod.AddIndentedStatement(Invoke(
+                KnownTypes.DI.Registry.RequestRuntimeDI, "Register", environment, serviceCollection));
+
+            diMethod.AddIndentedStatement(Invoke(
+                KnownTypes.DI.Registry.WebRuntimeDI, "Register", environment, serviceCollection));
 
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
                 new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
@@ -127,6 +133,7 @@ namespace Hardened.SourceGenerator.Web
                         New(KnownTypes.Web.FilterRegistryStartupService, "entryPoint.RegisterFilters")
                     ));
             }
+            
         }
 
         private static void ImplementHandlerMethod(ClassDefinition routingClass,
@@ -435,14 +442,14 @@ namespace Hardened.SourceGenerator.Web
         private static RouteTreeNode<RequestHandlerModel> GetRoutingNodes(
             IReadOnlyList<RequestHandlerModel> endPointModels, CancellationToken cancellationToken)
         {
-            var generator = new RouteTreeGenerator<RequestHandlerModel>();
+            var generator = new RouteTreeGenerator<RequestHandlerModel>(cancellationToken);
 
             return generator.GenerateTree(endPointModels.Select(
                 m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
                     m.Name.Path,
                     m.Name.Method,
                     m
-                )).ToList(), cancellationToken);
+                )).ToList());
         }
     }
 }

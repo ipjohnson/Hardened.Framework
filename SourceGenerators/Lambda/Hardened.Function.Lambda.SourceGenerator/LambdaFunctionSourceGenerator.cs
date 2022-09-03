@@ -14,25 +14,13 @@ namespace Hardened.Function.Lambda.SourceGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            var dependencyRegistry = new[]
-            {
-                KnownTypes.DI.Registry.StandardDependencies,
-                KnownTypes.DI.Registry.RequestRuntimeDI,
-                KnownTypes.DI.Registry.TemplateDI,
-                KnownTypes.DI.Registry.LambdaFunctionRuntimeDI
-            };
-
             var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-                EntryPointSelector.UsingAttribute("LambdaFunctionApplication"),
+                EntryPointSelector.UsingAttribute(),
                 EntryPointSelector.TransformModel(true)
             );
-
-            DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
-            ConfigurationIncrementalGenerator.Setup(context, applicationModel);
-            TemplateIncrementalGenerator.Setup(context, applicationModel, new[] { "html" });
-
+            
             LambdaEntryIncrementalGenerator.Setup(context, applicationModel);
-            LambdaFunctionApplicationBootstrapGenerator.Setup(context, applicationModel);
+            //LambdaFunctionApplicationBootstrapGenerator.Setup(context, applicationModel);
         }
     }
 }

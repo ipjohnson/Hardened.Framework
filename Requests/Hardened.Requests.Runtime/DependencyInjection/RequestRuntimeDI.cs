@@ -21,30 +21,39 @@ namespace Hardened.Requests.Runtime.DependencyInjection
 {
     public static class RequestRuntimeDI
     {
+        private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new (null);
+
         public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
         {
-            serviceCollection.TryAddSingleton<IMiddlewareService, MiddlewareService>();
-            serviceCollection.TryAddSingleton<IContextSerializationService, ContextSerializationService>();
-            serviceCollection.TryAddSingleton<IRequestDeserializer, SystemTextJsonRequestDeserializer>();
-            serviceCollection.TryAddSingleton<IResponseSerializer, SystemTextJsonResponseSerializer>();
-            serviceCollection.TryAddSingleton<IGlobalFilterRegistry, GlobalFilterRegistry>();
-            serviceCollection.TryAddSingleton<IRequestLogger, RequestLogger>();
-            serviceCollection.TryAddSingleton<INullValueResponseHandler, NullValueResponseHandler>();
-            serviceCollection.TryAddSingleton<IResourceNotFoundHandler, ResourceNotFoundHandler>();
-            serviceCollection.TryAddSingleton<IExceptionResponseSerializer, ExceptionResponseSerializer>();
-            serviceCollection.TryAddSingleton<ISerializationLocatorService, SerializationLocatorService>();
-            serviceCollection.TryAddSingleton<IExceptionToModelConverter, ExceptionToModelConverter>();
-            serviceCollection.TryAddSingleton<IIOFilterProvider, IOFilterProvider>();
-            serviceCollection.TryAddSingleton<IStringConverterService, StringConverterService>();
-            serviceCollection.TryAddSingleton<IKnownServices, KnownServices>();
-            serviceCollection.AddSingleton<IConfigurationPackage>(
-                new SimpleConfigurationPackage(new[]
-                {
-                    new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>()
-                }));
-            serviceCollection.AddSingleton<IOptions<IResponseHeaderConfiguration>>(
-                s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                    .GetConfiguration<IResponseHeaderConfiguration>()));
+            if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
+                !ReferenceEquals(lastServiceCollection, serviceCollection))
+            {
+
+                serviceCollection.TryAddSingleton<IMiddlewareService, MiddlewareService>();
+                serviceCollection.TryAddSingleton<IContextSerializationService, ContextSerializationService>();
+                serviceCollection.TryAddSingleton<IRequestDeserializer, SystemTextJsonRequestDeserializer>();
+                serviceCollection.TryAddSingleton<IResponseSerializer, SystemTextJsonResponseSerializer>();
+                serviceCollection.TryAddSingleton<IGlobalFilterRegistry, GlobalFilterRegistry>();
+                serviceCollection.TryAddSingleton<IRequestLogger, RequestLogger>();
+                serviceCollection.TryAddSingleton<INullValueResponseHandler, NullValueResponseHandler>();
+                serviceCollection.TryAddSingleton<IResourceNotFoundHandler, ResourceNotFoundHandler>();
+                serviceCollection.TryAddSingleton<IExceptionResponseSerializer, ExceptionResponseSerializer>();
+                serviceCollection.TryAddSingleton<ISerializationLocatorService, SerializationLocatorService>();
+                serviceCollection.TryAddSingleton<IExceptionToModelConverter, ExceptionToModelConverter>();
+                serviceCollection.TryAddSingleton<IIOFilterProvider, IOFilterProvider>();
+                serviceCollection.TryAddSingleton<IStringConverterService, StringConverterService>();
+                serviceCollection.TryAddSingleton<IKnownServices, KnownServices>();
+                serviceCollection.AddSingleton<IConfigurationPackage>(
+                    new SimpleConfigurationPackage(new[]
+                    {
+                        new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>()
+                    }));
+                serviceCollection.AddSingleton<IOptions<IResponseHeaderConfiguration>>(
+                    s => Options.Create(s.GetRequiredService<IConfigurationManager>()
+                        .GetConfiguration<IResponseHeaderConfiguration>()));
+
+                _lastServiceCollection.SetTarget(serviceCollection);
+            }
         }
     }
 }

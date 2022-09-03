@@ -24,39 +24,6 @@ namespace Hardened.Web.Lambda.SourceGenerator
 
             arg1.AddSource(entryPoint.EntryPointType.Name + ".App", applicationFile);
         }
-
-        private static ApplicationModel ApplicationClassTransformer(GeneratorSyntaxContext arg1, CancellationToken arg2)
-        {
-            var classDefinition = (ClassDeclarationSyntax)arg1.Node;
-
-            return new ApplicationModel { ApplicationType = classDefinition.GetTypeDefinition() };
-        }
-
-        private static bool ApplicationClassSelector(SyntaxNode arg1, CancellationToken arg2)
-        {
-            return arg1 is ClassDeclarationSyntax &&
-                   AttributedWithLambdaWebAttribute(arg1);
-        }
-
-        private static bool AttributedWithLambdaWebAttribute(SyntaxNode syntaxNode)
-        {
-            foreach (var attributeSyntax in syntaxNode.DescendantNodes().OfType<AttributeSyntax>())
-            {
-                var attributeName = attributeSyntax.Name.ToString();
-
-                if (attributeName == "LambdaWebApplication" ||
-                    attributeName == "LambdaWebApplicationAttribute")
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
         
-        public class ApplicationModel
-        {
-            public ITypeDefinition ApplicationType { get; set; }
-        }
     }
 }

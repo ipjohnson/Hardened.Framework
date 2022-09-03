@@ -3,6 +3,7 @@ using Hardened.IntegrationTests.Web.SUT;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Runtime.Attributes;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Runtime.Logging;
 using Hardened.Web.Lambda.Runtime;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Hardened.IntegrationTests.Web.Lambda.SUT
 {
-    [LambdaWebApplication]
+    [HardenedStartup]
     public partial class Application
     {
         private IEnumerable<IApplicationModule> Modules()

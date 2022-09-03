@@ -12,17 +12,27 @@ namespace Hardened.SourceGenerator.Module
     {
         public static void WriteFile(SourceProductionContext context, EntryPointSelector.Model model)
         {
-            var csharpFile = new CSharpFileDefinition(model.EntryPointType.Namespace);
+            try
+            {
 
-            GenerateClassDefinition(context, model, csharpFile);
+                File.AppendAllText(@"c:\temp\generated\module.txt",  "Starting \r\n");
+                var csharpFile = new CSharpFileDefinition(model.EntryPointType.Namespace);
 
-            var outputContext = new OutputContext();
+                GenerateClassDefinition(context, model, csharpFile);
 
-            csharpFile.WriteOutput(outputContext);
+                var outputContext = new OutputContext();
 
-            File.AppendAllText(@"C:\temp\generated\" + model.EntryPointType.Name + ".Module.cs", outputContext.Output());
+                csharpFile.WriteOutput(outputContext);
 
-            context.AddSource(model.EntryPointType.Name + ".Module.cs", outputContext.Output());
+                File.AppendAllText(@"C:\temp\generated\" + model.EntryPointType.Name + ".Module.cs",
+                    outputContext.Output());
+
+                context.AddSource(model.EntryPointType.Name + ".Module.cs", outputContext.Output());
+            }
+            catch (Exception exp)
+            {
+                File.AppendAllText(@"c:\temp\generated\module.txt", exp.Message + "\r\n");
+            }
         }
 
         private static void GenerateClassDefinition(SourceProductionContext context, EntryPointSelector.Model model, CSharpFileDefinition csharpFile)

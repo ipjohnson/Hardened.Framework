@@ -73,7 +73,16 @@ namespace Hardened.Web.Lambda.SourceGenerator
 
             var loggerFactory = SetupLoggerFactory(entryPoint, constructor, environment);
 
-            constructor.Assign(Invoke("CreateServiceProvider",environment, overrides, loggerFactory)).To(providerInstanceDefinition);
+            constructor.Assign(Invoke("CreateServiceProvider",environment, overrides, loggerFactory, "RegisterInitDi")).To(providerInstanceDefinition);
+
+            var registerInitDi = appClass.AddMethod("RegisterInitDi");
+
+            registerInitDi.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
+            var env =registerInitDi.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+            var coll =registerInitDi.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+
+            registerInitDi.AddIndentedStatement(
+                Invoke(KnownTypes.DI.Registry.LambdaWebDI, "Register", env, coll));
 
             var startupMethod = "null";
 

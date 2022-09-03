@@ -19,6 +19,5 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers
         [Get("/QueryStringPath")]
         public HomeModel QueryStringTest([FromQueryString] string testString) => new() { Id = 30, Name = testString };
 
-
     }
 }

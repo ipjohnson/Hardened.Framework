@@ -73,9 +73,9 @@ namespace Hardened.SourceGenerator.Shared
             }
         }
 
-        public static Func<SyntaxNode, CancellationToken, bool> UsingAttribute(string libraryAttribute)
+        public static Func<SyntaxNode, CancellationToken, bool> UsingAttribute()
         {
-            return (node, _) => node is ClassDeclarationSyntax && node.IsAttributed(libraryAttribute);
+            return (node, _) => node is ClassDeclarationSyntax && node.IsAttributed("HardenedStartup");
         }
 
         private static IReadOnlyList<HardenedMethodDefinition> GenerateMethodDefinitions(

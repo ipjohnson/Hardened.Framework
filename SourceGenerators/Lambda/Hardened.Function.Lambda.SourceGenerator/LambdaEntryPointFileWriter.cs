@@ -72,28 +72,26 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             var lambdaFunctionImplField = lambdaClass.AddField(KnownTypes.Lambda.ILambdaFunctionImplService,
                 "_lambdaFunctionImplService");
-            var applicationField = lambdaClass.AddField(appModel.EntryPointType, "_application");
+            var provider = lambdaClass.AddField(KnownTypes.DI.IServiceProvider, "_serviceProvider");
 
-            GenerateConstructors(lambdaClass, lambdaFunctionEntryModel, appModel, lambdaFunctionImplField,
-                applicationField);
+            GenerateConstructors(lambdaClass, lambdaFunctionEntryModel, appModel, lambdaFunctionImplField);
 
-            GenerateInvokeMethod(lambdaClass, lambdaFunctionEntryModel, applicationField, lambdaFunctionImplField);
+            GenerateInvokeMethod(lambdaClass, lambdaFunctionEntryModel, lambdaFunctionImplField);
 
-            GenerateProviderProperty(lambdaClass, lambdaFunctionEntryModel, applicationField);
+            GenerateProviderProperty(lambdaClass, lambdaFunctionEntryModel);
         }
 
-        private void GenerateProviderProperty(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, FieldDefinition applicationField)
+        private void GenerateProviderProperty(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel)
         {
             var property = lambdaClass.AddProperty(KnownTypes.DI.IServiceProvider, "Provider");
 
             property.Get.LambdaSyntax = true;
-            property.Get.AddIndentedStatement(applicationField.Instance.Property("Provider"));
+            property.Get.AddIndentedStatement("_serviceProvider");
             property.Set = null;
         }
 
         private void GenerateInvokeMethod(ClassDefinition lambdaClass,
             RequestHandlerModel lambdaFunctionEntryModel,
-            FieldDefinition applicationField,
             FieldDefinition lambdaFunctionImplField)
         {
             var invokeMethod = lambdaClass.AddMethod("Invoke");
@@ -105,7 +103,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             invokeMethod.Return(lambdaFunctionImplField.Instance.Invoke("InvokeFunction", inputStream, lambdaContext));
         }
 
-        private void GenerateConstructors(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, EntryPointSelector.Model appModel, FieldDefinition lambdaFunctionImplField, FieldDefinition applicationField)
+        private void GenerateConstructors(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, EntryPointSelector.Model appModel, FieldDefinition lambdaFunctionImplField)
         {
             lambdaClass.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl), Null()));
 
@@ -115,14 +113,99 @@ namespace Hardened.Function.Lambda.SourceGenerator
             var overrides =
                 constructor.AddParameter(TypeDefinition.Action(KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
-            constructor.Assign(New(appModel.EntryPointType, envParam, overrides)).To(applicationField.Instance);
-            var filterVariable = constructor.Assign(New(KnownTypes.Lambda.LambdaInvokeFilter, "new InvokeFilter(_application.Provider)"))
+            var logger = SetupLoggerFactory(appModel, constructor, envParam);
+            
+            var applicationField = 
+                constructor.Assign(New(appModel.EntryPointType)).ToVar("applicationField");
+            
+            constructor.Assign(
+                applicationField.Invoke("CreateServiceProvider", envParam, overrides, logger, "RegisterRequestModules")).To("_serviceProvider");
+
+
+            var startupMethod = "null";
+
+            if (appModel.MethodDefinitions.Any(m => m.Name == "Startup"))
+            {
+                startupMethod = "Startup";
+            }
+
+            constructor.AddIndentedStatement(
+                Invoke(
+                    KnownTypes.Application.ApplicationLogic,
+                    "StartWithWait",
+                    "_serviceProvider",
+                    startupMethod,
+                    15));
+
+            var filterVariable = constructor.Assign(New(KnownTypes.Lambda.LambdaInvokeFilter, "new InvokeFilter(_serviceProvider)"))
                 .ToVar("filter");
 
             constructor.AddUsingNamespace(KnownTypes.Namespace.HardenedRequestsAbstractMiddleware);
             constructor.AddIndentedStatement(
-                "_application.Provider.GetService<IMiddlewareService>()!.Use(_ => filter)");
-            constructor.AddIndentedStatement("_lambdaFunctionImplService = _application.Provider.GetRequiredService<ILambdaFunctionImplService>()");
+                "_serviceProvider.GetService<IMiddlewareService>()!.Use(_ => filter)");
+            constructor.AddIndentedStatement("_lambdaFunctionImplService = _serviceProvider.GetRequiredService<ILambdaFunctionImplService>()");
+
+            var staticRegMethod = lambdaClass.AddMethod("RegisterRequestModules");
+
+            var environmentVar = staticRegMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+            var serviceCollectionParam =
+                staticRegMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+
+            staticRegMethod.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
+            
+            staticRegMethod.AddIndentedStatement(
+                Invoke(
+                    KnownTypes.DI.Registry.RequestRuntimeDI,
+                    "Register",
+                    environmentVar,
+                    serviceCollectionParam));
+
+            staticRegMethod.AddIndentedStatement(
+                Invoke(
+                    KnownTypes.DI.Registry.TemplateDI,
+                    "Register",
+                    environmentVar,
+                    serviceCollectionParam));
+
+            staticRegMethod.AddIndentedStatement(
+                Invoke(
+                    KnownTypes.DI.Registry.LambdaFunctionRuntimeDI,
+                    "Register",
+                    environmentVar,
+                    serviceCollectionParam));
+        }
+
+
+        private static InstanceDefinition SetupLoggerFactory(
+            EntryPointSelector.Model entryPoint,
+            ConstructorDefinition constructorDefinition,
+            ParameterDefinition environment)
+        {
+            var loggingMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogging");
+            var logLevelMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogLevel");
+
+            IOutputComponent? logCreateMethod;
+
+            if (loggingMethod != null)
+            {
+                logCreateMethod = CodeOutputComponent.Get("LoggerFactory.Create(builder => ConfigureLogging(environment, builder))");
+            }
+            else if (logLevelMethod != null)
+            {
+                logCreateMethod = CodeOutputComponent.Get(
+                    $"LoggerFactory.Create(LambdaLoggerHelper.CreateAction(ConfigureLogLevel(environment), \"{entryPoint.EntryPointType.Namespace}\"))");
+                logCreateMethod.AddUsingNamespace("Hardened.Shared.Lambda.Runtime.Logging");
+            }
+            else
+            {
+                logCreateMethod = CodeOutputComponent.Get(
+                    $"LoggerFactory.Create(LambdaLoggerHelper.CreateAction(environment, \"{entryPoint.EntryPointType.Namespace}\"))");
+                logCreateMethod.AddUsingNamespace("Hardened.Shared.Lambda.Runtime.Logging");
+            }
+
+            logCreateMethod.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.Logging);
+
+            return constructorDefinition.Assign(logCreateMethod).ToVar("loggerFactory");
         }
 
         private void AssignBaseType(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel)

@@ -24,7 +24,7 @@ namespace Hardened.SourceGenerator.Tests.Web.RouteTableGeneratorTests
                 RootEntryPoint = true
             };
 
-            var csharpFile = RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions);
+            var csharpFile = RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions, CancellationToken.None);
         }
 
         [Fact]
@@ -38,7 +38,7 @@ namespace Hardened.SourceGenerator.Tests.Web.RouteTableGeneratorTests
                 RootEntryPoint = true
             };
 
-            var csharpFile = RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions);
+            var csharpFile = RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions, CancellationToken.None);
 
             File.AppendAllText(@"C:\temp\generated\routing_tree.test.cs", csharpFile);
         }

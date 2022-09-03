@@ -13,14 +13,19 @@ namespace Hardened.Library.SourceGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+            var dependencyRegistry = new[]
+            {
+                KnownTypes.DI.Registry.StandardDependencies
+            };
+
             var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-                EntryPointSelector.UsingAttribute("Library"),
+                EntryPointSelector.UsingAttribute(),
                 EntryPointSelector.TransformModel(false)
             ).WithComparer(new EntryPointSelector.Comparer());
 
-            DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, Array.Empty<ITypeDefinition>());
+            DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
             ConfigurationIncrementalGenerator.Setup(context, applicationModel);
-            ModuleCodeGenerator.Setup(context, applicationModel);
+            //ModuleCodeGenerator.Setup(context, applicationModel);
         }
     }
 }

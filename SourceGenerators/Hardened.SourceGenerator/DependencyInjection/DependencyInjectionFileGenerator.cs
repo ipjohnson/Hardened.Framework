@@ -46,23 +46,20 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             applicationDefinition.AddConstructor().Modifiers = ComponentModifier.Static;
 
+            applicationDefinition.AddBaseType(KnownTypes.Application.IApplicationModule);
+
             applicationDefinition.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
 
-            if (model.RootEntryPoint)
-            {
-                GenerateCreateServiceProvider(model, dependencyDataRight, applicationDefinition);
-            }
-            else
-            {
-                GenerateConfigureServiceCollection(model, dependencyDataRight, applicationDefinition);
-            }
+            GenerateCreateServiceProvider(model, dependencyDataRight, applicationDefinition);
+            
+            GenerateConfigureServiceCollection(model, dependencyDataRight, applicationDefinition);
         }
 
         private void GenerateConfigureServiceCollection(EntryPointSelector.Model model, ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> dependencyDataRight, ClassDefinition applicationDefinition)
         {
-            var providerMethod = applicationDefinition.AddMethod("ConfigureServiceCollection");
+            var providerMethod = applicationDefinition.AddMethod("ConfigureModule");
 
-            providerMethod.Modifiers |= ComponentModifier.Private;
+            providerMethod.Modifiers |= ComponentModifier.Public;
 
             var environment = providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
             var serviceCollectionDefinition =
@@ -75,6 +72,8 @@ namespace Hardened.SourceGenerator.DependencyInjection
             ClassDefinition applicationDefinition)
         {
             var providerMethod = applicationDefinition.AddMethod("CreateServiceProvider");
+            providerMethod.Modifiers = ComponentModifier.Public;
+
             providerMethod.SetReturnType(KnownTypes.DI.IServiceProvider);
 
             var environment = providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
@@ -84,6 +83,12 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             ParameterDefinition loggerFactory
                 = providerMethod.AddParameter(KnownTypes.Logging.ILoggerFactory, "loggerFactory");
+
+            var initAction = providerMethod.AddParameter(
+                TypeDefinition.Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection).MakeNullable(),
+                "initDependencies");
+
+            initAction.DefaultValue = Null();
 
             providerMethod.AddUsingNamespace("Microsoft.Extensions.DependencyInjection.Extensions");
 
@@ -102,6 +107,12 @@ namespace Hardened.SourceGenerator.DependencyInjection
                     "AddSingleton", new[] { KnownTypes.Logging.ILoggerFactory }, "_ => loggerFactory"));
 
             providerMethod.NewLine();
+
+            providerMethod.AddIndentedStatement("initDependencies?.Invoke(environment, serviceCollection)");
+
+            providerMethod.NewLine();
+
+            providerMethod.AddIndentedStatement(Invoke("ConfigureModule", environment, serviceCollectionDefinition));
 
             GenerateRegistrationStatements(model, dependencyDataRight, providerMethod, environment, serviceCollectionDefinition);
 

@@ -20,10 +20,13 @@
 
   <ItemGroup>
     <None Remove="Templates\personList.html" />
+    <None Remove="Templates\Root\_layout.html" />
+    <None Remove="wwwroot\externalDependencies.min.js" />
   </ItemGroup>
 
   <ItemGroup>
     <AdditionalFiles Include="Templates\personList.html" />
+    <AdditionalFiles Include="Templates\Root\_layout.html" />
   </ItemGroup>	
 
 	<ItemGroup>
@@ -31,6 +34,9 @@
     <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
     <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
     <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
+    <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Templates.SourceGenerator\Hardened.Templates.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\..\SourceGenerators\Lambda\Hardened.Web.Lambda.SourceGenerator\Hardened.Web.Lambda.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\..\Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj" />
     <ProjectReference Include="..\..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
@@ -47,5 +53,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Templates\Errors\" />
   </ItemGroup>
 </Project>

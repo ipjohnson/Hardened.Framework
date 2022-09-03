@@ -1,8 +1,9 @@
-﻿using Hardened.Web.Runtime.Attributes;
+﻿using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.Web.SUT
 {
-    [WebLibrary]
+    [HardenedStartup]
     public partial class WebLibraryEntryPoint
     {
 
