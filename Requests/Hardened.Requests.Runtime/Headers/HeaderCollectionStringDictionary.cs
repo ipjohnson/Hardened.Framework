@@ -53,12 +53,13 @@ namespace Hardened.Requests.Runtime.Headers
 
         public StringValues Set(string key, object? value)
         {
-            throw new NotSupportedException("Collection cannot be modified");
+            return _dictionary[key] = value?.ToString() ?? string.Empty;
         }
 
         public StringValues Set(string key, StringValues value)
         {
-            throw new NotSupportedException("Collection cannot be modified");
+            _dictionary[key] = value;
+            return value;
         }
 
         public int Count => _dictionary.Count;

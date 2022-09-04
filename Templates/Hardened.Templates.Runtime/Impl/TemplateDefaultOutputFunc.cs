@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,11 +14,15 @@ namespace Hardened.Templates.Runtime.Impl
     {
         private readonly IStringBuilderPool _stringBuilderPool;
         private readonly TemplateExecutionFunction _templateExecutionFunction;
+        private readonly TemplateExecutionFunction? _layoutFunction;
 
-        public TemplateDefaultOutputFunc(IStringBuilderPool stringBuilderPool, TemplateExecutionFunction templateExecutionFunction)
+        public TemplateDefaultOutputFunc(IStringBuilderPool stringBuilderPool,
+            TemplateExecutionFunction templateExecutionFunction, 
+            TemplateExecutionFunction? layoutFunction)
         {
             _stringBuilderPool = stringBuilderPool;
             _templateExecutionFunction = templateExecutionFunction;
+            _layoutFunction = layoutFunction;
         }
 
         public async Task Execute(IExecutionContext context)
@@ -31,9 +36,22 @@ namespace Hardened.Templates.Runtime.Impl
 
             if (context.Response.ResponseValue != null)
             {
-                await _templateExecutionFunction(context.Response.ResponseValue, context.RequestServices,
-                    stringBuilderWriter, null, context);
-
+                if (_layoutFunction == null || 
+                    (context.Request.Headers.TryGet("x-render-partial", out var renderStringValues)  && renderStringValues.Contains("true"))) 
+                {
+                    await _templateExecutionFunction(context.Response.ResponseValue, context.RequestServices,
+                        stringBuilderWriter, null, context);
+                }
+                else
+                {
+                    await _layoutFunction(
+                        new LayoutModel(context.Response.ResponseValue, _templateExecutionFunction), 
+                        context.RequestServices,
+                        stringBuilderWriter, 
+                        null,
+                        context);
+                }
+                
                 await stringBuilderWriter.FlushWriter();
             }
         }

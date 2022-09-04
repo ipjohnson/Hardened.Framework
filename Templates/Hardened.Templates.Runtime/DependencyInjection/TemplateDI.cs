@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Templates.Abstract;
+using Hardened.Templates.Runtime.Helpers;
 using Hardened.Templates.Runtime.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -26,6 +27,7 @@ namespace Hardened.Templates.Runtime.DependencyInjection
                 serviceCollection.TryAddSingleton<IStringEscapeServiceProvider, StringEscapeServiceProvider>();
                 serviceCollection.TryAddSingleton<IStringEscapeService, HtmlEscapeStringService>();
                 serviceCollection.TryAddSingleton<IInternalTemplateServices, InternalTemplateServices>();
+                serviceCollection.TryAddSingleton<ITemplateHelperProvider, DefaultHelpers>();
             }
         }
     }

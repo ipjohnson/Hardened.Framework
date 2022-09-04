@@ -88,13 +88,13 @@ namespace Hardened.SourceGenerator.Templates.Generator
                         var propertyName = argumentNode.ActionText.Substring(1);
                         returnString.Append(", ");
                         returnString.Append("PropertyValue.From(");
-                        returnString.Append(context.CurrentModel + "." + propertyName);
+                        returnString.Append(context.CurrentModel.Name + "." + propertyName);
                         returnString.Append(", \"" + propertyName + "\")");
                     }
                     else
                     {
                         returnString.Append(", ");
-                        returnString.Append(context.CurrentModel + "." + argumentNode.ActionText);
+                        returnString.Append(context.CurrentModel.Name + "." + argumentNode.ActionText);
                     }
                 }
             }

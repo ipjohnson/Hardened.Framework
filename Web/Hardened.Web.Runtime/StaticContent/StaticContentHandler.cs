@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Hardened.Requests.Abstract.Execution;
@@ -36,6 +37,7 @@ namespace Hardened.Web.Runtime.StaticContent
         private readonly IETagProvider _etagProvider;
         private readonly IMemoryStreamPool _memoryStreamPool;
         private readonly ConcurrentDictionary<string, CachedStaticContentEntry> _cachedStaticContentEntries;
+        private readonly string _rootPath;
         private readonly bool _pathExists;
 
         public StaticContentHandler(
@@ -52,8 +54,25 @@ namespace Hardened.Web.Runtime.StaticContent
             _logger = logger;
             _memoryStreamPool = memoryStreamPool;
             _configuration = configuration.Value;
-            _pathExists = Directory.Exists(_configuration.Path);
             _cachedStaticContentEntries = new ConcurrentDictionary<string, CachedStaticContentEntry>();
+
+
+            _rootPath = Path.Combine( Directory.GetCurrentDirectory(), _configuration.Path);
+            _pathExists = Directory.Exists(_rootPath);
+
+            if (!_pathExists)
+            {
+                _rootPath = 
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetName().CodeBase) ?? "";
+
+                if (!string.IsNullOrEmpty(_rootPath))
+                {
+                    _rootPath = _rootPath.Substring(6);
+
+                    _rootPath = Path.Combine(_rootPath, _configuration.Path);
+                    _pathExists = Directory.Exists(_rootPath);
+                }
+            }
         }
         
         public Task<bool> Handle(IExecutionContext context)
@@ -73,7 +92,7 @@ namespace Hardened.Web.Runtime.StaticContent
                 return RespondWithContent(context, cacheEntry);
             }
 
-            var filePath = Path.Combine(_configuration.Path, requestPath.TrimStart('/'));
+            var filePath = Path.Combine(_rootPath, requestPath.TrimStart('/'));
 
             if (File.Exists(filePath))
             {

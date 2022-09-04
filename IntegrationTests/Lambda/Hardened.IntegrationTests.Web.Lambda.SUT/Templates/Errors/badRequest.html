@@ -1,0 +1,19 @@
+﻿(function () {
+    'use strict';
+
+    angular
+        .module('app')
+        .controller('badRequest', badRequest);
+
+    badRequest.$inject = ['$location'];
+
+    function badRequest($location) {
+        /* jshint validthis:true */
+        var vm = this;
+        vm.title = 'badRequest';
+
+        activate();
+
+        function activate() { }
+    }
+})();

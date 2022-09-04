@@ -87,7 +87,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.Shared.Lambda.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.Web.Lambda.Harness", "Lambda\Hardened.Web.Lambda.Harness\Hardened.Web.Lambda.Harness.csproj", "{11FE0339-C42E-4036-B6EA-8CB98ABDB40E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Library.SourceGenerator", "SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj", "{F9F0C4C5-3BFD-48E8-8FDA-00EC4B842A22}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.Library.SourceGenerator", "SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj", "{F9F0C4C5-3BFD-48E8-8FDA-00EC4B842A22}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.IntegrationTests.Web.Lambda.SUT.Harness", "Lambda\Hardened.IntegrationTests.Web.Lambda.SUT.Harness\Hardened.IntegrationTests.Web.Lambda.SUT.Harness.csproj", "{0C42934D-EFB9-4F70-9C0A-18FF8DB6DCDA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -227,6 +229,10 @@ Global
 		{F9F0C4C5-3BFD-48E8-8FDA-00EC4B842A22}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9F0C4C5-3BFD-48E8-8FDA-00EC4B842A22}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9F0C4C5-3BFD-48E8-8FDA-00EC4B842A22}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C42934D-EFB9-4F70-9C0A-18FF8DB6DCDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C42934D-EFB9-4F70-9C0A-18FF8DB6DCDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C42934D-EFB9-4F70-9C0A-18FF8DB6DCDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C42934D-EFB9-4F70-9C0A-18FF8DB6DCDA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -268,6 +274,7 @@ Global
 		{EA698904-C07E-44A7-B9FD-C581BE9DD411} = {42416EEA-9CFE-40C7-BFF6-7BF083624F36}
 		{11FE0339-C42E-4036-B6EA-8CB98ABDB40E} = {42416EEA-9CFE-40C7-BFF6-7BF083624F36}
 		{F9F0C4C5-3BFD-48E8-8FDA-00EC4B842A22} = {EABCDDC0-6E72-43FB-9AF7-04E6681B83FD}
+		{0C42934D-EFB9-4F70-9C0A-18FF8DB6DCDA} = {42A258D5-43EC-4BE0-9C21-CA292A77EB36}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF6CD1AB-6B41-427D-BA1B-C4803CF67E97}

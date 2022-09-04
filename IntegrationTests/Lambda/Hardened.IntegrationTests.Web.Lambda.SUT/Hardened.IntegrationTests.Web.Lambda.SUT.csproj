@@ -20,13 +20,12 @@
 
   <ItemGroup>
     <None Remove="Templates\personList.html" />
-    <None Remove="Templates\Root\_layout.html" />
     <None Remove="wwwroot\externalDependencies.min.js" />
   </ItemGroup>
 
   <ItemGroup>
     <AdditionalFiles Include="Templates\personList.html" />
-    <AdditionalFiles Include="Templates\Root\_layout.html" />
+    <AdditionalFiles Include="Templates\_layout.html" />
   </ItemGroup>	
 
 	<ItemGroup>
@@ -56,6 +55,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Templates\Errors\" />
+    <Content Update="wwwroot\beer.min.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\externalDependencies.min.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\Test.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\testPage.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

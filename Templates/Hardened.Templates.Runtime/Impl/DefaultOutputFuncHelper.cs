@@ -14,14 +14,17 @@ namespace Hardened.Templates.Runtime.Impl
     {
         public static DefaultOutputFunc GetTemplateOut(IServiceProvider serviceProvider, string templateName)
         {
-            var template =
-                serviceProvider.GetRequiredService<ITemplateExecutionService>()
-                    .FindTemplateExecutionFunction(templateName) ??
+            var templateExecutionService = serviceProvider.GetRequiredService<ITemplateExecutionService>();
+
+            var template = templateExecutionService.FindTemplateExecutionFunction(templateName) ??
                 throw new Exception("Could not find template " + templateName);
 
+            var layout = templateExecutionService.FindTemplateExecutionFunction("_layout");
+
             return new TemplateDefaultOutputFunc(
-                serviceProvider.GetService<IStringBuilderPool>(),
-                template).Execute;
+                serviceProvider.GetRequiredService<IStringBuilderPool>(),
+                template, 
+                layout).Execute;
         }
     }
 }

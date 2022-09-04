@@ -11,26 +11,27 @@ namespace Hardened.Templates.Runtime.Helpers
 {
     public partial class DefaultHelpers : ITemplateHelperProvider
     {
-        private TemplateHelperFactory _appendHelper;
-        private TemplateHelperFactory _concatHelper;
-        private TemplateHelperFactory _containsHelper;
-        private TemplateHelperFactory _endsWithHelper;
-        private TemplateHelperFactory _formatHelper;
-        private TemplateHelperFactory _joinHelper;
-        private TemplateHelperFactory _replaceHelper;
-        private TemplateHelperFactory _startsWithHelper;
-        private TemplateHelperFactory _splitHelper;
-        private TemplateHelperFactory _substringHelper;
-        private TemplateHelperFactory _trimHelper;
-        private TemplateHelperFactory _toHelper;
-        private TemplateHelperFactory _toLowerHelper;
-        private TemplateHelperFactory _toUpperHelper;
+        private TemplateHelperFactory? _appendHelper;
+        private TemplateHelperFactory? _concatHelper;
+        private TemplateHelperFactory? _containsHelper;
+        private TemplateHelperFactory? _endsWithHelper;
+        private TemplateHelperFactory? _formatHelper;
+        private TemplateHelperFactory? _joinHelper;
+        private TemplateHelperFactory? _replaceHelper;
+        private TemplateHelperFactory? _startsWithHelper;
+        private TemplateHelperFactory? _splitHelper;
+        private TemplateHelperFactory? _substringHelper;
+        private TemplateHelperFactory? _trimHelper;
+        private TemplateHelperFactory? _toHelper;
+        private TemplateHelperFactory? _toLowerHelper;
+        private TemplateHelperFactory? _toUpperHelper;
 
-        private TemplateHelperFactory _decodeHelper;
-        private TemplateHelperFactory _encodeHelper;
+        private TemplateHelperFactory? _decodeHelper;
+        private TemplateHelperFactory? _encodeHelper;
 
-        private TemplateHelperFactory _lookupHelper;
-        private TemplateHelperFactory _renderCollectionHelper;
+        private TemplateHelperFactory? _lookupHelper;
+        private TemplateHelperFactory? _renderCollectionHelper;
+        private TemplateHelperFactory? _renderHelper;
 
         public TemplateHelperFactory GetTemplateHelperFactory(string mustacheToken)
         {
@@ -86,6 +87,8 @@ namespace Hardened.Templates.Runtime.Helpers
                         return _lookupHelper ??= CreateTemplateHelperFactory(new LookupHelper());
                     case CollectionHelperTokens.RenderCollection:
                         return _renderCollectionHelper ??= CreateTemplateHelperFactory(new RenderCollectionHelper());
+                    case CollectionHelperTokens.Render:
+                        return _renderHelper ??= CreateTemplateHelperFactory(new DynamicTemplateRenderHelper());
                 }
             }
 

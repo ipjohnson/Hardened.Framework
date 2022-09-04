@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ namespace Hardened.Templates.Runtime.Helpers.Collection
 {
     public class RenderCollectionHelper : ITemplateHelper
     {
+        private readonly ConcurrentDictionary<string, TemplateExecutionFunction?> _executionFunctions = new();
         public async ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments)
         {
             var templateHelperService = handlerDataContext.ExecutionService;
@@ -17,7 +19,9 @@ namespace Hardened.Templates.Runtime.Helpers.Collection
                 arguments[0] is IEnumerable enumerable)
             {
                 var templateName = arguments[1]?.ToString() ?? "";
-                var templateFunc = templateHelperService.FindTemplateExecutionFunction(templateName);
+
+                var templateFunc = _executionFunctions.GetOrAdd(templateName,
+                    t => templateHelperService.FindTemplateExecutionFunction(t));
 
                 if (templateFunc != null)
                 {

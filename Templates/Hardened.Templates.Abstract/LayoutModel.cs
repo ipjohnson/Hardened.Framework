@@ -8,15 +8,15 @@ namespace Hardened.Templates.Abstract
 {
     public class LayoutModel
     {
-        public LayoutModel(object model, string templateName)
+        public LayoutModel(object model, TemplateExecutionFunction templateFunc)
         {
             Model = model;
-            TemplateName = templateName;
+            TemplateFunc = templateFunc;
         }
 
         public object Model { get; }
 
-        public string TemplateName { get; }
+        public TemplateExecutionFunction TemplateFunc { get; }
 
     }
 }
