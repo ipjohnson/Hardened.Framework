@@ -13,7 +13,6 @@ namespace Hardened.SourceGenerator.Tests.Web.Routing
         [Fact]
         public void SingleWildCardRoute()
         {
-
             var routes = new List<RouteTreeGenerator<string>.Entry>
             {
                 new ("/api/person/{id}", "GET", "Person"),
@@ -77,7 +76,24 @@ namespace Hardened.SourceGenerator.Tests.Web.Routing
             wildCardNode.AssertNoWildCardNodes();
             wildCardNode.AssertNoLeafNodes();
             Assert.Equal(1, wildCardNode.WildCardDepth);
+
+            var wildChild = wildCardNode.ChildNodes.First();
+            wildChild.AssertPath("person/");
+            wildChild.AssertNoLeafNodes();
+            wildChild.AssertNoChildren();
+            wildChild.WildCardNodes.AssertCount(1);
+            Assert.Equal(1, wildChild.WildCardDepth);
             
+            var secondWildNode = wildChild.WildCardNodes.First();
+            secondWildNode.AssertNoChildren();
+            secondWildNode.AssertNoWildCardNodes();
+            secondWildNode.LeafNodes.AssertCount(1);
+
+            var leafNode = secondWildNode.LeafNodes.First();
+            
+            Assert.Equal("GET", leafNode.Method);
+            Assert.Equal("Person", leafNode.Value);
+
         }
     }
 }
