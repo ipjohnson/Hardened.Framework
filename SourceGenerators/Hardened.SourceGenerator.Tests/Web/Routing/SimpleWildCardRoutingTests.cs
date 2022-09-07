@@ -16,12 +16,68 @@ namespace Hardened.SourceGenerator.Tests.Web.Routing
 
             var routes = new List<RouteTreeGenerator<string>.Entry>
             {
-                new ("/api/Person/{id}", "GET", "Person"),
+                new ("/api/person/{id}", "GET", "Person"),
             };
 
             var generator = new RouteTreeGenerator<string>();
 
             var routeTree = generator.GenerateTree(routes);
+            
+            routeTree.AssertPath("/");
+            routeTree.ChildNodes.AssertCount(1);
+            routeTree.AssertNoLeafNodes();
+            routeTree.AssertNoWildCardNodes();
+
+            var childNode = routeTree.ChildNodes[0];
+
+            childNode.AssertPath("api/person/");
+            childNode.AssertNoLeafNodes();
+            childNode.WildCardNodes.AssertCount(1);
+            childNode.AssertNoChildren();
+
+            var wildCardNode = childNode.WildCardNodes[0];
+            wildCardNode.AssertNoChildren();
+            wildCardNode.AssertNoWildCardNodes();
+            wildCardNode.LeafNodes.AssertCount(1);
+            Assert.Equal(1, wildCardNode.WildCardDepth);
+
+            var leafNode = wildCardNode.LeafNodes[0];
+            
+            Assert.Equal("GET", leafNode.Method);
+            Assert.Equal("Person", leafNode.Value);
+        }
+
+
+        [Fact]
+        public void DoubleWildCardRoute()
+        {
+            var routes = new List<RouteTreeGenerator<string>.Entry>
+            {
+                new ("/api/company/{company}/person/{id}", "GET", "Person"),
+            };
+
+            var generator = new RouteTreeGenerator<string>();
+
+            var routeTree = generator.GenerateTree(routes);
+
+            routeTree.AssertPath("/");
+            routeTree.ChildNodes.AssertCount(1);
+            routeTree.AssertNoLeafNodes();
+            routeTree.AssertNoWildCardNodes();
+
+            var childNode = routeTree.ChildNodes[0];
+
+            childNode.AssertPath("api/company/");
+            childNode.AssertNoLeafNodes();
+            childNode.WildCardNodes.AssertCount(1);
+            childNode.AssertNoChildren();
+
+            var wildCardNode = childNode.WildCardNodes[0];
+            wildCardNode.ChildNodes.AssertCount(1);
+            wildCardNode.AssertNoWildCardNodes();
+            wildCardNode.AssertNoLeafNodes();
+            Assert.Equal(1, wildCardNode.WildCardDepth);
+            
         }
     }
 }

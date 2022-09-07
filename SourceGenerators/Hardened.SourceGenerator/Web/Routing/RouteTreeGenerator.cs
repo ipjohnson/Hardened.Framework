@@ -230,7 +230,7 @@ namespace Hardened.SourceGenerator.Web.Routing
                     tokenIndex = pathTemplate.IndexOf('{', tokenIndex + 1);
                 }
 
-                stringBuilder.Append(pathTemplate.Substring(currentIndex));
+                //stringBuilder.Append(pathTemplate.Substring(currentIndex));
 
                 return stringBuilder.ToString();
             }

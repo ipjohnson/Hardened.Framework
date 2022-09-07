@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Title</title>
-    <link rel="stylesheet" href="/beer.min.css"/>
+    <link rel="stylesheet" href="{{$BasePath}}/beer.min.css"/>
 </head>
 <body>
 <script type="text/javascript">
@@ -16,7 +16,7 @@
     };
 </script>
 <div id="mainContent">{{ $Render Model TemplateFunc }}</div>
-<script src="/externalDependencies.min.js">
+<script src="{{$BasePath}}/externalDependencies.min.js">
 </script>
 <script>
     window._b.started = true;
