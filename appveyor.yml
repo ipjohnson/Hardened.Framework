@@ -13,7 +13,7 @@ assembly_info:
   assembly_file_version: '$(build_version).{build}'
   assembly_informational_version: '$(build_version)'
 before_build:
- - cmd: nuget restore src/Hardened.Framework.sln
+ - cmd: nuget restore src/Hardened.Framework.sln -s https://api.nuget.org/v3/index.json -s https://ci.appveyor.com/nuget/csharpauthor-nightly-build
 build:
   project: src/Hardened.Framework.sln
   publish_nuget: true
