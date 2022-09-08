@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Hardened.Templates.Abstract;
 using Hardened.Templates.Runtime.Helpers;
 using Hardened.Templates.Runtime.Helpers.Collection;
+using NSubstitute;
 using SimpleFixture.xUnit;
 using Xunit;
 
@@ -12,12 +14,14 @@ namespace Hardened.Templates.Runtime.Tests.Helpers.Collection
 {
     public class LookupHelperTests : BaseHelperTests
     {
+        private ITemplateExecutionContext _mockExecutionContext = 
+            Substitute.For<ITemplateExecutionContext>();
       
         [Theory]
         [AutoData]
         public async void ArrayLookup(LookupHelper lookupHelper)
         {
-            var result = await lookupHelper.Execute(null, new [] { 1, 2, 3 }, 2);
+            var result = await lookupHelper.Execute(_mockExecutionContext, new [] { 1, 2, 3 }, 2);
 
             Assert.NotNull(result);
             Assert.Equal(3, result);
@@ -27,11 +31,11 @@ namespace Hardened.Templates.Runtime.Tests.Helpers.Collection
         [AutoData]
         public async void ArrayLookupIndexOutOfRange(LookupHelper lookupHelper)
         {
-            var result = await lookupHelper.Execute(null, new[] { 1, 2, 3 }, -1);
+            var result = await lookupHelper.Execute(_mockExecutionContext, new[] { 1, 2, 3 }, -1);
 
             Assert.Null(result);
 
-            result = await lookupHelper.Execute(null, new[] { 1, 2, 3 }, 3);
+            result = await lookupHelper.Execute(_mockExecutionContext, new[] { 1, 2, 3 }, 3);
 
             Assert.Null(result);
         }
@@ -40,7 +44,7 @@ namespace Hardened.Templates.Runtime.Tests.Helpers.Collection
         [AutoData]
         public async void ListLookup(LookupHelper lookupHelper)
         {
-            var result = await lookupHelper.Execute(null, new List<int> { 1, 2, 3 }, 2);
+            var result = await lookupHelper.Execute(_mockExecutionContext, new List<int> { 1, 2, 3 }, 2);
 
             Assert.NotNull(result);
             Assert.Equal(3, result);
@@ -50,11 +54,11 @@ namespace Hardened.Templates.Runtime.Tests.Helpers.Collection
         [AutoData]
         public async void ListLookupIndexOutOfRange(LookupHelper lookupHelper)
         {
-            var result = await lookupHelper.Execute(null, new List<int> { 1, 2, 3 }, -1);
+            var result = await lookupHelper.Execute(_mockExecutionContext, new List<int> { 1, 2, 3 }, -1);
 
             Assert.Null(result);
 
-            result = await lookupHelper.Execute(null, new List<int> { 1, 2, 3 }, 3);
+            result = await lookupHelper.Execute(_mockExecutionContext, new List<int> { 1, 2, 3 }, 3);
 
             Assert.Null(result);
         }
@@ -70,7 +74,7 @@ namespace Hardened.Templates.Runtime.Tests.Helpers.Collection
                 {"key3", 3}
             };
             
-            var result = await lookupHelper.Execute(null, dictionary, "key3");
+            var result = await lookupHelper.Execute(_mockExecutionContext, dictionary, "key3");
 
             Assert.NotNull(result);
             Assert.Equal(3, result);
@@ -87,7 +91,7 @@ namespace Hardened.Templates.Runtime.Tests.Helpers.Collection
                 {"key3", 3}
             };
 
-            var result = await lookupHelper.Execute(null, dictionary, "key4");
+            var result = await lookupHelper.Execute(_mockExecutionContext, dictionary, "key4");
 
             Assert.Null(result);
         }
