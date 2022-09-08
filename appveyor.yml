@@ -1,0 +1,27 @@
+environment:
+  build_version: 0.1.0
+  Version: $(build_version)-Alpha%APPVEYOR_BUILD_NUMBER%
+  op_build_user: "ipjohnson"
+  access_token:
+    secure: vCRC/3M0+oha9ayrLw0InjkRodm+DwoHAXyifCORdU6HlfE9NzNXdOw1J4zhXsw3
+version: $(build_version)-{build}
+configuration: Release
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '$(build_version).0'
+  assembly_file_version: '$(build_version).{build}'
+  assembly_informational_version: '$(build_version)'
+before_build:
+ - cmd: nuget restore src/Hardened.Framework.sln
+build:
+  project: src/Hardened.Framework.sln
+  publish_nuget: true
+  verbosity: minimal
+test_script:
+- sh: dotnet test src/**/*.Tests.csproj
+artifacts:
+- path: Hardened*.nupkg
+  name: Hardened
+image:
+- Visual Studio 2022
