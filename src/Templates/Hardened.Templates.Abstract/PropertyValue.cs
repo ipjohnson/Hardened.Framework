@@ -28,7 +28,7 @@ namespace Hardened.Templates.Abstract
     {
         public PropertyValue(T value, string name)
         {
-            Value = value;
+            Value = value!;
             Name = name;
         }
 
@@ -40,7 +40,7 @@ namespace Hardened.Templates.Abstract
 
         public override string ToString()
         {
-            return Value.ToString();
+            return Value.ToString() ?? "";
         }
     }
 }

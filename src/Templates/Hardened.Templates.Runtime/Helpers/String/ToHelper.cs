@@ -12,7 +12,7 @@ namespace Hardened.Templates.Runtime.Helpers.String
         {
             if (arguments.Length == 0)
             {
-                return new ValueTask<object>(null);
+                return new ValueTask<object>("");
             }
 
             if (arguments.Length >= 2 && 
@@ -22,7 +22,7 @@ namespace Hardened.Templates.Runtime.Helpers.String
                 return new ValueTask<object>(formattable.ToString(formatString, null));
             }
 
-            return new ValueTask<object>(arguments[0]?.ToString());
+            return new ValueTask<object>(arguments[0]?.ToString() ?? "");
         }
     }
 }

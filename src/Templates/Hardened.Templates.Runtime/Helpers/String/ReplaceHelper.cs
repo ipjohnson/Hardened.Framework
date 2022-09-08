@@ -12,16 +12,16 @@ namespace Hardened.Templates.Runtime.Helpers.String
         {
             if (arguments.Length == 0 || arguments[0] == null)
             {
-                return new ValueTask<object>(null);
+                return new ValueTask<object>("");
             }
 
             if (arguments.Length < 2 || arguments[1] == null)
             {
-                return new ValueTask<object>(arguments[0].ToString());
+                return new ValueTask<object>(arguments[0]?.ToString() ?? "");
             }
 
-            var sourceString = arguments[0].ToString();
-            var matchString = arguments[1].ToString();
+            var sourceString = arguments[0].ToString() ?? "";
+            var matchString = arguments[1].ToString() ?? "";
             var replaceString = "";
 
             if (arguments.Length > 2 && arguments[2] != null)

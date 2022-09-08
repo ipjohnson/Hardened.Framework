@@ -64,11 +64,12 @@ namespace Hardened.Templates.Runtime.Impl
 
         public SafeString GetEscapedString(object value, string propertyName = "", string formattingString = "")
         {
-            return new SafeString(this.StringEscapeService.EscapeString(
-                TemplateServices.DataFormattingService.FormatData(this, propertyName, value, formattingString)?.ToString()));
+            return new SafeString(
+                StringEscapeService.EscapeString(
+                TemplateServices.DataFormattingService.FormatData(this, propertyName, value, formattingString)?.ToString() ?? ""));
         }
 
-        public object GetCustomValue(string key)
+        public object? GetCustomValue(string key)
         {
             if (_values != null && _values.ContainsKey(key))
             {
