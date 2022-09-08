@@ -14,8 +14,6 @@ namespace Hardened.SourceGenerator.Module
         {
             try
             {
-
-                File.AppendAllText(@"c:\temp\generated\module.txt",  "Starting \r\n");
                 var csharpFile = new CSharpFileDefinition(model.EntryPointType.Namespace);
 
                 GenerateClassDefinition(context, model, csharpFile);
@@ -28,7 +26,7 @@ namespace Hardened.SourceGenerator.Module
             }
             catch (Exception exp)
             {
-                File.AppendAllText(@"c:\temp\generated\module.txt", exp.Message + "\r\n");
+                throw exp;
             }
         }
 

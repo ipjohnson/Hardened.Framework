@@ -21,11 +21,7 @@ namespace Hardened.SourceGenerator.Web
             var outputString = GenerateCSharpRouteFile(models.Left, models.Right, context.CancellationToken);
 
             var fileName = models.Left.EntryPointType.Name + ".Routing";
-
-            File.AppendAllText(@"c:\temp\" + fileName + ".cs", outputString);
-
-            File.AppendAllLines(@"c:\temp\paths.txt", models.Right.Select(m => m.Name.Path));
-
+            
             context.AddSource(fileName, outputString);
         }
 

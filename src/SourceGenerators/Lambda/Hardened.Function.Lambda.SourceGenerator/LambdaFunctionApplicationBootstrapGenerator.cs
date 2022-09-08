@@ -20,9 +20,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
         private static void ModelWriter(SourceProductionContext arg1, EntryPointSelector.Model entryPoint)
         {
             var applicationFile = ApplicationFileWriter.WriteFile(entryPoint);
-
-            File.WriteAllText(@"c:\temp\generated\Function.Application.App.cs", applicationFile);
-
+            
             arg1.AddSource(entryPoint.EntryPointType.Name + ".App", applicationFile);
         }
     }
