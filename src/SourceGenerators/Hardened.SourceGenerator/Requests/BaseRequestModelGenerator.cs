@@ -69,9 +69,7 @@ namespace Hardened.SourceGenerator.Requests
             ParameterSyntax parameter)
         {
             var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
-
-            File.AppendAllText(@"C:\temp\generated\parameters.txt", parameter.Identifier + " " + parameter.Modifiers.ToFullString() + " default: " + parameter.Default?.Value);
-
+            
             if (KnownTypes.Requests.IExecutionContext.Equals(parameterType))
             {
                 return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ExecutionContext, true);
@@ -169,7 +167,7 @@ namespace Hardened.SourceGenerator.Requests
             {
                 isAsync = genericType.Name.Equals("Task") || genericType.Name.Equals("ValueTask");
             }
-            File.AppendAllText(@"C:\temp\generated\responseInfo.txt", $"{returnType} {isAsync} {returnType.GetType()}\r\n");
+            
             return new ResponseInformationModel(isAsync, template, returnType );
         }
         protected virtual IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,

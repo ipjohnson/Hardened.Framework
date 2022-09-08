@@ -32,8 +32,6 @@ namespace Hardened.SourceGenerator.Templates.Generator
             applicationFile.WriteOutput(outputContext);
 
             productionContext.AddSource(templateFileName, outputContext.Output());
-
-            File.AppendAllText(@"C:\temp\generated\" + templateFileName, outputContext.Output());
         }
 
         private static void GenerateDependencyInjection(ClassDefinition classDefinition, ITypeDefinition templateProviderClass, EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)

@@ -40,7 +40,6 @@ namespace Hardened.SourceGenerator.Tests.Web.RouteTableGeneratorTests
 
             var csharpFile = RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions, CancellationToken.None);
 
-            File.AppendAllText(@"C:\temp\generated\routing_tree.test.cs", csharpFile);
         }
 
         private IReadOnlyList<RequestHandlerModel> CreateHandlerModels()

@@ -23,8 +23,6 @@ namespace Hardened.Function.Lambda.SourceGenerator
             var appModel = data.appModel.First();
 
             var generatedFile = GenerateFile(entryModel, appModel, sourceContext.CancellationToken);
-
-            File.AppendAllText(@"C:\temp\generated\"+ entryModel.Name.Path + ".FunctionHandler.cs", generatedFile);
             
             sourceContext.AddSource(entryModel.Name.Path + ".FunctionHandler.cs", generatedFile);
         }
@@ -237,7 +235,6 @@ namespace Hardened.Function.Lambda.SourceGenerator
                     new[] { lambdaFunctionEntryModel.ResponseInformation.ReturnType! });
             }
 
-            File.AppendAllText(@"C:\temp\generated\response.txt", lambdaFunctionEntryModel.ResponseInformation.ReturnType!.Namespace + "\r\n");
             lambdaClass.AddUsingNamespace(lambdaFunctionEntryModel.ResponseInformation.ReturnType!.Namespace);
             lambdaClass.AddBaseType(interfaceType);
         }

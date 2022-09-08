@@ -16,7 +16,6 @@ namespace Hardened.SourceGenerator.Web
 
             var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken);
 
-            File.AppendAllText(@"C:\temp\invoker.cs", sourceFile);
             sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, sourceFile);
         }
         

@@ -31,9 +31,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             diFile.WriteOutput(outputContext);
 
             var fileName = dependencyData.Left.EntryPointType.Name + ".DependencyInjection.cs";
-
-            File.AppendAllText(@"C:\temp\generated\" + dependencyData.Left.EntryPointType.Namespace + "." + fileName, outputContext.Output());
-
+            
             sourceProductionContext.AddSource(fileName, outputContext.Output());
         }
 

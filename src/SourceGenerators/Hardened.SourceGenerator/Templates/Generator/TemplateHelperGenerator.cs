@@ -36,9 +36,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             var outputContext = new OutputContext();
 
             helperFile.WriteOutput(outputContext);
-
-            File.WriteAllText(@"C:\temp\generated\" + fileName, outputContext.Output());
-
+            
             context.AddSource(fileName, outputContext.Output());
         }
 

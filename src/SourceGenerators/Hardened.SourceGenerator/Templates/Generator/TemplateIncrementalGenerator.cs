@@ -99,7 +99,6 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             var templateFileName = "Generated." + templateModel.TemplateDefinitionType.Name + ".cs";
 
-            File.WriteAllText(@"C:\temp\Generated\" + templateFileName, templateSource);
             sourceProductionContext.AddSource(templateFileName, templateSource);
         }
 

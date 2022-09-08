@@ -23,10 +23,7 @@ namespace Hardened.SourceGenerator.Module
                 var outputContext = new OutputContext();
 
                 csharpFile.WriteOutput(outputContext);
-
-                File.AppendAllText(@"C:\temp\generated\" + model.EntryPointType.Name + ".Module.cs",
-                    outputContext.Output());
-
+                
                 context.AddSource(model.EntryPointType.Name + ".Module.cs", outputContext.Output());
             }
             catch (Exception exp)

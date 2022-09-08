@@ -41,8 +41,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
                 cancellation.ThrowIfCancellationRequested();
 
                 RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(generatorSyntaxContext, parameter);
-                File.AppendAllText(@"C:\temp\generated\parameters.txt", parameter.Identifier + " mod:" + parameter.Modifiers.ToFullString() + " default: " + parameter.Default?.Value + " display:" +parameter.ToFullString() +"\r\n");
-
+                
                 if (parameterInformation == null)
                 {
                     parameterInformation = GetParameterInfo(generatorSyntaxContext, parameter);

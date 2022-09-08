@@ -27,8 +27,6 @@ namespace Hardened.SourceGenerator.Configuration
             cSharpFile.WriteOutput(outputContext);
 
             arg1.AddSource(arg2.AppModel.EntryPointType.Name + ".Configuration.cs", outputContext.Output());
-
-            File.AppendAllText(@"C:\temp\generated\Application.Configration.cs", outputContext.Output());
         }
 
         private static void GenerateConfiguration(
