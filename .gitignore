@@ -64,6 +64,7 @@ ipch/
 *.gpState
 
 .vs/
+src/.vs/
 
 # ReSharper is a .NET coding add-in
 _ReSharper*/
