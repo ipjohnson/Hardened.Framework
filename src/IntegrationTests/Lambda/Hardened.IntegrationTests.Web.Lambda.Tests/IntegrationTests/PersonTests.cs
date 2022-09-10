@@ -35,6 +35,17 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
 
         [Theory]
         [WebIntegration]
+        public async Task PostTest(ITestWebApp app)
+        {
+            var personModel = new PersonModel { Id = 100, FirstName = "Test", LastName = "100" };
+
+            var response = await app.Post(personModel, "/api/person");
+
+            response.Assert.Ok();
+        }
+
+        [Theory]
+        [WebIntegration]
         [TestExposeMethod(nameof(ExposeMethod))]
         [EnvironmentValue("Testing", "Value")]
         [EnvironmentName("SomeEnv")]

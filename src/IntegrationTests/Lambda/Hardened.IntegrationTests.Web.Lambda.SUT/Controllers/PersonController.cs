@@ -50,10 +50,10 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers
             return _personService.Get(id);
         }
 
-        //[Put()]
-        //public PersonModel Add(PersonModel personModel)
-        //{
-        //    return _personService.Add(personModel);
-        //}
+        [Post("/api/person")]
+        public PersonModel Add(PersonModel personModel)
+        {
+            return _personService.Add(personModel);
+        }
     }
 }
