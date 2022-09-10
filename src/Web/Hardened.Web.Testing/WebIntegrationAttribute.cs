@@ -13,15 +13,69 @@ namespace Hardened.Web.Testing
         {
             var bootstrap = testMethod.GetAttribute<TestApplicationAttribute>();
 
-            if (bootstrap == null)
+            if (bootstrap != null)
             {
-                yield break;
+                yield return GetMethodArguments(testMethod, bootstrap);
             }
 
-            yield return GetMethodArguments(testMethod, bootstrap);
+            var libraryAttribute = testMethod.GetAttribute<TestLibraryAttribute>();
+
+            if (libraryAttribute != null)
+            {
+                yield return GetMethodArguments(testMethod, libraryAttribute);
+            }
+        }
+
+
+        private static object[] GetMethodArguments(MethodInfo methodInfo, TestLibraryAttribute testLibraryAttribute)
+        {
+            var providerList = GetTestServiceProviders(methodInfo);
+
+            var configValueAttributes = methodInfo.GetAttributes<AppConfigAmendAttribute>().ToList();
+            var testExposeAttributes = methodInfo.GetAttributes<ITestExposeAttribute>().ToList();
+
+
+            var applicationInstance = CreateTestApplicationInstance(
+                GetEnvironment(methodInfo),
+                testLibraryAttribute.LibraryType,
+                collection =>
+                {
+                    providerList.ForEach(provider => provider.RegisterService(collection));
+                    testExposeAttributes.ForEach(exposeAction => exposeAction.ExposeDependencies(methodInfo, collection));
+                    collection.AddSingleton(new TestConfigurationPackage(configValueAttributes));
+                    ConfigureStaticConfigMethods(methodInfo, collection);
+                });
+
+            return GetParameterValues(methodInfo, applicationInstance);
         }
 
         private static object[] GetMethodArguments(MethodInfo methodInfo, TestApplicationAttribute bootstrap)
+        {
+            var providerList = GetTestServiceProviders(methodInfo);
+
+            var configValueAttributes = methodInfo.GetAttributes<AppConfigAmendAttribute>().ToList();
+            var testExposeAttributes = methodInfo.GetAttributes<ITestExposeAttribute>().ToList();
+            
+            var applicationInstance = CreateApplicationInstance(
+                GetEnvironment(methodInfo),
+                bootstrap.Application,
+                collection =>
+            {
+                providerList.ForEach(provider => provider.RegisterService(collection));
+                testExposeAttributes.ForEach(exposeAction => exposeAction.ExposeDependencies(methodInfo, collection));
+                collection.AddSingleton(new TestConfigurationPackage(configValueAttributes));
+                ConfigureStaticConfigMethods(methodInfo, collection);
+            });
+
+            if (applicationInstance == null)
+            {
+                throw new Exception("BootstrapApplication must be IApplicationRoot");
+            }
+
+            return GetParameterValues(methodInfo, applicationInstance);
+        }
+
+        private static List<ITestServiceProvider> GetTestServiceProviders(MethodInfo methodInfo)
         {
             var providerList = new List<ITestServiceProvider>();
 
@@ -46,26 +100,7 @@ namespace Hardened.Web.Testing
                 }
             }
 
-            var configValueAttributes = methodInfo.GetAttributes<AppConfigAmendAttribute>().ToList();
-            var testExposeAttributes = methodInfo.GetAttributes<ITestExposeAttribute>().ToList();
-            
-            var applicationInstance = CreateApplicationInstance(
-                GetEnvironment(methodInfo),
-                bootstrap.Application,
-                collection =>
-            {
-                providerList.ForEach(provider => provider.RegisterService(collection));
-                testExposeAttributes.ForEach(exposeAction => exposeAction.ExposeDependencies(methodInfo, collection));
-                collection.AddSingleton(new TestConfigurationPackage(configValueAttributes));
-                ConfigureStaticConfigMethods(methodInfo, collection);
-            });
-
-            if (applicationInstance == null)
-            {
-                throw new Exception("BootstrapApplication must be IApplicationRoot");
-            }
-
-            return GetParameterValues(methodInfo, applicationInstance);
+            return providerList;
         }
 
         private static void ConfigureStaticConfigMethods(MethodInfo methodInfo, IServiceCollection collection)
@@ -127,6 +162,18 @@ namespace Hardened.Web.Testing
             }
 
             return returnArray;
+        }
+
+        private static IApplicationRoot CreateTestApplicationInstance(IEnvironment environment, Type libraryType, Action<IServiceCollection> overrides)
+        {
+            var module = Activator.CreateInstance(libraryType) as IApplicationModule;
+
+            if (module == null)
+            {
+                throw new Exception("Could not create module for testing");
+            }
+
+            return new TestApplication(module, "", environment, overrides);
         }
 
         private static IApplicationRoot? CreateApplicationInstance(IEnvironment environment, Type applicationType, Action<IServiceCollection> applyMethod)
