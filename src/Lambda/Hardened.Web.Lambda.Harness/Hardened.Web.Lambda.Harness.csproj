@@ -5,6 +5,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+	  <IsPackable>True</IsPackable>
 	  <PackageId>Hardened.Web.Lambda.Harness</PackageId>
 	  <Authors>Ian Johnson</Authors>
 	  <PackageTags>Hardened.Framework</PackageTags>
