@@ -21,6 +21,20 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
     {
         [Theory]
         [WebIntegration]
+        public async Task SomeTest(ITestWebApp app)
+        {
+            var testWebResponse = await app.Get("/api/person/testMethod");
+
+            testWebResponse.Assert.Ok();
+            var model = testWebResponse.Deserialize<PersonModel>();
+
+            Assert.NotNull(model);
+            Assert.Equal(10, model.Id);
+            Assert.Equal("test string", model.FirstName);
+        }
+
+        [Theory]
+        [WebIntegration]
         [TestExposeMethod(nameof(ExposeMethod))]
         [EnvironmentValue("Testing", "Value")]
         [EnvironmentName("SomeEnv")]

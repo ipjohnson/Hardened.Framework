@@ -5,6 +5,13 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+	  <PackageId>Hardened.Web.Lambda.Harness</PackageId>
+	  <Authors>Ian Johnson</Authors>
+	  <PackageTags>Hardened.Framework</PackageTags>
+	  <PackageProjectUrl>https://github.com/ipjohnson/CSharpAuthor</PackageProjectUrl>
+	  <PackageLicenseUrl>https://github.com/ipjohnson/CSharpAuthor/blob/main/LICENSE</PackageLicenseUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <RepositoryUrl>https://github.com/ipjohnson/CSharpAuthor</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

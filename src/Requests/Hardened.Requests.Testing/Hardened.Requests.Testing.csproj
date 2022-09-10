@@ -4,6 +4,13 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	  <PackageId>Hardened.Requests.Testing</PackageId>
+	  <Authors>Ian Johnson</Authors>
+	  <PackageTags>Hardened.Framework</PackageTags>
+	  <PackageProjectUrl>https://github.com/ipjohnson/CSharpAuthor</PackageProjectUrl>
+	  <PackageLicenseUrl>https://github.com/ipjohnson/CSharpAuthor/blob/main/LICENSE</PackageLicenseUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <RepositoryUrl>https://github.com/ipjohnson/CSharpAuthor</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

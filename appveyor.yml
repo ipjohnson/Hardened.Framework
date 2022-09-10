@@ -18,8 +18,9 @@ build:
   project: src/Hardened.Framework.sln
   publish_nuget: true
   verbosity: minimal
-test_script:
-- sh: dotnet test src/**/*.Tests.csproj
+test:
+  assemblies:
+    - '**\*.tests.dll'
 artifacts:
 - path: Hardened*.nupkg
   name: Hardened

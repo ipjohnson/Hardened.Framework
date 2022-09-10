@@ -22,7 +22,13 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers
             _personService = personService;
             _logger = logger;
         }
-        
+
+        [Get("/api/person/TestMethod")]
+        public PersonModel TestMethod([FromServices] ISomeTestService someTestService)
+        {
+            return new PersonModel{FirstName = someTestService.TestMethod(), Id = 10 };
+        }
+
         [Get("/api/person/")]
         [TestingFilter(TestValue = 10, OtherValue = 50)]
         public IEnumerable<PersonModel> GetAll()
