@@ -63,7 +63,7 @@ ipch/
 # Guidance Automation Toolkit
 *.gpState
 
-.vs/*
+.vs/
 
 # ReSharper is a .NET coding add-in
 _ReSharper*/

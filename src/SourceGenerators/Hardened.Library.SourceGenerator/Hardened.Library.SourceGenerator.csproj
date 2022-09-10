@@ -24,6 +24,14 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<None Include="$(OutputPath)\netstandard2.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+	</PropertyGroup>
+
 	<PropertyGroup>
 		<PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
 	</PropertyGroup>
