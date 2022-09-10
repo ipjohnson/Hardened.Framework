@@ -1,7 +1,9 @@
 ﻿using System.Reflection;
+using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing;
+using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Sdk;
 
@@ -173,7 +175,13 @@ namespace Hardened.Web.Testing
                 throw new Exception("Could not create module for testing");
             }
 
-            return new TestApplication(module, "", environment, overrides);
+            var application = new TestApplication(module, "", environment, overrides);
+
+            var handler = application.Provider.GetRequiredService<IWebExecutionHandlerService>();
+            var middleware = application.Provider.GetRequiredService<IMiddlewareService>();
+            middleware.Use(_ => handler);
+
+            return application;
         }
 
         private static IApplicationRoot? CreateApplicationInstance(IEnvironment environment, Type applicationType, Action<IServiceCollection> applyMethod)
