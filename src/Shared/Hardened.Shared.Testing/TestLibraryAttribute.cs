@@ -1,6 +1,6 @@
 ﻿namespace Hardened.Shared.Testing
 {
-    public class TestLibraryAttribute
+    public class TestLibraryAttribute : Attribute
     {
         public TestLibraryAttribute(Type libraryType)
         {
