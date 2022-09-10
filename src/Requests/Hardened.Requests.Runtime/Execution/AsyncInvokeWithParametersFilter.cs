@@ -17,30 +17,28 @@ namespace Hardened.Requests.Runtime.Execution
         public async Task Execute(IExecutionChain chain)
         {
             var context = chain.Context;
-
-            TController? controller = context.HandlerInstance as TController;
-            TParameter? parameter = context.HandlerInstance as TParameter;
-
             var startTimestamp = MachineTimestamp.Now;
 
             try
             {
-                if (controller == null)
+                if (context.HandlerInstance is not TController controller)
                 {
                     throw new Exception($"HandlerInstance is not an instance of {typeof(TController)}");
                 }
 
-                if (parameter == null)
+                if (context.Request.Parameters is not TParameter parameter)
                 {
                     throw new Exception($"Parameter is not an instance of {typeof(TParameter)}");
                 }
 
                 await _invoke(context, controller, parameter);
+
                 context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
             }
             catch (Exception e)
             {
                 context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
+
                 await ControllerErrorHelper.HandleException(context, e);
             }
         }
