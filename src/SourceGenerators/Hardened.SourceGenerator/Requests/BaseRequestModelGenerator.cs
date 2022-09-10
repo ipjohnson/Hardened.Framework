@@ -140,7 +140,7 @@ namespace Hardened.SourceGenerator.Requests
             var classDeclarationSyntax =
                 contextNode.Ancestors().OfType<ClassDeclarationSyntax>().First();
 
-            var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<NamespaceDeclarationSyntax>().First();
+            var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
 
             return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd(), classDeclarationSyntax.Identifier.Text);
         }

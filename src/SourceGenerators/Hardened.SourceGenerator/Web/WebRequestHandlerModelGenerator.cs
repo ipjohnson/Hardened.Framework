@@ -44,7 +44,7 @@ namespace Hardened.SourceGenerator.Web
             var classDeclarationSyntax =
                 methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
 
-            var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<NamespaceDeclarationSyntax>().First();
+            var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
 
             return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated", classDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text);
         }
