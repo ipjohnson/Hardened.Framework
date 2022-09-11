@@ -11,6 +11,14 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
     {
         [Theory]
         [WebIntegration]
+        public void SimpleTest(MathService mathService)
+        {
+            var value = mathService.Add(1, 2);
+            Assert.Equal(3, value);
+        }
+
+        [Theory]
+        [WebIntegration]
         public async Task HomeTest(ITestWebApp app, 
             [Mock] IMathService mathService)
         {

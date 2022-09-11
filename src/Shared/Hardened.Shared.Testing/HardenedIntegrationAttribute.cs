@@ -3,6 +3,7 @@ using Hardened.Shared.Runtime.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -161,19 +162,65 @@ namespace Hardened.Shared.Testing
             {
                 var parameter = parameters[i];
 
-                var returnValue = ProcessParameter(methodInfo, applicationInstance, parameter);
+                var returnValue =
+                    ProcessParameter(methodInfo, applicationInstance, parameter) ??
+                    LocateValue(applicationInstance, parameter);
 
-                if (returnValue == null)
-                {
-                    returnArray[i] = applicationInstance.Provider.GetRequiredService(parameter.ParameterType);
-                }
-                else
-                {
-                    returnArray[i] = returnValue;
-                }
+                returnArray[i] = returnValue ?? 
+                                 throw new Exception($"Could not generate value for parameter {parameter.Name}");
             }
 
             return returnArray;
+        }
+
+        private object? LocateValue(IApplicationRoot applicationInstance, ParameterInfo parameter)
+        {
+            object? returnValue =  applicationInstance.Provider.GetService(parameter.ParameterType);
+
+            if (returnValue == null &&
+                !parameter.ParameterType.IsInterface)
+            {
+                returnValue = GenerateConcreteType(applicationInstance, parameter.ParameterType);
+            }
+
+            return returnValue;
+        }
+
+        private object? GenerateConcreteType(IApplicationRoot applicationInstance, Type parameterParameterType)
+        {
+            var constructor =
+                parameterParameterType.GetConstructors()
+                    .Where(c => c.IsPublic && !c.IsStatic)
+                    .MaxBy(c => c.GetParameters().Length);
+
+            if (constructor != null)
+            {
+                var parameters = new List<object?>();
+
+                foreach (var parameterInfo in constructor.GetParameters())
+                {
+                    var parameterValue = LocateValue(applicationInstance, parameterInfo);
+
+                    if (parameterValue == null)
+                    {
+                        if (parameterInfo.HasDefaultValue)
+                        {
+                            parameterValue = parameterInfo.DefaultValue;
+                        }
+                        else
+                        {
+                            throw new Exception(
+                                $"Could not locate {parameterInfo.ParameterType} for parameter {parameterInfo.Name} on {constructor.DeclaringType?.Name}");
+                        }
+                    }
+
+                    parameters.Add(parameterValue);
+                }
+
+                return constructor.Invoke(parameters.ToArray());
+            }
+
+            return null;
         }
 
         protected virtual object? ProcessParameter(MethodInfo methodInfo, IApplicationRoot applicationInstance,

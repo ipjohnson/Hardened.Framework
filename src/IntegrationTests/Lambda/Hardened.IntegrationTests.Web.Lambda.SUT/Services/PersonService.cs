@@ -53,6 +53,9 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services
 
         public PersonModel Add(PersonModel person)
         {
+            person.FirstName = _configuration.Value.FirstNamePrefix + person.FirstName;
+            person.LastName = _configuration.Value.LastNamePrefix + person.LastName;
+
             _persons[person.Id] = person;
             return person;
         }

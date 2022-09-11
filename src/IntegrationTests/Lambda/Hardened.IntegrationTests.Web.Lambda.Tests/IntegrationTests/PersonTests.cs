@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
+using Hardened.IntegrationTests.Web.Lambda.SUT.Configuration;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
 using Hardened.IntegrationTests.Web.Lambda.Tests.Extensions;
@@ -13,12 +14,32 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using NSubstitute;
 using Xunit;
 
 namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
 {
     public class PersonTests
     {
+        [Theory]
+        [WebIntegration]
+        public void SimpleTest(PersonService service,
+            [Mock] IOptions<IPersonServiceConfiguration> option,
+            PersonServiceConfiguration personServiceConfiguration)
+        {
+            personServiceConfiguration.FirstNamePrefix = "Testing-";
+            personServiceConfiguration.LastNamePrefix = "Testing-";
+            option.Value.Returns(personServiceConfiguration);
+
+            service.Add(new PersonModel { FirstName = "First", LastName = "Last", Id = 100 });
+            var instance = service.Get(100);
+
+            Assert.NotNull(instance);
+            Assert.Equal("Testing-First", instance!.FirstName);
+            Assert.Equal("Testing-Last", instance!.LastName);
+        }
+
         [Theory]
         [WebIntegration]
         public async Task SomeTest(ITestWebApp app)
