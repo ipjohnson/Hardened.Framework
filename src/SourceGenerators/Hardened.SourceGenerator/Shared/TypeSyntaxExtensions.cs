@@ -80,7 +80,6 @@ namespace Hardened.SourceGenerator.Shared
                     foreach (var typeSymbol in closingTypeSymbols)
                     {
                         var finalType = GetTypeDefinitionFromType(typeSymbol);
-                        File.AppendAllText(@"C:\temp\generated\generic_types.txt", $"{namedTypeSymbol} {typeSymbol} {finalType}\r\n");
                         closingTypes.Add(finalType);
                     }
 
@@ -97,9 +96,7 @@ namespace Hardened.SourceGenerator.Shared
 
                 var ns = namedTypeSymbol.ContainingNamespace.GetFullName();
                 var getName = GetTypeName(namedTypeSymbol);
-
-                File.AppendAllText(@"C:\temp\generated\generic_types.txt", $"{namedTypeSymbol} {ns} {getName}\r\n");
-
+                
                 return TypeDefinition.Get(
                     GetTypeSymbolKind(namedTypeSymbol),
                     namedTypeSymbol.ContainingNamespace.GetFullName(), GetTypeName(namedTypeSymbol));

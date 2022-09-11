@@ -236,8 +236,6 @@ namespace Hardened.Function.Lambda.SourceGenerator
                         bodyParameter.ParameterType,
                         returnType
                     });
-
-                File.AppendAllText(@"C:\temp\generated\interface.txt", $"{interfaceType}\r\n");
             }
             else
             {

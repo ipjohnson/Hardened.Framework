@@ -25,15 +25,6 @@ namespace Hardened.Function.Lambda.Testing
             return (await JsonSerializer.DeserializeAsync<TResponse>(response))!;
         }
 
-        public static async Task<TValue> InvokeAsync<TRequest, TResponse, TValue>(
-            this ILambdaHandler<TRequest, TResponse> tHandler, TRequest request,
-            Action<IDictionary<string, string>> customContextData) where TResponse : Task<TValue>
-        {
-            var invokeValue = await Invoke(tHandler, request);
-
-            return await invokeValue;
-        }
-
         public static Task<TResponse> Invoke<TRequest, TResponse>(
             this ILambdaHandler<TRequest, TResponse> tHandler, TRequest request,
             Action<IDictionary<string,string>> customContextData)

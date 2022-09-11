@@ -128,10 +128,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             }
 
             var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
-
             var isAsync = returnType is GenericTypeDefinition { Name: "Task" or "ValueTask" };
-
-            File.AppendAllText(@"C:\temp\generated\task.txt", $"{methodDeclaration.Identifier} response  {returnType} \r\n");
 
             return new ResponseInformationModel(isAsync, template, returnType);
         }
