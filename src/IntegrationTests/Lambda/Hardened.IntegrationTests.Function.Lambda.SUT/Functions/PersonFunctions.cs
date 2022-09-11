@@ -19,12 +19,10 @@ namespace Hardened.IntegrationTests.Function.Lambda.SUT.Functions
         }
         
         [LambdaFunction]
-        public PersonListModel GetAllPeople(GetAllPeopleRequest request, [FromContext] string contextString = "test")
+        public async Task<PersonListModel> GetAllPeople(GetAllPeopleRequest request, [FromContext] string contextString = "test")
         {
             return new PersonListModel(contextString, new List<PersonModel>());
         }
-        
-
 
         public class GetAllPeopleRequest
         {

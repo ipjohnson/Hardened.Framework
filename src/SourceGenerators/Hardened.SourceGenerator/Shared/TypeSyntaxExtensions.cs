@@ -74,12 +74,14 @@ namespace Hardened.SourceGenerator.Shared
                         return GetTypeDefinitionFromType(baseType).MakeNullable();
                     }
 
-                    var closingTypeSymbols = namedTypeSymbol.TypeParameters;
+                    var closingTypeSymbols = namedTypeSymbol.TypeArguments;
                     var closingTypes = new List<ITypeDefinition>();
 
                     foreach (var typeSymbol in closingTypeSymbols)
                     {
-                        closingTypes.Add(GetTypeDefinitionFromType(typeSymbol));
+                        var finalType = GetTypeDefinitionFromType(typeSymbol);
+                        File.AppendAllText(@"C:\temp\generated\generic_types.txt", $"{namedTypeSymbol} {typeSymbol} {finalType}\r\n");
+                        closingTypes.Add(finalType);
                     }
 
                     return new GenericTypeDefinition(
@@ -92,6 +94,11 @@ namespace Hardened.SourceGenerator.Shared
                 else if (IsKnownType(namedTypeSymbol.Name))
                 {
                 }
+
+                var ns = namedTypeSymbol.ContainingNamespace.GetFullName();
+                var getName = GetTypeName(namedTypeSymbol);
+
+                File.AppendAllText(@"C:\temp\generated\generic_types.txt", $"{namedTypeSymbol} {ns} {getName}\r\n");
 
                 return TypeDefinition.Get(
                     GetTypeSymbolKind(namedTypeSymbol),

@@ -16,7 +16,7 @@ namespace Hardened.Shared.Testing
     {
         public TestApplication(IApplicationModule testModule, string logNs, IEnvironment environment, Action<IServiceCollection>? overrideDependencies)
         {
-            var loggerFactory = LoggerFactory.Create(builder => { });
+            var loggerFactory = LoggerFactory.Create(builder => {});
             Provider = CreateServiceProvider(testModule, environment, overrideDependencies, loggerFactory);
             ApplicationLogic.StartWithWait(Provider, null, 15);
         }

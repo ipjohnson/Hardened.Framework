@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
     <ProjectReference Include="..\..\Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj" />
     <ProjectReference Include="..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
+    <ProjectReference Include="..\Hardened.Shared.Lambda.Runtime\Hardened.Shared.Lambda.Runtime.csproj" />
   </ItemGroup>
 
 </Project>

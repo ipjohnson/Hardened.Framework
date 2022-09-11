@@ -93,12 +93,15 @@ namespace Hardened.Function.Lambda.SourceGenerator
             FieldDefinition lambdaFunctionImplField)
         {
             var invokeMethod = lambdaClass.AddMethod("Invoke");
+            invokeMethod.Modifiers = ComponentModifier.Public;
             invokeMethod.SetReturnType(TypeDefinition.Task(typeof(Stream)));
 
             var inputStream = invokeMethod.AddParameter(typeof(Stream), "inputStream");
             var lambdaContext = invokeMethod.AddParameter(KnownTypes.Lambda.ILambdaContext, "lambdaContext");
 
-            invokeMethod.Return(lambdaFunctionImplField.Instance.Invoke("InvokeFunction", inputStream, lambdaContext));
+            IOutputComponent invokeStatement = lambdaFunctionImplField.Instance.Invoke("InvokeFunction", inputStream, lambdaContext);
+            
+            invokeMethod.Return(invokeStatement);
         }
 
         private void GenerateConstructors(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel, EntryPointSelector.Model appModel, FieldDefinition lambdaFunctionImplField)
@@ -142,7 +145,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             constructor.AddIndentedStatement(
                 "_serviceProvider.GetService<IMiddlewareService>()!.Use(_ => filter)");
             constructor.AddIndentedStatement("_lambdaFunctionImplService = _serviceProvider.GetRequiredService<ILambdaFunctionImplService>()");
-
+            
             var staticRegMethod = lambdaClass.AddMethod("RegisterRequestModules");
 
             var environmentVar = staticRegMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
@@ -186,7 +189,8 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             if (loggingMethod != null)
             {
-                logCreateMethod = CodeOutputComponent.Get("LoggerFactory.Create(builder => ConfigureLogging(environment, builder))");
+                logCreateMethod =
+                    CodeOutputComponent.Get("LoggerFactory.Create(builder => ConfigureLogging(environment, builder))");
             }
             else if (logLevelMethod != null)
             {
@@ -214,6 +218,13 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             ITypeDefinition? interfaceType = null;
 
+            var returnType = lambdaFunctionEntryModel.ResponseInformation.ReturnType!;
+
+            if (lambdaFunctionEntryModel.ResponseInformation.IsAsync)
+            {
+                returnType = lambdaFunctionEntryModel.ResponseInformation.ReturnType!.TypeArguments.First();
+            }
+
             if (bodyParameter != null)
             {
                 interfaceType = new GenericTypeDefinition(
@@ -222,9 +233,11 @@ namespace Hardened.Function.Lambda.SourceGenerator
                     KnownTypes.Lambda.ILambdaHandler.Name,
                     new[]
                     {
-                        bodyParameter.ParameterType, 
-                        lambdaFunctionEntryModel.ResponseInformation.ReturnType!
+                        bodyParameter.ParameterType,
+                        returnType
                     });
+
+                File.AppendAllText(@"C:\temp\generated\interface.txt", $"{interfaceType}\r\n");
             }
             else
             {
@@ -232,7 +245,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
                     TypeDefinitionEnum.ClassDefinition,
                     KnownTypes.Lambda.ILambdaHandler.Namespace,
                     KnownTypes.Lambda.ILambdaHandler.Name,
-                    new[] { lambdaFunctionEntryModel.ResponseInformation.ReturnType! });
+                    new[] { returnType });
             }
 
             lambdaClass.AddUsingNamespace(lambdaFunctionEntryModel.ResponseInformation.ReturnType!.Namespace);
