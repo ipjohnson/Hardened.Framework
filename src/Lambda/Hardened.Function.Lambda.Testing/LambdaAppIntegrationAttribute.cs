@@ -6,44 +6,68 @@ using System.Text;
 using System.Threading.Tasks;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit.Sdk;
 
 namespace Hardened.Function.Lambda.Testing
 {
-    public class LambdaAppIntegrationAttribute : DataAttribute
+    public class LambdaAppIntegrationAttribute : HardenedIntegrationAttribute
     {
-        public override IEnumerable<object?[]> GetData(MethodInfo testMethod)
+        protected override IApplicationRoot? CreateApplicationInstance(MethodInfo methodInfo, IEnvironment environment, Type applicationType,
+            Action<IServiceCollection> applyMethod)
         {
-            var lambdaEntryPoint = FindLambdaEntryPointType(testMethod);
+            var applicationParameter = methodInfo.GetParameters().FirstOrDefault(
+                p => p.ParameterType.GetInterfaces().Any(t => t == typeof(IApplicationRoot)));
 
-            if (lambdaEntryPoint != null)
+            if (applicationParameter == null)
             {
-                yield return XUnitHelper.GetData(testMethod, lambdaEntryPoint, ResolveParameterFromApp);
-            }
-        }
-
-        private object? ResolveParameterFromApp(ParameterInfo parameterInfo, IApplicationRoot applicationRoot)
-        {
-            if (parameterInfo.ParameterType == applicationRoot.GetType())
-            {
-                return applicationRoot;
+                return CreateTestApplicationInstance(environment, applicationType, applyMethod);
             }
 
-            return applicationRoot.Provider.GetService(parameterInfo.ParameterType);
+            return base.CreateApplicationInstance(methodInfo, environment, applicationParameter.ParameterType, applyMethod);
         }
 
-        private Type? FindLambdaEntryPointType(MethodInfo testMethod)
+        protected override object? ProcessParameter(MethodInfo methodInfo, IApplicationRoot applicationInstance, ParameterInfo parameter)
         {
-            foreach (var parameterInfo in testMethod.GetParameters())
+            if (applicationInstance.GetType() == parameter.ParameterType)
             {
-                if (parameterInfo.ParameterType.GetInterfaces().Any(
-                        t => t == typeof(IApplicationRoot)))
-                {
-                    return parameterInfo.ParameterType;
-                }
+                return applicationInstance;
             }
 
-            return null;
+            return base.ProcessParameter(methodInfo, applicationInstance, parameter);
         }
+        //public override IEnumerable<object?[]> GetData(MethodInfo testMethod)
+        //{
+        //    var lambdaEntryPoint = FindLambdaEntryPointType(testMethod);
+
+        //    if (lambdaEntryPoint != null)
+        //    {
+        //        yield return XUnitHelper.GetData(testMethod, lambdaEntryPoint, ResolveParameterFromApp);
+        //    }
+        //}
+
+        //private object? ResolveParameterFromApp(ParameterInfo parameterInfo, IApplicationRoot applicationRoot)
+        //{
+        //    if (parameterInfo.ParameterType == applicationRoot.GetType())
+        //    {
+        //        return applicationRoot;
+        //    }
+
+        //    return applicationRoot.Provider.GetService(parameterInfo.ParameterType);
+        //}
+
+        //private Type? FindLambdaEntryPointType(MethodInfo testMethod)
+        //{
+        //    foreach (var parameterInfo in testMethod.GetParameters())
+        //    {
+        //        if (parameterInfo.ParameterType.GetInterfaces().Any(
+        //                t => t == typeof(IApplicationRoot)))
+        //        {
+        //            return parameterInfo.ParameterType;
+        //        }
+        //    }
+
+        //    return null;
+        //}
     }
 }
