@@ -72,7 +72,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var providerMethod = applicationDefinition.AddMethod("CreateServiceProvider");
             providerMethod.Modifiers = ComponentModifier.Public;
 
-            providerMethod.SetReturnType(KnownTypes.DI.IServiceProvider);
+            providerMethod.SetReturnType(KnownTypes.DI.ServiceProvider);
 
             var environment = providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
 

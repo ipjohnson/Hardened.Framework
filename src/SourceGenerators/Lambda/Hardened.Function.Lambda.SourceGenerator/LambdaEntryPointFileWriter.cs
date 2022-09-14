@@ -70,7 +70,9 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             var lambdaFunctionImplField = lambdaClass.AddField(KnownTypes.Lambda.ILambdaFunctionImplService,
                 "_lambdaFunctionImplService");
-            var provider = lambdaClass.AddField(KnownTypes.DI.IServiceProvider, "_serviceProvider");
+            var provider = lambdaClass.AddField(KnownTypes.DI.ServiceProvider, "_serviceProvider");
+
+            GenerateAsyncDisposable(lambdaClass);
 
             GenerateConstructors(lambdaClass, lambdaFunctionEntryModel, appModel, lambdaFunctionImplField);
 
@@ -79,12 +81,22 @@ namespace Hardened.Function.Lambda.SourceGenerator
             GenerateProviderProperty(lambdaClass, lambdaFunctionEntryModel);
         }
 
+        private void GenerateAsyncDisposable(ClassDefinition lambdaClass)
+        {
+            var disposeAsync = lambdaClass.AddMethod("DisposeAsync");
+
+            disposeAsync.Modifiers = ComponentModifier.Public | ComponentModifier.Async;
+            disposeAsync.SetReturnType(typeof(ValueTask));
+
+            disposeAsync.AddIndentedStatement(Await("_serviceProvider.DisposeAsync()"));
+        }
+
         private void GenerateProviderProperty(ClassDefinition lambdaClass, RequestHandlerModel lambdaFunctionEntryModel)
         {
             var property = lambdaClass.AddProperty(KnownTypes.DI.IServiceProvider, "Provider");
 
             property.Get.LambdaSyntax = true;
-            property.Get.AddIndentedStatement("_serviceProvider");
+            property.Get.AddCode("_serviceProvider;");
             property.Set = null;
         }
 

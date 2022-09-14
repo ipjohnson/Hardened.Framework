@@ -115,6 +115,9 @@ namespace Hardened.SourceGenerator.Shared
             public static readonly ITypeDefinition IServiceProvider =
                 TypeDefinition.Get("System", "IServiceProvider");
 
+            public static readonly ITypeDefinition ServiceProvider =
+                TypeDefinition.Get("System", "ServiceProvider");
+
             public static readonly ITypeDefinition ExposeAttribute =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeAttributes, "ExposeAttribute");
 
@@ -352,6 +355,9 @@ namespace Hardened.SourceGenerator.Shared
         {
             public static ITypeDefinition CharSpan =
                 new GenericTypeDefinition(typeof(Span<>), new[] { TypeDefinition.Get(typeof(string)) });
+
+            public static ITypeDefinition IAsyncDisposable =
+                TypeDefinition.Get("System","IAsyncDisposable");
         }
     }
 }

@@ -14,14 +14,16 @@ namespace Hardened.Shared.Testing
 {
     public class TestApplication : IApplicationRoot
     {
+        private ServiceProvider _rootServiceProvider;
+
         public TestApplication(IApplicationModule testModule, string logNs, IEnvironment environment, Action<IServiceCollection>? overrideDependencies)
         {
             var loggerFactory = LoggerFactory.Create(builder => {});
-            Provider = CreateServiceProvider(testModule, environment, overrideDependencies, loggerFactory);
+            _rootServiceProvider = CreateServiceProvider(testModule, environment, overrideDependencies, loggerFactory);
             ApplicationLogic.StartWithWait(Provider, null, 15);
         }
 
-        private IServiceProvider CreateServiceProvider(IApplicationModule applicationModule, IEnvironment environment,
+        private ServiceProvider CreateServiceProvider(IApplicationModule applicationModule, IEnvironment environment,
             Action<IServiceCollection>? overrideDependencies, ILoggerFactory loggerFactory)
         {
             var serviceCollection = new ServiceCollection();
@@ -37,6 +39,10 @@ namespace Hardened.Shared.Testing
         }
 
 
-        public IServiceProvider Provider { get; }
+        public IServiceProvider Provider => _rootServiceProvider;
+        public async ValueTask DisposeAsync()
+        {
+            await _rootServiceProvider.DisposeAsync();
+        }
     }
 }

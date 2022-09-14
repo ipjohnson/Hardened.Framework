@@ -24,21 +24,18 @@ namespace Hardened.Web.Lambda.SourceGenerator
             var appClass = applicationFile.AddClass(entryPoint.EntryPointType.Name);
 
             appClass.Modifiers |= ComponentModifier.Partial;
-
-            appClass.AddBaseType(KnownTypes.Application.IApplicationRoot);
+            
             appClass.AddBaseType(KnownTypes.Lambda.IApiGatewayV2Handler);
 
             var field = appClass.AddField(KnownTypes.Lambda.IApiGatewayEventProcessor, "_eventProcessor");
 
             field.Modifiers |= ComponentModifier.Readonly | ComponentModifier.Private;
-            
-            var provider = appClass.AddProperty(KnownTypes.DI.IServiceProvider, "Provider");
 
-            provider.Set.Modifiers |= ComponentModifier.Private;
+            var providerInstance = appClass.ImplementApplicationRoot();
 
-            CreateConstructors(appClass, entryPoint, provider.Instance);
+            CreateConstructors(appClass, entryPoint, providerInstance);
 
-            CreateHandlerMethod(appClass, entryPoint, provider.Instance, field.Instance);
+            CreateHandlerMethod(appClass, entryPoint, providerInstance, field.Instance);
         }
 
         private static void CreateHandlerMethod(ClassDefinition appClass, EntryPointSelector.Model entryPoint,
