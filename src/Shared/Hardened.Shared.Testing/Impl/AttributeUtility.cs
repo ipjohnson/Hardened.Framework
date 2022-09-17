@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace Hardened.Shared.Testing
+namespace Hardened.Shared.Testing.Impl
 {
 
     public static class AttributeUtility
@@ -12,11 +12,11 @@ namespace Hardened.Shared.Testing
         /// <typeparam name="T"></typeparam>
         /// <param name="methodInfo"></param>
         /// <returns></returns>
-        public static T? GetAttribute<T>(this MethodInfo methodInfo) where T : class
+        public static T? GetTestAttribute<T>(this MethodInfo methodInfo) where T : class
         {
             var returnAttribute = methodInfo.GetCustomAttributes().FirstOrDefault(a => a is T) ??
-                                (methodInfo.DeclaringType?.GetTypeInfo().GetCustomAttributes().FirstOrDefault(a => a is T) ??
-                                 methodInfo.DeclaringType?.GetTypeInfo().Assembly.GetCustomAttributes().FirstOrDefault(a => a is T));
+                                methodInfo.DeclaringType?.GetTypeInfo().GetCustomAttributes().FirstOrDefault(a => a is T) ??
+                                 methodInfo.DeclaringType?.GetTypeInfo().Assembly.GetCustomAttributes().FirstOrDefault(a => a is T);
 
             return returnAttribute as T;
         }
@@ -28,7 +28,7 @@ namespace Hardened.Shared.Testing
         /// <typeparam name="T"></typeparam>
         /// <param name="parameterInfo"></param>
         /// <returns></returns>
-        public static T? GetAttribute<T>(this ParameterInfo parameterInfo) where T : class
+        public static T? GetTestAttribute<T>(this ParameterInfo parameterInfo) where T : class
         {
             var attribute = parameterInfo.GetCustomAttributes().FirstOrDefault(a => a is T);
 
@@ -40,8 +40,8 @@ namespace Hardened.Shared.Testing
             var methodInfo = parameterInfo.Member;
 
             var returnAttribute = methodInfo.GetCustomAttributes().FirstOrDefault(a => a is T) ??
-                                  (methodInfo.DeclaringType?.GetTypeInfo().GetCustomAttributes().FirstOrDefault(a => a is T) ??
-                                   methodInfo.DeclaringType?.GetTypeInfo().Assembly.GetCustomAttributes().FirstOrDefault(a => a is T));
+                                  methodInfo.DeclaringType?.GetTypeInfo().GetCustomAttributes().FirstOrDefault(a => a is T) ??
+                                   methodInfo.DeclaringType?.GetTypeInfo().Assembly.GetCustomAttributes().FirstOrDefault(a => a is T);
 
             return returnAttribute as T;
         }
@@ -52,7 +52,7 @@ namespace Hardened.Shared.Testing
         /// <typeparam name="T"></typeparam>
         /// <param name="methodInfo"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetAttributes<T>(this MethodInfo methodInfo) where T : class
+        public static IEnumerable<T> GetTestAttributes<T>(this MethodInfo methodInfo) where T : class
         {
             var returnList = new List<T>();
 
@@ -74,7 +74,7 @@ namespace Hardened.Shared.Testing
         /// <typeparam name="T"></typeparam>
         /// <param name="parameterInfo"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetAttributes<T>(this ParameterInfo parameterInfo) where T : class
+        public static IEnumerable<T> GetTestAttributes<T>(this ParameterInfo parameterInfo) where T : class
         {
             var returnList = new List<T>();
 
@@ -86,7 +86,7 @@ namespace Hardened.Shared.Testing
 
                 returnList.AddRange(methodInfo.DeclaringType.GetTypeInfo().GetCustomAttributes().OfType<T>());
             }
-            
+
             returnList.AddRange(methodInfo.GetCustomAttributes().OfType<T>());
 
             returnList.AddRange(parameterInfo.GetCustomAttributes().OfType<T>());

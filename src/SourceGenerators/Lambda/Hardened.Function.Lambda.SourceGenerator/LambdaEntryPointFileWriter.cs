@@ -124,7 +124,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             var envParam = constructor.AddParameter(KnownTypes.Application.IEnvironment, "environment");
             var overrides =
-                constructor.AddParameter(TypeDefinition.Action(KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
+                constructor.AddParameter(TypeDefinition.Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
             var logger = SetupLoggerFactory(appModel, constructor, envParam);
             

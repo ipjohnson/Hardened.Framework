@@ -67,12 +67,11 @@
         private class PoolItemReservation : IPoolItemReservation<T>
         {
             private readonly ItemPool<T> _pool;
-            private readonly T _item;
 
             public PoolItemReservation(ItemPool<T> pool, T item)
             {
                 _pool = pool;
-                _item = item;
+                Item = item;
             }
 
             public PoolItemReservation? Next { get; set; }
@@ -97,7 +96,7 @@
                 }
             }
 
-            public T Item => Next == null ? _item : throw new Exception("Item has been disposed already");
+            public T Item { get; }
         }
     }
 }

@@ -24,10 +24,16 @@ namespace Hardened.SourceGenerator.Shared
 
             disposeAsync.Modifiers = ComponentModifier.Public | ComponentModifier.Async;
             disposeAsync.SetReturnType(typeof(ValueTask));
+            
+            var currentRootServiceProvider = 
+                disposeAsync.Assign("RootServiceProvider").ToVar("currentRootServiceProvider");
 
-            var invokeStatement = Await(rootService.Instance.Invoke("DisposeAsync"));
+            var invokeStatement = Await(currentRootServiceProvider.Invoke("DisposeAsync"));
 
-            disposeAsync.If("RootServiceProvider != null").AddIndentedStatement(invokeStatement);
+            var ifBlock = disposeAsync.If("RootServiceProvider != null");
+
+            ifBlock.AddIndentedStatement("RootServiceProvider = null");
+            ifBlock.AddIndentedStatement(invokeStatement);
 
             return rootService.Instance;
         }

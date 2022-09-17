@@ -7,14 +7,14 @@ using Hardened.Function.Lambda.Runtime.Impl;
 using Hardened.Function.Lambda.Testing;
 using Hardened.IntegrationTests.Function.Lambda.SUT.Functions;
 using Hardened.IntegrationTests.Function.Lambda.SUT.Models;
+using Hardened.Shared.Testing.Attributes;
 using Xunit;
 
 namespace Hardened.IntegrationTests.Function.Lambda.Tests.Functions
 {
     public class PersonFunctionsTests
     {
-        [Theory]
-        [LambdaAppIntegration]
+        [HardenedTest]
         public async Task GetAllPeople(PersonFunctions_GetAllPeople lambda)
         {
             var personListModel = await lambda.Invoke(new PersonFunctions.GetAllPeopleRequest { MaxCount = 20 });
@@ -23,8 +23,7 @@ namespace Hardened.IntegrationTests.Function.Lambda.Tests.Functions
             Assert.Equal("test", personListModel.Title);
         }
 
-        [Theory]
-        [LambdaAppIntegration]
+        [HardenedTest]
         public async Task GetAllPeopleWithContext(PersonFunctions_GetAllPeople lambda)
         {
             var personListModel = await lambda.Invoke(

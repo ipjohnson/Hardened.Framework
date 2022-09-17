@@ -8,6 +8,7 @@ using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
 using Hardened.IntegrationTests.Web.Lambda.Tests.Extensions;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing;
+using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Testing;
@@ -19,8 +20,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.wwwrootTests
 {
     public class TestPageTests
     {
-        [Theory]
-        [WebIntegration]
+        [HardenedTest]
         public async Task TestPage(ITestWebApp app)
         {
             var response = await app.Get("/testPage.html");
@@ -33,8 +33,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.wwwrootTests
             Assert.Equal("gzip", response.Headers.Get(KnownHeaders.ContentEncoding));
         }
 
-        [Theory]
-        [WebIntegration]
+        [HardenedTest]
         public async Task TestPageWithNoEncoding(ITestWebApp app)
         {
             var response = await app.Get("/testPage.html", 
@@ -48,7 +47,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.wwwrootTests
             Assert.Equal(StringValues.Empty, response.Headers.Get(KnownHeaders.ContentEncoding));
         }
 
-        public static void Configure(IAppConfig appConfig)
+        public void Configure(IAppConfig appConfig)
         {
             appConfig.Amend<StaticContentConfiguration>(c => c.CacheMaxAge = 20);
         }

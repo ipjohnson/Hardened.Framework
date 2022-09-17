@@ -10,21 +10,21 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
-namespace Hardened.Shared.Testing
+namespace Hardened.Shared.Testing.Impl
 {
     public class TestApplication : IApplicationRoot
     {
         private ServiceProvider _rootServiceProvider;
 
-        public TestApplication(IApplicationModule testModule, string logNs, IEnvironment environment, Action<IServiceCollection>? overrideDependencies)
+        public TestApplication(IApplicationModule testModule, string logNs, IEnvironment environment, Action<IEnvironment, IServiceCollection>? overrideDependencies)
         {
-            var loggerFactory = LoggerFactory.Create(builder => {});
+            var loggerFactory = LoggerFactory.Create(builder => { });
             _rootServiceProvider = CreateServiceProvider(testModule, environment, overrideDependencies, loggerFactory);
             ApplicationLogic.StartWithWait(Provider, null, 15);
         }
 
         private ServiceProvider CreateServiceProvider(IApplicationModule applicationModule, IEnvironment environment,
-            Action<IServiceCollection>? overrideDependencies, ILoggerFactory loggerFactory)
+            Action<IEnvironment, IServiceCollection>? overrideDependencies, ILoggerFactory loggerFactory)
         {
             var serviceCollection = new ServiceCollection();
 
@@ -33,7 +33,7 @@ namespace Hardened.Shared.Testing
 
             applicationModule.ConfigureModule(environment, serviceCollection);
 
-            overrideDependencies?.Invoke(serviceCollection);
+            overrideDependencies?.Invoke(environment, serviceCollection);
 
             return serviceCollection.BuildServiceProvider();
         }

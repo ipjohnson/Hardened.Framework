@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Hardened.Shared.Runtime.Application;
 
-namespace Hardened.Shared.Testing
+namespace Hardened.Shared.Testing.Impl
 {
     public class TestEnvironment : IEnvironment
     {

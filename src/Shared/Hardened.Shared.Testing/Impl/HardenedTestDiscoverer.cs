@@ -17,6 +17,7 @@ namespace Hardened.Shared.Testing.Impl
 
         public HardenedTestDiscoverer(IMessageSink messageSink)
         {
+            File.AppendAllText(@"C:\temp\generated\discover.txt","created\r\n");
             _messageSink = messageSink;
         }
 
@@ -76,6 +77,7 @@ namespace Hardened.Shared.Testing.Impl
         {
             try
             {
+                File.AppendAllText(@"C:\temp\generated\HardenedTestDiscover.txt", "Got here \r\n");
                 var skipReason = theoryAttribute.GetNamedArgument<string>("Skip");
                 if (skipReason != null)
                     return new[] { CreateTestCaseForSkip(discoveryOptions, testMethod, theoryAttribute, skipReason) };

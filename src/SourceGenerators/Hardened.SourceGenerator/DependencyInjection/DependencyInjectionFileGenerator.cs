@@ -77,7 +77,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var environment = providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
 
             var overrideDependenciesDefinition = providerMethod.AddParameter(
-                TypeDefinition.Action(KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
+                TypeDefinition.Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
             ParameterDefinition loggerFactory
                 = providerMethod.AddParameter(KnownTypes.Logging.ILoggerFactory, "loggerFactory");
@@ -114,7 +114,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             GenerateRegistrationStatements(model, dependencyDataRight, providerMethod, environment, serviceCollectionDefinition);
 
-            providerMethod.AddIndentedStatement("overrideDependencies?.Invoke(serviceCollection)");
+            providerMethod.AddIndentedStatement("overrideDependencies?.Invoke(environment, serviceCollection)");
 
             providerMethod.NewLine();
 

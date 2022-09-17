@@ -15,10 +15,19 @@ namespace Hardened.Shared.Testing.Impl
         {
 
         }
-
+        
         protected override Task<decimal> InvokeTestMethodAsync(ExceptionAggregator aggregator)
         {
-            return base.InvokeTestMethodAsync(aggregator);
+            return new HardenedTestInvoker(
+                Test, 
+                MessageBus, 
+                TestClass,
+                ConstructorArguments, 
+                TestMethod, 
+                TestMethodArguments, 
+                BeforeAfterAttributes,
+                aggregator, 
+                CancellationTokenSource).RunAsync();
         }
     }
 }

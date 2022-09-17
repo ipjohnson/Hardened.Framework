@@ -11,7 +11,7 @@ using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
 using Hardened.IntegrationTests.Web.Lambda.Tests.Extensions;
 using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Testing;
+using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -22,8 +22,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
 {
     public class PersonTests
     {
-        [Theory]
-        [WebIntegration]
+        [HardenedTest]
         public void SimpleTest(PersonService service,
             [Mock] IOptions<IPersonServiceConfiguration> option,
             PersonServiceConfiguration personServiceConfiguration)
@@ -40,8 +39,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             Assert.Equal("Testing-Last", instance!.LastName);
         }
 
-        [Theory]
-        [WebIntegration]
+        [HardenedTest]
         public async Task SomeTest(ITestWebApp app)
         {
             var testWebResponse = await app.Get("/api/person/testMethod");
@@ -54,8 +52,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             Assert.Equal("test string", model.FirstName);
         }
 
-        [Theory]
-        [WebIntegration]
+        [HardenedTest]
         public async Task PostTest(ITestWebApp app)
         {
             var personModel = new PersonModel { Id = 100, FirstName = "Test", LastName = "100" };
@@ -65,9 +62,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             response.Assert.Ok();
         }
 
-        [Theory]
-        [WebIntegration]
-        [TestExposeMethod(nameof(ExposeMethod))]
+        [HardenedTest]
         [EnvironmentValue("Testing", "Value")]
         [EnvironmentName("SomeEnv")]
         public async Task PersonWebPageTest(ITestWebApp app)
@@ -84,7 +79,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             Assert.Equal("OtherValue", viewResponse.Headers.Get("OtherTest"));
         }
 
-        public static void ExposeMethod(MethodInfo testMethod, IServiceCollection collection)
+        public void RegisterDependencies(IServiceCollection collection)
         {
             collection.AddSingleton<IPersonService, TestPersonService>();
         }

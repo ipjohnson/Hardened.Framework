@@ -1,6 +1,6 @@
 ﻿using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
-using Hardened.Shared.Testing;
+using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using NSubstitute;
 using Xunit;
@@ -9,16 +9,14 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
 {
     public class HomeTests
     {
-        [Theory]
-        [WebIntegration]
+        [HardenedTest]
         public void SimpleTest(MathService mathService)
         {
             var value = mathService.Add(1, 2);
             Assert.Equal(3, value);
         }
 
-        [Theory]
-        [WebIntegration]
+        [HardenedTest]
         public async Task HomeTest(ITestWebApp app, 
             [Mock] IMathService mathService)
         {
@@ -34,8 +32,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
             Assert.Equal("Blah Test 5", homeModel.Name);
         }
 
-        [Theory]
-        [WebIntegration]
+        [HardenedTest]
         public async Task HeaderTest(ITestWebApp app)
         {
             var response = await app.Get("/Header", request => request.Headers.Set("headerString", "testing 123"));
@@ -49,8 +46,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
 
         }
 
-        [Theory]
-        [WebIntegration]
+        [HardenedTest]
         public async Task QueryStringPathTest(ITestWebApp app)
         {
             var response = await app.Get("/QueryStringPath?testString=SomeValue");

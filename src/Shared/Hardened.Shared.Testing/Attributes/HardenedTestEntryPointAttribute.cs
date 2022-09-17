@@ -10,9 +10,9 @@ namespace Hardened.Shared.Testing.Attributes
     /// Used to specify an entry point for a test
     /// </summary>
     [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method)]
-    public class HardenedEntryPointAttribute : Attribute
+    public class HardenedTestEntryPointAttribute : Attribute
     {
-        public HardenedEntryPointAttribute(Type entryPoint)
+        public HardenedTestEntryPointAttribute(Type entryPoint)
         {
             EntryPoint = entryPoint;
         }
