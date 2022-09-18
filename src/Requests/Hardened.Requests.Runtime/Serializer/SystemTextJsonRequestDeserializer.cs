@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using System.Net;
+using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Errors;
@@ -9,6 +10,7 @@ namespace Hardened.Requests.Runtime.Serializer
 {
     public class SystemTextJsonRequestDeserializer : IRequestDeserializer
     {
+        private JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
         public bool IsDefaultSerializer => true;
 
         public bool CanProcessContext(IExecutionContext context)
@@ -23,7 +25,7 @@ namespace Hardened.Requests.Runtime.Serializer
                 return await DeserializeEncodedContent<T>(context, contentEncoding);
             }
 
-            return await System.Text.Json.JsonSerializer.DeserializeAsync<T>(context.Request.Body);
+            return await System.Text.Json.JsonSerializer.DeserializeAsync<T>(context.Request.Body, _serializerOptions);
         }
 
         private async ValueTask<T?> DeserializeEncodedContent<T>(IExecutionContext context, StringValues contentEncoding)
