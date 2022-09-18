@@ -31,6 +31,13 @@ namespace Hardened.Requests.Abstract.Logging
         void RequestEnd(IExecutionContext context);
 
         /// <summary>
+        /// Called when the call can't bind input parameters
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="exp"></param>
+        void RequestParameterBindFailed(IExecutionContext context, Exception? exp);
+
+        /// <summary>
         /// Called when request throws an exception
         /// </summary>
         /// <param name="context"></param>

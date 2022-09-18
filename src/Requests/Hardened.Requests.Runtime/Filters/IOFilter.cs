@@ -1,6 +1,8 @@
 ﻿using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Shared.Runtime.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Filters
 {
@@ -30,6 +32,8 @@ namespace Hardened.Requests.Runtime.Filters
             }
             catch (Exception exp)
             {
+                chain.Context.RequestServices.GetRequiredService<IRequestLogger>().RequestParameterBindFailed(chain.Context, exp);
+
                 chain.Context.Response.ExceptionValue = exp;
             }
             finally
@@ -44,7 +48,7 @@ namespace Hardened.Requests.Runtime.Filters
                     await chain.Next();
                 }
                 catch (Exception exp)
-                {
+                {   
                     chain.Context.Response.ExceptionValue = exp;
                 }
             }

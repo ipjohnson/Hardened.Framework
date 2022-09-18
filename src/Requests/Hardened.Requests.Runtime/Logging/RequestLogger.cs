@@ -41,6 +41,11 @@ namespace Hardened.Requests.Runtime.Logging
                 );
         }
 
+        public void RequestParameterBindFailed(IExecutionContext context, Exception? exp)
+        {
+            _logger.LogError(exp, "{0} {!} failed to bind parameters", context.Request.Method, context.Request.Path);
+        }
+
         public void RequestFailed(IExecutionContext context, Exception exp)
         {
             _logger.LogError(exp, "{0} {1} request failed", context.Request.Method, context.Request.Path);
