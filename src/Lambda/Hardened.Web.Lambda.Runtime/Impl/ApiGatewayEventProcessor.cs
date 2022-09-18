@@ -121,6 +121,7 @@ namespace Hardened.Web.Lambda.Runtime.Impl
                 Convert.FromBase64String(request.Body) :
                 Encoding.UTF8.GetBytes(request.Body);
 
+            memoryStream.Write(bytes, 0, bytes.Length);
             memoryStream.Position = 0;
 
             return memoryStream;
