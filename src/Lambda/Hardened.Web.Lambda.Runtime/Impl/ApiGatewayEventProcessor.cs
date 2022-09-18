@@ -63,8 +63,9 @@ namespace Hardened.Web.Lambda.Runtime.Impl
             
             using var scope = _serviceProvider.CreateScope();
             using var memoryStreamReservation = _memoryStreamPool.Get();
+            using var inputBodyStreamReservation = _memoryStreamPool.Get();
             
-            var executionContext = CreateExecutionContext(scope, request, response, requestStartTimestamp);
+            var executionContext = CreateExecutionContext(scope, request, response, requestStartTimestamp, inputBodyStreamReservation.Item);
 
             executionContext.Response.Body = memoryStreamReservation.Item;
 
@@ -101,17 +102,28 @@ namespace Hardened.Web.Lambda.Runtime.Impl
 
         private IExecutionContext CreateExecutionContext(IServiceScope scope,
             APIGatewayHttpApiV2ProxyRequest request,
-            APIGatewayHttpApiV2ProxyResponse response, 
-            MachineTimestamp starTime)
+            APIGatewayHttpApiV2ProxyResponse response,
+            MachineTimestamp starTime, MemoryStream memoryStream)
         {
             return new ApiGatewayV2ExecutionContext(
                 _serviceProvider,
                 scope.ServiceProvider,
                 _knownServices,
-                new ApiGatewayV2ExecutionRequest(request),
+                new ApiGatewayV2ExecutionRequest(request) {Body = CreateBodyFromRequest(request, memoryStream)},
                 new ApiGatewayV2ExecutionResponse(response),
                 _metricLoggerProvider.CreateLogger("HardenedRequests"), 
                 starTime);
+        }
+
+        private Stream CreateBodyFromRequest(APIGatewayHttpApiV2ProxyRequest request, MemoryStream memoryStream)
+        {
+            byte[] bytes = request.IsBase64Encoded ?
+                Convert.FromBase64String(request.Body) :
+                Encoding.UTF8.GetBytes(request.Body);
+
+            memoryStream.Position = 0;
+
+            return memoryStream;
         }
     }
 }

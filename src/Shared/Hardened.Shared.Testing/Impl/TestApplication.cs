@@ -40,6 +40,7 @@ namespace Hardened.Shared.Testing.Impl
 
 
         public IServiceProvider Provider => _rootServiceProvider;
+
         public async ValueTask DisposeAsync()
         {
             await _rootServiceProvider.DisposeAsync();
