@@ -37,7 +37,7 @@ namespace Hardened.Requests.Runtime.Serializer
 
                 if (requestDeserializer.IsDefaultSerializer)
                 {
-                    defaultSerializer = requestDeserializer;
+                    defaultSerializer ??= requestDeserializer;
                 }
             }
 
