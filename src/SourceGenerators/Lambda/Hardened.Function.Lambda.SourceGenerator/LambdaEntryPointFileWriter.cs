@@ -139,7 +139,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             if (appModel.MethodDefinitions.Any(m => m.Name == "Startup"))
             {
-                startupMethod = "Startup";
+                startupMethod = "applicationField.Startup";
             }
 
             constructor.AddIndentedStatement(
