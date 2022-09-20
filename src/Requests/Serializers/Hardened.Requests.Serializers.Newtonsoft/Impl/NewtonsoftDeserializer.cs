@@ -14,10 +14,10 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Impl
     [Expose]
     public class NewtonsoftDeserializer : IRequestDeserializer
     {
-        private readonly MemoryStreamPool _memoryStreamPool;
+        private readonly IMemoryStreamPool _memoryStreamPool;
         private readonly ISharedSerializer _sharedSerializer;
 
-        public NewtonsoftDeserializer(MemoryStreamPool memoryStreamPool, ISharedSerializer sharedSerializer)
+        public NewtonsoftDeserializer(IMemoryStreamPool memoryStreamPool, ISharedSerializer sharedSerializer)
         {
             _memoryStreamPool = memoryStreamPool;
             _sharedSerializer = sharedSerializer;
