@@ -32,7 +32,7 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Impl
         public async Task SerializeResponse(IExecutionContext context)
         {
             using var outputBuffer = _memoryStreamPool.Get();
-            await using var textWriter = new StreamWriter(outputBuffer.Item);
+            await using var textWriter = new StreamWriter(outputBuffer.Item,null, -1, true);
 
             _sharedSerializer.Serializer.Serialize(textWriter, context.Response.ResponseValue);
 
