@@ -50,7 +50,7 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Impl
             }
             catch (Exception exp)
             {
-                _logger.LogError(exp, "serializers threw exception " + );
+                _logger.LogError(exp, "serializers threw exception " + exp.Message );
                 throw;
             }
         }
