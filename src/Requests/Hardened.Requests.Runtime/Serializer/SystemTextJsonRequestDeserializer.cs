@@ -3,14 +3,24 @@ using System.Net;
 using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Errors;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Runtime.Serializer
 {
     public class SystemTextJsonRequestDeserializer : IRequestDeserializer
     {
-        private JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
+        private readonly JsonSerializerOptions _serializerOptions;
+
+        public SystemTextJsonRequestDeserializer(IOptions<IJsonSerializerConfiguration> configuration)
+        {
+            _serializerOptions = 
+                configuration.Value.DeSerializerOptions ?? 
+                new(JsonSerializerDefaults.Web);
+        }
+
         public bool IsDefaultSerializer => true;
 
         public bool CanProcessContext(IExecutionContext context)

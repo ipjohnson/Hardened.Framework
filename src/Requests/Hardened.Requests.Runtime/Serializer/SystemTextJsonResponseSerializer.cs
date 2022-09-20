@@ -1,11 +1,23 @@
 ﻿using System.IO.Compression;
+using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Serializer
 {
     public class SystemTextJsonResponseSerializer : IResponseSerializer
     {
+        private JsonSerializerOptions _serializerOptions;
+
+        public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration)
+        {
+            _serializerOptions =
+                configuration.Value.DeSerializerOptions ??
+                new(JsonSerializerDefaults.Web);
+        }
+
         public bool IsDefaultSerializer => true;
 
         public bool CanProcessContext(IExecutionContext context)
@@ -26,13 +38,13 @@ namespace Hardened.Requests.Runtime.Serializer
             {
                 await using var gzipStream = new GZipStream(context.Response.Body, CompressionLevel.Fastest, true);
 
-                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue);
+                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue, _serializerOptions);
 
                 await gzipStream.FlushAsync();
             }
             else
             {
-                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue);
+                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue, _serializerOptions);
             }
         }
     }

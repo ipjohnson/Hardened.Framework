@@ -44,9 +44,10 @@ namespace Hardened.Requests.Runtime.DependencyInjection
                 serviceCollection.TryAddSingleton<IStringConverterService, StringConverterService>();
                 serviceCollection.TryAddSingleton<IKnownServices, KnownServices>();
                 serviceCollection.AddSingleton<IConfigurationPackage>(
-                    new SimpleConfigurationPackage(new[]
+                    new SimpleConfigurationPackage(new IConfigurationValueProvider[]
                     {
-                        new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>()
+                        new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(),
+                        new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>()
                     }));
                 serviceCollection.AddSingleton<IOptions<IResponseHeaderConfiguration>>(
                     s => Options.Create(s.GetRequiredService<IConfigurationManager>()
