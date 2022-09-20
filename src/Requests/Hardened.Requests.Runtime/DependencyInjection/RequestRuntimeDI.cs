@@ -49,9 +49,13 @@ namespace Hardened.Requests.Runtime.DependencyInjection
                         new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(),
                         new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>()
                     }));
-                serviceCollection.AddSingleton<IOptions<IResponseHeaderConfiguration>>(
+                serviceCollection.AddSingleton(
                     s => Options.Create(s.GetRequiredService<IConfigurationManager>()
                         .GetConfiguration<IResponseHeaderConfiguration>()));
+
+                serviceCollection.AddSingleton(
+                    s => Options.Create(s.GetRequiredService<IConfigurationManager>()
+                        .GetConfiguration<IJsonSerializerConfiguration>()));
 
                 _lastServiceCollection.SetTarget(serviceCollection);
             }

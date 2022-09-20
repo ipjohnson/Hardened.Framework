@@ -37,18 +37,20 @@ namespace Hardened.Function.Lambda.Testing
         }
 
         public static async Task<TResponse> Invoke<TRequest, TResponse>(this ILambdaHandler<TRequest,TResponse> tHandler, TRequest request,
-            ILambdaContext? lambdaContext = null) 
+            ILambdaContext? lambdaContext = null)
         {
+            var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
             using var memoryStreamReservation = tHandler.Provider.GetRequiredService<IMemoryStreamPool>().Get();
             
-            JsonSerializer.Serialize(memoryStreamReservation.Item, request);
+            JsonSerializer.Serialize(memoryStreamReservation.Item, request, jsonOptions);
 
             memoryStreamReservation.Item.Position = 0;
 
             await using var response = await tHandler.Invoke(memoryStreamReservation.Item,
                 lambdaContext ?? ConstructLambda(tHandler.GetType()));
 
-            return (await JsonSerializer.DeserializeAsync<TResponse>(response))!;
+            return (await JsonSerializer.DeserializeAsync<TResponse>(response, jsonOptions))!;
         }
 
         private static ILambdaContext ConstructLambda(Type type)

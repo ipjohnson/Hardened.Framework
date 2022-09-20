@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Errors;
@@ -32,7 +33,7 @@ namespace Hardened.Web.Testing
                 {
                     using var gzipStream = new GZipStream(Body, CompressionMode.Decompress, true);
 
-                    return System.Text.Json.JsonSerializer.Deserialize<T>(gzipStream) ??
+                    return System.Text.Json.JsonSerializer.Deserialize<T>(gzipStream, new JsonSerializerOptions(JsonSerializerDefaults.Web)) ??
                            throw new Exception("Could not deserialize response");
                 }
 
@@ -40,14 +41,14 @@ namespace Hardened.Web.Testing
                 {
                     using var brStream = new BrotliStream(Body, CompressionMode.Decompress, true);
 
-                    return System.Text.Json.JsonSerializer.Deserialize<T>(brStream) ??
+                    return System.Text.Json.JsonSerializer.Deserialize<T>(brStream, new JsonSerializerOptions(JsonSerializerDefaults.Web)) ??
                            throw new Exception("Could not deserialize response");
                 }
 
                 throw new BadContentEncodingException(contentEncoding);
             }
 
-            return System.Text.Json.JsonSerializer.Deserialize<T>(Body) ??
+            return System.Text.Json.JsonSerializer.Deserialize<T>(Body, new JsonSerializerOptions(JsonSerializerDefaults.Web)) ??
                    throw new Exception("Could not deserialize response");
         }
     }
