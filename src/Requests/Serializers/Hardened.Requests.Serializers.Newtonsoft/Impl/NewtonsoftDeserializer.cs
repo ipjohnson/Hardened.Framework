@@ -42,9 +42,15 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Impl
                 await context.Request.Body.CopyToAsync(_memoryStreamPool.Get().Item);
 
                 memoryStreamRes.Item.Position = 0;
-
+                
                 using var textReader = new StreamReader(memoryStreamRes.Item,null, true, -1, true);
                 using var jsonReader = new JsonTextReader(textReader);
+
+                var stringValue = await textReader.ReadToEndAsync();
+
+                _logger.LogInformation("Received: " + stringValue);
+
+                memoryStreamRes.Item.Position = 0;
 
                 return _sharedSerializer.Serializer.Deserialize<T>(jsonReader);
             }
