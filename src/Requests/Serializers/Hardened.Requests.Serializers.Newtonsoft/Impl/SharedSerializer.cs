@@ -17,6 +17,11 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Impl
     [Singleton]
     public class SharedSerializer : ISharedSerializer
     {
-        public JsonSerializer Serializer { get; } = JsonSerializer.CreateDefault();
+        public SharedSerializer(IServiceProvider serviceProvider, INewtonsoftSerializerConfiguration configuration)
+        {
+            Serializer = configuration.SerializerProvider(serviceProvider);
+        }
+
+        public JsonSerializer Serializer { get; }
     }
 }
