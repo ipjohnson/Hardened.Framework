@@ -30,7 +30,7 @@ namespace Hardened.Web.Runtime.DependencyInjection
                     new SimpleConfigurationPackage(
                         new[]
                         {
-                            new NewConfigurationValueProvider<IStaticContentConfiguration, StaticContentConfiguration>()
+                            new NewConfigurationValueProvider<IStaticContentConfiguration, StaticContentConfiguration>(null)
                         }, Array.Empty<IConfigurationValueAmender>())
                 );
                 serviceCollection.TryAddSingleton(

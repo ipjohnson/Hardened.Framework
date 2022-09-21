@@ -53,7 +53,18 @@ namespace Hardened.SourceGenerator.Shared
             return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd(), classDeclarationSyntax.Identifier.Text);
         }
 
+        public static AttributeSyntax? GetAttribute(this SyntaxNode node, string attributeName, string ns = "")
+        {
+            return node.DescendantNodes()
+                .OfType<AttributeSyntax>().FirstOrDefault(
+                    a =>
+                    {
+                        var name = a.Name.ToString();
 
+                        return name.Equals(attributeName) || name.Equals(attributeName + "Attribute") ||
+                               name.Equals(ns + "." + attributeName) || name.Equals(ns + "." + attributeName + "Attribute");
+                    });
+        }
 
         public static bool IsAttributed(this SyntaxNode node, string attributeName, string ns = "")
         {

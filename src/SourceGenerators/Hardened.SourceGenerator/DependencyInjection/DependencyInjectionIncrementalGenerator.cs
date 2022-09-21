@@ -59,7 +59,18 @@ namespace Hardened.SourceGenerator.DependencyInjection
             var classTypeDef = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
                 classDeclarationSyntax.Identifier.ToString());
 
-            return new ServiceModel(exposeTypeDef!, classTypeDef, ServiceModel.ServiceLifestyle.Singleton, false);
+            var lifeStyle = ServiceModel.ServiceLifestyle.Transient;
+
+            if (classDeclarationSyntax.IsAttributed("Singleton"))
+            {
+                lifeStyle = ServiceModel.ServiceLifestyle.Singleton;
+            }
+            else if (classDeclarationSyntax.IsAttributed("Scoped"))
+            {
+                lifeStyle = ServiceModel.ServiceLifestyle.Scoped;
+            }
+
+            return new ServiceModel(exposeTypeDef!, classTypeDef, lifeStyle, false);
         }
 
         public class ServiceModel

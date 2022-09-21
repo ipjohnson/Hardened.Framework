@@ -46,8 +46,8 @@ namespace Hardened.Requests.Runtime.DependencyInjection
                 serviceCollection.AddSingleton<IConfigurationPackage>(
                     new SimpleConfigurationPackage(new IConfigurationValueProvider[]
                     {
-                        new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(),
-                        new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>()
+                        new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(null),
+                        new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null)
                     }));
                 serviceCollection.AddSingleton(
                     s => Options.Create(s.GetRequiredService<IConfigurationManager>()

@@ -50,9 +50,24 @@ namespace Hardened.SourceGenerator.Configuration
                         
                         var fieldType = fieldDeclarationSyntax.Declaration.Type.GetTypeDefinition(context);
 
+
                         if (fieldType != null)
                         {
-                            fieldModels.Add(new ConfigurationFieldModel(fieldType, name, PropertyNameFrom(name)));
+                            var fromEnvVarString = "";
+
+                            var fromEnvVar =
+                                fieldDeclarationSyntax.GetAttribute("FromEnvironmentVariable");
+
+                            if (fromEnvVar != null)
+                            {
+                                fromEnvVarString = 
+                                    fromEnvVar.ArgumentList?.Arguments.FirstOrDefault()?.ToString() ?? "";
+                            }
+
+                            var model =
+                                new ConfigurationFieldModel(fieldType, name, PropertyNameFrom(name), fromEnvVarString);
+
+                            fieldModels.Add(model);
                         }
                     }
                 }
@@ -122,11 +137,12 @@ namespace Hardened.SourceGenerator.Configuration
 
         public class ConfigurationFieldModel
         {
-            public ConfigurationFieldModel(ITypeDefinition fieldType, string name, string propertyName)
+            public ConfigurationFieldModel(ITypeDefinition fieldType, string name, string propertyName, string fromEnvironmentVariable)
             {
                 FieldType = fieldType;
                 Name = name;
                 PropertyName = propertyName;
+                FromEnvironmentVariable = fromEnvironmentVariable;
             }
 
             public ITypeDefinition FieldType { get; }
@@ -134,6 +150,8 @@ namespace Hardened.SourceGenerator.Configuration
             public string Name { get; }
 
             public string PropertyName { get; }
+
+            public string FromEnvironmentVariable { get; }
 
             public override bool Equals(object obj)
             {
@@ -143,7 +161,8 @@ namespace Hardened.SourceGenerator.Configuration
                 }
                 return FieldType.Equals(configurationFieldModel.FieldType) &&
                        Name.Equals(configurationFieldModel.Name) &&
-                       PropertyName.Equals(configurationFieldModel.PropertyName);
+                       PropertyName.Equals(configurationFieldModel.PropertyName) && 
+                       FromEnvironmentVariable.Equals(configurationFieldModel.FromEnvironmentVariable);
             }
             
             public override int GetHashCode()
@@ -151,8 +170,11 @@ namespace Hardened.SourceGenerator.Configuration
                 unchecked
                 {
                     var hashCode = FieldType.GetHashCode();
+
                     hashCode = (hashCode * 397) ^ Name.GetHashCode();
                     hashCode = (hashCode * 397) ^ PropertyName.GetHashCode();
+                    hashCode = (hashCode * 397) ^ FromEnvironmentVariable.GetHashCode();
+
                     return hashCode;
                 }
             }

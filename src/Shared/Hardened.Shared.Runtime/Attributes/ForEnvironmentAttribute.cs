@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Hardened.Shared.Runtime.Attributes
 {
+    /// <summary>
+    /// Used to attribute Expose service, registering them only when the environment match
+    /// </summary>
     public class ForEnvironmentAttribute
     {
         public ForEnvironmentAttribute(string environment)

@@ -107,9 +107,11 @@ namespace Hardened.SourceGenerator.Configuration
             
             foreach (var configurationFileModel in configFiles)
             {
+                var initConfigValue = CreateInitConfigValueMethod(classDefinition, configurationFileModel);
+
                 providerMethod.AddUsingNamespace(configurationFileModel.ModelType.Namespace);
                 providerMethod.AddIndentedStatement(
-                    $"yield return new NewConfigurationValueProvider<{configurationFileModel.InterfaceType.Name}, {configurationFileModel.ModelType.Name}>()");
+                    $"yield return new NewConfigurationValueProvider<{configurationFileModel.InterfaceType.Name}, {configurationFileModel.ModelType.Name}>({initConfigValue})");
             }
 
             if (configFiles.Length == 0)
@@ -126,6 +128,36 @@ namespace Hardened.SourceGenerator.Configuration
             amendersMethod.AddIndentedStatement("yield break");
 
             return TypeDefinition.Get(entryPoint.EntryPointType.Namespace, entryPoint.EntryPointType.Name + ".ConfigurationProvider");
+        }
+
+        private static string CreateInitConfigValueMethod(ClassDefinition classDefinition, ConfigurationIncrementalGenerator.ConfigurationFileModel configurationFileModel)
+        {
+            var modelArray = 
+                configurationFileModel.FieldModels.Where(m => !string.IsNullOrEmpty(m.FromEnvironmentVariable))
+                .ToArray();
+
+            if (modelArray.Length > 0)
+            {
+                var methodName = "Configure" + configurationFileModel.ModelType.Name;
+
+                var method = classDefinition.AddMethod(methodName);
+
+                method.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
+                var env = method.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+                var model = method.AddParameter(configurationFileModel.ModelType, "model");
+
+                foreach (var configurationFieldModel in modelArray)
+                {
+                    var propertyAccess = model.Property(configurationFieldModel.PropertyName);
+                    var invoke = env.Invoke("Value", QuoteString(configurationFieldModel.FromEnvironmentVariable), propertyAccess);
+                    
+                    method.Assign(invoke).To(propertyAccess);
+                }
+
+                return methodName;
+            }
+
+            return "null";
         }
     }
 }
