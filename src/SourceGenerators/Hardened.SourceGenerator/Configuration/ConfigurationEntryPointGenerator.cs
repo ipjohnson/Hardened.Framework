@@ -149,7 +149,7 @@ namespace Hardened.SourceGenerator.Configuration
                 foreach (var configurationFieldModel in modelArray)
                 {
                     var propertyAccess = model.Property(configurationFieldModel.PropertyName);
-                    var invoke = env.Invoke("Value", QuoteString(configurationFieldModel.FromEnvironmentVariable), propertyAccess);
+                    var invoke = env.Invoke("Value", configurationFieldModel.FromEnvironmentVariable, propertyAccess);
                     
                     method.Assign(invoke).To(propertyAccess);
                 }
