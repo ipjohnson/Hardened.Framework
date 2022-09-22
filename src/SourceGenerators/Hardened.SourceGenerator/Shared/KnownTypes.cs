@@ -99,7 +99,10 @@ namespace Hardened.SourceGenerator.Shared
 
             public static readonly ITypeDefinition IConfigurationValueAmender =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeConfiguration, "IConfigurationValueAmender");
-            
+
+            public static readonly ITypeDefinition IAppConfig =
+                TypeDefinition.Get(Namespace.HardenedSharedRuntimeConfiguration, "IAppConfig");
+
             public static readonly ITypeDefinition AppConfig =
                 TypeDefinition.Get(Namespace.HardenedSharedRuntimeConfiguration, "AppConfig");
         }

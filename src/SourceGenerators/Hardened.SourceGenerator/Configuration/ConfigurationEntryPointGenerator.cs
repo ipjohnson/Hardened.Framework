@@ -81,10 +81,26 @@ namespace Hardened.SourceGenerator.Configuration
             if (configureMethod != null)
             {
                 diMethod.NewLine();
-                var fluentConfig = diMethod.Assign(New(KnownTypes.Configuration.AppConfig)).ToVar("fluentConfig");
-                diMethod.AddIndentedStatement(entryPointDef.Invoke("Configure", fluentConfig));
-                diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-                    new[] { KnownTypes.Configuration.IConfigurationPackage }, fluentConfig));
+
+                if (configureMethod.Parameters.Count == 1 && 
+                    configureMethod.Parameters[0].Type.Equals(KnownTypes.Configuration.IAppConfig))
+                {
+                    var fluentConfig = diMethod.Assign(New(KnownTypes.Configuration.AppConfig)).ToVar("fluentConfig");
+                    diMethod.AddIndentedStatement(entryPointDef.Invoke("Configure", fluentConfig));
+                    diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
+                        new[] { KnownTypes.Configuration.IConfigurationPackage }, fluentConfig));
+
+                }
+                else if (configureMethod.Parameters.Count == 2 &&
+                         configureMethod.Parameters[0].Type.Equals(KnownTypes.Application.IEnvironment) &&
+                         configureMethod.Parameters[1].Type.Equals(KnownTypes.Configuration.IAppConfig))
+                {
+                    var fluentConfig = diMethod.Assign(New(KnownTypes.Configuration.AppConfig)).ToVar("fluentConfig");
+                    diMethod.AddIndentedStatement(entryPointDef.Invoke("Configure", environment, fluentConfig));
+                    diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
+                        new[] { KnownTypes.Configuration.IConfigurationPackage }, fluentConfig));
+
+                }
             }
         }
 
