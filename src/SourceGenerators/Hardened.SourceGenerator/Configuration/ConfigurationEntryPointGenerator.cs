@@ -72,9 +72,7 @@ namespace Hardened.SourceGenerator.Configuration
                 diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
                     new[] { ioptionsType }, providerString));
             }
-
-            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-                new[] { KnownTypes.Application.IEnvironment }, environment));
+                                                                                                                                                               
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
                 new[] { KnownTypes.Configuration.IConfigurationPackage, providerType }));
 

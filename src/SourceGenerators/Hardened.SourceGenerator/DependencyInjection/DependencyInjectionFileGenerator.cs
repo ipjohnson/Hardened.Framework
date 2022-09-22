@@ -104,6 +104,11 @@ namespace Hardened.SourceGenerator.DependencyInjection
                 serviceCollectionDefinition.InvokeGeneric(
                     "AddSingleton", new[] { KnownTypes.Logging.ILoggerFactory }, "_ => loggerFactory"));
 
+            providerMethod.AddIndentedStatement(
+                serviceCollectionDefinition.Invoke("AddSingleton", "environment")
+            );
+
+
             providerMethod.NewLine();
 
             providerMethod.AddIndentedStatement("initDependencies?.Invoke(environment, serviceCollection)");
