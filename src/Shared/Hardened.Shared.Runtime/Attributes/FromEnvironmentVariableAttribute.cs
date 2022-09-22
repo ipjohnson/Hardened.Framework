@@ -11,14 +11,11 @@ namespace Hardened.Shared.Runtime.Attributes
     /// </summary>
     public class FromEnvironmentVariableAttribute : Attribute
     {
-        public FromEnvironmentVariableAttribute(string environmentVariable, string defaultValue = "")
+        public FromEnvironmentVariableAttribute(string environmentVariable)
         {
             EnvironmentVariable = environmentVariable;
-            DefaultValue = defaultValue;
         }
 
         public string EnvironmentVariable { get; }
-
-        public string DefaultValue { get; }
     }
 }
