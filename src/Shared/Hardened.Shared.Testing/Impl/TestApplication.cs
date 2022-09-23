@@ -30,6 +30,7 @@ namespace Hardened.Shared.Testing.Impl
 
             serviceCollection.TryAddTransient(typeof(ILogger<>), typeof(LoggerImpl<>));
             serviceCollection.AddSingleton(_ => loggerFactory);
+            serviceCollection.AddSingleton(environment);
 
             applicationModule.ConfigureModule(environment, serviceCollection);
 
@@ -37,8 +38,7 @@ namespace Hardened.Shared.Testing.Impl
 
             return serviceCollection.BuildServiceProvider();
         }
-
-
+        
         public IServiceProvider Provider => _rootServiceProvider;
 
         public async ValueTask DisposeAsync()
