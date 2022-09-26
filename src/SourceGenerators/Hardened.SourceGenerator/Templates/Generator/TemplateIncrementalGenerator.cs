@@ -13,12 +13,12 @@ namespace Hardened.SourceGenerator.Templates.Generator
 {
     public static class TemplateIncrementalGenerator
     {
-        private static readonly StringTokenNodeParser.TokenInfo _tokenInfo = new ("{{", "}}");
-        private static readonly TemplateClassGenerator _generator = 
+        private static readonly StringTokenNodeParser.TokenInfo _tokenInfo = new("{{", "}}");
+        private static readonly TemplateClassGenerator _generator =
             new(
                 new TemplateParseService(
                     new StringTokenNodeParser(new StringTokenNodeCreatorService())),
-                new TemplateImplementationGenerator(), 
+                new TemplateImplementationGenerator(),
                 new TemplateWhiteSpaceCleaner());
 
         public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
@@ -36,11 +36,19 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             var templateModelsProvider = templateModels.Combine(applicationModelCollection);
 
-            initializationContext.RegisterSourceOutput(templateModelsProvider, GenerateTemplateSource);
+            initializationContext.RegisterSourceOutput(
+                templateModelsProvider,
+
+                SourceGeneratorWrapper.Wrap<
+                    (TemplateModel templateModel, ImmutableArray<EntryPointSelector.Model> applicationModels)
+                >(GenerateTemplateSource));
 
             var templateHandlerProviders = entryPointProvider.Combine(templateModels.Collect());
 
-            initializationContext.RegisterSourceOutput(templateHandlerProviders, TemplateEntryPointGenerator.Generate);
+            initializationContext.RegisterSourceOutput(templateHandlerProviders,
+                SourceGeneratorWrapper.Wrap<
+            (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateModel> templateModels)>(
+                TemplateEntryPointGenerator.Generate));
 
             var helperSelector = new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.Templates.TemplateHelperAttribute);
 
@@ -48,10 +56,14 @@ namespace Hardened.SourceGenerator.Templates.Generator
                 helperSelector.Where,
                 TemplateHelperModelGenerator
             ).WithComparer(new TemplateHelperModelComparer());
-            
+
             var templateHelperProviders = entryPointProvider.Combine(templateHelperModels.Collect());
 
-            initializationContext.RegisterSourceOutput(templateHelperProviders, TemplateHelperGenerator.Generate);
+            initializationContext.RegisterSourceOutput(
+                templateHelperProviders,
+                SourceGeneratorWrapper.Wrap <
+            (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateHelperModel> helperModels)
+                >(TemplateHelperGenerator.Generate));
         }
 
         public class TemplateHelperModelComparer : IEqualityComparer<TemplateHelperModel>
@@ -77,7 +89,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
                 return null;
             }
 
-            var attribute = 
+            var attribute =
                 arg1.Node.DescendantNodes().OfType<AttributeSyntax>().First(a => a.Name.ToString().Contains("TemplateHelper"));
 
             var helperName = attribute.ArgumentList.Arguments.First().ToString().Trim('"');
@@ -127,7 +139,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             public string Name { get; }
 
             public ITypeDefinition Helper { get; }
-            
+
             public DependencyInjection.DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle Lifestyle { get; }
 
             public override bool Equals(object obj)
@@ -140,7 +152,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
                        Helper.Equals(templateHelperModel.Helper) &&
                        Lifestyle.Equals(templateHelperModel.Lifestyle);
             }
-            
+
             public override int GetHashCode()
             {
                 unchecked
@@ -169,7 +181,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             public string TemplateName { get; }
 
             public string TemplateExtension { get; }
-            
+
         }
     }
 }

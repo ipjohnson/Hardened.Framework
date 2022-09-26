@@ -1,4 +1,5 @@
-﻿using Hardened.Shared.Runtime.Application;
+﻿using Hardened.Shared.Lambda.Runtime.Execution;
+using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Metrics;
 using Hardened.Web.Lambda.Runtime.Impl;
 using Hardened.Web.Lambda.Runtime.Metrics;
@@ -14,6 +15,7 @@ namespace Hardened.Web.Lambda.Runtime.DependencyInjection
             serviceCollection.TryAddSingleton<IApiGatewayEventProcessor, ApiGatewayEventProcessor>();
             serviceCollection.AddSingleton<IMetricLoggerProvider, EmbeddedMetricLoggerProvider>();
             serviceCollection.TryAddSingleton<IDimensionSetProvider, DimensionSetProvider>();
+            serviceCollection.TryAddSingleton<ILambdaContextAccessor, LambdaContextAccessor>();
         }
     }
 }

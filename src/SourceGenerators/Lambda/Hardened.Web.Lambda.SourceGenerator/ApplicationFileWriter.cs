@@ -9,8 +9,9 @@ namespace Hardened.Web.Lambda.SourceGenerator
         public static string WriteFile(EntryPointSelector.Model entryPoint)
         {
             var applicationFile = new CSharpFileDefinition(entryPoint.EntryPointType.Namespace);
+            var lambdaFileWriter = new LambdaWebApplicationFileWriter();
 
-            CreateApplicationClass(applicationFile, entryPoint);
+            lambdaFileWriter.CreateApplicationClass(entryPoint, applicationFile);
 
             var context = new OutputContext();
 

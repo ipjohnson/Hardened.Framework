@@ -24,8 +24,4 @@
 	  <ProjectReference Include="..\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Utilities\" />
-	</ItemGroup>
-
 </Project>

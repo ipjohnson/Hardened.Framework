@@ -22,14 +22,25 @@ namespace Hardened.Function.Lambda.Runtime.Execution
         }
 
         public string? ContentType { get; set; }
+
         public object? ResponseValue { get; set; }
+
         public string? TemplateName { get; set; }
+
         public int? Status { get; set; }
+
         public bool ShouldCompress { get; set; }
+
         public Stream Body { get; set; }
+
         public IHeaderCollection Headers { get; }
+
         public Exception? ExceptionValue { get; set; }
+
         public bool ResponseStarted { get; }
+
         public bool IsBinary { get; set; }
+
+        public bool ShouldSerialize { get; set; } = true;
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Shared;
@@ -21,11 +22,16 @@ namespace Hardened.SourceGenerator.Configuration
                 GenerateConfigurationFileModel
             ).WithComparer(new ConfigurationFileModelComparer());
 
-            initializationContext.RegisterSourceOutput(configurationFileModels, ConfigurationPropertyImplementationGenerator.Generate);
+            initializationContext.RegisterSourceOutput(
+                configurationFileModels,
+                SourceGeneratorWrapper.Wrap<ConfigurationFileModel>(ConfigurationPropertyImplementationGenerator.Generate));
 
             var modelCollection = configurationFileModels.Collect();
-            initializationContext.RegisterSourceOutput(entryPointProvider.Combine(modelCollection),
-                ConfigurationEntryPointGenerator.Generate);
+            initializationContext.RegisterSourceOutput(
+                entryPointProvider.Combine(modelCollection),
+                SourceGeneratorWrapper.Wrap<
+                    (EntryPointSelector.Model AppModel, ImmutableArray<ConfigurationFileModel> ConfigFiles)
+                >(ConfigurationEntryPointGenerator.Generate));
         }
 
         private static ConfigurationFileModel GenerateConfigurationFileModel(GeneratorSyntaxContext context, CancellationToken cancellationToken)

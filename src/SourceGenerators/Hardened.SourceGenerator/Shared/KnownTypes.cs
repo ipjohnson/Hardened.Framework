@@ -352,6 +352,20 @@ namespace Hardened.SourceGenerator.Shared
             public static readonly ITypeDefinition IApiGatewayV2Handler =
                 TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Amazon.LambdaAPIGatewayEvents, "IApiGatewayV2Handler");
 
+            public static readonly ITypeDefinition ILambdaHandlerPackage =
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Lambda.LambdaRuntimeImpl,
+                    "ILambdaHandlerPackage");
+
+
+            public static readonly ITypeDefinition ILambdaInvokeFilterProvider =
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Lambda.LambdaRuntimeImpl,
+                    "ILambdaInvokeFilterProvider");
+
+            public static readonly ITypeDefinition LambdaLoggerHelper =
+                TypeDefinition.Get("Hardened.Shared.Lambda.Runtime.Logging", "LambdaLoggerHelper");
+
+            public static readonly ITypeDefinition ILambdaContextAccessor =
+            TypeDefinition.Get("Hardened.Shared.Lambda.Runtime.Execution", "ILambdaContextAccessor");
         }
 
         public class System

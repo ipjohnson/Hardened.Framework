@@ -13,7 +13,7 @@ namespace Hardened.SourceGenerator.Module
         {
             context.RegisterSourceOutput(
                 applicationModel,
-                ModuleEntryPointFileWriter.WriteFile
+                SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(ModuleEntryPointFileWriter.WriteFile)
             );
         }
     }

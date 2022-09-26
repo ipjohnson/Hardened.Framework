@@ -22,7 +22,7 @@ namespace Hardened.Web.Lambda.Harness
             var request = await ConvertHttpContextToRequest(context);
 
             var response =
-                await _handler.FunctionHandlerAsync(request, TestLambdaContext.FromHandlerType(typeof(T)));
+                await _handler.Invoke(request, TestLambdaContext.FromName(typeof(T).Name));
 
             await SendResponse(context, response);
         }

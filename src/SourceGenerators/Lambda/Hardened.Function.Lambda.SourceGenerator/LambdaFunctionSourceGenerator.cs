@@ -20,6 +20,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
             );
             
             LambdaEntryIncrementalGenerator.Setup(context, applicationModel);
+            LambdaApplicationGenerator.Setup(context, applicationModel);
             //LambdaFunctionApplicationBootstrapGenerator.Setup(context, applicationModel);
         }
     }

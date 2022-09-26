@@ -23,5 +23,7 @@ namespace Hardened.Requests.Abstract.Execution
         bool ResponseStarted { get; }
 
         bool IsBinary { get; set; }
+
+        bool ShouldSerialize { get; set; }
     }
 }

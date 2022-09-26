@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Data;
 using System.Text;
+using CSharpAuthor;
+using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
@@ -22,12 +26,36 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             var applicationCollect = applicationValuesProvider.Collect();
 
-            var invokeGenerator = new LambdaEntryPointFileWriter();
+            var invokeGenerator = new LambdaFunctionInvokerFileWriter();
             
             initializationContext.RegisterSourceOutput(
                 modelProvider.Combine(applicationCollect),
-                invokeGenerator.GenerateSource
+                SourceGeneratorWrapper.Wrap <
+                (RequestHandlerModel entryModel, ImmutableArray<EntryPointSelector.Model> appModel) >( invokeGenerator.GenerateSource)
             );
+
+            var lambdaCollection = modelProvider.Collect();
+
+            initializationContext.RegisterSourceOutput(
+                applicationValuesProvider.Combine(lambdaCollection),
+                SourceGeneratorWrapper.Wrap<
+                    (EntryPointSelector.Model, ImmutableArray<RequestHandlerModel>)>(GenerateLambdaPackage)
+                );
+
+        }
+
+        private static void GenerateLambdaPackage(SourceProductionContext context, (EntryPointSelector.Model,ImmutableArray<RequestHandlerModel>) model)
+        {
+            var lambdaHandlerPackageFileWriter = new LambdaHandlerPackageFileWriter();
+            var csharpFile = new CSharpFileDefinition(model.Item1.EntryPointType.Namespace);
+
+            lambdaHandlerPackageFileWriter.WriteFile(context, model.Item1, model.Item2, csharpFile);
+            
+            var output = new OutputContext();
+            
+            csharpFile.WriteOutput(output);
+
+            context.AddSource(model.Item1.EntryPointType.Name + ".LambdaHandlerPackage.cs", output.Output());
         }
     }
 }

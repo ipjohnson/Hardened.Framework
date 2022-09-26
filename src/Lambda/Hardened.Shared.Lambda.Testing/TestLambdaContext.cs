@@ -9,6 +9,7 @@ namespace Hardened.Shared.Lambda.Testing
 {
     public class TestLambdaContext : ILambdaContext
     {
+
         public TestLambdaContext(
             string awsRequestId,
             IClientContext clientContext,
@@ -35,45 +36,43 @@ namespace Hardened.Shared.Lambda.Testing
             RemainingTime = remainingTime;
         }
 
-        public static TestLambdaContext FromHandlerType(Type type, IDictionary<string,string>? customData = null)
+        public static TestLambdaContext FromName(string functionName, IDictionary<string,string>? customData = null)
         {
-            var name = type.Name.Split('_').Last();
-
             return new TestLambdaContext(
                 Guid.NewGuid().ToString(),
                 new TestClientContext(customData ?? new Dictionary<string, string>()),
-                name,
+                functionName,
                 "1",
                 new TestCognitoIdentity(),
                 "arn",
                 new TestLambdaLogger(),
-                name + "Logger",
-                name + "LoggerStream",
+                functionName + "Logger",
+                functionName + "LoggerStream",
                 1024,
                 TimeSpan.FromSeconds(60)
                 );
         }
 
-        public string AwsRequestId { get; }
+        public string AwsRequestId { get; set; }
 
-        public IClientContext ClientContext { get; }
+        public IClientContext ClientContext { get; set; }
 
-        public string FunctionName { get; }
+        public string FunctionName { get; set; }
 
-        public string FunctionVersion { get; }
+        public string FunctionVersion { get; set; }
 
-        public ICognitoIdentity Identity { get; }
+        public ICognitoIdentity Identity { get; set; }
 
-        public string InvokedFunctionArn { get; }
+        public string InvokedFunctionArn { get; set; }
 
-        public ILambdaLogger Logger { get; }
+        public ILambdaLogger Logger { get; set; }
 
-        public string LogGroupName { get; }
+        public string LogGroupName { get; set; }
 
-        public string LogStreamName { get; }
+        public string LogStreamName { get; set; }
 
-        public int MemoryLimitInMB { get; }
+        public int MemoryLimitInMB { get; set; }
 
-        public TimeSpan RemainingTime { get; }
+        public TimeSpan RemainingTime { get; set; }
     }
 }

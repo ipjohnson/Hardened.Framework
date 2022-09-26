@@ -9,6 +9,7 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Runtime.Headers;
+using Hardened.Shared.Lambda.Runtime.Execution;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
@@ -28,21 +29,26 @@ namespace Hardened.Function.Lambda.Runtime.Impl
         private readonly IMiddlewareService _middlewareService;
         private readonly IMemoryStreamPool _memoryStreamPool;
         private readonly IKnownServices _knownServices;
+        private readonly ILambdaContextAccessor _contextAccessor;
 
         public LambdaFunctionImplService(
             IMiddlewareService middlewareService,
             IMemoryStreamPool memoryStreamPool, 
             IServiceProvider serviceProvider, 
-            IKnownServices knownServices)
+            IKnownServices knownServices,
+            ILambdaContextAccessor contextAccessor)
         {
             _middlewareService = middlewareService;
             _memoryStreamPool = memoryStreamPool;
             _serviceProvider = serviceProvider;
             _knownServices = knownServices;
+            _contextAccessor = contextAccessor;
         }
 
         public async Task<Stream> InvokeFunction(Stream stream, ILambdaContext context)
         {
+            _contextAccessor.Context = context;
+
             var now = MachineTimestamp.Now;
 
             await using var requestContext = _serviceProvider.CreateAsyncScope();

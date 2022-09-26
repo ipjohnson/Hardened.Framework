@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Shared;
@@ -25,7 +26,10 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             var generator = new DependencyInjectionFileGenerator(defaultLibraries);
 
-            initializationContext.RegisterSourceOutput(entryPointProvider.Combine(servicesCollection), generator.GenerateFile);
+            initializationContext.RegisterSourceOutput(
+                entryPointProvider.Combine(servicesCollection),
+                SourceGeneratorWrapper.Wrap<
+                    (EntryPointSelector.Model Left, ImmutableArray<ServiceModel> Right)>(generator.GenerateFile));
         }
 
         private static ServiceModel GenerateServiceModel(GeneratorSyntaxContext arg1, CancellationToken arg2)

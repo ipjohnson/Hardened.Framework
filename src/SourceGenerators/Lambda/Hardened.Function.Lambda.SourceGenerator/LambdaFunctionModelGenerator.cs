@@ -26,7 +26,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
                 new RequestHandlerNameModel(methodName, "Invoke"),
                 controllerType, 
                 methodName,
-                TypeDefinition.Get("", "InvokeFilter"),
+                TypeDefinition.Get(controllerType.Namespace + ".Generated", "InvokeFilter" + controllerType.Name + "_" + methodName),
                 GetParameters(context, methodDeclaration, cancellation), response, filters);
         }
 

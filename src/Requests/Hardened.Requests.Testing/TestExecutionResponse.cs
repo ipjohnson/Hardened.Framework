@@ -38,5 +38,7 @@ namespace Hardened.Requests.Testing
         public bool ResponseStarted => Body.Position > 0;
 
         public bool IsBinary { get; set; }
+
+        public bool ShouldSerialize { get; set; } = true;
     }
 }

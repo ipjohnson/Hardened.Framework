@@ -6,13 +6,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Filters
 {
-    public class IOFilter : IExecutionFilter
+    public class IoFilter : IExecutionFilter
     {
         private readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> _deserializeRequest;
         private readonly Func<IExecutionContext, Task> _serializeResponse;
         private readonly Action<IExecutionContext>? _headerActions;
 
-        public IOFilter(Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
+        public IoFilter(Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
             Func<IExecutionContext, Task> serializeResponse, 
             Action<IExecutionContext>? headerActions)
         {
@@ -25,10 +25,13 @@ namespace Hardened.Requests.Runtime.Filters
         {
             var context = chain.Context;
             var bindParameterStartTimestamp = MachineTimestamp.Now;
-
+            
             try
             {
-                context.Request.Parameters = await _deserializeRequest(chain.Context);
+                if (context.Request.Parameters == null)
+                {
+                    context.Request.Parameters = await _deserializeRequest(chain.Context);
+                }
             }
             catch (Exception exp)
             {
@@ -59,7 +62,10 @@ namespace Hardened.Requests.Runtime.Filters
             {
                 _headerActions?.Invoke(chain.Context);
 
-                await _serializeResponse(chain.Context);
+                if (chain.Context.Response.ShouldSerialize)
+                {
+                    await _serializeResponse(chain.Context);
+                }
             }
             finally
             {

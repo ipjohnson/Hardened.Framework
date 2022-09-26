@@ -24,13 +24,15 @@ namespace Hardened.SourceGenerator.Web
             
             initializationContext.RegisterSourceOutput(
                 modelProvider,
-                invokeGenerator.GenerateSource
+                SourceGeneratorWrapper.Wrap<RequestHandlerModel>(invokeGenerator.GenerateSource)
                 );
 
             var collection = modelProvider.Collect();
             
             var routeProvider = entryPointProvider.Combine(collection).WithComparer(new CombinedComparer());
-            initializationContext.RegisterSourceOutput(routeProvider, RoutingTableGenerator.GenerateRoute);
+            initializationContext.RegisterSourceOutput(routeProvider,
+                SourceGeneratorWrapper.Wrap<
+                    (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right)>(RoutingTableGenerator.GenerateRoute));
         }
 
         public class CombinedComparer : IEqualityComparer<(EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right)>

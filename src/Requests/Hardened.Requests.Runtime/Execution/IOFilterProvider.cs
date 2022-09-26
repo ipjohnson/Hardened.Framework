@@ -69,7 +69,7 @@ namespace Hardened.Requests.Runtime.Execution
             IExecutionRequestHandlerInfo handlerInfo, 
             Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest)
         {
-            return new IOFilter(
+            return new IoFilter(
                 deserializeRequest,
                 _contextSerializationService.SerializeResponse,
                 _headerActions

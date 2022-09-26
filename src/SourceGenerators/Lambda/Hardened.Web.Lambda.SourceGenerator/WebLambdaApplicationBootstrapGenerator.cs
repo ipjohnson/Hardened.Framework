@@ -12,16 +12,17 @@ namespace Hardened.Web.Lambda.SourceGenerator
         {
             initializationContext.RegisterSourceOutput(
                 incrementalValuesProvider,
-                ModelWriter
+                SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(ModelWriter)
                 );
         }
 
         private static void ModelWriter(SourceProductionContext arg1, EntryPointSelector.Model entryPoint)
         {
+
             var applicationFile = ApplicationFileWriter.WriteFile(entryPoint);
-            
+
             arg1.AddSource(entryPoint.EntryPointType.Name + ".App", applicationFile);
         }
-        
+
     }
 }
