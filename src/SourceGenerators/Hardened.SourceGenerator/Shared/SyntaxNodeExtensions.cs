@@ -66,6 +66,20 @@ namespace Hardened.SourceGenerator.Shared
                     });
         }
 
+
+        public static IEnumerable<AttributeSyntax> GetAttributes(this SyntaxNode node, string attributeName, string ns = "")
+        {
+            return node.DescendantNodes()
+                .OfType<AttributeSyntax>().Where(
+                    a =>
+                    {
+                        var name = a.Name.ToString();
+
+                        return name.Equals(attributeName) || name.Equals(attributeName + "Attribute") ||
+                               name.Equals(ns + "." + attributeName) || name.Equals(ns + "." + attributeName + "Attribute");
+                    });
+        }
+
         public static bool IsAttributed(this SyntaxNode node, string attributeName, string ns = "")
         {
             return node.DescendantNodes()

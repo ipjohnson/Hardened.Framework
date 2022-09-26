@@ -74,17 +74,46 @@ namespace Hardened.SourceGenerator.DependencyInjection
                 lifeStyle = ServiceModel.ServiceLifestyle.Scoped;
             }
 
-            return new ServiceModel(exposeTypeDef!, classTypeDef, lifeStyle, false);
+            var getEnvironments = GetEnvironments(classDeclarationSyntax);
+
+            return new ServiceModel(exposeTypeDef!, classTypeDef, lifeStyle, false, getEnvironments);
+        }
+
+        private static IReadOnlyList<string> GetEnvironments(ClassDeclarationSyntax classDeclarationSyntax)
+        {
+            var environments = new List<string>();
+
+            foreach (var attributeSyntax in classDeclarationSyntax.GetAttributes("ForEnvironment"))
+            {
+                File.AppendAllText(@"C:\temp\generated\for_env.txt", attributeSyntax.ToFullString() + "\r\n");
+                var environmentStringAttr = attributeSyntax.ArgumentList?.Arguments.FirstOrDefault();
+
+                if (environmentStringAttr != null)
+                {
+                    File.AppendAllText(@"C:\temp\generated\for_env.txt", environmentStringAttr + "\r\n");
+                    var environmentString = environmentStringAttr.ToString().Trim('"');
+
+                    environments.Add(environmentString);
+                }
+            }
+
+            return environments;
         }
 
         public class ServiceModel
         {
-            public ServiceModel(ITypeDefinition serviceType, ITypeDefinition implementationType, ServiceLifestyle lifestyle, bool @try)
+            public ServiceModel(
+                ITypeDefinition serviceType, 
+                ITypeDefinition implementationType, 
+                ServiceLifestyle lifestyle, 
+                bool @try,
+                IReadOnlyList<string> environments)
             {
                 ServiceType = serviceType;
                 ImplementationType = implementationType;
                 Lifestyle = lifestyle;
                 Try = @try;
+                Environments = environments;
             }
 
             public enum ServiceLifestyle
@@ -101,6 +130,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
             public ServiceLifestyle Lifestyle { get; }
 
             public bool Try { get; set; }
+            public IReadOnlyList<string> Environments { get; }
 
             public override bool Equals(object obj)
             {

@@ -159,7 +159,8 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             providerMethod.NewLine();
 
-            foreach (var serviceModel in dependencyDataRight)
+            foreach (var serviceModel in 
+                     dependencyDataRight.Sort((x, y) => Comparer<int>.Default.Compare(x.Environments.Count,y.Environments.Count)))
             {
                 var registerMethod = "AddTransient";
 
@@ -178,7 +179,18 @@ namespace Hardened.SourceGenerator.DependencyInjection
                     registerMethod = "Try" + registerMethod;
                 }
 
-                providerMethod.AddIndentedStatement(
+                BaseBlockDefinition block = providerMethod;
+
+                if (serviceModel.Environments.Count > 0)
+                {
+                    var environments = serviceModel.Environments.Select(QuoteString).OfType<object>().ToArray();
+
+                    var matches = environment.Invoke("Matches", environments);
+
+                    block = providerMethod.If(matches);
+                }
+
+                block.AddIndentedStatement(
                     serviceCollectionDefinition.InvokeGeneric(registerMethod,
                         new[] { serviceModel.ServiceType, serviceModel.ImplementationType }));
             }
