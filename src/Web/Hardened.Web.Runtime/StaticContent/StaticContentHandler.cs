@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
 using System.IO.Compression;
-using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;

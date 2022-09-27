@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using CSharpAuthor;
+﻿using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 
 namespace Hardened.SourceGenerator.Shared

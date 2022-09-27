@@ -1,16 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Amazon.Lambda.Core;
-using Hardened.Function.Lambda.Runtime.Impl;
-using Hardened.Shared.Lambda.Testing;
-using Hardened.Shared.Runtime.Collections;
-using Microsoft.Extensions.DependencyInjection;
-
-namespace Hardened.Function.Lambda.Testing
+﻿namespace Hardened.Function.Lambda.Testing
 {
     public static class ILambdaHandlerExtensions
     {

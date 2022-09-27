@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Hardened.Templates.Abstract;
+﻿using Hardened.Templates.Abstract;
 
 namespace Hardened.Templates.Runtime.Impl
 {

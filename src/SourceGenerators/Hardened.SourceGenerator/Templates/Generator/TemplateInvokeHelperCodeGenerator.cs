@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using CSharpAuthor;
+﻿using System.Text;
 using Hardened.SourceGenerator.Shared;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Templates.Parser;
-using Hardened.Templates.SourceGenerator.Parser;
 
 namespace Hardened.SourceGenerator.Templates.Generator
 {

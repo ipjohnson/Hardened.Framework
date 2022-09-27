@@ -5,11 +5,8 @@ using Hardened.Requests.Runtime.Configuration;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Shared.Runtime.Configuration;
-using Hardened.Shared.Runtime.Logging;
-using Hardened.Web.Lambda.Runtime;
 using Hardened.Web.Runtime.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Hardened.IntegrationTests.Web.Lambda.SUT
 {

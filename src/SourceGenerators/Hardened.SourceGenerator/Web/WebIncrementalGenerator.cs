@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using Hardened.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;

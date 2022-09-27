@@ -3,7 +3,6 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.PathTokens;
-using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Testing
 {

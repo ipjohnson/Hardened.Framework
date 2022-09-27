@@ -1,9 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
-using System;
-using CSharpAuthor;
 using Hardened.SourceGenerator.Configuration;
 using Hardened.SourceGenerator.DependencyInjection;
-using Hardened.SourceGenerator.Module;
 using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.Library.SourceGenerator

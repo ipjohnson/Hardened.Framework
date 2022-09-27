@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Hardened.SourceGenerator.Shared;
+﻿using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Templates.Parser
 {

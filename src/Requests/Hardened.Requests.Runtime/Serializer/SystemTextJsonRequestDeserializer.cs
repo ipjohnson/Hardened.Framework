@@ -1,5 +1,4 @@
 ﻿using System.IO.Compression;
-using System.Net;
 using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;

@@ -1,7 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Module

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using CSharpAuthor;
+﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.Web.Lambda.SourceGenerator

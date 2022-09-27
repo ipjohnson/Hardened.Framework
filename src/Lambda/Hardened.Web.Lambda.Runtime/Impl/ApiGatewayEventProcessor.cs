@@ -1,19 +1,15 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using System.Text;
+﻿using System.Text;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
-using Hardened.Requests.Runtime.Execution;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
 using Hardened.Web.Runtime.Headers;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using MSLogging = Microsoft.Extensions.Logging;
 
 namespace Hardened.Web.Lambda.Runtime.Impl

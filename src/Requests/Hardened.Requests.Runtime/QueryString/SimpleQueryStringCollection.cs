@@ -1,10 +1,5 @@
 ﻿using Hardened.Requests.Abstract.QueryString;
 using Microsoft.Extensions.Primitives;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Hardened.Requests.Runtime.QueryString
 {

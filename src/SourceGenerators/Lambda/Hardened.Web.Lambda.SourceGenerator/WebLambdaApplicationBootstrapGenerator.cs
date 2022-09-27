@@ -1,7 +1,5 @@
-﻿using CSharpAuthor;
-using Hardened.SourceGenerator.Shared;
+﻿using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.Web.Lambda.SourceGenerator
 {

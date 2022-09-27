@@ -1,9 +1,6 @@
 ﻿using CSharpAuthor;
-using static CSharpAuthor.SyntaxHelpers;
-using Hardened.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
-using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Web

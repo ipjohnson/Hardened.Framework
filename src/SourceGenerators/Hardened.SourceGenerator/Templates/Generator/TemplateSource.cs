@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Hardened.SourceGenerator.Templates.Generator
+﻿namespace Hardened.SourceGenerator.Templates.Generator
 {
     public static class TemplateSource
     {

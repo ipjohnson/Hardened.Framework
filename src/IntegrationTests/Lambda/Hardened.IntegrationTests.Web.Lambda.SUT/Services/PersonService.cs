@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
+﻿using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Configuration;
 using Microsoft.Extensions.Options;

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text;
+﻿using System.Text;
 
 namespace Hardened.SourceGenerator.Web.Routing
 {

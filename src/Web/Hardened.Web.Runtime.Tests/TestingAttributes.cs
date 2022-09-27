@@ -1,8 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SimpleFixture.NSubstitute;
+﻿using SimpleFixture.NSubstitute;
 
 [assembly: SubFixtureInitialize]

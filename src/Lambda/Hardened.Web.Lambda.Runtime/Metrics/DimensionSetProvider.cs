@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Amazon.CloudWatch.EMF.Model;
+﻿using Amazon.CloudWatch.EMF.Model;
 
 namespace Hardened.Web.Lambda.Runtime.Metrics
 {

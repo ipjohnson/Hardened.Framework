@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Hardened.Shared.Runtime.Collections
+﻿namespace Hardened.Shared.Runtime.Collections
 {
     public static class Extensions
     {

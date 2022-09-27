@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace Hardened.Shared.Runtime.Application
+﻿namespace Hardened.Shared.Runtime.Application
 {
     public interface IApplicationRoot : IAsyncDisposable
     {

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Execution;
 
 namespace Hardened.Templates.Abstract
 {

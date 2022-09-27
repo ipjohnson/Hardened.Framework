@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Hardened.SourceGenerator.Models.Request;
-using Hardened.SourceGenerator.Shared;
+﻿using Hardened.SourceGenerator.Models.Request;
 
 namespace Hardened.SourceGenerator.Requests
 {

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using Hardened.Templates.Runtime.Impl;
+﻿using Hardened.Templates.Runtime.Impl;
 using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Impl

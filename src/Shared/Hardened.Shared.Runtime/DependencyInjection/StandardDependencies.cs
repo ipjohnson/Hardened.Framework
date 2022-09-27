@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography;
-using Hardened.Shared.Runtime.Application;
+﻿using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Runtime.Metrics;

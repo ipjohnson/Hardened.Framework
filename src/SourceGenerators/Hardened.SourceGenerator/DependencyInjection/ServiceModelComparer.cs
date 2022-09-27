@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Hardened.SourceGenerator.DependencyInjection
+﻿namespace Hardened.SourceGenerator.DependencyInjection
 {
     public class ServiceModelComparer : IEqualityComparer<DependencyInjectionIncrementalGenerator.ServiceModel>
     {

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using static Hardened.SourceGenerator.Configuration.ConfigurationIncrementalGenerator;
+﻿using static Hardened.SourceGenerator.Configuration.ConfigurationIncrementalGenerator;
 
 namespace Hardened.SourceGenerator.Configuration
 {

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Hardened.Templates.Abstract;
+﻿using Hardened.Templates.Abstract;
 
 namespace Hardened.Templates.Runtime.Helpers.String
 {

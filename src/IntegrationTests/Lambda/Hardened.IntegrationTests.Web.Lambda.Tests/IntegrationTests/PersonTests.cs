@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using AngleSharp.Dom;
-using AngleSharp.Html.Parser;
-using Hardened.IntegrationTests.Web.Lambda.SUT.Configuration;
+﻿using Hardened.IntegrationTests.Web.Lambda.SUT.Configuration;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Web.Lambda.SUT.Services;
 using Hardened.IntegrationTests.Web.Lambda.Tests.Extensions;

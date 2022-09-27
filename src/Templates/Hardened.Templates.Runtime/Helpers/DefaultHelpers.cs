@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Hardened.Templates.Abstract;
+﻿using Hardened.Templates.Abstract;
 using Hardened.Templates.Runtime.Helpers.Collection;
 using Hardened.Templates.Runtime.Helpers.String;
 using Hardened.Templates.Runtime.Helpers.Url;
-using Hardened.Templates.Runtime.Impl;
 
 namespace Hardened.Templates.Runtime.Helpers
 {

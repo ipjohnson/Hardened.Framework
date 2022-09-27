@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CSharpAuthor;
-using static CSharpAuthor.SyntaxHelpers;
+﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Templates.Parser;
 

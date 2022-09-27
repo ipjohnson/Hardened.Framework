@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hardened.Shared.Runtime.Attributes;
+﻿using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.Function.Lambda.SUT.Configuration
 {

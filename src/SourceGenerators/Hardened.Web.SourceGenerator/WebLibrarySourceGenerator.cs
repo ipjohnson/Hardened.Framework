@@ -1,13 +1,5 @@
-﻿using Hardened.SourceGenerator.Module;
-using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using CSharpAuthor;
-using Hardened.SourceGenerator.Configuration;
-using Hardened.SourceGenerator.DependencyInjection;
+﻿using Microsoft.CodeAnalysis;
 using Hardened.SourceGenerator.Shared;
-using Hardened.SourceGenerator.Templates.Generator;
 using Hardened.SourceGenerator.Web;
 
 namespace Hardened.Web.SourceGenerator

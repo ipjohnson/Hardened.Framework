@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
-using System.Text;
+﻿using System.Collections.Immutable;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;

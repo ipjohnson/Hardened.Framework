@@ -2,7 +2,6 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Web.Runtime.StaticContent;
-using Microsoft.Extensions.Logging;
 
 namespace Hardened.Web.Runtime.Handlers
 {

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Text;
-using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Templates.Abstract;
 
 namespace Hardened.Templates.Runtime.Impl

@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Hardened.SourceGenerator.Templates.Parser
+﻿namespace Hardened.SourceGenerator.Templates.Parser
 {
     public enum TemplateActionType
     {

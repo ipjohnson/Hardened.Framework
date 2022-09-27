@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Hardened.Web.Runtime.Headers
+﻿namespace Hardened.Web.Runtime.Headers
 {
     public static class KnownHeaders
     {

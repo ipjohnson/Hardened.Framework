@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO.Compression;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hardened.Requests.Abstract.Execution;
+﻿using System.IO.Compression;
 using Hardened.Shared.Runtime.Collections;
 
 namespace Hardened.Web.Runtime.StaticContent

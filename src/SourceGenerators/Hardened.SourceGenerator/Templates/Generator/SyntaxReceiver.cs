@@ -1,14 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using CSharpAuthor;
-using Hardened.SourceGenerator.Shared;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-namespace Hardened.SourceGenerator.Templates.Generator
+﻿namespace Hardened.SourceGenerator.Templates.Generator
 {
     //public class PackageData
     //{

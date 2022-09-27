@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hardened.SourceGenerator.Web.Routing;
+﻿using Hardened.SourceGenerator.Web.Routing;
 using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Web.Routing

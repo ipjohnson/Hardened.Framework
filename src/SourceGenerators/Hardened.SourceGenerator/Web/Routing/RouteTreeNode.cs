@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Hardened.SourceGenerator.Web.Routing
+﻿namespace Hardened.SourceGenerator.Web.Routing
 {
     public class RouteTreeNode<T>
     {

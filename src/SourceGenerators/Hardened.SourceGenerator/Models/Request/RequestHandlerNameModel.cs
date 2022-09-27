@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Hardened.SourceGenerator.Models.Request
+﻿namespace Hardened.SourceGenerator.Models.Request
 {
     public class RequestHandlerNameModel
     {

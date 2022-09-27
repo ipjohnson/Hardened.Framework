@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
-using CSharpAuthor;
+﻿using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
-using Hardened.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 

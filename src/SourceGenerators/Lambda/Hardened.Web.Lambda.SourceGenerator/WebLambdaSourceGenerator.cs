@@ -1,8 +1,4 @@
-﻿using Hardened.SourceGenerator.Configuration;
-using Hardened.SourceGenerator.DependencyInjection;
-using Hardened.SourceGenerator.Shared;
-using Hardened.SourceGenerator.Templates.Generator;
-using Hardened.SourceGenerator.Web;
+﻿using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.Web.Lambda.SourceGenerator

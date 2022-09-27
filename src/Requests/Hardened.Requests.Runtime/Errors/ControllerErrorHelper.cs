@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Microsoft.Extensions.DependencyInjection;
 

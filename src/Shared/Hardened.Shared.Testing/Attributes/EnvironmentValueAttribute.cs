@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Hardened.Shared.Testing.Attributes
+﻿namespace Hardened.Shared.Testing.Attributes
 {
     /// <summary>
     /// Apply to test to set environment value for a test

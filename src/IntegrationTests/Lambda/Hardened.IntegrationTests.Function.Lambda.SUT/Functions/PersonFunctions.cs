@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hardened.Function.Lambda.Runtime;
+﻿using Hardened.Function.Lambda.Runtime;
 using Hardened.IntegrationTests.Function.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Function.Lambda.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;

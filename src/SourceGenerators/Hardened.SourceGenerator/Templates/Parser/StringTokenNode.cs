@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Hardened.SourceGenerator.Templates.Parser
+﻿namespace Hardened.SourceGenerator.Templates.Parser
 {
     public enum StringTokenNodeType
     {

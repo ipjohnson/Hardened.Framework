@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Hardened.SourceGenerator.Shared
+﻿namespace Hardened.SourceGenerator.Shared
 {
     public static class ReadOnlySpanExtensions
     {

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Hardened.Shared.Runtime.Attributes
+﻿namespace Hardened.Shared.Runtime.Attributes
 {
     /// <summary>
     /// Attribute ConfigurationModel properties to populate from environment

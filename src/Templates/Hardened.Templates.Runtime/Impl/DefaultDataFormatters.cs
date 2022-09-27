@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using Hardened.Templates.Abstract;
+﻿using Hardened.Templates.Abstract;
 
 namespace Hardened.Templates.Runtime.Impl
 {

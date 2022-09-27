@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hardened.Web.Runtime.CacheControl;
+﻿using Hardened.Web.Runtime.CacheControl;
 
 namespace Hardened.Web.Runtime.Attributes
 {

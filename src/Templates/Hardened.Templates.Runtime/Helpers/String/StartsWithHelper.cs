@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Hardened.Templates.Runtime.Helpers.String
+﻿namespace Hardened.Templates.Runtime.Helpers.String
 {
     public class StartsWithHelper : BaseStringEvaluationHelper
     {
