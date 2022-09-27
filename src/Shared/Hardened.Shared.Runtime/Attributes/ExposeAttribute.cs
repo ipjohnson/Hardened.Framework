@@ -8,5 +8,7 @@
         }
 
         public Type[] ForServices { get; }
+
+        public bool Try { get; set; } = false;
     }
 }

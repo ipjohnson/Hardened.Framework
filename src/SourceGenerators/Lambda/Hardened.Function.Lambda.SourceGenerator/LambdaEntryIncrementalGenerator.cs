@@ -17,7 +17,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
         public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
             IncrementalValuesProvider<EntryPointSelector.Model> applicationValuesProvider)
         {
-            var methodSelector = new SyntaxSelector<MethodDeclarationSyntax>(KnownTypes.Lambda.LambdaFunctionAttribute);
+            var methodSelector = new SyntaxSelector<MethodDeclarationSyntax>(KnownTypes.Requests.HardenedFunctionAttribute);
 
             var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
                 methodSelector.Where,
@@ -41,7 +41,6 @@ namespace Hardened.Function.Lambda.SourceGenerator
                 SourceGeneratorWrapper.Wrap<
                     (EntryPointSelector.Model, ImmutableArray<RequestHandlerModel>)>(GenerateLambdaPackage)
                 );
-
         }
 
         private static void GenerateLambdaPackage(SourceProductionContext context, (EntryPointSelector.Model,ImmutableArray<RequestHandlerModel>) model)

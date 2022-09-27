@@ -202,7 +202,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             }
             else if (csharpStatement.StartsWith("`"))
             {
-                context.InvokeMethod.AddUsingNamespace(KnownTypes.Namespace.HardenedTemplateRuntimeNamespace);
+                context.InvokeMethod.AddUsingNamespace(KnownTypes.Namespace.Hardened.Templates.Runtime.Value);
 
                 var propertyStatement = csharpStatement.Substring(1);
                 

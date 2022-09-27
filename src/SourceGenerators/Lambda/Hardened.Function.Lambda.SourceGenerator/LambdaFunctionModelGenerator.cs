@@ -159,6 +159,7 @@ namespace Hardened.Function.Lambda.SourceGenerator
 
             switch (attributeName)
             {
+                case "HardenedFunction":
                 case "LambdaFunction":
                 case "Template":
                     return false;

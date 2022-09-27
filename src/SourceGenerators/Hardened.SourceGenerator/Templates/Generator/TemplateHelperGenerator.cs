@@ -46,7 +46,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             var templateField = appClass.AddField(typeof(int), "_templateHelperDependencies");
 
             templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-            templateField.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeDependencyInjection);
+            templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
             templateField.InitializeValue = $"DependencyRegistry<{appClass.Name}>.Register(HardenedTemplateHelperDI)";
 
             var diMethod = appClass.AddMethod("HardenedTemplateHelperDI");

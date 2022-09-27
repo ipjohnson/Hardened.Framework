@@ -86,7 +86,7 @@ namespace Hardened.SourceGenerator.Web
             var templateField = classDefinition.AddField(typeof(int), "_routingTableDependencies");
 
             templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-            templateField.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeDependencyInjection);
+            templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
             templateField.InitializeValue = $"DependencyRegistry<{classDefinition.Name}>.Register(RoutingTableDI)";
 
             var diMethod = classDefinition.AddMethod("RoutingTableDI");

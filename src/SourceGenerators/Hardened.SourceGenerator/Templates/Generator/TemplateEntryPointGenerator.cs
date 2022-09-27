@@ -39,7 +39,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             var templateField = classDefinition.AddField(typeof(int), "_templateDependencies");
 
             templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-            templateField.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeDependencyInjection);
+            templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
             templateField.InitializeValue = $"DependencyRegistry<{classDefinition.Name}>.Register(HardenedTemplateDI)";
 
             var diMethod = classDefinition.AddMethod("HardenedTemplateDI");

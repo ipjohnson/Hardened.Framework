@@ -17,8 +17,13 @@ namespace Hardened.SourceGenerator.Shared
             return GetTypeDefinitionFromSymbolInfo(symbolInfo);
         }
 
-        public static string GetFullName(this INamespaceSymbol namespaceSymbol)
+        public static string GetFullName(this INamespaceSymbol? namespaceSymbol)
         {
+            if (namespaceSymbol == null)
+            {
+                return "";
+            }
+
             var baseString = namespaceSymbol.ContainingNamespace?.GetFullName();
 
             if (string.IsNullOrEmpty(baseString))
@@ -73,7 +78,7 @@ namespace Hardened.SourceGenerator.Shared
                         var baseType = namedTypeSymbol.TypeArguments.First();
                         return GetTypeDefinitionFromType(baseType).MakeNullable();
                     }
-
+                    
                     var closingTypeSymbols = namedTypeSymbol.TypeArguments;
                     var closingTypes = new List<ITypeDefinition>();
 

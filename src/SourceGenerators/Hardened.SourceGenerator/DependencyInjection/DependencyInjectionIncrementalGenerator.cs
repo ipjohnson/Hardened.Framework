@@ -35,33 +35,63 @@ namespace Hardened.SourceGenerator.DependencyInjection
         private static ServiceModel GenerateServiceModel(GeneratorSyntaxContext arg1, CancellationToken arg2)
         {
             var classDeclarationSyntax = (ClassDeclarationSyntax)arg1.Node;
-
+            var tryValue = false;
             ITypeDefinition? exposeTypeDef = null;
             var expose = classDeclarationSyntax.DescendantNodes().OfType<AttributeSyntax>()
                 .FirstOrDefault(a => a.Name.ToString() == "Expose" || a.Name.ToString() == "ExposeAttribute");
 
             if (expose != null)
             {
-                var exposeType = classDeclarationSyntax.BaseList?.Types.FirstOrDefault();
-
-                if (exposeType != null)
+                if (expose.ArgumentList != null)
                 {
-                    var symbolType = arg1.SemanticModel.GetSymbolInfo(exposeType.Type, arg2);
+                    foreach (var argumentSyntax in expose.ArgumentList.Arguments)
+                    {
+                        var expressionString = argumentSyntax.Expression.ToString();
 
-                    if (symbolType.Symbol != null)
-                    {
-                        exposeTypeDef = TypeDefinition.Get(symbolType.Symbol!.ContainingNamespace.ToString(),
-                            symbolType.Symbol.Name);
+                        if (argumentSyntax.NameEquals?.ToString().Contains("Try") ?? false)
+                        {
+                            tryValue = expressionString.Contains("true");
+                        }
+                        else if (argumentSyntax.Expression is TypeOfExpressionSyntax typeOfExpression)
+                        {
+                            exposeTypeDef = typeOfExpression.Type.GetTypeDefinition(arg1);
+                        }
                     }
-                    else
+                }
+
+                if (exposeTypeDef == null)
+                {
+                    var exposeType = classDeclarationSyntax.BaseList?.Types.FirstOrDefault();
+
+                    if (exposeType != null)
                     {
-                        // todo: handler error case
+                        exposeTypeDef = exposeType.Type.GetTypeDefinition(arg1);
                     }
                 }
             }
 
-            var classTypeDef = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
-                classDeclarationSyntax.Identifier.ToString());
+            if (exposeTypeDef is GenericTypeDefinition genericTypeDefinition)
+            {
+                exposeTypeDef = genericTypeDefinition.MakeOpenType();
+            }
+
+            ITypeDefinition classTypeDefinition;
+
+            if (classDeclarationSyntax.TypeParameterList is { Parameters.Count: > 0 })
+            {
+                classTypeDefinition =
+                    new GenericTypeDefinition(
+                        TypeDefinitionEnum.ClassDefinition,
+                        classDeclarationSyntax.GetNamespace(),
+                        classDeclarationSyntax.Identifier.ToString(),
+                        classDeclarationSyntax.TypeParameterList.Parameters.Select(_ => TypeDefinition.Get("", "")).ToArray()
+                    );
+            }
+            else
+            {
+                classTypeDefinition = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
+                    classDeclarationSyntax.Identifier.ToString());
+            }
 
             var lifeStyle = ServiceModel.ServiceLifestyle.Transient;
 
@@ -76,7 +106,7 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             var getEnvironments = GetEnvironments(classDeclarationSyntax);
 
-            return new ServiceModel(exposeTypeDef!, classTypeDef, lifeStyle, false, getEnvironments);
+            return new ServiceModel(exposeTypeDef ?? classTypeDefinition, classTypeDefinition, lifeStyle, tryValue, getEnvironments);
         }
 
         private static IReadOnlyList<string> GetEnvironments(ClassDeclarationSyntax classDeclarationSyntax)
@@ -85,12 +115,10 @@ namespace Hardened.SourceGenerator.DependencyInjection
 
             foreach (var attributeSyntax in classDeclarationSyntax.GetAttributes("ForEnvironment"))
             {
-                File.AppendAllText(@"C:\temp\generated\for_env.txt", attributeSyntax.ToFullString() + "\r\n");
                 var environmentStringAttr = attributeSyntax.ArgumentList?.Arguments.FirstOrDefault();
 
                 if (environmentStringAttr != null)
                 {
-                    File.AppendAllText(@"C:\temp\generated\for_env.txt", environmentStringAttr + "\r\n");
                     var environmentString = environmentStringAttr.ToString().Trim('"');
 
                     environments.Add(environmentString);
@@ -103,9 +131,9 @@ namespace Hardened.SourceGenerator.DependencyInjection
         public class ServiceModel
         {
             public ServiceModel(
-                ITypeDefinition serviceType, 
-                ITypeDefinition implementationType, 
-                ServiceLifestyle lifestyle, 
+                ITypeDefinition serviceType,
+                ITypeDefinition implementationType,
+                ServiceLifestyle lifestyle,
                 bool @try,
                 IReadOnlyList<string> environments)
             {

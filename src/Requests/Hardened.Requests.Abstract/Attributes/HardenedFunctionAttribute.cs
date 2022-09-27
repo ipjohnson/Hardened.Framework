@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Hardened.Function.Lambda.Runtime
+namespace Hardened.Requests.Abstract.Attributes
 {
-    public class LambdaFunctionAttribute : Attribute
+    public class HardenedFunctionAttribute : Attribute
     {
         public string? FunctionName { get; set; }
     }

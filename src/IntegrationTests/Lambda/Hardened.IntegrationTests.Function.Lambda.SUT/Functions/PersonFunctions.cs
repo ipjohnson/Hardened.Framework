@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Hardened.Function.Lambda.Runtime;
 using Hardened.IntegrationTests.Function.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Function.Lambda.SUT.Services;
+using Hardened.Requests.Abstract.Attributes;
 
 namespace Hardened.IntegrationTests.Function.Lambda.SUT.Functions
 {
@@ -18,7 +19,7 @@ namespace Hardened.IntegrationTests.Function.Lambda.SUT.Functions
             _personService = personService;
         }
         
-        [LambdaFunction]
+        [HardenedFunction]
         public async Task<PersonListModel> GetAllPeople(GetAllPeopleRequest request, [FromContext] string contextString = "test")
         {
             return new PersonListModel(contextString, new List<PersonModel>());

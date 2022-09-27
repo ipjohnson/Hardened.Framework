@@ -45,12 +45,12 @@ namespace Hardened.SourceGenerator.Configuration
             ImmutableArray<ConfigurationIncrementalGenerator.ConfigurationFileModel> configFiles, 
             ITypeDefinition providerType)
         {
-            classDefinition.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeConfiguration);
+            classDefinition.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.Configuration);
 
             var templateField = classDefinition.AddField(typeof(int), "_configDi");
 
             templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-            templateField.AddUsingNamespace(KnownTypes.Namespace.HardenedSharedRuntimeDependencyInjection);
+            templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
             templateField.InitializeValue = $"DependencyRegistry<{classDefinition.Name}>.Register(ConfigurationDI)";
 
             var diMethod = classDefinition.AddMethod("ConfigurationDI");

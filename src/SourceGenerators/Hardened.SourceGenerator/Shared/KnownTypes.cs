@@ -28,9 +28,10 @@ namespace Hardened.SourceGenerator.Shared
 
             public static class Hardened
             {
+
                 public static class Lambda
                 {
-                    public const string LambdaRuntime = "Hardened.Function.Lambda.Runtime";
+                    public const string LambdaRuntime =  "Hardened.Function.Lambda.Runtime";
 
                     public const string LambdaRuntimeDI = "Hardened.Function.Lambda.Runtime.DependencyInjection";
 
@@ -49,62 +50,84 @@ namespace Hardened.SourceGenerator.Shared
 
                     public const string LambdaRuntimeImpl = "Hardened.Web.Lambda.Runtime.Impl";
                 }
+
+                public static class Requests
+                {
+                    public static class Abstract
+                    {
+                        public const string Attributes = "Hardened.Requests.Abstract.Attributes";
+
+                        public const string Execution = "Hardened.Requests.Abstract.Execution";
+
+                        public const string Middleware = "Hardened.Requests.Abstract.Middleware";
+
+                        public const string Serializer = "Hardened.Requests.Abstract.Serializer";
+                    }
+
+                    public static class Runtime
+                    {
+                        public const string DependencyInjection = "Hardened.Requests.Runtime.DependencyInjection";
+
+                        public const string Errors = "Hardened.Requests.Runtime.Errors";
+
+                        public const string Execution = "Hardened.Requests.Runtime.Execution";
+                    }
+                }
+
+                public static class Shared
+                {
+                    public static class Runtime
+                    {
+                        public const string Application = "Hardened.Shared.Runtime.Application";
+
+                        public const string Attributes = "Hardened.Shared.Runtime.Attributes";
+
+                        public const string Configuration = "Hardened.Shared.Runtime.Configuration";
+
+                        public const string DependencyInjection = "Hardened.Shared.Runtime.DependencyInjection";
+                        
+                        public const string Logging = "Hardened.Shared.Runtime.Logging";
+                    }
+                }
+
+                public static class Templates
+                {
+                    public const string Abstract = "Hardened.Templates.Abstract";
+
+                    public static class Runtime
+                    {
+                        public const string DependencyInjection = "Hardened.Templates.Runtime.DependencyInjection";
+
+                        public const string Impl = "Hardened.Templates.Runtime.Impl";
+
+                        public const string Value = "Hardened.Templates.Runtime";
+                    }
+                }
             }
-
-            public const string HardenedSharedRuntimeApplication = "Hardened.Shared.Runtime.Application";
-
-            public const string HardenedSharedRuntimeAttributes = "Hardened.Shared.Runtime.Attributes";
-
-            public const string HardenedSharedRuntimeConfiguration = "Hardened.Shared.Runtime.Configuration";
-
-            public const string HardenedSharedRuntimeDependencyInjection = "Hardened.Shared.Runtime.DependencyInjection";
-
-            public const string HardenedSharedRuntimeLogging = "Hardened.Shared.Runtime.Logging";
-
-            public const string HardenedRequestsRuntimeErrors = "Hardened.Requests.Runtime.Errors";
-
-            public const string HardenedRequestsRuntimeExecution = "Hardened.Requests.Runtime.Execution";
-
-            public const string HardenedRequestsRuntimeDependencyInjection = "Hardened.Requests.Runtime.DependencyInjection";
-
-            public const string HardenedRequestsAbstractExecution = "Hardened.Requests.Abstract.Execution";
-
-            public const string HardenedRequestsAbstractMiddleware = "Hardened.Requests.Abstract.Middleware";
-
-            public const string HardenedRequestsAbstractSerializer = "Hardened.Requests.Abstract.Serializer";
-
-            public static readonly string HardenedTemplateAbstractNamespace = "Hardened.Templates.Abstract";
-
-            public static readonly string HardenedTemplateRuntimeImplNamespace = "Hardened.Templates.Runtime.Impl";
-
-            public static readonly string HardenedTemplateRuntimeDependencyInjection = "Hardened.Templates.Runtime.DependencyInjection";
-
-            public static readonly string HardenedTemplateRuntimeNamespace = "Hardened.Templates.Runtime";
-
         }
         
         public static class Configuration
         {
             public static readonly ITypeDefinition ConfigurationModelAttribute =
-                TypeDefinition.Get(Namespace.HardenedSharedRuntimeAttributes, "ConfigurationModelAttribute");
+                TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Attributes, "ConfigurationModelAttribute");
 
             public static readonly ITypeDefinition IConfigurationManager =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedSharedRuntimeConfiguration, "IConfigurationManager");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Configuration, "IConfigurationManager");
 
             public static readonly ITypeDefinition IConfigurationPackage = 
-                    TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedSharedRuntimeConfiguration, "IConfigurationPackage");
+                    TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Configuration, "IConfigurationPackage");
 
             public static readonly ITypeDefinition IConfigurationValueProvider =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedSharedRuntimeConfiguration, "IConfigurationValueProvider");
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Configuration, "IConfigurationValueProvider");
 
             public static readonly ITypeDefinition IConfigurationValueAmender =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedSharedRuntimeConfiguration, "IConfigurationValueAmender");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Configuration, "IConfigurationValueAmender");
 
             public static readonly ITypeDefinition IAppConfig =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedSharedRuntimeConfiguration, "IAppConfig");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Configuration, "IAppConfig");
 
             public static readonly ITypeDefinition AppConfig =
-                TypeDefinition.Get(Namespace.HardenedSharedRuntimeConfiguration, "AppConfig");
+                TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Configuration, "AppConfig");
         }
 
         public static class DI
@@ -122,10 +145,10 @@ namespace Hardened.SourceGenerator.Shared
                 TypeDefinition.Get("System", "ServiceProvider");
 
             public static readonly ITypeDefinition ExposeAttribute =
-                TypeDefinition.Get(Namespace.HardenedSharedRuntimeAttributes, "ExposeAttribute");
+                TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Attributes, "ExposeAttribute");
 
             public static readonly ITypeDefinition DependencyRegistry =
-                TypeDefinition.Get(Namespace.HardenedSharedRuntimeDependencyInjection, "DependencyRegistry");
+                TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.DependencyInjection, "DependencyRegistry");
 
             public static class Registry
             {
@@ -133,13 +156,13 @@ namespace Hardened.SourceGenerator.Shared
                     TypeDefinition.Get(Namespace.Hardened.Web.LambdaRuntimeDependencyInjection, "LambdaWebDI");
 
                 public static readonly ITypeDefinition StandardDependencies =
-                    TypeDefinition.Get(Namespace.HardenedSharedRuntimeDependencyInjection, "StandardDependencies");
+                    TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.DependencyInjection, "StandardDependencies");
 
                 public static readonly ITypeDefinition RequestRuntimeDI =
-                    TypeDefinition.Get(Namespace.HardenedRequestsRuntimeDependencyInjection, "RequestRuntimeDI");
+                    TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.DependencyInjection, "RequestRuntimeDI");
 
                 public static readonly ITypeDefinition TemplateDI =
-                    TypeDefinition.Get(Namespace.HardenedTemplateRuntimeDependencyInjection, "TemplateDI");
+                    TypeDefinition.Get(Namespace.Hardened.Templates.Runtime.DependencyInjection, "TemplateDI");
 
                 public static readonly ITypeDefinition WebRuntimeDI =
                     TypeDefinition.Get(Namespace.Hardened.Web.RuntimeDependencyInjection, "WebRuntimeDI");
@@ -152,62 +175,65 @@ namespace Hardened.SourceGenerator.Shared
         public static class Application
         {
             public static readonly ITypeDefinition IApplicationRoot =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedSharedRuntimeApplication, "IApplicationRoot");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Application, "IApplicationRoot");
 
             public static readonly ITypeDefinition IStartupService =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedSharedRuntimeApplication, "IStartupService");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Application, "IStartupService");
 
             public static readonly ITypeDefinition ApplicationLogic =
-                TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "ApplicationLogic");
+                TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Application, "ApplicationLogic");
 
             public static readonly ITypeDefinition IEnvironment =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedSharedRuntimeApplication, "IEnvironment");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Application, "IEnvironment");
 
             public static readonly ITypeDefinition EnvironmentImpl =
-                TypeDefinition.Get(Namespace.HardenedSharedRuntimeApplication, "EnvironmentImpl");
+                TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Application, "EnvironmentImpl");
 
             public static readonly ITypeDefinition IApplicationModule =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedSharedRuntimeApplication, "IApplicationModule");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Application, "IApplicationModule");
 
         }
 
         public static class Requests
         {
+            public static readonly ITypeDefinition HardenedFunctionAttribute =
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Attributes, "HardenedFunctionAttribute");
+
             public static readonly ITypeDefinition IExecutionContext =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractExecution, "IExecutionContext");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution, "IExecutionContext");
             
             public static readonly ITypeDefinition IExecutionRequest =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractExecution, "IExecutionRequest");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution, "IExecutionRequest");
 
             public static readonly ITypeDefinition IExecutionResponse =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractExecution, "IExecutionResponse");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution, "IExecutionResponse");
             
             public static ITypeDefinition DefaultOutputFunc =
-                TypeDefinition.Get(Namespace.HardenedRequestsAbstractExecution, "DefaultOutputFunc");
+                TypeDefinition.Get(Namespace.Hardened.Requests.Abstract.Execution, "DefaultOutputFunc");
 
             public static readonly ITypeDefinition IExecutionFilter =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractExecution, "IExecutionFilter");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution, "IExecutionFilter");
 
             public static readonly ITypeDefinition ExecutionHelper =
-                TypeDefinition.Get(Namespace.HardenedRequestsRuntimeExecution, "ExecutionHelper");
+                TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Execution, "ExecutionHelper");
 
             public static ITypeDefinition BaseExecutionHandler =
-                TypeDefinition.Get(Namespace.HardenedRequestsRuntimeExecution, "BaseExecutionHandler");
+                TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Execution, "BaseExecutionHandler");
 
             public static readonly ITypeDefinition ExecutionRequestHandlerInfo =
-                TypeDefinition.Get(Namespace.HardenedRequestsRuntimeExecution, "ExecutionRequestHandlerInfo");
+                TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Execution, "ExecutionRequestHandlerInfo");
 
             public static readonly ITypeDefinition ExecutionRequestParameter =
-                TypeDefinition.Get(Namespace.HardenedRequestsRuntimeExecution, "ExecutionRequestParameter");
+                TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Execution, "ExecutionRequestParameter");
 
             public static readonly ITypeDefinition IExecutionRequestHandler =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractExecution, "IExecutionRequestHandler");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution, "IExecutionRequestHandler");
 
             public static readonly ITypeDefinition IExecutionRequestHandlerInfo =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractExecution, "IExecutionRequestHandlerInfo");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution, "IExecutionRequestHandlerInfo");
 
             public static readonly ITypeDefinition IMiddlewareService =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractMiddleware, "IMiddlewareService");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Middleware, "IMiddlewareService");
 
             public static readonly ITypeDefinition FilterFunc =
                 new GenericTypeDefinition(typeof(Func<,>), new[] { IExecutionContext, IExecutionFilter }, false);
@@ -216,19 +242,19 @@ namespace Hardened.SourceGenerator.Shared
                 new GenericTypeDefinition(typeof(Func<,>), new[] { IExecutionContext, IExecutionFilter }, true);
 
             public static readonly ITypeDefinition IExecutionChain = 
-                    TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractExecution, "IExecutionChain");
+                    TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution, "IExecutionChain");
 
             public static readonly ITypeDefinition ControllerErrorHelper =
-                TypeDefinition.Get(Namespace.HardenedRequestsRuntimeErrors, "ControllerErrorHelper");
+                TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Errors, "ControllerErrorHelper");
 
             public static readonly ITypeDefinition IExecutionRequestParameters =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractExecution, "IExecutionRequestParameters");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution, "IExecutionRequestParameters");
 
             public static readonly ITypeDefinition IContextSerializationService =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractSerializer, "IContextSerializationService");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Serializer, "IContextSerializationService");
 
             public static readonly ITypeDefinition IExecutionRequestParameter =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedRequestsAbstractExecution, "IExecutionRequestParameter");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution, "IExecutionRequestParameter");
 
             public static readonly ITypeDefinition IReadOnlyListExecutionRequestParameter =
                 new GenericTypeDefinition(typeof(IReadOnlyList<>), new []{IExecutionRequestParameter});
@@ -253,55 +279,51 @@ namespace Hardened.SourceGenerator.Shared
         public static class Templates
         {
             public static ITypeDefinition ITemplateExecutionService { get; } =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedTemplateAbstractNamespace, "ITemplateExecutionService");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "ITemplateExecutionService");
 
             public static ITypeDefinition ITemplateOutputWriter { get; } =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedTemplateAbstractNamespace, "ITemplateOutputWriter");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "ITemplateOutputWriter");
 
             public static ITypeDefinition ITemplateExecutionHandler { get; } =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedTemplateAbstractNamespace, "ITemplateExecutionHandler");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "ITemplateExecutionHandler");
 
             public static ITypeDefinition ITemplateExecutionContext { get; } =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedTemplateAbstractNamespace, "ITemplateExecutionContext");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "ITemplateExecutionContext");
 
             public static ITypeDefinition IInternalTemplateServices { get; } =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedTemplateAbstractNamespace, "IInternalTemplateServices");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "IInternalTemplateServices");
 
             public static ITypeDefinition ITemplateExecutionHandlerProvider { get; } =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedTemplateAbstractNamespace, "ITemplateExecutionHandlerProvider");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "ITemplateExecutionHandlerProvider");
 
             public static ITypeDefinition IStringEscapeService { get; } =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedTemplateAbstractNamespace, "IStringEscapeService");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "IStringEscapeService");
 
-            public static ITypeDefinition DependencyInjectionRegistration { get; } =
-                TypeDefinition.Get(Namespace.HardenedTemplateRuntimeImplNamespace, "DependencyInjectionRegistration");
 
             public static ITypeDefinition DefaultOutputFuncHelper { get; } =
-                TypeDefinition.Get(Namespace.HardenedTemplateRuntimeImplNamespace, "DefaultOutputFuncHelper");
+                TypeDefinition.Get(Namespace.Hardened.Templates.Runtime.Impl, "DefaultOutputFuncHelper");
 
                 public static ITypeDefinition ITemplateHelperProvider { get; } =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedTemplateAbstractNamespace, "ITemplateHelperProvider");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "ITemplateHelperProvider");
 
             public static ITypeDefinition TemplateExecutionContext { get; } =
-                TypeDefinition.Get(Namespace.HardenedTemplateRuntimeImplNamespace, "TemplateExecutionContext");
+                TypeDefinition.Get(Namespace.Hardened.Templates.Runtime.Impl, "TemplateExecutionContext");
 
             public static ITypeDefinition TemplateHelperFactory { get; } =
-                TypeDefinition.Get(Namespace.HardenedTemplateAbstractNamespace, "TemplateHelperFactory");
+                TypeDefinition.Get(Namespace.Hardened.Templates.Abstract, "TemplateHelperFactory");
 
 
             public static ITypeDefinition TemplateExecutionService { get; } =
-                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.HardenedTemplateAbstractNamespace, "ITemplateExecutionService");
+                TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "ITemplateExecutionService");
 
             public static ITypeDefinition TemplateExecutionFunction { get; } =
-                TypeDefinition.Get(Namespace.HardenedTemplateAbstractNamespace, "TemplateExecutionFunction");
+                TypeDefinition.Get(Namespace.Hardened.Templates.Abstract, "TemplateExecutionFunction");
 
             public static ITypeDefinition TemplateHelperAttribute { get; } =
-                TypeDefinition.Get(Namespace.HardenedTemplateAbstractNamespace, "TemplateHelperAttribute");
+                TypeDefinition.Get(Namespace.Hardened.Templates.Abstract, "TemplateHelperAttribute");
 
             public static ITypeDefinition DefaultHelpers { get; } =
                 TypeDefinition.Get("Hardened.Templates.Runtime.Helpers", "DefaultHelpers");
-
-
         }
 
         public class Web

@@ -43,7 +43,7 @@ namespace Hardened.SourceGenerator.Requests
             invokeClass.AddBaseType(
                 new GenericTypeDefinition(
                     TypeDefinitionEnum.ClassDefinition,
-                    KnownTypes.Namespace.HardenedRequestsRuntimeExecution,
+                    KnownTypes.Namespace.Hardened.Requests.Runtime.Execution,
                     "BaseExecutionHandler",
                     new[] { handlerModel.ControllerType }));
         }
