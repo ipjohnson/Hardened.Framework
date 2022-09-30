@@ -140,13 +140,16 @@ namespace Hardened.SourceGenerator.Templates.Parser
                             actionNode?.TrimAttributes.Add(TemplateActionNodeTrimAttribute.CloseEnd);
                         }
 
-                        if (currentActionNodeStack.Count == 0)
+                        if (actionNode != null)
                         {
-                            actionNodeList.Add(actionNode);
-                        }
-                        else
-                        {
-                            currentActionNodeStack.Peek().ChildNodes.Add(actionNode);
+                            if (currentActionNodeStack.Count == 0)
+                            {
+                                actionNodeList.Add(actionNode);
+                            }
+                            else
+                            {
+                                currentActionNodeStack.Peek().ChildNodes.Add(actionNode);
+                            }
                         }
                     }
                 }
@@ -155,13 +158,13 @@ namespace Hardened.SourceGenerator.Templates.Parser
             return actionNodeList;
         }
 
-        private TemplateActionNode ProcessActionToken(
+        private TemplateActionNode? ProcessActionToken(
             StringTokenNode tokenNode,
             ReadOnlySpan<char> token,
             bool trimStart, 
             bool trimEnd)
         {
-            TemplateActionNode currentActionNode = null;
+            TemplateActionNode? currentActionNode = null;
             var currentIndex = 0;
 
             while (currentIndex < token.Length)
@@ -223,7 +226,7 @@ namespace Hardened.SourceGenerator.Templates.Parser
             {
                 var currentChar = token[currentIndex];
 
-                TemplateActionNode actionNode;
+                TemplateActionNode? actionNode;
                 switch (currentChar)
                 {
                     case ' ':
@@ -246,7 +249,10 @@ namespace Hardened.SourceGenerator.Templates.Parser
                     default:
                         currentIndex += ProcessArgument(token.Slice(currentIndex), out actionNode);
 
-                        argumentList.Add(actionNode);
+                        if (actionNode != null)
+                        {
+                            argumentList.Add(actionNode);
+                        }
                         break;
                 }
             }
@@ -256,7 +262,7 @@ namespace Hardened.SourceGenerator.Templates.Parser
 
         private int ProcessArgument(
             ReadOnlySpan<char> token,
-            out TemplateActionNode templateActionNode)
+            out TemplateActionNode? templateActionNode)
         {
             templateActionNode = null;
             var argumentCharacter = token[0];

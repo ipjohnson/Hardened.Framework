@@ -22,7 +22,7 @@
 
             if (firstNode.Action == TemplateActionType.Content)
             {
-                firstNode.ActionText = firstNode.ActionText?.TrimStart('\r', '\n');
+                firstNode.ActionText = firstNode.ActionText?.TrimStart('\r', '\n') ?? "";
             }
         }
 
@@ -47,7 +47,7 @@
 
                         if (nextStatement.Action == TemplateActionType.Content)
                         {
-                            nextStatement.ActionText = nextStatement.ActionText?.TrimStart('\r', '\n');
+                            nextStatement.ActionText = nextStatement.ActionText?.TrimStart('\r', '\n') ?? "";
                         }
                     }
 

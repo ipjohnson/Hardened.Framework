@@ -9,7 +9,7 @@ namespace Hardened.Templates.Runtime.Tests.Helpers.Collection
 {
     public class LookupHelperTests : BaseHelperTests
     {
-        private ITemplateExecutionContext _mockExecutionContext = 
+        private readonly ITemplateExecutionContext _mockExecutionContext = 
             Substitute.For<ITemplateExecutionContext>();
       
         [Theory]

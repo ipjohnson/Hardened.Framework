@@ -4,7 +4,9 @@
     {
         public static bool StartsWith<T>(this ReadOnlySpan<T> span, T value)
         {
-            return !span.IsEmpty && value.Equals(span[0]);
+            return value != null &&
+                   !span.IsEmpty && 
+                   value.Equals(span[0]);
         }
 
         public static int IndexOf<T>(this ReadOnlySpan<T> span, T value, int startIndex)

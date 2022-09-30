@@ -79,17 +79,18 @@ namespace Hardened.SourceGenerator.Templates.Generator
             }
         }
 
-        private static TemplateHelperModel TemplateHelperModelGenerator(GeneratorSyntaxContext arg1, CancellationToken arg2)
+        private static TemplateHelperModel? TemplateHelperModelGenerator(GeneratorSyntaxContext arg1, CancellationToken arg2)
         {
             if (arg1.Node is not ClassDeclarationSyntax classDeclarationSyntax)
             {
-                return null;
+                // we should never get here
+                throw new Exception("Could not get class declaration");
             }
 
             var attribute =
                 arg1.Node.DescendantNodes().OfType<AttributeSyntax>().First(a => a.Name.ToString().Contains("TemplateHelper"));
 
-            var helperName = attribute.ArgumentList.Arguments.First().ToString().Trim('"');
+            var helperName = attribute.ArgumentList?.Arguments.First().ToString().Trim('"') ?? "";
 
             return new TemplateHelperModel(helperName,
                 TypeDefinition.Get(classDeclarationSyntax.GetNamespace(), classDeclarationSyntax.Identifier.ToString()),
@@ -171,7 +172,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
                 TemplateActionNodes = templateActionNodes;
             }
 
-            public ITypeDefinition TemplateDefinitionType { get; set; }
+            public ITypeDefinition? TemplateDefinitionType { get; set; }
 
             public IList<TemplateActionNode> TemplateActionNodes { get; }
 

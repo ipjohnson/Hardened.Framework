@@ -43,7 +43,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
             executeMethodDefinition.NewLine();
 
             if ((executeMethodDefinition.Modifiers & ComponentModifier.Async) != ComponentModifier.Async)
-            {;
+            {
                 executeMethodDefinition.AddCode("return {arg1}.CompletedTask;", typeof(Task));
             }
         }
@@ -78,7 +78,8 @@ namespace Hardened.SourceGenerator.Templates.Generator
             return methodDefinition;
         }
 
-        private int ProcessModelAndUsingStatements(ClassDefinition classDefinition, MethodDefinition methodDefinition, IList<TemplateActionNode> templateActionNodes)
+        private int ProcessModelAndUsingStatements(
+            ClassDefinition classDefinition, MethodDefinition methodDefinition, IList<TemplateActionNode> templateActionNodes)
         {
             var startIndex = 0;
 
@@ -119,36 +120,49 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
         private void ProcessActionNode(GenerationContext context)
         {
-            switch (context.CurrentNode.Action)
+            if (context.CurrentNode != null)
             {
-                case TemplateActionType.Block:
-                    BlockActionNode(context);
-                    break;
+                switch (context.CurrentNode.Action)
+                {
+                    case TemplateActionType.Block:
+                        BlockActionNode(context);
+                        break;
 
-                case TemplateActionType.Content:
-                    ContentActionNode(context);
-                    break;
+                    case TemplateActionType.Content:
+                        ContentActionNode(context);
+                        break;
 
-                case TemplateActionType.MustacheToken:
-                    MustacheTokenActionNode(context);
-                    break;
+                    case TemplateActionType.MustacheToken:
+                        MustacheTokenActionNode(context);
+                        break;
 
-                case TemplateActionType.StringLiteral:
-                    StringLiteralActionNode(context);
-                    break;
+                    case TemplateActionType.StringLiteral:
+                        StringLiteralActionNode(context);
+                        break;
 
-                default:
-                    throw new Exception($"TemplateActionType not supported {context.CurrentNode.Action}");
+                    default:
+                        throw new Exception($"TemplateActionType not supported {context.CurrentNode.Action}");
+                }
             }
         }
 
         private void StringLiteralActionNode(GenerationContext context)
         {
+            if (context.CurrentNode == null)
+            {
+                return;
+            }
+
             context.CurrentNode.FieldName = $"\"{context.CurrentNode.ActionText}\"";
         }
 
         private void MustacheTokenActionNode(GenerationContext context)
         {
+            if (context.CurrentNode == null)
+            {
+                return;
+            }
+
             var actionNode = context.CurrentNode;
 
             if (actionNode.ActionText == "model" || actionNode.ActionText == "using")
@@ -212,6 +226,11 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
         private void ContentActionNode(GenerationContext context)
         {
+            if (context.CurrentNode == null)
+            {
+                return;
+            }
+
             var fieldName = context.CurrentNode.FieldName;
 
             if (!string.IsNullOrEmpty(context.CurrentNode.FieldName))
@@ -222,6 +241,11 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
         private void BlockActionNode(GenerationContext context)
         {
+            if (context.CurrentNode == null)
+            {
+                return;
+            }
+
             context.CurrentBlock.NewLine();
             
             switch (context.CurrentNode.ActionText)
@@ -239,6 +263,11 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
         private void IfBlockNode(GenerationContext context)
         {
+            if (context.CurrentNode == null)
+            {
+                return;
+            }
+
             var arguments = ProcessArgumentList(context.CurrentNode.ArgumentList, context.CurrentModel);
 
             var ifBlock = context.CurrentBlock.If($"_services.BooleanLogicService.IsTrueValue({arguments})");
@@ -285,6 +314,11 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
         private void EachBlockNode(GenerationContext context)
         {
+            if (context.CurrentNode == null)
+            {
+                return;
+            }
+
             if (context.CurrentNode.ArgumentList.Count != 1)
             {
                 throw new Exception("each block doesn't support multiple arguments");
@@ -375,7 +409,7 @@ namespace Hardened.SourceGenerator.Templates.Generator
 
             public BaseBlockDefinition CurrentBlock => _currentModel.Peek().Item1;
 
-            public TemplateActionNode CurrentNode { get; set; }
+            public TemplateActionNode? CurrentNode { get; set; }
 
             public InstanceDefinition CurrentModel => _currentModel.Peek().Item2;
 

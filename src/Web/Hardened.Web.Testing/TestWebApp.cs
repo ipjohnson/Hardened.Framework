@@ -26,17 +26,37 @@ namespace Hardened.Web.Testing
 
         public IServiceProvider RootServiceProvider => _applicationRoot.Provider;
 
-        public Task<TestWebResponse> Get(string path, ConfigureWebRequest? webRequest = null)
+        public Task<TestWebResponse> Get(string path, Action<TestWebRequest>? webRequest = null)
         {
             return ExecuteHttpMethod("GET", path, webRequest);
         }
         
-        public Task<TestWebResponse> Post(object postValue, string path, ConfigureWebRequest? webRequest = null)
+        public Task<TestWebResponse> Post(object postValue, string path, Action<TestWebRequest>? webRequest = null)
         {
             return ExecuteHttpMethod("POST", path, webRequest, postValue);
         }
 
-        private async Task<TestWebResponse> ExecuteHttpMethod(string httpMethod, string path, ConfigureWebRequest? webRequest, object? bodyValue = null)
+        public Task<TestWebResponse> Put(object value, string path, Action<TestWebRequest>? webRequest = null)
+        {
+            return ExecuteHttpMethod("PUT", path, webRequest, value);
+        }
+
+        public Task<TestWebResponse> Patch(object value, string path, Action<TestWebRequest>? webRequest = null)
+        {
+            return ExecuteHttpMethod("PATCH", path, webRequest, value);
+        }
+
+        public Task<TestWebResponse> Delete(string path, Action<TestWebRequest>? webRequest = null)
+        {
+            return ExecuteHttpMethod("DELETE", path, webRequest, null);
+        }
+
+        public Task<TestWebResponse> Request(string method, object? value, string path, Action<TestWebRequest>? webRequest = null)
+        {
+            return ExecuteHttpMethod(method, path, webRequest, value);
+        }
+
+        private async Task<TestWebResponse> ExecuteHttpMethod(string httpMethod, string path, Action<TestWebRequest>? webRequest, object? bodyValue = null)
         {
             var startTimestamp = MachineTimestamp.Now;
 
@@ -97,7 +117,7 @@ namespace Hardened.Web.Testing
             return memoryStream;
         }
 
-        private IExecutionContext CreateContext(string httpMethod, string path, ConfigureWebRequest? webRequest,
+        private IExecutionContext CreateContext(string httpMethod, string path, Action<TestWebRequest>? webRequest,
             MemoryStream responseBody, IServiceScope serviceScope)
         {
             var header = new HeaderCollectionStringValues();

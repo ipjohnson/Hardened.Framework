@@ -17,7 +17,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services
     [Expose]
     public class PersonService : IPersonService
     {
-        private IOptions<IPersonServiceConfiguration> _configuration;
+        private readonly IOptions<IPersonServiceConfiguration> _configuration;
         private readonly Dictionary<int, PersonModel> _persons;
 
         public PersonService(IOptions<IPersonServiceConfiguration> configuration)

@@ -8,7 +8,7 @@ namespace Hardened.Shared.Testing.Impl
 {
     public class TestApplication : IApplicationRoot
     {
-        private ServiceProvider _rootServiceProvider;
+        private readonly ServiceProvider _rootServiceProvider;
 
         public TestApplication(IApplicationModule testModule, string logNs, IEnvironment environment, Action<IEnvironment, IServiceCollection>? overrideDependencies)
         {

@@ -5,7 +5,7 @@ namespace Hardened.Shared.Testing.Impl
 {
     public class HardenedTestCaseRunner : XunitTestCaseRunner
     {
-        private List<HardenedTestRunner> _testRunners = new();
+        private readonly List<HardenedTestRunner> _testRunners = new();
         private readonly ExceptionAggregator _cleanupAggregator = new();
 
         public HardenedTestCaseRunner(IXunitTestCase testCase, string displayName, string skipReason, object[] constructorArguments, object[] testMethodArguments, IMessageBus messageBus, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) 

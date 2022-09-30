@@ -14,7 +14,7 @@ namespace Hardened.Requests.Runtime.Serializer
     public class SystemTextJsonRequestDeserializer : IRequestDeserializer
     {
         private readonly JsonSerializerOptions _serializerOptions;
-        private ILogger<SystemTextJsonRequestDeserializer> _logger;
+        private readonly ILogger<SystemTextJsonRequestDeserializer> _logger;
         public SystemTextJsonRequestDeserializer(IOptions<IJsonSerializerConfiguration> configuration, ILogger<SystemTextJsonRequestDeserializer> logger)
         {
             _logger = logger;

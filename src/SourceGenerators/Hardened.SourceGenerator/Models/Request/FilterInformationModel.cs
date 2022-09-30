@@ -46,5 +46,10 @@ namespace Hardened.SourceGenerator.Models.Request
         {
             return $"{TypeDefinition}:{Arguments}:{PropertyAssignment}";
         }
+
+        public override int GetHashCode()
+        {
+            return this.Arguments.GetHashCode() * this.PropertyAssignment.GetHashCode() * this.TypeDefinition.GetHashCode();
+        }
     }
 }

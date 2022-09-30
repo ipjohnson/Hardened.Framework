@@ -42,6 +42,7 @@
             ChildNodes = childNodes;
             ArgumentList = argumentList;
             TrimAttributes = trimAttributes;
+            FieldName = "";
         }
 
         public TemplateActionType Action { get; }

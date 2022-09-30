@@ -4,7 +4,7 @@ namespace Hardened.Shared.Runtime.Configuration
 {
     public class NewConfigurationValueProvider<TInterface, TImpl> : IConfigurationValueProvider where TImpl : class, TInterface, new()
     {
-        private Action<IEnvironment, TImpl>? _initAction;
+        private readonly Action<IEnvironment, TImpl>? _initAction;
 
         public NewConfigurationValueProvider(Action<IEnvironment, TImpl>? initAction)
         {

@@ -1,6 +1,8 @@
 ﻿namespace Hardened.Web.Testing
 {
-
+    /// <summary>
+    /// interface for web asserts
+    /// </summary>
     public interface IWebAssertThat
     {
         /// <summary>

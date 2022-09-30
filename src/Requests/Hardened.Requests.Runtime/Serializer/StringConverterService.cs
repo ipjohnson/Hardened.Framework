@@ -5,7 +5,7 @@ namespace Hardened.Requests.Runtime.Serializer
 {
     public class StringConverterService : IStringConverterService
     {
-        private Dictionary<Type, IStringConverter> _converters;
+        private readonly Dictionary<Type, IStringConverter> _converters;
 
         public StringConverterService(IEnumerable<IStringConverter> converters)
         {

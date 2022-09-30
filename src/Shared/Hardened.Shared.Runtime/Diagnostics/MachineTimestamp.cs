@@ -5,7 +5,7 @@ namespace Hardened.Shared.Runtime.Diagnostics
     /// <summary>
     /// Timestamp that uses the machine ticks, it is only valid on the local machine.
     /// </summary>
-    public struct MachineTimestamp
+    public readonly struct MachineTimestamp
     {
         public static readonly double SecondsToTicksRatio = TimeSpan.TicksPerSecond / (double)Stopwatch.Frequency;
         public static readonly double MillisecondsToTicksRatio = 1 / (double)TimeSpan.TicksPerMillisecond;

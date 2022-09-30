@@ -10,7 +10,7 @@ namespace Hardened.Requests.Runtime.Execution
     public class IOFilterProvider : IIOFilterProvider
     {
         private readonly IContextSerializationService _contextSerializationService;
-        private Action<IExecutionContext>? _headerActions;
+        private readonly Action<IExecutionContext>? _headerActions;
 
         public IOFilterProvider(
             IContextSerializationService contextSerializationService,

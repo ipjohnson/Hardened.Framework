@@ -29,10 +29,32 @@ namespace Hardened.SourceGenerator.Web
                 throw new NotImplementedException("HttpMethodAttribute not supported yet.");
             }
 
-            var pathTemplate = attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression.ToString().Trim('"') ??
-                               "/";
+            var pathTemplate = GetPathFromAttribute(context, attribute);
 
             return new RequestHandlerNameModel(pathTemplate, methodName);
+        }
+
+        private static string GetPathFromAttribute(GeneratorSyntaxContext generatorSyntaxContext,
+            AttributeSyntax attribute)
+        {
+            var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
+            var pathTemplate = "/";
+            if (argument != null)
+            {
+                var constantValue = 
+                    generatorSyntaxContext.SemanticModel.GetConstantValue(argument.Expression);
+
+                if (constantValue.Value != null)
+                {
+                    pathTemplate = constantValue.Value.ToString();
+                }
+                else
+                {
+                    pathTemplate = argument.Expression.ToString().Trim('"');
+                }
+            }
+            
+            return pathTemplate;
         }
 
         protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration,

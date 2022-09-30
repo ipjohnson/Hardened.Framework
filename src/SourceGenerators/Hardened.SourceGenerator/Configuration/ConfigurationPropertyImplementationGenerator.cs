@@ -37,7 +37,7 @@ namespace Hardened.SourceGenerator.Configuration
                 var property = modelDefinition.AddProperty(fieldModel.FieldType, fieldModel.PropertyName);
 
                 property.Get.LambdaSyntax = true;
-                property.Set.LambdaSyntax = true;
+                property.Set!.LambdaSyntax = true;
 
                 property.Get.AddCode(fieldModel.Name + ";");
                 property.Set.AddCode(fieldModel.Name + " = value;");

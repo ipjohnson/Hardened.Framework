@@ -11,7 +11,7 @@ namespace Hardened.Web.Lambda.Harness
 
     public class RequestToLambdaService<T> : IRequestToLambdaService where T : IApiGatewayV2Handler, new()
     {
-        private IApiGatewayV2Handler _handler;
+        private readonly IApiGatewayV2Handler _handler;
 
         public RequestToLambdaService()
         {

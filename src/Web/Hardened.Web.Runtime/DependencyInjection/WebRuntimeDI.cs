@@ -12,7 +12,7 @@ namespace Hardened.Web.Runtime.DependencyInjection
 {
     public static class WebRuntimeDI
     {
-        private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new(null);
+        private static readonly WeakReference<IServiceCollection?> _lastServiceCollection = new(null);
 
         public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
         {

@@ -9,7 +9,7 @@ namespace Hardened.Function.Lambda.Testing
 {
     public class LambdaTestApp
     {
-        private ILambdaFunctionImplService _functionImplService;
+        private readonly ILambdaFunctionImplService _functionImplService;
         private readonly IOptions<IJsonSerializerConfiguration> _serializerOptions;
         private readonly IMemoryStreamPool _memoryStreamPool;
 

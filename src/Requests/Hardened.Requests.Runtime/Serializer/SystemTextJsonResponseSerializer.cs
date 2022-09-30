@@ -9,7 +9,7 @@ namespace Hardened.Requests.Runtime.Serializer
 {
     public class SystemTextJsonResponseSerializer : IResponseSerializer
     {
-        private JsonSerializerOptions _serializerOptions;
+        private readonly JsonSerializerOptions _serializerOptions;
 
         public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration)
         {
