@@ -38,7 +38,7 @@ namespace Hardened.IntegrationTests.Web.Lambda.Tests.wwwrootTests
             Assert.Equal(StringValues.Empty, response.Headers.Get(KnownHeaders.ContentEncoding));
         }
 
-        public void Configure(IAppConfig appConfig)
+        private void Configure(IAppConfig appConfig)
         {
             appConfig.Amend<StaticContentConfiguration>(c => c.CacheMaxAge = 20);
         }

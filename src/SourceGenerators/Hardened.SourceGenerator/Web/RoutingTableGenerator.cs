@@ -367,7 +367,7 @@ namespace Hardened.SourceGenerator.Web
                 var caseStatement = switchStatement.AddCase(QuoteString(leafNode.Method));
 
                 var field =
-                    routingClass.AddField(leafNode.Value.InvokeHandlerType, "_field" + leafNode.Value.InvokeHandlerType.Name);
+                    routingClass.AddField(leafNode.Value.InvokeHandlerType.MakeNullable(), "_field" + leafNode.Value.InvokeHandlerType.Name);
 
                 var coalesceHandler = NullCoalesceEqual(field.Instance,
                     New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"));

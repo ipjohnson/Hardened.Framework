@@ -53,26 +53,26 @@ namespace Hardened.Requests.Runtime.Logging
         }
 
         [LoggerMessage(
-            EventId = 0,
+            EventId = 78000,
             Level = LogLevel.Information,
             Message = "{httpMethod} {path} started")]
         protected partial void LogRequestStarted(string httpMethod, string path);
 
         [LoggerMessage(
-            EventId = 0,
+            EventId = 78001,
             Level = LogLevel.Information,
             Message = "{httpMethod} {path} mapped to {typeName}.{methodName}")]
         protected partial void LogRequestMapped(string httpMethod, string path, string typeName, string methodName);
 
         [LoggerMessage(
-            EventId = 0,
+            EventId = 78002,
             Level = LogLevel.Information,
             Message = "{httpMethod} {path}  finished status code '{statusCode}'  duration {durationMs}")]
         protected partial void LogRequestFinished(
             string httpMethod, string path, int? statusCode, TimeSpan durationMs);
 
         [Microsoft.Extensions.Logging.LoggerMessage(
-            EventId = 0,
+            EventId = 78003,
             Level = LogLevel.Information,
             Message = "{httpMethod} {path} Resource Not Found")]
         protected partial void LogResourceNotFound(string httpMethod, string path);

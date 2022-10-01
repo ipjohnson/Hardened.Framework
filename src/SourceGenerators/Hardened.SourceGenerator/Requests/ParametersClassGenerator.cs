@@ -1,4 +1,5 @@
-﻿using CSharpAuthor;
+﻿using System.Diagnostics.CodeAnalysis;
+using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
@@ -13,6 +14,8 @@ namespace Hardened.SourceGenerator.Requests
 
             parametersClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
             parametersClass.AddBaseType(KnownTypes.Requests.IExecutionRequestParameters);
+
+            parametersClass.AddAttribute(typeof(SuppressMessageAttribute), "\"Microsoft.Design\", \"CS8618\"");
 
             WriteProperties(handlerModel, parametersClass);
 

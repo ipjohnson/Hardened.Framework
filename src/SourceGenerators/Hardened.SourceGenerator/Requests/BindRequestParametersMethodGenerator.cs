@@ -154,7 +154,7 @@ namespace Hardened.SourceGenerator.Requests
             var deserializeStatement = Await(contentSerializationService.InvokeGeneric("DeserializeRequestBody",
                 new[] { parameterInformation.ParameterType }, context));
 
-            invokeMethod.Assign(deserializeStatement).To(parametersVar.Property(parameterInformation.Name));
+            invokeMethod.Assign(Bang(Parenthesis(deserializeStatement))).To(parametersVar.Property(parameterInformation.Name));
         }
     }
 }

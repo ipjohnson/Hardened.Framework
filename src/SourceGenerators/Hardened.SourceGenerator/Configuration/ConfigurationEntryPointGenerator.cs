@@ -162,7 +162,7 @@ namespace Hardened.SourceGenerator.Configuration
                     var propertyAccess = model.Property(configurationFieldModel.PropertyName);
                     var invoke = env.Invoke("Value", configurationFieldModel.FromEnvironmentVariable, propertyAccess);
                     
-                    method.Assign(invoke).To(propertyAccess);
+                    method.Assign(Bang(invoke)).To(propertyAccess);
                 }
 
                 return methodName;
