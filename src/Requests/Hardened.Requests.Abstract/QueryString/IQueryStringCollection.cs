@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.Primitives;
 
-namespace Hardened.Requests.Abstract.QueryString
-{
-    public interface IQueryStringCollection
-    {
-        int Count { get; }
+namespace Hardened.Requests.Abstract.QueryString;
 
-        StringValues Get(string key);
-    }
+public interface IQueryStringCollection
+{
+    int Count { get; }
+
+    StringValues Get(string key);
 }

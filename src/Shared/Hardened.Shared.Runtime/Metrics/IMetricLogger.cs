@@ -1,11 +1,10 @@
-﻿namespace Hardened.Shared.Runtime.Metrics
+﻿namespace Hardened.Shared.Runtime.Metrics;
+
+public interface IMetricLogger : IDisposable
 {
-    public interface IMetricLogger : IDisposable
-    {
-        void Record(IMetricDefinition metric, double value);
+    void Record(IMetricDefinition metric, double value);
 
-        void Tag(string tagName, object tagValue);
+    void Tag(string tagName, object tagValue);
 
-        void Data(string dataName, object dataValue);
-    }
+    void Data(string dataName, object dataValue);
 }

@@ -1,39 +1,38 @@
-﻿namespace Hardened.SourceGenerator.Models.Request
+﻿namespace Hardened.SourceGenerator.Models.Request;
+
+public class RequestHandlerNameModel
 {
-    public class RequestHandlerNameModel
+    public RequestHandlerNameModel(string path, string method)
     {
-        public RequestHandlerNameModel(string path, string method)
-        {
-            Path = path;
-            Method = method;
-        }
+        Path = path;
+        Method = method;
+    }
 
-        public string Path { get; }
+    public string Path { get; }
         
-        public string Method { get; }
+    public string Method { get; }
 
-        public override bool Equals(object obj)
+    public override bool Equals(object obj)
+    {
+        if (obj is not RequestHandlerNameModel requestHandlerNameModel)
         {
-            if (obj is not RequestHandlerNameModel requestHandlerNameModel)
-            {
-                return false;
-            }
-            var equalValue = Path.Equals(requestHandlerNameModel.Path) && Method.Equals(requestHandlerNameModel.Method);
-
-            return equalValue;
+            return false;
         }
+        var equalValue = Path.Equals(requestHandlerNameModel.Path) && Method.Equals(requestHandlerNameModel.Method);
 
-        public override string ToString()
-        {
-            return Method + ":" + Path;
-        }
+        return equalValue;
+    }
 
-        public override int GetHashCode()
+    public override string ToString()
+    {
+        return Method + ":" + Path;
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked
         {
-            unchecked
-            {
-                return (Path.GetHashCode() * 397) ^ Method.GetHashCode();
-            }
+            return (Path.GetHashCode() * 397) ^ Method.GetHashCode();
         }
     }
 }

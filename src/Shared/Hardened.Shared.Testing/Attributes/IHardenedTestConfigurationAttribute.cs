@@ -2,14 +2,13 @@
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 
-namespace Hardened.Shared.Testing.Attributes
+namespace Hardened.Shared.Testing.Attributes;
+
+public interface IHardenedTestConfigurationAttribute
 {
-    public interface IHardenedTestConfigurationAttribute
-    {
-        void Configure(
-            AttributeCollection attributeCollection,
-            MethodInfo methodInfo,
-            IEnvironment environment,
-            IAppConfig appConfig);
-    }
+    void Configure(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        IEnvironment environment,
+        IAppConfig appConfig);
 }

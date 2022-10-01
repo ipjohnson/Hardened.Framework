@@ -1,13 +1,12 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.RequestFilter
+namespace Hardened.Requests.Abstract.RequestFilter;
+
+public interface IGlobalFilterRegistry
 {
-    public interface IGlobalFilterRegistry
-    {
-        void RegisterFilter(IExecutionFilter filter, int order = FilterOrder.DefaultValue);
+    void RegisterFilter(IExecutionFilter filter, int order = FilterOrder.DefaultValue);
 
-        void RegisterFilter(Func<IExecutionRequestHandlerInfo, RequestFilterInfo?> filterFunc);
+    void RegisterFilter(Func<IExecutionRequestHandlerInfo, RequestFilterInfo?> filterFunc);
 
-        List<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo requestHandlerInfo);
-    }
+    List<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo requestHandlerInfo);
 }

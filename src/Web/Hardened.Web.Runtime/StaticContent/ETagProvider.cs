@@ -1,29 +1,28 @@
 ﻿using System.Security.Cryptography;
 using Hardened.Shared.Runtime.Collections;
 
-namespace Hardened.Web.Runtime.StaticContent
+namespace Hardened.Web.Runtime.StaticContent;
+
+public interface IETagProvider
 {
-    public interface IETagProvider
+    string GenerateETag(byte[] content);
+}
+
+public class ETagProvider : IETagProvider
+{
+    private readonly IItemPool<MD5> _md5Pool;
+
+    public ETagProvider(IItemPool<MD5> md5Pool)
     {
-        string GenerateETag(byte[] content);
+        _md5Pool = md5Pool;
     }
 
-    public class ETagProvider : IETagProvider
+    public string GenerateETag(byte[] content)
     {
-        private readonly IItemPool<MD5> _md5Pool;
+        using var md5Rental = _md5Pool.Get();
 
-        public ETagProvider(IItemPool<MD5> md5Pool)
-        {
-            _md5Pool = md5Pool;
-        }
+        var hashBytes = md5Rental.Item.ComputeHash(content);
 
-        public string GenerateETag(byte[] content)
-        {
-            using var md5Rental = _md5Pool.Get();
-
-            var hashBytes = md5Rental.Item.ComputeHash(content);
-
-            return Convert.ToBase64String(hashBytes);
-        }
+        return Convert.ToBase64String(hashBytes);
     }
 }

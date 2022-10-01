@@ -1,11 +1,10 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.Serializer
-{
-    public interface ISerializationLocatorService
-    {
-        IRequestDeserializer FindRequestDeserializer(IExecutionContext context);
+namespace Hardened.Requests.Abstract.Serializer;
 
-        IResponseSerializer FindResponseSerializer(IExecutionContext context);
-    }
+public interface ISerializationLocatorService
+{
+    IRequestDeserializer FindRequestDeserializer(IExecutionContext context);
+
+    IResponseSerializer FindResponseSerializer(IExecutionContext context);
 }

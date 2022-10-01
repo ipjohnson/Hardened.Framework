@@ -4,41 +4,40 @@ using Hardened.IntegrationTests.Function.Lambda.SUT.Models;
 using Hardened.Shared.Testing.Attributes;
 using Xunit;
 
-namespace Hardened.IntegrationTests.Function.Lambda.Tests.Functions
+namespace Hardened.IntegrationTests.Function.Lambda.Tests.Functions;
+
+public class PersonFunctionsTests
 {
-    public class PersonFunctionsTests
+    [HardenedTest]
+    public async Task GetAllPeople(LambdaTestApp app)
     {
-        [HardenedTest]
-        public async Task GetAllPeople(LambdaTestApp app)
-        {
-            var request = new PersonFunctions.GetAllPeopleRequest { MaxCount = 20 };
+        var request = new PersonFunctions.GetAllPeopleRequest { MaxCount = 20 };
 
-            var personListModel =
-                await app.Invoke<PersonListModel>("GetAllPeople", request);
+        var personListModel =
+            await app.Invoke<PersonListModel>("GetAllPeople", request);
 
-            Assert.NotNull(personListModel);
-            Assert.Equal("test", personListModel.Title);
-        }
-
-
-        //[HardenedTest]
-        //public async Task GetAllPeople(PersonFunctions_GetAllPeople lambda)
-        //{
-        //    var personListModel = await lambda.Invoke(new PersonFunctions.GetAllPeopleRequest { MaxCount = 20 });
-
-        //    Assert.NotNull(personListModel);
-        //    Assert.Equal("test", personListModel.Title);
-        //}
-
-        //[HardenedTest]
-        //public async Task GetAllPeopleWithContext(PersonFunctions_GetAllPeople lambda)
-        //{
-        //    var personListModel = await lambda.Invoke(
-        //        new PersonFunctions.GetAllPeopleRequest { MaxCount = 20 }, 
-        //        customData => customData.Add("contextString", "contextString123"));
-
-        //    Assert.NotNull(personListModel);
-        //    //Assert.Equal("contextString123", personListModel.Title);
-        //}
+        Assert.NotNull(personListModel);
+        Assert.Equal("test", personListModel.Title);
     }
+
+
+    //[HardenedTest]
+    //public async Task GetAllPeople(PersonFunctions_GetAllPeople lambda)
+    //{
+    //    var personListModel = await lambda.Invoke(new PersonFunctions.GetAllPeopleRequest { MaxCount = 20 });
+
+    //    Assert.NotNull(personListModel);
+    //    Assert.Equal("test", personListModel.Title);
+    //}
+
+    //[HardenedTest]
+    //public async Task GetAllPeopleWithContext(PersonFunctions_GetAllPeople lambda)
+    //{
+    //    var personListModel = await lambda.Invoke(
+    //        new PersonFunctions.GetAllPeopleRequest { MaxCount = 20 }, 
+    //        customData => customData.Add("contextString", "contextString123"));
+
+    //    Assert.NotNull(personListModel);
+    //    //Assert.Equal("contextString123", personListModel.Title);
+    //}
 }

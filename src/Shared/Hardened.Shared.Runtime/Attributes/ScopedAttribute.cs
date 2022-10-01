@@ -1,9 +1,8 @@
-﻿namespace Hardened.Shared.Runtime.Attributes
+﻿namespace Hardened.Shared.Runtime.Attributes;
+
+/// <summary>
+/// Expose service as scoped
+/// </summary>
+public class ScopedAttribute : Attribute
 {
-    /// <summary>
-    /// Expose service as scoped
-    /// </summary>
-    public class ScopedAttribute : Attribute
-    {
-    }
 }

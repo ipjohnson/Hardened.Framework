@@ -2,24 +2,23 @@
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Hardened.Web.Runtime.DependencyInjection
+namespace Hardened.Web.Runtime.DependencyInjection;
+
+public class FilterRegistryStartupService : IStartupService
 {
-    public class FilterRegistryStartupService : IStartupService
+    private readonly Action<IGlobalFilterRegistry> _registryAction;
+
+    public FilterRegistryStartupService(Action<IGlobalFilterRegistry> registryAction)
     {
-        private readonly Action<IGlobalFilterRegistry> _registryAction;
+        _registryAction = registryAction;
+    }
 
-        public FilterRegistryStartupService(Action<IGlobalFilterRegistry> registryAction)
-        {
-            _registryAction = registryAction;
-        }
+    public Task Startup(IServiceProvider rootProvider)
+    {
+        var registry = rootProvider.GetRequiredService<IGlobalFilterRegistry>();
 
-        public Task Startup(IServiceProvider rootProvider)
-        {
-            var registry = rootProvider.GetRequiredService<IGlobalFilterRegistry>();
+        _registryAction(registry);
 
-            _registryAction(registry);
-
-            return Task.CompletedTask;
-        }
+        return Task.CompletedTask;
     }
 }

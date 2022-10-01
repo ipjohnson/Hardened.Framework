@@ -2,18 +2,17 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
-namespace Hardened.Shared.Testing.Attributes
-{
-    public interface IHardenedParameterProviderAttribute
-    {
-        void RegisterDependencies(
-            AttributeCollection attributeCollection,
-            MethodInfo methodInfo, 
-            ParameterInfo? parameterInfo, 
-            IEnvironment environment, 
-            IServiceCollection serviceCollection);
+namespace Hardened.Shared.Testing.Attributes;
 
-        object? ProvideParameterValue(
-            ParameterInfo parameterInfo, IApplicationRoot applicationRoot);
-    }
+public interface IHardenedParameterProviderAttribute
+{
+    void RegisterDependencies(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo, 
+        ParameterInfo? parameterInfo, 
+        IEnvironment environment, 
+        IServiceCollection serviceCollection);
+
+    object? ProvideParameterValue(
+        ParameterInfo parameterInfo, IApplicationRoot applicationRoot);
 }

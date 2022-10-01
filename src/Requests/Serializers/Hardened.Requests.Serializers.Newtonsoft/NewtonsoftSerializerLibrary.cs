@@ -1,9 +1,8 @@
 ﻿using Hardened.Shared.Runtime.Attributes;
 
-namespace Hardened.Requests.Serializers.Newtonsoft
+namespace Hardened.Requests.Serializers.Newtonsoft;
+
+[HardenedStartup]
+public partial class NewtonsoftSerializerLibrary
 {
-    [HardenedStartup]
-    public partial class NewtonsoftSerializerLibrary
-    {
-    }
 }

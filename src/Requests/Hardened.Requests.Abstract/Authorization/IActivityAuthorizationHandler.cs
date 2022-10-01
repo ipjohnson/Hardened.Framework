@@ -1,9 +1,8 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.Authorization
+namespace Hardened.Requests.Abstract.Authorization;
+
+public interface IActivityAuthorizationHandler
 {
-    public interface IActivityAuthorizationHandler
-    {
-        ValueTask<bool?> Authorize(IExecutionContext context, params string[] actions);
-    }
+    ValueTask<bool?> Authorize(IExecutionContext context, params string[] actions);
 }

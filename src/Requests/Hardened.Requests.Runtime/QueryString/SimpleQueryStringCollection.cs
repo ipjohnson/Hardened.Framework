@@ -1,27 +1,26 @@
 ﻿using Hardened.Requests.Abstract.QueryString;
 using Microsoft.Extensions.Primitives;
 
-namespace Hardened.Requests.Runtime.QueryString
+namespace Hardened.Requests.Runtime.QueryString;
+
+public class SimpleQueryStringCollection : IQueryStringCollection
 {
-    public class SimpleQueryStringCollection : IQueryStringCollection
+    private readonly IDictionary<string, string> _queryParameters;
+
+    public SimpleQueryStringCollection(IDictionary<string, string> queryParameters)
     {
-        private readonly IDictionary<string, string> _queryParameters;
+        _queryParameters = queryParameters;
+    }
 
-        public SimpleQueryStringCollection(IDictionary<string, string> queryParameters)
+    public int Count => _queryParameters.Count;
+
+    public StringValues Get(string key)
+    {
+        if (_queryParameters.TryGetValue(key, out var value))
         {
-            _queryParameters = queryParameters;
+            return value;
         }
 
-        public int Count => _queryParameters.Count;
-
-        public StringValues Get(string key)
-        {
-            if (_queryParameters.TryGetValue(key, out var value))
-            {
-                return value;
-            }
-
-            return StringValues.Empty;
-        }
+        return StringValues.Empty;
     }
 }

@@ -3,26 +3,25 @@ using Hardened.IntegrationTests.Function.Lambda.SUT.Models;
 using Hardened.IntegrationTests.Function.Lambda.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
 
-namespace Hardened.IntegrationTests.Function.Lambda.SUT.Functions
+namespace Hardened.IntegrationTests.Function.Lambda.SUT.Functions;
+
+public class PersonFunctions
 {
-    public class PersonFunctions
+    private readonly IPersonService _personService;
+
+    public PersonFunctions(IPersonService personService)
     {
-        private readonly IPersonService _personService;
-
-        public PersonFunctions(IPersonService personService)
-        {
-            _personService = personService;
-        }
+        _personService = personService;
+    }
         
-        [HardenedFunction]
-        public async Task<PersonListModel> GetAllPeople(GetAllPeopleRequest request, [FromContext] string contextString = "test")
-        {
-            return new PersonListModel(contextString, new List<PersonModel>());
-        }
+    [HardenedFunction]
+    public async Task<PersonListModel> GetAllPeople(GetAllPeopleRequest request, [FromContext] string contextString = "test")
+    {
+        return new PersonListModel(contextString, new List<PersonModel>());
+    }
 
-        public class GetAllPeopleRequest
-        {
-            public int MaxCount { get; set; } = 10;
-        }
+    public class GetAllPeopleRequest
+    {
+        public int MaxCount { get; set; } = 10;
     }
 }

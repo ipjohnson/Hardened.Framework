@@ -1,133 +1,132 @@
 ﻿using System.Text;
 using CSharpAuthor;
 
-namespace Hardened.SourceGenerator.Shared
+namespace Hardened.SourceGenerator.Shared;
+
+public class HardenedMethodDefinition
 {
-    public class HardenedMethodDefinition
+    private int? _hashCode;
+
+    public HardenedMethodDefinition(string name, ITypeDefinition? returnType, IReadOnlyList<HardenedParameterDefinition> parameters)
     {
-        private int? _hashCode;
-
-        public HardenedMethodDefinition(string name, ITypeDefinition? returnType, IReadOnlyList<HardenedParameterDefinition> parameters)
-        {
-            Name = name;
-            ReturnType = returnType;
-            Parameters = parameters;
-        }
-
-        public string Name { get; }
-
-        public ITypeDefinition? ReturnType { get; }
-
-        public IReadOnlyList<HardenedParameterDefinition> Parameters { get; }
-
-        public override bool Equals(object obj)
-        {
-            if (obj is not HardenedMethodDefinition other)
-            {
-                return false;
-            }
-
-            if (!Name.Equals(other.Name))
-            {
-                return false;
-            }
-
-            if (!(ReturnType?.Equals(other.ReturnType) ?? true))
-            {
-                return false;
-            }
-
-            if (Parameters.Count != other.Parameters.Count)
-            {
-                return false;
-            }
-
-            for (var i = 0; i < Parameters.Count; i++)
-            {
-                var xP = Parameters[i];
-                var yP = other.Parameters[i];
-
-                if (!xP.Equals(yP))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        public override string ToString()
-        {
-            var stringBuilder = new StringBuilder();
-
-            stringBuilder.Append(ReturnType);
-            stringBuilder.Append(" ");
-            stringBuilder.Append(Name);
-            stringBuilder.Append("(");
-            var comma = false;
-            foreach (var parameter in Parameters)
-            {
-                if (comma)
-                {
-                    stringBuilder.Append(',');
-                }
-                else
-                {
-                    comma = true;
-                }
-                stringBuilder.Append(parameter);
-            }
-            stringBuilder.Append(")");
-
-            return stringBuilder.ToString();
-        }
-
-        public override int GetHashCode()
-        {
-            return ToString().GetHashCode();
-        }
+        Name = name;
+        ReturnType = returnType;
+        Parameters = parameters;
     }
 
-    public class HardenedParameterDefinition
+    public string Name { get; }
+
+    public ITypeDefinition? ReturnType { get; }
+
+    public IReadOnlyList<HardenedParameterDefinition> Parameters { get; }
+
+    public override bool Equals(object obj)
     {
-        public HardenedParameterDefinition(string name, ITypeDefinition type)
+        if (obj is not HardenedMethodDefinition other)
         {
-            Name = name;
-            Type = type;
+            return false;
         }
 
-        public string Name { get; }
-
-        public ITypeDefinition Type { get; }
-
-        public override bool Equals(object obj)
+        if (!Name.Equals(other.Name))
         {
-            if (obj is not HardenedParameterDefinition hardenedParameterDefinition)
+            return false;
+        }
+
+        if (!(ReturnType?.Equals(other.ReturnType) ?? true))
+        {
+            return false;
+        }
+
+        if (Parameters.Count != other.Parameters.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < Parameters.Count; i++)
+        {
+            var xP = Parameters[i];
+            var yP = other.Parameters[i];
+
+            if (!xP.Equals(yP))
             {
                 return false;
             }
-
-            if (hardenedParameterDefinition.Name != Name)
-            {
-                return false;
-            }
-
-            if (!hardenedParameterDefinition.Type.Equals(Type))
-            {
-                return false;
-            }
-
-            return true;
         }
 
-        public override string ToString()
+        return true;
+    }
+
+    public override string ToString()
+    {
+        var stringBuilder = new StringBuilder();
+
+        stringBuilder.Append(ReturnType);
+        stringBuilder.Append(" ");
+        stringBuilder.Append(Name);
+        stringBuilder.Append("(");
+        var comma = false;
+        foreach (var parameter in Parameters)
         {
-            return $"{Type} {Name}"; 
+            if (comma)
+            {
+                stringBuilder.Append(',');
+            }
+            else
+            {
+                comma = true;
+            }
+            stringBuilder.Append(parameter);
+        }
+        stringBuilder.Append(")");
+
+        return stringBuilder.ToString();
+    }
+
+    public override int GetHashCode()
+    {
+        return ToString().GetHashCode();
+    }
+}
+
+public class HardenedParameterDefinition
+{
+    public HardenedParameterDefinition(string name, ITypeDefinition type)
+    {
+        Name = name;
+        Type = type;
+    }
+
+    public string Name { get; }
+
+    public ITypeDefinition Type { get; }
+
+    public override bool Equals(object obj)
+    {
+        if (obj is not HardenedParameterDefinition hardenedParameterDefinition)
+        {
+            return false;
         }
 
-        public override int GetHashCode()
+        if (hardenedParameterDefinition.Name != Name)
         {
-            return ToString().GetHashCode();  
+            return false;
         }
+
+        if (!hardenedParameterDefinition.Type.Equals(Type))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public override string ToString()
+    {
+        return $"{Type} {Name}"; 
+    }
+
+    public override int GetHashCode()
+    {
+        return ToString().GetHashCode();  
     }
 }

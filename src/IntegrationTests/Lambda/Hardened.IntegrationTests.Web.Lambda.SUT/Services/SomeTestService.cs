@@ -1,18 +1,17 @@
 ﻿using Hardened.Shared.Runtime.Attributes;
 
-namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services
-{
-    public interface ISomeTestService
-    {
-        string TestMethod();
-    }
+namespace Hardened.IntegrationTests.Web.Lambda.SUT.Services;
 
-    [Expose]
-    internal class SomeTestService : ISomeTestService
+public interface ISomeTestService
+{
+    string TestMethod();
+}
+
+[Expose]
+internal class SomeTestService : ISomeTestService
+{
+    public string TestMethod()
     {
-        public string TestMethod()
-        {
-            return "test string";
-        }
+        return "test string";
     }
 }

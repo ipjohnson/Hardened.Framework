@@ -1,31 +1,30 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Templates.Abstract
+namespace Hardened.Templates.Abstract;
+
+public interface ITemplateExecutionContext
 {
-    public interface ITemplateExecutionContext
-    {
-        ITemplateOutputWriter Writer { get; }
+    ITemplateOutputWriter Writer { get; }
 
-        ITemplateExecutionService ExecutionService { get; }
+    ITemplateExecutionService ExecutionService { get; }
 
-        IInternalTemplateServices TemplateServices { get; }
+    IInternalTemplateServices TemplateServices { get; }
 
-        IStringEscapeService StringEscapeService { get; }
+    IStringEscapeService StringEscapeService { get; }
 
-        string TemplateExtension { get; }
+    string TemplateExtension { get; }
 
-        IServiceProvider RequestServiceProvider { get; }
+    IServiceProvider RequestServiceProvider { get; }
 
-        ITemplateExecutionContext? ParentContext { get; }
+    ITemplateExecutionContext? ParentContext { get; }
 
-        IExecutionContext? ExecutionContext { get; }
+    IExecutionContext? ExecutionContext { get; }
 
-        object ObjectValue { get; }
+    object ObjectValue { get; }
 
-        object? GetCustomValue(string key);
+    object? GetCustomValue(string key);
 
-        void SetCustomValue(string key, object value);
+    void SetCustomValue(string key, object value);
 
-        SafeString GetEscapedString(object value, string propertyName = "", string formattingString = "");
-    }
+    SafeString GetEscapedString(object value, string propertyName = "", string formattingString = "");
 }

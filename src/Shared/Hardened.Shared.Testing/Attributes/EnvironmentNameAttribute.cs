@@ -1,12 +1,11 @@
-﻿namespace Hardened.Shared.Testing.Attributes
-{
-    public class EnvironmentNameAttribute : Attribute
-    {
-        public EnvironmentNameAttribute(string name)
-        {
-            Name = name;
-        }
+﻿namespace Hardened.Shared.Testing.Attributes;
 
-        public string Name { get; }
+public class EnvironmentNameAttribute : Attribute
+{
+    public EnvironmentNameAttribute(string name)
+    {
+        Name = name;
     }
+
+    public string Name { get; }
 }

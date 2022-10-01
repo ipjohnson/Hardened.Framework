@@ -3,54 +3,52 @@ using Hardened.Shared.Runtime.Collections;
 using SimpleFixture.xUnit;
 using Xunit;
 
-namespace Hardened.Shared.Runtime.Tests.Collections
+namespace Hardened.Shared.Runtime.Tests.Collections;
+
+public class StringBuilderPoolServiceTests
 {
-
-    public class StringBuilderPoolServiceTests
+    [Theory]
+    [AutoData]
+    public void GetSameStringBuilder(StringBuilderPool poolService)
     {
-        [Theory]
-        [AutoData]
-        public void GetSameStringBuilder(StringBuilderPool poolService)
+        StringBuilder builder;
+
+        using (var builderHolder = poolService.Get())
         {
-            StringBuilder builder;
-
-            using (var builderHolder = poolService.Get())
-            {
-                builder = builderHolder.Item;
-            }
-
-            using (var secondBuilderHolder = poolService.Get())
-            {
-                Assert.Same(builder, secondBuilderHolder.Item);
-            }
+            builder = builderHolder.Item;
         }
 
-        [Theory]
-        [AutoData]
-        public void GetMultipleBuilders(StringBuilderPool poolService)
+        using (var secondBuilderHolder = poolService.Get())
         {
-            using var builderHolder = poolService.Get();
-            using var builderHolder2 = poolService.Get();
+            Assert.Same(builder, secondBuilderHolder.Item);
+        }
+    }
 
-            Assert.NotSame(builderHolder, builderHolder2);
+    [Theory]
+    [AutoData]
+    public void GetMultipleBuilders(StringBuilderPool poolService)
+    {
+        using var builderHolder = poolService.Get();
+        using var builderHolder2 = poolService.Get();
+
+        Assert.NotSame(builderHolder, builderHolder2);
+    }
+
+    [Theory]
+    [AutoData]
+    public void ClearStringBuilderUponReturn(StringBuilderPool poolService)
+    {
+        StringBuilder builder;
+
+        using (var builderHolder = poolService.Get())
+        {
+            builder = builderHolder.Item;
+
+            builder.Append("Some String");
+
+            Assert.True(builder.Length > 0);
         }
 
-        [Theory]
-        [AutoData]
-        public void ClearStringBuilderUponReturn(StringBuilderPool poolService)
-        {
-            StringBuilder builder;
-
-            using (var builderHolder = poolService.Get())
-            {
-                builder = builderHolder.Item;
-
-                builder.Append("Some String");
-
-                Assert.True(builder.Length > 0);
-            }
-
-            Assert.Equal(0, builder.Length);
-        }
+        Assert.Equal(0, builder.Length);
     }
 }

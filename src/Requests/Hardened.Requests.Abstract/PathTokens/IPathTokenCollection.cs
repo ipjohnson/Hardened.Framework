@@ -1,13 +1,12 @@
 ﻿using Microsoft.Extensions.Primitives;
 
-namespace Hardened.Requests.Abstract.PathTokens
+namespace Hardened.Requests.Abstract.PathTokens;
+
+public interface IPathTokenCollection
 {
-    public interface IPathTokenCollection
-    {
-        int Count { get; }
+    int Count { get; }
 
-        PathToken Get(int index);
+    PathToken Get(int index);
 
-        StringValues Get(string id);
-    }
+    StringValues Get(string id);
 }

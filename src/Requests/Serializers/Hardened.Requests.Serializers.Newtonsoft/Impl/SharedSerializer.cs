@@ -2,22 +2,21 @@
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
-namespace Hardened.Requests.Serializers.Newtonsoft.Impl
+namespace Hardened.Requests.Serializers.Newtonsoft.Impl;
+
+public interface ISharedSerializer
 {
-    public interface ISharedSerializer
+    JsonSerializer Serializer { get; }
+}
+
+[Expose]
+[Singleton]
+public class SharedSerializer : ISharedSerializer
+{
+    public SharedSerializer(IServiceProvider serviceProvider, IOptions<INewtonsoftSerializerConfiguration> configuration)
     {
-        JsonSerializer Serializer { get; }
+        Serializer = configuration.Value.SerializerProvider(serviceProvider);
     }
 
-    [Expose]
-    [Singleton]
-    public class SharedSerializer : ISharedSerializer
-    {
-        public SharedSerializer(IServiceProvider serviceProvider, IOptions<INewtonsoftSerializerConfiguration> configuration)
-        {
-            Serializer = configuration.Value.SerializerProvider(serviceProvider);
-        }
-
-        public JsonSerializer Serializer { get; }
-    }
+    public JsonSerializer Serializer { get; }
 }

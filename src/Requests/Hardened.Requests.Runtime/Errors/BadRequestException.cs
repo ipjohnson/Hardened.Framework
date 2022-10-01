@@ -1,10 +1,9 @@
-﻿namespace Hardened.Requests.Runtime.Errors
-{
-    public class BadRequestException : Exception
-    {
-        public BadRequestException(string message) : base(message)
-        {
+﻿namespace Hardened.Requests.Runtime.Errors;
 
-        }
+public class BadRequestException : Exception
+{
+    public BadRequestException(string message) : base(message)
+    {
+
     }
 }

@@ -1,7 +1,6 @@
-﻿namespace Hardened.Web.Runtime.Attributes
-{
-    public class HttpMethodAttribute
-    {
+﻿namespace Hardened.Web.Runtime.Attributes;
 
-    }
+public class HttpMethodAttribute
+{
+
 }

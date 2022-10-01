@@ -1,24 +1,23 @@
-﻿namespace Hardened.Shared.Testing.Attributes
-{
-    //[AttributeUsage(AttributeTargets.Method)]
-    //public class TestExposeAttribute : Attribute, ITestExposeAttribute
-    //{
-    //    public TestExposeAttribute(Type serviceType, Type implementationType, ServiceLifetime lifetime = ServiceLifetime.Singleton)
-    //    {
-    //        ServiceType = serviceType;
-    //        ImplementationType = implementationType;
-    //        Lifetime = lifetime;
-    //    }
+﻿namespace Hardened.Shared.Testing.Attributes;
 
-    //    public Type ServiceType { get; }
+//[AttributeUsage(AttributeTargets.Method)]
+//public class TestExposeAttribute : Attribute, ITestExposeAttribute
+//{
+//    public TestExposeAttribute(Type serviceType, Type implementationType, ServiceLifetime lifetime = ServiceLifetime.Singleton)
+//    {
+//        ServiceType = serviceType;
+//        ImplementationType = implementationType;
+//        Lifetime = lifetime;
+//    }
 
-    //    public Type ImplementationType { get; }
+//    public Type ServiceType { get; }
 
-    //    public ServiceLifetime Lifetime { get; }
+//    public Type ImplementationType { get; }
 
-    //    void ITestExposeAttribute.ExposeDependencies(MethodInfo method, IServiceCollection services)
-    //    {
-    //        services.Add(new ServiceDescriptor(ServiceType, ImplementationType, Lifetime));
-    //    }
-    //}
-}
+//    public ServiceLifetime Lifetime { get; }
+
+//    void ITestExposeAttribute.ExposeDependencies(MethodInfo method, IServiceCollection services)
+//    {
+//        services.Add(new ServiceDescriptor(ServiceType, ImplementationType, Lifetime));
+//    }
+//}

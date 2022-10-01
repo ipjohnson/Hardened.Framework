@@ -1,10 +1,9 @@
-﻿namespace Hardened.SourceGenerator.Templates.Parser
+﻿namespace Hardened.SourceGenerator.Templates.Parser;
+
+public enum TemplateActionNodeTrimAttribute
 {
-    public enum TemplateActionNodeTrimAttribute
-    {
-        OpenStart,
-        OpenEnd,
-        CloseStart,
-        CloseEnd,
-    }
+    OpenStart,
+    OpenEnd,
+    CloseStart,
+    CloseEnd,
 }

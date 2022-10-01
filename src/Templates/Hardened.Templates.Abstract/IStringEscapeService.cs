@@ -1,9 +1,8 @@
-﻿namespace Hardened.Templates.Abstract
-{
-    public interface IStringEscapeService
-    {
-        bool CanEscapeTemplate(string templateExtension);
+﻿namespace Hardened.Templates.Abstract;
 
-        string EscapeString(string? value);
-    }
+public interface IStringEscapeService
+{
+    bool CanEscapeTemplate(string templateExtension);
+
+    string EscapeString(string? value);
 }

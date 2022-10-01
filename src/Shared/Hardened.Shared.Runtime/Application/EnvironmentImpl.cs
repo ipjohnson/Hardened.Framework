@@ -1,29 +1,28 @@
-﻿namespace Hardened.Shared.Runtime.Application
+﻿namespace Hardened.Shared.Runtime.Application;
+
+public class EnvironmentImpl : IEnvironment
 {
-    public class EnvironmentImpl : IEnvironment
+    public EnvironmentImpl()
     {
-        public EnvironmentImpl()
-        {
-            Name = System.Environment.GetEnvironmentVariable("HARDENED_ENVIRONMENT") ?? "development";
-        }
+        Name = System.Environment.GetEnvironmentVariable("HARDENED_ENVIRONMENT") ?? "development";
+    }
         
-        public string Name { get; }
+    public string Name { get; }
 
-        public T? Value<T>(string name, T? defaultValue = default)
+    public T? Value<T>(string name, T? defaultValue = default)
+    {
+        var envValue = Environment.GetEnvironmentVariable(name);
+
+        if (!string.IsNullOrEmpty(envValue))
         {
-            var envValue = Environment.GetEnvironmentVariable(name);
-
-            if (!string.IsNullOrEmpty(envValue))
+            if (typeof(T) == typeof(string))
             {
-                if (typeof(T) == typeof(string))
-                {
-                    return (T)(object)envValue;
-                }
-
-                return (T)Convert.ChangeType(envValue, typeof(T));
+                return (T)(object)envValue;
             }
 
-            return defaultValue;
+            return (T)Convert.ChangeType(envValue, typeof(T));
         }
+
+        return defaultValue;
     }
 }

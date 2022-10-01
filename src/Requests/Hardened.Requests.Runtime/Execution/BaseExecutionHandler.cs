@@ -1,28 +1,27 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Hardened.Requests.Runtime.Execution
+namespace Hardened.Requests.Runtime.Execution;
+
+public abstract class BaseExecutionHandler<TController> : IExecutionRequestHandler
 {
-    public abstract class BaseExecutionHandler<TController> : IExecutionRequestHandler
+    private readonly Func<IExecutionContext, IExecutionFilter>[] _filters;
+    private readonly DefaultOutputFunc? _outputFunc;
+
+    protected BaseExecutionHandler(Func<IExecutionContext, IExecutionFilter>[] filters, DefaultOutputFunc? outputFunc = null)
     {
-        private readonly Func<IExecutionContext, IExecutionFilter>[] _filters;
-        private readonly DefaultOutputFunc? _outputFunc;
+        _filters = filters;
+        _outputFunc = outputFunc;
+    }
 
-        protected BaseExecutionHandler(Func<IExecutionContext, IExecutionFilter>[] filters, DefaultOutputFunc? outputFunc = null)
-        {
-            _filters = filters;
-            _outputFunc = outputFunc;
-        }
+    public abstract IExecutionRequestHandlerInfo HandlerInfo { get; }
 
-        public abstract IExecutionRequestHandlerInfo HandlerInfo { get; }
-
-        public IExecutionChain GetExecutionChain(IExecutionContext context)
-        {
-            context.HandlerInstance = context.RequestServices.GetRequiredService(typeof(TController));
-            context.HandlerInfo = HandlerInfo;
-            context.DefaultOutput = _outputFunc;
+    public IExecutionChain GetExecutionChain(IExecutionContext context)
+    {
+        context.HandlerInstance = context.RequestServices.GetRequiredService(typeof(TController));
+        context.HandlerInfo = HandlerInfo;
+        context.DefaultOutput = _outputFunc;
             
-            return new ExecutionChain(_filters, context);
-        }
+        return new ExecutionChain(_filters, context);
     }
 }

@@ -6,51 +6,50 @@ using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Hardened.Function.Lambda.SourceGenerator
+namespace Hardened.Function.Lambda.SourceGenerator;
+
+internal class LambdaEntryIncrementalGenerator
 {
-    internal class LambdaEntryIncrementalGenerator
+    public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
+        IncrementalValuesProvider<EntryPointSelector.Model> applicationValuesProvider)
     {
-        public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
-            IncrementalValuesProvider<EntryPointSelector.Model> applicationValuesProvider)
-        {
-            var methodSelector = new SyntaxSelector<MethodDeclarationSyntax>(KnownTypes.Requests.HardenedFunctionAttribute);
+        var methodSelector = new SyntaxSelector<MethodDeclarationSyntax>(KnownTypes.Requests.HardenedFunctionAttribute);
 
-            var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
-                methodSelector.Where,
-                LambdaFunctionModelGenerator.GenerateRequestModel
-            ).WithComparer(new RequestHandlerModelComparer());
+        var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
+            methodSelector.Where,
+            LambdaFunctionModelGenerator.GenerateRequestModel
+        ).WithComparer(new RequestHandlerModelComparer());
 
-            var applicationCollect = applicationValuesProvider.Collect();
+        var applicationCollect = applicationValuesProvider.Collect();
 
-            var invokeGenerator = new LambdaFunctionInvokerFileWriter();
+        var invokeGenerator = new LambdaFunctionInvokerFileWriter();
             
-            initializationContext.RegisterSourceOutput(
-                modelProvider.Combine(applicationCollect),
-                SourceGeneratorWrapper.Wrap <
+        initializationContext.RegisterSourceOutput(
+            modelProvider.Combine(applicationCollect),
+            SourceGeneratorWrapper.Wrap <
                 (RequestHandlerModel entryModel, ImmutableArray<EntryPointSelector.Model> appModel) >( invokeGenerator.GenerateSource)
-            );
+        );
 
-            var lambdaCollection = modelProvider.Collect();
+        var lambdaCollection = modelProvider.Collect();
 
-            initializationContext.RegisterSourceOutput(
-                applicationValuesProvider.Combine(lambdaCollection),
-                SourceGeneratorWrapper.Wrap<
-                    (EntryPointSelector.Model, ImmutableArray<RequestHandlerModel>)>(GenerateLambdaPackage)
-                );
-        }
+        initializationContext.RegisterSourceOutput(
+            applicationValuesProvider.Combine(lambdaCollection),
+            SourceGeneratorWrapper.Wrap<
+                (EntryPointSelector.Model, ImmutableArray<RequestHandlerModel>)>(GenerateLambdaPackage)
+        );
+    }
 
-        private static void GenerateLambdaPackage(SourceProductionContext context, (EntryPointSelector.Model,ImmutableArray<RequestHandlerModel>) model)
-        {
-            var lambdaHandlerPackageFileWriter = new LambdaHandlerPackageFileWriter();
-            var csharpFile = new CSharpFileDefinition(model.Item1.EntryPointType.Namespace);
+    private static void GenerateLambdaPackage(SourceProductionContext context, (EntryPointSelector.Model,ImmutableArray<RequestHandlerModel>) model)
+    {
+        var lambdaHandlerPackageFileWriter = new LambdaHandlerPackageFileWriter();
+        var csharpFile = new CSharpFileDefinition(model.Item1.EntryPointType.Namespace);
 
-            lambdaHandlerPackageFileWriter.WriteFile(context, model.Item1, model.Item2, csharpFile);
+        lambdaHandlerPackageFileWriter.WriteFile(context, model.Item1, model.Item2, csharpFile);
             
-            var output = new OutputContext();
+        var output = new OutputContext();
             
-            csharpFile.WriteOutput(output);
+        csharpFile.WriteOutput(output);
 
-            context.AddSource(model.Item1.EntryPointType.Name + ".LambdaHandlerPackage.cs", output.Output());
-        }
+        context.AddSource(model.Item1.EntryPointType.Name + ".LambdaHandlerPackage.cs", output.Output());
     }
 }

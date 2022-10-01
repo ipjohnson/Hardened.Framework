@@ -3,39 +3,38 @@ using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Shared.Runtime.Diagnostics;
 
-namespace Hardened.Requests.Runtime.Execution
+namespace Hardened.Requests.Runtime.Execution;
+
+internal class AsyncInvokeNoParametersFilter<TController> : IExecutionFilter where TController : class
 {
-    internal class AsyncInvokeNoParametersFilter<TController> : IExecutionFilter where TController : class
+    private readonly ExecutionHelper.AsyncInvokeNoParameters<TController> _invoke;
+
+    public AsyncInvokeNoParametersFilter(ExecutionHelper.AsyncInvokeNoParameters<TController> invoke)
     {
-        private readonly ExecutionHelper.AsyncInvokeNoParameters<TController> _invoke;
+        _invoke = invoke;
+    }
 
-        public AsyncInvokeNoParametersFilter(ExecutionHelper.AsyncInvokeNoParameters<TController> invoke)
+    public async Task Execute(IExecutionChain chain)
+    {
+        var context = chain.Context;
+        var startTimestamp = MachineTimestamp.Now;
+
+        try
         {
-            _invoke = invoke;
+            if (context.HandlerInstance is not TController controller)
+            {
+                throw new Exception($"HandlerInstance is not an instance of {typeof(TController)}");
+            }
+
+            await _invoke(context, controller);
+
+            context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
         }
-
-        public async Task Execute(IExecutionChain chain)
+        catch (Exception e)
         {
-            var context = chain.Context;
-            var startTimestamp = MachineTimestamp.Now;
+            context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
 
-            try
-            {
-                if (context.HandlerInstance is not TController controller)
-                {
-                    throw new Exception($"HandlerInstance is not an instance of {typeof(TController)}");
-                }
-
-                await _invoke(context, controller);
-
-                context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
-            }
-            catch (Exception e)
-            {
-                context.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, startTimestamp.GetElapsedMilliseconds());
-
-                await ControllerErrorHelper.HandleException(context, e);
-            }
+            await ControllerErrorHelper.HandleException(context, e);
         }
     }
 }

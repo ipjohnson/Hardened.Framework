@@ -1,18 +1,17 @@
-﻿namespace Hardened.Web.Runtime.CacheControl
+﻿namespace Hardened.Web.Runtime.CacheControl;
+
+[Flags]
+public enum CacheControlEnum
 {
-    [Flags]
-    public enum CacheControlEnum
-    {
-        MaxAge = 1,
+    MaxAge = 1,
 
-        NoCache = 2,
+    NoCache = 2,
 
-        NoStore = 4,
+    NoStore = 4,
 
-        NoTransform = 8,
+    NoTransform = 8,
 
-        Public = 32,
+    Public = 32,
 
-        Private = 64
-    }
+    Private = 64
 }

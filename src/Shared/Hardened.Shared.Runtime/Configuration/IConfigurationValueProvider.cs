@@ -1,13 +1,12 @@
 ﻿using Hardened.Shared.Runtime.Application;
 
-namespace Hardened.Shared.Runtime.Configuration
+namespace Hardened.Shared.Runtime.Configuration;
+
+public interface IConfigurationValueProvider
 {
-    public interface IConfigurationValueProvider
-    {
-        Type InterfaceType { get; }
+    Type InterfaceType { get; }
 
-        Type ImplementationType { get; }
+    Type ImplementationType { get; }
 
-        object ProvideValue(IEnvironment environment, Action<IEnvironment, object> amender);
-    }
+    object ProvideValue(IEnvironment environment, Action<IEnvironment, object> amender);
 }

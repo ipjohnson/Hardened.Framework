@@ -1,7 +1,6 @@
-﻿namespace Hardened.Templates.Abstract
+﻿namespace Hardened.Templates.Abstract;
+
+public interface IDataFormatProvider
 {
-    public interface IDataFormatProvider
-    {
-        void ProvideFormatters(IDictionary<Type, FormatDataFunc> formatter);
-    }
+    void ProvideFormatters(IDictionary<Type, FormatDataFunc> formatter);
 }

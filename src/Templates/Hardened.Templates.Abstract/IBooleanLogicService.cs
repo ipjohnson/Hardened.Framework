@@ -1,7 +1,6 @@
-﻿namespace Hardened.Templates.Abstract
+﻿namespace Hardened.Templates.Abstract;
+
+public interface IBooleanLogicService
 {
-    public interface IBooleanLogicService
-    {
-        bool IsTrueValue(object value);
-    }
+    bool IsTrueValue(object value);
 }

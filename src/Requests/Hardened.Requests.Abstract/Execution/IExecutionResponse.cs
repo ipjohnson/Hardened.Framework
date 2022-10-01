@@ -1,29 +1,28 @@
 ﻿using Hardened.Requests.Abstract.Headers;
 
-namespace Hardened.Requests.Abstract.Execution
+namespace Hardened.Requests.Abstract.Execution;
+
+public interface IExecutionResponse : ICloneable
 {
-    public interface IExecutionResponse : ICloneable
-    {
-        string? ContentType { get; set; }
+    string? ContentType { get; set; }
 
-        object? ResponseValue { get; set; }
+    object? ResponseValue { get; set; }
 
-        string? TemplateName { get; set; }
+    string? TemplateName { get; set; }
         
-        int? Status { get; set; }
+    int? Status { get; set; }
         
-        bool ShouldCompress { get; set; }
+    bool ShouldCompress { get; set; }
 
-        Stream Body { get; set; }
+    Stream Body { get; set; }
 
-        IHeaderCollection Headers { get; }
+    IHeaderCollection Headers { get; }
 
-        Exception? ExceptionValue { get; set; }
+    Exception? ExceptionValue { get; set; }
 
-        bool ResponseStarted { get; }
+    bool ResponseStarted { get; }
 
-        bool IsBinary { get; set; }
+    bool IsBinary { get; set; }
 
-        bool ShouldSerialize { get; set; }
-    }
+    bool ShouldSerialize { get; set; }
 }

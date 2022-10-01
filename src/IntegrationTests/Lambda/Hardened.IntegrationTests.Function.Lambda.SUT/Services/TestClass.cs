@@ -1,14 +1,13 @@
 ﻿using Hardened.Shared.Runtime.Attributes;
 
-namespace Hardened.IntegrationTests.Function.Lambda.SUT.Services
-{
-    public interface ITestClass
-    {
+namespace Hardened.IntegrationTests.Function.Lambda.SUT.Services;
 
-    }
-    [Expose]
-    [ForEnvironment("Test")]
-    public class TestClass : ITestClass
-    {
-    }
+public interface ITestClass
+{
+
+}
+[Expose]
+[ForEnvironment("Test")]
+public class TestClass : ITestClass
+{
 }

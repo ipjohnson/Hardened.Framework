@@ -1,14 +1,13 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Templates.Abstract
+namespace Hardened.Templates.Abstract;
+
+public interface ITemplateExecutionHandler
 {
-    public interface ITemplateExecutionHandler
-    {
-        Task Execute(
-            object requestValue,
-            IServiceProvider serviceProvider,
-            ITemplateOutputWriter writer,
-            ITemplateExecutionContext? parentContext, 
-            IExecutionContext? executionContext);
-    }
+    Task Execute(
+        object requestValue,
+        IServiceProvider serviceProvider,
+        ITemplateOutputWriter writer,
+        ITemplateExecutionContext? parentContext, 
+        IExecutionContext? executionContext);
 }

@@ -1,10 +1,9 @@
-﻿namespace Hardened.Templates.Runtime.Helpers.String
+﻿namespace Hardened.Templates.Runtime.Helpers.String;
+
+public class TrimHelper : BaseStringHelper
 {
-    public class TrimHelper : BaseStringHelper
+    protected override object AugmentString(string stringValue)
     {
-        protected override object AugmentString(string stringValue)
-        {
-            return stringValue.Trim();
-        }
+        return stringValue.Trim();
     }
 }

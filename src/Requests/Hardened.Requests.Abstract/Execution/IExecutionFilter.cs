@@ -1,24 +1,23 @@
-﻿namespace Hardened.Requests.Abstract.Execution
+﻿namespace Hardened.Requests.Abstract.Execution;
+
+public enum ExecutionFilterOrder
 {
-    public enum ExecutionFilterOrder
-    {
-        BeforeSerialize = -1,
+    BeforeSerialize = -1,
 
-        BindParameters = 0,
+    BindParameters = 0,
 
-        First = 1,
+    First = 1,
 
-        Second = 2,
+    Second = 2,
 
-        Third = 3,
+    Third = 3,
 
-        Normal = 100,
+    Normal = 100,
         
-        Last = int.MaxValue, 
-    }
+    Last = int.MaxValue, 
+}
     
-    public interface IExecutionFilter
-    {
-        Task Execute(IExecutionChain chain);
-    }
+public interface IExecutionFilter
+{
+    Task Execute(IExecutionChain chain);
 }

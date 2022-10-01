@@ -1,9 +1,8 @@
-﻿namespace Hardened.Requests.Abstract.Execution
-{
-    public interface IExecutionRequestHandler
-    {
-        IExecutionRequestHandlerInfo HandlerInfo { get; }
+﻿namespace Hardened.Requests.Abstract.Execution;
 
-        IExecutionChain GetExecutionChain(IExecutionContext context);
-    }
+public interface IExecutionRequestHandler
+{
+    IExecutionRequestHandlerInfo HandlerInfo { get; }
+
+    IExecutionChain GetExecutionChain(IExecutionContext context);
 }

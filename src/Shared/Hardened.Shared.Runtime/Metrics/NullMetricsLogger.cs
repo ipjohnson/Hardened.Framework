@@ -1,25 +1,24 @@
-﻿namespace Hardened.Shared.Runtime.Metrics
+﻿namespace Hardened.Shared.Runtime.Metrics;
+
+public class NullMetricsLogger : IMetricLogger
 {
-    public class NullMetricsLogger : IMetricLogger
+    public void Dispose()
     {
-        public void Dispose()
-        {
             
-        }
+    }
         
-        public void Record(IMetricDefinition metric, double value)
-        {
+    public void Record(IMetricDefinition metric, double value)
+    {
 
-        }
+    }
 
-        public void Tag(string tagName, object tagValue)
-        {
+    public void Tag(string tagName, object tagValue)
+    {
 
-        }
+    }
 
-        public void Data(string dataName, object dataValue)
-        {
+    public void Data(string dataName, object dataValue)
+    {
 
-        }
     }
 }

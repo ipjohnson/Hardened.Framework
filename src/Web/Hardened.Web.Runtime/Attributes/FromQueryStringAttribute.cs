@@ -1,12 +1,11 @@
-﻿namespace Hardened.Web.Runtime.Attributes
-{
-    public class FromQueryStringAttribute : Attribute
-    {
-        public FromQueryStringAttribute(string? name = null)
-        {
-            Name = name;
-        }
+﻿namespace Hardened.Web.Runtime.Attributes;
 
-        public string? Name { get; }
+public class FromQueryStringAttribute : Attribute
+{
+    public FromQueryStringAttribute(string? name = null)
+    {
+        Name = name;
     }
+
+    public string? Name { get; }
 }

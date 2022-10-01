@@ -3,65 +3,64 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Web.Runtime.StaticContent;
 
-namespace Hardened.Web.Runtime.Handlers
+namespace Hardened.Web.Runtime.Handlers;
+
+public interface IWebExecutionHandlerService : IExecutionFilter
 {
-    public interface IWebExecutionHandlerService : IExecutionFilter
-    {
 
-    }
+}
     
-    public partial class WebExecutionHandlerService : IWebExecutionHandlerService
+public partial class WebExecutionHandlerService : IWebExecutionHandlerService
+{
+    private readonly IEnumerable<IWebExecutionRequestHandlerProvider> _handlers;
+    private readonly IStaticContentHandler _staticContentHandler;
+    private readonly IResourceNotFoundHandler _resourceNotFoundHandler;
+    private readonly IRequestLogger _requestLogger;
+
+    public WebExecutionHandlerService(
+        IEnumerable<IWebExecutionRequestHandlerProvider> handlers, 
+        IResourceNotFoundHandler resourceNotFoundHandler, 
+        IRequestLogger requestLogger, 
+        IStaticContentHandler staticContentHandler)
     {
-        private readonly IEnumerable<IWebExecutionRequestHandlerProvider> _handlers;
-        private readonly IStaticContentHandler _staticContentHandler;
-        private readonly IResourceNotFoundHandler _resourceNotFoundHandler;
-        private readonly IRequestLogger _requestLogger;
+        _resourceNotFoundHandler = resourceNotFoundHandler;
+        _requestLogger = requestLogger;
+        _staticContentHandler = staticContentHandler;
+        _handlers = handlers.Reverse();
+    }
 
-        public WebExecutionHandlerService(
-            IEnumerable<IWebExecutionRequestHandlerProvider> handlers, 
-            IResourceNotFoundHandler resourceNotFoundHandler, 
-            IRequestLogger requestLogger, 
-            IStaticContentHandler staticContentHandler)
+    public Task Execute(IExecutionChain chain)
+    {
+        var context = chain.Context;
+
+        foreach (var provider in _handlers)
         {
-            _resourceNotFoundHandler = resourceNotFoundHandler;
-            _requestLogger = requestLogger;
-            _staticContentHandler = staticContentHandler;
-            _handlers = handlers.Reverse();
-        }
+            var handler = provider.GetExecutionRequestHandler(context);
 
-        public Task Execute(IExecutionChain chain)
-        {
-            var context = chain.Context;
-
-            foreach (var provider in _handlers)
+            if (handler != null)
             {
-                var handler = provider.GetExecutionRequestHandler(context);
+                context.HandlerInfo = handler.HandlerInfo;
 
-                if (handler != null)
-                {
-                    context.HandlerInfo = handler.HandlerInfo;
+                _requestLogger.RequestMapped(context);
 
-                    _requestLogger.RequestMapped(context);
+                var handlerChain = handler.GetExecutionChain(chain.Context);
 
-                    var handlerChain = handler.GetExecutionChain(chain.Context);
-
-                    return handlerChain.Next();
-                }
+                return handlerChain.Next();
             }
-
-            return ResolvedFromSecondarySources(chain, context);
         }
 
-        private async Task ResolvedFromSecondarySources(IExecutionChain chain, IExecutionContext context)
+        return ResolvedFromSecondarySources(chain, context);
+    }
+
+    private async Task ResolvedFromSecondarySources(IExecutionChain chain, IExecutionContext context)
+    {
+        if (await _staticContentHandler.Handle(context))
         {
-            if (await _staticContentHandler.Handle(context))
-            {
                 
-            }
-            else
-            {
-                await _resourceNotFoundHandler.Handle(chain);
-            }
+        }
+        else
+        {
+            await _resourceNotFoundHandler.Handle(chain);
         }
     }
 }

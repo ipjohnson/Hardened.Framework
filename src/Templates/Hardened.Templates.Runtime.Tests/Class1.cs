@@ -1,7 +1,6 @@
-﻿namespace Hardened.Templates.Runtime.Tests
-{
-    public class Class1
-    {
+﻿namespace Hardened.Templates.Runtime.Tests;
 
-    }
+public class Class1
+{
+
 }

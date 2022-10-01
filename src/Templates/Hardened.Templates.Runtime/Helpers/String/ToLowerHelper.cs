@@ -1,10 +1,9 @@
-﻿namespace Hardened.Templates.Runtime.Helpers.String
+﻿namespace Hardened.Templates.Runtime.Helpers.String;
+
+public class ToLowerHelper : BaseStringHelper
 {
-    public class ToLowerHelper : BaseStringHelper
+    protected override object AugmentString(string value)
     {
-        protected override object AugmentString(string value)
-        {
-            return value.ToLowerInvariant();
-        }
+        return value.ToLowerInvariant();
     }
 }

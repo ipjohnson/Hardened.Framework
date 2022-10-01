@@ -1,55 +1,54 @@
 ﻿using CSharpAuthor;
 
-namespace Hardened.SourceGenerator.Models.Request
+namespace Hardened.SourceGenerator.Models.Request;
+
+public class FilterInformationModel
 {
-    public class FilterInformationModel
+    public FilterInformationModel(ITypeDefinition typeDefinition, string arguments, string propertyAssignment)
     {
-        public FilterInformationModel(ITypeDefinition typeDefinition, string arguments, string propertyAssignment)
+        TypeDefinition = typeDefinition;
+        Arguments = arguments;
+        PropertyAssignment = propertyAssignment;
+    }
+
+    public ITypeDefinition TypeDefinition { get; }
+
+    public string Arguments { get; }
+
+    public string PropertyAssignment { get; }
+
+    public override bool Equals(object obj)
+    {
+        if (obj is not FilterInformationModel filterInformationModel)
         {
-            TypeDefinition = typeDefinition;
-            Arguments = arguments;
-            PropertyAssignment = propertyAssignment;
+            return false;
         }
 
-        public ITypeDefinition TypeDefinition { get; }
-
-        public string Arguments { get; }
-
-        public string PropertyAssignment { get; }
-
-        public override bool Equals(object obj)
+        if (!TypeDefinition.Equals(filterInformationModel.TypeDefinition))
         {
-            if (obj is not FilterInformationModel filterInformationModel)
-            {
-                return false;
-            }
-
-            if (!TypeDefinition.Equals(filterInformationModel.TypeDefinition))
-            {
-                return false;
-            }
-
-            if (Arguments != filterInformationModel.Arguments)
-            {
-                return false;
-            }
-
-            if (PropertyAssignment != filterInformationModel.PropertyAssignment)
-            {
-                return false;
-            }
-
-            return true;
+            return false;
         }
 
-        public override string ToString()
+        if (Arguments != filterInformationModel.Arguments)
         {
-            return $"{TypeDefinition}:{Arguments}:{PropertyAssignment}";
+            return false;
         }
 
-        public override int GetHashCode()
+        if (PropertyAssignment != filterInformationModel.PropertyAssignment)
         {
-            return this.Arguments.GetHashCode() * this.PropertyAssignment.GetHashCode() * this.TypeDefinition.GetHashCode();
+            return false;
         }
+
+        return true;
+    }
+
+    public override string ToString()
+    {
+        return $"{TypeDefinition}:{Arguments}:{PropertyAssignment}";
+    }
+
+    public override int GetHashCode()
+    {
+        return this.Arguments.GetHashCode() * this.PropertyAssignment.GetHashCode() * this.TypeDefinition.GetHashCode();
     }
 }

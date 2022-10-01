@@ -1,9 +1,8 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.Errors
+namespace Hardened.Requests.Abstract.Errors;
+
+public interface IExceptionToModelConverter
 {
-    public interface IExceptionToModelConverter
-    {
-        (int, object) ConvertExceptionToModel(IExecutionContext context, Exception exp);
-    }
+    (int, object) ConvertExceptionToModel(IExecutionContext context, Exception exp);
 }

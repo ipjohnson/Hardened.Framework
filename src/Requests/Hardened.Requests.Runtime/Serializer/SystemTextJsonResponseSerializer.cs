@@ -5,47 +5,46 @@ using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Hardened.Requests.Runtime.Serializer
+namespace Hardened.Requests.Runtime.Serializer;
+
+public class SystemTextJsonResponseSerializer : IResponseSerializer
 {
-    public class SystemTextJsonResponseSerializer : IResponseSerializer
+    private readonly JsonSerializerOptions _serializerOptions;
+
+    public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration)
     {
-        private readonly JsonSerializerOptions _serializerOptions;
+        _serializerOptions =
+            configuration.Value.DeSerializerOptions ??
+            new(JsonSerializerDefaults.Web);
+    }
 
-        public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration)
+    public bool IsDefaultSerializer => true;
+
+    public bool CanProcessContext(IExecutionContext context)
+    {
+        return context.Request.Accept?.Contains("application/json") ?? false;
+    }
+
+    public async Task SerializeResponse(IExecutionContext context)
+    {
+        context.Response.ContentType = "application/json";
+
+        if (context.Response.ResponseValue == null)
         {
-            _serializerOptions =
-                configuration.Value.DeSerializerOptions ??
-                new(JsonSerializerDefaults.Web);
+            return;
         }
 
-        public bool IsDefaultSerializer => true;
-
-        public bool CanProcessContext(IExecutionContext context)
+        if (context.Response.ShouldCompress)
         {
-            return context.Request.Accept?.Contains("application/json") ?? false;
+            await using var gzipStream = new GZipStream(context.Response.Body, CompressionLevel.Fastest, true);
+
+            await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue, _serializerOptions);
+
+            await gzipStream.FlushAsync();
         }
-
-        public async Task SerializeResponse(IExecutionContext context)
+        else
         {
-            context.Response.ContentType = "application/json";
-
-            if (context.Response.ResponseValue == null)
-            {
-                return;
-            }
-
-            if (context.Response.ShouldCompress)
-            {
-                await using var gzipStream = new GZipStream(context.Response.Body, CompressionLevel.Fastest, true);
-
-                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue, _serializerOptions);
-
-                await gzipStream.FlushAsync();
-            }
-            else
-            {
-                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue, _serializerOptions);
-            }
+            await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue, _serializerOptions);
         }
     }
 }

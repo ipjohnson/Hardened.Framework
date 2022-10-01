@@ -1,10 +1,8 @@
-﻿namespace Hardened.Templates.Abstract
+﻿namespace Hardened.Templates.Abstract;
+
+public interface ITemplateExecutionHandlerProvider
 {
+    ITemplateExecutionService? TemplateExecutionService { get; set; }
 
-    public interface ITemplateExecutionHandlerProvider
-    {
-        ITemplateExecutionService? TemplateExecutionService { get; set; }
-
-        ITemplateExecutionHandler? GetTemplateExecutionHandler(string templateName);
-    }
+    ITemplateExecutionHandler? GetTemplateExecutionHandler(string templateName);
 }

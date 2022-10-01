@@ -8,52 +8,51 @@ using Hardened.Shared.Runtime.Configuration;
 using Hardened.Web.Runtime.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Hardened.IntegrationTests.Web.Lambda.SUT
+namespace Hardened.IntegrationTests.Web.Lambda.SUT;
+
+[HardenedStartup]
+public partial class Application
 {
-    [HardenedStartup]
-    public partial class Application
+    private IEnumerable<IApplicationModule> Modules()
     {
-        private IEnumerable<IApplicationModule> Modules()
+        yield return new WebLibraryEntryPoint();
+    }
+
+    private void Configure(IAppConfig config)
+    {
+        config.Amend<StaticContentConfiguration>( 
+            staticConfig => staticConfig.CacheMaxAge = 15);
+
+        config.Amend<ResponseHeaderConfiguration>(responseHeader =>
         {
-            yield return new WebLibraryEntryPoint();
-        }
+            responseHeader.Add("TestResponseHeader", "TestValue");
+            responseHeader.Add(c => c.Response.Headers.Set("OtherTest", "OtherValue"));
+        });
+    }
 
-        private void Configure(IAppConfig config)
-        {
-            config.Amend<StaticContentConfiguration>( 
-                staticConfig => staticConfig.CacheMaxAge = 15);
+    //private void ConfigureLogging(IEnvironment environment, ILoggingBuilder builder)
+    //{
+    //    builder
+    //        .AddFilter("Microsoft", LogLevel.Warning)
+    //        .AddFilter("System", LogLevel.Warning)
+    //        .AddFilter("Hardened", LogLevel.Debug)
+    //        .AddLambdaLogger();
+    //}
 
-            config.Amend<ResponseHeaderConfiguration>(responseHeader =>
-            {
-                responseHeader.Add("TestResponseHeader", "TestValue");
-                responseHeader.Add(c => c.Response.Headers.Set("OtherTest", "OtherValue"));
-            });
-        }
-
-        //private void ConfigureLogging(IEnvironment environment, ILoggingBuilder builder)
-        //{
-        //    builder
-        //        .AddFilter("Microsoft", LogLevel.Warning)
-        //        .AddFilter("System", LogLevel.Warning)
-        //        .AddFilter("Hardened", LogLevel.Debug)
-        //        .AddLambdaLogger();
-        //}
-
-        private async Task Startup(IServiceProvider rootProvider)
-        {
+    private async Task Startup(IServiceProvider rootProvider)
+    {
             
-        }
+    }
 
-        private void RegisterFilters(IGlobalFilterRegistry registry)
-        {
-            var filter = new MetricsFilter();
+    private void RegisterFilters(IGlobalFilterRegistry registry)
+    {
+        var filter = new MetricsFilter();
 
-            registry.RegisterFilter(filter);
-        }
+        registry.RegisterFilter(filter);
+    }
 
-        private void RegisterDependencies(IServiceCollection serviceCollection)
-        {
+    private void RegisterDependencies(IServiceCollection serviceCollection)
+    {
 
-        }
     }
 }

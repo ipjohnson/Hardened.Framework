@@ -11,68 +11,67 @@ using Hardened.Shared.Runtime.Metrics;
 using Hardened.Shared.Runtime.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Hardened.Function.Lambda.Runtime.Impl
+namespace Hardened.Function.Lambda.Runtime.Impl;
+
+public interface ILambdaFunctionImplService
 {
-    public interface ILambdaFunctionImplService
+    Task<Stream> InvokeFunction(Stream stream, ILambdaContext context);
+}
+
+public class LambdaFunctionImplService : ILambdaFunctionImplService
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IMiddlewareService _middlewareService;
+    private readonly IMemoryStreamPool _memoryStreamPool;
+    private readonly IKnownServices _knownServices;
+    private readonly ILambdaContextAccessor _contextAccessor;
+
+    public LambdaFunctionImplService(
+        IMiddlewareService middlewareService,
+        IMemoryStreamPool memoryStreamPool, 
+        IServiceProvider serviceProvider, 
+        IKnownServices knownServices,
+        ILambdaContextAccessor contextAccessor)
     {
-        Task<Stream> InvokeFunction(Stream stream, ILambdaContext context);
+        _middlewareService = middlewareService;
+        _memoryStreamPool = memoryStreamPool;
+        _serviceProvider = serviceProvider;
+        _knownServices = knownServices;
+        _contextAccessor = contextAccessor;
     }
 
-    public class LambdaFunctionImplService : ILambdaFunctionImplService
+    public async Task<Stream> InvokeFunction(Stream stream, ILambdaContext context)
     {
-        private readonly IServiceProvider _serviceProvider;
-        private readonly IMiddlewareService _middlewareService;
-        private readonly IMemoryStreamPool _memoryStreamPool;
-        private readonly IKnownServices _knownServices;
-        private readonly ILambdaContextAccessor _contextAccessor;
+        _contextAccessor.Context = context;
 
-        public LambdaFunctionImplService(
-            IMiddlewareService middlewareService,
-            IMemoryStreamPool memoryStreamPool, 
-            IServiceProvider serviceProvider, 
-            IKnownServices knownServices,
-            ILambdaContextAccessor contextAccessor)
-        {
-            _middlewareService = middlewareService;
-            _memoryStreamPool = memoryStreamPool;
-            _serviceProvider = serviceProvider;
-            _knownServices = knownServices;
-            _contextAccessor = contextAccessor;
-        }
+        var now = MachineTimestamp.Now;
 
-        public async Task<Stream> InvokeFunction(Stream stream, ILambdaContext context)
-        {
-            _contextAccessor.Context = context;
+        await using var requestContext = _serviceProvider.CreateAsyncScope();
+        var responseStream = new MemoryStreamPoolWrapper(_memoryStreamPool.Get());
 
-            var now = MachineTimestamp.Now;
+        var customContext = context.ClientContext.Custom;
 
-            await using var requestContext = _serviceProvider.CreateAsyncScope();
-            var responseStream = new MemoryStreamPoolWrapper(_memoryStreamPool.Get());
+        IHeaderCollection headerCollection = customContext != null
+            ? new HeaderCollectionStringDictionary(customContext)
+            : new HeaderCollectionStringValues();
 
-            var customContext = context.ClientContext.Custom;
+        var request =
+            new LambdaExecutionRequest("Invoke", context.FunctionName, stream, headerCollection);
+        var response = new LambdaExecutionResponse(responseStream, new HeaderCollectionStringValues());
 
-            IHeaderCollection headerCollection = customContext != null
-                ? new HeaderCollectionStringDictionary(customContext)
-                : new HeaderCollectionStringValues();
+        var lambdaExecutionContext = new LambdaExecutionContext(
+            _serviceProvider, 
+            requestContext.ServiceProvider,
+            _knownServices,
+            request, 
+            response,
+            new NullMetricsLogger(),
+            now);
 
-            var request =
-                new LambdaExecutionRequest("Invoke", context.FunctionName, stream, headerCollection);
-            var response = new LambdaExecutionResponse(responseStream, new HeaderCollectionStringValues());
+        await _middlewareService.GetExecutionChain(lambdaExecutionContext).Next();
 
-            var lambdaExecutionContext = new LambdaExecutionContext(
-                _serviceProvider, 
-                requestContext.ServiceProvider,
-                _knownServices,
-                request, 
-                response,
-                new NullMetricsLogger(),
-                now);
+        responseStream.Position = 0;
 
-            await _middlewareService.GetExecutionChain(lambdaExecutionContext).Next();
-
-            responseStream.Position = 0;
-
-            return responseStream;
-        }
+        return responseStream;
     }
 }

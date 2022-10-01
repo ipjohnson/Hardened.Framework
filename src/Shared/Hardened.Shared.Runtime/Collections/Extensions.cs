@@ -1,13 +1,12 @@
-﻿namespace Hardened.Shared.Runtime.Collections
+﻿namespace Hardened.Shared.Runtime.Collections;
+
+public static class Extensions
 {
-    public static class Extensions
+    public static void Foreach<T>(this IEnumerable<T> enumerable, Action<T> action)
     {
-        public static void Foreach<T>(this IEnumerable<T> enumerable, Action<T> action)
+        foreach (var value in enumerable)
         {
-            foreach (var value in enumerable)
-            {
-                action(value);
-            }
+            action(value);
         }
     }
 }

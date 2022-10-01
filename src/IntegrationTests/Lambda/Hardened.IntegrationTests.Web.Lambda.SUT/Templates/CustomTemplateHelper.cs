@@ -1,13 +1,12 @@
 ﻿using Hardened.Templates.Abstract;
 
-namespace Hardened.IntegrationTests.Web.Lambda.SUT.Templates
+namespace Hardened.IntegrationTests.Web.Lambda.SUT.Templates;
+
+[TemplateHelper("CustomToken")]
+public class CustomTemplateHelper : ITemplateHelper
 {
-    [TemplateHelper("CustomToken")]
-    public class CustomTemplateHelper : ITemplateHelper
+    public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments)
     {
-        public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments)
-        {
-            return new ValueTask<object>(DateTime.Now);
-        }
+        return new ValueTask<object>(DateTime.Now);
     }
 }

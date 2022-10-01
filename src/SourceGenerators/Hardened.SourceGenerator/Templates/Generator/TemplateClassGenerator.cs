@@ -2,112 +2,111 @@
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Templates.Parser;
 
-namespace Hardened.SourceGenerator.Templates.Generator
+namespace Hardened.SourceGenerator.Templates.Generator;
+
+public  class  TemplateClassGenerator
 {
-    public  class  TemplateClassGenerator
+    private int _count = 0;
+    private readonly TemplateParseService _templateParseService;
+    private readonly TemplateWhiteSpaceCleaner _templateWhiteSpaceCleaner;
+    private readonly TemplateImplementationGenerator _executionMethodGenerator;
+
+    public TemplateClassGenerator(TemplateParseService templateParseService,
+        TemplateImplementationGenerator executionMethodGenerator, 
+        TemplateWhiteSpaceCleaner templateWhiteSpaceCleaner)
     {
-        private int _count = 0;
-        private readonly TemplateParseService _templateParseService;
-        private readonly TemplateWhiteSpaceCleaner _templateWhiteSpaceCleaner;
-        private readonly TemplateImplementationGenerator _executionMethodGenerator;
+        _templateParseService = templateParseService;
+        _executionMethodGenerator = executionMethodGenerator;
+        _templateWhiteSpaceCleaner = templateWhiteSpaceCleaner;
+    }
 
-        public TemplateClassGenerator(TemplateParseService templateParseService,
-            TemplateImplementationGenerator executionMethodGenerator, 
-            TemplateWhiteSpaceCleaner templateWhiteSpaceCleaner)
-        {
-            _templateParseService = templateParseService;
-            _executionMethodGenerator = executionMethodGenerator;
-            _templateWhiteSpaceCleaner = templateWhiteSpaceCleaner;
-        }
+    public IList<TemplateActionNode> ParseCSharpFile(string templateString, StringTokenNodeParser.TokenInfo tokenInfo)
+    {
+        var templateNodes = _templateParseService.ParseTemplate(templateString, tokenInfo);
 
-        public IList<TemplateActionNode> ParseCSharpFile(string templateString, StringTokenNodeParser.TokenInfo tokenInfo)
-        {
-            var templateNodes = _templateParseService.ParseTemplate(templateString, tokenInfo);
+        RemoveWhitespaces(templateNodes);
 
-            RemoveWhitespaces(templateNodes);
+        return templateNodes;
+    }
 
-            return templateNodes;
-        }
+    public string GenerateCSharpFile(IList<TemplateActionNode> templateNodes, string templateName, string templateExtension, string namespaceString)
+    {
+        return GenerateCSharpFileFromActions(templateNodes, templateName, templateExtension, namespaceString);
+    }
 
-        public string GenerateCSharpFile(IList<TemplateActionNode> templateNodes, string templateName, string templateExtension, string namespaceString)
-        {
-            return GenerateCSharpFileFromActions(templateNodes, templateName, templateExtension, namespaceString);
-        }
+    private void RemoveWhitespaces(IList<TemplateActionNode> templateNodes)
+    {
+        _templateWhiteSpaceCleaner.RemoveWhitespace(templateNodes);
+    }
 
-        private void RemoveWhitespaces(IList<TemplateActionNode> templateNodes)
-        {
-            _templateWhiteSpaceCleaner.RemoveWhitespace(templateNodes);
-        }
+    private string GenerateCSharpFileFromActions(IList<TemplateActionNode> templateNodes,
+        string templateName, string templateExtension, string namespaceString)
+    {
+        var csharpFile = new CSharpFileDefinition(namespaceString);
 
-        private string GenerateCSharpFileFromActions(IList<TemplateActionNode> templateNodes,
-            string templateName, string templateExtension, string namespaceString)
-        {
-            var csharpFile = new CSharpFileDefinition(namespaceString);
+        var classDefinition = csharpFile.AddClass("Template_" +  templateName);
 
-            var classDefinition = csharpFile.AddClass("Template_" +  templateName);
+        classDefinition.AddBaseType(KnownTypes.Templates.ITemplateExecutionHandler);
 
-            classDefinition.AddBaseType(KnownTypes.Templates.ITemplateExecutionHandler);
+        ProcessTemplateNodes(classDefinition, templateNodes.ToList());
 
-            ProcessTemplateNodes(classDefinition, templateNodes.ToList());
+        CreateConstructor(classDefinition, templateName);
 
-            CreateConstructor(classDefinition, templateName);
+        _executionMethodGenerator.GenerateImplementation(classDefinition, templateExtension, templateNodes.ToList());
 
-            _executionMethodGenerator.GenerateImplementation(classDefinition, templateExtension, templateNodes.ToList());
-
-            var outputContext = new OutputContext();
+        var outputContext = new OutputContext();
             
-            csharpFile.WriteOutput(outputContext);
+        csharpFile.WriteOutput(outputContext);
 
-            return outputContext.Output();
-        }
+        return outputContext.Output();
+    }
 
-        private void CreateConstructor(ClassDefinition classDefinition, string templateName)
+    private void CreateConstructor(ClassDefinition classDefinition, string templateName)
+    {
+        classDefinition.AddField(KnownTypes.Templates.TemplateExecutionService, "_templateExecutionService");
+        classDefinition.AddField(KnownTypes.Templates.IInternalTemplateServices, "_services");
+
+        var constructor = classDefinition.AddConstructor();
+
+        constructor.AddParameter(KnownTypes.Templates.TemplateExecutionService, "templateExecutionService");
+        constructor.AddParameter(KnownTypes.Templates.IInternalTemplateServices, "services");
+
+        constructor.AddCode("_templateExecutionService = templateExecutionService;");
+        constructor.AddCode("_services = services;");
+
+        constructor.AddCode("Initialize();");
+    }
+
+    private void ProcessTemplateNodes(ClassDefinition classDefinition, IList<TemplateActionNode> templateNodes)
+    {
+        foreach (var templateNode in templateNodes)
         {
-            classDefinition.AddField(KnownTypes.Templates.TemplateExecutionService, "_templateExecutionService");
-            classDefinition.AddField(KnownTypes.Templates.IInternalTemplateServices, "_services");
-
-            var constructor = classDefinition.AddConstructor();
-
-            constructor.AddParameter(KnownTypes.Templates.TemplateExecutionService, "templateExecutionService");
-            constructor.AddParameter(KnownTypes.Templates.IInternalTemplateServices, "services");
-
-            constructor.AddCode("_templateExecutionService = templateExecutionService;");
-            constructor.AddCode("_services = services;");
-
-            constructor.AddCode("Initialize();");
-        }
-
-        private void ProcessTemplateNodes(ClassDefinition classDefinition, IList<TemplateActionNode> templateNodes)
-        {
-            foreach (var templateNode in templateNodes)
+            if (templateNode.Action == TemplateActionType.Content)
             {
-                if (templateNode.Action == TemplateActionType.Content)
+                if (!string.IsNullOrEmpty(templateNode.ActionText))
                 {
-                    if (!string.IsNullOrEmpty(templateNode.ActionText))
-                    {
-                        var initializeString = templateNode.ActionText;
+                    var initializeString = templateNode.ActionText;
 
-                        initializeString = initializeString.Replace("\"", "\"\"");
+                    initializeString = initializeString.Replace("\"", "\"\"");
 
 
 
-                        initializeString = "@\"" + initializeString + "\"";
+                    initializeString = "@\"" + initializeString + "\"";
 
-                        var fieldName = "_contentField" + _count++;
+                    var fieldName = "_contentField" + _count++;
 
-                        var field = classDefinition.AddField(typeof(string), fieldName);
+                    var field = classDefinition.AddField(typeof(string), fieldName);
 
-                        field.Modifiers = ComponentModifier.Static | ComponentModifier.Readonly;
-                        field.InitializeValue = initializeString;
+                    field.Modifiers = ComponentModifier.Static | ComponentModifier.Readonly;
+                    field.InitializeValue = initializeString;
 
-                        templateNode.FieldName = fieldName;
-                    }
+                    templateNode.FieldName = fieldName;
                 }
-                else 
-                {
-                    ProcessTemplateNodes(classDefinition, templateNode.ArgumentList);
-                    ProcessTemplateNodes(classDefinition, templateNode.ChildNodes);
-                }
+            }
+            else 
+            {
+                ProcessTemplateNodes(classDefinition, templateNode.ArgumentList);
+                ProcessTemplateNodes(classDefinition, templateNode.ChildNodes);
             }
         }
     }

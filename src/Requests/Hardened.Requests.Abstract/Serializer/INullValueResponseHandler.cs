@@ -1,9 +1,8 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.Serializer
+namespace Hardened.Requests.Abstract.Serializer;
+
+public interface INullValueResponseHandler
 {
-    public interface INullValueResponseHandler
-    {
-        Task Handle(IExecutionContext context);
-    }
+    Task Handle(IExecutionContext context);
 }

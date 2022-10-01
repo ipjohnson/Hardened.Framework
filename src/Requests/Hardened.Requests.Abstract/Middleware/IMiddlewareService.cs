@@ -1,11 +1,10 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.Middleware
-{
-    public interface IMiddlewareService
-    {
-        void Use(Func<IExecutionContext, IExecutionFilter> middlewareFunc);
+namespace Hardened.Requests.Abstract.Middleware;
 
-        IExecutionChain GetExecutionChain(IExecutionContext context);
-    }
+public interface IMiddlewareService
+{
+    void Use(Func<IExecutionContext, IExecutionFilter> middlewareFunc);
+
+    IExecutionChain GetExecutionChain(IExecutionContext context);
 }

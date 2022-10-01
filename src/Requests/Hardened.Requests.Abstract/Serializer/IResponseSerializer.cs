@@ -1,13 +1,12 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.Serializer
+namespace Hardened.Requests.Abstract.Serializer;
+
+public interface IResponseSerializer
 {
-    public interface IResponseSerializer
-    {
-        bool IsDefaultSerializer { get; }
+    bool IsDefaultSerializer { get; }
 
-        bool CanProcessContext(IExecutionContext context);
+    bool CanProcessContext(IExecutionContext context);
 
-        Task SerializeResponse(IExecutionContext context);
-    }
+    Task SerializeResponse(IExecutionContext context);
 }

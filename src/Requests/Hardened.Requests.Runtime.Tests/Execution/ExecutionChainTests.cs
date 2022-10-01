@@ -5,82 +5,81 @@ using SimpleFixture.NSubstitute;
 using SimpleFixture.xUnit;
 using Xunit;
 
-namespace Hardened.Requests.Runtime.Tests.Execution
+namespace Hardened.Requests.Runtime.Tests.Execution;
+
+[SubFixtureInitialize]
+public class ExecutionChainTests
 {
-    [SubFixtureInitialize]
-    public class ExecutionChainTests
+
+    [Theory]
+    [AutoData]
+    public async Task ExecuteZeroHandler(IExecutionContext context)
     {
+        var chain = new ExecutionChain(new List<Func<IExecutionContext,IExecutionFilter>>(), context);
 
-        [Theory]
-        [AutoData]
-        public async Task ExecuteZeroHandler(IExecutionContext context)
-        {
-            var chain = new ExecutionChain(new List<Func<IExecutionContext,IExecutionFilter>>(), context);
-
-            await chain.Next();
-        }
+        await chain.Next();
+    }
         
-        [Theory]
-        [AutoData]
-        public async Task ExecuteOneHandler(IExecutionFilter filter, IExecutionContext context)
-        {
-            var chain = new ExecutionChain(new List<Func<IExecutionContext, IExecutionFilter>> { _=> filter }, context);
+    [Theory]
+    [AutoData]
+    public async Task ExecuteOneHandler(IExecutionFilter filter, IExecutionContext context)
+    {
+        var chain = new ExecutionChain(new List<Func<IExecutionContext, IExecutionFilter>> { _=> filter }, context);
 
-            filter.Execute(chain).Returns(Task.CompletedTask);
+        filter.Execute(chain).Returns(Task.CompletedTask);
 
-            await chain.Next();
+        await chain.Next();
 
-            await filter.Received(1).Execute(chain);
-        }
+        await filter.Received(1).Execute(chain);
+    }
         
-        [Theory]
-        [AutoData]
-        public async Task ExecuteOneHandlerMultiple(IExecutionFilter filter, IExecutionContext context)
+    [Theory]
+    [AutoData]
+    public async Task ExecuteOneHandlerMultiple(IExecutionFilter filter, IExecutionContext context)
+    {
+        var chain = new ExecutionChain(new List<Func<IExecutionContext, IExecutionFilter>> { _ => filter }, context);
+
+        filter.Execute(chain).Returns(Task.CompletedTask);
+
+        await chain.Next();
+
+        await chain.Next();
+
+        await chain.Next();
+
+        await filter.Received(1).Execute(chain);
+    }
+
+    [Theory]
+    [AutoData]
+    public async Task ExecuteChainFork(IExecutionContext context)
+    {
+        var filter1 = Substitute.For<IExecutionFilter>();
+        var filter2 = Substitute.For<IExecutionFilter>();
+
+        var chain = new ExecutionChain(new List<Func<IExecutionContext, IExecutionFilter>> { _ => filter1, _ => filter2 }, context);
+
+        filter1.Execute(chain).Returns(c =>
         {
-            var chain = new ExecutionChain(new List<Func<IExecutionContext, IExecutionFilter>> { _ => filter }, context);
+            var chainArg = c.Arg<IExecutionChain>();
 
-            filter.Execute(chain).Returns(Task.CompletedTask);
-
-            await chain.Next();
-
-            await chain.Next();
-
-            await chain.Next();
-
-            await filter.Received(1).Execute(chain);
-        }
-
-        [Theory]
-        [AutoData]
-        public async Task ExecuteChainFork(IExecutionContext context)
-        {
-            var filter1 = Substitute.For<IExecutionFilter>();
-            var filter2 = Substitute.For<IExecutionFilter>();
-
-            var chain = new ExecutionChain(new List<Func<IExecutionContext, IExecutionFilter>> { _ => filter1, _ => filter2 }, context);
-
-            filter1.Execute(chain).Returns(c =>
+            for (var i = 0; i < 10; i++)
             {
-                var chainArg = c.Arg<IExecutionChain>();
+                var forkChain = chainArg.Fork(context);
 
-                for (var i = 0; i < 10; i++)
-                {
-                    var forkChain = chainArg.Fork(context);
+                Assert.NotSame(chain, forkChain);
 
-                    Assert.NotSame(chain, forkChain);
+                Assert.Equal(Task.CompletedTask, forkChain.Next());
+            }
 
-                    Assert.Equal(Task.CompletedTask, forkChain.Next());
-                }
+            return Task.CompletedTask;
+        });
 
-                return Task.CompletedTask;
-            });
+        filter2.Execute(Arg.Any<IExecutionChain>()).Returns(Task.CompletedTask);
 
-            filter2.Execute(Arg.Any<IExecutionChain>()).Returns(Task.CompletedTask);
+        await chain.Next();
 
-            await chain.Next();
-
-            await filter1.Received(1).Execute(chain);
-            await filter2.Received(10).Execute(Arg.Any<IExecutionChain>());
-        }
+        await filter1.Received(1).Execute(chain);
+        await filter2.Received(10).Execute(Arg.Any<IExecutionChain>());
     }
 }

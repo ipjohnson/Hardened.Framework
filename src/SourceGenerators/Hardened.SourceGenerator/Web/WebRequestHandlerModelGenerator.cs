@@ -5,181 +5,180 @@ using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Hardened.SourceGenerator.Web
+namespace Hardened.SourceGenerator.Web;
+
+public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
 {
-    public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
+    private static readonly HashSet<string> _attributeNames = GetAttributeNames();
+
+    protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration,
+        CancellationToken cancellation)
     {
-        private static readonly HashSet<string> _attributeNames = GetAttributeNames();
+        var attribute = GetWebAttribute(methodDeclaration, cancellation);
 
-        protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration,
-            CancellationToken cancellation)
+        if (attribute == null)
         {
-            var attribute = GetWebAttribute(methodDeclaration, cancellation);
-
-            if (attribute == null)
-            {
-                // we should never get here as this check was done in the previous source generator step
-                throw new Exception("Could not find attribute");
-            }
-
-            var methodName = attribute.Name.ToString().ToUpperInvariant().Replace("Attribute","");
-
-            if (methodName == "HTTPMETHOD")
-            {
-                throw new NotImplementedException("HttpMethodAttribute not supported yet.");
-            }
-
-            var pathTemplate = GetPathFromAttribute(context, attribute);
-
-            return new RequestHandlerNameModel(pathTemplate, methodName);
+            // we should never get here as this check was done in the previous source generator step
+            throw new Exception("Could not find attribute");
         }
 
-        private static string GetPathFromAttribute(GeneratorSyntaxContext generatorSyntaxContext,
-            AttributeSyntax attribute)
-        {
-            var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
-            var pathTemplate = "/";
-            if (argument != null)
-            {
-                var constantValue = 
-                    generatorSyntaxContext.SemanticModel.GetConstantValue(argument.Expression);
+        var methodName = attribute.Name.ToString().ToUpperInvariant().Replace("Attribute","");
 
-                if (constantValue.Value != null)
-                {
-                    pathTemplate = constantValue.Value.ToString();
-                }
-                else
-                {
-                    pathTemplate = argument.Expression.ToString().Trim('"');
-                }
+        if (methodName == "HTTPMETHOD")
+        {
+            throw new NotImplementedException("HttpMethodAttribute not supported yet.");
+        }
+
+        var pathTemplate = GetPathFromAttribute(context, attribute);
+
+        return new RequestHandlerNameModel(pathTemplate, methodName);
+    }
+
+    private static string GetPathFromAttribute(GeneratorSyntaxContext generatorSyntaxContext,
+        AttributeSyntax attribute)
+    {
+        var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
+        var pathTemplate = "/";
+        if (argument != null)
+        {
+            var constantValue = 
+                generatorSyntaxContext.SemanticModel.GetConstantValue(argument.Expression);
+
+            if (constantValue.Value != null)
+            {
+                pathTemplate = constantValue.Value.ToString();
             }
+            else
+            {
+                pathTemplate = argument.Expression.ToString().Trim('"');
+            }
+        }
             
-            return pathTemplate;
-        }
+        return pathTemplate;
+    }
 
-        protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration,
-            CancellationToken cancellation)
+    protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration,
+        CancellationToken cancellation)
+    {
+        var classDeclarationSyntax =
+            methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
+
+        var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
+
+        return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated", classDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text);
+    }
+
+    protected override RequestParameterInformation? GetParameterInfoFromAttributes(
+        GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
+        RequestHandlerNameModel requestHandlerNameModel,
+        ParameterSyntax parameter)
+    {
+
+        foreach (var attributeList in parameter.AttributeLists)
         {
-            var classDeclarationSyntax =
-                methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
-
-            var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
-
-            return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated", classDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text);
-        }
-
-        protected override RequestParameterInformation? GetParameterInfoFromAttributes(
-            GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
-            RequestHandlerNameModel requestHandlerNameModel,
-            ParameterSyntax parameter)
-        {
-
-            foreach (var attributeList in parameter.AttributeLists)
+            foreach (var attribute in attributeList.Attributes)
             {
-                foreach (var attribute in attributeList.Attributes)
+                var attributeName = attribute.Name.ToString().Replace("Attribute", "");
+
+                switch (attributeName)
                 {
-                    var attributeName = attribute.Name.ToString().Replace("Attribute", "");
+                    case "FromHeader":
+                        var headerName =
+                            attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
 
-                    switch (attributeName)
-                    {
-                        case "FromHeader":
-                            var headerName =
-                                attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
+                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                            ParameterBindType.Header, headerName);
 
-                            return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                                ParameterBindType.Header, headerName);
+                    case "FromQueryString":
+                        var queryName =
+                            attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
 
-                        case "FromQueryString":
-                            var queryName =
-                                attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
+                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                            ParameterBindType.QueryString, queryName);
 
-                            return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                                ParameterBindType.QueryString, queryName);
+                    case "FromServices":
+                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                            ParameterBindType.ServiceProvider, "");
 
-                        case "FromServices":
-                            return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                                ParameterBindType.ServiceProvider, "");
-
-                        case "FromBody":
-                            return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                                ParameterBindType.Body, "");
-                    }
+                    case "FromBody":
+                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                            ParameterBindType.Body, "");
                 }
             }
-
-            return null;
         }
 
-        private RequestParameterInformation GetParameterInfoWithBinding(
-            GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType, string bindingName)
-        {
-            var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
-            var name = parameter.Identifier.Text;
+        return null;
+    }
 
-            return new RequestParameterInformation(
-                parameterType,
-                name,
-                !parameterType.IsNullable,
-                null,
-                bindingType,
-                string.IsNullOrEmpty(bindingName) ? name : bindingName);
+    private RequestParameterInformation GetParameterInfoWithBinding(
+        GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType, string bindingName)
+    {
+        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+        var name = parameter.Identifier.Text;
+
+        return new RequestParameterInformation(
+            parameterType,
+            name,
+            !parameterType.IsNullable,
+            null,
+            bindingType,
+            string.IsNullOrEmpty(bindingName) ? name : bindingName);
+    }
+
+    protected override bool IsFilterAttribute(AttributeSyntax attribute)
+    {
+        var attributeName = attribute.Name.ToString().Replace("Attribute", "");
+
+        switch (attributeName)
+        {
+            case "Template":
+                return false;
+
+            default:
+                return !_attributeNames.Contains(attributeName);
         }
+    }
 
-        protected override bool IsFilterAttribute(AttributeSyntax attribute)
+    public bool SelectWebRequestMethods(SyntaxNode arg1, CancellationToken arg2)
+    {
+        return arg1 is MethodDeclarationSyntax methodDeclarationSyntax &&
+               GetWebAttribute(methodDeclarationSyntax, arg2) != null;
+    }
+
+    private static AttributeSyntax? GetWebAttribute(MethodDeclarationSyntax node, CancellationToken cancellationToken)
+    {
+        var attributeNames =
+            node.DescendantNodes().OfType<AttributeSyntax>();
+
+        foreach (var attributeNode in attributeNames)
         {
-            var attributeName = attribute.Name.ToString().Replace("Attribute", "");
-
-            switch (attributeName)
+            if (cancellationToken.IsCancellationRequested)
             {
-                case "Template":
-                    return false;
+                break;
+            }
 
-                default:
-                    return !_attributeNames.Contains(attributeName);
+            var name = attributeNode.Name.ToString();
+
+            if (_attributeNames.Contains(name))
+            {
+                return attributeNode;
             }
         }
 
-        public bool SelectWebRequestMethods(SyntaxNode arg1, CancellationToken arg2)
+        return null;
+    }
+
+    private static HashSet<string> GetAttributeNames()
+    {
+        var returnSet = new HashSet<string>();
+        var names = new List<string> { "Get", "Put", "Post", "Patch", "Delete", "HttpMethod" };
+
+        foreach (var name in names)
         {
-            return arg1 is MethodDeclarationSyntax methodDeclarationSyntax &&
-                   GetWebAttribute(methodDeclarationSyntax, arg2) != null;
+            returnSet.Add(name);
+            returnSet.Add(name + "Attribute");
         }
 
-        private static AttributeSyntax? GetWebAttribute(MethodDeclarationSyntax node, CancellationToken cancellationToken)
-        {
-            var attributeNames =
-                node.DescendantNodes().OfType<AttributeSyntax>();
-
-            foreach (var attributeNode in attributeNames)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                var name = attributeNode.Name.ToString();
-
-                if (_attributeNames.Contains(name))
-                {
-                    return attributeNode;
-                }
-            }
-
-            return null;
-        }
-
-        private static HashSet<string> GetAttributeNames()
-        {
-            var returnSet = new HashSet<string>();
-            var names = new List<string> { "Get", "Put", "Post", "Patch", "Delete", "HttpMethod" };
-
-            foreach (var name in names)
-            {
-                returnSet.Add(name);
-                returnSet.Add(name + "Attribute");
-            }
-
-            return returnSet;
-        }
+        return returnSet;
     }
 }

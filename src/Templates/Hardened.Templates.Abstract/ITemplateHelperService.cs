@@ -1,9 +1,8 @@
-﻿namespace Hardened.Templates.Abstract
-{
-    public delegate ITemplateHelper TemplateHelperFactory(IServiceProvider serviceProvider);
+﻿namespace Hardened.Templates.Abstract;
 
-    public interface ITemplateHelperService
-    {
-        TemplateHelperFactory LocateHelper(string helperToken);
-    }
+public delegate ITemplateHelper TemplateHelperFactory(IServiceProvider serviceProvider);
+
+public interface ITemplateHelperService
+{
+    TemplateHelperFactory LocateHelper(string helperToken);
 }

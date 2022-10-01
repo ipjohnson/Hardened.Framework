@@ -3,71 +3,70 @@ using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
 
-namespace Hardened.SourceGenerator.Module
+namespace Hardened.SourceGenerator.Module;
+
+public class ModuleEntryPointFileWriter
 {
-    public class ModuleEntryPointFileWriter
+    public static void WriteFile(SourceProductionContext context, EntryPointSelector.Model model)
     {
-        public static void WriteFile(SourceProductionContext context, EntryPointSelector.Model model)
+        try
         {
-            try
-            {
-                var csharpFile = new CSharpFileDefinition(model.EntryPointType.Namespace);
+            var csharpFile = new CSharpFileDefinition(model.EntryPointType.Namespace);
 
-                GenerateClassDefinition(context, model, csharpFile);
+            GenerateClassDefinition(context, model, csharpFile);
 
-                var outputContext = new OutputContext();
+            var outputContext = new OutputContext();
 
-                csharpFile.WriteOutput(outputContext);
+            csharpFile.WriteOutput(outputContext);
                 
-                context.AddSource(model.EntryPointType.Name + ".Module.cs", outputContext.Output());
-            }
-            catch (Exception exp)
-            {
-                throw exp;
-            }
+            context.AddSource(model.EntryPointType.Name + ".Module.cs", outputContext.Output());
         }
-
-        private static void GenerateClassDefinition(SourceProductionContext context, EntryPointSelector.Model model, CSharpFileDefinition csharpFile)
+        catch (Exception exp)
         {
-            var moduleClass = csharpFile.AddClass(model.EntryPointType.Name);
-
-            moduleClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
-
-            moduleClass.AddBaseType(KnownTypes.Application.IApplicationModule);
-
-            GenerateConfigureMethod(context, model, moduleClass);
+            throw exp;
         }
+    }
 
-        private static void GenerateConfigureMethod(SourceProductionContext context, EntryPointSelector.Model model, ClassDefinition moduleClass)
+    private static void GenerateClassDefinition(SourceProductionContext context, EntryPointSelector.Model model, CSharpFileDefinition csharpFile)
+    {
+        var moduleClass = csharpFile.AddClass(model.EntryPointType.Name);
+
+        moduleClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
+
+        moduleClass.AddBaseType(KnownTypes.Application.IApplicationModule);
+
+        GenerateConfigureMethod(context, model, moduleClass);
+    }
+
+    private static void GenerateConfigureMethod(SourceProductionContext context, EntryPointSelector.Model model, ClassDefinition moduleClass)
+    {
+        var configureModuleMethod = moduleClass.AddMethod("ConfigureModule");
+
+        var environment =
+            configureModuleMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+        var serviceCollection =
+            configureModuleMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+
+        var modulesMethod = model.MethodDefinitions.FirstOrDefault(m => m.Name == "Modules");
+
+        if (modulesMethod != null)
         {
-            var configureModuleMethod = moduleClass.AddMethod("ConfigureModule");
-
-            var environment =
-                configureModuleMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
-            var serviceCollection =
-                configureModuleMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-
-            var modulesMethod = model.MethodDefinitions.FirstOrDefault(m => m.Name == "Modules");
-
-            if (modulesMethod != null)
-            {
-                GenerateModulesForeach(configureModuleMethod, environment, serviceCollection, model, modulesMethod);
-            }
-
-            configureModuleMethod.AddIndentedStatement(Invoke("ConfigureServiceCollection", environment, serviceCollection));
+            GenerateModulesForeach(configureModuleMethod, environment, serviceCollection, model, modulesMethod);
         }
 
-        private static void GenerateModulesForeach(MethodDefinition configureModuleMethod, ParameterDefinition environment, ParameterDefinition serviceCollection, EntryPointSelector.Model model, HardenedMethodDefinition modulesMethod)
-        {
-            InvokeDefinition invokeDefinition =
-                modulesMethod.Parameters.Count == 0 ?
-                    Invoke("Modules") :
-                    Invoke("Modules", environment);
+        configureModuleMethod.AddIndentedStatement(Invoke("ConfigureServiceCollection", environment, serviceCollection));
+    }
 
-            var forEach = configureModuleMethod.ForEach("module", invokeDefinition);
+    private static void GenerateModulesForeach(MethodDefinition configureModuleMethod, ParameterDefinition environment, ParameterDefinition serviceCollection, EntryPointSelector.Model model, HardenedMethodDefinition modulesMethod)
+    {
+        InvokeDefinition invokeDefinition =
+            modulesMethod.Parameters.Count == 0 ?
+                Invoke("Modules") :
+                Invoke("Modules", environment);
 
-            forEach.AddIndentedStatement(
-                forEach.Instance.Invoke("ConfigureModule", environment, serviceCollection));
-        }
+        var forEach = configureModuleMethod.ForEach("module", invokeDefinition);
+
+        forEach.AddIndentedStatement(
+            forEach.Instance.Invoke("ConfigureModule", environment, serviceCollection));
     }
 }

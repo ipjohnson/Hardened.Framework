@@ -5,46 +5,45 @@ using Hardened.Shared.Lambda.Testing;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Options;
 
-namespace Hardened.Function.Lambda.Testing
+namespace Hardened.Function.Lambda.Testing;
+
+public class LambdaTestApp
 {
-    public class LambdaTestApp
+    private readonly ILambdaFunctionImplService _functionImplService;
+    private readonly IOptions<IJsonSerializerConfiguration> _serializerOptions;
+    private readonly IMemoryStreamPool _memoryStreamPool;
+
+    public LambdaTestApp(
+        ILambdaFunctionImplService functionImplService,
+        IOptions<IJsonSerializerConfiguration> serializerOptions, 
+        IMemoryStreamPool memoryStreamPool)
     {
-        private readonly ILambdaFunctionImplService _functionImplService;
-        private readonly IOptions<IJsonSerializerConfiguration> _serializerOptions;
-        private readonly IMemoryStreamPool _memoryStreamPool;
+        _functionImplService = functionImplService;
+        _serializerOptions = serializerOptions;
+        _memoryStreamPool = memoryStreamPool;
+    }
 
-        public LambdaTestApp(
-            ILambdaFunctionImplService functionImplService,
-            IOptions<IJsonSerializerConfiguration> serializerOptions, 
-            IMemoryStreamPool memoryStreamPool)
-        {
-            _functionImplService = functionImplService;
-            _serializerOptions = serializerOptions;
-            _memoryStreamPool = memoryStreamPool;
-        }
-
-        public async Task<T> Invoke<T>(string lambdaName, object payload, Action<TestLambdaContext>? contextAction = null)
-        {
-            await using var response = await Invoke(lambdaName, payload, contextAction);
+    public async Task<T> Invoke<T>(string lambdaName, object payload, Action<TestLambdaContext>? contextAction = null)
+    {
+        await using var response = await Invoke(lambdaName, payload, contextAction);
             
-            return (await JsonSerializer.DeserializeAsync<T>(
-                response, _serializerOptions.Value.DeSerializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web)))!;
-        }
+        return (await JsonSerializer.DeserializeAsync<T>(
+            response, _serializerOptions.Value.DeSerializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web)))!;
+    }
 
-        public async Task<Stream> Invoke(string lambdaName, object payload, Action<TestLambdaContext>? contextAction = null)
-        {
-            using var memoryStreamReservation = _memoryStreamPool.Get();
+    public async Task<Stream> Invoke(string lambdaName, object payload, Action<TestLambdaContext>? contextAction = null)
+    {
+        using var memoryStreamReservation = _memoryStreamPool.Get();
 
-            var context = TestLambdaContext.FromName(lambdaName);
+        var context = TestLambdaContext.FromName(lambdaName);
 
-            contextAction?.Invoke(context);
+        contextAction?.Invoke(context);
 
-            var payloadBytes = JsonSerializer.SerializeToUtf8Bytes(payload, _serializerOptions.Value.SerializeOptions);
+        var payloadBytes = JsonSerializer.SerializeToUtf8Bytes(payload, _serializerOptions.Value.SerializeOptions);
 
-            memoryStreamReservation.Item.Write(payloadBytes, 0, payloadBytes.Length);
-            memoryStreamReservation.Item.Position = 0;
+        memoryStreamReservation.Item.Write(payloadBytes, 0, payloadBytes.Length);
+        memoryStreamReservation.Item.Position = 0;
 
-            return await _functionImplService.InvokeFunction(memoryStreamReservation.Item, context);
-        }
+        return await _functionImplService.InvokeFunction(memoryStreamReservation.Item, context);
     }
 }

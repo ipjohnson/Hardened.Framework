@@ -1,9 +1,8 @@
-﻿namespace Hardened.Templates.Abstract
-{
-    public class TemplatePackageAttribute : Attribute
-    {
-        public string Extensions { get; set; } = "html";
+﻿namespace Hardened.Templates.Abstract;
 
-        public string Token { get; set; } = "{{TOKEN}}";
-    }
+public class TemplatePackageAttribute : Attribute
+{
+    public string Extensions { get; set; } = "html";
+
+    public string Token { get; set; } = "{{TOKEN}}";
 }

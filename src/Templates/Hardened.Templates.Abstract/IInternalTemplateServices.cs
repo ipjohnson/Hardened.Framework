@@ -1,17 +1,16 @@
 ﻿using Hardened.Shared.Runtime.Collections;
 
-namespace Hardened.Templates.Abstract
+namespace Hardened.Templates.Abstract;
+
+public interface IInternalTemplateServices
 {
-    public interface IInternalTemplateServices
-    {
-        IStringBuilderPool StringBuilderPool { get; }
+    IStringBuilderPool StringBuilderPool { get; }
 
-        IDataFormattingService DataFormattingService { get; }
+    IDataFormattingService DataFormattingService { get; }
 
-        ITemplateHelperService TemplateHelperService { get; }
+    ITemplateHelperService TemplateHelperService { get; }
 
-        IBooleanLogicService BooleanLogicService { get; }
+    IBooleanLogicService BooleanLogicService { get; }
 
-        IStringEscapeServiceProvider StringEscapeServiceProvider { get; }
-    }
+    IStringEscapeServiceProvider StringEscapeServiceProvider { get; }
 }

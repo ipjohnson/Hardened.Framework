@@ -1,7 +1,6 @@
-﻿namespace Hardened.Shared.Runtime.Configuration
+﻿namespace Hardened.Shared.Runtime.Configuration;
+
+public interface IConfigurationManager
 {
-    public interface IConfigurationManager
-    {
-        T GetConfiguration<T>() where T : class;
-    }
+    T GetConfiguration<T>() where T : class;
 }

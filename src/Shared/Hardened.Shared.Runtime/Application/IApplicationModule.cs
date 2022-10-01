@@ -1,9 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace Hardened.Shared.Runtime.Application
+namespace Hardened.Shared.Runtime.Application;
+
+public interface IApplicationModule
 {
-    public interface IApplicationModule
-    {
-        void ConfigureModule(IEnvironment environment, IServiceCollection serviceCollection);
-    }
+    void ConfigureModule(IEnvironment environment, IServiceCollection serviceCollection);
 }

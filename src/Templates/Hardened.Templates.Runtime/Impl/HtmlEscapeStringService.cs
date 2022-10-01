@@ -1,23 +1,22 @@
 ﻿using System.Web;
 using Hardened.Templates.Abstract;
 
-namespace Hardened.Templates.Runtime.Impl
+namespace Hardened.Templates.Runtime.Impl;
+
+public class HtmlEscapeStringService : IStringEscapeService
 {
-    public class HtmlEscapeStringService : IStringEscapeService
+    public bool CanEscapeTemplate(string templateExtension)
     {
-        public bool CanEscapeTemplate(string templateExtension)
+        return templateExtension.EndsWith("html");
+    }
+
+    public string EscapeString(string? value)
+    {
+        if (value == null)
         {
-            return templateExtension.EndsWith("html");
+            return string.Empty;
         }
 
-        public string EscapeString(string? value)
-        {
-            if (value == null)
-            {
-                return string.Empty;
-            }
-
-            return HttpUtility.HtmlEncode(value);
-        }
+        return HttpUtility.HtmlEncode(value);
     }
 }

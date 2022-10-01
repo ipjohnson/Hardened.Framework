@@ -1,7 +1,6 @@
-﻿namespace Hardened.Web.Testing.Tests
-{
-    public class Class1
-    {
+﻿namespace Hardened.Web.Testing.Tests;
 
-    }
+public class Class1
+{
+
 }

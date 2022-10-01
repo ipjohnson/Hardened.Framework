@@ -1,7 +1,6 @@
-﻿namespace Hardened.Templates.SourceGenerator.Parser
-{
-    public class TemplateTokenModel
-    {
+﻿namespace Hardened.Templates.SourceGenerator.Parser;
 
-    }
+public class TemplateTokenModel
+{
+
 }

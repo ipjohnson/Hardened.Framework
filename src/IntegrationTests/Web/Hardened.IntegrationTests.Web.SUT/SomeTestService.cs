@@ -1,14 +1,13 @@
 ﻿using Hardened.Shared.Runtime.Attributes;
 
-namespace Hardened.IntegrationTests.Web.SUT
+namespace Hardened.IntegrationTests.Web.SUT;
+
+public interface ISomeTestService
 {
-    public interface ISomeTestService
-    {
 
-    }
+}
 
-    [Expose]
-    internal class SomeTestService : ISomeTestService
-    {
-    }
+[Expose]
+internal class SomeTestService : ISomeTestService
+{
 }

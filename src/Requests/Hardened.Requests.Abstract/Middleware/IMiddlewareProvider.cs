@@ -1,9 +1,8 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.Middleware
+namespace Hardened.Requests.Abstract.Middleware;
+
+public interface IMiddlewareProvider
 {
-    public interface IMiddlewareProvider
-    {
-        IEnumerable<Func<IServiceProvider, IExecutionFilter>> ProvideMiddleware();
-    }
+    IEnumerable<Func<IServiceProvider, IExecutionFilter>> ProvideMiddleware();
 }

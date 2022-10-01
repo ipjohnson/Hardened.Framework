@@ -1,40 +1,38 @@
-﻿namespace Hardened.Templates.Abstract
+﻿namespace Hardened.Templates.Abstract;
+
+public interface IPropertyValue
 {
+    string Name { get; }
 
-    public interface IPropertyValue
+    Type PropertyType { get; }
+
+    object Value { get; }
+}
+
+public class PropertyValue
+{
+    public static PropertyValue<T> From<T>(T value, string name)
     {
-        string Name { get; }
+        return new PropertyValue<T>(value, name);
+    }
+}
 
-        Type PropertyType { get; }
-
-        object Value { get; }
+public class PropertyValue<T> : IPropertyValue
+{
+    public PropertyValue(T value, string name)
+    {
+        Value = value!;
+        Name = name;
     }
 
-    public class PropertyValue
+    public object Value { get; }
+
+    public string Name { get; }
+
+    public Type PropertyType => typeof(T);
+
+    public override string ToString()
     {
-        public static PropertyValue<T> From<T>(T value, string name)
-        {
-            return new PropertyValue<T>(value, name);
-        }
-    }
-
-    public class PropertyValue<T> : IPropertyValue
-    {
-        public PropertyValue(T value, string name)
-        {
-            Value = value!;
-            Name = name;
-        }
-
-        public object Value { get; }
-
-        public string Name { get; }
-
-        public Type PropertyType => typeof(T);
-
-        public override string ToString()
-        {
-            return Value.ToString() ?? "";
-        }
+        return Value.ToString() ?? "";
     }
 }

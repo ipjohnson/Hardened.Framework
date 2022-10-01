@@ -6,16 +6,15 @@ using Hardened.Web.Lambda.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Hardened.Web.Lambda.Runtime.DependencyInjection
+namespace Hardened.Web.Lambda.Runtime.DependencyInjection;
+
+public static class LambdaWebDI
 {
-    public static class LambdaWebDI
+    public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
     {
-        public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
-        {
-            serviceCollection.TryAddSingleton<IApiGatewayEventProcessor, ApiGatewayEventProcessor>();
-            serviceCollection.AddSingleton<IMetricLoggerProvider, EmbeddedMetricLoggerProvider>();
-            serviceCollection.TryAddSingleton<IDimensionSetProvider, DimensionSetProvider>();
-            serviceCollection.TryAddSingleton<ILambdaContextAccessor, LambdaContextAccessor>();
-        }
+        serviceCollection.TryAddSingleton<IApiGatewayEventProcessor, ApiGatewayEventProcessor>();
+        serviceCollection.AddSingleton<IMetricLoggerProvider, EmbeddedMetricLoggerProvider>();
+        serviceCollection.TryAddSingleton<IDimensionSetProvider, DimensionSetProvider>();
+        serviceCollection.TryAddSingleton<ILambdaContextAccessor, LambdaContextAccessor>();
     }
 }

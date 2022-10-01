@@ -1,19 +1,18 @@
 ﻿using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
-namespace Hardened.Web.Lambda.SourceGenerator
+namespace Hardened.Web.Lambda.SourceGenerator;
+
+[Generator]
+public class WebLambdaSourceGenerator : IIncrementalGenerator
 {
-    [Generator]
-    public class WebLambdaSourceGenerator : IIncrementalGenerator
+    public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        public void Initialize(IncrementalGeneratorInitializationContext context)
-        {
-            var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-                EntryPointSelector.UsingAttribute(),
-                EntryPointSelector.TransformModel(true)
-            ).WithComparer(new EntryPointSelector.Comparer());
+        var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
+            EntryPointSelector.UsingAttribute(),
+            EntryPointSelector.TransformModel(true)
+        ).WithComparer(new EntryPointSelector.Comparer());
             
-            WebLambdaApplicationBootstrapGenerator.Setup(context, applicationModel);
-        }
+        WebLambdaApplicationBootstrapGenerator.Setup(context, applicationModel);
     }
 }

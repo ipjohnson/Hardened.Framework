@@ -1,15 +1,14 @@
 ﻿using Hardened.Shared.Runtime.Attributes;
 
-namespace Hardened.IntegrationTests.Function.Lambda.SUT.Services
+namespace Hardened.IntegrationTests.Function.Lambda.SUT.Services;
+
+public interface IGenericService<T>
 {
-    public interface IGenericService<T>
-    {
 
-    }
+}
 
-    [Expose(typeof(GenericService<>), Try = true)]
-    public class GenericService<T> : IGenericService<T>
-    {
+[Expose(typeof(GenericService<>), Try = true)]
+public class GenericService<T> : IGenericService<T>
+{
 
-    }
 }

@@ -1,45 +1,44 @@
-﻿namespace Hardened.SourceGenerator.Shared
+﻿namespace Hardened.SourceGenerator.Shared;
+
+public static class CollectionExtensions
 {
-    public static class CollectionExtensions
+    public static bool DeepEquals<T>(this IReadOnlyList<T> x, IReadOnlyList<T> y)
     {
-        public static bool DeepEquals<T>(this IReadOnlyList<T> x, IReadOnlyList<T> y)
+        if (x.Count != y.Count)
         {
-            if (x.Count != y.Count)
-            {
-                return false;
-            }
+            return false;
+        }
 
-            for (var i = 0; i < x.Count; i++)
-            {
-                var xValue = x[i];
-                var yValue = y[i];
+        for (var i = 0; i < x.Count; i++)
+        {
+            var xValue = x[i];
+            var yValue = y[i];
 
-                if (xValue != null)
-                {
-                    if (!xValue.Equals(yValue))
-                    {
-                        return false;
-                    }
-                }
-                else if (yValue != null)
+            if (xValue != null)
+            {
+                if (!xValue.Equals(yValue))
                 {
                     return false;
                 }
             }
-
-            return true;
-        }
-
-        public static int GetHashCodeAggregation<T>(this IReadOnlyCollection<T> collection)
-        {
-            int hashCode = 123;
-
-            foreach (var value in collection)
+            else if (yValue != null)
             {
-                hashCode = (hashCode * 397) ^ value!.GetHashCode();
+                return false;
             }
-
-            return hashCode;
         }
+
+        return true;
+    }
+
+    public static int GetHashCodeAggregation<T>(this IReadOnlyCollection<T> collection)
+    {
+        int hashCode = 123;
+
+        foreach (var value in collection)
+        {
+            hashCode = (hashCode * 397) ^ value!.GetHashCode();
+        }
+
+        return hashCode;
     }
 }

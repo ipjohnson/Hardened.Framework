@@ -17,48 +17,47 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
-namespace Hardened.Requests.Runtime.DependencyInjection
+namespace Hardened.Requests.Runtime.DependencyInjection;
+
+public static class RequestRuntimeDI
 {
-    public static class RequestRuntimeDI
+    private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new (null);
+
+    public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
     {
-        private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new (null);
-
-        public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
+        if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
+            !ReferenceEquals(lastServiceCollection, serviceCollection))
         {
-            if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
-                !ReferenceEquals(lastServiceCollection, serviceCollection))
-            {
 
-                serviceCollection.TryAddSingleton<IMiddlewareService, MiddlewareService>();
-                serviceCollection.TryAddSingleton<IContextSerializationService, ContextSerializationService>();
-                serviceCollection.TryAddSingleton<IRequestDeserializer, SystemTextJsonRequestDeserializer>();
-                serviceCollection.TryAddSingleton<IResponseSerializer, SystemTextJsonResponseSerializer>();
-                serviceCollection.TryAddSingleton<IGlobalFilterRegistry, GlobalFilterRegistry>();
-                serviceCollection.TryAddSingleton<IRequestLogger, RequestLogger>();
-                serviceCollection.TryAddSingleton<INullValueResponseHandler, NullValueResponseHandler>();
-                serviceCollection.TryAddSingleton<IResourceNotFoundHandler, ResourceNotFoundHandler>();
-                serviceCollection.TryAddSingleton<IExceptionResponseSerializer, ExceptionResponseSerializer>();
-                serviceCollection.TryAddSingleton<ISerializationLocatorService, SerializationLocatorService>();
-                serviceCollection.TryAddSingleton<IExceptionToModelConverter, ExceptionToModelConverter>();
-                serviceCollection.TryAddSingleton<IIOFilterProvider, IOFilterProvider>();
-                serviceCollection.TryAddSingleton<IStringConverterService, StringConverterService>();
-                serviceCollection.TryAddSingleton<IKnownServices, KnownServices>();
-                serviceCollection.AddSingleton<IConfigurationPackage>(
-                    new SimpleConfigurationPackage(new IConfigurationValueProvider[]
-                    {
-                        new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(null),
-                        new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null)
-                    }));
-                serviceCollection.AddSingleton(
-                    s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                        .GetConfiguration<IResponseHeaderConfiguration>()));
+            serviceCollection.TryAddSingleton<IMiddlewareService, MiddlewareService>();
+            serviceCollection.TryAddSingleton<IContextSerializationService, ContextSerializationService>();
+            serviceCollection.TryAddSingleton<IRequestDeserializer, SystemTextJsonRequestDeserializer>();
+            serviceCollection.TryAddSingleton<IResponseSerializer, SystemTextJsonResponseSerializer>();
+            serviceCollection.TryAddSingleton<IGlobalFilterRegistry, GlobalFilterRegistry>();
+            serviceCollection.TryAddSingleton<IRequestLogger, RequestLogger>();
+            serviceCollection.TryAddSingleton<INullValueResponseHandler, NullValueResponseHandler>();
+            serviceCollection.TryAddSingleton<IResourceNotFoundHandler, ResourceNotFoundHandler>();
+            serviceCollection.TryAddSingleton<IExceptionResponseSerializer, ExceptionResponseSerializer>();
+            serviceCollection.TryAddSingleton<ISerializationLocatorService, SerializationLocatorService>();
+            serviceCollection.TryAddSingleton<IExceptionToModelConverter, ExceptionToModelConverter>();
+            serviceCollection.TryAddSingleton<IIOFilterProvider, IOFilterProvider>();
+            serviceCollection.TryAddSingleton<IStringConverterService, StringConverterService>();
+            serviceCollection.TryAddSingleton<IKnownServices, KnownServices>();
+            serviceCollection.AddSingleton<IConfigurationPackage>(
+                new SimpleConfigurationPackage(new IConfigurationValueProvider[]
+                {
+                    new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(null),
+                    new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null)
+                }));
+            serviceCollection.AddSingleton(
+                s => Options.Create(s.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IResponseHeaderConfiguration>()));
 
-                serviceCollection.AddSingleton(
-                    s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                        .GetConfiguration<IJsonSerializerConfiguration>()));
+            serviceCollection.AddSingleton(
+                s => Options.Create(s.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IJsonSerializerConfiguration>()));
 
-                _lastServiceCollection.SetTarget(serviceCollection);
-            }
+            _lastServiceCollection.SetTarget(serviceCollection);
         }
     }
 }

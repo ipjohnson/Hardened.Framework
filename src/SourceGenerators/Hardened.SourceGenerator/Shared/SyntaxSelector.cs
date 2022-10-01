@@ -2,53 +2,52 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Hardened.SourceGenerator.Shared
+namespace Hardened.SourceGenerator.Shared;
+
+public class SyntaxSelector<T> where T : SyntaxNode
 {
-    public class SyntaxSelector<T> where T : SyntaxNode
+    private const string _attributeString = "Attribute";
+    private readonly ITypeDefinition _attribute;
+    private readonly List<string> _names;
+
+    public SyntaxSelector(ITypeDefinition attribute)
     {
-        private const string _attributeString = "Attribute";
-        private readonly ITypeDefinition _attribute;
-        private readonly List<string> _names;
+        _attribute = attribute;
+        _names = GetAttributeStrings(attribute);
+    }
 
-        public SyntaxSelector(ITypeDefinition attribute)
+    private List<string> GetAttributeStrings(ITypeDefinition attribute)
+    {
+        var returnList = new List<string>
         {
-            _attribute = attribute;
-            _names = GetAttributeStrings(attribute);
+            attribute.Name,
+            attribute.Namespace + "." + attribute.Name
+        };
+
+        if (attribute.Name.EndsWith(_attributeString))
+        {
+            var simpleName = attribute.Name.Substring(0, attribute.Name.Length - _attributeString.Length);
+
+            returnList.Add(simpleName);
         }
 
-        private List<string> GetAttributeStrings(ITypeDefinition attribute)
+        return returnList;
+    }
+
+    public bool Where(SyntaxNode node, CancellationToken token)
+    {
+        if (node is not T)
         {
-            var returnList = new List<string>
-            {
-                attribute.Name,
-                attribute.Namespace + "." + attribute.Name
-            };
-
-            if (attribute.Name.EndsWith(_attributeString))
-            {
-                var simpleName = attribute.Name.Substring(0, attribute.Name.Length - _attributeString.Length);
-
-                returnList.Add(simpleName);
-            }
-
-            return returnList;
+            return false;
         }
 
-        public bool Where(SyntaxNode node, CancellationToken token)
-        {
-            if (node is not T)
+        var found = node.DescendantNodes()
+            .OfType<AttributeSyntax>().Any(a =>
             {
-                return false;
-            }
+                var name = a.Name.ToString();
+                return _names.Contains(name);
+            });
 
-            var found = node.DescendantNodes()
-                .OfType<AttributeSyntax>().Any(a =>
-                {
-                    var name = a.Name.ToString();
-                    return _names.Contains(name);
-                });
-
-            return found;
-        }
+        return found;
     }
 }

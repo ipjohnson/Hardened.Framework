@@ -1,27 +1,26 @@
-﻿namespace Hardened.SourceGenerator.Shared
+﻿namespace Hardened.SourceGenerator.Shared;
+
+public static class ReadOnlySpanExtensions
 {
-    public static class ReadOnlySpanExtensions
+    public static bool StartsWith<T>(this ReadOnlySpan<T> span, T value)
     {
-        public static bool StartsWith<T>(this ReadOnlySpan<T> span, T value)
-        {
-            return value != null &&
-                   !span.IsEmpty && 
-                   value.Equals(span[0]);
-        }
+        return value != null &&
+               !span.IsEmpty && 
+               value.Equals(span[0]);
+    }
 
-        public static int IndexOf<T>(this ReadOnlySpan<T> span, T value, int startIndex)
-        {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+    public static int IndexOf<T>(this ReadOnlySpan<T> span, T value, int startIndex)
+    {
+        if (value == null) throw new ArgumentNullException(nameof(value));
 
-            for (var i = startIndex; i < span.Length; i++)
+        for (var i = startIndex; i < span.Length; i++)
+        {
+            if (value.Equals(span[i]))
             {
-                if (value.Equals(span[i]))
-                {
-                    return i;
-                }
+                return i;
             }
-
-            return -1;
         }
+
+        return -1;
     }
 }

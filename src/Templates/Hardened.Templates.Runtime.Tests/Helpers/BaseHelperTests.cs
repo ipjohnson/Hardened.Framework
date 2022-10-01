@@ -5,86 +5,85 @@ using Hardened.Templates.Runtime.Impl;
 using NSubstitute;
 using Xunit;
 
-namespace Hardened.Templates.Runtime.Tests.Helpers
+namespace Hardened.Templates.Runtime.Tests.Helpers;
+
+public abstract class BaseHelperTests
 {
-    public abstract class BaseHelperTests
+    protected abstract Type TemplateHelperType { get; }
+
+    protected abstract string Token { get; }
+
+    [Fact]
+    public void FindDefaultHelper()
     {
-        protected abstract Type TemplateHelperType { get; }
+        var helper = GetHelper();
 
-        protected abstract string Token { get; }
+        Assert.Equal(TemplateHelperType, helper.GetType());
+    }
 
-        [Fact]
-        public void FindDefaultHelper()
-        {
-            var helper = GetHelper();
+    [Fact]
+    public void DefaultHelperIsSingleton()
+    {
+        var defaultHelper = new DefaultHelpers();
 
-            Assert.Equal(TemplateHelperType, helper.GetType());
-        }
+        var helperFactory = defaultHelper.GetTemplateHelperFactory(Token);
 
-        [Fact]
-        public void DefaultHelperIsSingleton()
-        {
-            var defaultHelper = new DefaultHelpers();
+        Assert.NotNull(helperFactory);
 
-            var helperFactory = defaultHelper.GetTemplateHelperFactory(Token);
+        var helper = helperFactory(null);
+        Assert.Same(helper, helperFactory(null));
 
-            Assert.NotNull(helperFactory);
+        var helperFactory2 = defaultHelper.GetTemplateHelperFactory(Token);
 
-            var helper = helperFactory(null);
-            Assert.Same(helper, helperFactory(null));
+        Assert.Same(helperFactory, helperFactory2);
+        Assert.Same(helper, helperFactory2(null));
+    }
 
-            var helperFactory2 = defaultHelper.GetTemplateHelperFactory(Token);
+    protected ITemplateHelper GetHelper()
+    {
 
-            Assert.Same(helperFactory, helperFactory2);
-            Assert.Same(helper, helperFactory2(null));
-        }
+        var defaultHelper = new DefaultHelpers();
 
-        protected ITemplateHelper GetHelper()
-        {
+        var helperFactory = defaultHelper.GetTemplateHelperFactory(Token);
 
-            var defaultHelper = new DefaultHelpers();
+        Assert.NotNull(helperFactory);
 
-            var helperFactory = defaultHelper.GetTemplateHelperFactory(Token);
+        var helper = helperFactory(null);
 
-            Assert.NotNull(helperFactory);
+        Assert.NotNull(helper);
 
-            var helper = helperFactory(null);
-
-            Assert.NotNull(helper);
-
-            return helper;
-        }
+        return helper;
+    }
 
 
-        protected ITemplateExecutionContext GetExecutionContext(object? data = null)
-        {
-            var htmlEscapeStringService = new HtmlEscapeStringService();
+    protected ITemplateExecutionContext GetExecutionContext(object? data = null)
+    {
+        var htmlEscapeStringService = new HtmlEscapeStringService();
 
-            var stringBuilderPool = new StringBuilderPool();
+        var stringBuilderPool = new StringBuilderPool();
 
-            var internalServices = new InternalTemplateServices(
-                stringBuilderPool,
-                new DataFormattingService(Array.Empty<IDataFormatProvider>()),
-                new TemplateHelperService(Array.Empty<ITemplateHelperProvider>()),
-                new BooleanLogicService(),
-                new StringEscapeServiceProvider(new []{ htmlEscapeStringService })
-                );
+        var internalServices = new InternalTemplateServices(
+            stringBuilderPool,
+            new DataFormattingService(Array.Empty<IDataFormatProvider>()),
+            new TemplateHelperService(Array.Empty<ITemplateHelperProvider>()),
+            new BooleanLogicService(),
+            new StringEscapeServiceProvider(new []{ htmlEscapeStringService })
+        );
 
-            var builder = stringBuilderPool.Get().Item;
+        var builder = stringBuilderPool.Get().Item;
 
-            var writer = new StringBuilderTemplateOutputWriter(builder);
+        var writer = new StringBuilderTemplateOutputWriter(builder);
 
-            return new TemplateExecutionContext(
-                "html",
-                Substitute.For<IServiceProvider>(),
-                data ?? new object(),
-                internalServices,
-                Substitute.For<ITemplateExecutionService>(),
-                htmlEscapeStringService,
-                writer,
-                null,
-                null
-            );
-        }
+        return new TemplateExecutionContext(
+            "html",
+            Substitute.For<IServiceProvider>(),
+            data ?? new object(),
+            internalServices,
+            Substitute.For<ITemplateExecutionService>(),
+            htmlEscapeStringService,
+            writer,
+            null,
+            null
+        );
     }
 }

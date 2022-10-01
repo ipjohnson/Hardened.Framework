@@ -1,19 +1,18 @@
 ﻿using Hardened.Templates.Runtime.Helpers;
 using Xunit;
 
-namespace Hardened.Templates.Runtime.Tests.Helpers.String
+namespace Hardened.Templates.Runtime.Tests.Helpers.String;
+
+public abstract class BaseSingleStringTests : BaseHelperTests
 {
-    public abstract class BaseSingleStringTests : BaseHelperTests
+    protected async Task Evaluate(string input, string expected)
     {
-        protected async Task Evaluate(string input, string expected)
-        {
-            var defaultHelper = new DefaultHelpers();
+        var defaultHelper = new DefaultHelpers();
 
-            var templateHelperFunc = defaultHelper.GetTemplateHelperFactory(Token);
+        var templateHelperFunc = defaultHelper.GetTemplateHelperFactory(Token);
 
-            var templateHelper = templateHelperFunc(null);
+        var templateHelper = templateHelperFunc(null);
 
-            Assert.Equal(expected, await templateHelper.Execute(null, input));
-        }
+        Assert.Equal(expected, await templateHelper.Execute(null, input));
     }
 }

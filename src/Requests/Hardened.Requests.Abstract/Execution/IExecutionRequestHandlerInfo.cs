@@ -1,21 +1,20 @@
-﻿namespace Hardened.Requests.Abstract.Execution
+﻿namespace Hardened.Requests.Abstract.Execution;
+
+public interface IExecutionRequestHandlerInfo
 {
-    public interface IExecutionRequestHandlerInfo
-    {
-        string Path { get; }
+    string Path { get; }
 
-        string Method { get; }
+    string Method { get; }
 
-        Type HandlerType { get; }
+    Type HandlerType { get; }
 
-        string InvokeMethod { get; }
+    string InvokeMethod { get; }
 
-        int? SuccessStatus => null;
+    int? SuccessStatus => null;
 
-        int? FailureStatus => null;
+    int? FailureStatus => null;
 
-        int? NullResponseStatus => null;
+    int? NullResponseStatus => null;
 
-        IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
-    }
+    IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
 }

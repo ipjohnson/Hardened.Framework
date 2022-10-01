@@ -2,25 +2,24 @@
 using Hardened.Requests.Abstract.Execution;
 using Microsoft.Extensions.Logging;
 
-namespace Hardened.Requests.Runtime.Errors
+namespace Hardened.Requests.Runtime.Errors;
+
+public class ResourceNotFoundHandler : IResourceNotFoundHandler
 {
-    public class ResourceNotFoundHandler : IResourceNotFoundHandler
+    private readonly ILogger<ResourceNotFoundHandler> _logger;
+
+    public ResourceNotFoundHandler(ILogger<ResourceNotFoundHandler> logger)
     {
-        private readonly ILogger<ResourceNotFoundHandler> _logger;
+        _logger = logger;
+    }
 
-        public ResourceNotFoundHandler(ILogger<ResourceNotFoundHandler> logger)
+    public async Task Handle(IExecutionChain chain)
+    {
+        await chain.Next();
+
+        if (chain.Context.Response.Status == null)
         {
-            _logger = logger;
-        }
-
-        public async Task Handle(IExecutionChain chain)
-        {
-            await chain.Next();
-
-            if (chain.Context.Response.Status == null)
-            {
-                chain.Context.Response.Status = 404;
-            }
+            chain.Context.Response.Status = 404;
         }
     }
 }

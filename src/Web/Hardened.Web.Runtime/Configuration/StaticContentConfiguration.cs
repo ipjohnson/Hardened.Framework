@@ -1,39 +1,38 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Web.Runtime.CacheControl;
 
-namespace Hardened.Web.Runtime.Configuration
+namespace Hardened.Web.Runtime.Configuration;
+
+public interface IStaticContentConfiguration
 {
-    public interface IStaticContentConfiguration
-    {
-        string Path { get; }
+    string Path { get; }
 
-        CacheControlEnum CacheControlType { get; }
+    CacheControlEnum CacheControlType { get; }
 
-        int CacheMaxAge { get; }
+    int CacheMaxAge { get; }
 
-        bool EnableETag { get; }
+    bool EnableETag { get; }
 
-        string? FallBackFile { get; }
+    string? FallBackFile { get; }
 
-        bool CompressTextContent { get; }
+    bool CompressTextContent { get; }
 
-        Action<IExecutionContext>? OnPrepareResponse { get; }
-    }
+    Action<IExecutionContext>? OnPrepareResponse { get; }
+}
 
-    public class StaticContentConfiguration : IStaticContentConfiguration
-    {
-        public string Path { get; set; } = "wwwroot";
+public class StaticContentConfiguration : IStaticContentConfiguration
+{
+    public string Path { get; set; } = "wwwroot";
 
-        public CacheControlEnum CacheControlType { get; set; } = CacheControlEnum.MaxAge | CacheControlEnum.Public;
+    public CacheControlEnum CacheControlType { get; set; } = CacheControlEnum.MaxAge | CacheControlEnum.Public;
 
-        public int CacheMaxAge { get; set; } = 0;
+    public int CacheMaxAge { get; set; } = 0;
 
-        public bool EnableETag { get; set; } = true;
+    public bool EnableETag { get; set; } = true;
 
-        public string? FallBackFile { get; set; }
+    public string? FallBackFile { get; set; }
 
-        public bool CompressTextContent { get; set; } = true;
+    public bool CompressTextContent { get; set; } = true;
 
-        public Action<IExecutionContext>? OnPrepareResponse { get; set; }
-    }
+    public Action<IExecutionContext>? OnPrepareResponse { get; set; }
 }

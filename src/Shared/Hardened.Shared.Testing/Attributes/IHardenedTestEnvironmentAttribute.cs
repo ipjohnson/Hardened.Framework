@@ -1,10 +1,9 @@
 ﻿using System.Reflection;
 
-namespace Hardened.Shared.Testing.Attributes
+namespace Hardened.Shared.Testing.Attributes;
+
+public interface IHardenedTestEnvironmentAttribute
 {
-    public interface IHardenedTestEnvironmentAttribute
-    {
-        void ConfigureEnvironment(AttributeCollection attributeCollection, 
-            MethodInfo methodInfo, string environmentName, IDictionary<string, object> environment);
-    }
+    void ConfigureEnvironment(AttributeCollection attributeCollection, 
+        MethodInfo methodInfo, string environmentName, IDictionary<string, object> environment);
 }

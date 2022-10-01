@@ -1,6 +1,5 @@
-﻿namespace Hardened.SourceGenerator.Models
+﻿namespace Hardened.SourceGenerator.Models;
+
+public class EntryPointModel
 {
-    public class EntryPointModel
-    {
-    }
 }

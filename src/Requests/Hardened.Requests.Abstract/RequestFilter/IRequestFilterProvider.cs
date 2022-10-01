@@ -1,9 +1,8 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.RequestFilter
+namespace Hardened.Requests.Abstract.RequestFilter;
+
+public interface IRequestFilterProvider
 {
-    public interface IRequestFilterProvider
-    {
-        IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo);
-    }
+    IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo);
 }

@@ -2,28 +2,27 @@
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Hardened.Shared.Testing.Attributes
+namespace Hardened.Shared.Testing.Attributes;
+
+[AttributeUsage(AttributeTargets.Parameter)]
+public class MockAttribute : Attribute, IHardenedParameterProviderAttribute
 {
-    [AttributeUsage(AttributeTargets.Parameter)]
-    public class MockAttribute : Attribute, IHardenedParameterProviderAttribute
+    private object? _parameterValue;
+
+    public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
+        ParameterInfo? parameterInfo, IEnvironment environment,
+        IServiceCollection serviceCollection)
     {
-        private object? _parameterValue;
-
-        public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
-            ParameterInfo? parameterInfo, IEnvironment environment,
-            IServiceCollection serviceCollection)
+        if (parameterInfo != null)
         {
-            if (parameterInfo != null)
-            {
-                var mock = NSubstitute.Substitute.For(new[] { parameterInfo.ParameterType }, Array.Empty<object>());
+            var mock = NSubstitute.Substitute.For(new[] { parameterInfo.ParameterType }, Array.Empty<object>());
 
-                serviceCollection.AddSingleton(parameterInfo.ParameterType, mock);
-            }
+            serviceCollection.AddSingleton(parameterInfo.ParameterType, mock);
         }
+    }
 
-        public object? ProvideParameterValue(ParameterInfo parameterInfo, IApplicationRoot applicationRoot)
-        {
-            return _parameterValue;
-        }
+    public object? ProvideParameterValue(ParameterInfo parameterInfo, IApplicationRoot applicationRoot)
+    {
+        return _parameterValue;
     }
 }

@@ -10,95 +10,94 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
 
-namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
+namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests;
+
+public class PersonTests
 {
-    public class PersonTests
+    [HardenedTest]
+    public void SimpleTest(PersonService service,
+        [Mock] IOptions<IPersonServiceConfiguration> option,
+        PersonServiceConfiguration personServiceConfiguration)
     {
-        [HardenedTest]
-        public void SimpleTest(PersonService service,
-            [Mock] IOptions<IPersonServiceConfiguration> option,
-            PersonServiceConfiguration personServiceConfiguration)
+        personServiceConfiguration.FirstNamePrefix = "Testing-";
+        personServiceConfiguration.LastNamePrefix = "Testing-";
+        option.Value.Returns(personServiceConfiguration);
+
+        service.Add(new PersonModel { FirstName = "First", LastName = "Last", Id = 100 });
+        var instance = service.Get(100);
+
+        Assert.NotNull(instance);
+        Assert.Equal("Testing-First", instance!.FirstName);
+        Assert.Equal("Testing-Last", instance!.LastName);
+    }
+
+    [HardenedTest]
+    public async Task SomeTest(ITestWebApp app)
+    {
+        var testWebResponse = await app.Get("/api/person/testMethod");
+
+        testWebResponse.Assert.Ok();
+        var model = testWebResponse.Deserialize<PersonModel>();
+
+        Assert.NotNull(model);
+        Assert.Equal(10, model.Id);
+        Assert.Equal("test string", model.FirstName);
+    }
+
+    [HardenedTest]
+    public async Task PostTest(ITestWebApp app)
+    {
+        var personModel = new PersonModel { Id = 100, FirstName = "Test", LastName = "100" };
+
+        var response = await app.Post(personModel, "/api/person");
+
+        response.Assert.Ok();
+    }
+
+    [HardenedTest]
+    [EnvironmentValue("Testing", "Value")]
+    [EnvironmentName("SomeEnv")]
+    public async Task PersonWebPageTest(ITestWebApp app)
+    {
+        var viewResponse = await app.Get("/api/person/view");
+
+        viewResponse.Assert.Ok();
+        var document = await viewResponse.ParseDocument();
+
+        var results = document.QuerySelector("#id5");
+
+        Assert.NotNull(results);
+        Assert.Equal("TestValue", viewResponse.Headers.Get("TestResponseHeader"));
+        Assert.Equal("OtherValue", viewResponse.Headers.Get("OtherTest"));
+    }
+
+    public void RegisterDependencies(IServiceCollection collection)
+    {
+        collection.AddSingleton<IPersonService, TestPersonService>();
+    }
+
+    public class TestPersonService : IPersonService
+    {
+        private IEnvironment _environment;
+
+        public TestPersonService(IEnvironment environment)
         {
-            personServiceConfiguration.FirstNamePrefix = "Testing-";
-            personServiceConfiguration.LastNamePrefix = "Testing-";
-            option.Value.Returns(personServiceConfiguration);
-
-            service.Add(new PersonModel { FirstName = "First", LastName = "Last", Id = 100 });
-            var instance = service.Get(100);
-
-            Assert.NotNull(instance);
-            Assert.Equal("Testing-First", instance!.FirstName);
-            Assert.Equal("Testing-Last", instance!.LastName);
+            _environment = environment;
         }
 
-        [HardenedTest]
-        public async Task SomeTest(ITestWebApp app)
+        public IEnumerable<PersonModel> All()
         {
-            var testWebResponse = await app.Get("/api/person/testMethod");
-
-            testWebResponse.Assert.Ok();
-            var model = testWebResponse.Deserialize<PersonModel>();
-
-            Assert.NotNull(model);
-            Assert.Equal(10, model.Id);
-            Assert.Equal("test string", model.FirstName);
+            return new[] { new PersonModel { Id = 5, FirstName = "Test", LastName = "Testing" } };
         }
 
-        [HardenedTest]
-        public async Task PostTest(ITestWebApp app)
+        public PersonModel? Get(int id)
         {
-            var personModel = new PersonModel { Id = 100, FirstName = "Test", LastName = "100" };
-
-            var response = await app.Post(personModel, "/api/person");
-
-            response.Assert.Ok();
+            return null;
         }
 
-        [HardenedTest]
-        [EnvironmentValue("Testing", "Value")]
-        [EnvironmentName("SomeEnv")]
-        public async Task PersonWebPageTest(ITestWebApp app)
+        public PersonModel Add(PersonModel person)
         {
-            var viewResponse = await app.Get("/api/person/view");
-
-            viewResponse.Assert.Ok();
-            var document = await viewResponse.ParseDocument();
-
-            var results = document.QuerySelector("#id5");
-
-            Assert.NotNull(results);
-            Assert.Equal("TestValue", viewResponse.Headers.Get("TestResponseHeader"));
-            Assert.Equal("OtherValue", viewResponse.Headers.Get("OtherTest"));
-        }
-
-        public void RegisterDependencies(IServiceCollection collection)
-        {
-            collection.AddSingleton<IPersonService, TestPersonService>();
-        }
-
-        public class TestPersonService : IPersonService
-        {
-            private IEnvironment _environment;
-
-            public TestPersonService(IEnvironment environment)
-            {
-                _environment = environment;
-            }
-
-            public IEnumerable<PersonModel> All()
-            {
-                return new[] { new PersonModel { Id = 5, FirstName = "Test", LastName = "Testing" } };
-            }
-
-            public PersonModel? Get(int id)
-            {
-                return null;
-            }
-
-            public PersonModel Add(PersonModel person)
-            {
-                return person;
-            }
+            return person;
         }
     }
 }

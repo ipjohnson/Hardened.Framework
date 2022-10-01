@@ -1,8 +1,6 @@
-﻿namespace Hardened.Templates.Abstract
-{
+﻿namespace Hardened.Templates.Abstract;
 
-    public interface ITemplateHelperProvider
-    {
-        TemplateHelperFactory GetTemplateHelperFactory(string mustacheToken);
-    }
+public interface ITemplateHelperProvider
+{
+    TemplateHelperFactory GetTemplateHelperFactory(string mustacheToken);
 }

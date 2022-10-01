@@ -2,20 +2,19 @@
 using Hardened.Shared.Lambda.Runtime.Execution;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Hardened.Function.Lambda.Runtime.Impl
-{
-    public interface ILambdaInvokeFilterProvider
-    {
-        IExecutionFilter ProvideFilter(IServiceProvider serviceProvider);
-    }
+namespace Hardened.Function.Lambda.Runtime.Impl;
 
-    public class LambdaInvokeFilterProvider : ILambdaInvokeFilterProvider
+public interface ILambdaInvokeFilterProvider
+{
+    IExecutionFilter ProvideFilter(IServiceProvider serviceProvider);
+}
+
+public class LambdaInvokeFilterProvider : ILambdaInvokeFilterProvider
+{
+    public IExecutionFilter ProvideFilter(IServiceProvider serviceProvider)
     {
-        public IExecutionFilter ProvideFilter(IServiceProvider serviceProvider)
-        {
-            return new LambdaFunctionInvokeFilter(
-                serviceProvider.GetRequiredService<ILambdaContextAccessor>(),
-                serviceProvider.GetServices<ILambdaHandlerPackage>());
-        }
+        return new LambdaFunctionInvokeFilter(
+            serviceProvider.GetRequiredService<ILambdaContextAccessor>(),
+            serviceProvider.GetServices<ILambdaHandlerPackage>());
     }
 }

@@ -1,7 +1,6 @@
-﻿namespace Hardened.Requests.Abstract.Attributes
+﻿namespace Hardened.Requests.Abstract.Attributes;
+
+public class HardenedFunctionAttribute : Attribute
 {
-    public class HardenedFunctionAttribute : Attribute
-    {
-        public string? FunctionName { get; set; }
-    }
+    public string? FunctionName { get; set; }
 }

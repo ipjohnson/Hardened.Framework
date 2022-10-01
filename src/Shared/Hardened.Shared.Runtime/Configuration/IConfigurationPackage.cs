@@ -1,11 +1,10 @@
 ﻿using Hardened.Shared.Runtime.Application;
 
-namespace Hardened.Shared.Runtime.Configuration
-{
-    public interface IConfigurationPackage
-    {
-        IEnumerable<IConfigurationValueProvider> ConfigurationValueProviders(IEnvironment env);
+namespace Hardened.Shared.Runtime.Configuration;
 
-        IEnumerable<IConfigurationValueAmender> ConfigurationValueAmenders(IEnvironment env);
-    }
+public interface IConfigurationPackage
+{
+    IEnumerable<IConfigurationValueProvider> ConfigurationValueProviders(IEnvironment env);
+
+    IEnumerable<IConfigurationValueAmender> ConfigurationValueAmenders(IEnvironment env);
 }

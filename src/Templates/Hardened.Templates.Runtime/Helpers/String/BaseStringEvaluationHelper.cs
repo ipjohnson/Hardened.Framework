@@ -1,31 +1,30 @@
 ﻿using Hardened.Templates.Abstract;
 
-namespace Hardened.Templates.Runtime.Helpers.String
+namespace Hardened.Templates.Runtime.Helpers.String;
+
+public abstract class BaseStringEvaluationHelper : ITemplateHelper
 {
-    public abstract class BaseStringEvaluationHelper : ITemplateHelper
+    public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments)
     {
-        public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments)
+        var returnValue = false;
+
+        if (arguments?.Length == 2)
         {
-            var returnValue = false;
+            var stringOne = arguments[0]?.ToString();
 
-            if (arguments?.Length == 2)
+            if (stringOne != null)
             {
-                var stringOne = arguments[0]?.ToString();
+                var stringTwo = arguments[1]?.ToString();
 
-                if (stringOne != null)
+                if (stringTwo != null)
                 {
-                    var stringTwo = arguments[1]?.ToString();
-
-                    if (stringTwo != null)
-                    {
-                        returnValue = EvaluateStrings(stringOne, stringTwo);
-                    }
+                    returnValue = EvaluateStrings(stringOne, stringTwo);
                 }
             }
-
-            return new ValueTask<object>(returnValue);
         }
 
-        protected abstract bool EvaluateStrings(string one, string two);
+        return new ValueTask<object>(returnValue);
     }
+
+    protected abstract bool EvaluateStrings(string one, string two);
 }

@@ -2,14 +2,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
-namespace Hardened.Shared.Testing.Attributes
+namespace Hardened.Shared.Testing.Attributes;
+
+public interface IHardenedTestDependencyRegistrationAttribute
 {
-    public interface IHardenedTestDependencyRegistrationAttribute
-    {
-        void RegisterDependencies(
-            AttributeCollection attributeCollection, 
-            MethodInfo methodInfo, 
-            IEnvironment environment,
-            IServiceCollection serviceCollection);
-    }
+    void RegisterDependencies(
+        AttributeCollection attributeCollection, 
+        MethodInfo methodInfo, 
+        IEnvironment environment,
+        IServiceCollection serviceCollection);
 }

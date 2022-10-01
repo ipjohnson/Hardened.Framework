@@ -1,32 +1,31 @@
 ﻿using Hardened.Shared.Runtime.Application;
 
-namespace Hardened.Shared.Testing.Impl
+namespace Hardened.Shared.Testing.Impl;
+
+public class TestEnvironment : IEnvironment
 {
-    public class TestEnvironment : IEnvironment
+    private readonly IDictionary<string, object> _values;
+
+    public TestEnvironment(string name, IDictionary<string, object> values)
     {
-        private readonly IDictionary<string, object> _values;
+        _values = values;
+        Name = name;
+    }
 
-        public TestEnvironment(string name, IDictionary<string, object> values)
+    public string Name { get; }
+
+    public T? Value<T>(string name, T? defaultValue = default)
+    {
+        if (_values.TryGetValue(name, out var value))
         {
-            _values = values;
-            Name = name;
-        }
-
-        public string Name { get; }
-
-        public T? Value<T>(string name, T? defaultValue = default)
-        {
-            if (_values.TryGetValue(name, out var value))
+            if (value is T tValue)
             {
-                if (value is T tValue)
-                {
-                    return tValue;
-                }
-
-                return (T)Convert.ChangeType(value, typeof(T));
+                return tValue;
             }
 
-            return defaultValue;
+            return (T)Convert.ChangeType(value, typeof(T));
         }
+
+        return defaultValue;
     }
 }

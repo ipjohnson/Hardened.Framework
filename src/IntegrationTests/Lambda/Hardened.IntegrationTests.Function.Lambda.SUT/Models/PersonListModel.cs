@@ -1,15 +1,14 @@
-﻿namespace Hardened.IntegrationTests.Function.Lambda.SUT.Models
+﻿namespace Hardened.IntegrationTests.Function.Lambda.SUT.Models;
+
+public class PersonListModel
 {
-    public class PersonListModel
+    public PersonListModel(string title, IEnumerable<PersonModel> entries)
     {
-        public PersonListModel(string title, IEnumerable<PersonModel> entries)
-        {
-            Title = title;
-            Entries = entries;
-        }
-
-        public string Title { get; }
-
-        public IEnumerable<PersonModel> Entries { get; }
+        Title = title;
+        Entries = entries;
     }
+
+    public string Title { get; }
+
+    public IEnumerable<PersonModel> Entries { get; }
 }

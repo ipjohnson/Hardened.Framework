@@ -8,38 +8,37 @@ using Hardened.Web.Runtime.StaticContent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Hardened.Web.Runtime.DependencyInjection
+namespace Hardened.Web.Runtime.DependencyInjection;
+
+public static class WebRuntimeDI
 {
-    public static class WebRuntimeDI
+    private static readonly WeakReference<IServiceCollection?> _lastServiceCollection = new(null);
+
+    public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
     {
-        private static readonly WeakReference<IServiceCollection?> _lastServiceCollection = new(null);
-
-        public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
+        if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
+            !ReferenceEquals(lastServiceCollection, serviceCollection))
         {
-            if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
-                !ReferenceEquals(lastServiceCollection, serviceCollection))
-            {
-                _lastServiceCollection.SetTarget(serviceCollection);
+            _lastServiceCollection.SetTarget(serviceCollection);
 
-                serviceCollection.TryAddSingleton<IWebExecutionHandlerService, WebExecutionHandlerService>();
-                serviceCollection.TryAddSingleton<IStaticContentHandler, StaticContentHandler>();
-                serviceCollection.TryAddSingleton<IETagProvider, ETagProvider>();
-                serviceCollection.TryAddSingleton<IGZipStaticContentCompressor, GZipStaticContentCompressor>();
-                serviceCollection.AddSingleton<IConfigurationPackage>(
-                    new SimpleConfigurationPackage(
-                        new[]
-                        {
-                            new NewConfigurationValueProvider<IStaticContentConfiguration, StaticContentConfiguration>(null)
-                        }, Array.Empty<IConfigurationValueAmender>())
-                );
-                serviceCollection.TryAddSingleton(
-                    serviceProvider => Microsoft.Extensions.Options.Options.Create(
-                        serviceProvider.GetRequiredService<IConfigurationManager>()
-                            .GetConfiguration<IStaticContentConfiguration>()));
+            serviceCollection.TryAddSingleton<IWebExecutionHandlerService, WebExecutionHandlerService>();
+            serviceCollection.TryAddSingleton<IStaticContentHandler, StaticContentHandler>();
+            serviceCollection.TryAddSingleton<IETagProvider, ETagProvider>();
+            serviceCollection.TryAddSingleton<IGZipStaticContentCompressor, GZipStaticContentCompressor>();
+            serviceCollection.AddSingleton<IConfigurationPackage>(
+                new SimpleConfigurationPackage(
+                    new[]
+                    {
+                        new NewConfigurationValueProvider<IStaticContentConfiguration, StaticContentConfiguration>(null)
+                    }, Array.Empty<IConfigurationValueAmender>())
+            );
+            serviceCollection.TryAddSingleton(
+                serviceProvider => Microsoft.Extensions.Options.Options.Create(
+                    serviceProvider.GetRequiredService<IConfigurationManager>()
+                        .GetConfiguration<IStaticContentConfiguration>()));
 
-                serviceCollection.TryAddSingleton<IItemPool<MD5>>(_ =>
-                    new ItemPool<MD5>(MD5.Create, _ => { }, md5 => md5.Dispose()));
-            }
+            serviceCollection.TryAddSingleton<IItemPool<MD5>>(_ =>
+                new ItemPool<MD5>(MD5.Create, _ => { }, md5 => md5.Dispose()));
         }
     }
 }

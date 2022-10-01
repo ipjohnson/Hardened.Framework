@@ -1,12 +1,11 @@
-﻿namespace Hardened.Web.Runtime.Attributes
-{
-    public class PostAttribute : Attribute
-    {
-        public PostAttribute(string path = "")
-        {
-            Path = path;
-        }
+﻿namespace Hardened.Web.Runtime.Attributes;
 
-        public string Path { get; }
+public class PostAttribute : Attribute
+{
+    public PostAttribute(string path = "")
+    {
+        Path = path;
     }
+
+    public string Path { get; }
 }

@@ -5,70 +5,69 @@ using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Filters;
 using Microsoft.Extensions.Options;
 
-namespace Hardened.Requests.Runtime.Execution
+namespace Hardened.Requests.Runtime.Execution;
+
+public class IOFilterProvider : IIOFilterProvider
 {
-    public class IOFilterProvider : IIOFilterProvider
+    private readonly IContextSerializationService _contextSerializationService;
+    private readonly Action<IExecutionContext>? _headerActions;
+
+    public IOFilterProvider(
+        IContextSerializationService contextSerializationService,
+        IOptions<IResponseHeaderConfiguration> responseHeaderConfiguration)
     {
-        private readonly IContextSerializationService _contextSerializationService;
-        private readonly Action<IExecutionContext>? _headerActions;
+        _contextSerializationService = contextSerializationService;
+        _headerActions = SetupHeaderActions(responseHeaderConfiguration.Value);
+    }
 
-        public IOFilterProvider(
-            IContextSerializationService contextSerializationService,
-            IOptions<IResponseHeaderConfiguration> responseHeaderConfiguration)
+    private Action<IExecutionContext>? SetupHeaderActions(IResponseHeaderConfiguration responseHeaderConfiguration)
+    {
+        if (responseHeaderConfiguration.HeaderActions.Count == 0 &&
+            responseHeaderConfiguration.CommonHeaders.Count == 0)
         {
-            _contextSerializationService = contextSerializationService;
-            _headerActions = SetupHeaderActions(responseHeaderConfiguration.Value);
+            return null;
         }
+        var headerAction = new List<Action<IExecutionContext>>(responseHeaderConfiguration.HeaderActions);
 
-        private Action<IExecutionContext>? SetupHeaderActions(IResponseHeaderConfiguration responseHeaderConfiguration)
+        if (responseHeaderConfiguration.CommonHeaders.Count > 0)
         {
-            if (responseHeaderConfiguration.HeaderActions.Count == 0 &&
-                responseHeaderConfiguration.CommonHeaders.Count == 0)
-            {
-                return null;
-            }
-            var headerAction = new List<Action<IExecutionContext>>(responseHeaderConfiguration.HeaderActions);
+            var commonList = responseHeaderConfiguration.CommonHeaders;
 
-            if (responseHeaderConfiguration.CommonHeaders.Count > 0)
+            headerAction.Add(context =>
             {
-                var commonList = responseHeaderConfiguration.CommonHeaders;
+                var responseHeaders = context.Response.Headers;
 
-                headerAction.Add(context =>
+                for (var i = 0; i < commonList.Count; i++)
                 {
-                    var responseHeaders = context.Response.Headers;
+                    var kvp = commonList[i];
 
-                    for (var i = 0; i < commonList.Count; i++)
-                    {
-                        var kvp = commonList[i];
-
-                        responseHeaders.Set(kvp.Key, kvp.Value);
-                    }
-                });
-            }
-
-            if (headerAction.Count == 1)
-            {
-                return headerAction[0];
-            }
-
-            return context =>
-            {
-                for (var i = 0; i < headerAction.Count; i++)
-                {
-                    headerAction[i].Invoke(context);
+                    responseHeaders.Set(kvp.Key, kvp.Value);
                 }
-            };
+            });
         }
 
-        public IExecutionFilter ProvideFilter(
-            IExecutionRequestHandlerInfo handlerInfo, 
-            Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest)
+        if (headerAction.Count == 1)
         {
-            return new IoFilter(
-                deserializeRequest,
-                _contextSerializationService.SerializeResponse,
-                _headerActions
-            );
+            return headerAction[0];
         }
+
+        return context =>
+        {
+            for (var i = 0; i < headerAction.Count; i++)
+            {
+                headerAction[i].Invoke(context);
+            }
+        };
+    }
+
+    public IExecutionFilter ProvideFilter(
+        IExecutionRequestHandlerInfo handlerInfo, 
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest)
+    {
+        return new IoFilter(
+            deserializeRequest,
+            _contextSerializationService.SerializeResponse,
+            _headerActions
+        );
     }
 }

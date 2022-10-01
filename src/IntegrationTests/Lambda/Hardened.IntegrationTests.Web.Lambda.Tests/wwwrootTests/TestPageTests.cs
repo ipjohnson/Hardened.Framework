@@ -7,40 +7,39 @@ using Hardened.Web.Testing;
 using Microsoft.Extensions.Primitives;
 using Xunit;
 
-namespace Hardened.IntegrationTests.Web.Lambda.Tests.wwwrootTests
+namespace Hardened.IntegrationTests.Web.Lambda.Tests.wwwrootTests;
+
+public class TestPageTests
 {
-    public class TestPageTests
+    [HardenedTest]
+    public async Task TestPage(ITestWebApp app)
     {
-        [HardenedTest]
-        public async Task TestPage(ITestWebApp app)
-        {
-            var response = await app.Get("/testPage.html");
+        var response = await app.Get("/testPage.html");
 
-            response.Assert.Ok();
+        response.Assert.Ok();
 
-            var testPage = await response.ParseDocument();
+        var testPage = await response.ParseDocument();
             
-            Assert.NotNull(testPage);
-            Assert.Equal("gzip", response.Headers.Get(KnownHeaders.ContentEncoding));
-        }
+        Assert.NotNull(testPage);
+        Assert.Equal("gzip", response.Headers.Get(KnownHeaders.ContentEncoding));
+    }
 
-        [HardenedTest]
-        public async Task TestPageWithNoEncoding(ITestWebApp app)
-        {
-            var response = await app.Get("/testPage.html", 
-                request => request.Headers.Set(KnownHeaders.AcceptEncoding, (object?)null));
+    [HardenedTest]
+    public async Task TestPageWithNoEncoding(ITestWebApp app)
+    {
+        var response = await app.Get("/testPage.html", 
+            request => request.Headers.Set(KnownHeaders.AcceptEncoding, (object?)null));
 
-            response.Assert.Ok();
+        response.Assert.Ok();
 
-            var testPage = await response.ParseDocument();
+        var testPage = await response.ParseDocument();
 
-            Assert.NotNull(testPage);
-            Assert.Equal(StringValues.Empty, response.Headers.Get(KnownHeaders.ContentEncoding));
-        }
+        Assert.NotNull(testPage);
+        Assert.Equal(StringValues.Empty, response.Headers.Get(KnownHeaders.ContentEncoding));
+    }
 
-        private void Configure(IAppConfig appConfig)
-        {
-            appConfig.Amend<StaticContentConfiguration>(c => c.CacheMaxAge = 20);
-        }
+    private void Configure(IAppConfig appConfig)
+    {
+        appConfig.Amend<StaticContentConfiguration>(c => c.CacheMaxAge = 20);
     }
 }

@@ -1,44 +1,43 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Lambda.Runtime.Execution;
 
-namespace Hardened.Function.Lambda.Runtime.Impl
+namespace Hardened.Function.Lambda.Runtime.Impl;
+
+public sealed class LambdaFunctionInvokeFilter : IExecutionFilter
 {
-    public sealed class LambdaFunctionInvokeFilter : IExecutionFilter
+    private readonly ILambdaContextAccessor _lambdaContextAccessor;
+    private readonly IEnumerable<ILambdaHandlerPackage> _handlerPackages;
+    private IExecutionRequestHandler? _executionRequestHandler;
+
+    public LambdaFunctionInvokeFilter(ILambdaContextAccessor lambdaContextAccessor, IEnumerable<ILambdaHandlerPackage> handlerPackages)
     {
-        private readonly ILambdaContextAccessor _lambdaContextAccessor;
-        private readonly IEnumerable<ILambdaHandlerPackage> _handlerPackages;
-        private IExecutionRequestHandler? _executionRequestHandler;
+        _lambdaContextAccessor = lambdaContextAccessor;
+        _handlerPackages = handlerPackages;
+    }
 
-        public LambdaFunctionInvokeFilter(ILambdaContextAccessor lambdaContextAccessor, IEnumerable<ILambdaHandlerPackage> handlerPackages)
+    public Task Execute(IExecutionChain chain)
+    {
+        if (_executionRequestHandler == null)
         {
-            _lambdaContextAccessor = lambdaContextAccessor;
-            _handlerPackages = handlerPackages;
+            _executionRequestHandler = FindRequestHandler(chain.Context.RootServiceProvider);
         }
 
-        public Task Execute(IExecutionChain chain)
+        return _executionRequestHandler.GetExecutionChain(chain.Context).Next();
+    }
+
+    private IExecutionRequestHandler FindRequestHandler(IServiceProvider serviceProvider)
+    {
+        foreach (var handlerPackage in _handlerPackages)
         {
-            if (_executionRequestHandler == null)
+            var handler = handlerPackage.GetFunctionHandler(serviceProvider, _lambdaContextAccessor.Context!);
+
+            if (handler != null)
             {
-                _executionRequestHandler = FindRequestHandler(chain.Context.RootServiceProvider);
+                return handler;
             }
-
-            return _executionRequestHandler.GetExecutionChain(chain.Context).Next();
         }
 
-        private IExecutionRequestHandler FindRequestHandler(IServiceProvider serviceProvider)
-        {
-            foreach (var handlerPackage in _handlerPackages)
-            {
-                var handler = handlerPackage.GetFunctionHandler(serviceProvider, _lambdaContextAccessor.Context!);
-
-                if (handler != null)
-                {
-                    return handler;
-                }
-            }
-
-            throw new Exception("Could not find lambda function in package: " +
-                                _lambdaContextAccessor.Context!.FunctionName);
-        }
+        throw new Exception("Could not find lambda function in package: " +
+                            _lambdaContextAccessor.Context!.FunctionName);
     }
 }

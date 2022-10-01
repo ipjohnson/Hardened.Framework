@@ -5,59 +5,58 @@ using Hardened.Web.Testing;
 using NSubstitute;
 using Xunit;
 
-namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests
+namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests;
+
+public class HomeTests
 {
-    public class HomeTests
+    [HardenedTest]
+    public void SimpleTest(MathService mathService)
     {
-        [HardenedTest]
-        public void SimpleTest(MathService mathService)
-        {
-            var value = mathService.Add(1, 2);
-            Assert.Equal(3, value);
-        }
+        var value = mathService.Add(1, 2);
+        Assert.Equal(3, value);
+    }
 
-        [HardenedTest]
-        public async Task HomeTest(ITestWebApp app, 
-            [Mock] IMathService mathService)
-        {
-            mathService.Add(2, 2).Returns(5);
+    [HardenedTest]
+    public async Task HomeTest(ITestWebApp app, 
+        [Mock] IMathService mathService)
+    {
+        mathService.Add(2, 2).Returns(5);
 
-            var response = await app.Get("/home");
+        var response = await app.Get("/home");
             
-            response.Assert.Ok();
+        response.Assert.Ok();
 
-            var homeModel = response.Deserialize<HomeModel>();
+        var homeModel = response.Deserialize<HomeModel>();
 
-            Assert.Equal(10, homeModel.Id);
-            Assert.Equal("Blah Test 5", homeModel.Name);
-        }
+        Assert.Equal(10, homeModel.Id);
+        Assert.Equal("Blah Test 5", homeModel.Name);
+    }
 
-        [HardenedTest]
-        public async Task HeaderTest(ITestWebApp app)
-        {
-            var response = await app.Get("/Header", request => request.Headers.Set("headerString", "testing 123"));
+    [HardenedTest]
+    public async Task HeaderTest(ITestWebApp app)
+    {
+        var response = await app.Get("/Header", request => request.Headers.Set("headerString", "testing 123"));
 
-            response.Assert.Ok();
+        response.Assert.Ok();
             
-            var homeModel = response.Deserialize<HomeModel>();
+        var homeModel = response.Deserialize<HomeModel>();
 
-            Assert.Equal(20, homeModel.Id);
-            Assert.Equal("testing 123", homeModel.Name);
+        Assert.Equal(20, homeModel.Id);
+        Assert.Equal("testing 123", homeModel.Name);
 
-        }
+    }
 
-        [HardenedTest]
-        public async Task QueryStringPathTest(ITestWebApp app)
-        {
-            var response = await app.Get("/QueryStringPath?testString=SomeValue");
+    [HardenedTest]
+    public async Task QueryStringPathTest(ITestWebApp app)
+    {
+        var response = await app.Get("/QueryStringPath?testString=SomeValue");
 
-            response.Assert.Ok();
+        response.Assert.Ok();
 
-            var homeModel = response.Deserialize<HomeModel>();
+        var homeModel = response.Deserialize<HomeModel>();
 
-            Assert.Equal(30, homeModel.Id);
-            Assert.Equal("SomeValue", homeModel.Name);
+        Assert.Equal(30, homeModel.Id);
+        Assert.Equal("SomeValue", homeModel.Name);
 
-        }
     }
 }
