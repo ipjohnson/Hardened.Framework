@@ -1,6 +1,7 @@
 ﻿using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Configuration;
+using Hardened.Shared.Runtime.Json;
 using Hardened.Shared.Runtime.Metrics;
 using Hardened.Shared.Runtime.Utilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,5 +26,13 @@ public static class StandardDependencies
         serviceCollection.TryAddSingleton<IConfigurationManager, ConfigurationManager>();
         serviceCollection.TryAddSingleton<IMetricLoggerProvider, NullMetricLoggerProvider>();
         serviceCollection.TryAddSingleton<IFileExtToMimeTypeHelper, FileExtToMimeTypeHelper>();
+        serviceCollection.TryAddSingleton<IJsonSerializer, JsonSerializerImpl>();
+        serviceCollection.AddSingleton<IConfigurationPackage>(
+            new SimpleConfigurationPackage(
+                new[]
+                {
+                    new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null)
+                }, Array.Empty<IConfigurationValueAmender>())
+        );
     }
 }
