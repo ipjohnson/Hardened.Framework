@@ -15,8 +15,6 @@ namespace Hardened.SourceGenerator.Requests
             parametersClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
             parametersClass.AddBaseType(KnownTypes.Requests.IExecutionRequestParameters);
 
-            parametersClass.AddAttribute(typeof(SuppressMessageAttribute), "\"Microsoft.Design\", \"CS8618\"");
-
             WriteProperties(handlerModel, parametersClass);
 
             WriteTryGetParameter(handlerModel, parametersClass);
@@ -166,8 +164,10 @@ namespace Hardened.SourceGenerator.Requests
         {
             foreach (var requestParameterInformation in handlerModel.RequestParameterInformationList)
             {
-                parametersClass.AddProperty(requestParameterInformation.ParameterType,
-                    requestParameterInformation.Name);
+                parametersClass.AddProperty(
+                        requestParameterInformation.ParameterType,
+                        requestParameterInformation.Name)
+                    .AddAttribute(typeof(SuppressMessageAttribute), "\"Microsoft.Design\", \"CS8618\"");
             }
         }
     }
