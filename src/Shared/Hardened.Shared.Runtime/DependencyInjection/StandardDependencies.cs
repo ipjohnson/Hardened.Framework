@@ -6,6 +6,7 @@ using Hardened.Shared.Runtime.Metrics;
 using Hardened.Shared.Runtime.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Hardened.Shared.Runtime.DependencyInjection;
 
@@ -34,5 +35,9 @@ public static class StandardDependencies
                     new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null)
                 }, Array.Empty<IConfigurationValueAmender>())
         );
+        serviceCollection.TryAddSingleton(
+            serviceProvider => Microsoft.Extensions.Options.Options.Create(
+                serviceProvider.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IJsonSerializerConfiguration>()));
     }
 }
