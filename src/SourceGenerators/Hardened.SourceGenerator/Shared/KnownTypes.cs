@@ -362,9 +362,6 @@ public static class KnownTypes
         public static readonly ITypeDefinition ILambdaFunctionImplService =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Lambda.LambdaRuntimeImpl, "ILambdaFunctionImplService");
 
-        public static readonly ITypeDefinition LambdaFunctionAttribute =
-            TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntime, "LambdaFunctionAttribute");
-
         public static readonly ITypeDefinition LambdaInvokeFilter =
             TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntimeImpl, "LambdaInvokeFilter");
 

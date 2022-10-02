@@ -2,5 +2,10 @@
 
 public class HardenedFunctionAttribute : Attribute
 {
-    public string? FunctionName { get; set; }
+    public HardenedFunctionAttribute(string? functionName = null)
+    {
+        FunctionName = functionName;
+    }
+
+    public string? FunctionName { get; }
 }
