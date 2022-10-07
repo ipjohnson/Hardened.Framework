@@ -4,7 +4,7 @@ using Hardened.Shared.Runtime.Configuration;
 
 namespace Hardened.Shared.Testing.Attributes;
 
-public interface IHardenedTestConfigurationAttribute
+public interface IHardenedTestConfigurationAttribute : IHardenedOrderedAttribute
 {
     void Configure(
         AttributeCollection attributeCollection,

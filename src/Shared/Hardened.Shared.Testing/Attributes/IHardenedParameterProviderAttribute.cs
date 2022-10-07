@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Hardened.Shared.Testing.Attributes;
 
-public interface IHardenedParameterProviderAttribute
+public interface IHardenedParameterProviderAttribute : IHardenedOrderedAttribute
 {
     void RegisterDependencies(
         AttributeCollection attributeCollection,

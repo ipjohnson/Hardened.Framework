@@ -34,7 +34,15 @@ public class AttributeCollection : IEnumerable<object>
 
     public IReadOnlyList<T> GetAttributes<T>() where T : class
     {
-        return this.OfType<T>().ToList();
+        var list = this.OfType<T>().ToList();
+
+        if (typeof(IHardenedOrderedAttribute).IsAssignableFrom(typeof(T)))
+        {
+            list.Sort((x,y) => 
+                Comparer<int>.Default.Compare(((IHardenedOrderedAttribute)x).Order, ((IHardenedOrderedAttribute)y).Order));
+        }
+
+        return list;
     }
 
     public IEnumerator<object> GetEnumerator()
