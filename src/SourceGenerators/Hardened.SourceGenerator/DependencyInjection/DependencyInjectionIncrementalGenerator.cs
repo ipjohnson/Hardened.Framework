@@ -64,12 +64,6 @@ public static class DependencyInjectionIncrementalGenerator
                 {
                     exposeTypeDef = exposeType.Type.GetTypeDefinition(arg1);
 
-                    if (exposeTypeDef is GenericTypeDefinition g)
-                    {
-                        File.AppendAllText(@"C:\temp\generated\expose.txt", $"{g.TypeArguments.First().Namespace} {g.TypeArguments.First().Name}\r\n");
-                    }
-
-                    File.AppendAllText(@"C:\temp\generated\expose.txt", $"{exposeTypeDef.Namespace} {exposeTypeDef.Name}\r\n");
                 }
             }
         }
@@ -77,8 +71,6 @@ public static class DependencyInjectionIncrementalGenerator
         if (exposeTypeDef is GenericTypeDefinition genericTypeDefinition && 
             genericTypeDefinition.TypeArguments.First().Namespace == "")
         {
-            File.AppendAllText(@"C:\temp\generated\generic.txt", $"{genericTypeDefinition.TypeArguments.First().Namespace} {genericTypeDefinition.TypeArguments.First().Name}");
-
             exposeTypeDef = genericTypeDefinition.MakeOpenType();
         }
 
