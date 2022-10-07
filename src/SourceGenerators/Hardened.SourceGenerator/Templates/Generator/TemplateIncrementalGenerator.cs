@@ -35,7 +35,6 @@ public static class TemplateIncrementalGenerator
 
         initializationContext.RegisterSourceOutput(
             templateModelsProvider,
-
             SourceGeneratorWrapper.Wrap<
                 (TemplateModel templateModel, ImmutableArray<EntryPointSelector.Model> applicationModels)
             >(GenerateTemplateSource));

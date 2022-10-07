@@ -132,6 +132,11 @@ public static class TypeSyntaxExtensions
                 return TypeDefinition.Get(typeof(string));
         }
 
+        if (typeSymbol is ITypeParameterSymbol typeParameterSymbol)
+        {
+            return TypeDefinition.Get("", typeParameterSymbol.Name);
+        }
+
         return TypeDefinition.Get(typeSymbol.ContainingNamespace.GetFullName(), typeSymbol.Name);
     }
 

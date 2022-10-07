@@ -308,7 +308,8 @@ public class HardenedTestInvoker : XunitTestInvoker
 
     private async Task StartApplication(AttributeCollection attributeCollection, IEnvironment environment)
     {
-        foreach (var startupAttribute in attributeCollection.GetAttributes<IHardenedTestStartupAttribute>())
+        foreach (var startupAttribute in 
+                 attributeCollection.GetAttributes<IHardenedTestStartupAttribute>().OrderBy(a => a.Order))
         {
             await startupAttribute.Startup(attributeCollection, TestMethod, environment,
                 _testApplicationRoot!.Provider);
