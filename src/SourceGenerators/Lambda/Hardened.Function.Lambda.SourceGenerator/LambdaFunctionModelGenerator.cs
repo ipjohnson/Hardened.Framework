@@ -67,6 +67,12 @@ public static class LambdaFunctionModelGenerator
     {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
 
+        if (KnownTypes.DI.IServiceProvider.Equals(parameterType))
+        {
+            return new RequestParameterInformation(parameterType, parameter.Identifier.ToString(), true, null,
+                ParameterBindType.ServiceProvider, "");
+        }
+
         return BaseRequestModelGenerator.CreateRequestParameterInformation(parameter,
             parameterType,
             ParameterBindType.Body);

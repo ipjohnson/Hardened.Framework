@@ -99,6 +99,7 @@ public enum ParameterBindType
     Header,
     Body,
     ServiceProvider,
+    FromServiceProvider,
     ExecutionContext,
     ExecutionRequest,
     ExecutionResponse

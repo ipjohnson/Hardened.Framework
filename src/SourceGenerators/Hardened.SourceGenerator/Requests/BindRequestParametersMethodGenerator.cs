@@ -49,6 +49,10 @@ public static class BindRequestParametersMethodGenerator
                     BindServiceProviderType(parameterInformation, invokeMethod, context, parametersVar);
                     break;
 
+                case ParameterBindType.FromServiceProvider:
+                    BindFromServiceProviderType(parameterInformation, invokeMethod, context, parametersVar);
+                    break;
+
                 default:
                     throw new NotImplementedException("Binding not supported yet: " + parameterInformation.BindingType);
             }
@@ -58,6 +62,11 @@ public static class BindRequestParametersMethodGenerator
     }
 
     private static void BindServiceProviderType(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
+    {
+        invokeMethod.Assign(context.Property("RequestServices")).To(parametersVar.Property(parameterInformation.Name));
+    }
+
+    private static void BindFromServiceProviderType(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
     {
         IOutputComponent invokeStatement;
 

@@ -98,7 +98,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
 
                     case "FromServices":
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.ServiceProvider, "");
+                            ParameterBindType.FromServiceProvider, "");
 
                     case "FromBody":
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,

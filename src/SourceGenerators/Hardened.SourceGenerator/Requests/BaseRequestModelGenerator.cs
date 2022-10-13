@@ -36,7 +36,8 @@ public abstract class BaseRequestModelGenerator
     protected abstract ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation);
         
     protected virtual IReadOnlyList<RequestParameterInformation> GetParameters(
-        GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclaration,
+        GeneratorSyntaxContext generatorSyntaxContext,
+        MethodDeclarationSyntax methodDeclaration,
         RequestHandlerNameModel requestHandlerNameModel,
         CancellationToken cancellationToken)
     {
@@ -81,10 +82,15 @@ public abstract class BaseRequestModelGenerator
         {
             return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ExecutionResponse, true);
         }
+
+        if (KnownTypes.DI.IServiceProvider.Equals(parameterType))
+        {
+            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ServiceProvider);
+        }
             
         if (parameterType.TypeDefinitionEnum == TypeDefinitionEnum.InterfaceDefinition)
         {
-            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ServiceProvider);
+            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.FromServiceProvider);
         }
 
         var id = parameter.Identifier.Text;
@@ -93,7 +99,6 @@ public abstract class BaseRequestModelGenerator
         {
             return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.Path);
         }
-
 
         return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.Body);
     }
