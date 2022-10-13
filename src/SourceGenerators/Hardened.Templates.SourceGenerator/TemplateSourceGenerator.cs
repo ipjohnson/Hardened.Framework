@@ -14,6 +14,6 @@ public class TemplateSourceGenerator : IIncrementalGenerator
             EntryPointSelector.TransformModel(false)
         ).WithComparer(new EntryPointSelector.Comparer());
 
-        TemplateIncrementalGenerator.Setup(context, applicationModel, new[] { "html" });
+        TemplateIncrementalGenerator.Setup(context, applicationModel, new[] { "html", "js", "css", "md" });
     }
 }
