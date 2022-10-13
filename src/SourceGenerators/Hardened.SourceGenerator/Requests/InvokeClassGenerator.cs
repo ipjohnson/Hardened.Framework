@@ -48,11 +48,21 @@ public static class InvokeClassGenerator
     {
         var templateName = handlerModel.ResponseInformation.TemplateName;
 
-        var defaultOutput = string.IsNullOrEmpty(templateName)
-            ? Null()
-            : Invoke(KnownTypes.Templates.DefaultOutputFuncHelper, "GetTemplateOut",
+        IOutputComponent defaultOutput = Null();
+
+        if (!string.IsNullOrEmpty(templateName))
+        {
+            defaultOutput = Invoke(KnownTypes.Templates.DefaultOutputFuncHelper, "GetTemplateOut",
                 "serviceProvider", QuoteString(templateName!));
-            
+        }
+        else if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.RawResponseContentType))
+        {
+            defaultOutput = Invoke(
+                KnownTypes.Requests.RawOutputHelper,
+                "OutputFunc",
+                handlerModel.ResponseInformation.RawResponseContentType!);
+        }
+
         if (handlerModel.RequestParameterInformationList.Count == 0)
         {
             if (handlerModel.ResponseInformation.IsAsync)

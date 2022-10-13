@@ -93,7 +93,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.IntegrationTests.W
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Serializers", "Serializers", "{9F568319-5401-46D0-BD04-A51B1566A963}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Requests.Serializers.Newtonsoft", "Requests\Serializers\Hardened.Requests.Serializers.Newtonsoft\Hardened.Requests.Serializers.Newtonsoft.csproj", "{C7038256-046D-45D0-95E7-EEBCB1EC365D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.Requests.Serializers.Newtonsoft", "Requests\Serializers\Hardened.Requests.Serializers.Newtonsoft\Hardened.Requests.Serializers.Newtonsoft.csproj", "{C7038256-046D-45D0-95E7-EEBCB1EC365D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.DynamoDbClient", "Lambda\Hardened.DynamoDbClient\Hardened.DynamoDbClient.csproj", "{C76BFAF4-C04D-4527-94AF-CADD10310833}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.DynamoDbClient.Testing", "Lambda\Hardened.DynamoDbClient.Testing\Hardened.DynamoDbClient.Testing.csproj", "{D8B5DA3C-A6B2-4ADE-AE1F-68C58FDC1CC3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.SqsClient", "Lambda\Hardened.SqsClient\Hardened.SqsClient.csproj", "{556AA8DF-738C-4CC4-BECC-CEC8F08A133C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -241,6 +247,18 @@ Global
 		{C7038256-046D-45D0-95E7-EEBCB1EC365D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7038256-046D-45D0-95E7-EEBCB1EC365D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C7038256-046D-45D0-95E7-EEBCB1EC365D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C76BFAF4-C04D-4527-94AF-CADD10310833}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C76BFAF4-C04D-4527-94AF-CADD10310833}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C76BFAF4-C04D-4527-94AF-CADD10310833}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C76BFAF4-C04D-4527-94AF-CADD10310833}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8B5DA3C-A6B2-4ADE-AE1F-68C58FDC1CC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8B5DA3C-A6B2-4ADE-AE1F-68C58FDC1CC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8B5DA3C-A6B2-4ADE-AE1F-68C58FDC1CC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8B5DA3C-A6B2-4ADE-AE1F-68C58FDC1CC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{556AA8DF-738C-4CC4-BECC-CEC8F08A133C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{556AA8DF-738C-4CC4-BECC-CEC8F08A133C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{556AA8DF-738C-4CC4-BECC-CEC8F08A133C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{556AA8DF-738C-4CC4-BECC-CEC8F08A133C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -285,6 +303,9 @@ Global
 		{0C42934D-EFB9-4F70-9C0A-18FF8DB6DCDA} = {42A258D5-43EC-4BE0-9C21-CA292A77EB36}
 		{9F568319-5401-46D0-BD04-A51B1566A963} = {F21B194A-B804-4677-AD5B-E0B44D3EC45F}
 		{C7038256-046D-45D0-95E7-EEBCB1EC365D} = {9F568319-5401-46D0-BD04-A51B1566A963}
+		{C76BFAF4-C04D-4527-94AF-CADD10310833} = {42416EEA-9CFE-40C7-BFF6-7BF083624F36}
+		{D8B5DA3C-A6B2-4ADE-AE1F-68C58FDC1CC3} = {42416EEA-9CFE-40C7-BFF6-7BF083624F36}
+		{556AA8DF-738C-4CC4-BECC-CEC8F08A133C} = {42416EEA-9CFE-40C7-BFF6-7BF083624F36}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF6CD1AB-6B41-427D-BA1B-C4803CF67E97}

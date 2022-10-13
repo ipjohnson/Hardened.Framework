@@ -59,4 +59,9 @@ public interface IExecutionContext : ICloneable
     /// Request StartTime
     /// </summary>
     MachineTimestamp StartTime { get; }
+
+    /// <summary>
+    /// Cancellation token, only applicable on some platforms
+    /// </summary>
+    CancellationToken CancellationToken { get; }
 }

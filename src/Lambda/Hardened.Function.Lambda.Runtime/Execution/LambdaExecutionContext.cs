@@ -48,4 +48,6 @@ public class LambdaExecutionContext : IExecutionContext
     public IMetricLogger RequestMetrics { get; }
 
     public MachineTimestamp StartTime { get; }
+
+    public CancellationToken CancellationToken { get; } = CancellationToken.None;
 }

@@ -142,13 +142,11 @@ public abstract class BaseRequestModelGenerator
         return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd(), classDeclarationSyntax.Identifier.Text);
     }
         
-    protected virtual ResponseInformationModel GetResponseInformation(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration)
+    protected virtual ResponseInformationModel GetResponseInformation(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration)
     {
-        var templateAttribute =
-            context.Node.DescendantNodes()
-                .OfType<AttributeSyntax>()
-                .FirstOrDefault(a => a.Name.ToString() == "Template" || a.Name.ToString() == "TemplateAttribute");
-
+        var templateAttribute = context.Node.GetAttribute("Template");
         var template = "";
 
         if (templateAttribute is { ArgumentList.Arguments.Count: > 0 })
@@ -164,8 +162,23 @@ public abstract class BaseRequestModelGenerator
         {
             isAsync = genericType.Name.Equals("Task") || genericType.Name.Equals("ValueTask");
         }
-            
-        return new ResponseInformationModel(isAsync, template, returnType );
+
+        var rawResponse = "";
+        var varResponseAttribute = context.Node.GetAttribute("RawResponse");
+
+        if (varResponseAttribute != null)
+        {
+            rawResponse =
+                varResponseAttribute.ArgumentList?.Arguments[0].ToString().Trim('"') ?? "text/plain";
+        }
+
+        return new ResponseInformationModel
+        {
+            IsAsync = isAsync,
+            TemplateName = template, 
+            ReturnType = returnType,
+            RawResponseContentType = rawResponse
+        };
     }
     protected virtual IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclarationSyntax, CancellationToken cancellationToken)

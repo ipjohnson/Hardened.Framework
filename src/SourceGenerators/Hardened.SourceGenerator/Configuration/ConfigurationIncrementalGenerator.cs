@@ -47,13 +47,17 @@ public static class ConfigurationIncrementalGenerator
         {
             if (memberDeclarationSyntax is FieldDeclarationSyntax fieldDeclarationSyntax)
             {
+                if (fieldDeclarationSyntax.GetAttribute("HideConfigurationField") != null)
+                {
+                    continue;
+                }
+
                 foreach (var variableDeclaratorSyntax in fieldDeclarationSyntax.Declaration.Variables)
                 {
                     var name = variableDeclaratorSyntax.Identifier.ValueText;
                         
                     var fieldType = fieldDeclarationSyntax.Declaration.Type.GetTypeDefinition(context);
-
-
+                    
                     if (fieldType != null)
                     {
                         var fromEnvVarString = "";

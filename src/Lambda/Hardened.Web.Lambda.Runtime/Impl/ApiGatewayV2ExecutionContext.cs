@@ -47,4 +47,6 @@ internal class ApiGatewayV2ExecutionContext : IExecutionContext
     public IMetricLogger RequestMetrics { get; }
 
     public MachineTimestamp StartTime { get; }
+
+    public CancellationToken CancellationToken { get; } = CancellationToken.None;
 }

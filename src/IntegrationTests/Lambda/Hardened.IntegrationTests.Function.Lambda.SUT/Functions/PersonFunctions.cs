@@ -13,7 +13,13 @@ public class PersonFunctions
     {
         _personService = personService;
     }
-        
+
+    [HardenedFunction("some-test-function")]
+    public async Task<PersonModel> Test()
+    {
+        return new PersonModel();
+    }
+
     [HardenedFunction]
     public async Task<PersonListModel> GetAllPeople(GetAllPeopleRequest request, [FromContext] string contextString = "test")
     {

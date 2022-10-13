@@ -10,7 +10,14 @@ public static class TypeSyntaxExtensions
     {
         var symbolInfo = generatorSyntaxContext.SemanticModel.GetSymbolInfo(typeSyntax);
 
-        return GetTypeDefinitionFromSymbolInfo(symbolInfo);
+        var type = GetTypeDefinitionFromSymbolInfo(symbolInfo);
+
+        if (typeSyntax.ToString().EndsWith("?"))
+        {
+            return type?.MakeNullable();
+        }
+
+        return type;
     }
 
     public static string GetFullName(this INamespaceSymbol? namespaceSymbol)
@@ -67,43 +74,62 @@ public static class TypeSyntaxExtensions
     {
         if (symbolInfo.Symbol is INamedTypeSymbol namedTypeSymbol)
         {
-            if (namedTypeSymbol.IsGenericType)
-            {
-                if (namedTypeSymbol.Name == "Nullable")
-                {
-                    var baseType = namedTypeSymbol.TypeArguments.First();
-                    return GetTypeDefinitionFromType(baseType).MakeNullable();
-                }
-                    
-                var closingTypeSymbols = namedTypeSymbol.TypeArguments;
-                var closingTypes = new List<ITypeDefinition>();
-
-                foreach (var typeSymbol in closingTypeSymbols)
-                {
-                    var finalType = GetTypeDefinitionFromType(typeSymbol);
-                    closingTypes.Add(finalType);
-                }
-
-                return new GenericTypeDefinition(
-                    GetTypeSymbolKind(namedTypeSymbol),
-                    namedTypeSymbol.ContainingNamespace.GetFullName(),
-                    GetTypeName(namedTypeSymbol),
-                    closingTypes
-                );
-            }
-            else if (IsKnownType(namedTypeSymbol.Name))
-            {
-            }
-
-            var ns = namedTypeSymbol.ContainingNamespace.GetFullName();
-            var getName = GetTypeName(namedTypeSymbol);
-                
-            return TypeDefinition.Get(
-                GetTypeSymbolKind(namedTypeSymbol),
-                namedTypeSymbol.ContainingNamespace.GetFullName(), GetTypeName(namedTypeSymbol));
+            return GetTypeDefinitionFromNamedSymbol(namedTypeSymbol);
         }
 
         return null;
+    }
+
+    private static ITypeDefinition? GetTypeDefinitionFromNamedSymbol(INamedTypeSymbol namedTypeSymbol)
+    {
+        if (namedTypeSymbol.IsGenericType)
+        {
+            if (namedTypeSymbol.Name == "Nullable")
+            {
+                var baseType = namedTypeSymbol.TypeArguments.First();
+                return GetTypeDefinitionFromType(baseType).MakeNullable();
+            }
+
+            var closingTypeSymbols = namedTypeSymbol.TypeArguments;
+            var closingTypes = new List<ITypeDefinition>();
+
+            foreach (var typeSymbol in closingTypeSymbols)
+            {
+                var finalType = GetTypeDefinitionFromType(typeSymbol);
+                closingTypes.Add(finalType);
+            }
+
+            var genericType =  new GenericTypeDefinition(
+                GetTypeSymbolKind(namedTypeSymbol),
+                namedTypeSymbol.ContainingNamespace.GetFullName(),
+                GetTypeName(namedTypeSymbol),
+                closingTypes
+            );
+
+            if (namedTypeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
+            {
+                return genericType.MakeNullable();
+            }
+
+            return genericType;
+        }
+        else if (IsKnownType(namedTypeSymbol.Name))
+        {
+        }
+
+        var ns = namedTypeSymbol.ContainingNamespace.GetFullName();
+        var getName = GetTypeName(namedTypeSymbol);
+
+        var typeDef = TypeDefinition.Get(
+            GetTypeSymbolKind(namedTypeSymbol),
+            namedTypeSymbol.ContainingNamespace.GetFullName(), GetTypeName(namedTypeSymbol));
+
+        if (namedTypeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
+        {
+            return typeDef.MakeNullable();
+        }
+
+        return typeDef;
     }
 
     private static ITypeDefinition GetTypeDefinitionFromType(ITypeSymbol typeSymbol)
@@ -135,6 +161,11 @@ public static class TypeSyntaxExtensions
         if (typeSymbol is ITypeParameterSymbol typeParameterSymbol)
         {
             return TypeDefinition.Get("", typeParameterSymbol.Name);
+        }
+
+        if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
+        {
+            return GetTypeDefinitionFromNamedSymbol(namedTypeSymbol)!;
         }
 
         return TypeDefinition.Get(typeSymbol.ContainingNamespace.GetFullName(), typeSymbol.Name);

@@ -139,7 +139,20 @@ public static class LambdaFunctionModelGenerator
         var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
         var isAsync = returnType is GenericTypeDefinition { Name: "Task" or "ValueTask" };
 
-        return new ResponseInformationModel(isAsync, template, returnType);
+        var rawResponse = context.Node.GetAttribute("RawResponse");
+        var rawResponseString = "";
+
+        if (rawResponse != null)
+        {
+            rawResponseString = rawResponse.ArgumentList?.Arguments[0].ToString().Trim('"') ?? "text/plain";
+        }
+
+        return new ResponseInformationModel{
+            IsAsync = isAsync, 
+            TemplateName = template,
+            ReturnType = returnType,
+            RawResponseContentType = rawResponseString
+        };
     }
     private static IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclarationSyntax)

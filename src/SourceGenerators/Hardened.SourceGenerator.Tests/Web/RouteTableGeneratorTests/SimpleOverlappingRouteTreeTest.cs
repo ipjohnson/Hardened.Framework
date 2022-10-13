@@ -39,57 +39,54 @@ public class SimpleOverlappingRouteTreeTest
 
     private IReadOnlyList<RequestHandlerModel> CreateHandlerModels()
     {
-        var list = new List<RequestHandlerModel>();
-
-        list.Add(new RequestHandlerModel(
-            new RequestHandlerNameModel("/Home", "GET"),
-            TypeDefinition.Get("Testing","Controller"),
-            "SomeMethod",
-            TypeDefinition.Get("Testing","Controller_SomeMethod"),
-            Array.Empty<RequestParameterInformation>(),
-            new ResponseInformationModel(false, null, null),
-            Array.Empty<FilterInformationModel>()
-        ));
-
-        list.Add(new RequestHandlerModel(
-            new RequestHandlerNameModel("/Header", "GET"),
-            TypeDefinition.Get("Testing", "Controller"),
-            "HeaderMethod",
-            TypeDefinition.Get("Testing", "Controller_HeaderMethod"),
-            Array.Empty<RequestParameterInformation>(),
-            new ResponseInformationModel(false, null, null),
-            Array.Empty<FilterInformationModel>()
-        ));
-
-        list.Add(new RequestHandlerModel(
-            new RequestHandlerNameModel("/Api/person", "GET"),
-            TypeDefinition.Get("Testing", "Person"),
-            "GetAll",
-            TypeDefinition.Get("Testing", "Person_GetAll"),
-            Array.Empty<RequestParameterInformation>(),
-            new ResponseInformationModel(false, null, null),
-            Array.Empty<FilterInformationModel>()
-        ));
-
-        list.Add(new RequestHandlerModel(
-            new RequestHandlerNameModel("/Api/person/{id}", "GET"),
-            TypeDefinition.Get("Testing", "Person"),
-            "GetPerson",
-            TypeDefinition.Get("Testing", "Person_GetPerson"),
-            Array.Empty<RequestParameterInformation>(),
-            new ResponseInformationModel(false, null, null),
-            Array.Empty<FilterInformationModel>()
-        ));
-
-        list.Add(new RequestHandlerModel(
-            new RequestHandlerNameModel("/Api/person/View", "GET"),
-            TypeDefinition.Get("Testing", "Person"),
-            "View",
-            TypeDefinition.Get("Testing", "Person_View"),
-            Array.Empty<RequestParameterInformation>(),
-            new ResponseInformationModel(false, null, null),
-            Array.Empty<FilterInformationModel>()
-        ));
+        var list = new List<RequestHandlerModel>
+        {
+            new(
+                new RequestHandlerNameModel("/Home", "GET"),
+                TypeDefinition.Get("Testing","Controller"),
+                "SomeMethod",
+                TypeDefinition.Get("Testing","Controller_SomeMethod"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel(),
+                Array.Empty<FilterInformationModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/Header", "GET"),
+                TypeDefinition.Get("Testing", "Controller"),
+                "HeaderMethod",
+                TypeDefinition.Get("Testing", "Controller_HeaderMethod"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel(),
+                Array.Empty<FilterInformationModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/Api/person", "GET"),
+                TypeDefinition.Get("Testing", "Person"),
+                "GetAll",
+                TypeDefinition.Get("Testing", "Person_GetAll"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel(),
+                Array.Empty<FilterInformationModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/Api/person/{id}", "GET"),
+                TypeDefinition.Get("Testing", "Person"),
+                "GetPerson",
+                TypeDefinition.Get("Testing", "Person_GetPerson"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel(),
+                Array.Empty<FilterInformationModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/Api/person/View", "GET"),
+                TypeDefinition.Get("Testing", "Person"),
+                "View",
+                TypeDefinition.Get("Testing", "Person_View"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel(),
+                Array.Empty<FilterInformationModel>()
+            )
+        };
 
         return list;
     }

@@ -132,6 +132,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
         switch (attributeName)
         {
             case "Template":
+            case "RawResponse":
                 return false;
 
             default:

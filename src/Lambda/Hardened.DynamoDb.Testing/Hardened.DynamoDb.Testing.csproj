@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	  <PackageId>Hardened.DynamoDb.Testing</PackageId>
+	  <Authors>Ian Johnson</Authors>
+	  <PackageTags>Hardened.Framework</PackageTags>
+	  <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Framework</PackageProjectUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <RepositoryUrl>https://github.com/ipjohnson/Hardened.Framework</RepositoryUrl>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.4.10" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj" />
+	</ItemGroup>
+</Project>

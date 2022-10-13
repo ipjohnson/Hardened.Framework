@@ -71,6 +71,8 @@ public static class KnownTypes
                     public const string Errors = "Hardened.Requests.Runtime.Errors";
 
                     public const string Execution = "Hardened.Requests.Runtime.Execution";
+
+                    public const string Serializer = "Hardened.Requests.Runtime.Serializer";
                 }
             }
 
@@ -217,6 +219,9 @@ public static class KnownTypes
         public static readonly ITypeDefinition ExecutionHelper =
             TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Execution, "ExecutionHelper");
 
+        public static readonly ITypeDefinition RawOutputHelper =
+            TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Serializer, "RawOutputHelper");
+
         public static ITypeDefinition BaseExecutionHandler =
             TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Execution, "BaseExecutionHandler");
 
@@ -298,7 +303,6 @@ public static class KnownTypes
 
         public static ITypeDefinition IStringEscapeService { get; } =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract, "IStringEscapeService");
-
 
         public static ITypeDefinition DefaultOutputFuncHelper { get; } =
             TypeDefinition.Get(Namespace.Hardened.Templates.Runtime.Impl, "DefaultOutputFuncHelper");
