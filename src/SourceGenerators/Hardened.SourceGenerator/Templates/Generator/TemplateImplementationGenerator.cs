@@ -92,9 +92,7 @@ public class TemplateImplementationGenerator
 
                 startIndex++;
             }
-
-            File.AppendAllText(@"C:\temp\generated\inject.txt", templateActionNodes[startIndex].ActionText + " " + templateActionNodes[startIndex].ArgumentList.Count + "\r\n");
-
+            
             var processingUsingStatement = true;
                 
             while (processingUsingStatement)
