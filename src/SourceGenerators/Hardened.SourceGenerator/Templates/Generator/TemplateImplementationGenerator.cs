@@ -27,7 +27,7 @@ public class TemplateImplementationGenerator
 
         executeMethodDefinition.NewLine();
 
-        var startingNode = ProcessModelAndUsingStatements(classDefinition, executeMethodDefinition, templateNodes);
+        var startingNode = ProcessModelUsingAndInjectStatements(classDefinition, executeMethodDefinition, templateNodes);
             
         for (var index = startingNode; index < templateNodes.Count; index++)
         {
@@ -78,7 +78,7 @@ public class TemplateImplementationGenerator
         return methodDefinition;
     }
 
-    private int ProcessModelAndUsingStatements(
+    private int ProcessModelUsingAndInjectStatements(
         ClassDefinition classDefinition, MethodDefinition methodDefinition, IList<TemplateActionNode> templateActionNodes)
     {
         var startIndex = 0;
@@ -92,6 +92,8 @@ public class TemplateImplementationGenerator
 
                 startIndex++;
             }
+
+            File.AppendAllText(@"C:\temp\generated\inject.txt", templateActionNodes[startIndex].ActionText + " " + templateActionNodes[startIndex].ArgumentList.Count + "\r\n");
 
             var processingUsingStatement = true;
                 
@@ -111,6 +113,33 @@ public class TemplateImplementationGenerator
                 else
                 {
                     processingUsingStatement = false;
+                }
+            }
+
+            var processingInjectStatement = true;
+            var serviceProvider = methodDefinition.Parameters.First(p => p.Name == "serviceProvider");
+
+            while (processingInjectStatement)
+            {
+                if (templateActionNodes[startIndex].ActionText == "inject")
+                {
+                    var injectNode = templateActionNodes[startIndex];
+                    
+                    if (injectNode.ArgumentList.Count == 2)
+                    {
+                        var invoke = serviceProvider.InvokeGeneric(
+                            "GetRequiredService",
+                            new[] { TypeDefinition.Get("", injectNode.ArgumentList[0].ActionText) });
+
+                        methodDefinition.Assign(invoke).ToVar(injectNode.ArgumentList[1].ActionText);
+                        methodDefinition.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+                    }
+
+                    templateActionNodes.RemoveAt(startIndex);
+                }
+                else
+                {
+                    processingInjectStatement = false;
                 }
             }
         }
@@ -165,7 +194,9 @@ public class TemplateImplementationGenerator
 
         var actionNode = context.CurrentNode;
 
-        if (actionNode.ActionText == "model" || actionNode.ActionText == "using")
+        if (actionNode.ActionText == "model" || 
+            actionNode.ActionText == "using" ||
+            actionNode.ActionText == "inject")
         {
             return;
         }

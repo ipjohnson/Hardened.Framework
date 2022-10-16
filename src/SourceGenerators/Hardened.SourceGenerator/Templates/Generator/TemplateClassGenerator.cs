@@ -89,8 +89,6 @@ public  class  TemplateClassGenerator
 
                     initializeString = initializeString.Replace("\"", "\"\"");
 
-
-
                     initializeString = "@\"" + initializeString + "\"";
 
                     var fieldName = "_contentField" + _count++;

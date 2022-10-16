@@ -37,7 +37,7 @@ public class TemplateWhiteSpaceCleaner
 
             if (firstStatement.Action == TemplateActionType.Content &&
                 secondStatement.Action == TemplateActionType.MustacheToken &&
-                secondStatement.ActionText == "using")
+                (secondStatement.ActionText == "using" || secondStatement.ActionText == "inject"))
             {
                 actionNodes.RemoveAt(currentIndex - 1);
 

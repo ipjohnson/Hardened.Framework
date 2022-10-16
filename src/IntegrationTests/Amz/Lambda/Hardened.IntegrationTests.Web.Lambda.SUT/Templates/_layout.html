@@ -1,26 +1,28 @@
 ﻿{{model LayoutModel}}
+{{using Hardened.Amz.Shared.Lambda.Runtime.Execution}}
+{{inject ILambdaContextAccessor accessor}}
 <html>
 <head>
     <title>Title</title>
-    <link rel="stylesheet" href="{{$BasePath}}/beer.min.css"/>
+    <link rel="stylesheet" href="{{$BasePath}}/beer.min.css" />
 </head>
 <body>
-<script type="text/javascript">
-    window._b = { started: false, initMethods: [] };
-    window._u = function (initFunc) {
-        if (!_b.started) {
-            _b.initMethods.push(initFunc);
-        } else {
-            initFunc();
-        }
-    };
-</script>
-<div id="mainContent">{{ $Render Model TemplateFunc }}</div>
-<script src="{{$BasePath}}/externalDependencies.min.js">
-</script>
-<script>
-    window._b.started = true;
-    window._b.initMethods.forEach(initMethod => initMethod());
-</script>
+    <script type="text/javascript">
+        window._b = { started: false, initMethods: [] };
+        window._u = function (initFunc) {
+            if (!_b.started) {
+                _b.initMethods.push(initFunc);
+            } else {
+                initFunc();
+            }
+        };
+    </script>
+    <div id="mainContent">{{ $Render Model TemplateFunc }}</div>
+    <script src="{{$BasePath}}/externalDependencies.min.js">
+    </script>
+    <script>
+        window._b.started = true;
+        window._b.initMethods.forEach(initMethod => initMethod());
+    </script>
 </body>
 </html>
