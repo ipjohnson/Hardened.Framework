@@ -21,8 +21,8 @@ public static class TemplateDI
             serviceCollection.TryAddSingleton<ITemplateExecutionService, TemplateExecutionService>();
             serviceCollection.TryAddSingleton<ITemplateHelperService, TemplateHelperService>();
             serviceCollection.TryAddSingleton<IStringEscapeServiceProvider, StringEscapeServiceProvider>();
-            serviceCollection.TryAddSingleton<IStringEscapeService, NoopEscapeStringService>();
-            serviceCollection.TryAddSingleton<IStringEscapeService, HtmlEscapeStringService>();
+            serviceCollection.AddSingleton<IStringEscapeService, NoopEscapeStringService>();
+            serviceCollection.AddSingleton<IStringEscapeService, HtmlEscapeStringService>();
             serviceCollection.TryAddSingleton<IInternalTemplateServices, InternalTemplateServices>();
             serviceCollection.TryAddSingleton<ITemplateHelperProvider, DefaultHelpers>();
         }
