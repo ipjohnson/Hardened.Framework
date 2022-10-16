@@ -9,7 +9,8 @@ namespace Hardened.Templates.Runtime.DependencyInjection;
 
 public static class TemplateDI
 {
-    private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new(null);
+    private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new(default!);
+
     public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
     {
         if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
@@ -20,6 +21,7 @@ public static class TemplateDI
             serviceCollection.TryAddSingleton<ITemplateExecutionService, TemplateExecutionService>();
             serviceCollection.TryAddSingleton<ITemplateHelperService, TemplateHelperService>();
             serviceCollection.TryAddSingleton<IStringEscapeServiceProvider, StringEscapeServiceProvider>();
+            serviceCollection.TryAddSingleton<IStringEscapeService, NoopEscapeStringService>();
             serviceCollection.TryAddSingleton<IStringEscapeService, HtmlEscapeStringService>();
             serviceCollection.TryAddSingleton<IInternalTemplateServices, InternalTemplateServices>();
             serviceCollection.TryAddSingleton<ITemplateHelperProvider, DefaultHelpers>();
