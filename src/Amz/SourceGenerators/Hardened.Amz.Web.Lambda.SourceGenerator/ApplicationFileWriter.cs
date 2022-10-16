@@ -2,7 +2,7 @@
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
 
-namespace Hardened.Web.Lambda.SourceGenerator;
+namespace Hardened.Amz.Web.Lambda.SourceGenerator;
 
 public static class ApplicationFileWriter
 {

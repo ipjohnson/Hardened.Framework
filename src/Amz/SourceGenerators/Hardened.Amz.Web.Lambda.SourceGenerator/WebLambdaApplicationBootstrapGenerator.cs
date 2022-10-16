@@ -1,7 +1,7 @@
 ﻿using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
-namespace Hardened.Web.Lambda.SourceGenerator;
+namespace Hardened.Amz.Web.Lambda.SourceGenerator;
 
 public static class WebLambdaApplicationBootstrapGenerator
 {

@@ -5,7 +5,7 @@ using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Hardened.Function.Lambda.SourceGenerator;
+namespace Hardened.Amz.Function.Lambda.SourceGenerator;
 
 public static class LambdaFunctionModelGenerator
 {

@@ -1,7 +1,7 @@
 ﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Shared;
 
-namespace Hardened.Function.Lambda.SourceGenerator;
+namespace Hardened.Amz.Function.Lambda.SourceGenerator;
 
 public class LambdaApplicationEntryPointWriter : ApplicationEntryPointFileWriter
 {

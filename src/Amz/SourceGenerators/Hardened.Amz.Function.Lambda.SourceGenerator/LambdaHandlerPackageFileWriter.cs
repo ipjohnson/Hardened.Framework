@@ -5,7 +5,7 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
-namespace Hardened.Function.Lambda.SourceGenerator;
+namespace Hardened.Amz.Function.Lambda.SourceGenerator;
 
 public class LambdaHandlerPackageFileWriter
 {

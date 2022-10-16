@@ -105,6 +105,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.IntegrationTests.W
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardened.IntegrationTests.Web.Lambda.Tests", "IntegrationTests\Amz\Lambda\Hardened.IntegrationTests.Web.Lambda.Tests\Hardened.IntegrationTests.Web.Lambda.Tests.csproj", "{6A25CC96-7910-42A0-90E8-077630F65474}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.CloudWatch.Dashboards", "Amz\Hardened.Amz.CloudWatch.Dashboards\Hardened.Amz.CloudWatch.Dashboards.csproj", "{A61702B5-DDA1-419D-9236-0BEA1BEFCA9C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -255,6 +257,10 @@ Global
 		{6A25CC96-7910-42A0-90E8-077630F65474}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6A25CC96-7910-42A0-90E8-077630F65474}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6A25CC96-7910-42A0-90E8-077630F65474}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A61702B5-DDA1-419D-9236-0BEA1BEFCA9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A61702B5-DDA1-419D-9236-0BEA1BEFCA9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A61702B5-DDA1-419D-9236-0BEA1BEFCA9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A61702B5-DDA1-419D-9236-0BEA1BEFCA9C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -304,6 +310,7 @@ Global
 		{4CE4D686-3941-4671-8D46-7AE0BC1E3953} = {912FA76C-5C49-44BD-90F2-675745D2D90F}
 		{F2ED8A14-E999-45C2-B17D-8535B1DA10EF} = {912FA76C-5C49-44BD-90F2-675745D2D90F}
 		{6A25CC96-7910-42A0-90E8-077630F65474} = {912FA76C-5C49-44BD-90F2-675745D2D90F}
+		{A61702B5-DDA1-419D-9236-0BEA1BEFCA9C} = {AA0EF611-E77D-4FED-A770-D4E282BDF2B7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF6CD1AB-6B41-427D-BA1B-C4803CF67E97}
