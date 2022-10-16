@@ -8,7 +8,7 @@ public class PartialTemplateCodeGenerator
 
     public void ProcessPartialTemplateNode(TemplateImplementationGenerator.GenerationContext context)
     {
-        if (context.CurrentNode.ArgumentList.Count is > 0 and <= 2)
+        if (context.CurrentNode!.ArgumentList.Count is > 0 and <= 2)
         {
             var partialTemplateFunction = GetOrCreatePartialTemplateFunctionField(
                 context, context.CurrentNode.ArgumentList[0].ActionText);

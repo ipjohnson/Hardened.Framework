@@ -3,7 +3,7 @@
 {{inject ILambdaContextAccessor accessor}}
 <html>
 <head>
-    <title>Title</title>
+    <title>Title {{^accessor.Context?.InvokedFunctionArn}}</title>
     <link rel="stylesheet" href="{{$BasePath}}/beer.min.css" />
 </head>
 <body>
@@ -18,7 +18,7 @@
         };
     </script>
     <div id="mainContent">{{ $Render Model TemplateFunc }}</div>
-    <script src="{{$BasePath}}/externalDependencies.min.js">
+    <script src="{{{$BasePath}}}/externalDependencies.min.js">
     </script>
     <script>
         window._b.started = true;

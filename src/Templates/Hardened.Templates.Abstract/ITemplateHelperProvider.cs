@@ -2,5 +2,5 @@
 
 public interface ITemplateHelperProvider
 {
-    TemplateHelperFactory GetTemplateHelperFactory(string mustacheToken);
+    TemplateHelperFactory? GetTemplateHelperFactory(string mustacheToken);
 }

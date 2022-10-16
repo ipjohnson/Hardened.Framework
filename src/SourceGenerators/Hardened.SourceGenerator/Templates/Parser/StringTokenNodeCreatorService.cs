@@ -4,7 +4,7 @@ public interface IStringTokenNodeCreatorService
 {
     StringTokenNode CreateContentTokenNode(string templateString, int startIndex, int endIndex);
 
-    StringTokenNode CreateMustacheTokenNode(string templateString, int startIndex, int endIndex);
+    StringTokenNode CreateMustacheTokenNode(string templateString, int startIndex, int endIndex, bool isRaw);
 }
 
 public class StringTokenNodeCreatorService : IStringTokenNodeCreatorService
@@ -19,7 +19,7 @@ public class StringTokenNodeCreatorService : IStringTokenNodeCreatorService
         );
     }
 
-    public StringTokenNode CreateMustacheTokenNode(string templateString, int startIndex, int endIndex)
+    public StringTokenNode CreateMustacheTokenNode(string templateString, int startIndex, int endIndex, bool isRaw)
     {
         // trim white space from front of token
         while (templateString[startIndex] == ' ' && startIndex < endIndex)
@@ -34,7 +34,7 @@ public class StringTokenNodeCreatorService : IStringTokenNodeCreatorService
         }
 
         return new StringTokenNode(
-            StringTokenNodeType.Mustache,
+            isRaw ? StringTokenNodeType.RawMustache : StringTokenNodeType.Mustache,
             templateString,
             startIndex,
             endIndex);

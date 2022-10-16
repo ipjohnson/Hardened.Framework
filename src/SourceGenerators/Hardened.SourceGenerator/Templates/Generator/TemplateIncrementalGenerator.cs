@@ -107,7 +107,7 @@ public static class TemplateIncrementalGenerator
             templateModel.TemplateName, templateModel.TemplateExtension, templateModel.TemplateDefinitionType.Namespace);
 
         var templateFileName = "Generated." + templateModel.TemplateDefinitionType.Name + ".cs";
-
+        File.AppendAllText(@"C:\temp\generated\" + templateFileName, templateSource);
         sourceProductionContext.AddSource(templateFileName, templateSource);
     }
 

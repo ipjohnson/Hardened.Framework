@@ -11,8 +11,11 @@ internal class TemplateInvokeHelperCodeGenerator
     {
         var variableName = AssignNodeToVariable(context);
 
+        var writeMethod = 
+            context.CurrentNode!.Action == TemplateActionType.RawMustacheToken ? "WriteRaw" : "Write";
+
         context.CurrentBlock.AddCode(
-            $"writer.Write(_services.DataFormattingService.FormatData(executionContext, \"{context.CurrentNode.ActionText}\", {variableName}));");
+            $"writer.{writeMethod}(_services.DataFormattingService.FormatData(executionContext, \"{context.CurrentNode!.ActionText}\", {variableName}));");
     }
 
     public string AssignNodeToVariable(TemplateImplementationGenerator.GenerationContext context)
@@ -30,7 +33,7 @@ internal class TemplateInvokeHelperCodeGenerator
 
     private string InitializeHelper(TemplateImplementationGenerator.GenerationContext context)
     {
-        var helperName = context.CurrentNode.ActionText.Substring(1);
+        var helperName = context.CurrentNode!.ActionText.Substring(1);
 
         var fieldName = "_helper_" + GetSafeName(helperName);
 
@@ -56,7 +59,7 @@ internal class TemplateInvokeHelperCodeGenerator
     {
         var returnString = new StringBuilder();
 
-        foreach (var argumentNode in context.CurrentNode.ArgumentList)
+        foreach (var argumentNode in context.CurrentNode!.ArgumentList)
         {
             if (argumentNode.Action == TemplateActionType.StringLiteral)
             {

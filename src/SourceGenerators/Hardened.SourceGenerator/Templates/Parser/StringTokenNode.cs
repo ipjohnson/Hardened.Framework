@@ -3,7 +3,8 @@
 public enum StringTokenNodeType
 {
     Content,
-    Mustache
+    Mustache,
+    RawMustache
 }
 
 public class StringTokenNode

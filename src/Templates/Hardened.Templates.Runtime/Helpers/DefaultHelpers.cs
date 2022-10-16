@@ -29,7 +29,7 @@ public partial class DefaultHelpers : ITemplateHelperProvider
     private TemplateHelperFactory? _renderCollectionHelper;
     private TemplateHelperFactory? _renderHelper;
 
-    public TemplateHelperFactory GetTemplateHelperFactory(string mustacheToken)
+    public TemplateHelperFactory? GetTemplateHelperFactory(string mustacheToken)
     {
         if (mustacheToken.StartsWith("String."))
         {

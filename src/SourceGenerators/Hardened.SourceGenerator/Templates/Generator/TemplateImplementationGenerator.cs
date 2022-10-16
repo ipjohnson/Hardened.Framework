@@ -159,6 +159,7 @@ public class TemplateImplementationGenerator
                     ContentActionNode(context);
                     break;
 
+                case TemplateActionType.RawMustacheToken:
                 case TemplateActionType.MustacheToken:
                     MustacheTokenActionNode(context);
                     break;
@@ -224,8 +225,11 @@ public class TemplateImplementationGenerator
 
             var csharpStatement = GetCsharpStatement(context,  actionNode.ActionText);
 
+            var writeMethod =
+                context.CurrentNode!.Action == TemplateActionType.RawMustacheToken ? "WriteRaw" : "Write";
+
             context.CurrentBlock.AddCode(
-                $"writer.Write({TemplateSource.FormatDataCall}(executionContext, \"{actionNode.ActionText}\", {csharpStatement}, {formatString}));");
+                $"writer.{writeMethod}({TemplateSource.FormatDataCall}(executionContext, \"{actionNode.ActionText}\", {csharpStatement}, {formatString}));");
         }
     }
 
@@ -233,7 +237,7 @@ public class TemplateImplementationGenerator
     {
         var csharpStatement = actionText;
 
-        if (csharpStatement.StartsWith("/"))
+        if (csharpStatement.StartsWith("^"))
         {
             csharpStatement = csharpStatement.Substring(1);
         }

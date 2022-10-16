@@ -5,6 +5,7 @@ public enum TemplateActionType
     Content,
     Block,
     MustacheToken,
+    RawMustacheToken,
     StringLiteral
 }
 

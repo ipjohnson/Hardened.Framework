@@ -182,7 +182,8 @@ public class TemplateParseService
                 out var actionTokenArguments);
 
             var actionNode = new TemplateActionNode(
-                TemplateActionType.MustacheToken,
+                tokenNode.TokenNodeType == StringTokenNodeType.Mustache ? 
+                    TemplateActionType.MustacheToken : TemplateActionType.RawMustacheToken,
                 actionToken.ToString(),
                 actionTokenArguments,
                 new List<TemplateActionNode>(),

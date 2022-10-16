@@ -8,11 +8,17 @@ public class StringTokenNodeParser
         {
             StartToken = startToken;
             EndToken = endToken;
+            RawStartToken = startToken + startToken.Last();
+            RawEndToken =  endToken.First() + endToken;
         }
 
         public string StartToken { get; }
 
+        public string RawStartToken { get; }
+
         public string EndToken { get; }
+
+        public string RawEndToken { get; }
     }
 
     private readonly IStringTokenNodeCreatorService _tokenCreatorService;
@@ -45,9 +51,11 @@ public class StringTokenNodeParser
                 
             if (beginMustache >= 0)
             {
-                var endMustache = FindMustacheEnd(tokenInfo, template, beginMustache);
+                var isRaw = IsRawMustache(template, beginMustache, tokenInfo);
 
-                tokens.Add(ProcessMustacheToken(tokenInfo, template, beginMustache, endMustache));
+                var endMustache = FindMustacheEnd(tokenInfo, template, beginMustache, isRaw);
+
+                tokens.Add(ProcessMustacheToken(tokenInfo, template, beginMustache, endMustache, isRaw));
 
                 currentIndex = endMustache;
             }
@@ -61,7 +69,26 @@ public class StringTokenNodeParser
         return tokens;
     }
 
-    private StringTokenNode ProcessMustacheToken(TokenInfo tokenInfo, string template, int beginMustache, int endMustache)
+    private bool IsRawMustache(string template, int beginMustache, TokenInfo tokenInfo)
+    {
+        if (beginMustache + tokenInfo.RawStartToken.Length > template.Length)
+        {
+            return false;
+        }
+
+        for (var i = tokenInfo.StartToken.Length; i < tokenInfo.RawStartToken.Length; i++)
+        {
+            if (template[beginMustache + i] != tokenInfo.RawStartToken[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private StringTokenNode ProcessMustacheToken(TokenInfo tokenInfo, string template, int beginMustache,
+        int endMustache, bool isRaw)
     {
         if (endMustache == -1)
         {
@@ -77,8 +104,10 @@ public class StringTokenNodeParser
             throw new Exception($"Could not find end of mustache token for {templateString}");
         }
 
+        var tokenLength = isRaw ? tokenInfo.RawStartToken.Length : tokenInfo.StartToken.Length;
+
         return _tokenCreatorService.CreateMustacheTokenNode(
-            template, beginMustache + tokenInfo.StartToken.Length, endMustache);
+            template, beginMustache + tokenLength, endMustache, isRaw);
     }
 
     private StringTokenNode ProcessContentToken(TokenInfo tokenInfo, string template, int currentIndex, int beginMustache)
@@ -87,9 +116,12 @@ public class StringTokenNodeParser
             template, currentIndex + tokenInfo.EndToken.Length, beginMustache);
     }
 
-    private int FindMustacheEnd(TokenInfo tokenInfo, string template, int beginMustache)
+    private int FindMustacheEnd(TokenInfo tokenInfo, string template, int beginMustache, bool isRaw)
     {
-        return template.IndexOf(tokenInfo.EndToken, beginMustache, StringComparison.CurrentCulture);
+        return template.IndexOf(
+            isRaw ? tokenInfo.RawEndToken : tokenInfo.EndToken, 
+            beginMustache, 
+            StringComparison.CurrentCulture);
     }
 
     private int FindMustacheBeginning(TokenInfo tokenInfo, string template, int currentIndex)
