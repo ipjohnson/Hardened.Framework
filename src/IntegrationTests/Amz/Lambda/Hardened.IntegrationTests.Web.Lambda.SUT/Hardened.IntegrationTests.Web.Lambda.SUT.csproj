@@ -1,0 +1,71 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	  <AWSProjectType>Lambda</AWSProjectType>
+	  <PublishReadyToRun>true</PublishReadyToRun>
+	  <!-- This property makes the build directory similar to a publish directory and helps the AWS .NET Lambda Mock Test Tool find project dependencies. -->
+	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	  <SelfContained>true</SelfContained>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="wwwroot\**\*">
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Templates\personList.html" />
+    <None Remove="wwwroot\externalDependencies.min.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Templates\personList.html" />
+    <AdditionalFiles Include="Templates\_layout.html" />
+  </ItemGroup>	
+
+	<ItemGroup>
+    <ProjectReference Include="..\..\..\..\Amz\Hardened.Amz.Web.Lambda.Runtime\Hardened.Amz.Web.Lambda.Runtime.csproj" />
+    <ProjectReference Include="..\..\..\..\Amz\SourceGenerators\Hardened.Amz.Web.Lambda.SourceGenerator\Hardened.Amz.Web.Lambda.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
+    <ProjectReference Include="..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
+    <ProjectReference Include="..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\..\SourceGenerators\Hardened.Templates.SourceGenerator\Hardened.Templates.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\..\Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj" />
+    <ProjectReference Include="..\..\..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
+    <ProjectReference Include="..\..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj" />
+    <ProjectReference Include="..\..\..\Web\Hardened.IntegrationTests.Web.SUT\Hardened.IntegrationTests.Web.SUT.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.4.1" />
+    <PackageReference Include="Amazon.Lambda.Core" Version="2.1.0" />
+    <PackageReference Include="Amazon.Lambda.Logging.AspNetCore" Version="3.1.0" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\beer.min.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\externalDependencies.min.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\Test.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\testPage.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

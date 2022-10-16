@@ -28,15 +28,25 @@ public static class KnownTypes
 
         public static class Hardened
         {
-
-            public static class Lambda
+            public static class Amz
             {
-                public const string LambdaRuntime =  "Hardened.Function.Lambda.Runtime";
+                public static class Lambda
+                {
+                    public const string LambdaRuntime = "Hardened.Amz.Function.Lambda.Runtime";
 
-                public const string LambdaRuntimeDI = "Hardened.Function.Lambda.Runtime.DependencyInjection";
+                    public const string LambdaRuntimeDI = "Hardened.Amz.Function.Lambda.Runtime.DependencyInjection";
 
-                public const string LambdaRuntimeImpl = "Hardened.Function.Lambda.Runtime.Impl";
+                    public const string LambdaRuntimeImpl = "Hardened.Amz.Function.Lambda.Runtime.Impl";
+                }
+
+                public static class Web
+                {
+                    public const string LambdaRuntimeImpl = "Hardened.Amz.Web.Lambda.Runtime.Impl";
+
+                    public const string LambdaRuntimeDependencyInjection = "Hardened.Amz.Web.Lambda.Runtime.DependencyInjection";
+                }
             }
+
 
             public static class Web
             {
@@ -46,9 +56,6 @@ public static class KnownTypes
 
                 public const string RuntimeHandlers = "Hardened.Web.Runtime.Handlers";
 
-                public const string LambdaRuntimeDependencyInjection = "Hardened.Web.Lambda.Runtime.DependencyInjection";
-
-                public const string LambdaRuntimeImpl = "Hardened.Web.Lambda.Runtime.Impl";
             }
 
             public static class Requests
@@ -155,7 +162,7 @@ public static class KnownTypes
         public static class Registry
         {
             public static readonly ITypeDefinition LambdaWebDI =
-                TypeDefinition.Get(Namespace.Hardened.Web.LambdaRuntimeDependencyInjection, "LambdaWebDI");
+                TypeDefinition.Get(Namespace.Hardened.Amz.Web.LambdaRuntimeDependencyInjection, "LambdaWebDI");
 
             public static readonly ITypeDefinition StandardDependencies =
                 TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.DependencyInjection, "StandardDependencies");
@@ -170,7 +177,7 @@ public static class KnownTypes
                 TypeDefinition.Get(Namespace.Hardened.Web.RuntimeDependencyInjection, "WebRuntimeDI");
 
             public static readonly ITypeDefinition LambdaFunctionRuntimeDI =
-                TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntimeDI, "LambdaFunctionDI");
+                TypeDefinition.Get(Namespace.Hardened.Amz.Lambda.LambdaRuntimeDI, "LambdaFunctionDI");
         }
     }
 
@@ -361,27 +368,27 @@ public static class KnownTypes
             TypeDefinition.Get(Namespace.Amazon.LambdaAPIGatewayEvents, "APIGatewayHttpApiV2ProxyResponse");
 
         public static readonly ITypeDefinition IApiGatewayEventProcessor =
-            TypeDefinition.Get(Namespace.Hardened.Web.LambdaRuntimeImpl, "IApiGatewayEventProcessor");
+            TypeDefinition.Get(Namespace.Hardened.Amz.Web.LambdaRuntimeImpl, "IApiGatewayEventProcessor");
 
         public static readonly ITypeDefinition ILambdaFunctionImplService =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Lambda.LambdaRuntimeImpl, "ILambdaFunctionImplService");
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Amz.Lambda.LambdaRuntimeImpl, "ILambdaFunctionImplService");
 
         public static readonly ITypeDefinition LambdaInvokeFilter =
-            TypeDefinition.Get(Namespace.Hardened.Lambda.LambdaRuntimeImpl, "LambdaInvokeFilter");
+            TypeDefinition.Get(Namespace.Hardened.Amz.Lambda.LambdaRuntimeImpl, "LambdaInvokeFilter");
 
         public static readonly ITypeDefinition ILambdaHandler =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Lambda.LambdaRuntimeImpl, "ILambdaHandler");
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Amz.Lambda.LambdaRuntimeImpl, "ILambdaHandler");
 
         public static readonly ITypeDefinition IApiGatewayV2Handler =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Amazon.LambdaAPIGatewayEvents, "IApiGatewayV2Handler");
 
         public static readonly ITypeDefinition ILambdaHandlerPackage =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Lambda.LambdaRuntimeImpl,
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Amz.Lambda.LambdaRuntimeImpl,
                 "ILambdaHandlerPackage");
 
 
         public static readonly ITypeDefinition ILambdaInvokeFilterProvider =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Lambda.LambdaRuntimeImpl,
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Amz.Lambda.LambdaRuntimeImpl,
                 "ILambdaInvokeFilterProvider");
 
         public static readonly ITypeDefinition LambdaLoggerHelper =

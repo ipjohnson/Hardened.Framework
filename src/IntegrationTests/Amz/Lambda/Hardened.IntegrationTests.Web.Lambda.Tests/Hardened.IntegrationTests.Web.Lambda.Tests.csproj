@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="AngleSharp" Version="0.17.1" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0-preview-20220131-20" />
+		<PackageReference Include="SimpleFixture.NSubstitute" Version="4.0.0-RC190" />
+		<PackageReference Include="SimpleFixture.xUnit" Version="4.0.0-RC190" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\Amz\Hardened.Amz.Web.Lambda.Runtime\Hardened.Amz.Web.Lambda.Runtime.csproj" />
+		<ProjectReference Include="..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
+		<ProjectReference Include="..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
+		<ProjectReference Include="..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
+		<ProjectReference Include="..\..\..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj" />
+		<ProjectReference Include="..\..\..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
+		<ProjectReference Include="..\..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj" />
+		<ProjectReference Include="..\..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
+		<ProjectReference Include="..\Hardened.IntegrationTests.Web.Lambda.SUT\Hardened.IntegrationTests.Web.Lambda.SUT.csproj" />
+	</ItemGroup>
+
+</Project>

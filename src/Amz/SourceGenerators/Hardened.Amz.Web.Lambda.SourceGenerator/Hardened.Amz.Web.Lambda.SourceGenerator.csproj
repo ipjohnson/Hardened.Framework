@@ -1,0 +1,81 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<LangVersion>10</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PackageId>Hardened.Web.Lambda.SourceGenerator</PackageId>
+		<Authors>Ian Johnson</Authors>
+		<PackageTags>Hardened.Framework</PackageTags>
+		<PackageProjectUrl>https://github.com/ipjohnson/CSharpAuthor</PackageProjectUrl>
+		<PackageLicenseUrl>https://github.com/ipjohnson/CSharpAuthor/blob/main/LICENSE</PackageLicenseUrl>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/ipjohnson/CSharpAuthor</RepositoryUrl>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
+		<PackageReference Include="System.Memory" Version="4.5.4" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CSharpAuthor" Version="0.1.0-Beta957">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>build</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Configuration/**/*">
+			<Link>Configuration\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Compile>
+		<Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/DependencyInjection/**/*">
+			<Link>DependencyInjection\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Compile>
+		<Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Models/**/*">
+			<Link>Models\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Compile>
+		<Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Web/**/*">
+			<Link>Web\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Compile>
+		<Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Requests/**/*">
+			<Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Compile>
+		<Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Shared/**/*">
+			<Link>Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Compile>
+		<Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Templates/**/*">
+			<Link>Templates\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="..\..\Hardened.SourceGenerator\Web\CreateControllerAndAssignToContextCodeGenerator.cs" />
+	</ItemGroup>
+
+</Project>
