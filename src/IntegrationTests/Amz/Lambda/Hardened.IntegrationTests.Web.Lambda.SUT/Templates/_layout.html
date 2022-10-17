@@ -3,11 +3,11 @@
 {{inject ILambdaContextAccessor accessor}}
 <html>
 <head>
-    <title>Title {{^accessor.Context?.InvokedFunctionArn}}</title>
+    <title>Title {{^accessor.Context?.InvokedFunctionArn == "testing"}}</title>
     <link rel="stylesheet" href="{{$BasePath}}/beer.min.css" />
 </head>
 <body>
-    <script type="text/javascript">
+<script type="text/javascript">
         window._b = { started: false, initMethods: [] };
         window._u = function (initFunc) {
             if (!_b.started) {
@@ -17,6 +17,7 @@
             }
         };
     </script>
+  {{#if ^accessor.Context}}other{{/if}}
     <div id="mainContent">{{ $Render Model TemplateFunc }}</div>
     <script src="{{{$BasePath}}}/externalDependencies.min.js">
     </script>

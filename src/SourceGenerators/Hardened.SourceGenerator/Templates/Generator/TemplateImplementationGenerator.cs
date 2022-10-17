@@ -223,7 +223,7 @@ public class TemplateImplementationGenerator
                 formatString = "\"" + actionNode.ArgumentList[1].ActionText + "\"";
             }
 
-            var csharpStatement = GetCsharpStatement(context,  actionNode.ActionText);
+            var csharpStatement = GetCsharpStatement(context,  actionNode);
 
             var writeMethod =
                 context.CurrentNode!.Action == TemplateActionType.RawMustacheToken ? "WriteRaw" : "Write";
@@ -233,13 +233,24 @@ public class TemplateImplementationGenerator
         }
     }
 
-    private static string GetCsharpStatement(GenerationContext context, string actionText)
+    private static string GetCsharpStatement(GenerationContext context, TemplateActionNode actionNode)
     {
-        var csharpStatement = actionText;
+        var csharpStatement = actionNode.ActionText;
 
         if (csharpStatement.StartsWith("^"))
         {
             csharpStatement = csharpStatement.Substring(1);
+
+            foreach (TemplateActionNode argumentNode in actionNode.ArgumentList)
+            {
+                var nodeText = argumentNode.ActionText;
+
+                if (argumentNode.Action == TemplateActionType.StringLiteral)
+                {
+                    nodeText = '"' + nodeText + '"';
+                }
+                csharpStatement += " " + nodeText;
+            }
         }
         else if (csharpStatement.StartsWith("`"))
         {
@@ -357,7 +368,7 @@ public class TemplateImplementationGenerator
             throw new Exception("each block doesn't support multiple arguments");
         }
 
-        var csharpStatement = GetCsharpStatement(context, context.CurrentNode.ArgumentList.First().ActionText);
+        var csharpStatement = GetCsharpStatement(context, context.CurrentNode.ArgumentList.First());
 
         var eachVariable = context.InvokeMethod.GetUniqueVariable("eachVariable");
             
@@ -406,11 +417,11 @@ public class TemplateImplementationGenerator
             }
             else if (firstChar == '`')
             {
-
+                returnString += actionNode.ActionText.TrimStart('`');
             }
             else
             {
-                returnString += actionNode.ActionText.TrimStart('/');
+                returnString += actionNode.ActionText.TrimStart('^');
             }
         }
 
