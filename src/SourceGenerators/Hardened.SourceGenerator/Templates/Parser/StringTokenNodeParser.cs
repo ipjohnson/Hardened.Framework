@@ -57,7 +57,7 @@ public class StringTokenNodeParser
 
                 tokens.Add(ProcessMustacheToken(tokenInfo, template, beginMustache, endMustache, isRaw));
 
-                currentIndex = endMustache;
+                currentIndex = endMustache + (isRaw ? tokenInfo.RawEndToken.Length : tokenInfo.EndToken.Length);
             }
             else
             {
@@ -113,7 +113,7 @@ public class StringTokenNodeParser
     private StringTokenNode ProcessContentToken(TokenInfo tokenInfo, string template, int currentIndex, int beginMustache)
     {
         return _tokenCreatorService.CreateContentTokenNode(
-            template, currentIndex + tokenInfo.EndToken.Length, beginMustache);
+            template, currentIndex, beginMustache);
     }
 
     private int FindMustacheEnd(TokenInfo tokenInfo, string template, int beginMustache, bool isRaw)
