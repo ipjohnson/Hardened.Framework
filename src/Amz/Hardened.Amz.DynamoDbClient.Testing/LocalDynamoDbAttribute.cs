@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 namespace Hardened.Amz.DynamoDbClient.Testing;
+
 public class LocalDynamoDbAttribute : Attribute,
     IHardenedTestDependencyRegistrationAttribute,
     IHardenedTestStartupAttribute

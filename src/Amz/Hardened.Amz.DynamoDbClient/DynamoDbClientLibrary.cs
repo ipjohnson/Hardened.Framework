@@ -1,6 +1,6 @@
 ﻿using Hardened.Shared.Runtime.Attributes;
 
-namespace Hardened.DynamoDbClient;
+namespace Hardened.Amz.DynamoDbClient;
 
 [HardenedStartup]
 public partial class DynamoDbClientLibrary
