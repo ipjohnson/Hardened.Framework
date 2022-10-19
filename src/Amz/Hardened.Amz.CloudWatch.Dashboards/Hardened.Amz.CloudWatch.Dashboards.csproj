@@ -1,13 +1,23 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	  <PackageId>Hardened.Amz.CloudWatch.Dashboards</PackageId>
+	  <Authors>Ian Johnson</Authors>
+	  <PackageTags>Hardened.Framework</PackageTags>
+	  <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Framework</PackageProjectUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <RepositoryUrl>https://github.com/ipjohnson/Hardened.Framework</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
+    <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
+    <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
+    <ProjectReference Include="..\..\Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj" />
+    <ProjectReference Include="..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
+    <ProjectReference Include="..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
