@@ -334,7 +334,7 @@ public class TemplateImplementationGenerator
 
                         arguments = ProcessArgumentList(newList, context.CurrentModel);
 
-                        var elseIf = ifBlock.ElseIf($"_services.BooleanLogicService.IsTrueValue({arguments}))");
+                        var elseIf = ifBlock.ElseIf($"_services.BooleanLogicService.IsTrueValue({arguments})");
 
                         context.PushBlock(elseIf, context.CurrentModel);
                     }
