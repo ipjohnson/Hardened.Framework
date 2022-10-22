@@ -27,7 +27,7 @@ public class LocalDynamoDbAttribute : Attribute,
     private (LocalDynamoDbWrapper dynamoService, int dynamoPort) CreateLocalDynamoDb()
     {
         var random = new Random();
-
+        Exception? exp = null;
         for (var i = 0; i < 5; i++)
         {
             try
@@ -39,10 +39,11 @@ public class LocalDynamoDbAttribute : Attribute,
             catch (Exception e)
             {
                 Console.WriteLine(e);
+                exp = e;
             }
         }
-
-        throw new Exception("Could not create local dynamo db");
+        
+        throw new Exception($"Could not create local dynamo db {exp!.Message}\r\n{exp!.StackTrace}");
     }
 
     private class TestDynamoDbClientProvider : IDynamoDbClientProvider, IDisposable
