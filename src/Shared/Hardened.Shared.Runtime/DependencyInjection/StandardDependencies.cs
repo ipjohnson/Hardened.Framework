@@ -7,6 +7,7 @@ using Hardened.Shared.Runtime.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
 
 namespace Hardened.Shared.Runtime.DependencyInjection;
 
@@ -39,5 +40,8 @@ public static class StandardDependencies
             serviceProvider => Microsoft.Extensions.Options.Options.Create(
                 serviceProvider.GetRequiredService<IConfigurationManager>()
                     .GetConfiguration<IJsonSerializerConfiguration>()));
+
+        serviceCollection.TryAddSingleton<IItemPool<MD5>>(_ =>
+            new ItemPool<MD5>(MD5.Create, _ => { }, md5 => md5.Dispose()));
     }
 }

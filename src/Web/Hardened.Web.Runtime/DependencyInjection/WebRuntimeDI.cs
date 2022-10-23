@@ -36,9 +36,6 @@ public static class WebRuntimeDI
                 serviceProvider => Microsoft.Extensions.Options.Options.Create(
                     serviceProvider.GetRequiredService<IConfigurationManager>()
                         .GetConfiguration<IStaticContentConfiguration>()));
-
-            serviceCollection.TryAddSingleton<IItemPool<MD5>>(_ =>
-                new ItemPool<MD5>(MD5.Create, _ => { }, md5 => md5.Dispose()));
         }
     }
 }
