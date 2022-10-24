@@ -19,21 +19,31 @@ public static class LambdaFunctionModelGenerator
         var filters = GetFilters(context, methodDeclaration);
             
         return new RequestHandlerModel(
-            new RequestHandlerNameModel(GetFunctionName(methodDeclaration, methodName), "Invoke"),
+            new RequestHandlerNameModel(GetFunctionName(context, methodDeclaration, methodName), "Invoke"),
             controllerType, 
             methodName,
             TypeDefinition.Get(controllerType.Namespace + ".Generated", "InvokeFilter" + controllerType.Name + "_" + methodName),
             GetParameters(context, methodDeclaration, cancellation), response, filters);
     }
 
-    private static string GetFunctionName(MethodDeclarationSyntax methodDeclaration, string methodName)
+    private static string GetFunctionName(GeneratorSyntaxContext generatorSyntaxContext,
+        MethodDeclarationSyntax methodDeclaration, string methodName)
     {
         var attribute = 
             methodDeclaration.GetAttribute(KnownTypes.Requests.HardenedFunctionAttribute.Name.Replace("Attribute",""))!;
-        
-        if (attribute is { ArgumentList: { Arguments.Count: > 0 } })
+        var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
+
+        if (argument != null)
         {
-            return attribute.ArgumentList.Arguments.First().Expression.ToString().Trim('"');
+            var constantValue =
+                generatorSyntaxContext.SemanticModel.GetConstantValue(argument.Expression);
+
+            if (constantValue.Value != null)
+            {
+                return constantValue.Value.ToString();
+            }
+            
+            return argument.Expression.ToString().Trim('"');
         }
 
         return methodName;
