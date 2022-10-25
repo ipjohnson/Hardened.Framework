@@ -25,7 +25,7 @@ public class LocalDynamoDbWrapper : ILocalDynamoDbWrapper
 
         if (!Directory.Exists(jarPath))
         {
-            throw new Exception("Can't find jar path: " + jarPath);
+            throw new Exception($"Can't find jar path: {jarPath}, pwd {currentFolder}");
         }
 
         var dirPath = Path.GetFullPath(jarPath);
