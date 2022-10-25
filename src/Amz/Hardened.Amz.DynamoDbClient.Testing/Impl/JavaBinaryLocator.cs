@@ -17,7 +17,7 @@ public static class JavaBinaryLocator
         }
         else
         {
-            throw new NotImplementedException("Not implemented yet");
+            return "/usr/bin/java";
         }
     }
 }
