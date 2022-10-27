@@ -2,16 +2,26 @@
 
 public class EnvironmentImpl : IEnvironment
 {
-    public EnvironmentImpl()
+    private readonly IDictionary<string, string>? _environmentValues;
+
+    public EnvironmentImpl(string? name = null, IDictionary<string, string>? environmentValues = null)
     {
-        Name = System.Environment.GetEnvironmentVariable("HARDENED_ENVIRONMENT") ?? "development";
+        Name = name ?? System.Environment.GetEnvironmentVariable("HARDENED_ENVIRONMENT") ?? "development";
+        _environmentValues = environmentValues;
     }
-        
+
     public string Name { get; }
 
     public T? Value<T>(string name, T? defaultValue = default)
     {
-        var envValue = Environment.GetEnvironmentVariable(name);
+        string? envValue = null;
+
+        _environmentValues?.TryGetValue(name, out envValue);
+
+        if (string.IsNullOrEmpty(envValue))
+        {
+            envValue = Environment.GetEnvironmentVariable(name);
+        }
 
         if (!string.IsNullOrEmpty(envValue))
         {
