@@ -83,6 +83,30 @@ public static class LambdaFunctionModelGenerator
                 ParameterBindType.ServiceProvider, "");
         }
 
+        if (KnownTypes.Requests.IExecutionContext.Equals(parameterType))
+        {
+            return new RequestParameterInformation(parameterType, parameter.Identifier.ToString(), true, null,
+                ParameterBindType.ExecutionContext, "");
+        }
+
+        if (KnownTypes.Requests.IExecutionRequest.Equals(parameterType))
+        {
+            return new RequestParameterInformation(parameterType, parameter.Identifier.ToString(), true, null,
+                ParameterBindType.ExecutionRequest, "");
+        }
+
+        if (KnownTypes.Requests.IExecutionResponse.Equals(parameterType))
+        {
+            return new RequestParameterInformation(parameterType, parameter.Identifier.ToString(), true, null,
+                ParameterBindType.ExecutionResponse, "");
+        }
+
+        if (parameterType.TypeDefinitionEnum == TypeDefinitionEnum.InterfaceDefinition)
+        {
+            return new RequestParameterInformation(parameterType, parameter.Identifier.ToString(), true, null,
+                ParameterBindType.FromServiceProvider, "");
+        }
+
         return BaseRequestModelGenerator.CreateRequestParameterInformation(parameter,
             parameterType,
             ParameterBindType.Body);
