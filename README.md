@@ -1,2 +1,6 @@
 # Hardened.Framework
-C# framework for .net 6.0
+A C# framework for .net 6.0, focused primarily on servless compute.
+
+
+
+
