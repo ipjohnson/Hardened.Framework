@@ -1,5 +1,6 @@
 ﻿using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Errors;
+using Exception = System.Exception;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
@@ -25,7 +26,14 @@ public class StringConverterService : IStringConverterService
             throw new BadRequestException($"{valueName} was missing");
         }
 
-        return InternalParseRequired<T>(value);
+        try
+        {
+            return InternalParseRequired<T>(value);
+        }
+        catch (Exception e)
+        {
+            throw new BadRequestException($"{valueName} is malformed", e);
+        }
     }
 
     public T ParseWithDefault<T>(string value, string valueName, T defaultValue)

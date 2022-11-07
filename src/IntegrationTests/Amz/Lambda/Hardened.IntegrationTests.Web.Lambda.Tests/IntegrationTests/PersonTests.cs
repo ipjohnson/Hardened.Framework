@@ -46,13 +46,22 @@ public class PersonTests
 
 
     [HardenedTest]
-    public async Task InvalidId(ITestWebApp app)
+    public async Task NotFoundId(ITestWebApp app)
     {
         var testWebResponse = await app.Get("/api/person/10");
         
         testWebResponse.Assert.NotFound();
     }
 
+    
+    [HardenedTest]
+    public async Task InvalidId(ITestWebApp app)
+    {
+        var testWebResponse = await app.Get("/api/person/testing");
+        
+        testWebResponse.Assert.BadRequest();
+    }
+    
     [HardenedTest]
     public async Task PostTest(ITestWebApp app)
     {

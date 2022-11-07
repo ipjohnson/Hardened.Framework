@@ -14,7 +14,9 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
             Message = exp.Message
         };
 
-        if (exp.GetType().Name.Contains("Validation") || exp.GetType().Name.Contains("Bad"))
+        if (exp.GetType().Name.Contains("Validation") ||
+            exp.GetType().Name.Contains("Bad") || 
+            exp is FormatException)
         {
             statusCode = 400;
         }

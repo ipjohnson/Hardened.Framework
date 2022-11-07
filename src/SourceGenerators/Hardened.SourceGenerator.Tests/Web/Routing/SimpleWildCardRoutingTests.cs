@@ -40,8 +40,7 @@ public class SimpleWildCardRoutingTests
         Assert.Equal("GET", leafNode.Method);
         Assert.Equal("Person", leafNode.Value);
     }
-
-
+    
     [Fact]
     public void DoubleWildCardRoute()
     {
@@ -88,6 +87,5 @@ public class SimpleWildCardRoutingTests
             
         Assert.Equal("GET", leafNode.Method);
         Assert.Equal("Person", leafNode.Value);
-
     }
 }

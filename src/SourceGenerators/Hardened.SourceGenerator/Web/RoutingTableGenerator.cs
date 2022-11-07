@@ -346,6 +346,8 @@ public static class RoutingTableGenerator
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
         
+                
+        
         if (wildCardNode.LeafNodes.Count > 0)
         {
             var switchBlock = wildCardMethod.Switch(methodString);

@@ -6,4 +6,10 @@ public class BadRequestException : Exception
     {
 
     }
+    
+    
+    public BadRequestException(string message, Exception inner) : base(message, inner)
+    {
+
+    }
 }
