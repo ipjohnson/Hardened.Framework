@@ -32,16 +32,25 @@ public class PersonTests
     }
 
     [HardenedTest]
-    public async Task SomeTest(ITestWebApp app)
+    public async Task ValidId(ITestWebApp app)
     {
-        var testWebResponse = await app.Get("/api/person/testMethod");
+        var testWebResponse = await app.Get("/api/person/5");
 
         testWebResponse.Assert.Ok();
         var model = testWebResponse.Deserialize<PersonModel>();
 
         Assert.NotNull(model);
-        Assert.Equal(10, model.Id);
-        Assert.Equal("test string", model.FirstName);
+        Assert.Equal(5, model.Id);
+        Assert.Equal("Test", model.FirstName);
+    }
+
+
+    [HardenedTest]
+    public async Task InvalidId(ITestWebApp app)
+    {
+        var testWebResponse = await app.Get("/api/person/10");
+        
+        testWebResponse.Assert.NotFound();
     }
 
     [HardenedTest]
@@ -71,28 +80,33 @@ public class PersonTests
         Assert.Equal("OtherValue", viewResponse.Headers.Get("OtherTest"));
     }
 
-    public void RegisterDependencies(IServiceCollection collection)
+    private void RegisterDependencies(IServiceCollection collection)
     {
         collection.AddSingleton<IPersonService, TestPersonService>();
     }
 
     public class TestPersonService : IPersonService
     {
+        private Dictionary<int, PersonModel> _models;
         private IEnvironment _environment;
 
         public TestPersonService(IEnvironment environment)
         {
             _environment = environment;
+            _models = new()
+            {
+                {5, new PersonModel { Id = 5, FirstName = "Test", LastName = "Testing" } }
+            };
         }
 
         public IEnumerable<PersonModel> All()
         {
-            return new[] { new PersonModel { Id = 5, FirstName = "Test", LastName = "Testing" } };
+            return _models.Values;
         }
 
         public PersonModel? Get(int id)
         {
-            return null;
+            return _models.GetValueOrDefault(id);
         }
 
         public PersonModel Add(PersonModel person)

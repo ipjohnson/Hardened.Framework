@@ -15,7 +15,7 @@ public class RouteTreeGenerator<T>
     {
         public Entry(string pathTemplate, string method, T value)
         {
-            PathTemplate = StandardizeToken(pathTemplate.ToLowerInvariant());
+            (PathTemplate, WildCardTokens) = StandardizeToken(pathTemplate.ToLowerInvariant());
             Method = method.ToUpperInvariant();
             Value = value;
         }
@@ -23,6 +23,8 @@ public class RouteTreeGenerator<T>
         public string PathTemplate { get; }
 
         public string Method { get; }
+
+        public IReadOnlyList<string> WildCardTokens { get; }
 
         public T Value { get; }
     }
@@ -106,6 +108,7 @@ public class RouteTreeGenerator<T>
     private IReadOnlyList<RouteTreeNode<T>> ProcessWildCardNodes(List<Entry> keyValuePair, int stringIndex,
         int wildCardDepth)
     {
+        var token = keyValuePair.First().WildCardTokens[wildCardDepth - 1];
         stringIndex += "{TOKEN}".Length;
 
         var returnList = new List<RouteTreeNode<T>>();
@@ -117,6 +120,8 @@ public class RouteTreeGenerator<T>
 
             returnList.Add(ProcessEntries(group.Key.ToString(), group.Value, stringIndex + 1, wildCardDepth));
         }
+        
+        returnList.ForEach(n => n.WildCardToken = token);
 
         return returnList;
     }
@@ -205,33 +210,36 @@ public class RouteTreeGenerator<T>
         return returnValue;
     }
 
-    public static string StandardizeToken(string pathTemplate)
+    public static (string,IReadOnlyList<string>) StandardizeToken(string pathTemplate)
     {
         var tokenIndex = pathTemplate.IndexOf('{');
-
+        var tokenList = new List<string>();
+        
         if (tokenIndex > 0)
         {
             var stringBuilder = new StringBuilder();
             var currentIndex = 0;
             while (tokenIndex > 0)
             {
-                var tokenEnd = pathTemplate.IndexOf('}');
+                var tokenEnd = pathTemplate.IndexOf('}', tokenIndex);
 
                 if (tokenEnd > 0)
                 {
-                    stringBuilder.Append(pathTemplate.Substring(currentIndex, tokenIndex - currentIndex));
+                    var length = tokenIndex - currentIndex;
+                    stringBuilder.Append(pathTemplate.Substring(currentIndex, length));
                     stringBuilder.Append("{TOKEN}");
+
+                    var startIndex = tokenIndex + 1;
+                    tokenList.Add(pathTemplate.Substring(startIndex, tokenEnd - startIndex));
 
                     currentIndex = tokenEnd + 1;
                 }
                 tokenIndex = pathTemplate.IndexOf('{', tokenIndex + 1);
             }
 
-            //stringBuilder.Append(pathTemplate.Substring(currentIndex));
-
-            return stringBuilder.ToString();
+            return (stringBuilder.ToString(), tokenList);
         }
 
-        return pathTemplate;
+        return (pathTemplate, Array.Empty<string>());
     }
 }

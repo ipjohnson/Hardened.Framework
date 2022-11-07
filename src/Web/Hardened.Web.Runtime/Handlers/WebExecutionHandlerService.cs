@@ -1,6 +1,7 @@
 ﻿using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
+using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.StaticContent;
 
 namespace Hardened.Web.Runtime.Handlers;
@@ -39,11 +40,12 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService
 
             if (handler != null)
             {
-                context.HandlerInfo = handler.HandlerInfo;
+                context.Request.PathTokens = handler.PathTokens;
+                context.HandlerInfo = handler.Handler.HandlerInfo;
 
                 _requestLogger.RequestMapped(context);
 
-                var handlerChain = handler.GetExecutionChain(chain.Context);
+                var handlerChain = handler.Handler.GetExecutionChain(chain.Context);
 
                 return handlerChain.Next();
             }

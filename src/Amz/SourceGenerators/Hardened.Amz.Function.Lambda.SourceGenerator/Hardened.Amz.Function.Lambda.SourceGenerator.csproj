@@ -28,7 +28,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CSharpAuthor" Version="0.1.0-Beta957">
+		<PackageReference Include="CSharpAuthor" Version="0.1.0-Beta962">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>build</IncludeAssets>
 		</PackageReference>

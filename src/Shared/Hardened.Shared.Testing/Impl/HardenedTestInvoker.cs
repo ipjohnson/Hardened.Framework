@@ -3,6 +3,7 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing.Attributes;
+using Hardened.Shared.Testing.Utilties;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -105,7 +106,8 @@ public class HardenedTestInvoker : XunitTestInvoker
         };
     }
 
-    private Action<IEnvironment, IServiceCollection> CreateConfigurationAction(AttributeCollection attributeCollection, IEnvironment environment)
+    private Action<IEnvironment, IServiceCollection> CreateConfigurationAction(
+        AttributeCollection attributeCollection, IEnvironment environment)
     {
         return (env, collection) =>
         {
@@ -116,7 +118,8 @@ public class HardenedTestInvoker : XunitTestInvoker
                 a.Configure(attributeCollection, TestMethod, env, appConfig);
             });
 
-            var configureMethod = _testClassInstance!.GetType().GetMethod("Configure");
+            var configureMethod = 
+                _testClassInstance!.GetType().FindInstanceMethod("Configure");
 
             if (configureMethod != null)
             {
@@ -153,7 +156,9 @@ public class HardenedTestInvoker : XunitTestInvoker
 
     private void ProcessInstanceRegistrationMethod(AttributeCollection attributeCollection, MethodInfo testMethod, IEnvironment env, IServiceCollection collection)
     {
-        var registrationMethod = _testClassInstance!.GetType().GetMethod("RegisterDependencies");
+        var classInstanceType = _testClassInstance!.GetType();
+        var registrationMethod =
+            classInstanceType.FindInstanceMethod("RegisterDependencies");
 
         if (registrationMethod != null)
         {

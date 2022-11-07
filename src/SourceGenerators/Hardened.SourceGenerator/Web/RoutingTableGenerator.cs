@@ -10,6 +10,9 @@ namespace Hardened.SourceGenerator.Web;
 
 public static class RoutingTableGenerator
 {
+    private static IOutputComponent EmptyTokens = 
+        Property(KnownTypes.Requests.PathTokenCollection, "Empty");
+    
     public static void GenerateRoute(SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models)
     {
@@ -132,7 +135,7 @@ public static class RoutingTableGenerator
     {
         var handlerMethod = routingClass.AddMethod("GetExecutionRequestHandler");
 
-        handlerMethod.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
+        handlerMethod.SetReturnType(KnownTypes.Web.RequestHandlerInfo.MakeNullable());
 
         var context = handlerMethod.AddParameter(KnownTypes.Requests.IExecutionContext, "context");
 
@@ -175,14 +178,14 @@ public static class RoutingTableGenerator
         var routeMethodName = GetRouteMethodName(routingClass, path);
             
         var testMethod = routingClass.AddMethod(routeMethodName);
-        testMethod.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
+        testMethod.SetReturnType(KnownTypes.Web.RequestHandlerInfo.MakeNullable());
 
         var span = testMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
         var index = testMethod.AddParameter(typeof(int), "index");
         var methodString = testMethod.AddParameter(typeof(string), "methodString");
 
         var handler =
-            testMethod.Assign(Null()).ToLocal(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable(), "handler");
+            testMethod.Assign(Null()).ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handler");
 
         BaseBlockDefinition block = testMethod;
 
@@ -243,7 +246,7 @@ public static class RoutingTableGenerator
         var switchMethodName = GetRouteMethodName(routingClass, routeNode.Path,"CaseStatement");
 
         var switchMethod = routingClass.AddMethod(switchMethodName);
-        switchMethod.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
+        switchMethod.SetReturnType(KnownTypes.Web.RequestHandlerInfo.MakeNullable());
         var span = switchMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
         var index = switchMethod.AddParameter(typeof(int), "index");
         var methodString = switchMethod.AddParameter(typeof(string), "methodString");
@@ -302,14 +305,13 @@ public static class RoutingTableGenerator
 
         var wildCardMethod = routingClass.AddMethod(methodName);
 
-        wildCardMethod.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
+        wildCardMethod.SetReturnType(KnownTypes.Web.RequestHandlerInfo.MakeNullable());
         var span = wildCardMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
-
-
+        
         var handler =
-            wildCardMethod.Assign(Null()).ToLocal(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable(), "handler");
+            wildCardMethod.Assign(Null()).ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handler");
 
         for (var i  = 0; i < routeNode.WildCardNodes.Count; i ++)
         {
@@ -339,12 +341,50 @@ public static class RoutingTableGenerator
 
         var wildCardMethod = routingClass.AddMethod(methodName);
 
-        wildCardMethod.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
+        wildCardMethod.SetReturnType(KnownTypes.Web.RequestHandlerInfo.MakeNullable());
         var span = wildCardMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
+        
+        if (wildCardNode.LeafNodes.Count > 0)
+        {
+            var switchBlock = wildCardMethod.Switch(methodString);
 
-        wildCardMethod.Return(Null());
+            foreach (var leafNode in wildCardNode.LeafNodes)
+            {
+                var caseStatement = switchBlock.AddCase(QuoteString(leafNode.Method));
+
+                var field =
+                    routingClass.AddField(leafNode.Value.InvokeHandlerType.MakeNullable(), "_field" + leafNode.Value.InvokeHandlerType.Name);
+
+                var coalesceHandler = NullCoalesceEqual(field.Instance,
+                    New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"));
+
+                coalesceHandler.PrintParentheses = false;
+
+                var pathToken = New(KnownTypes.Requests.PathToken,
+                    QuoteString(wildCardNode.WildCardToken!),
+                    span.Invoke("Slice", index).Invoke("ToString")
+                );
+                
+                IOutputComponent pathTokensCollection = 
+                    New(KnownTypes.Requests.PathTokenCollection,
+                        wildCardNode.WildCardDepth,
+                        pathToken
+                        );
+
+                caseStatement.Return( 
+                    New(KnownTypes.Web.RequestHandlerInfo, 
+                        coalesceHandler, 
+                        pathTokensCollection));
+            }
+            
+            switchBlock.AddDefault().Return(Null());
+        }
+        else
+        {
+            wildCardMethod.Return(Null());
+        }
 
         return methodName;
     }
@@ -372,7 +412,20 @@ public static class RoutingTableGenerator
             var coalesceHandler = NullCoalesceEqual(field.Instance,
                 New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"));
 
-            caseStatement.Return(coalesceHandler);
+            coalesceHandler.PrintParentheses = false;
+            
+            IOutputComponent pathTokensCollection = EmptyTokens;
+            
+            if (routeNode.WildCardDepth > 0)
+            {
+                pathTokensCollection = New(KnownTypes.Requests.PathTokenCollection, routeNode.WildCardDepth);
+            }
+
+            caseStatement.Return( 
+                New(
+                    KnownTypes.Web.RequestHandlerInfo, 
+                    coalesceHandler, 
+                    pathTokensCollection));
         }
 
         switchStatement.AddDefault().Return(Null());

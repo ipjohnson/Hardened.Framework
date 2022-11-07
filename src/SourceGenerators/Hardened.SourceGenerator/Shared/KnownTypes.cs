@@ -56,6 +56,7 @@ public static class KnownTypes
 
                 public const string RuntimeHandlers = "Hardened.Web.Runtime.Handlers";
 
+                public const string Routing = "Hardened.Web.Runtime.Routing";
             }
 
             public static class Requests
@@ -69,6 +70,8 @@ public static class KnownTypes
                     public const string Middleware = "Hardened.Requests.Abstract.Middleware";
 
                     public const string Serializer = "Hardened.Requests.Abstract.Serializer";
+                    
+                    public const string PathTokens = "Hardened.Requests.Abstract.PathTokens";
                 }
 
                 public static class Runtime
@@ -80,6 +83,8 @@ public static class KnownTypes
                     public const string Execution = "Hardened.Requests.Runtime.Execution";
 
                     public const string Serializer = "Hardened.Requests.Runtime.Serializer";
+                    
+                    public const string PathTokens = "Hardened.Requests.Runtime.PathTokens";
                 }
             }
 
@@ -270,6 +275,13 @@ public static class KnownTypes
 
         public static readonly ITypeDefinition IReadOnlyListExecutionRequestParameter =
             new GenericTypeDefinition(typeof(IReadOnlyList<>), new []{IExecutionRequestParameter});
+
+        public static readonly ITypeDefinition PathTokenCollection =
+            TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.PathTokens, "PathTokenCollection");
+
+        public static readonly ITypeDefinition PathToken =
+            TypeDefinition.Get(Namespace.Hardened.Requests.Abstract.PathTokens, "PathToken");
+
     }
 
     public static class Logging
@@ -348,6 +360,8 @@ public static class KnownTypes
         public static readonly ITypeDefinition FilterRegistryStartupService =
             TypeDefinition.Get(Namespace.Hardened.Web.RuntimeDependencyInjection, "FilterRegistryStartupService");
 
+        public static readonly ITypeDefinition RequestHandlerInfo =
+            TypeDefinition.Get(Namespace.Hardened.Web.RuntimeHandlers, "RequestHandlerInfo");
     }
 
     public static class Lambda

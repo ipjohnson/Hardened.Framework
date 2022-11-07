@@ -20,6 +20,8 @@ public class RouteTreeNode<T>
 
     public string Path { get; }
 
+    public string? WildCardToken { get; set; }
+    
     public IReadOnlyList<RouteTreeNode<T>> ChildNodes { get; }
 
     public IReadOnlyList<RouteTreeNode<T>> WildCardNodes { get; }

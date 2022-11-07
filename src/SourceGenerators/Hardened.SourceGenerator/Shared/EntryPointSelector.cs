@@ -6,15 +6,13 @@ namespace Hardened.SourceGenerator.Shared;
 
 public static class EntryPointSelector
 {
-        
-
     public class Model
     {
-        public ITypeDefinition EntryPointType { get; set; }
+        public ITypeDefinition EntryPointType { get; set; } = default!;
 
         public bool RootEntryPoint { get; set; }
 
-        public IReadOnlyList<HardenedMethodDefinition> MethodDefinitions { get; set; }
+        public IReadOnlyList<HardenedMethodDefinition> MethodDefinitions { get; set; } = default!;
     }
 
     public class Comparer : IEqualityComparer<Model>

@@ -9,9 +9,14 @@ public class PathTokenCollection : IPathTokenCollection
 
     public static readonly IPathTokenCollection Empty = new PathTokenCollection(0);
 
-    public PathTokenCollection(int count)
+    public PathTokenCollection(int count, PathToken? lastToken = null)
     {
         _pathTokens = new PathToken[count];
+
+        if (lastToken != null)
+        {
+            _pathTokens[count - 1] = lastToken;
+        }
     }
 
     public int Count => _pathTokens.Length;
@@ -36,6 +41,11 @@ public class PathTokenCollection : IPathTokenCollection
 
     public void Set(int index, PathToken pathToken)
     {
+        if (index >= _pathTokens.Length)
+        {
+            throw new Exception($"Index {index} is greater than expected path token length {_pathTokens.Length}");
+        }
+        
         _pathTokens[index] = pathToken;
     }
 }

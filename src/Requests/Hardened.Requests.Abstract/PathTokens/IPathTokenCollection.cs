@@ -2,6 +2,8 @@
 
 namespace Hardened.Requests.Abstract.PathTokens;
 
+public record PathToken(string TokenName, string TokenValue);
+
 public interface IPathTokenCollection
 {
     int Count { get; }
