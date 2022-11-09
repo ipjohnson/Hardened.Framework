@@ -222,7 +222,7 @@ public static class RoutingTableGenerator
         RouteTreeNode<RequestHandlerModel> routeNode,
         BaseBlockDefinition block,
         ParameterDefinition span,
-        ParameterDefinition index,
+        IOutputComponent index,
         ParameterDefinition methodString, 
         InstanceDefinition handler,
         CancellationToken cancellationToken)
@@ -299,7 +299,8 @@ public static class RoutingTableGenerator
         ifBlock.Assign(invoke).To(handler);
     }
 
-    private static string WriteWildCardMethod(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode, CancellationToken cancellationToken)
+    private static string WriteWildCardMethod(
+        ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode, CancellationToken cancellationToken)
     {
         var methodName = GetRouteMethodName(routingClass, routeNode.Path, "WildCard");
 
@@ -313,11 +314,14 @@ public static class RoutingTableGenerator
         var handler =
             wildCardMethod.Assign(Null()).ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handler");
 
-        for (var i  = 0; i < routeNode.WildCardNodes.Count; i ++)
+        var orderedList = 
+            routeNode.WildCardNodes.OrderByDescending(n => n.Path).ToList();
+        
+        for (var i  = 0; i < orderedList.Count; i ++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var wildCardNode = routeNode.WildCardNodes[i];
+            var wildCardNode = orderedList[i];
             BaseBlockDefinition currentBlock = wildCardMethod;
 
             if (i > 0)
@@ -325,7 +329,7 @@ public static class RoutingTableGenerator
                 currentBlock = wildCardMethod.If("handler == null");
             }
 
-            var matchWildCardMethod = WriteWildCardMatchMethod(routingClass, wildCardNode);
+            var matchWildCardMethod = WriteWildCardMatchMethod(routingClass, wildCardNode, cancellationToken);
 
             currentBlock.Assign(Invoke(matchWildCardMethod, span, index, methodString)).To(handler);
         }
@@ -335,7 +339,8 @@ public static class RoutingTableGenerator
         return methodName;
     }
 
-    private static string WriteWildCardMatchMethod(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> wildCardNode)
+    private static string WriteWildCardMatchMethod(ClassDefinition routingClass,
+        RouteTreeNode<RequestHandlerModel> wildCardNode, CancellationToken cancellationToken)
     {
         var methodName = GetRouteMethodName(routingClass, wildCardNode.Path, "WildCardMatch");
 
@@ -345,9 +350,78 @@ public static class RoutingTableGenerator
         var span = wildCardMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
+
+        if (wildCardNode.ChildNodes.Count > 0)
+        {
+            GenerateWildCardChildMatch(
+                routingClass, wildCardNode, wildCardMethod, methodString, span, index, cancellationToken);
+        }
         
-                
+        GenerateWildCardLeafNode(routingClass, wildCardNode, wildCardMethod, methodString, span, index);
+
+        return methodName;
+    }
+
+    private static void GenerateWildCardChildMatch(ClassDefinition routingClass,
+        RouteTreeNode<RequestHandlerModel> wildCardNode,
+        MethodDefinition wildCardMethod,
+        ParameterDefinition methodString,
+        ParameterDefinition span,
+        ParameterDefinition index, 
+        CancellationToken cancellationToken)
+    {
+        var handlerInfo = wildCardMethod.Assign(StaticCast(
+            KnownTypes.Web.RequestHandlerInfo.MakeNullable(), Null())).ToVar("handlerInfo");
+
+        var currentIndex = wildCardMethod.Assign(index).ToVar("currentIndex");
+
+        var whileBlock = 
+            wildCardMethod.While(LessThan(currentIndex, span.Property("Length")));
+
+        var pathCheck = CreatePathIfStatement(
+            span, wildCardNode.Path,cancellationToken, currentIndex.Name);
+
+        var ifStatement = whileBlock.If(And(pathCheck));
+
+        var currentPlusOne = Add(currentIndex, 1);
         
+        ProcessChildNodes(
+            routingClass, 
+            wildCardNode, 
+            ifStatement, 
+            span, 
+            currentPlusOne, 
+            methodString, 
+            handlerInfo, 
+            cancellationToken);
+
+        var matchIfHandlerBlock = 
+            ifStatement.If(NotEquals(handlerInfo, Null()));
+
+        var newPathToken = New(KnownTypes.Requests.PathToken,
+            QuoteString(wildCardNode.WildCardToken!),
+            span.Invoke(
+                "Slice", 
+                index, 
+                Subtract(currentIndex, index)).Invoke("ToString")
+        );
+        
+        matchIfHandlerBlock.AddIndentedStatement(
+            handlerInfo.Property("PathTokens").Invoke(
+                "Set",
+                wildCardNode.WildCardDepth - 1,
+                newPathToken
+            ));
+        
+        matchIfHandlerBlock.Return(handlerInfo);
+        
+        whileBlock.AddIndentedStatement(Increment(currentIndex));
+    }
+
+    private static void GenerateWildCardLeafNode(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> wildCardNode,
+        MethodDefinition wildCardMethod, ParameterDefinition methodString, ParameterDefinition span,
+        ParameterDefinition index)
+    {
         if (wildCardNode.LeafNodes.Count > 0)
         {
             var switchBlock = wildCardMethod.Switch(methodString);
@@ -357,7 +431,8 @@ public static class RoutingTableGenerator
                 var caseStatement = switchBlock.AddCase(QuoteString(leafNode.Method));
 
                 var field =
-                    routingClass.AddField(leafNode.Value.InvokeHandlerType.MakeNullable(), "_field" + leafNode.Value.InvokeHandlerType.Name);
+                    routingClass.AddField(leafNode.Value.InvokeHandlerType.MakeNullable(),
+                        "_field" + leafNode.Value.InvokeHandlerType.Name);
 
                 var coalesceHandler = NullCoalesceEqual(field.Instance,
                     New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"));
@@ -368,27 +443,25 @@ public static class RoutingTableGenerator
                     QuoteString(wildCardNode.WildCardToken!),
                     span.Invoke("Slice", index).Invoke("ToString")
                 );
-                
-                IOutputComponent pathTokensCollection = 
+
+                IOutputComponent pathTokensCollection =
                     New(KnownTypes.Requests.PathTokenCollection,
                         wildCardNode.WildCardDepth,
                         pathToken
-                        );
+                    );
 
-                caseStatement.Return( 
-                    New(KnownTypes.Web.RequestHandlerInfo, 
-                        coalesceHandler, 
+                caseStatement.Return(
+                    New(KnownTypes.Web.RequestHandlerInfo,
+                        coalesceHandler,
                         pathTokensCollection));
             }
-            
+
             switchBlock.AddDefault().Return(Null());
         }
         else
         {
             wildCardMethod.Return(Null());
         }
-
-        return methodName;
     }
 
     private static void ProcessLeafNodes(ClassDefinition routingClass,
@@ -433,12 +506,15 @@ public static class RoutingTableGenerator
         switchStatement.AddDefault().Return(Null());
     }
 
-    private static IReadOnlyList<IOutputComponent> CreatePathIfStatement(ParameterDefinition span,
-        string routeNodePath, CancellationToken cancellationToken)
+    private static IReadOnlyList<IOutputComponent> CreatePathIfStatement(
+        ParameterDefinition span,
+        string routeNodePath, 
+        CancellationToken cancellationToken,
+        string indexName = "index")
     {
         var returnList = new List<IOutputComponent>();
 
-        returnList.Add(GreaterThanOrEquals(span.Property("Length"), "index + " + routeNodePath.Length));
+        returnList.Add(GreaterThanOrEquals(span.Property("Length"), indexName + " + " + routeNodePath.Length));
 
         int index = 0;
         foreach (var pathChar in routeNodePath)
@@ -447,11 +523,11 @@ public static class RoutingTableGenerator
 
             var upperChar = char.ToUpper(pathChar);
 
-            var lowerEqualStatement = EqualsStatement($"{span.Name}[index + {index}]", "'" + pathChar + "'");
+            var lowerEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + pathChar + "'");
 
             if (upperChar != pathChar)
             {
-                var upperEqualStatement = EqualsStatement($"{span.Name}[index + {index}]", "'" + upperChar + "'");
+                var upperEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + upperChar + "'");
 
                 returnList.Add(Or(lowerEqualStatement, upperEqualStatement));
             }

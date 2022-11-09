@@ -47,6 +47,19 @@ public class PersonController
         return _personService.Get(id);
     }
 
+    [Get("/api/person/{id}/Get")]
+    public PersonModel? Get2(int id)
+    {
+        var model = _personService.Get(id);
+
+        if (model != null)
+        {
+            model.FirstName = "Get";
+        }
+
+        return model;
+    }
+
     [Post("/api/person")]
     public PersonModel Add(PersonModel personModel)
     {

@@ -40,7 +40,7 @@ public class RouteTreeGenerator<T>
             
         return ProcessEntries("/", entries, 1, 0);
     }
-        
+
     private RouteTreeNode<T> ProcessEntries(string path, List<Entry> entries, int stringIndex, int wildCardDepth)
     {
         _cancellationToken.ThrowIfCancellationRequested();
@@ -235,6 +235,11 @@ public class RouteTreeGenerator<T>
                     currentIndex = tokenEnd + 1;
                 }
                 tokenIndex = pathTemplate.IndexOf('{', tokenIndex + 1);
+            }
+
+            if (currentIndex < pathTemplate.Length)
+            {
+                stringBuilder.Append(pathTemplate.Substring(currentIndex));
             }
 
             return (stringBuilder.ToString(), tokenList);

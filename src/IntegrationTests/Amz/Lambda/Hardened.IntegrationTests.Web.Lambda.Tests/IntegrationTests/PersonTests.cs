@@ -44,6 +44,19 @@ public class PersonTests
         Assert.Equal("Test", model.FirstName);
     }
 
+    [HardenedTest]
+    public async Task ValidIdGet(ITestWebApp app)
+    {
+        var testWebResponse = await app.Get("/api/person/5/Get");
+
+        testWebResponse.Assert.Ok();
+        var model = testWebResponse.Deserialize<PersonModel>();
+
+        Assert.NotNull(model);
+        Assert.Equal(5, model.Id);
+        Assert.Equal("Get", model.FirstName);
+    }
+
 
     [HardenedTest]
     public async Task NotFoundId(ITestWebApp app)

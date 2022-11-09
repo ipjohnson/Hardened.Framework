@@ -7,7 +7,7 @@ public class PathTokenCollection : IPathTokenCollection
 {
     private readonly PathToken[] _pathTokens;
 
-    public static readonly IPathTokenCollection Empty = new PathTokenCollection(0);
+    public static readonly PathTokenCollection Empty = new PathTokenCollection(0);
 
     public PathTokenCollection(int count, PathToken? lastToken = null)
     {
