@@ -16,7 +16,6 @@ public class RoutingTestController
         };
     }
 
-    
     [Get("/company/{company}")]
     [AssignMethod]
     public Response CompanyGet(string company)
@@ -26,7 +25,6 @@ public class RoutingTestController
             Company = company
         };
     }
-    
     
     [Get("/company/{company}/Subscription")]
     [AssignMethod]
@@ -41,7 +39,7 @@ public class RoutingTestController
         string company, 
         string id, 
         [FromQueryString]
-        string? queryParam = "unknown")
+        string queryParam = "unknown")
     {
         return new Response
         {
@@ -51,7 +49,6 @@ public class RoutingTestController
         };
     }
 
-    
     public class Response
     {
         public string Company { get; init; } = default!;

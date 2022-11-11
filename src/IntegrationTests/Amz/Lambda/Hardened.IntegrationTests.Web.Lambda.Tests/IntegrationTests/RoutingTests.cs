@@ -54,5 +54,20 @@ public class RoutingTests
         Assert.Equal(CompanyName, response.Company);
         Assert.Equal(nameof(RoutingTestController.CompanyGetSubscriptionWithQuery), response.Method);
         Assert.Equal("some-id", response.Id);
+        Assert.Equal("unknown", response.QueryParam);
+    }
+    
+    
+    [HardenedTest]
+    public async Task CompanySubscriptionIDWithQueryTest(ITestWebApp testWebApp)
+    {
+        var webResponse = await testWebApp.Get($"/company/{CompanyName}/subscription/some-id?queryParam=testing");
+        
+        webResponse.Assert.Ok();
+        var response = webResponse.Deserialize<RoutingTestController.Response>();
+        Assert.Equal(CompanyName, response.Company);
+        Assert.Equal(nameof(RoutingTestController.CompanyGetSubscriptionWithQuery), response.Method);
+        Assert.Equal("some-id", response.Id);
+        Assert.Equal("testing", response.QueryParam);
     }
 }

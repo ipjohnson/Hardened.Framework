@@ -91,7 +91,6 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
         RequestHandlerNameModel requestHandlerNameModel,
         ParameterSyntax parameter)
     {
-
         foreach (var attributeList in parameter.AttributeLists)
         {
             foreach (var attribute in attributeList.Attributes)
@@ -133,12 +132,19 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
     {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
         var name = parameter.Identifier.Text;
+        
+        string? defaultValue = null;
 
+        if (parameter.Default != null)
+        {
+            defaultValue = parameter.Default.Value.ToFullString();
+        }
+        
         return new RequestParameterInformation(
             parameterType,
             name,
             !parameterType.IsNullable,
-            null,
+            defaultValue,
             bindingType,
             string.IsNullOrEmpty(bindingName) ? name : bindingName);
     }
