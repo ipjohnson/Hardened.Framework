@@ -16,9 +16,20 @@ public class HardenedXunitTheoryTestCase : XunitTheoryTestCase
             
 
     }
+    
 
     public override Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
     {
-        return new HardenedTestCaseRunner(this, DisplayName, SkipReason, constructorArguments, new object[]{}, messageBus, aggregator, cancellationTokenSource).RunAsync();
+        
+        return new HardenedTestCaseRunner(
+            this,
+            diagnosticMessageSink, 
+            DisplayName, 
+            SkipReason, 
+            constructorArguments, 
+            new object[]{}, 
+            messageBus, 
+            aggregator,
+            cancellationTokenSource).RunAsync();
     }
 }

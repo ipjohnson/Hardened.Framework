@@ -297,7 +297,12 @@ public static class KnownTypes
 
         public static readonly ITypeDefinition ILoggerFactory =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Microsoft.Extensions.Logging, "ILoggerFactory");
-            
+
+        public static ITypeDefinition ILoggingBuilder = 
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Microsoft.Extensions.Logging, "ILoggingBuilder");
+
+        public static ITypeDefinition HardenedLoggingBuilder =
+            TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Logging, "HardenedLoggingBuilder");
     }
 
     public static class Templates

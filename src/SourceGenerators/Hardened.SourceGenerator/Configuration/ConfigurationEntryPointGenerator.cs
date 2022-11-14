@@ -3,6 +3,7 @@ using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
+using System.Linq;
 
 namespace Hardened.SourceGenerator.Configuration;
 

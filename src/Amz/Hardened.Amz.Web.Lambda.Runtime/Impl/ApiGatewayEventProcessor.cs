@@ -1,5 +1,6 @@
 ﻿using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Hardened.Amz.Shared.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
@@ -21,6 +22,7 @@ public interface IApiGatewayEventProcessor
 
 public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
 {
+    private static readonly MemoryStream _emptyStream = new (Array.Empty<byte>());
     private readonly IServiceProvider _serviceProvider;
     private readonly IMiddlewareService _middlewareService;
     private readonly IMemoryStreamPool _memoryStreamPool;
@@ -28,6 +30,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
     private readonly IMetricLoggerProvider _metricLoggerProvider;
     private readonly MSLogging.ILogger<ApiGatewayEventProcessor> _logger;
     private readonly IKnownServices _knownServices;
+    private readonly ILambdaContextAccessor _lambdaContextAccessor;
 
     public ApiGatewayEventProcessor(
         IServiceProvider serviceProvider, 
@@ -36,7 +39,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
         IRequestLogger requestLogger, 
         MSLogging.ILogger<ApiGatewayEventProcessor> logger, 
         IMetricLoggerProvider metricLoggerProvider,
-        IKnownServices knownServices)
+        IKnownServices knownServices, ILambdaContextAccessor lambdaContextAccessor)
     {
         _serviceProvider = serviceProvider;
         _middlewareService = middlewareService;
@@ -45,11 +48,14 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
         _logger = logger;
         _metricLoggerProvider = metricLoggerProvider;
         _knownServices = knownServices;
+        _lambdaContextAccessor = lambdaContextAccessor;
     }
 
     public async Task<APIGatewayHttpApiV2ProxyResponse> Process(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext context)
     {
         var requestStartTimestamp = MachineTimestamp.Now;
+        
+        _lambdaContextAccessor.Context = context;
 
         var response = new APIGatewayHttpApiV2ProxyResponse
         {
@@ -113,6 +119,11 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
 
     private Stream CreateBodyFromRequest(APIGatewayHttpApiV2ProxyRequest request, MemoryStream memoryStream)
     {
+        if (string.IsNullOrEmpty(request.Body))
+        {
+            return _emptyStream;
+        }
+        
         byte[] bytes = request.IsBase64Encoded ?
             Convert.FromBase64String(request.Body) :
             Encoding.UTF8.GetBytes(request.Body);

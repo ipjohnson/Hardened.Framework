@@ -1,4 +1,5 @@
 ﻿using Hardened.SourceGenerator.Shared;
+using System.Linq;
 
 namespace Hardened.SourceGenerator.Templates.Generator;
 

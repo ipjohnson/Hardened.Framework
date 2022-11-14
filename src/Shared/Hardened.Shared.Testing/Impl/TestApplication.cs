@@ -1,8 +1,5 @@
 ﻿using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Runtime.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 
 namespace Hardened.Shared.Testing.Impl;
 
@@ -12,18 +9,16 @@ public class TestApplication : IApplicationRoot
 
     public TestApplication(IApplicationModule testModule, string logNs, IEnvironment environment, Action<IEnvironment, IServiceCollection>? overrideDependencies)
     {
-        var loggerFactory = LoggerFactory.Create(builder => { });
-        _rootServiceProvider = CreateServiceProvider(testModule, environment, overrideDependencies, loggerFactory);
+        _rootServiceProvider = CreateServiceProvider(testModule, environment, overrideDependencies);
         ApplicationLogic.StartWithWait(Provider, null, 15);
     }
 
     private ServiceProvider CreateServiceProvider(IApplicationModule applicationModule, IEnvironment environment,
-        Action<IEnvironment, IServiceCollection>? overrideDependencies, ILoggerFactory loggerFactory)
+        Action<IEnvironment, IServiceCollection>? overrideDependencies)
     {
         var serviceCollection = new ServiceCollection();
 
-        serviceCollection.TryAddTransient(typeof(ILogger<>), typeof(LoggerImpl<>));
-        serviceCollection.AddSingleton(_ => loggerFactory);
+        serviceCollection.AddLogging();
         serviceCollection.AddSingleton(environment);
 
         applicationModule.ConfigureModule(environment, serviceCollection);

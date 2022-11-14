@@ -38,13 +38,13 @@ public partial class RequestLogger : IRequestLogger
 
     public void RequestParameterBindFailed(IExecutionContext context, Exception? exp)
     {
-        _logger.LogError(exp, "{0} {1} failed to bind parameters: {2}\r\n{3}", 
-            context.Request.Method, context.Request.Path, exp?.Message, exp?.StackTrace);
+        _logger.LogError(exp, "{method} {path} failed to bind parameters", 
+            context.Request.Method, context.Request.Path);
     }
 
     public void RequestFailed(IExecutionContext context, Exception exp)
     {
-        _logger.LogError(exp, "{0} {1} request failed {2}\r\n{3}", context.Request.Method, context.Request.Path, exp.Message, exp.StackTrace);
+        _logger.LogError(exp, "{method} {path} request failed", context.Request.Method, context.Request.Path);
     }
 
     public void ResourceNotFound(IExecutionContext context)

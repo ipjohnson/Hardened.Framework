@@ -3,6 +3,8 @@ using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hardened.SourceGenerator.DependencyInjection;
 
@@ -75,8 +77,10 @@ public class DependencyInjectionFileGenerator
         var overrideDependenciesDefinition = providerMethod.AddParameter(
             TypeDefinition.Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
-        ParameterDefinition loggerFactory
-            = providerMethod.AddParameter(KnownTypes.Logging.ILoggerFactory, "loggerFactory");
+        ParameterDefinition loggingBuilderAction
+            = providerMethod.AddParameter(
+                TypeDefinition.Action(KnownTypes.Logging.ILoggingBuilder).MakeNullable() , 
+                "loggingBuilderAction");
 
         var initAction = providerMethod.AddParameter(
             TypeDefinition.Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection).MakeNullable(),
@@ -91,20 +95,21 @@ public class DependencyInjectionFileGenerator
 
         providerMethod.NewLine();
 
+        var loggerStatement = NullCoalesce(loggingBuilderAction, "(b => {})");
+
+        loggerStatement.PrintParentheses = false;
+        loggerStatement.Indented = false;
+
         providerMethod.AddIndentedStatement(
             serviceCollectionDefinition.Invoke(
-                "TryAddTransient", "typeof(ILogger<>)", "typeof(LoggerImpl<>)"));
+                "AddLogging", loggerStatement));
+        
         providerMethod.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.Logging);
-
-        providerMethod.AddIndentedStatement(
-            serviceCollectionDefinition.InvokeGeneric(
-                "AddSingleton", new[] { KnownTypes.Logging.ILoggerFactory }, "_ => loggerFactory"));
-
+        
         providerMethod.AddIndentedStatement(
             serviceCollectionDefinition.Invoke("AddSingleton", "environment")
         );
-
-
+        
         providerMethod.NewLine();
 
         providerMethod.AddIndentedStatement("initDependencies?.Invoke(environment, serviceCollection)");

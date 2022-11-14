@@ -21,7 +21,8 @@ public class MockAttribute : Attribute, IHardenedParameterProviderAttribute
         }
     }
 
-    public object? ProvideParameterValue(ParameterInfo parameterInfo, IApplicationRoot applicationRoot)
+    public object? ProvideParameterValue(MethodInfo methodInfo, ParameterInfo parameterInfo,
+        IApplicationRoot applicationRoot)
     {
         return _parameterValue;
     }

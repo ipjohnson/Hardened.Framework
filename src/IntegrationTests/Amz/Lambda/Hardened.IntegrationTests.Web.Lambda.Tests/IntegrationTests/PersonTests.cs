@@ -109,7 +109,7 @@ public class PersonTests
 
     public class TestPersonService : IPersonService
     {
-        private Dictionary<int, PersonModel> _models;
+        private readonly Dictionary<int, PersonModel> _models;
         private IEnvironment _environment;
 
         public TestPersonService(IEnvironment environment)

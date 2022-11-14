@@ -1,10 +1,12 @@
 ﻿using Hardened.Amz.Shared.Lambda.Runtime.Execution;
+using Hardened.Amz.Shared.Lambda.Runtime.Logging;
 using Hardened.Amz.Web.Lambda.Runtime.Impl;
 using Hardened.Amz.Web.Lambda.Runtime.Metrics;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Web.Lambda.Runtime.DependencyInjection;
 
@@ -16,5 +18,7 @@ public static class LambdaWebDI
         serviceCollection.AddSingleton<IMetricLoggerProvider, EmbeddedMetricLoggerProvider>();
         serviceCollection.TryAddSingleton<IDimensionSetProvider, DimensionSetProvider>();
         serviceCollection.TryAddSingleton<ILambdaContextAccessor, LambdaContextAccessor>();
+        serviceCollection.RemoveAll<ILoggerProvider>();
+        serviceCollection.AddSingleton<ILoggerProvider, LambdaLoggerProvider>();
     }
 }

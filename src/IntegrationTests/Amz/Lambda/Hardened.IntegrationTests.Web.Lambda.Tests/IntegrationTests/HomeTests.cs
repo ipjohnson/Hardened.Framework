@@ -4,11 +4,21 @@ using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using NSubstitute;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Hardened.IntegrationTests.Web.Lambda.Tests.IntegrationTests;
 
+[CollectionDefinition("name",DisableParallelization = true)]
 public class HomeTests
 {
+    private readonly ITestOutputHelper _helper;
+
+    public HomeTests(ITestOutputHelper helper)
+    {
+        _helper = helper;
+        helper.WriteLine("test");
+    }
+    
     [HardenedTest]
     public void SimpleTest(MathService mathService)
     {
@@ -17,12 +27,18 @@ public class HomeTests
     }
 
     [HardenedTest]
-    public async Task HomeTest(ITestWebApp app, 
+    public async Task HomeTest(ITestWebApp test, 
         [Mock] IMathService mathService)
     {
-        mathService.Add(2, 2).Returns(5);
+        _helper.WriteLine("test 2");
 
-        var response = await app.Get("/home");
+        test.Step(() =>
+            mathService.Add(2, 2).Returns(5),
+            "Setup Mock Add");
+
+        var response = await test.Step(
+            () => test.Get("/home"), 
+            "Get /home ");
             
         response.Assert.Ok();
 
@@ -32,9 +48,10 @@ public class HomeTests
         Assert.Equal("Blah Test 5", homeModel.Name);
     }
 
-    [HardenedTest]
+    [HardenedTest(Timeout = 110)]
     public async Task HeaderTest(ITestWebApp app)
     {
+        await Task.Delay(100);
         var response = await app.Get("/Header", request => request.Headers.Set("headerString", "testing 123"));
 
         response.Assert.Ok();

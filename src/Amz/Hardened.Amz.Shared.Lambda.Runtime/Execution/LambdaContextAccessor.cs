@@ -10,4 +10,8 @@ public interface ILambdaContextAccessor
 public class LambdaContextAccessor : ILambdaContextAccessor
 {
     public ILambdaContext? Context { get; set; }
+
+    public void T()
+    {
+    }
 }

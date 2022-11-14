@@ -14,5 +14,7 @@ public interface IHardenedParameterProviderAttribute : IHardenedOrderedAttribute
         IServiceCollection serviceCollection);
 
     object? ProvideParameterValue(
-        ParameterInfo parameterInfo, IApplicationRoot applicationRoot);
+        MethodInfo methodInfo,
+        ParameterInfo parameterInfo, 
+        IApplicationRoot applicationRoot);
 }

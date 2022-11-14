@@ -6,8 +6,8 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Controllers;
 
 public class RoutingTestController
 {
-    [Get("/company")]
     [AssignMethod]
+    [Get("/company")]
     public Response CompanyGetAll()
     {
         return new Response
@@ -16,8 +16,8 @@ public class RoutingTestController
         };
     }
 
-    [Get("/company/{company}")]
     [AssignMethod]
+    [Get("/company/{company}")]
     public Response CompanyGet(string company)
     {
         return new Response
@@ -26,15 +26,15 @@ public class RoutingTestController
         };
     }
     
-    [Get("/company/{company}/Subscription")]
     [AssignMethod]
+    [Get("/company/{company}/Subscription")]
     public Response CompanyGetSubscription(string company)
     {
         return new Response { Company = company };
     }
 
-    [Get("/company/{company}/Subscription/{id}")]
     [AssignMethod]
+    [Get("/company/{company}/Subscription/{id}")]
     public Response CompanyGetSubscriptionWithQuery(
         string company, 
         string id, 

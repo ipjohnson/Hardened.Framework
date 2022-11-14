@@ -20,7 +20,8 @@ public class SimpleParameterValueAttribute : Attribute, IHardenedParameterProvid
 
     }
 
-    public object? ProvideParameterValue(ParameterInfo parameterInfo, IApplicationRoot applicationRoot)
+    public object? ProvideParameterValue(MethodInfo methodInfo, ParameterInfo parameterInfo,
+        IApplicationRoot applicationRoot)
     {
         return _value;
     }

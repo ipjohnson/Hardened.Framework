@@ -4,7 +4,6 @@ namespace Hardened.IntegrationTests.Web.Lambda.SUT.Filters;
 
 public class MetricsFilter : IExecutionFilter
 {
-
     public async Task Execute(IExecutionChain chain)
     {
         var startTime = DateTime.Now;

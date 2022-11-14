@@ -22,6 +22,7 @@ public class LibrarySourceGenerator : IIncrementalGenerator
 
         DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
         ConfigurationIncrementalGenerator.Setup(context, applicationModel);
+        
         //ModuleCodeGenerator.Setup(context, applicationModel);
     }
 }

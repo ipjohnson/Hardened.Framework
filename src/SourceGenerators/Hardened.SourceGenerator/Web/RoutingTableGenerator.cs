@@ -10,7 +10,7 @@ namespace Hardened.SourceGenerator.Web;
 
 public static class RoutingTableGenerator
 {
-    private static IOutputComponent EmptyTokens = 
+    private static readonly IOutputComponent EmptyTokens = 
         Property(KnownTypes.Requests.PathTokenCollection, "Empty");
     
     public static void GenerateRoute(SourceProductionContext context,

@@ -7,12 +7,14 @@ using Hardened.Shared.Runtime.Attributes;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Web.Runtime.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Hardened.IntegrationTests.Web.Lambda.SUT;
 
 [HardenedStartup]
 public partial class Application
 {
+
     private IEnumerable<IApplicationModule> Modules()
     {
         yield return new WebLibraryEntryPoint();
@@ -30,14 +32,14 @@ public partial class Application
         });
     }
 
-    //private void ConfigureLogging(IEnvironment environment, ILoggingBuilder builder)
-    //{
-    //    builder
-    //        .AddFilter("Microsoft", LogLevel.Warning)
-    //        .AddFilter("System", LogLevel.Warning)
-    //        .AddFilter("Hardened", LogLevel.Debug)
-    //        .AddLambdaLogger();
-    //}
+    private void ConfigureLogging(IEnvironment environment, ILoggingBuilder builder)
+    {
+        builder
+            .AddFilter("Microsoft", LogLevel.Warning)
+            .AddFilter("System", LogLevel.Warning) 
+            .AddFilter("Hardened", LogLevel.Debug)
+            .AddLambdaLogger();
+    }
 
     private async Task Startup(IServiceProvider rootProvider)
     {

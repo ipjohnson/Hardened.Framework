@@ -20,8 +20,8 @@ public interface IStaticContentHandler
 
 public class StaticContentHandler : IStaticContentHandler
 {
-    private static Task<bool> FalseComplete = Task.FromResult(false);
-    private static Task<bool> TrueComplete = Task.FromResult(true);
+    private static readonly Task<bool> FalseComplete = Task.FromResult(false);
+    private static readonly Task<bool> TrueComplete = Task.FromResult(true);
     private const string GzFileExtension = ".gz";
     private const string BrFileExtension = ".br";
 

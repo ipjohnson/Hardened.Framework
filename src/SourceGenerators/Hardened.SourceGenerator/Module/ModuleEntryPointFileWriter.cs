@@ -2,6 +2,8 @@
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
+using System;
+using System.Linq;
 
 namespace Hardened.SourceGenerator.Module;
 

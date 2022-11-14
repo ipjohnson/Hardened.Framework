@@ -1,7 +1,7 @@
 ﻿using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.Logging;
 
-namespace Hardened.Shared.Lambda.Runtime.Logging;
+namespace Hardened.Amz.Shared.Lambda.Runtime.Logging;
 
 public class LambdaLoggerHelper
 {
@@ -20,8 +20,7 @@ public class LambdaLoggerHelper
             .AddFilter("Microsoft", LogLevel.Warning)
             .AddFilter("System", LogLevel.Warning)
             .AddFilter("Hardened", _logLevel)
-            .AddFilter(_entryNamespace, _logLevel)
-            .AddLambdaLogger();
+            .AddFilter(_entryNamespace, _logLevel);
     }
 
     public static Action<ILoggingBuilder> CreateAction(IEnvironment environment, string entryNamespace)

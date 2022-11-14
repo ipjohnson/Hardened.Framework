@@ -2,9 +2,13 @@
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Configuration;
+using Hardened.Shared.Runtime.Json;
 using Hardened.Shared.Testing.Attributes;
+using Hardened.Shared.Testing.Logging;
 using Hardened.Shared.Testing.Utilties;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
@@ -12,15 +16,25 @@ namespace Hardened.Shared.Testing.Impl;
 
 public class HardenedTestInvoker : XunitTestInvoker
 {
+    private readonly TestOutputHelper _testOutputHelper;
     private object? _testClassInstance;
     private IApplicationRoot? _testApplicationRoot;
     private readonly HardenedTestEnvironmentBuilder _environmentBuilder = new();
     private readonly Dictionary<ParameterInfo, IHardenedParameterProviderAttribute> _knownParameterValues = new();
 
-    public HardenedTestInvoker(ITest test, IMessageBus messageBus, Type testClass, object[] constructorArguments, MethodInfo testMethod, object[] testMethodArguments, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+    public HardenedTestInvoker(ITest test, 
+        TestOutputHelper testOutputHelper,
+        IMessageBus messageBus,
+        Type testClass,
+        object[] constructorArguments, 
+        MethodInfo testMethod, 
+        object[] testMethodArguments,
+        IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, 
+        ExceptionAggregator aggregator,
+        CancellationTokenSource cancellationTokenSource)
         : base(test, messageBus, testClass, constructorArguments, testMethod, testMethodArguments, beforeAfterAttributes, aggregator, cancellationTokenSource)
     {
-
+        _testOutputHelper = testOutputHelper;
     }
 
     protected override object CreateTestClass()
@@ -32,11 +46,9 @@ public class HardenedTestInvoker : XunitTestInvoker
     {
         try
         {
-            await ConstructParameters();       
-
-            var result = await base.InvokeTestMethodAsync(testClassInstance);
-
-            return result;
+            await ConstructParameters();
+            
+            return await base.InvokeTestMethodAsync(testClassInstance);
         }
         finally
         {
@@ -69,6 +81,9 @@ public class HardenedTestInvoker : XunitTestInvoker
 
         return (env, collection) =>
         {
+            collection.AddSingleton<ITestOutputHelper>(_testOutputHelper);
+            collection.AddSingleton(new TestCancellationToken(CancellationTokenSource.Token));
+            
             registrationAttributeList.Foreach(hardenedTestDependencyRegistrationAttribute =>
             {
                 hardenedTestDependencyRegistrationAttribute.RegisterDependencies(
@@ -102,6 +117,10 @@ public class HardenedTestInvoker : XunitTestInvoker
 
             configurationAction(env, collection);
 
+            collection.RemoveAll<ILoggerProvider>();
+
+            collection.AddSingleton<ILoggerProvider, XunitLoggerProvider>();
+            
             ProcessInstanceRegistrationMethod(attributeCollection, testMethod, env, collection);
         };
     }
@@ -110,7 +129,7 @@ public class HardenedTestInvoker : XunitTestInvoker
         AttributeCollection attributeCollection, IEnvironment environment)
     {
         return (env, collection) =>
-        {
+        {   
             var appConfig = new AppConfig();
 
             attributeCollection.GetAttributes<IHardenedTestConfigurationAttribute>().Foreach(a =>
@@ -226,14 +245,14 @@ public class HardenedTestInvoker : XunitTestInvoker
 
             if (_knownParameterValues.TryGetValue(parameter, out var providerAttribute))
             {
-                argumentValue = providerAttribute.ProvideParameterValue(parameter, _testApplicationRoot!);
+                argumentValue = providerAttribute.ProvideParameterValue(TestMethod, parameter, _testApplicationRoot!);
             }
 
             if (argumentValue == null && globalParameterProviderList.Count > 0)
             {
                 foreach (var attribute in globalParameterProviderList)
                 {
-                    argumentValue = attribute.ProvideParameterValue(parameter, _testApplicationRoot!);
+                    argumentValue = attribute.ProvideParameterValue(TestMethod, parameter, _testApplicationRoot!);
 
                     if (argumentValue != null)
                     {

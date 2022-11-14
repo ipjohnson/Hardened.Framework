@@ -53,9 +53,10 @@ public abstract class ApplicationEntryPointFileWriter
         var overrides =
             constructor.AddParameter(TypeDefinition.Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
-        var loggerFactory = SetupLoggerFactory(entryPoint, constructor, environment);
-
-        constructor.Assign(Invoke("CreateServiceProvider", environment, overrides, loggerFactory, "RegisterInitDi")).To("RootServiceProvider");
+        var loggingBuilderAction = SetupLoggingBuilderAction(entryPoint, constructor, environment);
+        
+        constructor.Assign(
+            Invoke("CreateServiceProvider", environment, overrides, loggingBuilderAction, "RegisterInitDi")).To("RootServiceProvider");
 
         var registerInitDi = appClass.AddMethod("RegisterInitDi");
 
@@ -96,7 +97,26 @@ public abstract class ApplicationEntryPointFileWriter
     {
             
     }
+    private static IOutputComponent SetupLoggingBuilderAction(
+        EntryPointSelector.Model entryPoint, ConstructorDefinition constructor, ParameterDefinition environment)
+    {
+        var loggingMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogging");
+        var logLevelMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogLevel");
 
+        if (loggingMethod != null)
+        {
+            if (loggingMethod.Parameters.Count == 1)
+            {
+                return CodeOutputComponent.Get(loggingMethod.Name);
+            }
+            
+            return constructor.Assign("builder => ConfigureLogging(environment, builder)")
+                .ToLocal(TypeDefinition.Action(KnownTypes.Logging.ILoggingBuilder), "loggingBuilderAction");
+        }
+        
+        return Null();
+    }
+    
     protected virtual InstanceDefinition SetupLoggerFactory(
         EntryPointSelector.Model entryPoint,
         ConstructorDefinition constructorDefinition,

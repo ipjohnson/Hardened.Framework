@@ -4,6 +4,7 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Hardened.Web.Testing;
 
@@ -16,11 +17,16 @@ public class WebTestingAttribute : Attribute, IHardenedParameterProviderAttribut
 
     }
 
-    public object? ProvideParameterValue(ParameterInfo parameterInfo, IApplicationRoot applicationRoot)
+    public object? ProvideParameterValue(MethodInfo methodInfo, 
+        ParameterInfo parameterInfo,
+        IApplicationRoot applicationRoot)
     {
         if (parameterInfo.ParameterType == typeof(ITestWebApp))
         {
-            return new TestWebApp(applicationRoot);
+            var logger = (ILogger)applicationRoot.Provider.GetService(
+                typeof(ILogger<>).MakeGenericType(methodInfo.DeclaringType!))!;
+
+            return new TestWebApp(applicationRoot, logger);
         }
 
         return null;
@@ -37,8 +43,7 @@ public class WebTestingAttribute : Attribute, IHardenedParameterProviderAttribut
             var middleware = serviceProvider.GetRequiredService<IMiddlewareService>();
             middleware.Use(_ => handler);
         }
-
-
+        
         return Task.CompletedTask;
     }
 }

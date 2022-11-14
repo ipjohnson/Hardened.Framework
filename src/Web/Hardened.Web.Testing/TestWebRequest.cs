@@ -10,5 +10,10 @@ public class TestWebRequest
     /// <summary>
     /// Headers for request
     /// </summary>
-    public IHeaderCollection Headers { get; set; }
+    public IHeaderCollection Headers { get; set; } = default!;
+    
+    /// <summary>
+    /// CancellationToken for the request
+    /// </summary>
+    public CancellationToken? Token { get; set; }
 }

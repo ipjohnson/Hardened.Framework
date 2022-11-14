@@ -1,6 +1,8 @@
-﻿namespace Hardened.Web.Testing;
+﻿using Hardened.Shared.Testing;
 
-public interface ITestWebApp
+namespace Hardened.Web.Testing;
+
+public interface ITestWebApp : ITestContext
 {
     IServiceProvider RootServiceProvider { get; }
 

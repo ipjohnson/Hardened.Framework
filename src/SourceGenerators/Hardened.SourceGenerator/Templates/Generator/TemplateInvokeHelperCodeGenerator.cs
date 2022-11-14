@@ -2,6 +2,7 @@
 using Hardened.SourceGenerator.Shared;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Templates.Parser;
+using System.Linq;
 
 namespace Hardened.SourceGenerator.Templates.Generator;
 

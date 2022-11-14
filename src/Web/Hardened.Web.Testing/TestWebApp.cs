@@ -9,18 +9,23 @@ using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Diagnostics;
+using Hardened.Shared.Testing.Impl;
 using Hardened.Web.Runtime.Headers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Hardened.Web.Testing;
 
 public class TestWebApp : ITestWebApp
 {
     private readonly IApplicationRoot _applicationRoot;
-
-    public TestWebApp(IApplicationRoot applicationRoot)
+    private readonly TestCancellationToken _testCancellationToken;
+    
+    public TestWebApp(IApplicationRoot applicationRoot, ILogger logger)
     {
         _applicationRoot = applicationRoot;
+        Logger = logger;
+        _testCancellationToken = _applicationRoot.Provider.GetService<TestCancellationToken>()!;
     }
 
     public IServiceProvider RootServiceProvider => _applicationRoot.Provider;
@@ -57,6 +62,8 @@ public class TestWebApp : ITestWebApp
 
     private async Task<TestWebResponse> ExecuteHttpMethod(string httpMethod, string path, Action<TestWebRequest>? webRequest, object? bodyValue = null)
     {
+        _testCancellationToken.Token.ThrowIfCancellationRequested();
+
         var startTimestamp = MachineTimestamp.Now;
 
         var middlewareService = _applicationRoot.Provider.GetRequiredService<IMiddlewareService>();
@@ -65,7 +72,8 @@ public class TestWebApp : ITestWebApp
         var responseBody = new MemoryStream();
         var scope = _applicationRoot.Provider.CreateScope();
 
-        var context = CreateContext(httpMethod, path, webRequest, responseBody, scope);
+        var context = CreateContext(
+            httpMethod, path, webRequest, responseBody, scope);
             
         context.Request.Headers.Set(KnownHeaders.AcceptEncoding, "gzip");
             
@@ -73,8 +81,8 @@ public class TestWebApp : ITestWebApp
         {
             context.Request.Headers.Set(KnownHeaders.ContentType, "application/json");
         }
-
-        webRequest?.Invoke(new TestWebRequest{ Headers = context.Request.Headers });
+        
+        webRequest?.Invoke(new TestWebRequest{ Headers = context.Request.Headers});
 
         context.Request.Body = SetupBodyStream(bodyValue);
 
@@ -116,11 +124,21 @@ public class TestWebApp : ITestWebApp
         return memoryStream;
     }
 
-    private IExecutionContext CreateContext(string httpMethod, string path, Action<TestWebRequest>? webRequest,
-        MemoryStream responseBody, IServiceScope serviceScope)
-    {
+    private IExecutionContext CreateContext(
+        string httpMethod, 
+        string path, 
+        Action<TestWebRequest>? webRequest,
+        MemoryStream responseBody, 
+        IServiceScope serviceScope)
+    {   
         var header = new HeaderCollectionStringValues();
 
+        var testWebRequest = new TestWebRequest { Headers = header };
+        
+        webRequest?.Invoke(testWebRequest);
+
+        testWebRequest.Token ??= _testCancellationToken.Token;
+        
         var pathMinusQuery = path;
         var questionMark = path.IndexOf('?');
         if (questionMark > -1)
@@ -128,14 +146,15 @@ public class TestWebApp : ITestWebApp
             pathMinusQuery = path.Substring(0, questionMark);
         }
         var request = new TestExecutionRequest(httpMethod, pathMinusQuery, "", ParseQueryStringFromPath(path)) { Headers = header };
-        var response = new TestExecutionResponse(responseBody) { Headers = new HeaderCollectionStringValues() };
-
+        var response = new TestExecutionResponse(responseBody) { Headers = header };
+        
         return new TestExecutionContext(
             _applicationRoot.Provider, 
             serviceScope.ServiceProvider, 
             serviceScope.ServiceProvider.GetRequiredService<IKnownServices>(), 
             request,
-            response);
+            response,
+            testWebRequest.Token.Value);
     }
 
     private IQueryStringCollection ParseQueryStringFromPath(string path)
@@ -167,5 +186,107 @@ public class TestWebApp : ITestWebApp
         }
 
         return new SimpleQueryStringCollection(queryStringValues);
+    }
+
+    public CancellationToken CancellationRequest => _testCancellationToken.Token;
+    
+    public void Step(Action step, string description, params object[] parameters)
+    {
+        bool status = false;
+        
+        var start = MachineTimestamp.Now;
+        
+        try
+        {
+            step();
+
+            status = true;
+        }
+        finally
+        {
+            LogStep(status, start.GetElapsedMilliseconds(), description, parameters);
+        }
+    }
+
+
+    public T Step<T>(Func<T> step, string description, params object[] parameters)
+    {
+        bool status = false;
+        
+        var start = MachineTimestamp.Now;
+        
+        try
+        {
+            var result = step();
+
+            status = true;
+
+            return result;
+        }
+        finally
+        {
+            LogStep(status, start.GetElapsedMilliseconds(), description, parameters);
+        }
+    }
+
+    public async Task Step(Func<Task> step, string description, params object[] parameters)
+    {
+        bool status = false;
+        
+        var start = MachineTimestamp.Now;
+        
+        try
+        {
+            await step();
+
+            status = true;
+        }
+        finally
+        {
+            LogStep(status, start.GetElapsedMilliseconds(), description, parameters);
+        }
+    }
+
+    public async Task<T> Step<T>(Func<Task<T>> step, string description, params object[] parameters)
+    {
+        bool status = false;
+        
+        var start = MachineTimestamp.Now;
+        
+        try
+        {
+            var result = await step();
+
+            status = true;
+
+            return result;
+        }
+        finally
+        {
+            LogStep(status, start.GetElapsedMilliseconds(), description, parameters);
+        }
+    }
+
+    public ILogger Logger { get; }
+    
+    
+    private void LogStep(bool status, double duration, string description, object[] parameters)
+    {
+        var statusString = status ? "pass" : "fail";
+        var logMessage = "{status} - " + description + " - {duration}ms";
+        var parameterList = new List<object> { statusString };
+        parameterList.AddRange(parameters);
+        parameterList.Add(duration);
+
+#pragma warning disable CA2254 // Template should be a static expression
+        if (status)
+        {
+            Logger.LogInformation(logMessage, parameterList.ToArray());
+        }
+        else
+        {
+            Logger.LogError(logMessage, parameterList.ToArray());
+        }
+#pragma warning enable CA2254 // Template should be a static expression
     }
 }

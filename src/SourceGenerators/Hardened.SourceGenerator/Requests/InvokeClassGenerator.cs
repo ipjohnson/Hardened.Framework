@@ -2,6 +2,9 @@
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
+using System;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace Hardened.SourceGenerator.Requests;
 
@@ -160,7 +163,7 @@ public static class InvokeClassGenerator
 
         foreach (var filterInformation in handlerModel.Filters)
         {
-            var newValue = New(filterInformation.TypeDefinition, filterInformation.Arguments);
+            var newValue = New((ITypeDefinition)filterInformation.TypeDefinition, filterInformation.Arguments);
 
             if (!string.IsNullOrEmpty(filterInformation.PropertyAssignment))
             {

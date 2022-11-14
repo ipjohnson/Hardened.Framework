@@ -14,18 +14,20 @@ public interface IJsonSerializer
 
     T Deserialize<T>(string json);
 
-    string Serialize(object obj);
+    string Serialize(object obj, bool pretty = false);
 
-    Task SerializeAsync(Stream jsonStream, object obj, CancellationToken cancellationToken = default);
+    Task SerializeAsync(Stream jsonStream, object obj, bool pretty = false, CancellationToken cancellationToken = default);
 }
 
 public class JsonSerializerImpl : IJsonSerializer
 {
     private readonly JsonSerializerOptions _serializerOptions;
+    private readonly JsonSerializerOptions _prettyOptions;
 
     public JsonSerializerImpl(IOptions<IJsonSerializerConfiguration> configuration)
     {
         _serializerOptions = configuration.Value.Options;
+        _prettyOptions = new JsonSerializerOptions(_serializerOptions) { WriteIndented = true };
     }
 
     public async Task<T> DeserializeAsync<T>(Stream jsonStream, CancellationToken cancellationToken = default)
@@ -42,15 +44,21 @@ public class JsonSerializerImpl : IJsonSerializer
                throw new Exception("Deserialized to null instance");
     }
 
-    public string Serialize(object obj)
+    public string Serialize(object obj, bool pretty)
     {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(obj, _serializerOptions);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(
+            obj, 
+            pretty ? _prettyOptions : _serializerOptions);
 
         return Encoding.UTF8.GetString(bytes);
     }
 
-    public Task SerializeAsync(Stream jsonStream, object obj, CancellationToken cancellationToken = default)
+    public Task SerializeAsync(Stream jsonStream, object obj, bool pretty, CancellationToken cancellationToken)
     {
-        return JsonSerializer.SerializeAsync(jsonStream, obj, _serializerOptions, cancellationToken);
+        return JsonSerializer.SerializeAsync(
+            jsonStream, 
+            obj, 
+            pretty ? _prettyOptions : _serializerOptions,
+            cancellationToken);
     }
 }

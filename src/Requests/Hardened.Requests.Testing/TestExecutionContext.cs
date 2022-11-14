@@ -11,7 +11,8 @@ public class TestExecutionContext : IExecutionContext
         IServiceProvider requestServices, 
         IKnownServices knownServices,
         IExecutionRequest request,
-        IExecutionResponse response)
+        IExecutionResponse response,
+        CancellationToken cancellationToken)
     {
         RootServiceProvider = rootServiceProvider;
         RequestServices = requestServices;
@@ -20,6 +21,7 @@ public class TestExecutionContext : IExecutionContext
         KnownServices = knownServices;
         RequestMetrics = new NullMetricsLogger();
         StartTime = MachineTimestamp.Now;
+        CancellationToken = cancellationToken;
     }
 
     public object Clone()
@@ -47,5 +49,5 @@ public class TestExecutionContext : IExecutionContext
 
     public MachineTimestamp StartTime { get; }
 
-    public CancellationToken CancellationToken { get; } = CancellationToken.None;
+    public CancellationToken CancellationToken { get; }
 }

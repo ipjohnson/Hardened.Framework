@@ -15,7 +15,7 @@ namespace Hardened.Amz.DynamoDbClient.Impl;
 public class DynamoDbClientProvider : IDynamoDbClientProvider
 {
     private AmazonDynamoDBClient? _defaultClient;
-    private ConcurrentDictionary<string, AmazonDynamoDBClient> _namedClients = new();
+    private readonly ConcurrentDictionary<string, AmazonDynamoDBClient> _namedClients = new();
     private readonly IDynamoDbClientConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
 

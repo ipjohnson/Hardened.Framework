@@ -5,13 +5,14 @@ namespace Hardened.Shared.Testing.Impl;
 
 public class HardenedTestCaseRunner : XunitTestCaseRunner
 {
+    private readonly IMessageSink _messageSink;
     private readonly List<HardenedTestRunner> _testRunners = new();
     private readonly ExceptionAggregator _cleanupAggregator = new();
-
-    public HardenedTestCaseRunner(IXunitTestCase testCase, string displayName, string skipReason, object[] constructorArguments, object[] testMethodArguments, IMessageBus messageBus, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) 
+    
+    public HardenedTestCaseRunner(IXunitTestCase testCase, IMessageSink messageSink, string displayName, string skipReason, object[] constructorArguments, object[] testMethodArguments, IMessageBus messageBus, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) 
         : base(testCase, displayName, skipReason, constructorArguments, testMethodArguments, messageBus, aggregator, cancellationTokenSource)
     {
-
+        _messageSink = messageSink;
     }
 
     protected override Task AfterTestCaseStartingAsync()
@@ -25,8 +26,20 @@ public class HardenedTestCaseRunner : XunitTestCaseRunner
 
             var test = new XunitTest(TestCase, theoryDisplayName.Replace("???", ""));
 
-            var testRunner = new HardenedTestRunner(test, MessageBus, TestClass, ConstructorArguments, TestMethod,
-                TestMethodArguments, SkipReason, BeforeAfterAttributes, Aggregator, CancellationTokenSource);
+            var testOutputHelper = new TestOutputHelper();
+            
+            var testRunner = new HardenedTestRunner(
+                test,
+                testOutputHelper,
+                MessageBus, 
+                TestClass, 
+                ConstructorArguments, 
+                TestMethod,
+                TestMethodArguments, 
+                SkipReason,
+                BeforeAfterAttributes,
+                Aggregator,
+                CancellationTokenSource);
 
             _testRunners.Add(testRunner);
         }
@@ -44,8 +57,11 @@ public class HardenedTestCaseRunner : XunitTestCaseRunner
 
                     var test = new XunitTest(TestCase, theoryDisplayName);
 
+                    var testOutputHelper = new TestOutputHelper();
+                    
                     var testRunner = new HardenedTestRunner(
                         test,
+                        testOutputHelper,
                         MessageBus, 
                         TestClass, 
                         ConstructorArguments,

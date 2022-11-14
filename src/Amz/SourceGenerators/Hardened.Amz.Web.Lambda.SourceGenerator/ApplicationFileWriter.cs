@@ -69,9 +69,9 @@ public static class ApplicationFileWriter
         var overrides = 
             constructor.AddParameter(TypeDefinition.Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection).MakeNullable(), "overrideDependencies");
 
-        var loggerFactory = SetupLoggerFactory(entryPoint, constructor, environment);
+        var loggingBuilder = SetupLoggingBuilderAction(entryPoint, constructor, environment);
 
-        constructor.Assign(Invoke("CreateServiceProvider",environment, overrides, loggerFactory, "RegisterInitDi")).To(providerInstanceDefinition);
+        constructor.Assign(Invoke("CreateServiceProvider",environment, overrides, loggingBuilder, "RegisterInitDi")).To(providerInstanceDefinition);
 
         var registerInitDi = appClass.AddMethod("RegisterInitDi");
 
@@ -111,35 +111,23 @@ public static class ApplicationFileWriter
             new[] { KnownTypes.Lambda.IApiGatewayEventProcessor })).To("_eventProcessor");
     }
 
-    private static InstanceDefinition SetupLoggerFactory(
-        EntryPointSelector.Model entryPoint,
-        ConstructorDefinition constructorDefinition, 
-        ParameterDefinition environment)
+    private static IOutputComponent SetupLoggingBuilderAction(
+        EntryPointSelector.Model entryPoint, ConstructorDefinition constructor, ParameterDefinition environment)
     {
         var loggingMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogging");
         var logLevelMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogLevel");
 
-        IOutputComponent? logCreateMethod;
-
         if (loggingMethod != null)
         {
-            logCreateMethod = CodeOutputComponent.Get("LoggerFactory.Create(builder => ConfigureLogging(environment, builder))");
+            if (loggingMethod.Parameters.Count == 1)
+            {
+                return CodeOutputComponent.Get(loggingMethod.Name);
+            }
+            
+            return constructor.Assign("builder => ConfigureLogging(environment, builder)")
+                .ToLocal(TypeDefinition.Action(KnownTypes.Logging.ILoggingBuilder), "loggingBuilderAction");
         }
-        else if (logLevelMethod != null)
-        {
-            logCreateMethod = CodeOutputComponent.Get(
-                $"LoggerFactory.Create(LambdaWebLoggerHelper.CreateAction(ConfigureLogLevel(environment), \"{entryPoint.EntryPointType.Namespace}\"))");
-            logCreateMethod.AddUsingNamespace("Hardened.Web.Lambda.Runtime.Logging");
-        }
-        else
-        {
-            logCreateMethod = CodeOutputComponent.Get(
-                $"LoggerFactory.Create(LambdaWebLoggerHelper.CreateAction(environment, \"{entryPoint.EntryPointType.Namespace}\"))");
-            logCreateMethod.AddUsingNamespace("Hardened.Web.Lambda.Runtime.Logging");
-        }
-
-        logCreateMethod.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.Logging);
-
-        return constructorDefinition.Assign(logCreateMethod).ToVar("loggerFactory");
+        
+        return Null();
     }
 }
