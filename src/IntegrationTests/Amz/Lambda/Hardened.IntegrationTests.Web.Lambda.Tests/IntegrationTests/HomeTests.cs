@@ -48,10 +48,9 @@ public class HomeTests
         Assert.Equal("Blah Test 5", homeModel.Name);
     }
 
-    [HardenedTest(Timeout = 110)]
+    [HardenedTest]
     public async Task HeaderTest(ITestWebApp app)
     {
-        await Task.Delay(100);
         var response = await app.Get("/Header", request => request.Headers.Set("headerString", "testing 123"));
 
         response.Assert.Ok();
