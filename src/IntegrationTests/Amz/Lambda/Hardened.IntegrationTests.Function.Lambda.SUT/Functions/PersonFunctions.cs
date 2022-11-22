@@ -14,6 +14,10 @@ public class PersonFunctions
         _personService = personService;
     }
 
+    [HardenedFunction("throw-exception")]
+    [ThrowException]
+    public PersonModel ThrowException() => throw new Exception("Test Exception");
+    
     [HardenedFunction("some-test-function")]
     public async Task<PersonModel> Test()
     {

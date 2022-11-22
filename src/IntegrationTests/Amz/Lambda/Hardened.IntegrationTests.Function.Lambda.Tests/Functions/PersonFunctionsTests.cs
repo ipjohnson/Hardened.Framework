@@ -21,6 +21,14 @@ public class PersonFunctionsTests
     }
 
 
+    [HardenedTest]
+    public async Task ThrowExceptionTest(LambdaTestApp testApp)
+    {
+        var exception = await Assert.ThrowsAsync<Exception>(
+            () => testApp.Invoke<PersonModel>("throw-exception", new { }));
+        
+    }
+    
     //[HardenedTest]
     //public async Task GetAllPeople(PersonFunctions_GetAllPeople lambda)
     //{
