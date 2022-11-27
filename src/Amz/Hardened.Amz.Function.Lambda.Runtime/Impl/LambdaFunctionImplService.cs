@@ -13,6 +13,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Amz.Function.Lambda.Runtime.Impl;
 
+/// <summary>
+/// Service that handles lambda invoke request,
+/// takes a stream in and returns a stream
+/// </summary>
 public interface ILambdaFunctionImplService
 {
     Task<Stream> InvokeFunction(Stream stream, ILambdaContext context);

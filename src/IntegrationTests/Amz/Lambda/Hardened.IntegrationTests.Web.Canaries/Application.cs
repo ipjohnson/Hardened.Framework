@@ -13,6 +13,6 @@ public partial class Application
 {
     private IEnumerable<IApplicationModule> Modules()
     {
-        yield return new CanaryLibrary();
+        yield return new CanaryApplication();
     }
 }

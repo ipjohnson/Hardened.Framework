@@ -2,7 +2,6 @@
 
 public enum FlightStatus 
 { 
-    Scheduled, 
     Inflight, 
     Passed, 
     Canceled,
@@ -12,10 +11,9 @@ public enum FlightStatus
 public record CanaryFlightInfo(
     string FlightNumber,
     FlightStatus FlightStatus,
-    DateTime? FlightTakeOff,
-    DateTime? FlightLanded,
-    TimeSpan? EstimatedFlightTime,
-    bool? Passed
+    DateTime FlightTakeOff,
+    TimeSpan? FlightTime,
+    TimeSpan? EstimatedFlightTime
     )
 {
     

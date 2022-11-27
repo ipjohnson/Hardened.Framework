@@ -12,7 +12,7 @@ public class XunitLoggerProvider : ILoggerProvider
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly ConcurrentDictionary<string, XUnitLogger> _loggers = new();
 
-    public XunitLoggerProvider( IJsonSerializer jsonSerializer, ITestOutputHelper testOutputHelper)
+    public XunitLoggerProvider(IJsonSerializer jsonSerializer, ITestOutputHelper testOutputHelper)
     {
         _jsonSerializer = jsonSerializer;
         _testOutputHelper = testOutputHelper;

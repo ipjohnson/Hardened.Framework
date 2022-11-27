@@ -18,7 +18,15 @@ public abstract class BaseExecutionHandler<TController> : IExecutionRequestHandl
 
     public IExecutionChain GetExecutionChain(IExecutionContext context)
     {
-        context.HandlerInstance = context.RequestServices.GetRequiredService(typeof(TController));
+        try
+        {
+            context.HandlerInstance = context.RequestServices.GetRequiredService(typeof(TController));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
         context.HandlerInfo = HandlerInfo;
         context.DefaultOutput = _outputFunc;
             

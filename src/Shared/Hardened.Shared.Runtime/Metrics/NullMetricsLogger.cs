@@ -6,7 +6,12 @@ public class NullMetricsLogger : IMetricLogger
     {
             
     }
-        
+
+    public Task Flush()
+    {
+        return Task.CompletedTask;
+    }
+
     public void Record(IMetricDefinition metric, double value)
     {
 

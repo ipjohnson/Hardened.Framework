@@ -30,10 +30,18 @@ public class EmbeddedMetricLogger : IMetricLogger
                 _metricsLogger.PutDimensions(dimensionSet);
             }
 
+            _metricsLogger.Flush();
             _metricsLogger.Dispose();
         }
     }
+
+    public Task Flush()
+    {
+        _metricsLogger.Flush();
         
+        return Task.CompletedTask;
+    }
+
     public void Record(IMetricDefinition metric, double value)
     {
         var unit = Unit.COUNT;

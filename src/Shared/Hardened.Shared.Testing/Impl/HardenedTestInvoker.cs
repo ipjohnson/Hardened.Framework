@@ -261,6 +261,16 @@ public class HardenedTestInvoker : XunitTestInvoker
                 }
             }
 
+            if (argumentValue == null && 
+                parameter.ParameterType == typeof(ITestContext))
+            {
+                var logger = (ILogger)_testApplicationRoot!.Provider.GetService(
+                    typeof(ILogger<>).MakeGenericType(TestClass))!;
+                
+                argumentValue =
+                    new TestContext(CancellationTokenSource.Token, logger);
+            }
+            
             argumentValue ??= LocateValue(_testApplicationRoot!, parameter);
 
             if (argumentValue == null)

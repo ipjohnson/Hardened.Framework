@@ -5,7 +5,6 @@ namespace Hardened.SourceGenerator.Shared;
 
 public class HardenedMethodDefinition
 {
-    private int? _hashCode;
 
     public HardenedMethodDefinition(string name, ITypeDefinition? returnType, IReadOnlyList<HardenedParameterDefinition> parameters)
     {

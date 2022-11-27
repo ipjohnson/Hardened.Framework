@@ -118,8 +118,6 @@ public class DependencyInjectionFileGenerator
 
         providerMethod.AddIndentedStatement(Invoke("ConfigureModule", environment, serviceCollectionDefinition));
 
-        GenerateRegistrationStatements(model, dependencyDataRight, providerMethod, environment, serviceCollectionDefinition);
-
         providerMethod.AddIndentedStatement("overrideDependencies?.Invoke(environment, serviceCollection)");
 
         providerMethod.NewLine();

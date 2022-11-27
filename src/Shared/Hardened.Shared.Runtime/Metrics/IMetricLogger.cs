@@ -2,6 +2,8 @@
 
 public interface IMetricLogger : IDisposable
 {
+    Task Flush();
+    
     void Record(IMetricDefinition metric, double value);
 
     void Tag(string tagName, object tagValue);

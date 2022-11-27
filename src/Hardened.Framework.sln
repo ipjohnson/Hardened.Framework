@@ -119,6 +119,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.Canaries.Sourc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.IntegrationTests.Web.Canaries", "IntegrationTests\Amz\Lambda\Hardened.IntegrationTests.Web.Canaries\Hardened.IntegrationTests.Web.Canaries.csproj", "{18A9F61E-7503-4097-92B9-E2EDA383689D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.Canaries.Runtime.Tests", "Amz\Hardened.Amz.Canaries.Runtime.Tests\Hardened.Amz.Canaries.Runtime.Tests.csproj", "{968369A8-FAB1-4AAF-8782-65316EA1267F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -297,6 +299,10 @@ Global
 		{18A9F61E-7503-4097-92B9-E2EDA383689D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18A9F61E-7503-4097-92B9-E2EDA383689D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18A9F61E-7503-4097-92B9-E2EDA383689D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{968369A8-FAB1-4AAF-8782-65316EA1267F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{968369A8-FAB1-4AAF-8782-65316EA1267F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{968369A8-FAB1-4AAF-8782-65316EA1267F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{968369A8-FAB1-4AAF-8782-65316EA1267F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -353,6 +359,7 @@ Global
 		{D0792672-1F73-4BAE-A1AD-6C17380C3211} = {0E6AF705-8721-4835-B569-A9F513F15929}
 		{679E9C39-5CB9-44BB-A2DC-A283F5186A7A} = {8D526EBC-C2BA-435B-A562-C5FEC8A51732}
 		{18A9F61E-7503-4097-92B9-E2EDA383689D} = {912FA76C-5C49-44BD-90F2-675745D2D90F}
+		{968369A8-FAB1-4AAF-8782-65316EA1267F} = {0E6AF705-8721-4835-B569-A9F513F15929}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF6CD1AB-6B41-427D-BA1B-C4803CF67E97}

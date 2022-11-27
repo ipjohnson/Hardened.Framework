@@ -2,21 +2,27 @@
 using Hardened.Amz.Shared.Lambda.Testing;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Shared.Runtime.Collections;
+using Hardened.Shared.Testing;
+using Hardened.Shared.Testing.Impl;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace Hardened.Amz.Function.Lambda.Testing;
 
-public class LambdaTestApp
+public class LambdaTestApp : TestContext
 {
     private readonly ILambdaFunctionImplService _functionImplService;
     private readonly IOptions<IJsonSerializerConfiguration> _serializerOptions;
     private readonly IMemoryStreamPool _memoryStreamPool;
 
     public LambdaTestApp(
+        TestCancellationToken cancellationToken,
         ILambdaFunctionImplService functionImplService,
         IOptions<IJsonSerializerConfiguration> serializerOptions, 
-        IMemoryStreamPool memoryStreamPool)
+        IMemoryStreamPool memoryStreamPool, 
+        ILogger<LambdaTestApp> logger) 
+        : base(cancellationToken.Token, logger)
     {
         _functionImplService = functionImplService;
         _serializerOptions = serializerOptions;
@@ -28,7 +34,8 @@ public class LambdaTestApp
         await using var response = await Invoke(lambdaName, payload, contextAction);
             
         return (await JsonSerializer.DeserializeAsync<T>(
-            response, _serializerOptions.Value.DeSerializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web)))!;
+            response, _serializerOptions.Value.DeSerializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web),
+            CancellationRequest))!;
     }
 
     public async Task<Stream> Invoke(string lambdaName, object payload, Action<TestLambdaContext>? contextAction = null)

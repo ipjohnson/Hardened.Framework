@@ -3,6 +3,10 @@ using Hardened.Requests.Abstract.Execution;
 
 namespace Hardened.Amz.Function.Lambda.Runtime.Impl;
 
+/// <summary>
+/// Lambda execution filter that invokes lambda handler,
+/// Note the handler is cached for performance
+/// </summary>
 public sealed class LambdaFunctionInvokeFilter : IExecutionFilter
 {
     private readonly ILambdaContextAccessor _lambdaContextAccessor;

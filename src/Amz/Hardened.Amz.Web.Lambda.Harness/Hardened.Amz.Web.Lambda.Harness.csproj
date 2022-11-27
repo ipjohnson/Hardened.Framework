@@ -26,4 +26,8 @@
     <ProjectReference Include="..\Hardened.Amz.Web.Lambda.Runtime\Hardened.Amz.Web.Lambda.Runtime.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0-preview-20220131-20" />
+  </ItemGroup>
+
 </Project>

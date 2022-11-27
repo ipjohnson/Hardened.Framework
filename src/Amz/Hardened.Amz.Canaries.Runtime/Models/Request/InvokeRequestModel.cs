@@ -1,6 +1,8 @@
-﻿namespace Hardened.Amz.Canaries.Runtime.Models;
+﻿using Hardened.Amz.Canaries.Runtime.Models.Flight;
 
-public class InvokeRequestModel
-{
-    
-}
+namespace Hardened.Amz.Canaries.Runtime.Models.Request;
+
+public record InvokeRequestModel(
+    string CanaryName,
+    string InvokeId,
+    CanaryDefinition Definition);

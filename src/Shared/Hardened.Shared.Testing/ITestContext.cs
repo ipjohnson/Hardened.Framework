@@ -4,6 +4,8 @@ namespace Hardened.Shared.Testing;
 
 public interface ITestContext
 {
+    IRetryEngine Retry { get; }
+    
     CancellationToken CancellationRequest { get; }
 
     void Step(Action step, string description, params object[] parameters);
@@ -13,6 +15,6 @@ public interface ITestContext
     Task Step(Func<Task> step, string description, params object[] parameters);
 
     Task<T> Step<T>(Func<Task<T>> step, string description, params object[] parameters);
-    
+
     ILogger Logger { get; }
 }

@@ -8,7 +8,6 @@
 	  <PublishReadyToRun>true</PublishReadyToRun>
 	  <!-- This property makes the build directory similar to a publish directory and helps the AWS .NET Lambda Mock Test Tool find project dependencies. -->
 	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-	  <SelfContained>true</SelfContained>
   </PropertyGroup>
 
 	<ItemGroup>
@@ -52,6 +51,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0-preview-20220131-20" />
   </ItemGroup>
 
   <ItemGroup>

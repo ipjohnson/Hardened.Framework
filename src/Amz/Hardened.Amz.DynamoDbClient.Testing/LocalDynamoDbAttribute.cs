@@ -12,7 +12,7 @@ public class LocalDynamoDbAttribute : Attribute,
     IHardenedTestDependencyRegistrationAttribute,
     IHardenedTestStartupAttribute
 {
-    public string LibPath { get; set; } = "../../../../tools/LocalDynamoDb";
+    public virtual string LibPath { get; set; } = "../../../../tools/LocalDynamoDb";
 
     public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
         IEnvironment environment,
@@ -28,7 +28,7 @@ public class LocalDynamoDbAttribute : Attribute,
     {
         var random = new Random();
         Exception? exp = null;
-        for (var i = 0; i < 5; i++)
+        for (var i = 0; i < 10; i++)
         {
             try
             {
@@ -93,14 +93,18 @@ public class LocalDynamoDbAttribute : Attribute,
         }
     }
 
-    public Task Startup(AttributeCollection attributeCollection, MethodInfo methodInfo,
+    public Task Startup(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
         IEnvironment environment,
         IServiceProvider serviceProvider)
     {
         return DdbSetup(attributeCollection, methodInfo, environment, serviceProvider);
     }
 
-    protected virtual Task DdbSetup(AttributeCollection attributeCollection, MethodInfo methodInfo,
+    protected virtual Task DdbSetup(
+        AttributeCollection attributeCollection, 
+        MethodInfo methodInfo,
         IEnvironment environment,
         IServiceProvider serviceProvider)
     {

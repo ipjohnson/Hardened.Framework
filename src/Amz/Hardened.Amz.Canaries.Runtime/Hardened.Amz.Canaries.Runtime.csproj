@@ -13,14 +13,25 @@
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj" />
         <ProjectReference Include="..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Templates.SourceGenerator\Hardened.Templates.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <ProjectReference Include="..\Hardened.Amz.DynamoDbClient\Hardened.Amz.DynamoDbClient.csproj" />
+        <ProjectReference Include="..\Hardened.Amz.Function.Lambda.Runtime\Hardened.Amz.Function.Lambda.Runtime.csproj" />
+        <ProjectReference Include="..\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj" />
+        <ProjectReference Include="..\SourceGenerators\Hardened.Amz.Function.Lambda.SourceGenerator\Hardened.Amz.Function.Lambda.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.1.0" />
+        <PackageReference Include="AWSSDK.CloudWatch" Version="3.7.100.22" />
         <PackageReference Include="AWSSDK.CloudWatchLogs" Version="3.7.101.9" />
+        <PackageReference Include="AWSSDK.SQS" Version="3.7.100.21" />
         <PackageReference Include="NSubstitute" Version="4.3.0" />
         <PackageReference Include="xunit" Version="2.4.1" />
         <PackageReference Include="xunit.runner.utility" Version="2.4.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Templates" />
     </ItemGroup>
 
 </Project>
