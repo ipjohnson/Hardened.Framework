@@ -13,6 +13,7 @@ public partial class DefaultHelpers : ITemplateHelperProvider
     private TemplateHelperFactory? _endsWithHelper;
     private TemplateHelperFactory? _formatHelper;
     private TemplateHelperFactory? _joinHelper;
+    private TemplateHelperFactory? _jsonHelper;
     private TemplateHelperFactory? _replaceHelper;
     private TemplateHelperFactory? _startsWithHelper;
     private TemplateHelperFactory? _splitHelper;
@@ -47,6 +48,8 @@ public partial class DefaultHelpers : ITemplateHelperProvider
                     return _formatHelper ??= CreateTemplateHelperFactory(new FormatHelper());
                 case StringHelperToken.Join:
                     return _joinHelper ??= CreateTemplateHelperFactory(new JoinHelper());
+                case StringHelperToken.Json:
+                    return _jsonHelper ??= CreateTemplateHelperFactory(new JsonHelper());
                 case StringHelperToken.Replace:
                     return _replaceHelper ??= CreateTemplateHelperFactory(new ReplaceHelper());
                 case StringHelperToken.Split:

@@ -16,6 +16,8 @@ public partial class DefaultHelpers
 
         public const string Join = "String.Join";
 
+        public const string Json = "String.Json";
+
         public const string Replace = "String.Replace";
 
         public const string StartsWith = "String.StartsWith";

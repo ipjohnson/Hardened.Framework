@@ -89,6 +89,11 @@ internal class TemplateInvokeHelperCodeGenerator
                     returnString.Append(context.CurrentModel.Name + "." + propertyName);
                     returnString.Append(", \"" + propertyName + "\")");
                 }
+                else if (argumentNode.ActionText == ".")
+                {
+                    returnString.Append(", ");
+                    returnString.Append(context.CurrentModel.Name);
+                }
                 else
                 {
                     returnString.Append(", ");

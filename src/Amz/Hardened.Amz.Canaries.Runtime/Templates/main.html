@@ -1,0 +1,29 @@
+﻿{{model DashboardMainPageResponseModel}}
+{{using Hardened.Amz.Canaries.Runtime.Models.Dashboards}}
+
+<div style="width: 100%">
+    <table>
+        <thead>
+        <tr>
+            <td>Name</td>
+            <td>Success Rate</td>
+            <td>p50</td>
+            <td>Last Status</td>
+            <td>Last Run</td>
+            <td>Log</td>
+            <td>Metrics</td>
+        </tr>
+        </thead>
+    {{#each Canaries}}
+      <tr>
+          <td>{{CanaryName}}</td>
+          <td>{{ SuccessRate : "###.00" }}</td>
+          <td>{{ Duration : "#.00" }}</td>
+          <td>{{LastStatus}}</td>
+          <td>{{LastRun}}</td>
+          <td>{{ $LogStreamLink . }}</td>
+          <td>{{ $MetricsLink . }}</td>
+      </tr>
+    {{/each}}
+    </table>
+</div>

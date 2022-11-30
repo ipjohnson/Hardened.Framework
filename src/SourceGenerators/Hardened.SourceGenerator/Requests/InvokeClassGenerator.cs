@@ -60,10 +60,17 @@ public static class InvokeClassGenerator
         }
         else if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.RawResponseContentType))
         {
+            var contentType = handlerModel.ResponseInformation.RawResponseContentType!;
+
+            if (!contentType.StartsWith("\""))
+            {
+                contentType = '"' + contentType + '"';
+            }
+            
             defaultOutput = Invoke(
                 KnownTypes.Requests.RawOutputHelper,
                 "OutputFunc",
-                handlerModel.ResponseInformation.RawResponseContentType!);
+                contentType);
         }
 
         if (handlerModel.RequestParameterInformationList.Count == 0)

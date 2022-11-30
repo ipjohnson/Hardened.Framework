@@ -14,7 +14,7 @@ public partial class CanaryConfigurationModel
     private bool _sendMetricsToCloudWatch = true;
 
     [FromEnvironmentVariable("LOG_GROUP_PREFIX")]
-    private string _logGroupPrefix = "canary-";
+    private string _logGroupPrefix = "/canary/";
 
     [FromEnvironmentVariable("SQS_CANARY_QUEUE")]
     private string _sqsInvokeQueue = "sqs-canary-queue";

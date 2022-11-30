@@ -2,6 +2,7 @@
 using Hardened.Amz.Canaries.Runtime.DynamoDb;
 using Hardened.Amz.Canaries.Runtime.Models.Flight;
 using Hardened.Shared.Runtime.Attributes;
+using Hardened.Shared.Runtime.Utilities;
 
 namespace Hardened.Amz.Canaries.Runtime.Services;
 
@@ -106,7 +107,9 @@ public class CanaryAirTrafficControlService : ICanaryAirTrafficControlService
 
     private bool FrequencyIsOverDue(KeyValuePair<string,CanaryDefinition> canaryKvp, CanaryFlightInfo lastFight)
     {
-        return lastFight.FlightTakeOff.Add(canaryKvp.Value.Frequency.Duration) <= DateTime.Now;
+        var nextScheduled = lastFight.FlightTakeOff.Add(canaryKvp.Value.Frequency.Duration);
+
+        return nextScheduled.Floor(DateTimePrecision.Minute) <= DateTime.Now;
     }
 
     private bool LooseFlightRules(KeyValuePair<string,CanaryDefinition> canaryKvp, CanaryFlightInfo lastFight)

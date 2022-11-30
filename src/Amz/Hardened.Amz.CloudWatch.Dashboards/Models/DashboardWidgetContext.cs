@@ -25,8 +25,8 @@ public record DashboardWidgetContext(
     int Width,
     int Height,
     DashboardTimeZone TimeZone,
-    Dictionary<string, Dictionary<string, string>> Forms
-)
+    Dictionary<string, Dictionary<string, string>> Forms,
+    Dictionary<string,string> Params)
 {
     
     /// <summary>

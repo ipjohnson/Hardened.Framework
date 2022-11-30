@@ -31,7 +31,13 @@ public static class RawOutputHelper
         {
             await stream.CopyToAsync(executionContext.Response.Body, executionContext.CancellationToken);
         }
-
-        throw new Exception("Unsupported raw type, must be string, byte[], or Stream");
+        else if (outputValue == null)
+        {
+            executionContext.Response.Body.Close();
+        }
+        else
+        {
+            throw new Exception("Unsupported raw type, must be string, byte[], or Stream");
+        }
     }
 }

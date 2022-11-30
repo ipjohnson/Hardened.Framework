@@ -13,6 +13,8 @@ public interface ICanaryDynamoReader
     Task<CurrentCanaryState?> GetCanaryState();
 
     Task<CanaryRecentFlightHistory?> GetCanaryHistory(string canaryId);
+
+    Task<List<KeyValuePair<string, IReadOnlyList<CanaryFlightInfo>>>> BatchCanaryHistory(IReadOnlyList<string> canaryIds);
 }
 
 [Expose]
@@ -75,6 +77,55 @@ public class CanaryDynamoReader : ICanaryDynamoReader
         }
 
         return null;
+    }
+
+    public async Task<List<KeyValuePair<string, IReadOnlyList<CanaryFlightInfo>>>> BatchCanaryHistory(IReadOnlyList<string> canaryIds)
+    {
+        var responseList = new List<KeyValuePair<string,IReadOnlyList<CanaryFlightInfo>>>();
+
+        if (canaryIds.Count > 0)
+        {
+            var request = new
+                BatchGetItemRequest();
+
+            var keysAndAttributes = new KeysAndAttributes
+            {
+                AttributesToGet = new List<string> { "PK", DynamoDbConstants.CanaryHistory }
+            };
+
+            foreach (var canaryId in canaryIds)
+            {
+                keysAndAttributes.Keys.Add(new Dictionary<string, AttributeValue>
+                {
+                    { "PK", new AttributeValue("CF/" + canaryId) }
+                });
+            }
+
+            request.RequestItems.Add(_canaryConfiguration.DynamoDataTable, keysAndAttributes);
+
+            var response = await _clientProvider.GetClient().BatchGetItemAsync(request);
+
+            if (response.Responses.TryGetValue(_canaryConfiguration.DynamoDataTable, out var dynamoList))
+            {
+                foreach (var responseDictionary in dynamoList)
+                {
+                    if (responseDictionary.TryGetValue("PK", out var pkValue))
+                    {
+                        var pk = pkValue.S.Substring(3);
+                        var flightHistory = _jsonSerializer.Deserialize<CanaryRecentFlightHistory>(
+                            responseDictionary[DynamoDbConstants.CanaryHistory].S
+                        );
+
+                        responseList.Add(new KeyValuePair<string, IReadOnlyList<CanaryFlightInfo>>(
+                            pk,
+                            flightHistory.RecentFlights
+                        ));
+                    }
+                }
+            }
+        }
+
+        return responseList;
     }
 
     private CurrentCanaryState ProcessCanaryStateResponse(GetItemResponse result)

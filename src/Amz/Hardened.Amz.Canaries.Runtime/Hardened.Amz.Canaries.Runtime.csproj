@@ -31,7 +31,9 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Templates" />
+      <None Remove="Templates\main.html" />
+      <AdditionalFiles Include="Templates\main.html" />
+      <None Remove="Templates\main.css" />
     </ItemGroup>
 
 </Project>
