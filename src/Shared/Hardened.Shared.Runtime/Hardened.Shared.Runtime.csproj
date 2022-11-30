@@ -4,6 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	  <IsPackable>True</IsPackable>
 	  <PackageId>Hardened.Shared.Runtime</PackageId>
 	  <Authors>Ian Johnson</Authors>
 	  <PackageTags>Hardened.Framework</PackageTags>
