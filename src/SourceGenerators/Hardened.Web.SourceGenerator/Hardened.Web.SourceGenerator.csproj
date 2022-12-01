@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>10</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+      <TargetFramework>netstandard2.0</TargetFramework>
+      <LangVersion>10</LangVersion>
+      <ImplicitUsings>enable</ImplicitUsings>
+      <Nullable>enable</Nullable>
+	  <IsPackable>True</IsPackable>
 	  <PackageId>Hardened.Web.SourceGenerator</PackageId>
 	  <Authors>Ian Johnson</Authors>
 	  <PackageTags>Hardened.Framework</PackageTags>

@@ -5,6 +5,7 @@
 		<LangVersion>10</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<IsPackable>True</IsPackable>
 		<PackageId>Hardened.Amz.Function.Lambda.SourceGenerator</PackageId>
 		<Authors>Ian Johnson</Authors>
 		<PackageTags>Hardened.Framework</PackageTags>
