@@ -30,9 +30,9 @@
 
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.1.0" />
-        <PackageReference Include="AWSSDK.CloudWatch" Version="3.7.100.22" />
-        <PackageReference Include="AWSSDK.CloudWatchLogs" Version="3.7.101.9" />
-        <PackageReference Include="AWSSDK.SQS" Version="3.7.100.21" />
+        <PackageReference Include="AWSSDK.CloudWatch" Version="3.7.101.3" />
+        <PackageReference Include="AWSSDK.CloudWatchLogs" Version="3.7.102.3" />
+        <PackageReference Include="AWSSDK.SQS" Version="3.7.100.26" />
         <PackageReference Include="NSubstitute" Version="4.3.0" />
         <PackageReference Include="xunit" Version="2.4.1" />
         <PackageReference Include="xunit.runner.utility" Version="2.4.1" />
