@@ -54,7 +54,7 @@ public class PartialTemplateCodeGenerator
         {
             context.ClassDefinition.AddField(KnownTypes.Templates.TemplateExecutionFunction, functionFieldName);
             context.InitMethod.AddCode(
-                "[arg1] = _templateExecutionService.FindTemplateExecutionFunction({arg2}) ?? throw new Exception(\"Could not locate template {arg2}\");", 
+                "[arg1] = _templateExecutionService.FindTemplateExecutionFunction({arg2}) ?? throw new Exception(\"Could not locate template [arg2]\");", 
                 functionFieldName,
                 actionText);
         }

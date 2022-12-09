@@ -50,8 +50,7 @@ public class StaticContentHandler : IStaticContentHandler
         _memoryStreamPool = memoryStreamPool;
         _configuration = configuration.Value;
         _cachedStaticContentEntries = new ConcurrentDictionary<string, CachedStaticContentEntry>();
-
-
+        
         _rootPath = Path.Combine( Directory.GetCurrentDirectory(), _configuration.Path);
         _pathExists = Directory.Exists(_rootPath);
 

@@ -1,10 +1,10 @@
 ﻿{{model LayoutModel}}
 {{using Hardened.Amz.Shared.Lambda.Runtime.Execution}}
 {{inject ILambdaContextAccessor accessor}}
-<html>
+<html lang="en">
 <head>
-    <title>Title {{^accessor.Context?.InvokedFunctionArn == "testing"}}</title>
-    <link rel="stylesheet" href="{{$BasePath}}/beer.min.css" />
+    <title>Title {{ ^accessor.Context?.InvokedFunctionArn == "testing" }}</title>
+    <link rel="stylesheet" href="{{ $BasePath }}/beer.min.css" />
 </head>
 <body>
 <script type="text/javascript">
@@ -19,7 +19,7 @@
     </script>
   {{#if ^accessor.Context}}other{{/if}}
     <div id="mainContent">{{ $Render Model TemplateFunc }}</div>
-    <script src="{{{$BasePath}}}/externalDependencies.min.js">
+    <script src="{{ $BasePath }}/externalDependencies.min.js">
     </script>
     <script>
         window._b.started = true;

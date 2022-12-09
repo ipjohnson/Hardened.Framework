@@ -32,6 +32,13 @@ public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper
             case "html":
                 return ("text/html", false);
 
+            case "js":
+            case "mjs":
+                return ("text/javascript", false);
+            
+            case "json":
+                return ("application/json", false);
+            
             case "jpeg":
             case "jpg":
                 return ("image/jpeg", true);

@@ -4,6 +4,8 @@
     {{~#each Entries}}
     <tr><td id="id{{ Id }}">{{ Id }}</td><td>{{$CustomToken}}</td><td>{{ FirstName }}</td><td>{{ LastName }}</td></tr>
     {{~/each}}
+    
+    {{> test-template}}
 </table>
 <script>
     window._u(() => console.log("got here"));
