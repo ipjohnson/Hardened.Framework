@@ -31,7 +31,7 @@ public class RequestToLambdaService<T> : IRequestToLambdaService where T : IApiG
     {
         context.Response.StatusCode = response.StatusCode;
 
-        CopyHeaders(context.Response.Headers, response.Headers);
+        CopyHeadersToResponse(response.Headers, context.Response.Headers);
 
         if (response.IsBase64Encoded)
         {
@@ -45,11 +45,19 @@ public class RequestToLambdaService<T> : IRequestToLambdaService where T : IApiG
         }
     }
 
-    private void CopyHeaders(IHeaderDictionary responseHeaders, IDictionary<string, string> headers)
+    private void CopyHeadersToResponse(IDictionary<string, string> headers,IHeaderDictionary responseHeaders)
     {
         foreach (var kvpHeader in headers)
         {
             responseHeaders[kvpHeader.Key] = kvpHeader.Value;
+        }
+    }
+    
+    private void CopyHeadersFromRequest(IHeaderDictionary requestHeaders,IDictionary<string, string> headers)
+    {
+        foreach (var kvpHeader in requestHeaders)
+        {
+            headers[kvpHeader.Key] = kvpHeader.Value;
         }
     }
 
@@ -68,10 +76,13 @@ public class RequestToLambdaService<T> : IRequestToLambdaService where T : IApiG
                 UserAgent = httpRequest.Headers.UserAgent
             }
         };
-        request.Headers = new Dictionary<string, string>();
+        
         request.RawPath = context.Request.Path;
+        
+        request.Headers = new Dictionary<string, string>();
+        CopyHeadersFromRequest(context.Request.Headers, request.Headers);
+        
         request.RawQueryString = context.Request.QueryString.ToString().TrimStart('?');
-
         request.QueryStringParameters = new Dictionary<string, string>();
 
         foreach (var queryPair in context.Request.Query)
