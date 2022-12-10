@@ -1,24 +1,27 @@
 ﻿using System.Collections;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Utilities;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Runtime.Headers;
 
 public class HeaderCollectionStringDictionary : IHeaderCollection
 {
-    private readonly IDictionary<string, string> _dictionary;
+    private readonly Dictionary<string, StringValues> _values;
 
     public HeaderCollectionStringDictionary(IDictionary<string, string> dictionary)
     {
-        _dictionary = dictionary;
+        _values = new Dictionary<string, StringValues>();
+        
+        foreach (var pair in dictionary)
+        {
+            _values[pair.Key] = pair.Value.ToStringValues();
+        }
     }
 
     public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator()
     {
-        foreach (var kvp in _dictionary)
-        {
-            yield return new KeyValuePair<string, StringValues>(kvp.Key, kvp.Value);
-        }
+        return _values.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -33,12 +36,12 @@ public class HeaderCollectionStringDictionary : IHeaderCollection
 
     public bool ContainsKey(string key)
     {
-        return _dictionary.ContainsKey(key);
+        return _values.ContainsKey(key);
     }
 
     public StringValues Get(string key)
     {
-        if (_dictionary.TryGetValue(key, out var value))
+        if (_values.TryGetValue(key, out var value))
         {
             return value;
         }
@@ -48,29 +51,23 @@ public class HeaderCollectionStringDictionary : IHeaderCollection
 
     public StringValues Set(string key, object? value)
     {
-        return _dictionary[key] = value?.ToString() ?? string.Empty;
+        var stringValue = value?.ToString() ?? string.Empty;
+        
+        return _values[key] = new StringValues(stringValue.Split(','));
     }
 
     public StringValues Set(string key, StringValues value)
     {
-        _dictionary[key] = value;
-        return value;
+        return _values[key] = value;
     }
 
-    public int Count => _dictionary.Count;
+    public int Count => _values.Count;
 
     public bool TryGet(string key, out StringValues value)
     {
-        var returnValue = _dictionary.TryGetValue(key, out var tempValue);
+        var returnValue = _values.TryGetValue(key, out var tempValue);
 
-        if (returnValue)
-        {
-            value = tempValue;
-        }
-        else
-        {
-            value = StringValues.Empty;
-        }
+        value = returnValue ? tempValue : StringValues.Empty;
 
         return returnValue;
     }
