@@ -210,7 +210,7 @@ public class StaticContentHandler : IStaticContentHandler
         {
             if (encoding.Contains(cacheEntry.ContentEncoding))
             {
-                context.Response.IsBinary = cacheEntry.IsBinary;
+                context.Response.IsBinary = true;
                 context.Response.Headers.Set(KnownHeaders.ContentEncoding, "gzip");
 
                 await context.Response.Body.WriteAsync(cacheEntry.Content, 0, cacheEntry.Content.Length);
