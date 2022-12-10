@@ -4,7 +4,7 @@ public static class KnownHeaders
 {
     public const string Accept = "Accept";
 
-    public const string AcceptEncoding = "AcceptEncoding";
+    public const string AcceptEncoding = "Accept-Encoding";
 
     public const string CacheControl = "Cache-Control";
 
