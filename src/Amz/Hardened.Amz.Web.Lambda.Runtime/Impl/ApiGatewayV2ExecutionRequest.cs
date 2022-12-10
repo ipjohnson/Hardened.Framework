@@ -6,11 +6,13 @@ using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.Headers;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
+using System.Net.Http.Headers;
 
 namespace Hardened.Amz.Web.Lambda.Runtime.Impl;
 
 internal class ApiGatewayV2ExecutionRequest : IExecutionRequest
 {
+    private static Stream _empty = new MemoryStream();
     private readonly APIGatewayHttpApiV2ProxyRequest _proxyRequest;
     private IPathTokenCollection? _pathTokens;
     private IQueryStringCollection? _queryStringCollection;
@@ -20,6 +22,7 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest
     {
         _proxyRequest = request;
         Path = request.RawPath.Replace("/Beta", "");
+        Body = _empty;
     }
 
     public object Clone()
@@ -31,9 +34,31 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest
 
     public string Path { get; }
 
-    public string? ContentType => "application/json";
+    public string? ContentType
+    {
+        get
+        {
+            if (Headers.TryGet("Content-Type", out var value))
+            {
+                return value;
+            }
 
-    public string? Accept => "application/json";
+            return "application/json";
+        }
+    }
+
+    public string? Accept
+    {
+        get
+        {
+            if (Headers.TryGet("Accept", out var value))
+            {
+                return value;
+            }
+            
+            return "application/json";
+        }
+    }
 
     public IExecutionRequestParameters? Parameters { get; set; }
 
@@ -50,5 +75,4 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }
-    
 }
