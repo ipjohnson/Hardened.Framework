@@ -81,8 +81,11 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
         {
             response.StatusCode = executionContext.Response.Status.Value;
         }
-            
-        response.Headers[KnownHeaders.ContentType] = executionContext.Response.ContentType;
+
+        foreach (var pair in executionContext.Response.Headers)
+        {
+            response.Headers[pair.Key] = pair.Value.ToString();
+        }
 
         if (executionContext.Response.IsBinary)
         {
