@@ -17,4 +17,6 @@ public interface IHeaderCollection : IEnumerable<KeyValuePair<string, StringValu
     int Count { get; }
 
     bool TryGet(string key, out StringValues value);
+
+    IDictionary<string, string> ToStringDictionary();
 }

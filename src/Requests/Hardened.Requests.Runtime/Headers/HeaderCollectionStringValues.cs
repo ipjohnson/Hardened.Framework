@@ -84,4 +84,17 @@ public class HeaderCollectionStringValues : IHeaderCollection
     {
         return _headers.TryGetValue(key, out value);
     }
+    
+    
+    public IDictionary<string, string> ToStringDictionary()
+    {
+        var dictionary = new Dictionary<string, string>();
+
+        foreach (var pair in _headers)
+        {
+            dictionary[pair.Key] = pair.Value.ToString();
+        }
+        
+        return dictionary;
+    }
 }

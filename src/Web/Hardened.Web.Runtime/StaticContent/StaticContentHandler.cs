@@ -3,10 +3,10 @@ using System.IO.Compression;
 using System.Net;
 using System.Reflection;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
 using Hardened.Web.Runtime.Configuration;
-using Hardened.Web.Runtime.Headers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -211,7 +211,7 @@ public class StaticContentHandler : IStaticContentHandler
             if (encoding.Contains(cacheEntry.ContentEncoding))
             {
                 context.Response.IsBinary = true;
-                context.Response.Headers.Set(KnownHeaders.ContentEncoding, "gzip");
+                context.Response.Headers.Set(KnownHeaders.ContentEncoding, KnownEncoding.GZipStringValues);
 
                 await context.Response.Body.WriteAsync(cacheEntry.Content, 0, cacheEntry.Content.Length);
 

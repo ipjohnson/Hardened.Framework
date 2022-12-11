@@ -7,7 +7,8 @@ public class StringBuilderTemplateOutputWriter : ITemplateOutputWriter
 {
     private readonly StringBuilder _stringBuilder;
     private readonly Stream? _outputStream;
-    public StringBuilderTemplateOutputWriter(StringBuilder stringBuilder, Stream? outputStream = null)
+    public StringBuilderTemplateOutputWriter(StringBuilder stringBuilder, Stream? outputStream = null,
+        bool canCompressResponse = false)
     {
         _stringBuilder = stringBuilder;
         _outputStream = outputStream;

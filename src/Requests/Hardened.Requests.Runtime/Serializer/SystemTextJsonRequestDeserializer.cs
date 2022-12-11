@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Errors;
@@ -41,14 +42,14 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer
 
     private async ValueTask<T?> DeserializeEncodedContent<T>(IExecutionContext context, StringValues contentEncoding)
     {
-        if (contentEncoding.Contains("gzip"))
+        if (contentEncoding.Contains(KnownEncoding.GZip))
         {
             await using var decompressStream = new GZipStream(context.Request.Body, CompressionMode.Decompress);
 
             return await System.Text.Json.JsonSerializer.DeserializeAsync<T>(decompressStream, _serializerOptions);
         }
             
-        if (contentEncoding.Contains("br"))
+        if (contentEncoding.Contains(KnownEncoding.Br))
         {
             await using var decompressStream = new BrotliStream(context.Request.Body, CompressionMode.Decompress);
 

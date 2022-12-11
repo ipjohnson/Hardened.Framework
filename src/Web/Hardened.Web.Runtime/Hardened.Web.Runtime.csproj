@@ -28,4 +28,8 @@
     <ProjectReference Include="..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Headers" />
+  </ItemGroup>
+
 </Project>

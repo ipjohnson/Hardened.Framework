@@ -1,8 +1,8 @@
 ﻿using Hardened.IntegrationTests.Web.Lambda.Tests.Extensions;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Runtime.Configuration;
-using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.Primitives;
 using Xunit;
@@ -21,7 +21,7 @@ public class TestPageTests
         var testPage = await response.ParseDocument();
             
         Assert.NotNull(testPage);
-        Assert.Equal("gzip", response.Headers.Get(KnownHeaders.ContentEncoding));
+        Assert.Equal(KnownEncoding.GZipStringValues, response.Headers.Get(KnownHeaders.ContentEncoding));
     }
 
     [HardenedTest]

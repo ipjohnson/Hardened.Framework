@@ -71,4 +71,16 @@ public class HeaderCollectionStringDictionary : IHeaderCollection
 
         return returnValue;
     }
+
+    public IDictionary<string, string> ToStringDictionary()
+    {
+        var dictionary = new Dictionary<string, string>();
+
+        foreach (var pair in _values)
+        {
+            dictionary[pair.Key] = pair.Value.ToString();
+        }
+        
+        return dictionary;
+    }
 }

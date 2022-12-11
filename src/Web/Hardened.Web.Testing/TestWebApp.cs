@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
@@ -10,7 +11,6 @@ using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Testing.Impl;
-using Hardened.Web.Runtime.Headers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -75,11 +75,11 @@ public class TestWebApp : TestContext, ITestWebApp
         var context = CreateContext(
             httpMethod, path, webRequest, responseBody, scope);
             
-        context.Request.Headers.Set(KnownHeaders.AcceptEncoding, "gzip");
+        context.Request.Headers.Set(KnownHeaders.AcceptEncoding, KnownEncoding.GZip);
             
         if (bodyValue != null && string.IsNullOrEmpty(context.Request.ContentType))
         {
-            context.Request.Headers.Set(KnownHeaders.ContentType, "application/json");
+            context.Request.Headers.Set(KnownHeaders.ContentType, KnownContentType.Js);
         }
         
         webRequest?.Invoke(new TestWebRequest{ Headers = context.Request.Headers});

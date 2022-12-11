@@ -8,7 +8,6 @@ using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
-using Hardened.Web.Runtime.Headers;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 using MSLogging = Microsoft.Extensions.Logging;
@@ -59,7 +58,6 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
 
         var response = new APIGatewayHttpApiV2ProxyResponse
         {
-            Headers = new Dictionary<string, string>(),
             StatusCode = 200
         };
             
@@ -82,10 +80,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
             response.StatusCode = executionContext.Response.Status.Value;
         }
 
-        foreach (var pair in executionContext.Response.Headers)
-        {
-            response.Headers[pair.Key] = pair.Value.ToString();
-        }
+        response.Headers = executionContext.Response.Headers.ToStringDictionary();
 
         if (executionContext.Response.IsBinary)
         {

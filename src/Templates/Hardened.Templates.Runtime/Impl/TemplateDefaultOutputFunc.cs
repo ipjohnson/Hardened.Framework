@@ -1,6 +1,8 @@
 ﻿using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Templates.Abstract;
+using System.Net.Http.Headers;
 
 namespace Hardened.Templates.Runtime.Impl;
 
@@ -23,7 +25,10 @@ public class TemplateDefaultOutputFunc
     {
         using var stringBuilderHolder = _stringBuilderPool.Get();
 
-        var stringBuilderWriter = new StringBuilderTemplateOutputWriter(stringBuilderHolder.Item, context.Response.Body);
+        var stringBuilderWriter = new StringBuilderTemplateOutputWriter(
+            stringBuilderHolder.Item, 
+            context.Response.Body,
+            CanCompressResponse(context));
 
         // todo: update to get content type from template extension 
         context.Response.ContentType = "text/html";
@@ -48,5 +53,11 @@ public class TemplateDefaultOutputFunc
                 
             await stringBuilderWriter.FlushWriter();
         }
+    }
+
+    private bool CanCompressResponse(IExecutionContext context)
+    {
+        return context.Request.Headers.TryGet(KnownHeaders.AcceptEncoding, out var header) &&
+               header.Contains(KnownEncoding.GZip);
     }
 }

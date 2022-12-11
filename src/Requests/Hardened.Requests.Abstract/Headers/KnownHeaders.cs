@@ -1,4 +1,4 @@
-﻿namespace Hardened.Web.Runtime.Headers;
+﻿namespace Hardened.Requests.Abstract.Headers;
 
 public static class KnownHeaders
 {

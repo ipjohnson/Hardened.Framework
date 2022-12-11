@@ -48,7 +48,8 @@ public static class TemplateIncrementalGenerator
 
         var helperSelector = new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.Templates.TemplateHelperAttribute);
 
-        var templateHelperModels = initializationContext.SyntaxProvider.CreateSyntaxProvider(
+        var templateHelperModels = 
+            initializationContext.SyntaxProvider.CreateSyntaxProvider(
             helperSelector.Where,
             TemplateHelperModelGenerator
         ).WithComparer(new TemplateHelperModelComparer());
