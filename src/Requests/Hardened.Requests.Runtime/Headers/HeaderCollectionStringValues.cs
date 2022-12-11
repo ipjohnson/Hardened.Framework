@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Utilities;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Runtime.Headers;
@@ -11,6 +12,19 @@ public class HeaderCollectionStringValues : IHeaderCollection
     public HeaderCollectionStringValues() : this(new Dictionary<string, StringValues>())
     {
 
+    }
+
+    public HeaderCollectionStringValues(IDictionary<string,string>? values)
+    {
+        _headers = new Dictionary<string, StringValues>();
+
+        if (values != null)
+        {
+            foreach (var pair in values)
+            {
+                _headers[pair.Key] = pair.Value.ToStringValues();
+            }
+        }
     }
 
     public HeaderCollectionStringValues(IDictionary<string, StringValues> headers)

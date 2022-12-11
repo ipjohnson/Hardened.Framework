@@ -55,9 +55,7 @@ public class LambdaFunctionImplService : ILambdaFunctionImplService
 
         var customContext = context.ClientContext.Custom;
 
-        IHeaderCollection headerCollection = customContext != null
-            ? new HeaderCollectionStringDictionary(customContext)
-            : new HeaderCollectionStringValues();
+        IHeaderCollection headerCollection = new HeaderCollectionStringValues(customContext);
 
         var request =
             new LambdaExecutionRequest("Invoke", context.FunctionName, stream, headerCollection);

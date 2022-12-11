@@ -65,7 +65,7 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest
     public Stream Body { get; set; }
 
     public IHeaderCollection Headers =>
-        _headerCollection ??= new HeaderCollectionStringDictionary(_proxyRequest.Headers);
+        _headerCollection ??= new HeaderCollectionStringValues(_proxyRequest.Headers);
 
     public IQueryStringCollection QueryString => _queryStringCollection ??=
         new SimpleQueryStringCollection(_proxyRequest.QueryStringParameters);

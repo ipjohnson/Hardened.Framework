@@ -36,7 +36,7 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse
     public Stream? Body { get; set; }
 
     public IHeaderCollection Headers =>
-        _headerCollection ??= new HeaderCollectionStringDictionary(_proxyResponse.Headers);
+        _headerCollection ??= new HeaderCollectionStringValues();
 
     public Exception? ExceptionValue { get; set; }
 

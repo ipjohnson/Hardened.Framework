@@ -95,12 +95,14 @@ public class StaticContentHandler : IStaticContentHandler
 
         if (File.Exists(filePath + GzFileExtension))
         {
-            return ReturnCompressedFile(context, filePath, GzFileExtension, "gzip");
+            return ReturnCompressedFile(
+                context, filePath, GzFileExtension, KnownEncoding.GZip);
         }
 
         if (File.Exists(filePath + BrFileExtension))
         {
-            return ReturnCompressedFile(context, filePath, BrFileExtension, "br");
+            return ReturnCompressedFile(
+                context, filePath, BrFileExtension, KnownEncoding.Br);
         }
 
         if (!string.IsNullOrEmpty(_configuration.FallBackFile))
@@ -121,10 +123,11 @@ public class StaticContentHandler : IStaticContentHandler
 
         var etag = _etagProvider.GenerateETag(fileBytes);
 
-        if (_configuration.CompressTextContent && !isBinary && fileBytes.Length > 5000)
+        if (_configuration.CompressTextContent && !isBinary && fileBytes.Length > 1000)
         {
-            contentEncoding = "gzip";
-            compressedBytes = _gZipStaticContentCompressor.CompressContent(fileBytes);
+            contentEncoding = KnownEncoding.GZip;
+            compressedBytes = _gZipStaticContentCompressor.CompressContent(
+                fileBytes, CompressionLevel.SmallestSize);
         }
 
         var cacheEntry = 

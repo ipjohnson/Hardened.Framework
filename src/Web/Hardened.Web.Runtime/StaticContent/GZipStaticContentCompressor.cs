@@ -5,7 +5,7 @@ namespace Hardened.Web.Runtime.StaticContent;
 
 public interface IGZipStaticContentCompressor
 {
-    byte[] CompressContent(byte[] bytes);
+    byte[] CompressContent(byte[] bytes, CompressionLevel compressionLevel = CompressionLevel.Fastest);
 }
 
 public class GZipStaticContentCompressor : IGZipStaticContentCompressor
@@ -17,10 +17,10 @@ public class GZipStaticContentCompressor : IGZipStaticContentCompressor
         _memoryStreamPool = memoryStreamPool;
     }
 
-    public byte[] CompressContent(byte[] bytes)
+    public byte[] CompressContent(byte[] bytes, CompressionLevel compressionLevel)
     {
         using var memoryStreamRes = _memoryStreamPool.Get();
-        using var gzipStream = new GZipStream(memoryStreamRes.Item, CompressionLevel.Fastest, true);
+        using var gzipStream = new GZipStream(memoryStreamRes.Item, compressionLevel, true);
 
         gzipStream.Write(bytes, 0, bytes.Length);
         gzipStream.Flush();
