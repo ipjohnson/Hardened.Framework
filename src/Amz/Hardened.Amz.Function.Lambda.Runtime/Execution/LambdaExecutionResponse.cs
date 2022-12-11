@@ -16,7 +16,11 @@ public class LambdaExecutionResponse : IExecutionResponse
         throw new NotImplementedException();
     }
 
-    public string? ContentType { get; set; }
+    public string? ContentType
+    {
+        get => Headers.Get(KnownHeaders.ContentType);
+        set => Headers.Set(KnownHeaders.ContentType, value);
+    }
 
     public object? ResponseValue { get; set; }
 

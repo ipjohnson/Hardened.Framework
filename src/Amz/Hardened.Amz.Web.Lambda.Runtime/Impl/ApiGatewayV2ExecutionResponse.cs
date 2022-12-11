@@ -19,7 +19,11 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse
         throw new NotImplementedException();
     }
 
-    public string? ContentType { get; set; }
+    public string? ContentType
+    {
+        get => Headers.Get(KnownHeaders.ContentType);
+        set => Headers.Set(KnownHeaders.ContentType, value);
+    }
 
     public object? ResponseValue { get; set; }
 
