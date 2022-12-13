@@ -36,7 +36,8 @@ public class TemplateDefaultOutputFunc
         if (context.Response.ResponseValue != null)
         {
             if (_layoutFunction == null || 
-                (context.Request.Headers.TryGet("x-render-partial", out var renderStringValues)  && renderStringValues.Contains("true"))) 
+                (context.Request.Headers.TryGet("x-render-partial", out var renderStringValues)  
+                 && renderStringValues.Contains("true"))) 
             {
                 await _templateExecutionFunction(context.Response.ResponseValue, context.RequestServices,
                     stringBuilderWriter, null, context);
