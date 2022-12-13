@@ -27,8 +27,7 @@ public class TemplateDefaultOutputFunc
 
         var stringBuilderWriter = new StringBuilderTemplateOutputWriter(
             stringBuilderHolder.Item, 
-            context.Response.Body,
-            CanCompressResponse(context));
+            context.Response.Body);
 
         // todo: update to get content type from template extension 
         context.Response.ContentType = "text/html";
@@ -52,13 +51,8 @@ public class TemplateDefaultOutputFunc
                     context);
             }
                 
-            await stringBuilderWriter.FlushWriter();
+            await stringBuilderWriter.FlushWriter(context);
         }
     }
 
-    private bool CanCompressResponse(IExecutionContext context)
-    {
-        return context.Request.Headers.TryGet(KnownHeaders.AcceptEncoding, out var header) &&
-               header.Contains(KnownEncoding.GZip);
-    }
 }

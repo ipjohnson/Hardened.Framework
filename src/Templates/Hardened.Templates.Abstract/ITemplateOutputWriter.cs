@@ -1,4 +1,6 @@
-﻿namespace Hardened.Templates.Abstract;
+﻿using Hardened.Requests.Abstract.Execution;
+
+namespace Hardened.Templates.Abstract;
 
 public interface ITemplateOutputWriter
 {
@@ -18,7 +20,7 @@ public interface ITemplateOutputWriter
     /// Flush Writer
     /// </summary>
     /// <returns></returns>
-    Task FlushWriter();
+    Task FlushWriter(IExecutionContext context);
 
     IStringEscapeService? EscapeService { get; set; }
 }
