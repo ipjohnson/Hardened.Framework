@@ -52,6 +52,7 @@ public class StringBuilderTemplateOutputWriter : ITemplateOutputWriter
             if (canCompressResponse && 
                 outputBuffer.Length > 1000)
             {
+                executionContext.Response.IsBinary = true;
                 executionContext.Response.Headers.Set(KnownHeaders.ContentEncoding, KnownEncoding.GZipStringValues);
                 
                 await using var compressStream = new GZipStream(_outputStream, CompressionLevel.Fastest, true);
