@@ -10,6 +10,7 @@ using Hardened.Web.Runtime.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
+using System.Diagnostics;
 
 namespace Hardened.Web.Runtime.StaticContent;
 
@@ -34,6 +35,7 @@ public class StaticContentHandler : IStaticContentHandler
     private readonly ConcurrentDictionary<string, CachedStaticContentEntry> _cachedStaticContentEntries;
     private readonly string _rootPath;
     private readonly bool _pathExists;
+    private readonly bool _debuggerAttached = Debugger.IsAttached;
 
     public StaticContentHandler(
         IOptions<IStaticContentConfiguration> configuration, 
@@ -134,8 +136,11 @@ public class StaticContentHandler : IStaticContentHandler
             new CachedStaticContentEntry(
                 contentType, contentEncoding, isBinary, etag, compressedBytes ?? fileBytes);
 
-        _cachedStaticContentEntries.AddOrUpdate(context.Request.Path,
-            _ => cacheEntry, (_, _) => cacheEntry);
+        if (!_debuggerAttached)
+        {
+            _cachedStaticContentEntries.AddOrUpdate(context.Request.Path,
+                _ => cacheEntry, (_, _) => cacheEntry);
+        }
 
         await RespondWithContent(context, cacheEntry);
 
@@ -162,9 +167,11 @@ public class StaticContentHandler : IStaticContentHandler
         var cacheEntry =
             new CachedStaticContentEntry(
                 contentType, contentEncoding, isBinary, etag, fileBytes);
-
-        _cachedStaticContentEntries.AddOrUpdate(context.Request.Path,
-            _ => cacheEntry, (_, _) => cacheEntry);
+        if (!_debuggerAttached)
+        {
+            _cachedStaticContentEntries.AddOrUpdate(context.Request.Path,
+                _ => cacheEntry, (_, _) => cacheEntry);
+        }
 
         await RespondWithContent(context, cacheEntry);
 
