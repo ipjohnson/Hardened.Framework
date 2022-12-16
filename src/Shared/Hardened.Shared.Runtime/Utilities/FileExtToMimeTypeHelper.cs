@@ -55,7 +55,10 @@ public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper
             case "txt":
             case "text":
                 return ("text/plain", false);
-
+            
+            case "webp":
+                return ("image/webp", true);
+            
             case "xml":
                 return ("text/xml", false);
 
