@@ -226,11 +226,11 @@ public class RouteTreeGenerator<T>
                 if (tokenEnd > 0)
                 {
                     var length = tokenIndex - currentIndex;
-                    stringBuilder.Append(pathTemplate.Substring(currentIndex, length));
+                    stringBuilder.Append(pathTemplate.Substring(currentIndex, length).ToLower());
                     stringBuilder.Append("{TOKEN}");
 
                     var startIndex = tokenIndex + 1;
-                    tokenList.Add(pathTemplate.Substring(startIndex, tokenEnd - startIndex));
+                    tokenList.Add(pathTemplate.Substring(startIndex, tokenEnd - startIndex).ToLower());
 
                     currentIndex = tokenEnd + 1;
                 }
@@ -239,12 +239,12 @@ public class RouteTreeGenerator<T>
 
             if (currentIndex < pathTemplate.Length)
             {
-                stringBuilder.Append(pathTemplate.Substring(currentIndex));
+                stringBuilder.Append(pathTemplate.Substring(currentIndex).ToLower());
             }
 
             return (stringBuilder.ToString(), tokenList);
         }
 
-        return (pathTemplate.ToLower(), Array.Empty<string>());
+        return (pathTemplate, Array.Empty<string>());
     }
 }
