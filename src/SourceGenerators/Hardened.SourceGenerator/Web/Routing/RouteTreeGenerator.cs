@@ -15,7 +15,7 @@ public class RouteTreeGenerator<T>
     {
         public Entry(string pathTemplate, string method, T value)
         {
-            (PathTemplate, WildCardTokens) = StandardizeToken(pathTemplate.ToLowerInvariant());
+            (PathTemplate, WildCardTokens) = StandardizeToken(pathTemplate);
             Method = method.ToUpperInvariant();
             Value = value;
         }
@@ -245,6 +245,6 @@ public class RouteTreeGenerator<T>
             return (stringBuilder.ToString(), tokenList);
         }
 
-        return (pathTemplate, Array.Empty<string>());
+        return (pathTemplate.ToLower(), Array.Empty<string>());
     }
 }
