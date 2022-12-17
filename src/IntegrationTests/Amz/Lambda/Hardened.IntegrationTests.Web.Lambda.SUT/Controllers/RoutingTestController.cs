@@ -50,13 +50,13 @@ public class RoutingTestController
     }
 
     [AssignMethod]
-    [Get("/companies/{company}/{id}")]
-    public Response Companies(string company, 
+    [Get("/companies/{companyId}/{id}")]
+    public Response Companies(string companyId, 
         string id)
     {
         return new Response
         {
-            Company = company,
+            Company = companyId,
             Id = id
         };
     }

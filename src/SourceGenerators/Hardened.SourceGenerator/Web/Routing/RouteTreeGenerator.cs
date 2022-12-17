@@ -230,7 +230,7 @@ public class RouteTreeGenerator<T>
                     stringBuilder.Append("{TOKEN}");
 
                     var startIndex = tokenIndex + 1;
-                    tokenList.Add(pathTemplate.Substring(startIndex, tokenEnd - startIndex).ToLower());
+                    tokenList.Add(pathTemplate.Substring(startIndex, tokenEnd - startIndex));
 
                     currentIndex = tokenEnd + 1;
                 }
