@@ -57,7 +57,6 @@ public class RoutingTests
         Assert.Equal("unknown", response.QueryParam);
     }
     
-    
     [HardenedTest]
     public async Task CompanySubscriptionIDWithQueryTest(ITestWebApp testWebApp)
     {
@@ -69,5 +68,18 @@ public class RoutingTests
         Assert.Equal(nameof(RoutingTestController.CompanyGetSubscriptionWithQuery), response.Method);
         Assert.Equal("some-id", response.Id);
         Assert.Equal("testing", response.QueryParam);
+    }
+    
+    [HardenedTest]
+    public async Task CompaniesTest(ITestWebApp testWebApp)
+    {
+        var webResponse = await testWebApp.Get($"/companies/{CompanyName}/some-id");
+        
+        webResponse.Assert.Ok();
+        var response = webResponse.Deserialize<RoutingTestController.Response>();
+        Assert.Equal(CompanyName, response.Company);
+        Assert.Equal(nameof(RoutingTestController.Companies), response.Method);
+        Assert.Equal("some-id", response.Id);
+        Assert.Null(response.QueryParam);
     }
 }

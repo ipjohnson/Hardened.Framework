@@ -49,6 +49,18 @@ public class RoutingTestController
         };
     }
 
+    [AssignMethod]
+    [Get("/companies/{company}/{id}")]
+    public Response Companies(string company, 
+        string id)
+    {
+        return new Response
+        {
+            Company = company,
+            Id = id
+        };
+    }
+    
     public class Response
     {
         public string Company { get; init; } = default!;

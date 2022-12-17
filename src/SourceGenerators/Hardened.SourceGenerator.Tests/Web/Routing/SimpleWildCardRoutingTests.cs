@@ -88,4 +88,19 @@ public class SimpleWildCardRoutingTests
         Assert.Equal("GET", leafNode.Method);
         Assert.Equal("Person", leafNode.Value);
     }
+
+    [Fact]
+    public void ParseMultipleEntries()
+    {
+        var routes = new List<RouteTreeGenerator<string>.Entry>
+        {
+            new ("/recipes/{userId}", "GET", "Recipe"),
+            new ("/recipe/{userId}/{recipeId}", "GET", "Recipe"),
+        };
+        
+        var generator = new RouteTreeGenerator<string>();
+
+        var routeTree = generator.GenerateTree(routes);
+
+    }
 }

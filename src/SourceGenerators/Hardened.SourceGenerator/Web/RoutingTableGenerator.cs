@@ -185,7 +185,7 @@ public static class RoutingTableGenerator
         var methodString = testMethod.AddParameter(typeof(string), "methodString");
 
         var handler =
-            testMethod.Assign(Null()).ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handler");
+            testMethod.Assign(Null()).ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handlerInfo");
 
         BaseBlockDefinition block = testMethod;
 
@@ -285,12 +285,12 @@ public static class RoutingTableGenerator
         RouteTreeNode<RequestHandlerModel> routeNode,
         BaseBlockDefinition block,
         ParameterDefinition span,
-        ParameterDefinition index,
+        IOutputComponent index,
         ParameterDefinition methodString,
         InstanceDefinition handler, 
         CancellationToken cancellationToken)
     {
-        var ifBlock = block.If("handler == null");
+        var ifBlock = block.If("handlerInfo == null");
 
         var wildCardMethod = WriteWildCardMethod(routingClass, routeNode, cancellationToken);
 
@@ -312,7 +312,7 @@ public static class RoutingTableGenerator
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
         
         var handler =
-            wildCardMethod.Assign(Null()).ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handler");
+            wildCardMethod.Assign(Null()).ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handlerInfo");
 
         var orderedList = 
             routeNode.WildCardNodes.OrderByDescending(n => n.Path).ToList();
@@ -326,7 +326,7 @@ public static class RoutingTableGenerator
 
             if (i > 0)
             {
-                currentBlock = wildCardMethod.If("handler == null");
+                currentBlock = wildCardMethod.If("handlerInfo == null");
             }
 
             var matchWildCardMethod = WriteWildCardMatchMethod(routingClass, wildCardNode, cancellationToken);
@@ -352,6 +352,12 @@ public static class RoutingTableGenerator
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
 
         if (wildCardNode.ChildNodes.Count > 0)
+        {
+            GenerateWildCardChildMatch(
+                routingClass, wildCardNode, wildCardMethod, methodString, span, index, cancellationToken);
+        }
+
+        if (wildCardNode.WildCardNodes.Count > 0)
         {
             GenerateWildCardChildMatch(
                 routingClass, wildCardNode, wildCardMethod, methodString, span, index, cancellationToken);
@@ -384,16 +390,33 @@ public static class RoutingTableGenerator
         var ifStatement = whileBlock.If(And(pathCheck));
 
         var currentPlusOne = Add(currentIndex, 1);
-        
-        ProcessChildNodes(
-            routingClass, 
-            wildCardNode, 
-            ifStatement, 
-            span, 
-            currentPlusOne, 
-            methodString, 
-            handlerInfo, 
-            cancellationToken);
+
+        if (wildCardNode.ChildNodes.Count > 0)
+        {
+            ProcessChildNodes(
+                routingClass,
+                wildCardNode,
+                ifStatement,
+                span,
+                currentPlusOne,
+                methodString,
+                handlerInfo,
+                cancellationToken);
+        }
+
+        if (wildCardNode.WildCardNodes.Count > 0)
+        {
+            ProcessWildCardNodes(
+                routingClass,
+                wildCardNode,
+                ifStatement,
+                span,
+                currentPlusOne,
+                methodString,
+                handlerInfo,
+                cancellationToken
+            );
+        }
 
         var matchIfHandlerBlock = 
             ifStatement.If(NotEquals(handlerInfo, Null()));
