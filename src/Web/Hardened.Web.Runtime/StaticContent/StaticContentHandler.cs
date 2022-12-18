@@ -36,12 +36,13 @@ public class StaticContentHandler : IStaticContentHandler
     private readonly string _rootPath;
     private readonly bool _pathExists;
     private readonly bool _debuggerAttached = Debugger.IsAttached;
+    private readonly string? _cacheControlString;
 
     public StaticContentHandler(
-        IOptions<IStaticContentConfiguration> configuration, 
+        IOptions<IStaticContentConfiguration> configuration,
         IFileExtToMimeTypeHelper fileExtToMimeTypeHelper,
-        IGZipStaticContentCompressor gZipStaticContentCompressor, 
-        IETagProvider etagProvider, 
+        IGZipStaticContentCompressor gZipStaticContentCompressor,
+        IETagProvider etagProvider,
         IMemoryStreamPool memoryStreamPool,
         ILogger<StaticContentHandler> logger)
     {
@@ -52,13 +53,13 @@ public class StaticContentHandler : IStaticContentHandler
         _memoryStreamPool = memoryStreamPool;
         _configuration = configuration.Value;
         _cachedStaticContentEntries = new ConcurrentDictionary<string, CachedStaticContentEntry>();
-        
-        _rootPath = Path.Combine( Directory.GetCurrentDirectory(), _configuration.Path);
+
+        _rootPath = Path.Combine(Directory.GetCurrentDirectory(), _configuration.Path);
         _pathExists = Directory.Exists(_rootPath);
 
         if (!_pathExists)
         {
-            _rootPath = 
+            _rootPath =
                 Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetName().CodeBase) ?? "";
 
             if (!string.IsNullOrEmpty(_rootPath))
@@ -69,8 +70,16 @@ public class StaticContentHandler : IStaticContentHandler
                 _pathExists = Directory.Exists(_rootPath);
             }
         }
+
+        if (_configuration.CacheMaxAge.HasValue)
+        {
+            _cacheControlString =
+                _configuration.Immutable
+                    ? _configuration.CacheMaxAge + ", immutable"
+                    : _configuration.CacheMaxAge.Value.ToString();
+        }
     }
-        
+
     public Task<bool> Handle(IExecutionContext context)
     {
         if (!_pathExists)
@@ -132,7 +141,7 @@ public class StaticContentHandler : IStaticContentHandler
                 fileBytes, CompressionLevel.SmallestSize);
         }
 
-        var cacheEntry = 
+        var cacheEntry =
             new CachedStaticContentEntry(
                 contentType, contentEncoding, isBinary, etag, compressedBytes ?? fileBytes);
 
@@ -146,7 +155,7 @@ public class StaticContentHandler : IStaticContentHandler
 
         return true;
     }
-        
+
     private Task<bool> ReturnDefaultFile(IExecutionContext context, string requestPath)
     {
         if (requestPath == _configuration.FallBackFile)
@@ -154,11 +163,12 @@ public class StaticContentHandler : IStaticContentHandler
             throw new Exception("Service is misconfigured, cannot find static fall back file: " +
                                 _configuration.FallBackFile);
         }
-            
+
         return HandleRequestForPath(context, _configuration.FallBackFile!);
     }
-        
-    private async Task<bool> ReturnCompressedFile(IExecutionContext context, string filePath, string fileExtension, string contentEncoding)
+
+    private async Task<bool> ReturnCompressedFile(IExecutionContext context, string filePath, string fileExtension,
+        string contentEncoding)
     {
         var (contentType, isBinary) = _fileExtToMimeTypeHelper.GetMimeTypeInfo(Path.GetExtension(filePath));
         var fileBytes = await File.ReadAllBytesAsync(filePath + fileExtension);
@@ -167,6 +177,7 @@ public class StaticContentHandler : IStaticContentHandler
         var cacheEntry =
             new CachedStaticContentEntry(
                 contentType, contentEncoding, isBinary, etag, fileBytes);
+        
         if (!_debuggerAttached)
         {
             _cachedStaticContentEntries.AddOrUpdate(context.Request.Path,
@@ -177,7 +188,7 @@ public class StaticContentHandler : IStaticContentHandler
 
         return true;
     }
-        
+
     private Task<bool> RespondWithContent(IExecutionContext context, CachedStaticContentEntry cacheEntry)
     {
         var etag = GetRequestETag(context);
@@ -191,9 +202,17 @@ public class StaticContentHandler : IStaticContentHandler
             return TrueComplete;
         }
 
+        if (_cacheControlString != null)
+        {
+            context.Response.Headers.Set(
+                KnownHeaders.CacheControl,
+                new StringValues(_cacheControlString)
+            );
+        }
+
         context.Response.Status = (int)HttpStatusCode.OK;
         context.Response.ContentType = cacheEntry.ContentType;
-            
+
         _configuration.OnPrepareResponse?.Invoke(context);
 
         if (!string.IsNullOrEmpty(cacheEntry.ContentEncoding))
@@ -214,7 +233,8 @@ public class StaticContentHandler : IStaticContentHandler
         return true;
     }
 
-    private async Task<bool> RespondWithContentEncodedFile(IExecutionContext context, CachedStaticContentEntry cacheEntry)
+    private async Task<bool> RespondWithContentEncodedFile(IExecutionContext context,
+        CachedStaticContentEntry cacheEntry)
     {
         if (context.Request.Headers.TryGet(KnownHeaders.AcceptEncoding, out var encoding))
         {
@@ -228,15 +248,16 @@ public class StaticContentHandler : IStaticContentHandler
                 return true;
             }
         }
-            
+
         return await DecompressCacheEntryToStream(context, cacheEntry);
     }
 
-    private async Task<bool> DecompressCacheEntryToStream(IExecutionContext context, CachedStaticContentEntry cacheEntry)
+    private async Task<bool> DecompressCacheEntryToStream(IExecutionContext context,
+        CachedStaticContentEntry cacheEntry)
     {
         using var memoryStream = _memoryStreamPool.Get();
 
-        await memoryStream.Item.WriteAsync(cacheEntry.Content, 0 , cacheEntry.Content.Length);
+        await memoryStream.Item.WriteAsync(cacheEntry.Content, 0, cacheEntry.Content.Length);
 
         memoryStream.Item.Position = 0;
 
@@ -256,9 +277,7 @@ public class StaticContentHandler : IStaticContentHandler
                 "This can only happen if a new compression type is introduced without updating this else if");
         }
 
-        var (contentType, isBinary) = _fileExtToMimeTypeHelper.GetMimeTypeInfo(Path.GetExtension(context.Request.Path));
-
-        context.Response.IsBinary = isBinary;
+        context.Response.IsBinary = cacheEntry.IsBinary;
 
         await outputStream.CopyToAsync(context.Response.Body);
         await outputStream.DisposeAsync();
@@ -275,10 +294,11 @@ public class StaticContentHandler : IStaticContentHandler
 
         return StringValues.Empty;
     }
-        
+
     private class CachedStaticContentEntry
     {
-        public CachedStaticContentEntry(string contentType, string? contentEncoding, bool isBinary, string etag, byte[] content)
+        public CachedStaticContentEntry(string contentType, string? contentEncoding, bool isBinary, string etag,
+            byte[] content)
         {
             ContentType = contentType;
             ContentEncoding = contentEncoding;

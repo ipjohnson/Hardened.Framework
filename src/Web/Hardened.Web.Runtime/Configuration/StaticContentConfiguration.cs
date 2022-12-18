@@ -9,7 +9,9 @@ public interface IStaticContentConfiguration
 
     CacheControlEnum CacheControlType { get; }
 
-    int CacheMaxAge { get; }
+    int? CacheMaxAge { get; }
+    
+    bool Immutable { get; }
 
     bool EnableETag { get; }
 
@@ -26,7 +28,9 @@ public class StaticContentConfiguration : IStaticContentConfiguration
 
     public CacheControlEnum CacheControlType { get; set; } = CacheControlEnum.MaxAge | CacheControlEnum.Public;
 
-    public int CacheMaxAge { get; set; } = 0;
+    public int? CacheMaxAge { get; set; } = 0;
+    
+    public bool Immutable { get; set; }
 
     public bool EnableETag { get; set; } = true;
 
