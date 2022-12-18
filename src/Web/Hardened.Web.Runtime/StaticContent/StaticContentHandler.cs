@@ -74,9 +74,8 @@ public class StaticContentHandler : IStaticContentHandler
         if (_configuration.CacheMaxAge.HasValue)
         {
             _cacheControlString =
-                _configuration.Immutable
-                    ? _configuration.CacheMaxAge + ", immutable"
-                    : _configuration.CacheMaxAge.Value.ToString();
+                $"max-age={_configuration.CacheMaxAge}" +
+                (_configuration.Immutable ? ", immutable" : "");
         }
     }
 
