@@ -1,5 +1,6 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Runtime.Headers;
 
 namespace Hardened.Amz.Function.Lambda.Runtime.Execution;
 
@@ -9,6 +10,7 @@ public class LambdaExecutionResponse : IExecutionResponse
     {
         Body = body;
         Headers = headers;
+        Cookies = new CookieSetCollectionImpl();
     }
 
     public object Clone()
@@ -36,9 +38,11 @@ public class LambdaExecutionResponse : IExecutionResponse
 
     public Exception? ExceptionValue { get; set; }
 
-    public bool ResponseStarted { get; }
+    public bool ResponseStarted => Body.Position > 0;
 
     public bool IsBinary { get; set; }
 
+    public ICookieSetCollection Cookies { get; }
+    
     public bool ShouldSerialize { get; set; } = true;
 }

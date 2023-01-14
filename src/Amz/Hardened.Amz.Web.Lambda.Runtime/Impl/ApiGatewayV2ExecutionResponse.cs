@@ -12,6 +12,7 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse
     public ApiGatewayV2ExecutionResponse(APIGatewayHttpApiV2ProxyResponse response)
     {
         _proxyResponse = response;
+        Cookies = new ApiGatewayV2CookieSetCollection(response);
     }
 
     public object Clone()
@@ -47,6 +48,8 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse
     public bool ResponseStarted => Body?.Position > 0;
 
     public bool IsBinary { get; set; }
-
+    
+    public ICookieSetCollection Cookies { get; }
+    
     public bool ShouldSerialize { get; set; } = true;
 }

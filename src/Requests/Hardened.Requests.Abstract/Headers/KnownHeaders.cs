@@ -13,7 +13,7 @@ public static class KnownHeaders
     public const string ContentType = "Content-Type";
 
     public const string ContentLength = "Content-Length";
-        
+
     public const string IfMatch = "If-Match";
 
     public static class Cors

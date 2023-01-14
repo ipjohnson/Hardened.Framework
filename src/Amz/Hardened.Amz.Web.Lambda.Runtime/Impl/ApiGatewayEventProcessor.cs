@@ -28,6 +28,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
     private readonly IRequestLogger _requestLogger;
     private readonly IMetricLoggerProvider _metricLoggerProvider;
     private readonly MSLogging.ILogger<ApiGatewayEventProcessor> _logger;
+    private readonly IStringBuilderPool _stringBuilderPool;
     private readonly IKnownServices _knownServices;
     private readonly ILambdaContextAccessor _lambdaContextAccessor;
 
@@ -38,7 +39,9 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
         IRequestLogger requestLogger, 
         MSLogging.ILogger<ApiGatewayEventProcessor> logger, 
         IMetricLoggerProvider metricLoggerProvider,
-        IKnownServices knownServices, ILambdaContextAccessor lambdaContextAccessor)
+        IKnownServices knownServices, 
+        ILambdaContextAccessor lambdaContextAccessor, 
+        IStringBuilderPool stringBuilderPool)
     {
         _serviceProvider = serviceProvider;
         _middlewareService = middlewareService;
@@ -48,6 +51,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
         _metricLoggerProvider = metricLoggerProvider;
         _knownServices = knownServices;
         _lambdaContextAccessor = lambdaContextAccessor;
+        _stringBuilderPool = stringBuilderPool;
     }
 
     public async Task<APIGatewayHttpApiV2ProxyResponse> Process(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext context)
@@ -80,7 +84,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
             response.StatusCode = executionContext.Response.Status.Value;
         }
 
-        response.Headers = executionContext.Response.Headers.ToStringDictionary();
+        CopyHeadersAndCookies(executionContext, response);
 
         if (executionContext.Response.IsBinary)
         {
@@ -98,6 +102,37 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor
         executionContext.RequestMetrics.Dispose();
 
         return response;
+    }
+
+    private void CopyHeadersAndCookies(IExecutionContext executionContext, APIGatewayHttpApiV2ProxyResponse response)
+    {
+        response.Headers = executionContext.Response.Headers.ToStringDictionary();
+
+        var cookies = executionContext.Response.Cookies.Cookies;
+
+        if (cookies.Count > 0)
+        {
+            using var stringBuilderReservation = _stringBuilderPool.Get();
+            var stringBuilder = stringBuilderReservation.Item;
+            var cookieArray = new string[cookies.Count];
+            var i = 0;
+            foreach (var cookiePair in cookies)
+            {
+                stringBuilder.Append(cookiePair.Key);
+                stringBuilder.Append('=');
+                stringBuilder.Append(cookiePair.Value);
+                cookiePair.Value.Item2.AppendSettings(stringBuilder);
+                cookieArray[i] = stringBuilder.ToString();
+                i++;
+                stringBuilder.Clear();
+            }
+
+            response.Cookies = cookieArray;
+        }
+        else
+        {
+            response.Cookies = Array.Empty<string>();
+        }
     }
 
     private IExecutionContext CreateExecutionContext(IServiceScope scope,

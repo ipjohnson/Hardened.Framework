@@ -121,6 +121,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.IntegrationTests.W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.Canaries.Runtime.Tests", "Amz\Hardened.Amz.Canaries.Runtime.Tests\Hardened.Amz.Canaries.Runtime.Tests.csproj", "{968369A8-FAB1-4AAF-8782-65316EA1267F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Cognito", "Cognito", "{50D79393-BEA0-4BBE-835C-20375E9C7F2A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.Cognito", "Amz\Hardened.Amz.Cognito\Hardened.Amz.Cognito.csproj", "{9228561A-6965-42B7-AC7E-FFD8909ADC63}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -303,6 +307,10 @@ Global
 		{968369A8-FAB1-4AAF-8782-65316EA1267F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{968369A8-FAB1-4AAF-8782-65316EA1267F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{968369A8-FAB1-4AAF-8782-65316EA1267F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9228561A-6965-42B7-AC7E-FFD8909ADC63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9228561A-6965-42B7-AC7E-FFD8909ADC63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9228561A-6965-42B7-AC7E-FFD8909ADC63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9228561A-6965-42B7-AC7E-FFD8909ADC63}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -360,6 +368,8 @@ Global
 		{679E9C39-5CB9-44BB-A2DC-A283F5186A7A} = {8D526EBC-C2BA-435B-A562-C5FEC8A51732}
 		{18A9F61E-7503-4097-92B9-E2EDA383689D} = {912FA76C-5C49-44BD-90F2-675745D2D90F}
 		{968369A8-FAB1-4AAF-8782-65316EA1267F} = {0E6AF705-8721-4835-B569-A9F513F15929}
+		{50D79393-BEA0-4BBE-835C-20375E9C7F2A} = {14301AF1-9386-4970-B4F8-74E37B188AEC}
+		{9228561A-6965-42B7-AC7E-FFD8909ADC63} = {50D79393-BEA0-4BBE-835C-20375E9C7F2A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF6CD1AB-6B41-427D-BA1B-C4803CF67E97}

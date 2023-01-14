@@ -1,5 +1,6 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Runtime.Headers;
 
 namespace Hardened.Requests.Testing;
 
@@ -8,6 +9,7 @@ public class TestExecutionResponse : IExecutionResponse
     public TestExecutionResponse(Stream body)
     {
         Body = body;
+        Cookies = new CookieSetCollectionImpl();
     }
 
     public object Clone()
@@ -39,5 +41,6 @@ public class TestExecutionResponse : IExecutionResponse
 
     public bool IsBinary { get; set; }
 
+    public ICookieSetCollection Cookies { get; }
     public bool ShouldSerialize { get; set; } = true;
 }

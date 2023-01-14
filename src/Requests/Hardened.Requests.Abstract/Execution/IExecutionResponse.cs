@@ -24,5 +24,7 @@ public interface IExecutionResponse : ICloneable
 
     bool IsBinary { get; set; }
 
+    ICookieSetCollection Cookies { get; }
+    
     bool ShouldSerialize { get; set; }
 }
