@@ -2,8 +2,7 @@
 
 namespace Hardened.SourceGenerator.Models.Request;
 
-public record ResponseInformationModel
-{
+public record ResponseInformationModel {
     public bool IsAsync { get; set; }
 
     public ITypeDefinition? ReturnType { get; set; }
@@ -13,10 +12,8 @@ public record ResponseInformationModel
     public int? DefaultStatusCode { get; set; }
 
     public string? RawResponseContentType { get; set; }
-    
-    public override string ToString()
-    {
+
+    public override string ToString() {
         return $"{IsAsync}:{TemplateName}:{ReturnType}";
     }
-    
 }

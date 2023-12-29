@@ -16,52 +16,45 @@ using Microsoft.Extensions.Logging;
 
 namespace Hardened.Web.Testing;
 
-public class TestWebApp : TestContext, ITestWebApp
-{
+public class TestWebApp : TestContext, ITestWebApp {
     private readonly IApplicationRoot _applicationRoot;
     private readonly TestCancellationToken _testCancellationToken;
-    
-    public TestWebApp(IApplicationRoot applicationRoot, ILogger logger) 
-        : base(applicationRoot.Provider.GetRequiredService<TestCancellationToken>().Token, logger)
-    {
+
+    public TestWebApp(IApplicationRoot applicationRoot, ILogger logger)
+        : base(applicationRoot.Provider.GetRequiredService<TestCancellationToken>().Token, logger) {
         _applicationRoot = applicationRoot;
         _testCancellationToken = _applicationRoot.Provider.GetService<TestCancellationToken>()!;
     }
 
     public IServiceProvider RootServiceProvider => _applicationRoot.Provider;
 
-    public Task<TestWebResponse> Get(string path, Action<TestWebRequest>? webRequest = null)
-    {
+    public Task<TestWebResponse> Get(string path, Action<TestWebRequest>? webRequest = null) {
         return ExecuteHttpMethod("GET", path, webRequest);
     }
-        
-    public Task<TestWebResponse> Post(object postValue, string path, Action<TestWebRequest>? webRequest = null)
-    {
+
+    public Task<TestWebResponse> Post(object postValue, string path, Action<TestWebRequest>? webRequest = null) {
         return ExecuteHttpMethod("POST", path, webRequest, postValue);
     }
 
-    public Task<TestWebResponse> Put(object value, string path, Action<TestWebRequest>? webRequest = null)
-    {
+    public Task<TestWebResponse> Put(object value, string path, Action<TestWebRequest>? webRequest = null) {
         return ExecuteHttpMethod("PUT", path, webRequest, value);
     }
 
-    public Task<TestWebResponse> Patch(object value, string path, Action<TestWebRequest>? webRequest = null)
-    {
+    public Task<TestWebResponse> Patch(object value, string path, Action<TestWebRequest>? webRequest = null) {
         return ExecuteHttpMethod("PATCH", path, webRequest, value);
     }
 
-    public Task<TestWebResponse> Delete(string path, Action<TestWebRequest>? webRequest = null)
-    {
+    public Task<TestWebResponse> Delete(string path, Action<TestWebRequest>? webRequest = null) {
         return ExecuteHttpMethod("DELETE", path, webRequest, null);
     }
 
-    public Task<TestWebResponse> Request(string method, object? value, string path, Action<TestWebRequest>? webRequest = null)
-    {
+    public Task<TestWebResponse> Request(string method, object? value, string path,
+        Action<TestWebRequest>? webRequest = null) {
         return ExecuteHttpMethod(method, path, webRequest, value);
     }
 
-    private async Task<TestWebResponse> ExecuteHttpMethod(string httpMethod, string path, Action<TestWebRequest>? webRequest, object? bodyValue = null)
-    {
+    private async Task<TestWebResponse> ExecuteHttpMethod(string httpMethod, string path,
+        Action<TestWebRequest>? webRequest, object? bodyValue = null) {
         _testCancellationToken.Token.ThrowIfCancellationRequested();
 
         var startTimestamp = MachineTimestamp.Now;
@@ -74,15 +67,14 @@ public class TestWebApp : TestContext, ITestWebApp
 
         var context = CreateContext(
             httpMethod, path, webRequest, responseBody, scope);
-            
+
         context.Request.Headers.Set(KnownHeaders.AcceptEncoding, KnownEncoding.GZip);
-            
-        if (bodyValue != null && string.IsNullOrEmpty(context.Request.ContentType))
-        {
+
+        if (bodyValue != null && string.IsNullOrEmpty(context.Request.ContentType)) {
             context.Request.Headers.Set(KnownHeaders.ContentType, KnownContentType.Js);
         }
-        
-        webRequest?.Invoke(new TestWebRequest{ Headers = context.Request.Headers});
+
+        webRequest?.Invoke(new TestWebRequest { Headers = context.Request.Headers });
 
         context.Request.Body = SetupBodyStream(bodyValue);
 
@@ -90,12 +82,10 @@ public class TestWebApp : TestContext, ITestWebApp
 
         requestLogger.RequestBegin(context);
 
-        try
-        {
+        try {
             await chain.Next();
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
             Console.WriteLine(e);
             throw;
         }
@@ -103,19 +93,18 @@ public class TestWebApp : TestContext, ITestWebApp
         scope.Dispose();
 
         responseBody.Position = 0;
-            
+
         context.RequestMetrics.Record(RequestMetrics.TotalRequestDuration, startTimestamp.GetElapsedMilliseconds());
         requestLogger.RequestEnd(context);
 
         return new TestWebResponse(context.Response);
     }
 
-    private Stream SetupBodyStream(object? bodyValue)
-    {
+    private Stream SetupBodyStream(object? bodyValue) {
         if (bodyValue == null)
             return Stream.Null;
 
-        var memoryStream=  new MemoryStream();
+        var memoryStream = new MemoryStream();
 
         JsonSerializer.Serialize(memoryStream, bodyValue);
 
@@ -125,44 +114,44 @@ public class TestWebApp : TestContext, ITestWebApp
     }
 
     private IExecutionContext CreateContext(
-        string httpMethod, 
-        string path, 
+        string httpMethod,
+        string path,
         Action<TestWebRequest>? webRequest,
-        MemoryStream responseBody, 
-        IServiceScope serviceScope)
-    {   
+        MemoryStream responseBody,
+        IServiceScope serviceScope) {
         var header = new HeaderCollectionStringValues();
 
         var testWebRequest = new TestWebRequest { Headers = header };
-        
+
         webRequest?.Invoke(testWebRequest);
 
         testWebRequest.Token ??= _testCancellationToken.Token;
-        
+
         var pathMinusQuery = path;
         var questionMark = path.IndexOf('?');
-        if (questionMark > -1)
-        {
+        if (questionMark > -1) {
             pathMinusQuery = path.Substring(0, questionMark);
         }
-        var request = new TestExecutionRequest(httpMethod, pathMinusQuery, "", ParseQueryStringFromPath(path)) { Headers = header };
+
+        var request =
+            new TestExecutionRequest(httpMethod, pathMinusQuery, "", ParseQueryStringFromPath(path)) {
+                Headers = header
+            };
         var response = new TestExecutionResponse(responseBody) { Headers = header };
-        
+
         return new TestExecutionContext(
-            _applicationRoot.Provider, 
-            serviceScope.ServiceProvider, 
-            serviceScope.ServiceProvider.GetRequiredService<IKnownServices>(), 
+            _applicationRoot.Provider,
+            serviceScope.ServiceProvider,
+            serviceScope.ServiceProvider.GetRequiredService<IKnownServices>(),
             request,
             response,
             testWebRequest.Token.Value);
     }
 
-    private IQueryStringCollection ParseQueryStringFromPath(string path)
-    {
+    private IQueryStringCollection ParseQueryStringFromPath(string path) {
         var questionMarkIndex = path.IndexOf('?');
 
-        if (questionMarkIndex == -1 || questionMarkIndex == path.Length)
-        {
+        if (questionMarkIndex == -1 || questionMarkIndex == path.Length) {
             return EmptyQueryStringCollection.Instance;
         }
 
@@ -171,21 +160,17 @@ public class TestWebApp : TestContext, ITestWebApp
         var queryStringValues = new Dictionary<string, string>();
         var pairs = queryString.Split('&');
 
-        foreach (var kvp in pairs)
-        {
+        foreach (var kvp in pairs) {
             var values = kvp.Split('=');
 
-            if (values.Length == 2)
-            {
+            if (values.Length == 2) {
                 queryStringValues[values[0]] = values[1];
             }
-            else
-            {
+            else {
                 queryStringValues[kvp] = "";
             }
         }
 
         return new SimpleQueryStringCollection(queryStringValues);
     }
-
 }

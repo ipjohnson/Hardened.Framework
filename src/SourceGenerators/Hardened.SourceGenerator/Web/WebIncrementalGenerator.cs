@@ -6,12 +6,10 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Web;
 
-public static class WebIncrementalGenerator
-{
+public static class WebIncrementalGenerator {
     public static void Setup(
         IncrementalGeneratorInitializationContext initializationContext,
-        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider)
-    {
+        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider) {
         var requestModelGenerator = new WebRequestHandlerModelGenerator();
 
         var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
@@ -20,31 +18,30 @@ public static class WebIncrementalGenerator
         ).WithComparer(new RequestHandlerModelComparer());
 
         var invokeGenerator = new WebExecutionHandlerCodeGenerator();
-            
+
         initializationContext.RegisterSourceOutput(
             modelProvider,
             SourceGeneratorWrapper.Wrap<RequestHandlerModel>(invokeGenerator.GenerateSource)
         );
 
         var collection = modelProvider.Collect();
-            
+
         var routeProvider = entryPointProvider.Combine(collection).WithComparer(new CombinedComparer());
         initializationContext.RegisterSourceOutput(routeProvider,
             SourceGeneratorWrapper.Wrap<
-                (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right)>(RoutingTableGenerator.GenerateRoute));
+                (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right)>(RoutingTableGenerator
+                .GenerateRoute));
     }
 
-    public class CombinedComparer : IEqualityComparer<(EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right)>
-    {
-        public bool Equals((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) x, (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) y)
-        {
+    public class CombinedComparer : IEqualityComparer<(EntryPointSelector.Model Left,
+        ImmutableArray<RequestHandlerModel> Right)> {
+        public bool Equals((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) x,
+            (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) y) {
             return x.Item1.Equals(y.Item1) && ((Object)x.Item2).Equals(y.Item2);
         }
 
-        public int GetHashCode((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) obj)
-        {
-            unchecked
-            {
+        public int GetHashCode((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) obj) {
+            unchecked {
                 return (obj.Item1.GetHashCode() * 397) ^ obj.Item2.GetHashCodeAggregation();
             }
         }

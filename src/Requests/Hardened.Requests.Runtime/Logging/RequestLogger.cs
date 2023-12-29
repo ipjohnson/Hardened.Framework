@@ -4,51 +4,44 @@ using Microsoft.Extensions.Logging;
 
 namespace Hardened.Requests.Runtime.Logging;
 
-public partial class RequestLogger : IRequestLogger
-{
+public partial class RequestLogger : IRequestLogger {
     private static readonly TimeSpan _emptyTimeSpan = new(0);
     private readonly ILogger<RequestLogger> _logger;
 
-    public RequestLogger(ILogger<RequestLogger> logger)
-    {
+    public RequestLogger(ILogger<RequestLogger> logger) {
         _logger = logger;
     }
 
-    public void RequestBegin(IExecutionContext context)
-    {
+    public void RequestBegin(IExecutionContext context) {
         LogRequestStarted(context.Request.Method, context.Request.Path);
     }
 
-    public void RequestMapped(IExecutionContext context)
-    {
-        LogRequestMapped(context.Request.Method, context.Request.Path, context.HandlerInfo!.HandlerType.Name, context.HandlerInfo!.InvokeMethod);
+    public void RequestMapped(IExecutionContext context) {
+        LogRequestMapped(context.Request.Method, context.Request.Path, context.HandlerInfo!.HandlerType.Name,
+            context.HandlerInfo!.InvokeMethod);
     }
-        
-    public void RequestEnd(IExecutionContext context)
-    {
+
+    public void RequestEnd(IExecutionContext context) {
         var currentTime = DateTime.Now;
 
         LogRequestFinished(
-            context.Request.Method, 
-            context.Request.Path, 
+            context.Request.Method,
+            context.Request.Path,
             context.Response.Status,
             context.StartTime.GetElapsedTime()
         );
     }
 
-    public void RequestParameterBindFailed(IExecutionContext context, Exception? exp)
-    {
-        _logger.LogError(exp, "{method} {path} failed to bind parameters", 
+    public void RequestParameterBindFailed(IExecutionContext context, Exception? exp) {
+        _logger.LogError(exp, "{method} {path} failed to bind parameters",
             context.Request.Method, context.Request.Path);
     }
 
-    public void RequestFailed(IExecutionContext context, Exception exp)
-    {
+    public void RequestFailed(IExecutionContext context, Exception exp) {
         _logger.LogError(exp, "{method} {path} request failed", context.Request.Method, context.Request.Path);
     }
 
-    public void ResourceNotFound(IExecutionContext context)
-    {
+    public void ResourceNotFound(IExecutionContext context) {
         LogResourceNotFound(context.Request.Method, context.Request.Path);
     }
 

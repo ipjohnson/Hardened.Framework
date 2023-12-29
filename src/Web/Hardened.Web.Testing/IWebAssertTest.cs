@@ -3,8 +3,7 @@
 /// <summary>
 /// interface for web asserts
 /// </summary>
-public interface IWebAssertThat
-{
+public interface IWebAssertThat {
     /// <summary>
     /// Checks status code is a 2xx code
     /// </summary>

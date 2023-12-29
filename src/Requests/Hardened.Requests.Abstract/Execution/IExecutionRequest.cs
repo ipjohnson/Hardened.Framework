@@ -4,8 +4,7 @@ using Hardened.Requests.Abstract.QueryString;
 
 namespace Hardened.Requests.Abstract.Execution;
 
-public interface IExecutionRequest : ICloneable
-{
+public interface IExecutionRequest : ICloneable {
     string Method { get; }
 
     string Path { get; }
@@ -15,15 +14,14 @@ public interface IExecutionRequest : ICloneable
     string? Accept { get; }
 
     IExecutionRequestParameters? Parameters { get; set; }
-        
+
     Stream Body { get; set; }
-        
+
     IHeaderCollection Headers { get; }
 
     IQueryStringCollection QueryString { get; }
 
     IPathTokenCollection PathTokens { get; set; }
-    
-    IReadOnlyList<string> Cookies { get; }
 
+    IReadOnlyList<string> Cookies { get; }
 }

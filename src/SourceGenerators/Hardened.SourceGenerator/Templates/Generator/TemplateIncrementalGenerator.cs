@@ -8,9 +8,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Templates.Generator;
 
-public static class TemplateIncrementalGenerator
-{
+public static class TemplateIncrementalGenerator {
     private static readonly StringTokenNodeParser.TokenInfo _tokenInfo = new("{{", "}}");
+
     private static readonly TemplateClassGenerator _generator =
         new(
             new TemplateParseService(
@@ -19,12 +19,10 @@ public static class TemplateIncrementalGenerator
             new TemplateWhiteSpaceCleaner());
 
     public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
-        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider, ICollection<string> fileExtension)
-    {
+        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider, ICollection<string> fileExtension) {
         var applicationModelCollection = entryPointProvider.Collect();
 
-        var templateFiles = initializationContext.AdditionalTextsProvider.Where(textFile =>
-        {
+        var templateFiles = initializationContext.AdditionalTextsProvider.Where(textFile => {
             var extension = Path.GetExtension(textFile.Path).TrimStart('.');
             return fileExtension.Contains(extension);
         });
@@ -48,47 +46,44 @@ public static class TemplateIncrementalGenerator
 
         var helperSelector = new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.Templates.TemplateHelperAttribute);
 
-        var templateHelperModels = 
+        var templateHelperModels =
             initializationContext.SyntaxProvider.CreateSyntaxProvider(
-            helperSelector.Where,
-            TemplateHelperModelGenerator
-        ).WithComparer(new TemplateHelperModelComparer());
+                helperSelector.Where,
+                TemplateHelperModelGenerator
+            ).WithComparer(new TemplateHelperModelComparer());
 
         var templateHelperProviders = entryPointProvider.Combine(templateHelperModels.Collect());
 
         initializationContext.RegisterSourceOutput(
             templateHelperProviders,
-            SourceGeneratorWrapper.Wrap <
+            SourceGeneratorWrapper.Wrap<
                 (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateHelperModel> helperModels)
             >(TemplateHelperGenerator.Generate));
     }
 
-    public class TemplateHelperModelComparer : IEqualityComparer<TemplateHelperModel>
-    {
-        public bool Equals(TemplateHelperModel x, TemplateHelperModel y)
-        {
+    public class TemplateHelperModelComparer : IEqualityComparer<TemplateHelperModel> {
+        public bool Equals(TemplateHelperModel x, TemplateHelperModel y) {
             if (ReferenceEquals(x, y)) return true;
             if (ReferenceEquals(x, null)) return false;
             if (ReferenceEquals(y, null)) return false;
             return x.Equals(y);
         }
 
-        public int GetHashCode(TemplateHelperModel obj)
-        {
+        public int GetHashCode(TemplateHelperModel obj) {
             return obj.GetHashCode();
         }
     }
 
-    private static TemplateHelperModel? TemplateHelperModelGenerator(GeneratorSyntaxContext arg1, CancellationToken arg2)
-    {
-        if (arg1.Node is not ClassDeclarationSyntax classDeclarationSyntax)
-        {
+    private static TemplateHelperModel? TemplateHelperModelGenerator(GeneratorSyntaxContext arg1,
+        CancellationToken arg2) {
+        if (arg1.Node is not ClassDeclarationSyntax classDeclarationSyntax) {
             // we should never get here
             throw new Exception("Could not get class declaration");
         }
 
         var attribute =
-            arg1.Node.DescendantNodes().OfType<AttributeSyntax>().First(a => a.Name.ToString().Contains("TemplateHelper"));
+            arg1.Node.DescendantNodes().OfType<AttributeSyntax>()
+                .First(a => a.Name.ToString().Contains("TemplateHelper"));
 
         var helperName = attribute.ArgumentList?.Arguments.First().ToString().Trim('"') ?? "";
 
@@ -97,23 +92,24 @@ public static class TemplateIncrementalGenerator
             DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle.Singleton);
     }
 
-    private static void GenerateTemplateSource(SourceProductionContext sourceProductionContext, (TemplateModel templateModel, ImmutableArray<EntryPointSelector.Model> applicationModels) templateData)
-    {
+    private static void GenerateTemplateSource(SourceProductionContext sourceProductionContext,
+        (TemplateModel templateModel, ImmutableArray<EntryPointSelector.Model> applicationModels) templateData) {
         var templateModel = templateData.templateModel;
         var applicationModel = templateData.applicationModels.First();
         templateModel.TemplateDefinitionType = TypeDefinition.Get(
             applicationModel.EntryPointType.Namespace + ".Generated", "Template_" + templateModel.TemplateName);
 
         var templateSource = _generator.GenerateCSharpFile(templateModel.TemplateActionNodes,
-            templateModel.TemplateName, templateModel.TemplateExtension, templateModel.TemplateDefinitionType.Namespace);
+            templateModel.TemplateName, templateModel.TemplateExtension,
+            templateModel.TemplateDefinitionType.Namespace);
 
         var templateFileName = "Generated." + templateModel.TemplateDefinitionType.Name + ".cs";
 
         sourceProductionContext.AddSource(templateFileName, templateSource);
     }
 
-    private static TemplateModel GenerateTemplateModels(AdditionalText additionalText, CancellationToken cancellationToken)
-    {
+    private static TemplateModel GenerateTemplateModels(AdditionalText additionalText,
+        CancellationToken cancellationToken) {
         var extension = Path.GetExtension(additionalText.Path);
         var fileName = Path.GetFileNameWithoutExtension(additionalText.Path);
 
@@ -125,10 +121,9 @@ public static class TemplateIncrementalGenerator
             _generator.ParseCSharpFile(additionalTextString, _tokenInfo));
     }
 
-    public class TemplateHelperModel
-    {
-        public TemplateHelperModel(string name, ITypeDefinition helper, DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle lifestyle)
-        {
+    public class TemplateHelperModel {
+        public TemplateHelperModel(string name, ITypeDefinition helper,
+            DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle lifestyle) {
             Name = name;
             Helper = helper;
             Lifestyle = lifestyle;
@@ -138,23 +133,22 @@ public static class TemplateIncrementalGenerator
 
         public ITypeDefinition Helper { get; }
 
-        public DependencyInjection.DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle Lifestyle { get; }
+        public DependencyInjection.DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle Lifestyle {
+            get;
+        }
 
-        public override bool Equals(object obj)
-        {
-            if (obj is not TemplateHelperModel templateHelperModel)
-            {
+        public override bool Equals(object obj) {
+            if (obj is not TemplateHelperModel templateHelperModel) {
                 return false;
             }
+
             return Name.Equals(templateHelperModel.Name) &&
                    Helper.Equals(templateHelperModel.Helper) &&
                    Lifestyle.Equals(templateHelperModel.Lifestyle);
         }
 
-        public override int GetHashCode()
-        {
-            unchecked
-            {
+        public override int GetHashCode() {
+            unchecked {
                 var hashCode = Name.GetHashCode();
                 hashCode = (hashCode * 397) ^ Helper.GetHashCode();
                 hashCode = (hashCode * 397) ^ (int)Lifestyle;
@@ -163,10 +157,9 @@ public static class TemplateIncrementalGenerator
         }
     }
 
-    public class TemplateModel
-    {
-        public TemplateModel(string templateName, string templateExtension, IList<TemplateActionNode> templateActionNodes)
-        {
+    public class TemplateModel {
+        public TemplateModel(string templateName, string templateExtension,
+            IList<TemplateActionNode> templateActionNodes) {
             TemplateName = templateName;
             TemplateExtension = templateExtension;
             TemplateActionNodes = templateActionNodes;
@@ -179,6 +172,5 @@ public static class TemplateIncrementalGenerator
         public string TemplateName { get; }
 
         public string TemplateExtension { get; }
-
     }
 }

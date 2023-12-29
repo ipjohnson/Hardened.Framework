@@ -5,11 +5,9 @@ using Hardened.Shared.Testing.Utilties;
 
 namespace Hardened.Shared.Testing.Impl;
 
-public class HardenedTestEnvironmentBuilder
-{
+public class HardenedTestEnvironmentBuilder {
     public IEnvironment BuildEnvironment(AttributeCollection attributeCollection, MethodInfo testMethod,
-        object testClassInstance)
-    {
+        object testClassInstance) {
         var environmentName = attributeCollection.GetAttribute<EnvironmentNameAttribute>()?.Name ?? "test";
         var environmentValueAttributeList = attributeCollection.GetAttributes<EnvironmentValueAttribute>();
         var configAttributes =
@@ -17,27 +15,23 @@ public class HardenedTestEnvironmentBuilder
 
         var environmentDictionary = new Dictionary<string, object>();
 
-        foreach (var environmentValueAttribute in environmentValueAttributeList)
-        {
+        foreach (var environmentValueAttribute in environmentValueAttributeList) {
             environmentDictionary[environmentValueAttribute.Variable] = environmentValueAttribute.Value;
         }
 
-        foreach (var configAttribute in configAttributes)
-        {
+        foreach (var configAttribute in configAttributes) {
             configAttribute.ConfigureEnvironment(attributeCollection, testMethod, environmentName,
                 environmentDictionary);
         }
 
         var configureMethod =
             testClassInstance.GetType().FindInstanceMethod("ConfigureEnvironment");
-        
-        if (configureMethod != null)
-        {
+
+        if (configureMethod != null) {
             var parameters = new List<object>();
             var methodParameters = configureMethod.GetParameters().Length;
 
-            switch (methodParameters)
-            {
+            switch (methodParameters) {
                 case 4:
                     parameters.Add(attributeCollection);
                     parameters.Add(testMethod);

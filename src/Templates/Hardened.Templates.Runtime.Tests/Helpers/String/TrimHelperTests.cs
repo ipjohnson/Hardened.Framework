@@ -4,14 +4,12 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.String;
 
-public class TrimHelperTests : BaseSingleStringTests
-{
+public class TrimHelperTests : BaseSingleStringTests {
     [Theory]
     [InlineData(" Hello", "Hello")]
     [InlineData("Hello ", "Hello")]
     [InlineData("Hello", "Hello")]
-    public async void TrimLogicTests(string input, string expected)
-    {
+    public async void TrimLogicTests(string input, string expected) {
         await Evaluate(input, expected);
     }
 

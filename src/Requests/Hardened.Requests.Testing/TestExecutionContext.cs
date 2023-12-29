@@ -4,16 +4,14 @@ using Hardened.Shared.Runtime.Metrics;
 
 namespace Hardened.Requests.Testing;
 
-public class TestExecutionContext : IExecutionContext
-{
+public class TestExecutionContext : IExecutionContext {
     public TestExecutionContext(
         IServiceProvider rootServiceProvider,
-        IServiceProvider requestServices, 
+        IServiceProvider requestServices,
         IKnownServices knownServices,
         IExecutionRequest request,
         IExecutionResponse response,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         RootServiceProvider = rootServiceProvider;
         RequestServices = requestServices;
         Request = request;
@@ -24,8 +22,7 @@ public class TestExecutionContext : IExecutionContext
         CancellationToken = cancellationToken;
     }
 
-    public object Clone()
-    {
+    public object Clone() {
         throw new NotImplementedException();
     }
 

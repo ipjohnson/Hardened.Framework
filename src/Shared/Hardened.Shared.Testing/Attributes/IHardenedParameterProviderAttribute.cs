@@ -4,17 +4,16 @@ using System.Reflection;
 
 namespace Hardened.Shared.Testing.Attributes;
 
-public interface IHardenedParameterProviderAttribute : IHardenedOrderedAttribute
-{
+public interface IHardenedParameterProviderAttribute : IHardenedOrderedAttribute {
     void RegisterDependencies(
         AttributeCollection attributeCollection,
-        MethodInfo methodInfo, 
-        ParameterInfo? parameterInfo, 
-        IEnvironment environment, 
+        MethodInfo methodInfo,
+        ParameterInfo? parameterInfo,
+        IEnvironment environment,
         IServiceCollection serviceCollection);
 
     object? ProvideParameterValue(
         MethodInfo methodInfo,
-        ParameterInfo parameterInfo, 
+        ParameterInfo parameterInfo,
         IApplicationRoot applicationRoot);
 }

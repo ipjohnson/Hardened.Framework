@@ -1,9 +1,7 @@
 ﻿namespace Hardened.Web.Runtime.Attributes;
 
-public class PutAttribute : Attribute
-{
-    public PutAttribute(string path = "")
-    {
+public class PutAttribute : Attribute {
+    public PutAttribute(string path = "") {
         Path = path;
     }
 

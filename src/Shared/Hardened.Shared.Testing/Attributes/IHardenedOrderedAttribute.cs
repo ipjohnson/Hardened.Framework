@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 namespace Hardened.Shared.Testing.Attributes;
 
-public interface IHardenedOrderedAttribute
-{
+public interface IHardenedOrderedAttribute {
     int Order => 10;
 }

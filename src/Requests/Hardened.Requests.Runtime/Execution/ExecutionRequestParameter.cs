@@ -2,10 +2,8 @@
 
 namespace Hardened.Requests.Runtime.Execution;
 
-public class ExecutionRequestParameter : IExecutionRequestParameter
-{
-    public ExecutionRequestParameter(string name, int index, Type type)
-    {
+public class ExecutionRequestParameter : IExecutionRequestParameter {
+    public ExecutionRequestParameter(string name, int index, Type type) {
         Name = name;
         Index = index;
         Type = type;

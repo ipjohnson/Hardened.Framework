@@ -1,16 +1,12 @@
 ﻿namespace Hardened.Shared.Runtime.Utilities;
 
-public interface IFileExtToMimeTypeHelper
-{
+public interface IFileExtToMimeTypeHelper {
     (string, bool) GetMimeTypeInfo(string fileExtension);
 }
 
-public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper
-{
-    public (string, bool) GetMimeTypeInfo(string fileExtension)
-    {
-        switch (fileExtension.ToLowerInvariant().TrimStart('.'))
-        {
+public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper {
+    public (string, bool) GetMimeTypeInfo(string fileExtension) {
+        switch (fileExtension.ToLowerInvariant().TrimStart('.')) {
             case "bz2":
                 return ("application/x-bzip2", true);
 
@@ -27,7 +23,7 @@ public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper
                 return ("application/gzip", true);
 
             case "gif":
-                return ("image/gif",true);
+                return ("image/gif", true);
 
             case "html":
                 return ("text/html", false);
@@ -35,10 +31,10 @@ public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper
             case "js":
             case "mjs":
                 return ("text/javascript", false);
-            
+
             case "json":
                 return ("application/json", false);
-            
+
             case "jpeg":
             case "jpg":
                 return ("image/jpeg", true);
@@ -55,10 +51,10 @@ public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper
             case "txt":
             case "text":
                 return ("text/plain", false);
-            
+
             case "webp":
                 return ("image/webp", true);
-            
+
             case "xml":
                 return ("text/xml", false);
 

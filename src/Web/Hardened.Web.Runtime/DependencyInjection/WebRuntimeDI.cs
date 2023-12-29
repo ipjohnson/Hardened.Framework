@@ -10,15 +10,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hardened.Web.Runtime.DependencyInjection;
 
-public static class WebRuntimeDI
-{
+public static class WebRuntimeDI {
     private static readonly WeakReference<IServiceCollection?> _lastServiceCollection = new(null);
 
-    public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
-    {
+    public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
         if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
-            !ReferenceEquals(lastServiceCollection, serviceCollection))
-        {
+            !ReferenceEquals(lastServiceCollection, serviceCollection)) {
             _lastServiceCollection.SetTarget(serviceCollection);
 
             serviceCollection.TryAddSingleton<IWebExecutionHandlerService, WebExecutionHandlerService>();
@@ -27,8 +24,7 @@ public static class WebRuntimeDI
             serviceCollection.TryAddSingleton<IGZipStaticContentCompressor, GZipStaticContentCompressor>();
             serviceCollection.AddSingleton<IConfigurationPackage>(
                 new SimpleConfigurationPackage(
-                    new[]
-                    {
+                    new[] {
                         new NewConfigurationValueProvider<IStaticContentConfiguration, StaticContentConfiguration>(null)
                     }, Array.Empty<IConfigurationValueAmender>())
             );

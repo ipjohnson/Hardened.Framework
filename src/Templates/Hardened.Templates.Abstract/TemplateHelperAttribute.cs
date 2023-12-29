@@ -1,7 +1,6 @@
 ﻿namespace Hardened.Templates.Abstract;
 
-public enum TemplateHelperLifecycle
-{
+public enum TemplateHelperLifecycle {
     /// <summary>
     /// Only one instance per template environment (default)
     /// </summary>
@@ -21,10 +20,9 @@ public enum TemplateHelperLifecycle
 /// <summary>
 /// Attribute helper classes to be used in template {{$MustacheToken args}}
 /// </summary>
-public class TemplateHelperAttribute : Attribute
-{
-    public TemplateHelperAttribute(string token, TemplateHelperLifecycle lifecycle = TemplateHelperLifecycle.Singleton)
-    {
+public class TemplateHelperAttribute : Attribute {
+    public TemplateHelperAttribute(string token,
+        TemplateHelperLifecycle lifecycle = TemplateHelperLifecycle.Singleton) {
         MustacheToken = token;
         Lifecycle = lifecycle;
     }

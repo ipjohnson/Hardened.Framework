@@ -4,12 +4,10 @@ using Newtonsoft.Json;
 namespace Hardened.Requests.Serializers.Newtonsoft;
 
 [ConfigurationModel]
-public partial class NewtonsoftSerializerConfiguration
-{
+public partial class NewtonsoftSerializerConfiguration {
     private Func<IServiceProvider, JsonSerializer> _serializerProvider = DefaultSerializer();
 
-    private static Func<IServiceProvider, JsonSerializer> DefaultSerializer()
-    {
+    private static Func<IServiceProvider, JsonSerializer> DefaultSerializer() {
         return _ => JsonSerializer.CreateDefault();
     }
 }

@@ -4,22 +4,18 @@ using Hardened.Requests.Runtime.Headers;
 
 namespace Hardened.Requests.Testing;
 
-public class TestExecutionResponse : IExecutionResponse
-{
-    public TestExecutionResponse(Stream body)
-    {
+public class TestExecutionResponse : IExecutionResponse {
+    public TestExecutionResponse(Stream body) {
         Body = body;
         Cookies = new CookieSetCollectionImpl();
     }
 
-    public object Clone()
-    {
+    public object Clone() {
         throw new NotImplementedException();
     }
 
-    public string? ContentType
-    {
-        get => Headers.Get("Content-Type"); 
+    public string? ContentType {
+        get => Headers.Get("Content-Type");
         set => Headers.Set("Content-Type", value);
     }
 
@@ -30,7 +26,7 @@ public class TestExecutionResponse : IExecutionResponse
     public int? Status { get; set; }
 
     public bool ShouldCompress { get; set; }
-        
+
     public Stream Body { get; set; }
 
     public IHeaderCollection Headers { get; set; }

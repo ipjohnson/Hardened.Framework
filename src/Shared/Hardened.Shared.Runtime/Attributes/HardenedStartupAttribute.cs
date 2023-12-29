@@ -3,7 +3,4 @@
 /// <summary>
 /// Attribute library entry point
 /// </summary>
-public class HardenedStartupAttribute : Attribute
-{
-
-}
+public class HardenedStartupAttribute : Attribute { }

@@ -1,7 +1,6 @@
 ﻿namespace Hardened.Requests.Abstract.Headers;
 
-public static class KnownHeaders
-{
+public static class KnownHeaders {
     public const string Accept = "Accept";
 
     public const string AcceptEncoding = "Accept-Encoding";
@@ -16,8 +15,7 @@ public static class KnownHeaders
 
     public const string IfMatch = "If-Match";
 
-    public static class Cors
-    {
+    public static class Cors {
         public const string AccessControlAllowOrigin = "Access-Control-Allow-Origin";
 
         public const string AccessControlAllowHeaders = "Access-Control-Allow-Headers";

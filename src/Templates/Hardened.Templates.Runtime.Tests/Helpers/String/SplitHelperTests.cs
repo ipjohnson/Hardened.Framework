@@ -4,22 +4,19 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.String;
 
-public class SplitHelperTests : BaseHelperTests
-{
+public class SplitHelperTests : BaseHelperTests {
     [Fact]
-    public async Task SplitStringWithString()
-    {
+    public async Task SplitStringWithString() {
         var helper = GetHelper();
 
         var result = await helper.Execute(GetExecutionContext(), "string string", " ");
 
         Assert.NotNull(result);
-        Assert.Equal(new []{"string", "string"}, result);
+        Assert.Equal(new[] { "string", "string" }, result);
     }
 
     [Fact]
-    public async Task SplitStringWithInt()
-    {
+    public async Task SplitStringWithInt() {
         var helper = GetHelper();
 
         var result = await helper.Execute(GetExecutionContext(), "string1string", 1);

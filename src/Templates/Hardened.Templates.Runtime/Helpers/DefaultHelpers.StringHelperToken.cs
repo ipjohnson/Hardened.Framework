@@ -1,9 +1,7 @@
 ﻿namespace Hardened.Templates.Runtime.Helpers;
 
-public partial class DefaultHelpers
-{
-    public static class StringHelperToken
-    {
+public partial class DefaultHelpers {
+    public static class StringHelperToken {
         public const string Append = "String.Append";
 
         public const string Concat = "String.Concat";

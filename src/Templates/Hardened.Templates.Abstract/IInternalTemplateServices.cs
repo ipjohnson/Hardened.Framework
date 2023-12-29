@@ -2,8 +2,7 @@
 
 namespace Hardened.Templates.Abstract;
 
-public interface IInternalTemplateServices
-{
+public interface IInternalTemplateServices {
     IStringBuilderPool StringBuilderPool { get; }
 
     IDataFormattingService DataFormattingService { get; }

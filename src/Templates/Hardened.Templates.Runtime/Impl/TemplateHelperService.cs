@@ -2,23 +2,18 @@
 
 namespace Hardened.Templates.Runtime.Impl;
 
-public class TemplateHelperService : ITemplateHelperService
-{
+public class TemplateHelperService : ITemplateHelperService {
     private readonly IEnumerable<ITemplateHelperProvider> _providers;
 
-    public TemplateHelperService(IEnumerable<ITemplateHelperProvider> providers)
-    {
+    public TemplateHelperService(IEnumerable<ITemplateHelperProvider> providers) {
         _providers = providers.Reverse();
     }
 
-    public TemplateHelperFactory LocateHelper(string helperToken)
-    {
-        foreach (var helperProvider in _providers)
-        {
+    public TemplateHelperFactory LocateHelper(string helperToken) {
+        foreach (var helperProvider in _providers) {
             var factor = helperProvider.GetTemplateHelperFactory(helperToken);
 
-            if (factor != null)
-            {
+            if (factor != null) {
                 return factor;
             }
         }

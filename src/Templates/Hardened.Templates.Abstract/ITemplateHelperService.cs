@@ -2,7 +2,6 @@
 
 public delegate ITemplateHelper TemplateHelperFactory(IServiceProvider serviceProvider);
 
-public interface ITemplateHelperService
-{
+public interface ITemplateHelperService {
     TemplateHelperFactory LocateHelper(string helperToken);
 }

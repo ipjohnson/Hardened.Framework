@@ -1,7 +1,6 @@
 ﻿namespace Hardened.Requests.Abstract.Execution;
 
-public interface IExecutionRequestParameter
-{
+public interface IExecutionRequestParameter {
     string Name { get; }
 
     int Index { get; }
@@ -9,8 +8,7 @@ public interface IExecutionRequestParameter
     Type Type { get; }
 }
 
-public interface IExecutionRequestParameters
-{
+public interface IExecutionRequestParameters {
     /// <summary>
     /// Try getting parameter by name
     /// </summary>
@@ -55,21 +53,16 @@ public interface IExecutionRequestParameters
     /// </summary>
     /// <param name="parameterName"></param>
     /// <returns></returns>
-    object this[string parameterName]
-    {
-        get
-        {
-            if (TryGetParameter(parameterName, out var value) && value != null)
-            {
+    object this[string parameterName] {
+        get {
+            if (TryGetParameter(parameterName, out var value) && value != null) {
                 return value;
             }
 
             throw new KeyNotFoundException($"Parameter context does not have parameter named {parameterName}");
         }
-        set
-        {
-            if (!TrySetParameter(parameterName, value))
-            {
+        set {
+            if (!TrySetParameter(parameterName, value)) {
                 throw new KeyNotFoundException($"Parameter context does not have parameter named {parameterName}");
             }
         }

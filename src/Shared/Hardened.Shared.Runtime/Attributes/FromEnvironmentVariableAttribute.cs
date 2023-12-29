@@ -3,10 +3,8 @@
 /// <summary>
 /// Attribute ConfigurationModel properties to populate from environment
 /// </summary>
-public class FromEnvironmentVariableAttribute : Attribute
-{
-    public FromEnvironmentVariableAttribute(string environmentVariable)
-    {
+public class FromEnvironmentVariableAttribute : Attribute {
+    public FromEnvironmentVariableAttribute(string environmentVariable) {
         EnvironmentVariable = environmentVariable;
     }
 

@@ -7,17 +7,15 @@ using System.Threading.Tasks;
 using System.Web;
 
 namespace Hardened.Templates.Runtime.Impl;
-public class NoopEscapeStringService : IStringEscapeService
-{
-    public bool CanEscapeTemplate(string templateExtension)
-    {
-        return templateExtension.EndsWith("css") || 
-               templateExtension.EndsWith("js") || 
+
+public class NoopEscapeStringService : IStringEscapeService {
+    public bool CanEscapeTemplate(string templateExtension) {
+        return templateExtension.EndsWith("css") ||
+               templateExtension.EndsWith("js") ||
                templateExtension.EndsWith("md");
     }
 
-    public string EscapeString(string? value)
-    {
+    public string EscapeString(string? value) {
         return value ?? "";
     }
 }

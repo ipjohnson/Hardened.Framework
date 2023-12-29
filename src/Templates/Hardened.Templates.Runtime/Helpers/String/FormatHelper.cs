@@ -2,18 +2,14 @@
 
 namespace Hardened.Templates.Runtime.Helpers.String;
 
-public class FormatHelper : ITemplateHelper
-{
-    public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments)
-    {
+public class FormatHelper : ITemplateHelper {
+    public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments) {
         var returnString = string.Empty;
 
-        if (arguments?.Length >= 2)
-        {
+        if (arguments?.Length >= 2) {
             var formatString = arguments[0]?.ToString();
 
-            if (formatString != null)
-            {
+            if (formatString != null) {
                 returnString = string.Format(formatString, GetArgumentsArray(arguments));
             }
         }
@@ -21,12 +17,10 @@ public class FormatHelper : ITemplateHelper
         return new ValueTask<object>(returnString);
     }
 
-    private object[] GetArgumentsArray(object[] arguments)
-    {
+    private object[] GetArgumentsArray(object[] arguments) {
         var newArray = new object[arguments.Length - 1];
 
-        for (var i = 1; i < arguments.Length; i++)
-        {
+        for (var i = 1; i < arguments.Length; i++) {
             newArray[i - 1] = arguments[i];
         }
 

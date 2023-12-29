@@ -7,38 +7,32 @@ using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Execution;
 
-public class IOFilterProvider : IIOFilterProvider
-{
+public class IOFilterProvider : IIOFilterProvider {
     private readonly IContextSerializationService _contextSerializationService;
     private readonly Action<IExecutionContext>? _headerActions;
 
     public IOFilterProvider(
         IContextSerializationService contextSerializationService,
-        IOptions<IResponseHeaderConfiguration> responseHeaderConfiguration)
-    {
+        IOptions<IResponseHeaderConfiguration> responseHeaderConfiguration) {
         _contextSerializationService = contextSerializationService;
         _headerActions = SetupHeaderActions(responseHeaderConfiguration.Value);
     }
 
-    private Action<IExecutionContext>? SetupHeaderActions(IResponseHeaderConfiguration responseHeaderConfiguration)
-    {
+    private Action<IExecutionContext>? SetupHeaderActions(IResponseHeaderConfiguration responseHeaderConfiguration) {
         if (responseHeaderConfiguration.HeaderActions.Count == 0 &&
-            responseHeaderConfiguration.CommonHeaders.Count == 0)
-        {
+            responseHeaderConfiguration.CommonHeaders.Count == 0) {
             return null;
         }
+
         var headerAction = new List<Action<IExecutionContext>>(responseHeaderConfiguration.HeaderActions);
 
-        if (responseHeaderConfiguration.CommonHeaders.Count > 0)
-        {
+        if (responseHeaderConfiguration.CommonHeaders.Count > 0) {
             var commonList = responseHeaderConfiguration.CommonHeaders;
 
-            headerAction.Add(context =>
-            {
+            headerAction.Add(context => {
                 var responseHeaders = context.Response.Headers;
 
-                for (var i = 0; i < commonList.Count; i++)
-                {
+                for (var i = 0; i < commonList.Count; i++) {
                     var kvp = commonList[i];
 
                     responseHeaders.Set(kvp.Key, kvp.Value);
@@ -46,24 +40,20 @@ public class IOFilterProvider : IIOFilterProvider
             });
         }
 
-        if (headerAction.Count == 1)
-        {
+        if (headerAction.Count == 1) {
             return headerAction[0];
         }
 
-        return context =>
-        {
-            for (var i = 0; i < headerAction.Count; i++)
-            {
+        return context => {
+            for (var i = 0; i < headerAction.Count; i++) {
                 headerAction[i].Invoke(context);
             }
         };
     }
 
     public IExecutionFilter ProvideFilter(
-        IExecutionRequestHandlerInfo handlerInfo, 
-        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest)
-    {
+        IExecutionRequestHandlerInfo handlerInfo,
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest) {
         return new IoFilter(
             deserializeRequest,
             _contextSerializationService.SerializeResponse,

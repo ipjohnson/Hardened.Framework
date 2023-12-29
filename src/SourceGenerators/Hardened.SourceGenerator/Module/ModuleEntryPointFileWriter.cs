@@ -7,12 +7,9 @@ using System.Linq;
 
 namespace Hardened.SourceGenerator.Module;
 
-public class ModuleEntryPointFileWriter
-{
-    public static void WriteFile(SourceProductionContext context, EntryPointSelector.Model model)
-    {
-        try
-        {
+public class ModuleEntryPointFileWriter {
+    public static void WriteFile(SourceProductionContext context, EntryPointSelector.Model model) {
+        try {
             var csharpFile = new CSharpFileDefinition(model.EntryPointType.Namespace);
 
             GenerateClassDefinition(context, model, csharpFile);
@@ -20,17 +17,16 @@ public class ModuleEntryPointFileWriter
             var outputContext = new OutputContext();
 
             csharpFile.WriteOutput(outputContext);
-                
+
             context.AddSource(model.EntryPointType.Name + ".Module.cs", outputContext.Output());
         }
-        catch (Exception exp)
-        {
+        catch (Exception exp) {
             throw exp;
         }
     }
 
-    private static void GenerateClassDefinition(SourceProductionContext context, EntryPointSelector.Model model, CSharpFileDefinition csharpFile)
-    {
+    private static void GenerateClassDefinition(SourceProductionContext context, EntryPointSelector.Model model,
+        CSharpFileDefinition csharpFile) {
         var moduleClass = csharpFile.AddClass(model.EntryPointType.Name);
 
         moduleClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
@@ -40,8 +36,8 @@ public class ModuleEntryPointFileWriter
         GenerateConfigureMethod(context, model, moduleClass);
     }
 
-    private static void GenerateConfigureMethod(SourceProductionContext context, EntryPointSelector.Model model, ClassDefinition moduleClass)
-    {
+    private static void GenerateConfigureMethod(SourceProductionContext context, EntryPointSelector.Model model,
+        ClassDefinition moduleClass) {
         var configureModuleMethod = moduleClass.AddMethod("ConfigureModule");
 
         var environment =
@@ -51,20 +47,18 @@ public class ModuleEntryPointFileWriter
 
         var modulesMethod = model.MethodDefinitions.FirstOrDefault(m => m.Name == "Modules");
 
-        if (modulesMethod != null)
-        {
+        if (modulesMethod != null) {
             GenerateModulesForeach(configureModuleMethod, environment, serviceCollection, model, modulesMethod);
         }
 
-        configureModuleMethod.AddIndentedStatement(Invoke("ConfigureServiceCollection", environment, serviceCollection));
+        configureModuleMethod.AddIndentedStatement(Invoke("ConfigureServiceCollection", environment,
+            serviceCollection));
     }
 
-    private static void GenerateModulesForeach(MethodDefinition configureModuleMethod, ParameterDefinition environment, ParameterDefinition serviceCollection, EntryPointSelector.Model model, HardenedMethodDefinition modulesMethod)
-    {
+    private static void GenerateModulesForeach(MethodDefinition configureModuleMethod, ParameterDefinition environment,
+        ParameterDefinition serviceCollection, EntryPointSelector.Model model, HardenedMethodDefinition modulesMethod) {
         InvokeDefinition invokeDefinition =
-            modulesMethod.Parameters.Count == 0 ?
-                Invoke("Modules") :
-                Invoke("Modules", environment);
+            modulesMethod.Parameters.Count == 0 ? Invoke("Modules") : Invoke("Modules", environment);
 
         var forEach = configureModuleMethod.ForEach("module", invokeDefinition);
 

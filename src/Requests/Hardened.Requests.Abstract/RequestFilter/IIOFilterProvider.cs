@@ -2,8 +2,7 @@
 
 namespace Hardened.Requests.Abstract.RequestFilter;
 
-public interface IIOFilterProvider
-{
+public interface IIOFilterProvider {
     IExecutionFilter ProvideFilter(
         IExecutionRequestHandlerInfo handlerInfo,
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest);

@@ -2,10 +2,8 @@
 
 namespace Hardened.SourceGenerator.Models.Request;
 
-public class FilterInformationModel
-{
-    public FilterInformationModel(ITypeDefinition typeDefinition, string arguments, string propertyAssignment)
-    {
+public class FilterInformationModel {
+    public FilterInformationModel(ITypeDefinition typeDefinition, string arguments, string propertyAssignment) {
         TypeDefinition = typeDefinition;
         Arguments = arguments;
         PropertyAssignment = propertyAssignment;
@@ -17,38 +15,31 @@ public class FilterInformationModel
 
     public string PropertyAssignment { get; }
 
-    public override bool Equals(object obj)
-    {
-        if (obj is not FilterInformationModel filterInformationModel)
-        {
+    public override bool Equals(object obj) {
+        if (obj is not FilterInformationModel filterInformationModel) {
             return false;
         }
 
-        if (!TypeDefinition.Equals(filterInformationModel.TypeDefinition))
-        {
+        if (!TypeDefinition.Equals(filterInformationModel.TypeDefinition)) {
             return false;
         }
 
-        if (Arguments != filterInformationModel.Arguments)
-        {
+        if (Arguments != filterInformationModel.Arguments) {
             return false;
         }
 
-        if (PropertyAssignment != filterInformationModel.PropertyAssignment)
-        {
+        if (PropertyAssignment != filterInformationModel.PropertyAssignment) {
             return false;
         }
 
         return true;
     }
 
-    public override string ToString()
-    {
+    public override string ToString() {
         return $"{TypeDefinition}:{Arguments}:{PropertyAssignment}";
     }
 
-    public override int GetHashCode()
-    {
+    public override int GetHashCode() {
         return this.Arguments.GetHashCode() * this.PropertyAssignment.GetHashCode() * this.TypeDefinition.GetHashCode();
     }
 }

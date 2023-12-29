@@ -2,7 +2,6 @@
 
 namespace Hardened.Requests.Abstract.Serializer;
 
-public interface IExceptionResponseSerializer
-{
+public interface IExceptionResponseSerializer {
     Task Handle(IExecutionContext context, Exception exp);
 }

@@ -1,6 +1,5 @@
 ﻿namespace Hardened.Templates.Abstract;
 
-public interface IStringEscapeServiceProvider
-{
+public interface IStringEscapeServiceProvider {
     IStringEscapeService GetEscapeService(string templateExtension);
 }

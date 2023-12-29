@@ -2,8 +2,7 @@
 
 namespace Hardened.Requests.Abstract.Serializer;
 
-public interface IContextSerializationService
-{
+public interface IContextSerializationService {
     ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context);
 
     Task SerializeResponse(IExecutionContext context);

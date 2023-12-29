@@ -4,10 +4,8 @@
 /// Used to specify an entry point for a test
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method)]
-public class HardenedTestEntryPointAttribute : Attribute
-{
-    public HardenedTestEntryPointAttribute(Type entryPoint)
-    {
+public class HardenedTestEntryPointAttribute : Attribute {
+    public HardenedTestEntryPointAttribute(Type entryPoint) {
         EntryPoint = entryPoint;
     }
 

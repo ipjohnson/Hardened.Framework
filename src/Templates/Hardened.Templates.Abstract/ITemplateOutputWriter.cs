@@ -2,8 +2,7 @@
 
 namespace Hardened.Templates.Abstract;
 
-public interface ITemplateOutputWriter
-{
+public interface ITemplateOutputWriter {
     /// <summary>
     /// Write string to output, it will be escaped 
     /// </summary>

@@ -1,7 +1,6 @@
 ﻿namespace Hardened.Requests.Abstract.Execution;
 
-public enum ExecutionFilterOrder
-{
+public enum ExecutionFilterOrder {
     BeforeSerialize = -1,
 
     BindParameters = 0,
@@ -13,11 +12,10 @@ public enum ExecutionFilterOrder
     Third = 3,
 
     Normal = 100,
-        
-    Last = int.MaxValue, 
+
+    Last = int.MaxValue,
 }
-    
-public interface IExecutionFilter
-{
+
+public interface IExecutionFilter {
     Task Execute(IExecutionChain chain);
 }

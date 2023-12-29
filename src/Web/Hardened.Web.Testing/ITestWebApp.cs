@@ -2,8 +2,7 @@
 
 namespace Hardened.Web.Testing;
 
-public interface ITestWebApp : ITestContext
-{
+public interface ITestWebApp : ITestContext {
     IServiceProvider RootServiceProvider { get; }
 
     /// <summary>
@@ -58,5 +57,4 @@ public interface ITestWebApp : ITestContext
     /// <param name="webRequest"></param>
     /// <returns></returns>
     Task<TestWebResponse> Request(string method, object? value, string path, Action<TestWebRequest>? webRequest = null);
-
 }

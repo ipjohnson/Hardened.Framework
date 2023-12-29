@@ -2,8 +2,7 @@
 
 namespace Hardened.Requests.Abstract.Middleware;
 
-public interface IMiddlewareService
-{
+public interface IMiddlewareService {
     void Use(Func<IExecutionContext, IExecutionFilter> middlewareFunc);
 
     IExecutionChain GetExecutionChain(IExecutionContext context);

@@ -2,7 +2,6 @@
 
 namespace Hardened.Requests.Abstract.RequestFilter;
 
-public interface IRequestFilterProvider
-{
+public interface IRequestFilterProvider {
     IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo);
 }

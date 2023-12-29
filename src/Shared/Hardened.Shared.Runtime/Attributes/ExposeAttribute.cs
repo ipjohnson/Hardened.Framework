@@ -1,9 +1,7 @@
 ﻿namespace Hardened.Shared.Runtime.Attributes;
 
-public class ExposeAttribute : Attribute
-{
-    public ExposeAttribute(params Type[] forServices)
-    {
+public class ExposeAttribute : Attribute {
+    public ExposeAttribute(params Type[] forServices) {
         ForServices = forServices;
     }
 

@@ -2,12 +2,7 @@
 
 namespace Hardened.IntegrationTests.Web.SUT;
 
-public interface ISomeTestService
-{
-
-}
+public interface ISomeTestService { }
 
 [Expose]
-internal class SomeTestService : ISomeTestService
-{
-}
+internal class SomeTestService : ISomeTestService { }

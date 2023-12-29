@@ -3,22 +3,21 @@ using Hardened.Templates.Abstract;
 
 namespace Hardened.Templates.Runtime.Impl;
 
-public class TemplateExecutionContext : ITemplateExecutionContext
-{
+public class TemplateExecutionContext : ITemplateExecutionContext {
     private Dictionary<string, object>? _values;
-        
+
     public TemplateExecutionContext(
-        string templateExtension, 
-        IServiceProvider requestServiceProvider, 
+        string templateExtension,
+        IServiceProvider requestServiceProvider,
         object objectValue,
         IInternalTemplateServices templateServices,
-        ITemplateExecutionService executionService, 
+        ITemplateExecutionService executionService,
         IStringEscapeService stringEscapeService,
-        ITemplateOutputWriter writer, 
-        ITemplateExecutionContext? parentContext, 
-        IExecutionContext? executionContext)
-    {
-        RequestServiceProvider = requestServiceProvider ?? throw new ArgumentNullException(nameof(requestServiceProvider));
+        ITemplateOutputWriter writer,
+        ITemplateExecutionContext? parentContext,
+        IExecutionContext? executionContext) {
+        RequestServiceProvider =
+            requestServiceProvider ?? throw new ArgumentNullException(nameof(requestServiceProvider));
         ObjectValue = objectValue;
         TemplateServices = templateServices;
         Writer = writer;
@@ -26,10 +25,10 @@ public class TemplateExecutionContext : ITemplateExecutionContext
         ExecutionContext = executionContext;
         StringEscapeService = stringEscapeService;
         ExecutionService = executionService;
-        TemplateExtension = 
+        TemplateExtension =
             templateExtension ?? throw new ArgumentNullException(nameof(templateExtension));
     }
-        
+
     public ITemplateOutputWriter Writer { get; }
 
     public ITemplateExecutionService ExecutionService { get; }
@@ -39,7 +38,7 @@ public class TemplateExecutionContext : ITemplateExecutionContext
     public IStringEscapeService StringEscapeService { get; }
 
     public string TemplateExtension { get; }
-        
+
     public IServiceProvider RequestServiceProvider { get; }
 
     public ITemplateExecutionContext? ParentContext { get; }
@@ -48,32 +47,27 @@ public class TemplateExecutionContext : ITemplateExecutionContext
 
     public object ObjectValue { get; }
 
-    public void SetCustomValue(string key, object value)
-    {
-        if (_values == null)
-        {
+    public void SetCustomValue(string key, object value) {
+        if (_values == null) {
             _values = new Dictionary<string, object>();
         }
 
         _values[key] = value;
     }
 
-    public SafeString GetEscapedString(object value, string propertyName = "", string formattingString = "")
-    {
+    public SafeString GetEscapedString(object value, string propertyName = "", string formattingString = "") {
         return new SafeString(
             StringEscapeService.EscapeString(
-                TemplateServices.DataFormattingService.FormatData(this, propertyName, value, formattingString)?.ToString() ?? ""));
+                TemplateServices.DataFormattingService.FormatData(this, propertyName, value, formattingString)
+                    ?.ToString() ?? ""));
     }
 
-    public object? GetCustomValue(string key)
-    {
-        if (_values != null && _values.ContainsKey(key))
-        {
+    public object? GetCustomValue(string key) {
+        if (_values != null && _values.ContainsKey(key)) {
             return _values[key];
         }
 
-        if (ParentContext != null)
-        {
+        if (ParentContext != null) {
             return ParentContext.GetCustomValue(key);
         }
 

@@ -2,17 +2,14 @@
 
 namespace Hardened.Templates.Runtime.Impl;
 
-public static class DefaultDataFormatters
-{
-    public static void RegisterFormatters(IDictionary<Type, FormatDataFunc> formatters)
-    {
+public static class DefaultDataFormatters {
+    public static void RegisterFormatters(IDictionary<Type, FormatDataFunc> formatters) {
         formatters[typeof(IFormattable)] = DefaultIFormattable;
     }
 
-    public static object DefaultIFormattable(ITemplateExecutionContext executionContext, string propertyName, object? data, string? formatString)
-    {
-        if (data == null)
-        {
+    public static object DefaultIFormattable(ITemplateExecutionContext executionContext, string propertyName,
+        object? data, string? formatString) {
+        if (data == null) {
             return "";
         }
 
@@ -20,10 +17,8 @@ public static class DefaultDataFormatters
     }
 
     public static object DefaultObjectFormatter(ITemplateExecutionContext executionContext, string propertyName,
-        object? data, string? formatString)
-    {
-        if (data == null)
-        {
+        object? data, string? formatString) {
+        if (data == null) {
             return "";
         }
 

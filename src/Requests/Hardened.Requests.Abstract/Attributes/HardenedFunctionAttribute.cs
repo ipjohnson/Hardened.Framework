@@ -1,9 +1,7 @@
 ﻿namespace Hardened.Requests.Abstract.Attributes;
 
-public class HardenedFunctionAttribute : Attribute
-{
-    public HardenedFunctionAttribute(string? functionName = null)
-    {
+public class HardenedFunctionAttribute : Attribute {
+    public HardenedFunctionAttribute(string? functionName = null) {
         FunctionName = functionName;
     }
 

@@ -2,7 +2,6 @@
 
 namespace Hardened.Requests.Abstract.Middleware;
 
-public interface IMiddlewareProvider
-{
+public interface IMiddlewareProvider {
     IEnumerable<Func<IServiceProvider, IExecutionFilter>> ProvideMiddleware();
 }

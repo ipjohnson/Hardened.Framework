@@ -2,7 +2,6 @@
 
 namespace Hardened.Shared.Runtime.Configuration;
 
-public interface IConfigurationValueAmender
-{
+public interface IConfigurationValueAmender {
     object ApplyConfiguration(IEnvironment environment, object configurationValue);
 }

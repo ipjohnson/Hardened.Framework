@@ -6,6 +6,4 @@ using System.Threading.Tasks;
 
 namespace Hardened.Shared.Runtime.Attributes;
 
-public class HideConfigurationFieldAttribute : Attribute
-{
-}
+public class HideConfigurationFieldAttribute : Attribute { }

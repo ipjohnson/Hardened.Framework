@@ -1,6 +1,5 @@
 ﻿namespace Hardened.Shared.Runtime.Application;
 
-public interface IStartupService
-{
-    Task Startup(IServiceProvider rootProvider);
+public interface IStartupService {
+    Task<bool> Startup(IServiceProvider rootProvider);
 }

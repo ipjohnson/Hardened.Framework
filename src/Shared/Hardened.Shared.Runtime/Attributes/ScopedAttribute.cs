@@ -3,6 +3,4 @@
 /// <summary>
 /// Expose service as scoped
 /// </summary>
-public class ScopedAttribute : Attribute
-{
-}
+public class ScopedAttribute : Attribute { }

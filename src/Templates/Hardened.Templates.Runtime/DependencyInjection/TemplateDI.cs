@@ -7,15 +7,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hardened.Templates.Runtime.DependencyInjection;
 
-public static class TemplateDI
-{
+public static class TemplateDI {
     private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new(default!);
 
-    public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
-    {
+    public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
         if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
-            !ReferenceEquals(lastServiceCollection, serviceCollection))
-        {
+            !ReferenceEquals(lastServiceCollection, serviceCollection)) {
             serviceCollection.TryAddSingleton<IBooleanLogicService, BooleanLogicService>();
             serviceCollection.TryAddSingleton<IDataFormattingService, DataFormattingService>();
             serviceCollection.TryAddSingleton<ITemplateExecutionService, TemplateExecutionService>();

@@ -2,18 +2,13 @@
 
 namespace Hardened.SourceGenerator.Shared;
 
-internal class SourceGeneratorWrapper
-{
-    public static Action<SourceProductionContext, T> Wrap<T>(Action<SourceProductionContext, T> writeSourceFile)
-    {
-        return (context, value) =>
-        {
-            try
-            {
+internal class SourceGeneratorWrapper {
+    public static Action<SourceProductionContext, T> Wrap<T>(Action<SourceProductionContext, T> writeSourceFile) {
+        return (context, value) => {
+            try {
                 writeSourceFile(context, value);
             }
-            catch (Exception exp)
-            {
+            catch (Exception exp) {
                 var descriptor = new DiagnosticDescriptor(
                     id: "HardenedException",
                     title: "Unexpected Error",
@@ -27,8 +22,7 @@ internal class SourceGeneratorWrapper
         };
     }
 
-    private static string GetExceptionMessage(Exception exp)
-    {
+    private static string GetExceptionMessage(Exception exp) {
         return $"Report the exception:  {exp.Message} {exp.TargetSite.DeclaringType?.FullName} {exp.TargetSite}";
     }
 }

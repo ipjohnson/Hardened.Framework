@@ -2,7 +2,6 @@
 
 namespace Hardened.Shared.Runtime.Application;
 
-public interface IApplicationModule
-{
+public interface IApplicationModule {
     void ConfigureModule(IEnvironment environment, IServiceCollection serviceCollection);
 }

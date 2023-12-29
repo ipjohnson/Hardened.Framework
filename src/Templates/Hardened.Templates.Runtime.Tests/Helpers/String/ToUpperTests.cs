@@ -4,13 +4,11 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.String;
 
-public class ToUpperTests : BaseSingleStringTests
-{
+public class ToUpperTests : BaseSingleStringTests {
     [Theory]
     [InlineData("Hello", "HELLO")]
-    [InlineData("hello world","HELLO WORLD")]
-    public async void ToUpperLogicTests(string input, string expected)
-    {
+    [InlineData("hello world", "HELLO WORLD")]
+    public async void ToUpperLogicTests(string input, string expected) {
         await Evaluate(input, expected);
     }
 

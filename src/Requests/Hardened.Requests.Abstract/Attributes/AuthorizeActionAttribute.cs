@@ -1,9 +1,7 @@
 ﻿namespace Hardened.Requests.Abstract.Attributes;
 
-public class AuthorizeActivitiesAttribute : Attribute
-{
-    public AuthorizeActivitiesAttribute(params string[] activities)
-    {
+public class AuthorizeActivitiesAttribute : Attribute {
+    public AuthorizeActivitiesAttribute(params string[] activities) {
         Activities = activities;
     }
 

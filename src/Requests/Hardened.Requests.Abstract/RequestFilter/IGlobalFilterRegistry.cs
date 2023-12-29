@@ -2,8 +2,7 @@
 
 namespace Hardened.Requests.Abstract.RequestFilter;
 
-public interface IGlobalFilterRegistry
-{
+public interface IGlobalFilterRegistry {
     void RegisterFilter(IExecutionFilter filter, int order = FilterOrder.DefaultValue);
 
     void RegisterFilter(Func<IExecutionRequestHandlerInfo, RequestFilterInfo?> filterFunc);

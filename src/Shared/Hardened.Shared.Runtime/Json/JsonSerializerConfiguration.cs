@@ -8,25 +8,19 @@ using System.Threading.Tasks;
 
 namespace Hardened.Shared.Runtime.Json;
 
-public interface IJsonSerializerConfiguration
-{
+public interface IJsonSerializerConfiguration {
     JsonSerializerOptions Options { get; }
 }
-public class JsonSerializerConfiguration : IJsonSerializerConfiguration
-{
+
+public class JsonSerializerConfiguration : IJsonSerializerConfiguration {
     public JsonSerializerOptions Options { get; set; } = DefaultConfiguration();
 
-    private static JsonSerializerOptions DefaultConfiguration()
-    {
-        return new JsonSerializerOptions
-        {
+    private static JsonSerializerOptions DefaultConfiguration() {
+        return new JsonSerializerOptions {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false,
             AllowTrailingCommas = true,
-            Converters =
-            {
-                new JsonStringEnumConverter()
-            }
+            Converters = { new JsonStringEnumConverter() }
         };
     }
 }

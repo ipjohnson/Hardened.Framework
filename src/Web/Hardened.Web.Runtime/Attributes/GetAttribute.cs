@@ -1,9 +1,7 @@
 ﻿namespace Hardened.Web.Runtime.Attributes;
 
-public class GetAttribute : Attribute
-{
-    public GetAttribute(string path = "")
-    {
+public class GetAttribute : Attribute {
+    public GetAttribute(string path = "") {
         Path = path;
     }
 

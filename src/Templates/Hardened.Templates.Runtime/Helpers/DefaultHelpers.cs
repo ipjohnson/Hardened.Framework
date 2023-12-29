@@ -5,8 +5,7 @@ using Hardened.Templates.Runtime.Helpers.Url;
 
 namespace Hardened.Templates.Runtime.Helpers;
 
-public partial class DefaultHelpers : ITemplateHelperProvider
-{
+public partial class DefaultHelpers : ITemplateHelperProvider {
     private TemplateHelperFactory? _appendHelper;
     private TemplateHelperFactory? _concatHelper;
     private TemplateHelperFactory? _containsHelper;
@@ -30,12 +29,9 @@ public partial class DefaultHelpers : ITemplateHelperProvider
     private TemplateHelperFactory? _renderCollectionHelper;
     private TemplateHelperFactory? _renderHelper;
 
-    public TemplateHelperFactory? GetTemplateHelperFactory(string mustacheToken)
-    {
-        if (mustacheToken.StartsWith("String."))
-        {
-            switch (mustacheToken)
-            {
+    public TemplateHelperFactory? GetTemplateHelperFactory(string mustacheToken) {
+        if (mustacheToken.StartsWith("String.")) {
+            switch (mustacheToken) {
                 case StringHelperToken.Append:
                     return _appendHelper ??= CreateTemplateHelperFactory(new AppendHelper());
                 case StringHelperToken.Concat:
@@ -68,20 +64,16 @@ public partial class DefaultHelpers : ITemplateHelperProvider
                     return _toUpperHelper ??= CreateTemplateHelperFactory(new ToUpperHelper());
             }
         }
-        else if (mustacheToken.StartsWith("Url."))
-        {
-            switch (mustacheToken)
-            {
+        else if (mustacheToken.StartsWith("Url.")) {
+            switch (mustacheToken) {
                 case UrlHelperTokens.Decode:
                     return _decodeHelper ??= CreateTemplateHelperFactory(new DecodeHelper());
                 case UrlHelperTokens.Encode:
                     return _encodeHelper ??= CreateTemplateHelperFactory(new EncodeHelper());
             }
         }
-        else
-        {
-            switch (mustacheToken)
-            {
+        else {
+            switch (mustacheToken) {
                 case CollectionHelperTokens.Lookup:
                     return _lookupHelper ??= CreateTemplateHelperFactory(new LookupHelper());
                 case CollectionHelperTokens.RenderCollection:
@@ -94,8 +86,7 @@ public partial class DefaultHelpers : ITemplateHelperProvider
         return null;
     }
 
-    public static TemplateHelperFactory CreateTemplateHelperFactory(ITemplateHelper templateHelper)
-    {
+    public static TemplateHelperFactory CreateTemplateHelperFactory(ITemplateHelper templateHelper) {
         return _ => templateHelper;
     }
 }

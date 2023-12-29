@@ -8,7 +8,7 @@
 
 //    public string Token { get; set; } = "{{Token}}";
 //}
-    
+
 //public class TemplateHelperData
 //{
 //    public ITypeDefinition TypeDefinition { get; set; }

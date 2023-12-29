@@ -10,25 +10,22 @@ using System.Text;
 
 namespace Hardened.SourceGenerator.Web;
 
-public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
-{
+public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     private static readonly HashSet<string> _attributeNames = GetAttributeNames();
-    
-    protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration,
-        CancellationToken cancellation)
-    {
+
+    protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        CancellationToken cancellation) {
         var attribute = GetWebAttribute(methodDeclaration, cancellation);
 
-        if (attribute == null)
-        {
+        if (attribute == null) {
             // we should never get here as this check was done in the previous source generator step
             throw new Exception("Could not find attribute");
         }
 
-        var methodName = attribute.Name.ToString().ToUpperInvariant().Replace("Attribute","");
+        var methodName = attribute.Name.ToString().ToUpperInvariant().Replace("Attribute", "");
 
-        if (methodName == "HTTPMETHOD")
-        {
+        if (methodName == "HTTPMETHOD") {
             throw new NotImplementedException("HttpMethodAttribute not supported yet.");
         }
 
@@ -38,31 +35,27 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
     }
 
     private static string GetPathFromAttribute(GeneratorSyntaxContext generatorSyntaxContext,
-        AttributeSyntax attribute)
-    {
+        AttributeSyntax attribute) {
         var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
         var pathTemplate = "/";
-        if (argument != null)
-        {
-            var constantValue = 
+        if (argument != null) {
+            var constantValue =
                 generatorSyntaxContext.SemanticModel.GetConstantValue(argument.Expression);
 
-            if (constantValue.Value != null)
-            {
+            if (constantValue.Value != null) {
                 pathTemplate = constantValue.Value.ToString();
             }
-            else
-            {
+            else {
                 pathTemplate = argument.Expression.ToString().Trim('"');
             }
         }
-            
+
         return pathTemplate;
     }
 
-    protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration,
-        CancellationToken cancellation)
-    {
+    protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        CancellationToken cancellation) {
         var classDeclarationSyntax =
             methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
 
@@ -70,18 +63,16 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
 
         var className = classDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text;
 
-        if (methodDeclaration.ParameterList.Parameters.Count > 0)
-        {
+        if (methodDeclaration.ParameterList.Parameters.Count > 0) {
             var parameterString = "";
 
-            foreach (var parameter in methodDeclaration.ParameterList.Parameters)
-            {
+            foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
                 parameterString += '|' + parameter.Identifier.Text;
             }
 
             className += "_" + parameterString.Select(c => (int)c).Aggregate((total, c) => total + c);
         }
-        
+
 
         return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated", className);
     }
@@ -89,16 +80,12 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
     protected override RequestParameterInformation? GetParameterInfoFromAttributes(
         GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
-        ParameterSyntax parameter)
-    {
-        foreach (var attributeList in parameter.AttributeLists)
-        {
-            foreach (var attribute in attributeList.Attributes)
-            {
+        ParameterSyntax parameter) {
+        foreach (var attributeList in parameter.AttributeLists) {
+            foreach (var attribute in attributeList.Attributes) {
                 var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
-                switch (attributeName)
-                {
+                switch (attributeName) {
                     case "FromHeader":
                         var headerName =
                             attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
@@ -128,18 +115,17 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
     }
 
     private RequestParameterInformation GetParameterInfoWithBinding(
-        GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType, string bindingName)
-    {
+        GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType,
+        string bindingName) {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
         var name = parameter.Identifier.Text;
-        
+
         string? defaultValue = null;
 
-        if (parameter.Default != null)
-        {
+        if (parameter.Default != null) {
             defaultValue = parameter.Default.Value.ToFullString();
         }
-        
+
         return new RequestParameterInformation(
             parameterType,
             name,
@@ -149,12 +135,10 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
             string.IsNullOrEmpty(bindingName) ? name : bindingName);
     }
 
-    protected override bool IsFilterAttribute(AttributeSyntax attribute)
-    {
+    protected override bool IsFilterAttribute(AttributeSyntax attribute) {
         var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
-        switch (attributeName)
-        {
+        switch (attributeName) {
             case "Template":
             case "RawResponse":
                 return false;
@@ -164,28 +148,23 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
         }
     }
 
-    public bool SelectWebRequestMethods(SyntaxNode arg1, CancellationToken arg2)
-    {
+    public bool SelectWebRequestMethods(SyntaxNode arg1, CancellationToken arg2) {
         return arg1 is MethodDeclarationSyntax methodDeclarationSyntax &&
                GetWebAttribute(methodDeclarationSyntax, arg2) != null;
     }
 
-    private static AttributeSyntax? GetWebAttribute(MethodDeclarationSyntax node, CancellationToken cancellationToken)
-    {
+    private static AttributeSyntax? GetWebAttribute(MethodDeclarationSyntax node, CancellationToken cancellationToken) {
         var attributeNames =
             node.DescendantNodes().OfType<AttributeSyntax>();
 
-        foreach (var attributeNode in attributeNames)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
+        foreach (var attributeNode in attributeNames) {
+            if (cancellationToken.IsCancellationRequested) {
                 break;
             }
 
             var name = attributeNode.Name.ToString();
 
-            if (_attributeNames.Contains(name))
-            {
+            if (_attributeNames.Contains(name)) {
                 return attributeNode;
             }
         }
@@ -193,13 +172,18 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
         return null;
     }
 
-    private static HashSet<string> GetAttributeNames()
-    {
+    private static HashSet<string> GetAttributeNames() {
         var returnSet = new HashSet<string>();
-        var names = new List<string> { "Get", "Put", "Post", "Patch", "Delete", "HttpMethod" };
+        var names = new List<string> {
+            "Get",
+            "Put",
+            "Post",
+            "Patch",
+            "Delete",
+            "HttpMethod"
+        };
 
-        foreach (var name in names)
-        {
+        foreach (var name in names) {
             returnSet.Add(name);
             returnSet.Add(name + "Attribute");
         }

@@ -1,9 +1,7 @@
 ﻿namespace Hardened.SourceGenerator.Web.Routing;
 
-public class RouteTreeLeafNode<T>
-{
-    public RouteTreeLeafNode(string method, T value)
-    {
+public class RouteTreeLeafNode<T> {
+    public RouteTreeLeafNode(string method, T value) {
         Method = method;
         Value = value;
     }

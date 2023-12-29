@@ -1,5 +1,3 @@
 ﻿namespace Hardened.Requests.Abstract.Attributes;
 
-public class FromServicesAttribute : Attribute
-{
-}
+public class FromServicesAttribute : Attribute { }

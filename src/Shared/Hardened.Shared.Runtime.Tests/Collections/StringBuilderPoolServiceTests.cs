@@ -5,29 +5,24 @@ using Xunit;
 
 namespace Hardened.Shared.Runtime.Tests.Collections;
 
-public class StringBuilderPoolServiceTests
-{
+public class StringBuilderPoolServiceTests {
     [Theory]
     [AutoData]
-    public void GetSameStringBuilder(StringBuilderPool poolService)
-    {
+    public void GetSameStringBuilder(StringBuilderPool poolService) {
         StringBuilder builder;
 
-        using (var builderHolder = poolService.Get())
-        {
+        using (var builderHolder = poolService.Get()) {
             builder = builderHolder.Item;
         }
 
-        using (var secondBuilderHolder = poolService.Get())
-        {
+        using (var secondBuilderHolder = poolService.Get()) {
             Assert.Same(builder, secondBuilderHolder.Item);
         }
     }
 
     [Theory]
     [AutoData]
-    public void GetMultipleBuilders(StringBuilderPool poolService)
-    {
+    public void GetMultipleBuilders(StringBuilderPool poolService) {
         using var builderHolder = poolService.Get();
         using var builderHolder2 = poolService.Get();
 
@@ -36,12 +31,10 @@ public class StringBuilderPoolServiceTests
 
     [Theory]
     [AutoData]
-    public void ClearStringBuilderUponReturn(StringBuilderPool poolService)
-    {
+    public void ClearStringBuilderUponReturn(StringBuilderPool poolService) {
         StringBuilder builder;
 
-        using (var builderHolder = poolService.Get())
-        {
+        using (var builderHolder = poolService.Get()) {
             builder = builderHolder.Item;
 
             builder.Append("Some String");

@@ -5,8 +5,7 @@ namespace Hardened.Requests.Abstract.Logging;
 /// <summary>
 /// Logger called to record requests
 /// </summary>
-public interface IRequestLogger
-{
+public interface IRequestLogger {
     /// <summary>
     /// Called at the beginning of the request
     /// </summary>

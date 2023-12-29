@@ -1,6 +1,3 @@
 ﻿namespace Hardened.Web.Testing.Tests;
 
-public class Class1
-{
-
-}
+public class Class1 { }

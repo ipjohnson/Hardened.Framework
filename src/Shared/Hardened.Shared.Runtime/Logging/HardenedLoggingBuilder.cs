@@ -5,10 +5,8 @@ using System.ComponentModel;
 namespace Hardened.Shared.Runtime.Logging;
 
 [DesignTimeVisible(false)]
-public class HardenedLoggingBuilder : ILoggingBuilder
-{
-    public HardenedLoggingBuilder(IServiceCollection services)
-    {
+public class HardenedLoggingBuilder : ILoggingBuilder {
+    public HardenedLoggingBuilder(IServiceCollection services) {
         Services = services;
     }
 

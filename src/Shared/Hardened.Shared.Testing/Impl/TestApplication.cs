@@ -3,19 +3,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Shared.Testing.Impl;
 
-public class TestApplication : IApplicationRoot
-{
+public class TestApplication : IApplicationRoot {
     private readonly ServiceProvider _rootServiceProvider;
 
-    public TestApplication(IApplicationModule testModule, string logNs, IEnvironment environment, Action<IEnvironment, IServiceCollection>? overrideDependencies)
-    {
+    public TestApplication(IApplicationModule testModule, string logNs, IEnvironment environment,
+        Action<IEnvironment, IServiceCollection>? overrideDependencies) {
         _rootServiceProvider = CreateServiceProvider(testModule, environment, overrideDependencies);
         ApplicationLogic.StartWithWait(Provider, null, 15);
     }
 
     private ServiceProvider CreateServiceProvider(IApplicationModule applicationModule, IEnvironment environment,
-        Action<IEnvironment, IServiceCollection>? overrideDependencies)
-    {
+        Action<IEnvironment, IServiceCollection>? overrideDependencies) {
         var serviceCollection = new ServiceCollection();
 
         serviceCollection.AddLogging();
@@ -27,11 +25,10 @@ public class TestApplication : IApplicationRoot
 
         return serviceCollection.BuildServiceProvider();
     }
-        
+
     public IServiceProvider Provider => _rootServiceProvider;
 
-    public async ValueTask DisposeAsync()
-    {
+    public async ValueTask DisposeAsync() {
         await _rootServiceProvider.DisposeAsync();
     }
 }

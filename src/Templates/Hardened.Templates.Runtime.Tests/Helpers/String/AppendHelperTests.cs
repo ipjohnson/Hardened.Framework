@@ -4,11 +4,9 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.String;
 
-public class AppendHelperTests : BaseHelperTests
-{
+public class AppendHelperTests : BaseHelperTests {
     [Fact]
-    public async Task AppendString()
-    {
+    public async Task AppendString() {
         var helper = GetHelper();
 
         var result = await helper.Execute(GetExecutionContext(), "string", "-append");
@@ -18,8 +16,7 @@ public class AppendHelperTests : BaseHelperTests
     }
 
     [Fact]
-    public async Task AppendInt()
-    {
+    public async Task AppendInt() {
         var helper = GetHelper();
 
         var result = await helper.Execute(GetExecutionContext(), "string", 1);
@@ -29,8 +26,7 @@ public class AppendHelperTests : BaseHelperTests
     }
 
     [Fact]
-    public async Task AppendNull()
-    {
+    public async Task AppendNull() {
         var helper = GetHelper();
 
         var result = await helper.Execute(GetExecutionContext(), "string");
@@ -40,8 +36,7 @@ public class AppendHelperTests : BaseHelperTests
     }
 
     [Fact]
-    public async Task NullString()
-    {
+    public async Task NullString() {
         var helper = GetHelper();
 
         var result = await helper.Execute(GetExecutionContext(), Array.Empty<object>());
@@ -49,6 +44,7 @@ public class AppendHelperTests : BaseHelperTests
         Assert.NotNull(result);
         Assert.Equal(string.Empty, result);
     }
+
     protected override Type TemplateHelperType => typeof(AppendHelper);
 
     protected override string Token => DefaultHelpers.StringHelperToken.Append;

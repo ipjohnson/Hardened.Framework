@@ -1,7 +1,6 @@
 ﻿namespace Hardened.Requests.Abstract.Execution;
 
-public interface IExecutionChain
-{
+public interface IExecutionChain {
     /// <summary>
     /// execute next action in chain
     /// </summary>

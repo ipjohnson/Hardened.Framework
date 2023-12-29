@@ -19,16 +19,12 @@ using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.DependencyInjection;
 
-public static class RequestRuntimeDI
-{
-    private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new (null);
+public static class RequestRuntimeDI {
+    private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new(null);
 
-    public static void Register(IEnvironment environment, IServiceCollection serviceCollection)
-    {
+    public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
         if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
-            !ReferenceEquals(lastServiceCollection, serviceCollection))
-        {
-
+            !ReferenceEquals(lastServiceCollection, serviceCollection)) {
             serviceCollection.TryAddSingleton<IMiddlewareService, MiddlewareService>();
             serviceCollection.TryAddSingleton<IContextSerializationService, ContextSerializationService>();
             serviceCollection.TryAddSingleton<IRequestDeserializer, SystemTextJsonRequestDeserializer>();
@@ -44,8 +40,7 @@ public static class RequestRuntimeDI
             serviceCollection.TryAddSingleton<IStringConverterService, StringConverterService>();
             serviceCollection.TryAddSingleton<IKnownServices, KnownServices>();
             serviceCollection.AddSingleton<IConfigurationPackage>(
-                new SimpleConfigurationPackage(new IConfigurationValueProvider[]
-                {
+                new SimpleConfigurationPackage(new IConfigurationValueProvider[] {
                     new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(null),
                     new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null)
                 }));

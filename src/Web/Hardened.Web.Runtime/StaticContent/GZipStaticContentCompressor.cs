@@ -3,22 +3,18 @@ using Hardened.Shared.Runtime.Collections;
 
 namespace Hardened.Web.Runtime.StaticContent;
 
-public interface IGZipStaticContentCompressor
-{
+public interface IGZipStaticContentCompressor {
     byte[] CompressContent(byte[] bytes, CompressionLevel compressionLevel = CompressionLevel.Fastest);
 }
 
-public class GZipStaticContentCompressor : IGZipStaticContentCompressor
-{
+public class GZipStaticContentCompressor : IGZipStaticContentCompressor {
     private readonly IMemoryStreamPool _memoryStreamPool;
 
-    public GZipStaticContentCompressor(IMemoryStreamPool memoryStreamPool)
-    {
+    public GZipStaticContentCompressor(IMemoryStreamPool memoryStreamPool) {
         _memoryStreamPool = memoryStreamPool;
     }
 
-    public byte[] CompressContent(byte[] bytes, CompressionLevel compressionLevel)
-    {
+    public byte[] CompressContent(byte[] bytes, CompressionLevel compressionLevel) {
         using var memoryStreamRes = _memoryStreamPool.Get();
         using var gzipStream = new GZipStream(memoryStreamRes.Item, compressionLevel, true);
 

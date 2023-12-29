@@ -4,11 +4,10 @@ using System.Reflection;
 
 namespace Hardened.Shared.Testing.Attributes;
 
-public interface IHardenedTestDependencyRegistrationAttribute : IHardenedOrderedAttribute
-{
+public interface IHardenedTestDependencyRegistrationAttribute : IHardenedOrderedAttribute {
     void RegisterDependencies(
-        AttributeCollection attributeCollection, 
-        MethodInfo methodInfo, 
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
         IEnvironment environment,
         IServiceCollection serviceCollection);
 }

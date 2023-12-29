@@ -1,5 +1,3 @@
 ﻿namespace Hardened.Web.AspNetCore.SourceGenerator;
 
-public class Class1
-{
-}
+public class Class1 { }

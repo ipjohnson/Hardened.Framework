@@ -14,78 +14,69 @@ using Xunit.Sdk;
 
 namespace Hardened.Shared.Testing.Impl;
 
-public class HardenedTestInvoker : XunitTestInvoker
-{
+public class HardenedTestInvoker : XunitTestInvoker {
     private readonly TestOutputHelper _testOutputHelper;
     private object? _testClassInstance;
     private IApplicationRoot? _testApplicationRoot;
     private readonly HardenedTestEnvironmentBuilder _environmentBuilder = new();
     private readonly Dictionary<ParameterInfo, IHardenedParameterProviderAttribute> _knownParameterValues = new();
 
-    public HardenedTestInvoker(ITest test, 
+    public HardenedTestInvoker(ITest test,
         TestOutputHelper testOutputHelper,
         IMessageBus messageBus,
         Type testClass,
-        object[] constructorArguments, 
-        MethodInfo testMethod, 
+        object[] constructorArguments,
+        MethodInfo testMethod,
         object[] testMethodArguments,
-        IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, 
+        IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes,
         ExceptionAggregator aggregator,
         CancellationTokenSource cancellationTokenSource)
-        : base(test, messageBus, testClass, constructorArguments, testMethod, testMethodArguments, beforeAfterAttributes, aggregator, cancellationTokenSource)
-    {
+        : base(test, messageBus, testClass, constructorArguments, testMethod, testMethodArguments,
+            beforeAfterAttributes, aggregator, cancellationTokenSource) {
         _testOutputHelper = testOutputHelper;
     }
 
-    protected override object CreateTestClass()
-    {
+    protected override object CreateTestClass() {
         return _testClassInstance = base.CreateTestClass();
     }
 
-    protected override async Task<decimal> InvokeTestMethodAsync(object testClassInstance)
-    {
-        try
-        {
+    protected override async Task<decimal> InvokeTestMethodAsync(object testClassInstance) {
+        try {
             await ConstructParameters();
-            
+
             return await base.InvokeTestMethodAsync(testClassInstance);
         }
-        finally
-        {
-            if (_testApplicationRoot != null)
-            {
+        finally {
+            if (_testApplicationRoot != null) {
                 await _testApplicationRoot.DisposeAsync();
             }
         }
     }
-    public Action<IEnvironment, IServiceCollection> BuildOverrideAction(AttributeCollection attributeCollection, MethodInfo testMethod, IEnvironment environment)
-    {
+
+    public Action<IEnvironment, IServiceCollection> BuildOverrideAction(AttributeCollection attributeCollection,
+        MethodInfo testMethod, IEnvironment environment) {
         var registrationAttributeList =
             attributeCollection.GetAttributes<IHardenedTestDependencyRegistrationAttribute>();
 
         var globalParameterProviderList =
             attributeCollection.GetAttributes<IHardenedParameterProviderAttribute>();
 
-        foreach (var parameterInfo in testMethod.GetParameters())
-        {
+        foreach (var parameterInfo in testMethod.GetParameters()) {
             var providerAttribute =
                 parameterInfo.GetCustomAttributes().OfType<IHardenedParameterProviderAttribute>().FirstOrDefault();
 
-            if (providerAttribute != null)
-            {
+            if (providerAttribute != null) {
                 _knownParameterValues[parameterInfo] = providerAttribute;
             }
         }
 
         var configurationAction = CreateConfigurationAction(attributeCollection, environment);
 
-        return (env, collection) =>
-        {
+        return (env, collection) => {
             collection.AddSingleton<ITestOutputHelper>(_testOutputHelper);
             collection.AddSingleton(new TestCancellationToken(CancellationTokenSource.Token));
-            
-            registrationAttributeList.Foreach(hardenedTestDependencyRegistrationAttribute =>
-            {
+
+            registrationAttributeList.Foreach(hardenedTestDependencyRegistrationAttribute => {
                 hardenedTestDependencyRegistrationAttribute.RegisterDependencies(
                     attributeCollection,
                     testMethod,
@@ -94,8 +85,7 @@ public class HardenedTestInvoker : XunitTestInvoker
                 );
             });
 
-            globalParameterProviderList.Foreach(attr =>
-            {
+            globalParameterProviderList.Foreach(attr => {
                 attr.RegisterDependencies(attributeCollection,
                     testMethod,
                     null,
@@ -104,8 +94,7 @@ public class HardenedTestInvoker : XunitTestInvoker
                 );
             });
 
-            _knownParameterValues.Foreach(kvp =>
-            {
+            _knownParameterValues.Foreach(kvp => {
                 kvp.Value.RegisterDependencies(
                     attributeCollection,
                     testMethod,
@@ -120,32 +109,27 @@ public class HardenedTestInvoker : XunitTestInvoker
             collection.RemoveAll<ILoggerProvider>();
 
             collection.AddSingleton<ILoggerProvider, XunitLoggerProvider>();
-            
+
             ProcessInstanceRegistrationMethod(attributeCollection, testMethod, env, collection);
         };
     }
 
     private Action<IEnvironment, IServiceCollection> CreateConfigurationAction(
-        AttributeCollection attributeCollection, IEnvironment environment)
-    {
-        return (env, collection) =>
-        {   
+        AttributeCollection attributeCollection, IEnvironment environment) {
+        return (env, collection) => {
             var appConfig = new AppConfig();
 
-            attributeCollection.GetAttributes<IHardenedTestConfigurationAttribute>().Foreach(a =>
-            {
+            attributeCollection.GetAttributes<IHardenedTestConfigurationAttribute>().Foreach(a => {
                 a.Configure(attributeCollection, TestMethod, env, appConfig);
             });
 
-            var configureMethod = 
+            var configureMethod =
                 _testClassInstance!.GetType().FindInstanceMethod("Configure");
 
-            if (configureMethod != null)
-            {
+            if (configureMethod != null) {
                 var parameters = new List<object>();
 
-                switch (configureMethod.GetParameters().Length)
-                {
+                switch (configureMethod.GetParameters().Length) {
                     case 4:
                         parameters.Add(attributeCollection);
                         parameters.Add(TestMethod);
@@ -173,19 +157,17 @@ public class HardenedTestInvoker : XunitTestInvoker
         };
     }
 
-    private void ProcessInstanceRegistrationMethod(AttributeCollection attributeCollection, MethodInfo testMethod, IEnvironment env, IServiceCollection collection)
-    {
+    private void ProcessInstanceRegistrationMethod(AttributeCollection attributeCollection, MethodInfo testMethod,
+        IEnvironment env, IServiceCollection collection) {
         var classInstanceType = _testClassInstance!.GetType();
         var registrationMethod =
             classInstanceType.FindInstanceMethod("RegisterDependencies");
 
-        if (registrationMethod != null)
-        {
+        if (registrationMethod != null) {
             var parameters = registrationMethod.GetParameters();
             var invokeParameters = new List<object>();
 
-            switch (parameters.Length)
-            {
+            switch (parameters.Length) {
                 case 4:
                     invokeParameters.Add(attributeCollection);
                     invokeParameters.Add(testMethod);
@@ -210,11 +192,10 @@ public class HardenedTestInvoker : XunitTestInvoker
         }
     }
 
-    private async Task ConstructParameters()
-    {
+    private async Task ConstructParameters() {
         var attributeCollection = AttributeCollection.FromMethodInfo(TestMethod);
 
-        var environment = 
+        var environment =
             _environmentBuilder.BuildEnvironment(attributeCollection, TestMethod, _testClassInstance!);
 
         var dependencyOverrideAction =
@@ -225,12 +206,10 @@ public class HardenedTestInvoker : XunitTestInvoker
         AssignParametersToField(attributeCollection);
     }
 
-    private void AssignParametersToField(AttributeCollection attributeCollection)
-    {
+    private void AssignParametersToField(AttributeCollection attributeCollection) {
         var methodArguments = new List<object>();
 
-        if (TestMethodArguments is { Length: > 0 })
-        {
+        if (TestMethodArguments is { Length: > 0 }) {
             methodArguments.AddRange(TestMethodArguments);
         }
 
@@ -238,43 +217,36 @@ public class HardenedTestInvoker : XunitTestInvoker
 
         var globalParameterProviderList = attributeCollection.GetAttributes<IHardenedParameterProviderAttribute>();
 
-        for (var i = 0; methodArguments.Count < parameters.Length; i++)
-        {
+        for (var i = 0; methodArguments.Count < parameters.Length; i++) {
             var parameter = parameters[i];
             object? argumentValue = null;
 
-            if (_knownParameterValues.TryGetValue(parameter, out var providerAttribute))
-            {
+            if (_knownParameterValues.TryGetValue(parameter, out var providerAttribute)) {
                 argumentValue = providerAttribute.ProvideParameterValue(TestMethod, parameter, _testApplicationRoot!);
             }
 
-            if (argumentValue == null && globalParameterProviderList.Count > 0)
-            {
-                foreach (var attribute in globalParameterProviderList)
-                {
+            if (argumentValue == null && globalParameterProviderList.Count > 0) {
+                foreach (var attribute in globalParameterProviderList) {
                     argumentValue = attribute.ProvideParameterValue(TestMethod, parameter, _testApplicationRoot!);
 
-                    if (argumentValue != null)
-                    {
+                    if (argumentValue != null) {
                         break;
                     }
                 }
             }
 
-            if (argumentValue == null && 
-                parameter.ParameterType == typeof(ITestContext))
-            {
+            if (argumentValue == null &&
+                parameter.ParameterType == typeof(ITestContext)) {
                 var logger = (ILogger)_testApplicationRoot!.Provider.GetService(
                     typeof(ILogger<>).MakeGenericType(TestClass))!;
-                
+
                 argumentValue =
                     new TestContext(CancellationTokenSource.Token, logger);
             }
-            
+
             argumentValue ??= LocateValue(_testApplicationRoot!, parameter);
 
-            if (argumentValue == null)
-            {
+            if (argumentValue == null) {
                 throw new Exception($"Could not resolve parameter {parameter.ParameterType.Name} {parameter.Name}");
             }
 
@@ -284,12 +256,11 @@ public class HardenedTestInvoker : XunitTestInvoker
         TestMethodArguments = methodArguments.ToArray();
     }
 
-    private Task ConstructRootApplication(AttributeCollection attributeCollection, IEnvironment environment, Action<IEnvironment, IServiceCollection> dependencyOverrideAction)
-    {
+    private Task ConstructRootApplication(AttributeCollection attributeCollection, IEnvironment environment,
+        Action<IEnvironment, IServiceCollection> dependencyOverrideAction) {
         _testApplicationRoot = ProcessParameterTypesForRoot(attributeCollection, environment, dependencyOverrideAction);
 
-        if (_testApplicationRoot == null)
-        {
+        if (_testApplicationRoot == null) {
             _testApplicationRoot =
                 ConstructApplicationFromEntryPoint(attributeCollection, environment, dependencyOverrideAction);
         }
@@ -297,23 +268,20 @@ public class HardenedTestInvoker : XunitTestInvoker
         return StartApplication(attributeCollection, environment);
     }
 
-    private IApplicationRoot ConstructApplicationFromEntryPoint(AttributeCollection attributeCollection, IEnvironment environment, Action<IEnvironment, IServiceCollection> overrideAction)
-    {
+    private IApplicationRoot ConstructApplicationFromEntryPoint(AttributeCollection attributeCollection,
+        IEnvironment environment, Action<IEnvironment, IServiceCollection> overrideAction) {
         var entryPoint = attributeCollection.GetAttribute<HardenedTestEntryPointAttribute>();
 
-        if (entryPoint == null)
-        {
+        if (entryPoint == null) {
             throw new Exception(
                 $"Could not find {nameof(HardenedTestEntryPointAttribute)}, did you apply it to your assembly?");
         }
 
-        if (typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint))
-        {
+        if (typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint)) {
             return (IApplicationRoot)Activator.CreateInstance(entryPoint.EntryPoint, environment, overrideAction)!;
         }
-            
-        if (typeof(IApplicationModule).IsAssignableFrom(entryPoint.EntryPoint))
-        {
+
+        if (typeof(IApplicationModule).IsAssignableFrom(entryPoint.EntryPoint)) {
             var module = (IApplicationModule)Activator.CreateInstance(entryPoint.EntryPoint)!;
 
             return new TestApplication(module, module.GetType().Namespace + ".test", environment, overrideAction);
@@ -322,14 +290,13 @@ public class HardenedTestInvoker : XunitTestInvoker
         throw new Exception($"Entry point is not correct type");
     }
 
-    private IApplicationRoot? ProcessParameterTypesForRoot(AttributeCollection attributeCollection, IEnvironment environment, Action<IEnvironment, IServiceCollection>  overrideAction)
-    {
-        foreach (var parameterInfo in TestMethod.GetParameters())
-        {
-            if (typeof(IApplicationRoot).IsAssignableFrom(parameterInfo.ParameterType))
-            {
-                var applicationRoot = 
-                    (IApplicationRoot?)Activator.CreateInstance(parameterInfo.ParameterType, environment, overrideAction);
+    private IApplicationRoot? ProcessParameterTypesForRoot(AttributeCollection attributeCollection,
+        IEnvironment environment, Action<IEnvironment, IServiceCollection> overrideAction) {
+        foreach (var parameterInfo in TestMethod.GetParameters()) {
+            if (typeof(IApplicationRoot).IsAssignableFrom(parameterInfo.ParameterType)) {
+                var applicationRoot =
+                    (IApplicationRoot?)Activator.CreateInstance(parameterInfo.ParameterType, environment,
+                        overrideAction);
 
                 _knownParameterValues[parameterInfo] = new SimpleParameterValueAttribute(applicationRoot!);
 
@@ -340,53 +307,43 @@ public class HardenedTestInvoker : XunitTestInvoker
         return null;
     }
 
-    private async Task StartApplication(AttributeCollection attributeCollection, IEnvironment environment)
-    {
-        foreach (var startupAttribute in 
-                 attributeCollection.GetAttributes<IHardenedTestStartupAttribute>().OrderBy(a => a.Order))
-        {
+    private async Task StartApplication(AttributeCollection attributeCollection, IEnvironment environment) {
+        foreach (var startupAttribute in
+                 attributeCollection.GetAttributes<IHardenedTestStartupAttribute>().OrderBy(a => a.Order)) {
             await startupAttribute.Startup(attributeCollection, TestMethod, environment,
                 _testApplicationRoot!.Provider);
         }
     }
 
 
-    private object? LocateValue(IApplicationRoot applicationInstance, ParameterInfo parameter)
-    {
+    private object? LocateValue(IApplicationRoot applicationInstance, ParameterInfo parameter) {
         object? returnValue = applicationInstance.Provider.GetService(parameter.ParameterType);
 
         if (returnValue == null &&
-            !parameter.ParameterType.IsInterface)
-        {
+            !parameter.ParameterType.IsInterface) {
             returnValue = GenerateConcreteType(applicationInstance, parameter.ParameterType);
         }
 
         return returnValue;
     }
 
-    private object? GenerateConcreteType(IApplicationRoot applicationInstance, Type parameterParameterType)
-    {
+    private object? GenerateConcreteType(IApplicationRoot applicationInstance, Type parameterParameterType) {
         var constructor =
             parameterParameterType.GetConstructors()
                 .Where(c => c.IsPublic && !c.IsStatic)
                 .MaxBy(c => c.GetParameters().Length);
 
-        if (constructor != null)
-        {
+        if (constructor != null) {
             var parameters = new List<object?>();
 
-            foreach (var parameterInfo in constructor.GetParameters())
-            {
+            foreach (var parameterInfo in constructor.GetParameters()) {
                 var parameterValue = LocateValue(applicationInstance, parameterInfo);
 
-                if (parameterValue == null)
-                {
-                    if (parameterInfo.HasDefaultValue)
-                    {
+                if (parameterValue == null) {
+                    if (parameterInfo.HasDefaultValue) {
                         parameterValue = parameterInfo.DefaultValue;
                     }
-                    else
-                    {
+                    else {
                         throw new Exception(
                             $"Could not locate {parameterInfo.ParameterType} for parameter {parameterInfo.Name} on {constructor.DeclaringType?.Name}");
                     }

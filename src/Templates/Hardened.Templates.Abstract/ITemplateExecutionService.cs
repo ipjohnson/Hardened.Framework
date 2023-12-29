@@ -3,23 +3,22 @@
 namespace Hardened.Templates.Abstract;
 
 public delegate Task TemplateExecutionFunction(
-    object templateData, 
-    IServiceProvider serviceProvider, 
+    object templateData,
+    IServiceProvider serviceProvider,
     ITemplateOutputWriter writer,
     ITemplateExecutionContext? parentContext,
     IExecutionContext? executionContext);
 
-public interface ITemplateExecutionService
-{
+public interface ITemplateExecutionService {
     Task<string> Execute(string templateName, object templateData, IServiceProvider serviceProvider);
 
     Task Execute(
         string templateName,
-        object? templateData, 
-        IServiceProvider serviceProvider, 
+        object? templateData,
+        IServiceProvider serviceProvider,
         ITemplateOutputWriter writer,
-        ITemplateExecutionContext? parentContext, 
+        ITemplateExecutionContext? parentContext,
         IExecutionContext? executionContext);
-        
+
     TemplateExecutionFunction? FindTemplateExecutionFunction(string templateName);
 }

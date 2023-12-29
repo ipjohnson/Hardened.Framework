@@ -4,8 +4,7 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.String;
 
-public class ContainsHelperTests : BaseTwoStringTests
-{
+public class ContainsHelperTests : BaseTwoStringTests {
     [Theory]
     [InlineData("Hello", "llo", true)]
     [InlineData("Hello", "ell", true)]
@@ -13,8 +12,7 @@ public class ContainsHelperTests : BaseTwoStringTests
     [InlineData("Hello", "", false)]
     [InlineData("", "llo", false)]
     [InlineData("", "", false)]
-    public Task EndsWithLogicTests(string one, string two, bool result)
-    {
+    public Task EndsWithLogicTests(string one, string two, bool result) {
         return Evaluate(one, two, result);
     }
 

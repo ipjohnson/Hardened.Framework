@@ -3,10 +3,8 @@ using static CSharpAuthor.SyntaxHelpers;
 
 namespace Hardened.SourceGenerator.Shared;
 
-public  static class ApplicationRootImplementation
-{
-    public static InstanceDefinition ImplementApplicationRoot(this ClassDefinition appClass)
-    {
+public static class ApplicationRootImplementation {
+    public static InstanceDefinition ImplementApplicationRoot(this ClassDefinition appClass) {
         appClass.AddBaseType(KnownTypes.Application.IApplicationRoot);
 
         var rootService = appClass.AddField(KnownTypes.DI.ServiceProvider, "RootServiceProvider");
@@ -14,15 +12,16 @@ public  static class ApplicationRootImplementation
         var provider = appClass.AddProperty(KnownTypes.DI.IServiceProvider, "Provider");
 
         provider.Get.LambdaSyntax = true;
-        provider.Get.AddCode("RootServiceProvider ?? throw new Exception(\"RootServiceProvider not initialized yet\");");
+        provider.Get.AddCode(
+            "RootServiceProvider ?? throw new Exception(\"RootServiceProvider not initialized yet\");");
         provider.Set = null;
 
         var disposeAsync = appClass.AddMethod("DisposeAsync");
 
         disposeAsync.Modifiers = ComponentModifier.Public | ComponentModifier.Async;
         disposeAsync.SetReturnType(typeof(ValueTask));
-            
-        var currentRootServiceProvider = 
+
+        var currentRootServiceProvider =
             disposeAsync.Assign("RootServiceProvider").ToVar("currentRootServiceProvider");
 
         var invokeStatement = Await(currentRootServiceProvider.Invoke("DisposeAsync"));

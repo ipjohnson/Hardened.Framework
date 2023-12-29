@@ -9,20 +9,15 @@ using Microsoft.Extensions.Logging;
 namespace Hardened.Web.Testing;
 
 [AttributeUsage(AttributeTargets.Assembly)]
-public class WebTestingAttribute : Attribute, IHardenedParameterProviderAttribute, IHardenedTestStartupAttribute
-{
-    public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo, ParameterInfo? parameterInfo,
-        IEnvironment environment, IServiceCollection serviceCollection)
-    {
+public class WebTestingAttribute : Attribute, IHardenedParameterProviderAttribute, IHardenedTestStartupAttribute {
+    public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
+        ParameterInfo? parameterInfo,
+        IEnvironment environment, IServiceCollection serviceCollection) { }
 
-    }
-
-    public object? ProvideParameterValue(MethodInfo methodInfo, 
+    public object? ProvideParameterValue(MethodInfo methodInfo,
         ParameterInfo parameterInfo,
-        IApplicationRoot applicationRoot)
-    {
-        if (parameterInfo.ParameterType == typeof(ITestWebApp))
-        {
+        IApplicationRoot applicationRoot) {
+        if (parameterInfo.ParameterType == typeof(ITestWebApp)) {
             var logger = (ILogger)applicationRoot.Provider.GetService(
                 typeof(ILogger<>).MakeGenericType(methodInfo.DeclaringType!))!;
 
@@ -33,17 +28,15 @@ public class WebTestingAttribute : Attribute, IHardenedParameterProviderAttribut
     }
 
     public Task Startup(AttributeCollection attributeCollection, MethodInfo methodInfo, IEnvironment environment,
-        IServiceProvider serviceProvider)
-    {
+        IServiceProvider serviceProvider) {
         var entryPoint = attributeCollection.GetAttribute<HardenedTestEntryPointAttribute>()!;
 
-        if (!typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint))
-        {
+        if (!typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint)) {
             var handler = serviceProvider.GetRequiredService<IWebExecutionHandlerService>();
             var middleware = serviceProvider.GetRequiredService<IMiddlewareService>();
             middleware.Use(_ => handler);
         }
-        
+
         return Task.CompletedTask;
     }
 }

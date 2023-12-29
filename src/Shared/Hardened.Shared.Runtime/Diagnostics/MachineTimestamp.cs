@@ -5,14 +5,12 @@ namespace Hardened.Shared.Runtime.Diagnostics;
 /// <summary>
 /// Timestamp that uses the machine ticks, it is only valid on the local machine.
 /// </summary>
-public readonly struct MachineTimestamp
-{
+public readonly struct MachineTimestamp {
     public static readonly double SecondsToTicksRatio = TimeSpan.TicksPerSecond / (double)Stopwatch.Frequency;
     public static readonly double MillisecondsToTicksRatio = 1 / (double)TimeSpan.TicksPerMillisecond;
     private readonly long _timestamp;
 
-    private MachineTimestamp(long timestamp)
-    {
+    private MachineTimestamp(long timestamp) {
         _timestamp = timestamp;
     }
 
@@ -21,8 +19,7 @@ public readonly struct MachineTimestamp
     /// </summary>
     /// <param name="ticks"></param>
     /// <returns></returns>
-    public static MachineTimestamp FromTicks(long ticks)
-    {
+    public static MachineTimestamp FromTicks(long ticks) {
         return new MachineTimestamp(ticks);
     }
 
@@ -35,10 +32,8 @@ public readonly struct MachineTimestamp
     /// Get the elapsed milliseconds from now to the timestamp
     /// </summary>
     /// <returns></returns>
-    public double GetElapsedMilliseconds()
-    {
-        if (_timestamp == 0)
-        {
+    public double GetElapsedMilliseconds() {
+        if (_timestamp == 0) {
             throw new Exception("MachineTimestamp was not initialized, can't be used here");
         }
 
@@ -53,10 +48,8 @@ public readonly struct MachineTimestamp
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public TimeSpan GetElapsedTime()
-    {
-        if (_timestamp == 0)
-        {
+    public TimeSpan GetElapsedTime() {
+        if (_timestamp == 0) {
             throw new Exception("MachineTimestamp was not initialized, can't be used here");
         }
 

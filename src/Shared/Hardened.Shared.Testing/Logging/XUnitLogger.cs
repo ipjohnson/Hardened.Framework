@@ -5,41 +5,37 @@ using Xunit.Sdk;
 
 namespace Hardened.Shared.Testing.Logging;
 
-public class XUnitLogger : ILogger
-{
-    private IJsonSerializer _jsonSerializer;
-    private string _loggerName;
+public class XUnitLogger : ILogger {
+    private readonly IJsonSerializer _jsonSerializer;
+    private readonly string _loggerName;
     private readonly ITestOutputHelper _testOutputHelper;
-    
+
     public XUnitLogger(
-        IJsonSerializer jsonSerializer, string loggerName, ITestOutputHelper testOutputHelper)
-    {
+        IJsonSerializer jsonSerializer, string loggerName, ITestOutputHelper testOutputHelper) {
         _jsonSerializer = jsonSerializer;
         _loggerName = loggerName;
         _testOutputHelper = testOutputHelper;
     }
 
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-    {
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+        Func<TState, Exception?, string> formatter) {
         var record = GetRecord(logLevel, eventId, state, exception, formatter);
 
         _testOutputHelper.WriteLine(_jsonSerializer.Serialize(record, true));
     }
 
     private StructuredLogEntry<TState> GetRecord<TState>(LogLevel logLevel, EventId eventId, TState state,
-        Exception? exception, Func<TState, Exception, string> formatter)
-    {
+        Exception? exception, Func<TState, Exception, string> formatter) {
         ExceptionRecord? exceptionRecord = null;
 
-        if (exception != null)
-        {
+        if (exception != null) {
             exceptionRecord = new ExceptionRecord(
                 exception.GetType().Name,
                 exception.Message,
                 exception.StackTrace ?? "empty"
             );
         }
-        
+
         return new StructuredLogEntry<TState>(
             DateTime.Now,
             _loggerName,
@@ -51,8 +47,7 @@ public class XUnitLogger : ILogger
         );
     }
 
-    public bool IsEnabled(LogLevel logLevel)
-    {
+    public bool IsEnabled(LogLevel logLevel) {
         return true;
     }
 
@@ -61,11 +56,11 @@ public class XUnitLogger : ILogger
 
     public record StructuredLogEntry<TState>(
         DateTime Timestamp,
-        string Logger, 
-        LogLevel LogLevel, 
+        string Logger,
+        LogLevel LogLevel,
         EventId EventId,
-        string Message, 
-        TState Data, 
+        string Message,
+        TState Data,
         ExceptionRecord? Exception
     );
 

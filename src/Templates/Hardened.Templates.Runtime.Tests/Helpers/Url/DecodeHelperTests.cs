@@ -4,12 +4,9 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.Url;
 
-public class DecodeHelperTests : BaseHelperTests
-{
+public class DecodeHelperTests : BaseHelperTests {
     [Fact]
-    public async Task DecodeUrlTest()
-    {
-
+    public async Task DecodeUrlTest() {
         var helper = GetHelper();
 
         var result = await helper.Execute(GetExecutionContext(), "https%3a%2f%2fwww.google.com%2f");

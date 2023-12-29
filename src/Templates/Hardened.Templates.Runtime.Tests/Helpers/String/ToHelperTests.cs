@@ -4,11 +4,9 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.String;
 
-public class ToHelperTests : BaseHelperTests
-{
+public class ToHelperTests : BaseHelperTests {
     [Fact]
-    public async Task IntToString()
-    {
+    public async Task IntToString() {
         var helper = GetHelper();
 
         var result = await helper.Execute(GetExecutionContext(), 123);
@@ -18,8 +16,7 @@ public class ToHelperTests : BaseHelperTests
     }
 
     [Fact]
-    public async Task IntToStringWithFormat()
-    {
+    public async Task IntToStringWithFormat() {
         var helper = GetHelper();
 
         var result = await helper.Execute(GetExecutionContext(), 123, "C");

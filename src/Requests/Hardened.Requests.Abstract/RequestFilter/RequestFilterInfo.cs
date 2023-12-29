@@ -2,10 +2,8 @@
 
 namespace Hardened.Requests.Abstract.RequestFilter;
 
-public class RequestFilterInfo
-{
-    public RequestFilterInfo(Func<IExecutionContext, IExecutionFilter> filterFunc, int? order = null)
-    {
+public class RequestFilterInfo {
+    public RequestFilterInfo(Func<IExecutionContext, IExecutionFilter> filterFunc, int? order = null) {
         FilterFunc = filterFunc;
         Order = order;
     }

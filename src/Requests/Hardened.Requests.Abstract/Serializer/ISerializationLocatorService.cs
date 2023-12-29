@@ -2,8 +2,7 @@
 
 namespace Hardened.Requests.Abstract.Serializer;
 
-public interface ISerializationLocatorService
-{
+public interface ISerializationLocatorService {
     IRequestDeserializer FindRequestDeserializer(IExecutionContext context);
 
     IResponseSerializer FindResponseSerializer(IExecutionContext context);

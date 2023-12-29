@@ -1,16 +1,13 @@
 ﻿namespace Hardened.Shared.Runtime.Metrics;
 
-public interface IMetricDefinition
-{
+public interface IMetricDefinition {
     string Name { get; }
 
     MetricUnits Units { get; }
 }
 
-public class MetricDefinition : IMetricDefinition
-{
-    public MetricDefinition(string name, MetricUnits units)
-    {
+public class MetricDefinition : IMetricDefinition {
+    public MetricDefinition(string name, MetricUnits units) {
         Name = name;
         Units = units;
     }

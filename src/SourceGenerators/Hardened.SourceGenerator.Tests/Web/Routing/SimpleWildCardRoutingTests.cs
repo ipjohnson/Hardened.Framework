@@ -3,20 +3,15 @@ using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Web.Routing;
 
-public class SimpleWildCardRoutingTests
-{
+public class SimpleWildCardRoutingTests {
     [Fact]
-    public void SingleWildCardRoute()
-    {
-        var routes = new List<RouteTreeGenerator<string>.Entry>
-        {
-            new ("/api/person/{id}", "GET", "Person"),
-        };
+    public void SingleWildCardRoute() {
+        var routes = new List<RouteTreeGenerator<string>.Entry> { new("/api/person/{id}", "GET", "Person"), };
 
         var generator = new RouteTreeGenerator<string>();
 
         var routeTree = generator.GenerateTree(routes);
-            
+
         routeTree.AssertPath("/");
         routeTree.ChildNodes.AssertCount(1);
         routeTree.AssertNoLeafNodes();
@@ -36,18 +31,15 @@ public class SimpleWildCardRoutingTests
         Assert.Equal(1, wildCardNode.WildCardDepth);
 
         var leafNode = wildCardNode.LeafNodes[0];
-            
+
         Assert.Equal("GET", leafNode.Method);
         Assert.Equal("Person", leafNode.Value);
     }
-    
+
     [Fact]
-    public void DoubleWildCardRoute()
-    {
-        var routes = new List<RouteTreeGenerator<string>.Entry>
-        {
-            new ("/api/company/{company}/person/{id}", "GET", "Person"),
-        };
+    public void DoubleWildCardRoute() {
+        var routes =
+            new List<RouteTreeGenerator<string>.Entry> { new("/api/company/{company}/person/{id}", "GET", "Person"), };
 
         var generator = new RouteTreeGenerator<string>();
 
@@ -77,30 +69,26 @@ public class SimpleWildCardRoutingTests
         wildChild.AssertNoChildren();
         wildChild.WildCardNodes.AssertCount(1);
         Assert.Equal(1, wildChild.WildCardDepth);
-            
+
         var secondWildNode = wildChild.WildCardNodes.First();
         secondWildNode.AssertNoChildren();
         secondWildNode.AssertNoWildCardNodes();
         secondWildNode.LeafNodes.AssertCount(1);
 
         var leafNode = secondWildNode.LeafNodes.First();
-            
+
         Assert.Equal("GET", leafNode.Method);
         Assert.Equal("Person", leafNode.Value);
     }
 
     [Fact]
-    public void ParseMultipleEntries()
-    {
-        var routes = new List<RouteTreeGenerator<string>.Entry>
-        {
-            new ("/recipes/{userId}", "GET", "Recipe"),
-            new ("/recipe/{userId}/{recipeId}", "GET", "Recipe"),
+    public void ParseMultipleEntries() {
+        var routes = new List<RouteTreeGenerator<string>.Entry> {
+            new("/recipes/{userId}", "GET", "Recipe"), new("/recipe/{userId}/{recipeId}", "GET", "Recipe"),
         };
-        
+
         var generator = new RouteTreeGenerator<string>();
 
         var routeTree = generator.GenerateTree(routes);
-
     }
 }

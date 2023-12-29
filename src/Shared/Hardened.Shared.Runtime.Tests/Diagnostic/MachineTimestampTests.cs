@@ -3,11 +3,9 @@ using Xunit;
 
 namespace Hardened.Shared.Runtime.Tests.Diagnostic;
 
-public class MachineTimestampTests
-{
+public class MachineTimestampTests {
     [Fact]
-    public void MillisecondsTest()
-    {
+    public void MillisecondsTest() {
         var timestamp = MachineTimestamp.Now;
 
         Thread.Sleep(100);
@@ -19,8 +17,7 @@ public class MachineTimestampTests
     }
 
     [Fact]
-    public void TimeSpanTest()
-    {
+    public void TimeSpanTest() {
         var timestamp = MachineTimestamp.Now;
 
         Thread.Sleep(100);

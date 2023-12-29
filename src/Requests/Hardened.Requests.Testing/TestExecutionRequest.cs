@@ -6,23 +6,20 @@ using Hardened.Requests.Runtime.PathTokens;
 
 namespace Hardened.Requests.Testing;
 
-public class TestExecutionRequest : IExecutionRequest
-{
+public class TestExecutionRequest : IExecutionRequest {
     private IPathTokenCollection? _pathTokens;
 
     public TestExecutionRequest(
         string method,
-        string path, 
-        string? accepts, IQueryStringCollection queryString)
-    {
+        string path,
+        string? accepts, IQueryStringCollection queryString) {
         Method = method;
         Path = path;
         Accept = accepts;
         QueryString = queryString;
     }
 
-    public object Clone()
-    {
+    public object Clone() {
         throw new NotImplementedException();
     }
 
@@ -37,13 +34,12 @@ public class TestExecutionRequest : IExecutionRequest
     public IExecutionRequestParameters? Parameters { get; set; }
 
     public Stream Body { get; set; }
-        
+
     public IHeaderCollection Headers { get; set; }
 
     public IQueryStringCollection QueryString { get; }
 
-    public IPathTokenCollection PathTokens
-    {
+    public IPathTokenCollection PathTokens {
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }

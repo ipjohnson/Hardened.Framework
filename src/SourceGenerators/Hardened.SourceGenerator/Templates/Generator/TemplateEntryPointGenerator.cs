@@ -6,18 +6,18 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Templates.Generator;
 
-public static class TemplateEntryPointGenerator
-{
-    public static void Generate(SourceProductionContext productionContext, 
-        (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels) templateData)
-    {
+public static class TemplateEntryPointGenerator {
+    public static void Generate(SourceProductionContext productionContext,
+        (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel>
+            templateModels) templateData) {
         var applicationFile = new CSharpFileDefinition(templateData.applicationModel.EntryPointType.Namespace);
 
         var classDefinition = applicationFile.AddClass(templateData.applicationModel.EntryPointType.Name);
 
         classDefinition.Modifiers |= ComponentModifier.Partial | ComponentModifier.Public;
 
-        var templateProviderClass = CreateTemplateProviderClass(classDefinition, templateData.applicationModel, templateData.templateModels);
+        var templateProviderClass =
+            CreateTemplateProviderClass(classDefinition, templateData.applicationModel, templateData.templateModels);
 
         GenerateDependencyInjection(classDefinition, templateProviderClass, templateData.applicationModel,
             templateData.templateModels);
@@ -31,8 +31,9 @@ public static class TemplateEntryPointGenerator
         productionContext.AddSource(templateFileName, outputContext.Output());
     }
 
-    private static void GenerateDependencyInjection(ClassDefinition classDefinition, ITypeDefinition templateProviderClass, EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)
-    {
+    private static void GenerateDependencyInjection(ClassDefinition classDefinition,
+        ITypeDefinition templateProviderClass, EntryPointSelector.Model applicationModel,
+        ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels) {
         var templateField = classDefinition.AddField(typeof(int), "_templateDependencies");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
@@ -54,12 +55,13 @@ public static class TemplateEntryPointGenerator
             new[] { KnownTypes.Templates.ITemplateExecutionHandlerProvider, templateProviderClass }));
     }
 
-    private static ITypeDefinition CreateTemplateProviderClass(ClassDefinition classDefinition, EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)
-    {
+    private static ITypeDefinition CreateTemplateProviderClass(ClassDefinition classDefinition,
+        EntryPointSelector.Model applicationModel,
+        ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels) {
         var templateProviderClass = classDefinition.AddClass("TemplateProvider");
 
         templateProviderClass.AddBaseType(KnownTypes.Templates.ITemplateExecutionHandlerProvider);
-            
+
         GenerateConstructor(templateProviderClass);
 
         GenerateProviderMethod(classDefinition, templateProviderClass, applicationModel, templateModels);
@@ -68,23 +70,23 @@ public static class TemplateEntryPointGenerator
             applicationModel.EntryPointType.Name + "." + "TemplateProvider");
     }
 
-    private static void GenerateConstructor(ClassDefinition templateProviderClass)
-    {
-        var templateServices = templateProviderClass.AddField(KnownTypes.Templates.IInternalTemplateServices, "_internalTemplateServices");
+    private static void GenerateConstructor(ClassDefinition templateProviderClass) {
+        var templateServices = templateProviderClass.AddField(KnownTypes.Templates.IInternalTemplateServices,
+            "_internalTemplateServices");
 
         var constructor = templateProviderClass.AddConstructor();
 
-        var parameter = constructor.AddParameter(KnownTypes.Templates.IInternalTemplateServices, "internalTemplateServices");
+        var parameter =
+            constructor.AddParameter(KnownTypes.Templates.IInternalTemplateServices, "internalTemplateServices");
 
         constructor.Assign(parameter).To(templateServices.Instance);
     }
 
     private static void GenerateProviderMethod(
-        ClassDefinition classDefinition, 
-        ClassDefinition templateProviderClass, 
-        EntryPointSelector.Model applicationModel, 
-        ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels)
-    {
+        ClassDefinition classDefinition,
+        ClassDefinition templateProviderClass,
+        EntryPointSelector.Model applicationModel,
+        ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels) {
         var templateExecutionService = templateProviderClass.AddProperty(
             KnownTypes.Templates.ITemplateExecutionService.MakeNullable(), "TemplateExecutionService");
 
@@ -95,38 +97,37 @@ public static class TemplateEntryPointGenerator
         var templateNameParameter = handlerMethod.AddParameter(typeof(string), "templateName");
 
         GenerateProviderMethodBody(
-            applicationModel, templateModels, templateProviderClass, handlerMethod, templateNameParameter, templateExecutionService);
+            applicationModel, templateModels, templateProviderClass, handlerMethod, templateNameParameter,
+            templateExecutionService);
     }
 
     private static void GenerateProviderMethodBody(EntryPointSelector.Model applicationModel,
         ImmutableArray<TemplateIncrementalGenerator.TemplateModel> templateModels,
         ClassDefinition templateProviderClass,
         MethodDefinition handlerMethod,
-        ParameterDefinition templateNameParameter, 
-        PropertyDefinition templateExecutionService)
-    {
+        ParameterDefinition templateNameParameter,
+        PropertyDefinition templateExecutionService) {
         var internalServices = templateProviderClass.Fields.First(f => f.Name == "_internalTemplateServices");
 
         var switchBlock = handlerMethod.Switch(templateNameParameter);
 
-        foreach (var templateModel in 
-                 templateModels.Sort((x,y) => string.CompareOrdinal(x.TemplateName, y.TemplateName)))
-        {
+        foreach (var templateModel in
+                 templateModels.Sort((x, y) => string.CompareOrdinal(x.TemplateName, y.TemplateName))) {
             var instanceField = templateProviderClass.AddField(
                 KnownTypes.Templates.ITemplateExecutionHandler.MakeNullable(),
                 "_instance_" + SanitizeNameString(templateModel.TemplateName));
 
             var caseBlock = switchBlock.AddCase(QuoteString(templateModel.TemplateName));
 
-            caseBlock.Return(NullCoalesceEqual(instanceField.Instance, 
-                New(templateModel.TemplateDefinitionType, templateExecutionService.Instance, internalServices.Instance)));
+            caseBlock.Return(NullCoalesceEqual(instanceField.Instance,
+                New(templateModel.TemplateDefinitionType, templateExecutionService.Instance,
+                    internalServices.Instance)));
         }
 
         handlerMethod.Return(Null());
     }
 
-    private static string SanitizeNameString(string name)
-    {
+    private static string SanitizeNameString(string name) {
         return name.Replace(".", "_").Replace("-", "_");
     }
 }

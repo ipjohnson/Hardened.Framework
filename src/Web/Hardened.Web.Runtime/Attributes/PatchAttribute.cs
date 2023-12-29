@@ -1,5 +1,3 @@
 ﻿namespace Hardened.Web.Runtime.Attributes;
 
-internal class PatchAttribute
-{
-}
+internal class PatchAttribute { }

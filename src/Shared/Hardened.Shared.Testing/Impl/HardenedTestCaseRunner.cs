@@ -3,39 +3,39 @@ using Xunit.Sdk;
 
 namespace Hardened.Shared.Testing.Impl;
 
-public class HardenedTestCaseRunner : XunitTestCaseRunner
-{
+public class HardenedTestCaseRunner : XunitTestCaseRunner {
     private readonly IMessageSink _messageSink;
     private readonly List<HardenedTestRunner> _testRunners = new();
     private readonly ExceptionAggregator _cleanupAggregator = new();
-    
-    public HardenedTestCaseRunner(IXunitTestCase testCase, IMessageSink messageSink, string displayName, string skipReason, object[] constructorArguments, object[] testMethodArguments, IMessageBus messageBus, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) 
-        : base(testCase, displayName, skipReason, constructorArguments, testMethodArguments, messageBus, aggregator, cancellationTokenSource)
-    {
+
+    public HardenedTestCaseRunner(IXunitTestCase testCase, IMessageSink messageSink, string displayName,
+        string skipReason, object[] constructorArguments, object[] testMethodArguments, IMessageBus messageBus,
+        ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+        : base(testCase, displayName, skipReason, constructorArguments, testMethodArguments, messageBus, aggregator,
+            cancellationTokenSource) {
         _messageSink = messageSink;
     }
 
-    protected override Task AfterTestCaseStartingAsync()
-    {
+    protected override Task AfterTestCaseStartingAsync() {
         var dataAttributes = TestMethod.GetTestAttributes<DataAttribute>().ToList();
 
-        if (dataAttributes.Count == 0)
-        {
-            var theoryDisplayName = 
-                TypeUtility.GetDisplayNameWithArguments(TestCase.TestMethod.Method, DisplayName, Array.Empty<object>(), Array.Empty<ITypeInfo>());
+        if (dataAttributes.Count == 0) {
+            var theoryDisplayName =
+                TypeUtility.GetDisplayNameWithArguments(TestCase.TestMethod.Method, DisplayName, Array.Empty<object>(),
+                    Array.Empty<ITypeInfo>());
 
             var test = new XunitTest(TestCase, theoryDisplayName.Replace("???", ""));
 
             var testOutputHelper = new TestOutputHelper();
-            
+
             var testRunner = new HardenedTestRunner(
                 test,
                 testOutputHelper,
-                MessageBus, 
-                TestClass, 
-                ConstructorArguments, 
+                MessageBus,
+                TestClass,
+                ConstructorArguments,
                 TestMethod,
-                TestMethodArguments, 
+                TestMethodArguments,
                 SkipReason,
                 BeforeAfterAttributes,
                 Aggregator,
@@ -43,14 +43,11 @@ public class HardenedTestCaseRunner : XunitTestCaseRunner
 
             _testRunners.Add(testRunner);
         }
-        else
-        {
-            foreach (var dataAttribute in dataAttributes)
-            {
+        else {
+            foreach (var dataAttribute in dataAttributes) {
                 var parameterValuesSet = dataAttribute.GetData(TestMethod);
 
-                foreach (var testMethodArguments in parameterValuesSet)
-                {
+                foreach (var testMethodArguments in parameterValuesSet) {
                     var theoryDisplayName =
                         TypeUtility.GetDisplayNameWithArguments(TestCase.TestMethod.Method, DisplayName,
                             testMethodArguments, Array.Empty<ITypeInfo>());
@@ -58,16 +55,16 @@ public class HardenedTestCaseRunner : XunitTestCaseRunner
                     var test = new XunitTest(TestCase, theoryDisplayName);
 
                     var testOutputHelper = new TestOutputHelper();
-                    
+
                     var testRunner = new HardenedTestRunner(
                         test,
                         testOutputHelper,
-                        MessageBus, 
-                        TestClass, 
+                        MessageBus,
+                        TestClass,
                         ConstructorArguments,
                         TestMethod,
                         testMethodArguments,
-                        SkipReason, 
+                        SkipReason,
                         BeforeAfterAttributes,
                         Aggregator,
                         CancellationTokenSource);
@@ -80,15 +77,13 @@ public class HardenedTestCaseRunner : XunitTestCaseRunner
         return base.AfterTestCaseStartingAsync();
     }
 
-    protected override Task BeforeTestCaseFinishedAsync()
-    {
+    protected override Task BeforeTestCaseFinishedAsync() {
         Aggregator.Aggregate(_cleanupAggregator);
 
         return base.BeforeTestCaseFinishedAsync();
     }
 
-    protected override async Task<RunSummary> RunTestAsync()
-    {
+    protected override async Task<RunSummary> RunTestAsync() {
         var runSummary = new RunSummary();
 
         foreach (var testRunner in _testRunners)

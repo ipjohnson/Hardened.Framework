@@ -9,12 +9,10 @@ using System.Threading;
 
 namespace Hardened.SourceGenerator.DependencyInjection;
 
-public static class DependencyInjectionIncrementalGenerator
-{
+public static class DependencyInjectionIncrementalGenerator {
     public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
         IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider,
-        IReadOnlyList<ITypeDefinition> defaultLibraries)
-    {
+        IReadOnlyList<ITypeDefinition> defaultLibraries) {
         var classSelector = new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.DI.ExposeAttribute);
 
         var services = initializationContext.SyntaxProvider.CreateSyntaxProvider(
@@ -32,95 +30,80 @@ public static class DependencyInjectionIncrementalGenerator
                 (EntryPointSelector.Model Left, ImmutableArray<ServiceModel> Right)>(generator.GenerateFile));
     }
 
-    private static ServiceModel GenerateServiceModel(GeneratorSyntaxContext arg1, CancellationToken arg2)
-    {
+    private static ServiceModel GenerateServiceModel(GeneratorSyntaxContext arg1, CancellationToken arg2) {
         var classDeclarationSyntax = (ClassDeclarationSyntax)arg1.Node;
         var tryValue = false;
         ITypeDefinition? exposeTypeDef = null;
         var expose = classDeclarationSyntax.DescendantNodes().OfType<AttributeSyntax>()
             .FirstOrDefault(a => a.Name.ToString() == "Expose" || a.Name.ToString() == "ExposeAttribute");
 
-        if (expose != null)
-        {
-            if (expose.ArgumentList != null)
-            {
-                foreach (var argumentSyntax in expose.ArgumentList.Arguments)
-                {
+        if (expose != null) {
+            if (expose.ArgumentList != null) {
+                foreach (var argumentSyntax in expose.ArgumentList.Arguments) {
                     var expressionString = argumentSyntax.Expression.ToString();
 
-                    if (argumentSyntax.NameEquals?.ToString().Contains("Try") ?? false)
-                    {
+                    if (argumentSyntax.NameEquals?.ToString().Contains("Try") ?? false) {
                         tryValue = expressionString.Contains("true");
                     }
-                    else if (argumentSyntax.Expression is TypeOfExpressionSyntax typeOfExpression)
-                    {
+                    else if (argumentSyntax.Expression is TypeOfExpressionSyntax typeOfExpression) {
                         exposeTypeDef = typeOfExpression.Type.GetTypeDefinition(arg1);
                     }
                 }
             }
 
-            if (exposeTypeDef == null)
-            {
+            if (exposeTypeDef == null) {
                 var exposeType = classDeclarationSyntax.BaseList?.Types.FirstOrDefault();
 
-                if (exposeType != null)
-                {
+                if (exposeType != null) {
                     exposeTypeDef = exposeType.Type.GetTypeDefinition(arg1);
-
                 }
             }
         }
 
-        if (exposeTypeDef is GenericTypeDefinition genericTypeDefinition && 
-            genericTypeDefinition.TypeArguments.First().Namespace == "")
-        {
+        if (exposeTypeDef is GenericTypeDefinition genericTypeDefinition &&
+            genericTypeDefinition.TypeArguments.First().Namespace == "") {
             exposeTypeDef = genericTypeDefinition.MakeOpenType();
         }
 
         ITypeDefinition classTypeDefinition;
 
-        if (classDeclarationSyntax.TypeParameterList is { Parameters.Count: > 0 })
-        {
+        if (classDeclarationSyntax.TypeParameterList is { Parameters.Count: > 0 }) {
             classTypeDefinition =
                 new GenericTypeDefinition(
                     TypeDefinitionEnum.ClassDefinition,
                     classDeclarationSyntax.GetNamespace(),
                     classDeclarationSyntax.Identifier.ToString(),
-                    classDeclarationSyntax.TypeParameterList.Parameters.Select(_ => TypeDefinition.Get("", "")).ToArray()
+                    classDeclarationSyntax.TypeParameterList.Parameters.Select(_ => TypeDefinition.Get("", ""))
+                        .ToArray()
                 );
         }
-        else
-        {
+        else {
             classTypeDefinition = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
                 classDeclarationSyntax.Identifier.ToString());
         }
 
         var lifeStyle = ServiceModel.ServiceLifestyle.Transient;
 
-        if (classDeclarationSyntax.IsAttributed("Singleton"))
-        {
+        if (classDeclarationSyntax.IsAttributed("Singleton")) {
             lifeStyle = ServiceModel.ServiceLifestyle.Singleton;
         }
-        else if (classDeclarationSyntax.IsAttributed("Scoped"))
-        {
+        else if (classDeclarationSyntax.IsAttributed("Scoped")) {
             lifeStyle = ServiceModel.ServiceLifestyle.Scoped;
         }
 
         var getEnvironments = GetEnvironments(classDeclarationSyntax);
 
-        return new ServiceModel(exposeTypeDef ?? classTypeDefinition, classTypeDefinition, lifeStyle, tryValue, getEnvironments);
+        return new ServiceModel(exposeTypeDef ?? classTypeDefinition, classTypeDefinition, lifeStyle, tryValue,
+            getEnvironments);
     }
 
-    private static IReadOnlyList<string> GetEnvironments(ClassDeclarationSyntax classDeclarationSyntax)
-    {
+    private static IReadOnlyList<string> GetEnvironments(ClassDeclarationSyntax classDeclarationSyntax) {
         var environments = new List<string>();
 
-        foreach (var attributeSyntax in classDeclarationSyntax.GetAttributes("ForEnvironment"))
-        {
+        foreach (var attributeSyntax in classDeclarationSyntax.GetAttributes("ForEnvironment")) {
             var environmentStringAttr = attributeSyntax.ArgumentList?.Arguments.FirstOrDefault();
 
-            if (environmentStringAttr != null)
-            {
+            if (environmentStringAttr != null) {
                 var environmentString = environmentStringAttr.ToString().Trim('"');
 
                 environments.Add(environmentString);
@@ -130,15 +113,13 @@ public static class DependencyInjectionIncrementalGenerator
         return environments;
     }
 
-    public class ServiceModel
-    {
+    public class ServiceModel {
         public ServiceModel(
             ITypeDefinition serviceType,
             ITypeDefinition implementationType,
             ServiceLifestyle lifestyle,
             bool @try,
-            IReadOnlyList<string> environments)
-        {
+            IReadOnlyList<string> environments) {
             ServiceType = serviceType;
             ImplementationType = implementationType;
             Lifestyle = lifestyle;
@@ -146,8 +127,7 @@ public static class DependencyInjectionIncrementalGenerator
             Environments = environments;
         }
 
-        public enum ServiceLifestyle
-        {
+        public enum ServiceLifestyle {
             Transient,
             Scoped,
             Singleton
@@ -162,10 +142,8 @@ public static class DependencyInjectionIncrementalGenerator
         public bool Try { get; set; }
         public IReadOnlyList<string> Environments { get; }
 
-        public override bool Equals(object obj)
-        {
-            if (obj is not ServiceModel serviceModel)
-            {
+        public override bool Equals(object obj) {
+            if (obj is not ServiceModel serviceModel) {
                 return false;
             }
 
@@ -174,10 +152,8 @@ public static class DependencyInjectionIncrementalGenerator
                    Lifestyle.Equals(serviceModel.Lifestyle);
         }
 
-        public override int GetHashCode()
-        {
-            unchecked
-            {
+        public override int GetHashCode() {
+            unchecked {
                 var hashCode = ServiceType.GetHashCode();
                 hashCode = (hashCode * 397) ^ ImplementationType.GetHashCode();
                 hashCode = (hashCode * 397) ^ (int)Lifestyle;

@@ -6,10 +6,6 @@ using System.Threading.Tasks;
 
 namespace Hardened.Requests.Abstract.Attributes;
 
-public class RawResponseAttribute : Attribute
-{
-    public RawResponseAttribute(string contentType = "text/plain")
-    {
-
-    }
+public class RawResponseAttribute : Attribute {
+    public RawResponseAttribute(string contentType = "text/plain") { }
 }

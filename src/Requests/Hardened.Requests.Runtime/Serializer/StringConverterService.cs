@@ -4,120 +4,94 @@ using Exception = System.Exception;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
-public class StringConverterService : IStringConverterService
-{
+public class StringConverterService : IStringConverterService {
     private readonly Dictionary<Type, IStringConverter> _converters;
 
-    public StringConverterService(IEnumerable<IStringConverter> converters)
-    {
+    public StringConverterService(IEnumerable<IStringConverter> converters) {
         _converters = new Dictionary<Type, IStringConverter>();
 
-        foreach (var converter in converters)
-        {
+        foreach (var converter in converters) {
             _converters[converter.ConvertType] = converter;
         }
     }
 
 
-    public T ParseRequired<T>(string value, string valueName)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
+    public T ParseRequired<T>(string value, string valueName) {
+        if (string.IsNullOrEmpty(value)) {
             throw new BadRequestException($"{valueName} was missing");
         }
 
-        try
-        {
+        try {
             return InternalParseRequired<T>(value);
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
             throw new BadRequestException($"{valueName} is malformed", e);
         }
     }
 
-    public T ParseWithDefault<T>(string value, string valueName, T defaultValue)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
+    public T ParseWithDefault<T>(string value, string valueName, T defaultValue) {
+        if (string.IsNullOrEmpty(value)) {
             return defaultValue;
         }
 
-        try
-        {
+        try {
             return InternalParseRequired<T>(value);
         }
-        catch
-        {
+        catch {
             return defaultValue;
         }
     }
 
-    public T? ParseOptional<T>(string value, string valueName)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
+    public T? ParseOptional<T>(string value, string valueName) {
+        if (string.IsNullOrEmpty(value)) {
             return default;
         }
 
-        try
-        {
+        try {
             return InternalParseRequired<T>(value);
         }
-        catch
-        {
+        catch {
             return default;
         }
     }
 
-    protected virtual T InternalParseRequired<T>(string value)
-    {
-        if (_converters.TryGetValue(typeof(T), out var stringConverter))
-        {
+    protected virtual T InternalParseRequired<T>(string value) {
+        if (_converters.TryGetValue(typeof(T), out var stringConverter)) {
             return stringConverter.Convert<T>(value);
         }
 
         return StandardConverter<T>(value);
     }
 
-    protected virtual T StandardConverter<T>(string value)
-    {
-        if (typeof(T) == typeof(int))
-        {
+    protected virtual T StandardConverter<T>(string value) {
+        if (typeof(T) == typeof(int)) {
             return (T)(object)int.Parse(value);
         }
 
-        if (typeof(T) == typeof(Guid))
-        {
+        if (typeof(T) == typeof(Guid)) {
             return (T)(object)Guid.Parse(value);
         }
 
-        if (typeof(T) == typeof(long))
-        {
+        if (typeof(T) == typeof(long)) {
             return (T)(object)long.Parse(value);
         }
 
-        if (typeof(T) == typeof(uint))
-        {
+        if (typeof(T) == typeof(uint)) {
             return (T)(object)uint.Parse(value);
         }
 
-        if (typeof(T) == typeof(ulong))
-        {
+        if (typeof(T) == typeof(ulong)) {
             return (T)(object)ulong.Parse(value);
         }
 
-        if (typeof(T) == typeof(DateTime))
-        {
+        if (typeof(T) == typeof(DateTime)) {
             return (T)(object)DateTime.Parse(value);
         }
 
-        if (typeof(T) == typeof(string))
-        {
+        if (typeof(T) == typeof(string)) {
             return (T)(object)value;
         }
 
         throw new Exception($"Type {typeof(T)} cannot be converted from string");
     }
-        
 }

@@ -3,7 +3,4 @@
 namespace Hardened.IntegrationTests.Web.SUT;
 
 [HardenedStartup]
-public partial class WebLibraryEntryPoint
-{
-
-}
+public partial class WebLibraryEntryPoint { }

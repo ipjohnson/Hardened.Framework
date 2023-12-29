@@ -2,12 +2,11 @@
 
 namespace Hardened.Templates.Abstract;
 
-public interface ITemplateExecutionHandler
-{
+public interface ITemplateExecutionHandler {
     Task Execute(
         object requestValue,
         IServiceProvider serviceProvider,
         ITemplateOutputWriter writer,
-        ITemplateExecutionContext? parentContext, 
+        ITemplateExecutionContext? parentContext,
         IExecutionContext? executionContext);
 }

@@ -5,22 +5,18 @@ using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Requests;
 
-public static class HandlerInfoCodeGenerator
-{
-
-    public static void Implement(RequestHandlerModel handlerModel, ClassDefinition classDefinition)
-    {
+public static class HandlerInfoCodeGenerator {
+    public static void Implement(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
         CreateParameterInfoField(handlerModel, classDefinition);
 
         CreateHandlerInfoField(handlerModel, classDefinition);
     }
 
     private static void CreateParameterInfoField(RequestHandlerModel requestHandlerModel,
-        ClassDefinition classDefinition)
-    {
-        if (requestHandlerModel.RequestParameterInformationList.Count > 0)
-        {
-            var parameterInfoField = classDefinition.AddField(KnownTypes.Requests.IExecutionRequestParameter.MakeArray(),
+        ClassDefinition classDefinition) {
+        if (requestHandlerModel.RequestParameterInformationList.Count > 0) {
+            var parameterInfoField = classDefinition.AddField(
+                KnownTypes.Requests.IExecutionRequestParameter.MakeArray(),
                 "_parameterInfo");
 
             parameterInfoField.InitializeValue = "CreateParameterInfo()";
@@ -38,8 +34,7 @@ public static class HandlerInfoCodeGenerator
 
             var array = method.Assign(newArray).ToVar("returnArray");
 
-            for (var i = 0; i < requestHandlerModel.RequestParameterInformationList.Count; i++)
-            {
+            for (var i = 0; i < requestHandlerModel.RequestParameterInformationList.Count; i++) {
                 var parameterInfo = requestHandlerModel.RequestParameterInformationList[i];
 
                 var parameter = New(
@@ -55,25 +50,25 @@ public static class HandlerInfoCodeGenerator
             method.Return(array);
         }
     }
-        
-    private static void CreateHandlerInfoField(RequestHandlerModel handlerModel, ClassDefinition classDefinition)
-    {
-        var handlerInfoField = classDefinition.AddField(KnownTypes.Requests.ExecutionRequestHandlerInfo, "_handlerInfo");
+
+    private static void CreateHandlerInfoField(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
+        var handlerInfoField =
+            classDefinition.AddField(KnownTypes.Requests.ExecutionRequestHandlerInfo, "_handlerInfo");
 
         handlerInfoField.Modifiers =
             ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
 
         var parameterInfoField = "";
 
-        if (handlerModel.RequestParameterInformationList.Count > 0)
-        {
+        if (handlerModel.RequestParameterInformationList.Count > 0) {
             parameterInfoField = ", _parameterInfo";
         }
 
         handlerInfoField.InitializeValue =
             $"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField})";
 
-        var handlerProperty = classDefinition.AddProperty(KnownTypes.Requests.IExecutionRequestHandlerInfo, "HandlerInfo");
+        var handlerProperty =
+            classDefinition.AddProperty(KnownTypes.Requests.IExecutionRequestHandlerInfo, "HandlerInfo");
 
         handlerProperty.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
         handlerProperty.Get.LambdaSyntax = true;

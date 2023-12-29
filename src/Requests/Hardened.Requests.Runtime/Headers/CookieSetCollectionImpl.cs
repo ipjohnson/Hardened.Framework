@@ -2,13 +2,11 @@
 
 namespace Hardened.Requests.Runtime.Headers;
 
-public class CookieSetCollectionImpl : ICookieSetCollection
-{
-    private Dictionary<string, Tuple<string, CookieSetOptions>> _cookies = new();
+public class CookieSetCollectionImpl : ICookieSetCollection {
+    private readonly Dictionary<string, Tuple<string, CookieSetOptions>> _cookies = new();
 
-    public void Append(string cookieName, string cookieValue, CookieSetOptions? options = null)
-    {
-        _cookies[cookieName] = 
+    public void Append(string cookieName, string cookieValue, CookieSetOptions? options = null) {
+        _cookies[cookieName] =
             new Tuple<string, CookieSetOptions>(cookieValue, options ?? CookieSetOptions.Empty);
     }
 

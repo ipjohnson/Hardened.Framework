@@ -4,11 +4,9 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.String;
 
-public class ReplaceHelperTests : BaseHelperTests
-{
+public class ReplaceHelperTests : BaseHelperTests {
     [Fact]
-    public async Task ReplaceWithString()
-    {
+    public async Task ReplaceWithString() {
         var helper = GetHelper();
 
         var result =
@@ -19,8 +17,7 @@ public class ReplaceHelperTests : BaseHelperTests
     }
 
     [Fact]
-    public async Task ReplaceWithInt()
-    {
+    public async Task ReplaceWithInt() {
         var helper = GetHelper();
 
         var result =
@@ -31,8 +28,7 @@ public class ReplaceHelperTests : BaseHelperTests
     }
 
     [Fact]
-    public async Task ReplaceWithNull()
-    {
+    public async Task ReplaceWithNull() {
         var helper = GetHelper();
 
         var result =
@@ -43,8 +39,7 @@ public class ReplaceHelperTests : BaseHelperTests
     }
 
     [Fact]
-    public async Task NoStringChange()
-    {
+    public async Task NoStringChange() {
         var helper = GetHelper();
 
         var result =

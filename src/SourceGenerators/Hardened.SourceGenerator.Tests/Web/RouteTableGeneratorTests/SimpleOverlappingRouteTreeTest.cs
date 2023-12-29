@@ -6,46 +6,40 @@ using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Web.RouteTableGeneratorTests;
 
-public class SimpleOverlappingRouteTreeTest
-{
+public class SimpleOverlappingRouteTreeTest {
     [Fact]
-    public void GenerateRoutingTreeEmpty()
-    {
+    public void GenerateRoutingTreeEmpty() {
         var handlerDefinitions = new List<RequestHandlerModel>();
-        var applicationModel = new EntryPointSelector.Model
-        {
+        var applicationModel = new EntryPointSelector.Model {
             EntryPointType = TypeDefinition.Get("Testing", "App"),
             MethodDefinitions = Array.Empty<HardenedMethodDefinition>(),
             RootEntryPoint = true
         };
 
-        var csharpFile = RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions, CancellationToken.None);
+        var csharpFile =
+            RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions, CancellationToken.None);
     }
 
     [Fact]
-    public void GenerateRoutingTree()
-    {
+    public void GenerateRoutingTree() {
         var handlerDefinitions = CreateHandlerModels();
-        var applicationModel = new EntryPointSelector.Model
-        {
+        var applicationModel = new EntryPointSelector.Model {
             EntryPointType = TypeDefinition.Get("Testing", "App"),
             MethodDefinitions = Array.Empty<HardenedMethodDefinition>(),
             RootEntryPoint = true
         };
 
-        var csharpFile = RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions, CancellationToken.None);
-
+        var csharpFile =
+            RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions, CancellationToken.None);
     }
 
-    private IReadOnlyList<RequestHandlerModel> CreateHandlerModels()
-    {
-        var list = new List<RequestHandlerModel>
-        {
+    private IReadOnlyList<RequestHandlerModel> CreateHandlerModels() {
+        var list = new List<RequestHandlerModel> {
             new(
                 new RequestHandlerNameModel("/Home", "GET"),
-                TypeDefinition.Get("Testing","Controller"),
+                TypeDefinition.Get("Testing", "Controller"),
                 "SomeMethod",
-                TypeDefinition.Get("Testing","Controller_SomeMethod"),
+                TypeDefinition.Get("Testing", "Controller_SomeMethod"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel(),
                 Array.Empty<FilterInformationModel>()

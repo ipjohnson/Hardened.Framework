@@ -6,27 +6,21 @@ using Xunit.Sdk;
 
 namespace Hardened.Shared.Testing.Logging;
 
-public class XunitLoggerProvider : ILoggerProvider
-{
+public class XunitLoggerProvider : ILoggerProvider {
     private readonly IJsonSerializer _jsonSerializer;
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly ConcurrentDictionary<string, XUnitLogger> _loggers = new();
 
-    public XunitLoggerProvider(IJsonSerializer jsonSerializer, ITestOutputHelper testOutputHelper)
-    {
+    public XunitLoggerProvider(IJsonSerializer jsonSerializer, ITestOutputHelper testOutputHelper) {
         _jsonSerializer = jsonSerializer;
         _testOutputHelper = testOutputHelper;
     }
 
-    public void Dispose()
-    {
-        
-    }
+    public void Dispose() { }
 
-    public ILogger CreateLogger(string categoryName)
-    {
+    public ILogger CreateLogger(string categoryName) {
         return _loggers.GetOrAdd(
-            categoryName, 
+            categoryName,
             s => new XUnitLogger(_jsonSerializer, s, _testOutputHelper));
     }
 }

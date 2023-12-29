@@ -6,7 +6,6 @@ namespace Hardened.Web.Runtime.Handlers;
 
 public record RequestHandlerInfo(IExecutionRequestHandler Handler, PathTokenCollection PathTokens);
 
-public interface IWebExecutionRequestHandlerProvider
-{
+public interface IWebExecutionRequestHandlerProvider {
     RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context);
 }

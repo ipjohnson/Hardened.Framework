@@ -4,16 +4,14 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.String;
 
-public class StartsWithHelperTests : BaseTwoStringTests
-{
+public class StartsWithHelperTests : BaseTwoStringTests {
     [Theory]
     [InlineData("Hello", "He", true)]
     [InlineData("Hello", "llo", false)]
     [InlineData("Hello", "", false)]
     [InlineData("", "llo", false)]
     [InlineData("", "", false)]
-    public async Task StartsWithLogicTests(string one, string two, bool result)
-    {
+    public async Task StartsWithLogicTests(string one, string two, bool result) {
         await Evaluate(one, two, result);
     }
 

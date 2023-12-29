@@ -3,10 +3,8 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers.String;
 
-public abstract class BaseSingleStringTests : BaseHelperTests
-{
-    protected async Task Evaluate(string input, string expected)
-    {
+public abstract class BaseSingleStringTests : BaseHelperTests {
+    protected async Task Evaluate(string input, string expected) {
         var defaultHelper = new DefaultHelpers();
 
         var templateHelperFunc = defaultHelper.GetTemplateHelperFactory(Token);

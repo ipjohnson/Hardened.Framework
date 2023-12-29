@@ -7,23 +7,20 @@ using Xunit;
 
 namespace Hardened.Templates.Runtime.Tests.Helpers;
 
-public abstract class BaseHelperTests
-{
+public abstract class BaseHelperTests {
     protected abstract Type TemplateHelperType { get; }
 
     protected abstract string Token { get; }
 
     [Fact]
-    public void FindDefaultHelper()
-    {
+    public void FindDefaultHelper() {
         var helper = GetHelper();
 
         Assert.Equal(TemplateHelperType, helper.GetType());
     }
 
     [Fact]
-    public void DefaultHelperIsSingleton()
-    {
+    public void DefaultHelperIsSingleton() {
         var defaultHelper = new DefaultHelpers();
 
         var helperFactory = defaultHelper.GetTemplateHelperFactory(Token);
@@ -39,9 +36,7 @@ public abstract class BaseHelperTests
         Assert.Same(helper, helperFactory2(null));
     }
 
-    protected ITemplateHelper GetHelper()
-    {
-
+    protected ITemplateHelper GetHelper() {
         var defaultHelper = new DefaultHelpers();
 
         var helperFactory = defaultHelper.GetTemplateHelperFactory(Token);
@@ -56,8 +51,7 @@ public abstract class BaseHelperTests
     }
 
 
-    protected ITemplateExecutionContext GetExecutionContext(object? data = null)
-    {
+    protected ITemplateExecutionContext GetExecutionContext(object? data = null) {
         var htmlEscapeStringService = new HtmlEscapeStringService();
 
         var stringBuilderPool = new StringBuilderPool();
@@ -67,7 +61,7 @@ public abstract class BaseHelperTests
             new DataFormattingService(Array.Empty<IDataFormatProvider>()),
             new TemplateHelperService(Array.Empty<ITemplateHelperProvider>()),
             new BooleanLogicService(),
-            new StringEscapeServiceProvider(new []{ htmlEscapeStringService })
+            new StringEscapeServiceProvider(new[] { htmlEscapeStringService })
         );
 
         var builder = stringBuilderPool.Get().Item;

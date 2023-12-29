@@ -2,8 +2,7 @@
 
 namespace Hardened.Shared.Runtime.Configuration;
 
-public interface IConfigurationValueProvider
-{
+public interface IConfigurationValueProvider {
     Type InterfaceType { get; }
 
     Type ImplementationType { get; }

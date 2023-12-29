@@ -5,30 +5,27 @@ using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Requests;
 
-public static class BindRequestParametersMethodGenerator
-{
-    public static void Implement(RequestHandlerModel requestHandlerModel, ClassDefinition classDefinition)
-    {
+public static class BindRequestParametersMethodGenerator {
+    public static void Implement(RequestHandlerModel requestHandlerModel, ClassDefinition classDefinition) {
         var invokeMethod = classDefinition.AddMethod("BindRequestParameters");
 
         invokeMethod.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
 
         invokeMethod.Modifiers |= ComponentModifier.Async;
-        invokeMethod.SetReturnType(new GenericTypeDefinition(typeof(Task<>), new[] { KnownTypes.Requests.IExecutionRequestParameters }));
+        invokeMethod.SetReturnType(new GenericTypeDefinition(typeof(Task<>),
+            new[] { KnownTypes.Requests.IExecutionRequestParameters }));
 
         var context = invokeMethod.AddParameter(KnownTypes.Requests.IExecutionContext, "context");
 
         ProcessParameters(requestHandlerModel, classDefinition, invokeMethod, context);
     }
 
-    private static void ProcessParameters(RequestHandlerModel requestHandlerModel, ClassDefinition classDefinition, MethodDefinition invokeMethod, ParameterDefinition context)
-    {
+    private static void ProcessParameters(RequestHandlerModel requestHandlerModel, ClassDefinition classDefinition,
+        MethodDefinition invokeMethod, ParameterDefinition context) {
         var parametersVar = invokeMethod.Assign(New(InvokeClassGenerator.GenericParameters)).ToVar("parameters");
 
-        foreach (var parameterInformation in requestHandlerModel.RequestParameterInformationList)
-        {
-            switch (parameterInformation.BindingType)
-            {
+        foreach (var parameterInformation in requestHandlerModel.RequestParameterInformationList) {
+            switch (parameterInformation.BindingType) {
                 case ParameterBindType.Body:
                     BindBodyParameter(parameterInformation, invokeMethod, context, parametersVar);
                     break;
@@ -61,22 +58,20 @@ public static class BindRequestParametersMethodGenerator
         invokeMethod.Return(parametersVar);
     }
 
-    private static void BindServiceProviderType(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
-    {
+    private static void BindServiceProviderType(RequestParameterInformation parameterInformation,
+        MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar) {
         invokeMethod.Assign(context.Property("RequestServices")).To(parametersVar.Property(parameterInformation.Name));
     }
 
-    private static void BindFromServiceProviderType(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
-    {
+    private static void BindFromServiceProviderType(RequestParameterInformation parameterInformation,
+        MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar) {
         IOutputComponent invokeStatement;
 
-        if (parameterInformation.Required)
-        {
+        if (parameterInformation.Required) {
             invokeStatement = context.Property("RequestServices")
                 .InvokeGeneric("GetRequiredService", new[] { parameterInformation.ParameterType });
         }
-        else
-        {
+        else {
             invokeStatement = context.Property("RequestServices")
                 .InvokeGeneric("GetService", new[] { parameterInformation.ParameterType });
         }
@@ -86,35 +81,31 @@ public static class BindRequestParametersMethodGenerator
         invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
     }
 
-    private static void BindExecutionSpecialType(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
-    {
+    private static void BindExecutionSpecialType(RequestParameterInformation parameterInformation,
+        MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar) {
         IOutputComponent invokeStatement = context;
 
-        if (parameterInformation.BindingType == ParameterBindType.ExecutionRequest)
-        {
+        if (parameterInformation.BindingType == ParameterBindType.ExecutionRequest) {
             invokeStatement = context.Property("Request");
         }
-        else if (parameterInformation.BindingType != ParameterBindType.ExecutionResponse)
-        {
+        else if (parameterInformation.BindingType != ParameterBindType.ExecutionResponse) {
             invokeStatement = context.Property("Response");
         }
 
         invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
     }
 
-    private static void BindRequestValueToParameter(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
-    {
+    private static void BindRequestValueToParameter(RequestParameterInformation parameterInformation,
+        MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar) {
         var bindingName = parameterInformation.BindingName;
 
-        if (string.IsNullOrEmpty(bindingName))
-        {
+        if (string.IsNullOrEmpty(bindingName)) {
             bindingName = parameterInformation.Name;
         }
 
-        var instance =  "QueryString";
+        var instance = "QueryString";
 
-        switch (parameterInformation.BindingType)
-        {
+        switch (parameterInformation.BindingType) {
             case ParameterBindType.Path:
                 instance = "PathTokens";
                 break;
@@ -129,20 +120,17 @@ public static class BindRequestParametersMethodGenerator
 
         IOutputComponent? invokeStatement;
 
-        if (!string.IsNullOrEmpty(parameterInformation.DefaultValue))
-        {
+        if (!string.IsNullOrEmpty(parameterInformation.DefaultValue)) {
             invokeStatement =
                 stringInvokeStatement.InvokeGeneric("ParseWithDefault", new[] { parameterInformation.ParameterType },
                     valueStatement, QuoteString(bindingName), parameterInformation.DefaultValue!);
         }
-        else if (parameterInformation.Required)
-        {
+        else if (parameterInformation.Required) {
             invokeStatement =
                 stringInvokeStatement.InvokeGeneric("ParseRequired", new[] { parameterInformation.ParameterType },
                     valueStatement, QuoteString(bindingName));
         }
-        else
-        {
+        else {
             invokeStatement =
                 stringInvokeStatement.InvokeGeneric("ParseOptional", new[] { parameterInformation.ParameterType },
                     valueStatement, QuoteString(bindingName));
@@ -151,8 +139,8 @@ public static class BindRequestParametersMethodGenerator
         invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
     }
 
-    private static void BindBodyParameter(RequestParameterInformation parameterInformation, MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar)
-    {
+    private static void BindBodyParameter(RequestParameterInformation parameterInformation,
+        MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar) {
         var getRequiredService = context.Property("KnownServices").Property("ContextSerializationService");
 
         getRequiredService.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
@@ -163,6 +151,7 @@ public static class BindRequestParametersMethodGenerator
         var deserializeStatement = Await(contentSerializationService.InvokeGeneric("DeserializeRequestBody",
             new[] { parameterInformation.ParameterType }, context));
 
-        invokeMethod.Assign(Bang(Parenthesis(deserializeStatement))).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(Bang(Parenthesis(deserializeStatement)))
+            .To(parametersVar.Property(parameterInformation.Name));
     }
 }

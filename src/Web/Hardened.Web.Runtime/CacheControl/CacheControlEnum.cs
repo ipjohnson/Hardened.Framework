@@ -1,8 +1,7 @@
 ﻿namespace Hardened.Web.Runtime.CacheControl;
 
 [Flags]
-public enum CacheControlEnum
-{
+public enum CacheControlEnum {
     MaxAge = 1,
 
     NoCache = 2,

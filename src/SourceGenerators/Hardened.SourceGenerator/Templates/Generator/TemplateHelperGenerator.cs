@@ -7,14 +7,12 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Templates.Generator;
 
-public static class TemplateHelperGenerator
-{
+public static class TemplateHelperGenerator {
     public static void Generate(
         SourceProductionContext context,
-        (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel> helperModels) helperData)
-    {
-        if (!helperData.helperModels.Any())
-        {
+        (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel>
+            helperModels) helperData) {
+        if (!helperData.helperModels.Any()) {
             return;
         }
 
@@ -33,13 +31,12 @@ public static class TemplateHelperGenerator
         var outputContext = new OutputContext();
 
         helperFile.WriteOutput(outputContext);
-            
+
         context.AddSource(fileName, outputContext.Output());
     }
 
     private static void SetupDependencyInjection(ITypeDefinition applicationModel, ClassDefinition appClass,
-        ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel> helperModels)
-    {
+        ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel> helperModels) {
         var templateField = appClass.AddField(typeof(int), "_templateHelperDependencies");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
@@ -55,18 +52,15 @@ public static class TemplateHelperGenerator
         var entryPoint = diMethod.AddParameter(applicationModel, "entryPoint");
 
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-            new[]
-            {
+            new[] {
                 KnownTypes.Templates.ITemplateHelperProvider,
-                TypeDefinition.Get(applicationModel.Namespace,applicationModel.Name + ".TemplateHelperProvider" )
+                TypeDefinition.Get(applicationModel.Namespace, applicationModel.Name + ".TemplateHelperProvider")
             }));
 
-        foreach (var helperModel in helperModels)
-        {
+        foreach (var helperModel in helperModels) {
             string methodName;
 
-            switch (helperModel.Lifestyle)
-            {
+            switch (helperModel.Lifestyle) {
                 case DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle.Singleton:
                     methodName = "AddSingleton";
                     break;
@@ -79,16 +73,14 @@ public static class TemplateHelperGenerator
             }
 
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric(methodName,
-                new[]
-                {
-                    helperModel.Helper
-                }));
+                new[] { helperModel.Helper }));
         }
     }
 
-    private static void CreateHelperProviderClass((EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel> helperModels) helperData,
-        ClassDefinition appClass)
-    {
+    private static void CreateHelperProviderClass(
+        (EntryPointSelector.Model applicationModel, ImmutableArray<TemplateIncrementalGenerator.TemplateHelperModel>
+            helperModels) helperData,
+        ClassDefinition appClass) {
         var templateHelperProvider = appClass.AddClass("TemplateHelperProvider");
 
         templateHelperProvider.AddBaseType(KnownTypes.Templates.ITemplateHelperProvider);
@@ -100,8 +92,7 @@ public static class TemplateHelperGenerator
 
         var switchBlock = providerMethod.Switch(mustacheToken);
 
-        foreach (var helperDataHelperModel in helperData.helperModels)
-        {
+        foreach (var helperDataHelperModel in helperData.helperModels) {
             var helperField = templateHelperProvider.AddField(KnownTypes.Templates.TemplateHelperFactory,
                 "_" + helperDataHelperModel.Name + "Field");
 

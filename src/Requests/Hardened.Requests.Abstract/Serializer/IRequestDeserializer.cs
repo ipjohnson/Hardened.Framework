@@ -2,8 +2,7 @@
 
 namespace Hardened.Requests.Abstract.Serializer;
 
-public interface IRequestDeserializer
-{
+public interface IRequestDeserializer {
     bool IsDefaultSerializer { get; }
 
     bool CanProcessContext(IExecutionContext context);

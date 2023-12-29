@@ -2,17 +2,13 @@
 
 namespace Hardened.Templates.Runtime.Helpers.String;
 
-public class ReplaceHelper : ITemplateHelper
-{
-    public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments)
-    {
-        if (arguments.Length == 0 || arguments[0] == null)
-        {
+public class ReplaceHelper : ITemplateHelper {
+    public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments) {
+        if (arguments.Length == 0 || arguments[0] == null) {
             return new ValueTask<object>("");
         }
 
-        if (arguments.Length < 2 || arguments[1] == null)
-        {
+        if (arguments.Length < 2 || arguments[1] == null) {
             return new ValueTask<object>(arguments[0]?.ToString() ?? "");
         }
 
@@ -20,8 +16,7 @@ public class ReplaceHelper : ITemplateHelper
         var matchString = arguments[1].ToString() ?? "";
         var replaceString = "";
 
-        if (arguments.Length > 2 && arguments[2] != null)
-        {
+        if (arguments.Length > 2 && arguments[2] != null) {
             replaceString = arguments[2].ToString();
         }
 

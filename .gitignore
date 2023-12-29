@@ -179,3 +179,4 @@ $RECYCLE.BIN/
 /.vs/config/applicationhost.config
 /.vs
 /.idea/.idea.Hardened.Framework/.idea
+src/.idea/

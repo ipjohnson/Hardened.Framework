@@ -8,19 +8,17 @@ using System.Threading;
 
 namespace Hardened.SourceGenerator.Requests;
 
-public static class InvokeClassGenerator
-{
+public static class InvokeClassGenerator {
     public static readonly ITypeDefinition GenericParameters = TypeDefinition.Get("", "Parameters");
 
     public static void GenerateInvokeClass(RequestHandlerModel handlerModel, IConstructContainer constructContainer,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         var invokeClass = constructContainer.AddClass(handlerModel.InvokeHandlerType.Name);
 
         invokeClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
 
         AssignBaseTypes(handlerModel, invokeClass);
-            
+
         cancellationToken.ThrowIfCancellationRequested();
         HandlerInfoCodeGenerator.Implement(handlerModel, invokeClass);
 
@@ -28,8 +26,7 @@ public static class InvokeClassGenerator
 
         InvokeMethodCodeGenerator.Implement(handlerModel, invokeClass);
 
-        if (handlerModel.RequestParameterInformationList.Count > 0)
-        {
+        if (handlerModel.RequestParameterInformationList.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
 
             BindRequestParametersMethodGenerator.Implement(handlerModel, invokeClass);
@@ -37,8 +34,7 @@ public static class InvokeClassGenerator
         }
     }
 
-    private static void AssignBaseTypes(RequestHandlerModel handlerModel, ClassDefinition invokeClass)
-    {
+    private static void AssignBaseTypes(RequestHandlerModel handlerModel, ClassDefinition invokeClass) {
         invokeClass.AddBaseType(
             new GenericTypeDefinition(
                 TypeDefinitionEnum.ClassDefinition,
@@ -47,58 +43,49 @@ public static class InvokeClassGenerator
                 new[] { handlerModel.ControllerType }));
     }
 
-    private static void CreateConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition)
-    {
+    private static void CreateConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
         var templateName = handlerModel.ResponseInformation.TemplateName;
 
         IOutputComponent defaultOutput = Null();
 
-        if (!string.IsNullOrEmpty(templateName))
-        {
+        if (!string.IsNullOrEmpty(templateName)) {
             defaultOutput = Invoke(KnownTypes.Templates.DefaultOutputFuncHelper, "GetTemplateOut",
                 "serviceProvider", QuoteString(templateName!));
         }
-        else if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.RawResponseContentType))
-        {
+        else if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.RawResponseContentType)) {
             var contentType = handlerModel.ResponseInformation.RawResponseContentType!;
 
-            if (!contentType.StartsWith("\""))
-            {
+            if (!contentType.StartsWith("\"")) {
                 contentType = '"' + contentType + '"';
             }
-            
+
             defaultOutput = Invoke(
                 KnownTypes.Requests.RawOutputHelper,
                 "OutputFunc",
                 contentType);
         }
 
-        if (handlerModel.RequestParameterInformationList.Count == 0)
-        {
-            if (handlerModel.ResponseInformation.IsAsync)
-            {
+        if (handlerModel.RequestParameterInformationList.Count == 0) {
+            if (handlerModel.ResponseInformation.IsAsync) {
                 CreateAsyncNoParameterConstructor(handlerModel, classDefinition, defaultOutput);
             }
-            else
-            {
+            else {
                 CreateSyncNoParameterConstructor(handlerModel, classDefinition, defaultOutput);
             }
         }
-        else
-        {
-            if (handlerModel.ResponseInformation.IsAsync)
-            {
+        else {
+            if (handlerModel.ResponseInformation.IsAsync) {
                 CreateAsyncParametersConstructor(handlerModel, classDefinition, defaultOutput);
             }
-            else
-            {
+            else {
                 CreateSyncParametersConstructor(handlerModel, classDefinition, defaultOutput);
             }
         }
     }
-    private static void CreateAsyncNoParameterConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition,
-        IOutputComponent defaultOutput)
-    {
+
+    private static void CreateAsyncNoParameterConstructor(RequestHandlerModel handlerModel,
+        ClassDefinition classDefinition,
+        IOutputComponent defaultOutput) {
         var filterMethod = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,
             "AsyncStandardFilterEmptyParameters",
@@ -113,8 +100,8 @@ public static class InvokeClassGenerator
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
     }
 
-    private static void CreateAsyncParametersConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition, IOutputComponent defaultOutput)
-    {
+    private static void CreateAsyncParametersConstructor(RequestHandlerModel handlerModel,
+        ClassDefinition classDefinition, IOutputComponent defaultOutput) {
         var filterMethod = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,
             "AsyncStandardFilterWithParameters",
@@ -129,10 +116,10 @@ public static class InvokeClassGenerator
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
     }
-        
-    private static void CreateSyncNoParameterConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition,
-        IOutputComponent defaultOutput)
-    {
+
+    private static void CreateSyncNoParameterConstructor(RequestHandlerModel handlerModel,
+        ClassDefinition classDefinition,
+        IOutputComponent defaultOutput) {
         var filterMethod = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,
             "StandardFilterEmptyParameters",
@@ -147,8 +134,8 @@ public static class InvokeClassGenerator
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
     }
 
-    private static void CreateSyncParametersConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition, IOutputComponent defaultOutput)
-    {
+    private static void CreateSyncParametersConstructor(RequestHandlerModel handlerModel,
+        ClassDefinition classDefinition, IOutputComponent defaultOutput) {
         var filterMethod = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,
             "StandardFilterWithParameters",
@@ -163,17 +150,15 @@ public static class InvokeClassGenerator
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
     }
-        
-    private static IOutputComponent GenerateFilterEnumerable(RequestHandlerModel handlerModel, ClassDefinition classDefinition)
-    {
+
+    private static IOutputComponent GenerateFilterEnumerable(RequestHandlerModel handlerModel,
+        ClassDefinition classDefinition) {
         var arguments = new List<object>();
 
-        foreach (var filterInformation in handlerModel.Filters)
-        {
+        foreach (var filterInformation in handlerModel.Filters) {
             var newValue = New((ITypeDefinition)filterInformation.TypeDefinition, filterInformation.Arguments);
 
-            if (!string.IsNullOrEmpty(filterInformation.PropertyAssignment))
-            {
+            if (!string.IsNullOrEmpty(filterInformation.PropertyAssignment)) {
                 newValue.AddInitValue(filterInformation.PropertyAssignment);
             }
 

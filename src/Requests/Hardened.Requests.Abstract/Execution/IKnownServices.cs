@@ -2,8 +2,7 @@
 
 namespace Hardened.Requests.Abstract.Execution;
 
-public interface IKnownServices
-{
+public interface IKnownServices {
     IContextSerializationService ContextSerializationService { get; }
 
     IStringConverterService StringConverterService { get; }

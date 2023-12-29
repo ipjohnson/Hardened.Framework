@@ -3,10 +3,9 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Configuration;
 
-public static class ConfigurationPropertyImplementationGenerator
-{
-    public static void Generate(SourceProductionContext arg1, ConfigurationIncrementalGenerator.ConfigurationFileModel arg2)
-    {
+public static class ConfigurationPropertyImplementationGenerator {
+    public static void Generate(SourceProductionContext arg1,
+        ConfigurationIncrementalGenerator.ConfigurationFileModel arg2) {
         var csharpFile = new CSharpFileDefinition(arg2.ModelType.Namespace);
 
         var interfaceDefinition = new InterfaceDefinition(arg2.InterfaceType.Name);
@@ -28,12 +27,10 @@ public static class ConfigurationPropertyImplementationGenerator
     }
 
     private static void ProcessModelDefinition(
-        ConfigurationIncrementalGenerator.ConfigurationFileModel configurationFileModel, 
+        ConfigurationIncrementalGenerator.ConfigurationFileModel configurationFileModel,
         ClassDefinition modelDefinition,
-        InterfaceDefinition interfaceDefinition)
-    {
-        foreach (var fieldModel in configurationFileModel.FieldModels)
-        {
+        InterfaceDefinition interfaceDefinition) {
+        foreach (var fieldModel in configurationFileModel.FieldModels) {
             var property = modelDefinition.AddProperty(fieldModel.FieldType, fieldModel.PropertyName);
 
             property.Get.LambdaSyntax = true;

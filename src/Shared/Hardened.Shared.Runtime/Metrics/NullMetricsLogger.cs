@@ -1,29 +1,15 @@
 ﻿namespace Hardened.Shared.Runtime.Metrics;
 
-public class NullMetricsLogger : IMetricLogger
-{
-    public void Dispose()
-    {
-            
-    }
+public class NullMetricsLogger : IMetricLogger {
+    public void Dispose() { }
 
-    public Task Flush()
-    {
+    public Task Flush() {
         return Task.CompletedTask;
     }
 
-    public void Record(IMetricDefinition metric, double value)
-    {
+    public void Record(IMetricDefinition metric, double value) { }
 
-    }
+    public void Tag(string tagName, object tagValue) { }
 
-    public void Tag(string tagName, object tagValue)
-    {
-
-    }
-
-    public void Data(string dataName, object dataValue)
-    {
-
-    }
+    public void Data(string dataName, object dataValue) { }
 }

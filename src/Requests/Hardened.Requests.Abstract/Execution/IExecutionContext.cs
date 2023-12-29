@@ -8,8 +8,7 @@ public delegate Task DefaultOutputFunc(IExecutionContext executionContext);
 /// <summary>
 /// Object that holds all pertinent information for executing a request
 /// </summary>
-public interface IExecutionContext : ICloneable
-{
+public interface IExecutionContext : ICloneable {
     /// <summary>
     /// Root service provider for the application
     /// </summary>

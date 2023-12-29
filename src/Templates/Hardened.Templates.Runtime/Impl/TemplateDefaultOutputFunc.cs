@@ -6,53 +6,46 @@ using System.Net.Http.Headers;
 
 namespace Hardened.Templates.Runtime.Impl;
 
-public class TemplateDefaultOutputFunc
-{
+public class TemplateDefaultOutputFunc {
     private readonly IStringBuilderPool _stringBuilderPool;
     private readonly TemplateExecutionFunction _templateExecutionFunction;
     private readonly TemplateExecutionFunction? _layoutFunction;
 
     public TemplateDefaultOutputFunc(IStringBuilderPool stringBuilderPool,
-        TemplateExecutionFunction templateExecutionFunction, 
-        TemplateExecutionFunction? layoutFunction)
-    {
+        TemplateExecutionFunction templateExecutionFunction,
+        TemplateExecutionFunction? layoutFunction) {
         _stringBuilderPool = stringBuilderPool;
         _templateExecutionFunction = templateExecutionFunction;
         _layoutFunction = layoutFunction;
     }
 
-    public async Task Execute(IExecutionContext context)
-    {
+    public async Task Execute(IExecutionContext context) {
         using var stringBuilderHolder = _stringBuilderPool.Get();
 
         var stringBuilderWriter = new StringBuilderTemplateOutputWriter(
-            stringBuilderHolder.Item, 
+            stringBuilderHolder.Item,
             context.Response.Body);
 
         // todo: update to get content type from template extension 
         context.Response.ContentType = "text/html";
 
-        if (context.Response.ResponseValue != null)
-        {
-            if (_layoutFunction == null || 
-                (context.Request.Headers.TryGet("x-render-partial", out var renderStringValues)  
-                 && renderStringValues.Contains("true"))) 
-            {
+        if (context.Response.ResponseValue != null) {
+            if (_layoutFunction == null ||
+                (context.Request.Headers.TryGet("x-render-partial", out var renderStringValues)
+                 && renderStringValues.Contains("true"))) {
                 await _templateExecutionFunction(context.Response.ResponseValue, context.RequestServices,
                     stringBuilderWriter, null, context);
             }
-            else
-            {
+            else {
                 await _layoutFunction(
-                    new LayoutModel(context.Response.ResponseValue, _templateExecutionFunction), 
+                    new LayoutModel(context.Response.ResponseValue, _templateExecutionFunction),
                     context.RequestServices,
-                    stringBuilderWriter, 
+                    stringBuilderWriter,
                     null,
                     context);
             }
-                
+
             await stringBuilderWriter.FlushWriter(context);
         }
     }
-
 }

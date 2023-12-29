@@ -2,8 +2,7 @@
 
 namespace Hardened.Templates.Abstract;
 
-public interface ITemplateExecutionContext
-{
+public interface ITemplateExecutionContext {
     ITemplateOutputWriter Writer { get; }
 
     ITemplateExecutionService ExecutionService { get; }

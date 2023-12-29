@@ -3,10 +3,9 @@ using Hardened.Requests.Abstract.Serializer;
 
 namespace Hardened.Requests.Runtime.Execution;
 
-public class KnownServices : IKnownServices
-{
-    public KnownServices(IContextSerializationService contextSerializationService, IStringConverterService stringConverterService)
-    {
+public class KnownServices : IKnownServices {
+    public KnownServices(IContextSerializationService contextSerializationService,
+        IStringConverterService stringConverterService) {
         ContextSerializationService = contextSerializationService;
         StringConverterService = stringConverterService;
     }

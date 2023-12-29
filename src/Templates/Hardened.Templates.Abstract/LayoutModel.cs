@@ -1,9 +1,7 @@
 ﻿namespace Hardened.Templates.Abstract;
 
-public class LayoutModel
-{
-    public LayoutModel(object model, TemplateExecutionFunction templateFunc)
-    {
+public class LayoutModel {
+    public LayoutModel(object model, TemplateExecutionFunction templateFunc) {
         Model = model;
         TemplateFunc = templateFunc;
     }
@@ -11,5 +9,4 @@ public class LayoutModel
     public object Model { get; }
 
     public TemplateExecutionFunction TemplateFunc { get; }
-
 }

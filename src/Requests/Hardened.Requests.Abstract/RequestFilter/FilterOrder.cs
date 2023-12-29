@@ -1,7 +1,6 @@
 ﻿namespace Hardened.Requests.Abstract.RequestFilter;
 
-public static class FilterOrder
-{
+public static class FilterOrder {
     public const int BeforeSerialization = Serialization - 1;
 
     public const int Serialization = 5;
@@ -10,5 +9,5 @@ public static class FilterOrder
 
     public const int EndPointHandlers = DefaultValue * 2;
 
-    public  const int EndPointInvoke = DefaultValue * 2;
+    public const int EndPointInvoke = DefaultValue * 2;
 }
