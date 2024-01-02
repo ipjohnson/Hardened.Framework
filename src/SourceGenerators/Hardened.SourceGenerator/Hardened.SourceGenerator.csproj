@@ -32,7 +32,7 @@
 
     <ItemGroup>
         <None Remove="Package\HardenedSourceGenerator*" />
-        <Content Include="Package\HardenedSourceGenerator.*">
+        <Content Include="Package\Hardened.SourceGenerator.*">
             <Pack>true</Pack>
             <PackagePath>build\</PackagePath>
             <PackageCopyToOutput>true</PackageCopyToOutput>
