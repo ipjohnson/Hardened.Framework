@@ -30,7 +30,12 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Package\Hardened.*" />
+        <None Remove="Package\HardenedSourceGenerator*" />
+        <Content Include="Package\HardenedSourceGenerator.*">
+            <Pack>true</Pack>
+            <PackagePath>build\</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
         <Content Include="**\*.cs" Exclude="**\obj\**;**\bin\**" Visible="true">
             <Pack>true</Pack>
             <PackagePath>src\Hardened.SourceGenerator\</PackagePath>
