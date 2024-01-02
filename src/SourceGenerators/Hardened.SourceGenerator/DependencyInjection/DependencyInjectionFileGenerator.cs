@@ -216,17 +216,6 @@ public class DependencyInjectionFileGenerator {
 
                 block = methodBody.If(matches);
             }
-
-            File.AppendAllText(@"C:\temp\generator.txt", $"serviceType: {serviceModel.ServiceType.Name} {serviceModel.ServiceType.TypeArguments.Count}\n");
-            
-            if (serviceModel.ServiceType.TypeArguments.Count > 0) {
-                foreach (var definition in serviceModel.ServiceType.TypeArguments) {
-
-
-                    File.AppendAllText(@"C:\temp\generator.txt",
-                        $"close: {definition.Name} {definition.GetType().Name} {TypeDefinition.Get(typeof(int))}\n");
-                }
-            }
             
             block.AddIndentedStatement(serviceCollectionDefinition.Invoke(registerMethod,
                     TypeOf(serviceModel.ServiceType), TypeOf(serviceModel.ImplementationType)));

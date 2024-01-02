@@ -67,7 +67,7 @@ public static class TypeSyntaxExtensions {
     }
 
     private static ITypeDefinition? GetTypeDefinitionFromNamedSymbol(INamedTypeSymbol namedTypeSymbol) {
-        File.AppendAllText(@"C:\temp\generator.txt", $"namedTypeSymbol: {namedTypeSymbol} \n");
+        
         if (namedTypeSymbol.IsGenericType) {
             if (namedTypeSymbol.Name == "Nullable") {
                 var baseType = namedTypeSymbol.TypeArguments.First();
@@ -76,13 +76,11 @@ public static class TypeSyntaxExtensions {
 
             var closingTypeSymbols = namedTypeSymbol.TypeArguments;
             
-            File.AppendAllText(@"C:\temp\generator.txt", $"closing: {closingTypeSymbols.Length} \n");
             var closingTypes = new List<ITypeDefinition>();
 
             foreach (var typeSymbol in closingTypeSymbols) {
                 var finalType = GetTypeDefinitionFromType(typeSymbol);
                 
-                File.AppendAllText(@"C:\temp\generator.txt", $"with: {finalType.Name} {typeSymbol.Name} {typeSymbol.SpecialType} \n");
                 closingTypes.Add(finalType);
             }
 
@@ -92,17 +90,6 @@ public static class TypeSyntaxExtensions {
                 GetTypeName(namedTypeSymbol),
                 closingTypes
             );
-
-            
-            File.AppendAllText(@"C:\temp\generator.txt", $"generic closing: {genericType.Name} {genericType.TypeArguments.Count}\n");
-
-            if (genericType.TypeArguments.Count > 0) {
-                foreach (var typeDefinition in genericType.TypeArguments) {
-
-                    File.AppendAllText(@"C:\temp\generator.txt", $"closing: {typeDefinition.Name}\n");
-                    
-                }
-            }
             
             if (namedTypeSymbol.NullableAnnotation == NullableAnnotation.Annotated) {
                 return genericType.MakeNullable();
