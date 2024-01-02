@@ -6,4 +6,16 @@ public static class Extensions {
             action(value);
         }
     }
+
+    public static TValue GetOrDefault<TKey, TValue>(
+        this IDictionary<TKey, TValue> dictionary,
+        TKey key,
+        TValue defaultValue = default(TValue)) {
+
+        if (dictionary.TryGetValue(key, out var value)) {
+            return value;
+        }
+        
+        return defaultValue;
+    }
 }

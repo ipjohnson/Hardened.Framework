@@ -1,6 +1,7 @@
 ﻿using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Abstract.Execution;
 
@@ -17,7 +18,7 @@ public interface IExecutionRequest : ICloneable {
 
     Stream Body { get; set; }
 
-    IHeaderCollection Headers { get; }
+    IDictionary<string, StringValues> Headers { get; }
 
     IQueryStringCollection QueryString { get; }
 

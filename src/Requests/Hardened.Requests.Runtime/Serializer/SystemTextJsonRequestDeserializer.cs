@@ -30,7 +30,7 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
     }
 
     public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) {
-        if (context.Request.Headers.TryGet("Content-Encoding", out var contentEncoding)) {
+        if (context.Request.Headers.TryGetValue("Content-Encoding", out var contentEncoding)) {
             return await DeserializeEncodedContent<T>(context, contentEncoding);
         }
 

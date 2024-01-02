@@ -1,4 +1,5 @@
 ﻿using Hardened.Requests.Abstract.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Abstract.Execution;
 
@@ -15,7 +16,7 @@ public interface IExecutionResponse : ICloneable {
 
     Stream Body { get; set; }
 
-    IHeaderCollection Headers { get; }
+    IDictionary<string, StringValues> Headers { get; }
 
     Exception? ExceptionValue { get; set; }
 

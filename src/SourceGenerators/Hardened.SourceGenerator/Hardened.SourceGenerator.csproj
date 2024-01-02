@@ -8,11 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Remove="Requests\BaseRequestModelGenerator.cs~RF20183f.TMP"/>
-        <None Remove="Web\WebEndPointModelGenerator.cs~RF3e9741.TMP"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0"/>
         <PackageReference Include="System.Memory" Version="4.5.4"/>
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
@@ -34,7 +29,12 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Templates\Parser\"/>
+        <None Remove="Package\Hardened.*" />
+        <Content Include="**\*.cs" Exclude="**\obj\**;**\bin\**" Visible="true">
+            <Pack>true</Pack>
+            <PackagePath>src\Hardened.SourceGenerator\</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
     </ItemGroup>
-
+    
 </Project>

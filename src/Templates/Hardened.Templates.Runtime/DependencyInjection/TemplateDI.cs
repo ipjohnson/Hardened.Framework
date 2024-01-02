@@ -13,6 +13,8 @@ public static class TemplateDI {
     public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
         if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
             !ReferenceEquals(lastServiceCollection, serviceCollection)) {
+            _lastServiceCollection.SetTarget(serviceCollection);
+
             serviceCollection.TryAddSingleton<IBooleanLogicService, BooleanLogicService>();
             serviceCollection.TryAddSingleton<IDataFormattingService, DataFormattingService>();
             serviceCollection.TryAddSingleton<ITemplateExecutionService, TemplateExecutionService>();

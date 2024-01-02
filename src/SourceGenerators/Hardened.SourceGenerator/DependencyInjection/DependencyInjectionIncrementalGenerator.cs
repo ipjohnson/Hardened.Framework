@@ -60,11 +60,6 @@ public static class DependencyInjectionIncrementalGenerator {
             }
         }
 
-        if (exposeTypeDef is GenericTypeDefinition genericTypeDefinition &&
-            genericTypeDefinition.TypeArguments.First().Namespace == "") {
-            exposeTypeDef = genericTypeDefinition.MakeOpenType();
-        }
-
         ITypeDefinition classTypeDefinition;
 
         if (classDeclarationSyntax.TypeParameterList is { Parameters.Count: > 0 }) {

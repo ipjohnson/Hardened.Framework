@@ -179,10 +179,9 @@ public class StaticContentHandler : IStaticContentHandler {
         }
 
         if (_cacheControlString != null) {
-            context.Response.Headers.Set(
-                KnownHeaders.CacheControl,
+            context.Response.Headers[KnownHeaders.CacheControl] =
                 new StringValues(_cacheControlString)
-            );
+            ;
         }
 
         context.Response.Status = (int)HttpStatusCode.OK;
@@ -200,7 +199,7 @@ public class StaticContentHandler : IStaticContentHandler {
     private async Task<bool>
         RespondWithStandardContent(IExecutionContext context, CachedStaticContentEntry cacheEntry) {
         context.Response.IsBinary = cacheEntry.IsBinary;
-        context.Response.Headers.Set(KnownHeaders.ContentLength, cacheEntry.Content.Length);
+        context.Response.Headers[KnownHeaders.ContentLength] = cacheEntry.Content.Length.ToString();
 
         await context.Response.Body.WriteAsync(cacheEntry.Content, 0, cacheEntry.Content.Length);
 
@@ -209,10 +208,10 @@ public class StaticContentHandler : IStaticContentHandler {
 
     private async Task<bool> RespondWithContentEncodedFile(IExecutionContext context,
         CachedStaticContentEntry cacheEntry) {
-        if (context.Request.Headers.TryGet(KnownHeaders.AcceptEncoding, out var encoding)) {
+        if (context.Request.Headers.TryGetValue(KnownHeaders.AcceptEncoding, out var encoding)) {
             if (encoding.Contains(cacheEntry.ContentEncoding)) {
                 context.Response.IsBinary = true;
-                context.Response.Headers.Set(KnownHeaders.ContentEncoding, KnownEncoding.GZipStringValues);
+                context.Response.Headers[KnownHeaders.ContentEncoding] = KnownEncoding.GZipStringValues;
 
                 await context.Response.Body.WriteAsync(cacheEntry.Content, 0, cacheEntry.Content.Length);
 
@@ -253,7 +252,7 @@ public class StaticContentHandler : IStaticContentHandler {
     }
 
     private StringValues GetRequestETag(IExecutionContext context) {
-        if (context.Request.Headers.TryGet(KnownHeaders.IfMatch, out var ifMatch)) {
+        if (context.Request.Headers.TryGetValue(KnownHeaders.IfMatch, out var ifMatch)) {
             return ifMatch;
         }
 

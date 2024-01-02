@@ -3,6 +3,7 @@ using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Errors;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Testing;
 
@@ -16,14 +17,14 @@ public class TestWebResponse {
 
     public int StatusCode => _executionResponse.Status.GetValueOrDefault(200);
 
-    public IHeaderCollection Headers => _executionResponse.Headers;
+    public IDictionary<string, StringValues> Headers => _executionResponse.Headers;
 
     public Stream Body => _executionResponse.Body;
 
     public IWebAssertThat Assert => _assertThat ??= new WebAssertThat(this);
 
     public T Deserialize<T>() {
-        if (Headers.TryGet(KnownHeaders.ContentEncoding, out var contentEncoding)) {
+        if (Headers.TryGetValue(KnownHeaders.ContentEncoding, out var contentEncoding)) {
             if (contentEncoding.Contains(KnownEncoding.GZip)) {
                 using var gzipStream = new GZipStream(Body, CompressionMode.Decompress, true);
 

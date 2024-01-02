@@ -3,6 +3,8 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Shared.Runtime.Collections;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Testing;
 
@@ -27,7 +29,7 @@ public class TestExecutionRequest : IExecutionRequest {
 
     public string Path { get; }
 
-    public string? ContentType => Headers.Get("Content-Type");
+    public string? ContentType => Headers.GetOrDefault("Content-Type");
 
     public string? Accept { get; }
 
@@ -35,8 +37,9 @@ public class TestExecutionRequest : IExecutionRequest {
 
     public Stream Body { get; set; }
 
-    public IHeaderCollection Headers { get; set; }
 
+    public IDictionary<string, StringValues> Headers { get; set; }
+    
     public IQueryStringCollection QueryString { get; }
 
     public IPathTokenCollection PathTokens {

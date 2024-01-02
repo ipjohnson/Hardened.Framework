@@ -13,6 +13,7 @@ using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Testing.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Testing;
 
@@ -68,10 +69,10 @@ public class TestWebApp : TestContext, ITestWebApp {
         var context = CreateContext(
             httpMethod, path, webRequest, responseBody, scope);
 
-        context.Request.Headers.Set(KnownHeaders.AcceptEncoding, KnownEncoding.GZip);
+        context.Request.Headers[KnownHeaders.AcceptEncoding]= KnownEncoding.GZip;
 
         if (bodyValue != null && string.IsNullOrEmpty(context.Request.ContentType)) {
-            context.Request.Headers.Set(KnownHeaders.ContentType, KnownContentType.Js);
+            context.Request.Headers[KnownHeaders.ContentType] = KnownContentType.Js;
         }
 
         webRequest?.Invoke(new TestWebRequest { Headers = context.Request.Headers });
@@ -119,7 +120,7 @@ public class TestWebApp : TestContext, ITestWebApp {
         Action<TestWebRequest>? webRequest,
         MemoryStream responseBody,
         IServiceScope serviceScope) {
-        var header = new HeaderCollectionStringValues();
+        var header = new Dictionary<string, StringValues>();
 
         var testWebRequest = new TestWebRequest { Headers = header };
 

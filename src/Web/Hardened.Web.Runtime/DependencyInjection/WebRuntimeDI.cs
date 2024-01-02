@@ -1,7 +1,10 @@
-﻿using System.Security.Cryptography;
+﻿using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.DependencyInjection;
+using System.Security.Cryptography;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Configuration;
+using Hardened.Shared.Runtime.DependencyInjection;
 using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.StaticContent;
@@ -10,14 +13,11 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hardened.Web.Runtime.DependencyInjection;
 
-public static class WebRuntimeDI {
-    private static readonly WeakReference<IServiceCollection?> _lastServiceCollection = new(null);
-
+public class WebRuntimeDI {
     public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
-        if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
-            !ReferenceEquals(lastServiceCollection, serviceCollection)) {
-            _lastServiceCollection.SetTarget(serviceCollection);
-
+        if (DependencyRegistry<WebRuntimeDI>.ShouldRegisterModule(serviceCollection)) {
+            RequestRuntimeDI.Register(environment, serviceCollection);
+            
             serviceCollection.TryAddSingleton<IWebExecutionHandlerService, WebExecutionHandlerService>();
             serviceCollection.TryAddSingleton<IStaticContentHandler, StaticContentHandler>();
             serviceCollection.TryAddSingleton<IETagProvider, ETagProvider>();

@@ -1,4 +1,5 @@
 ﻿using Hardened.Requests.Abstract.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Testing;
 
@@ -9,7 +10,7 @@ public class TestWebRequest {
     /// <summary>
     /// Headers for request
     /// </summary>
-    public IHeaderCollection Headers { get; set; } = default!;
+    public IDictionary<string, StringValues> Headers { get; set; } = default!;
 
     /// <summary>
     /// CancellationToken for the request

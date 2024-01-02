@@ -6,587 +6,60 @@
     <projectFile profileName="Mock Lambda Test Tool">IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Hardened.IntegrationTests.Web.Lambda.SUT.csproj</projectFile>
     <projectFile pubXmlPath="IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Properties/PublishProfiles/FolderProfile.pubxml">IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Hardened.IntegrationTests.Web.Lambda.SUT.csproj</projectFile>
     <projectFile>IntegrationTests/Console/Hardened.IntegrationTests.Console.SUT/Hardened.IntegrationTests.Console.SUT.csproj</projectFile>
+    <projectFile profileName="Hardened.IntegrationTests.WebApp.SUT">IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Hardened.IntegrationTests.WebApp.SUT.csproj</projectFile>
+    <projectFile profileName="IIS Express">IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Hardened.IntegrationTests.WebApp.SUT.csproj</projectFile>
+    <projectFile>Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj</projectFile>
   </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.dockerignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/IntegrationTests/Console/Hardened.IntegrationTests.Console.SUT/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.editorconfig" beforeDir="false" afterPath="$PROJECT_DIR$/.editorconfig" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime.Tests/Bootstrap.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime.Tests/Canaries/CanaryTests.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime.Tests/CanaryDatabaseAttribute.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime.Tests/Discovery/CanaryDiscoveryServiceTests.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime.Tests/Hardened.Amz.Canaries.Runtime.Tests.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime.Tests/LocalCanaryApplication.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime.Tests/Scenarios/InitialFlightTests.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime.Tests/Services/XUnitInvokeServiceTests.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime.Tests/Templates/MainTemplateTests.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Attributes/HardenedCanaryAttribute.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/CanaryApplication.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Configuration/CanaryConfigurationModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Discovery/CanaryAssemblyRegistration.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Discovery/CanaryDiscoveryService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Discovery/CanaryTypeRegistration.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/DynamoDb/CanaryDynamoReader.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/DynamoDb/CanaryDynamoWriter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/DynamoDb/DynamoDbConstants.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Handlers/CanaryDashboardHandler.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Handlers/CanaryFlightControl.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Handlers/CanaryInvokeHandler.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Hardened.Amz.Canaries.Runtime.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Metrics/KnownMetrics.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Dashboards/DashboardMainPageResponseModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Dashboards/DashboardRequest.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Flight/CanaryDefinition.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Flight/CanaryFlightInfo.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Flight/CanaryFrequency.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Flight/CanaryRecentFlightHistory.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Flight/CurrentCanaryState.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Request/FlightControllerResponseModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Request/InvokeRequestModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Models/Request/InvokeResponseModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/CanaryAirTrafficControlService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/CloudWatchClientProvider.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/CloudWatchLogStreamWriter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/CloudWatchMetricsService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/DashboardDataService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/MethodToInvokeMapService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/SqsFlightScheduler.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/XUnitInvokeService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/XUnitLoggingService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Services/XunitAssemblyUnderTest.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Templates/LogStreamHelper.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Templates/MetricsLinkHelper.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Canaries.Runtime/Templates/main.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.CloudWatch.Dashboards/CloudWatchDashboardLibrary.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.CloudWatch.Dashboards/Configuration/CssConfig.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.CloudWatch.Dashboards/Hardened.Amz.CloudWatch.Dashboards.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.CloudWatch.Dashboards/Models/DashboardWidgetContext.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.CloudWatch.Dashboards/Models/DashboardWidgetRequest.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.CloudWatch.Dashboards/Models/DescriptionModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.CloudWatch.Dashboards/Templates/CloudWatchActionHelper.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.CloudWatch.Dashboards/Templates/main-css.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Cognito/Class1.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Cognito/Hardened.Amz.Cognito.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient.Testing/Hardened.Amz.DynamoDbClient.Testing.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient.Testing/Impl/JavaBinaryLocator.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient.Testing/Impl/LocalDynamoDbWrapper.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient.Testing/LocalDynamoDbAttribute.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient/DynamoDbClientConfiguration.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient/DynamoDbClientExtensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient/DynamoDbClientLibrary.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient/Hardened.Amz.DynamoDbClient.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient/IDynamoDbClientProvider.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.DynamoDbClient/Impl/DynamoDbClientProvider.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/DependencyInjection/LambdaFunctionDI.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Execution/LambdaExecutionContext.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Execution/LambdaExecutionRequest.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Execution/LambdaExecutionResponse.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/FromContextAttribute.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Hardened.Amz.Function.Lambda.Runtime.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Impl/ILambdaHandler.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Impl/ILambdaHandlerPackage.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Impl/LambdaFunctionImplService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Impl/LambdaFunctionInvokeFilter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Impl/LambdaInvokeFilter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/Impl/LambdaInvokeFilterProvider.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Runtime/ThrowExceptionAttribute.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Testing/Hardened.Amz.Function.Lambda.Testing.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Testing/LambdaResponse.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Testing/LambdaTestApp.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Testing/TestLambdaFunctionInvokeFilter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Function.Lambda.Testing/TestLambdaInvokeFilterProvider.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.IntegrationTests.Web.Lambda.SUT.Harness/Hardened.Amz.IntegrationTests.Web.Lambda.SUT.Harness.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.IntegrationTests.Web.Lambda.SUT.Harness/Program.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.IntegrationTests.Web.Lambda.SUT.Harness/Properties/launchSettings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.IntegrationTests.Web.Lambda.SUT.Harness/appsettings.Development.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.IntegrationTests.Web.Lambda.SUT.Harness/appsettings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Runtime/EmbeddedMetrics/MetricDirective.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Runtime/Execution/LambdaContextAccessor.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Runtime/Logging/LambdaLoggerHelper.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Runtime/Logging/LambdaLoggerProvider.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Runtime/Logging/LambdaStructuredLogger.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Runtime/Logging/RecordSerializer.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Testing/Hardened.Amz.Shared.Lambda.Testing.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Testing/TestClientApplication.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Testing/TestClientContext.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Testing/TestCognitoIdentity.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Testing/TestLambdaContext.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Shared.Lambda.Testing/TestLambdaLogger.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.SqsClient/Hardened.Amz.SqsClient.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.SqsClient/ISqsClient.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.SqsClient/SqsClientConfiguration.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.SqsClient/SqsClientLibrary.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.SqsClient/SqsMessageAttribute.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Harness/AspNetExtensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Harness/Hardened.Amz.Web.Lambda.Harness.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Harness/Properties/launchSettings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Harness/RequestToLambdaService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/DependencyInjection/LambdaWebDI.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Impl/ApiGatewayEventProcessor.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Impl/ApiGatewayV2CookieSetCollection.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Impl/ApiGatewayV2ExecutionContext.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Impl/ApiGatewayV2ExecutionRequest.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Impl/ApiGatewayV2ExecutionResponse.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Impl/IApiGatewayV2Handler.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/LambdaWebApplicationAttribute.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Logging/LambdaWebLoggerHelper.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Metrics/DimensionSetProvider.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Metrics/EmbeddedMetricLogger.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/Hardened.Amz.Web.Lambda.Runtime/Metrics/EmbeddedMetricLoggerProvider.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Canaries.SourceGenerator/Class1.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Canaries.SourceGenerator/Hardened.Amz.Canaries.SourceGenerator.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Function.Lambda.SourceGenerator/Hardened.Amz.Function.Lambda.SourceGenerator.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Function.Lambda.SourceGenerator/LambdaApplicationEntryPointWriter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Function.Lambda.SourceGenerator/LambdaApplicationGenerator.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Function.Lambda.SourceGenerator/LambdaEntryIncrementalGenerator.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Function.Lambda.SourceGenerator/LambdaFunctionInvokerFileWriter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Function.Lambda.SourceGenerator/LambdaFunctionModelGenerator.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Function.Lambda.SourceGenerator/LambdaFunctionSourceGenerator.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Function.Lambda.SourceGenerator/LambdaHandlerPackageFileWriter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Web.Lambda.SourceGenerator/ApplicationFileWriter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Web.Lambda.SourceGenerator/Hardened.Amz.Web.Lambda.SourceGenerator.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Web.Lambda.SourceGenerator/LambdaWebApplicationFileWriter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Web.Lambda.SourceGenerator/WebLambdaApplicationBootstrapGenerator.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Amz/SourceGenerators/Hardened.Amz.Web.Lambda.SourceGenerator/WebLambdaSourceGenerator.cs" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/AspNetCoreRuntimeLibrary.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Commands/Hardened.Commands.Tests/Hardened.Commands.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Commands/Hardened.Commands.Tests/Hardened.Commands.Tests.csproj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Hardened.Framework.sln" beforeDir="false" afterPath="$PROJECT_DIR$/Hardened.Framework.sln" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Application.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Configuration/PersonServiceConfiguration.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Functions/PersonFunctions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Hardened.IntegrationTests.Function.Lambda.SUT.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Models/PersonListModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Models/PersonModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Properties/launchSettings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Services/GenericService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Services/PersonService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.SUT/Services/TestClass.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.Tests/Bootstrap.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.Tests/Functions/PersonFunctionsTests.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Function.Lambda.Tests/Hardened.IntegrationTests.Function.Lambda.Tests.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Canaries/Application.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Canaries/CanaryInvokeApplication.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Canaries/Hardened.IntegrationTests.Web.Canaries.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Canaries/Tests/SimpleInvokeTest.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Application.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Configuration/PersonServiceConfiguration.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Controllers/HomeController.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Controllers/PersonController.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Controllers/RoutingTestController.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Filters/MetricsFilter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Filters/TestingFilterAttribute.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Hardened.IntegrationTests.Web.Lambda.SUT.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Models/HomeModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Models/LoginModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Models/PersonListModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Models/PersonModel.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Properties/PublishProfiles/FolderProfile.pubxml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Properties/launchSettings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Services/MathService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Services/NamespaceTestService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Services/PersonService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Services/SomeTestService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Templates/BasePathHelper.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Templates/CustomTemplateHelper.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Templates/Errors/badRequest.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Templates/Errors/notAuthorized.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Templates/Errors/resourceNotFound.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Templates/_layout.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Templates/personList.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/wwwroot/Test.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/wwwroot/beer.min.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/wwwroot/externalDependencies.min.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/wwwroot/testPage.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/Bootstrap.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/Extensions/AngleSharpExtensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/Hardened.IntegrationTests.Web.Lambda.Tests.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/IntegrationTests/HomeTests.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/IntegrationTests/PersonTests.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/IntegrationTests/RoutingTests.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/Testing.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/wwwrootTests/TestPageTests.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IntegrationTests/Console/Hardened.IntegrationTests.Console.SUT/Application.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Console/Hardened.IntegrationTests.Console.SUT/Application.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/Hardened.IntegrationTests.Web.SUT.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/Hardened.IntegrationTests.Web.SUT.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/SomeTestService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/SomeTestService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/WebLibraryEntryPoint.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/WebLibraryEntryPoint.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.Tests/Class1.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.Tests/Class1.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.Tests/Hardened.IntegrationTests.Web.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.Tests/Hardened.IntegrationTests.Web.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/AuthorizeActionAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/AuthorizeActionAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/FromBodyAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/FromBodyAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/FromServicesAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/FromServicesAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/HardenedFunctionAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/HardenedFunctionAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/RawResponseAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/RawResponseAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/TemplateAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/TemplateAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Authorization/IActivityAuthorizationHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Authorization/IActivityAuthorizationHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Authorization/IActivityAuthorizationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Authorization/IActivityAuthorizationService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Errors/ErrorModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Errors/ErrorModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Errors/IExceptionToModelConverter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Errors/IExceptionToModelConverter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Errors/IResourceNotFoundHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Errors/IResourceNotFoundHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionChain.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionChain.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionFilter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionFilter.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequest.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequestHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequestHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequestHandlerInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequestHandlerInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequestParameters.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequestParameters.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionResponse.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IKnownServices.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IKnownServices.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/ICookieSetCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/ICookieSetCollection.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/IHeaderCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/IHeaderCollection.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/KnownContentType.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/KnownContentType.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/KnownEncoding.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/KnownEncoding.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/KnownHeaders.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/KnownHeaders.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Logging/IRequestLogger.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Logging/IRequestLogger.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Metrics/RequestMetrics.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Metrics/RequestMetrics.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Middleware/IMiddlewareProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Middleware/IMiddlewareProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Middleware/IMiddlewareService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Middleware/IMiddlewareService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/PathTokens/IPathTokenCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/PathTokens/IPathTokenCollection.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/QueryString/IQueryStringCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/QueryString/IQueryStringCollection.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/FilterOrder.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/FilterOrder.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/IGlobalFilterRegistry.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/IGlobalFilterRegistry.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/IIOFilterProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/IIOFilterProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/IRequestFilterProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/IRequestFilterProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/RequestFilterInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/RequestFilterInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IContextSerializationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IContextSerializationService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IExceptionResponseSerializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IExceptionResponseSerializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/INullValueResponseHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/INullValueResponseHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IRequestDeserializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IRequestDeserializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IResponseSerializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IResponseSerializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/ISerializationLocatorService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/ISerializationLocatorService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IStringConverter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IStringConverter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IStringConverterService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Serializer/IStringConverterService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Utilities/StringExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Utilities/StringExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime.Tests/Execution/ExecutionChainTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime.Tests/Execution/ExecutionChainTests.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime.Tests/Hardened.Requests.Runtime.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime.Tests/Hardened.Requests.Runtime.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime.Tests/Utilities/StringExtensionTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime.Tests/Utilities/StringExtensionTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Configuration/JsonSerializerConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Configuration/JsonSerializerConfiguration.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Configuration/ResponseHeaderConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Configuration/ResponseHeaderConfiguration.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/DependencyInjection/RequestRuntimeDI.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/DependencyInjection/RequestRuntimeDI.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/BadContentEncodingException.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/BadContentEncodingException.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/BadRequestException.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/BadRequestException.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/ControllerErrorHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/ControllerErrorHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/ExceptionToModelConverter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/ExceptionToModelConverter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/ResourceNotFoundHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Errors/ResourceNotFoundHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/AsyncInvokeNoParametersFilter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/AsyncInvokeNoParametersFilter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/AsyncInvokeWithParametersFilter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/AsyncInvokeWithParametersFilter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/BaseExecutionHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/BaseExecutionHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/EmptyParameters.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/EmptyParameters.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionChain.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionChain.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionRequestHandlerInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionRequestHandlerInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionRequestParameter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionRequestParameter.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/IOFilterProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/IOFilterProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/InvokeNoParametersFilter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/InvokeNoParametersFilter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/InvokeWithParametersFilter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/InvokeWithParametersFilter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/KnownServices.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/KnownServices.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/GlobalFilterRegistry.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/GlobalFilterRegistry.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/IOFilter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/IOFilter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/SingleFilterProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/SingleFilterProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/CookieSetCollectionImpl.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/CookieSetCollectionImpl.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/HeaderCollectionStringValues.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/HeaderCollectionStringValues.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Logging/RequestLogger.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Logging/RequestLogger.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Middleware/MiddlewareService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Middleware/MiddlewareService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/PathTokens/PathTokenCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/PathTokens/PathTokenCollection.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/QueryString/EmptyQueryStringCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/QueryString/EmptyQueryStringCollection.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/QueryString/SimpleQueryStringCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/QueryString/SimpleQueryStringCollection.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/ContextSerializationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/ContextSerializationService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/ExceptionResponseSerializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/ExceptionResponseSerializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/NullValueResponseHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/NullValueResponseHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/RawOutputHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/RawOutputHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/SerializationLocatorService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/SerializationLocatorService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/StringConverterService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/StringConverterService.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/SystemTextJsonRequestDeserializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/SystemTextJsonRequestDeserializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/SystemTextJsonResponseSerializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Serializer/SystemTextJsonResponseSerializer.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionContext.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionRequest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionRequest.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionResponse.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/NewtonsoftDeserializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/NewtonsoftDeserializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/NewtonsoftSerializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/NewtonsoftSerializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/SharedSerializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/SharedSerializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerConfiguration.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerLibrary.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerLibrary.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime.Tests/Collections/StringBuilderPoolServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime.Tests/Collections/StringBuilderPoolServiceTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime.Tests/Diagnostic/MachineTimestampTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime.Tests/Diagnostic/MachineTimestampTests.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime.Tests/Hardened.Shared.Runtime.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime.Tests/Hardened.Shared.Runtime.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/ApplicationLogic.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/ApplicationLogic.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/EnvironmentImpl.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/EnvironmentImpl.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IApplicationModule.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IApplicationModule.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IApplicationRoot.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IApplicationRoot.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IEnvironment.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IEnvironment.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IStartupService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IStartupService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ConfigurationModelAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ConfigurationModelAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ConfigurationProviderAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ConfigurationProviderAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ExposeAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ExposeAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ForEnvironmentAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ForEnvironmentAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/FromEnvironmentVariableAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/FromEnvironmentVariableAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/HardenedStartupAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/HardenedStartupAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/HideConfigurationFieldAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/HideConfigurationFieldAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ScopedAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/ScopedAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/SingletonAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/SingletonAttribute.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Collections/Extensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Collections/Extensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Collections/ItemPool.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Collections/ItemPool.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Collections/MemoryStreamPool.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Collections/MemoryStreamPool.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Collections/StringBuilderPool.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Collections/StringBuilderPool.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/AppConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/AppConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/ConfigurationManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/ConfigurationManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/FuncConfigurationValueProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/FuncConfigurationValueProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IAppConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IAppConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IConfigurationManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IConfigurationManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IConfigurationPackage.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IConfigurationPackage.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IConfigurationValueAmender.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IConfigurationValueAmender.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IConfigurationValueProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/IConfigurationValueProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/NewConfigurationValueProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/NewConfigurationValueProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/SimpleConfigurationPackage.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/SimpleConfigurationPackage.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/SimpleConfigurationValueAmender.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Configuration/SimpleConfigurationValueAmender.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/DependencyInjection/DependencyRegistry.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/DependencyInjection/DependencyRegistry.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/DependencyInjection/StandardDependencies.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/DependencyInjection/StandardDependencies.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Diagnostics/MachineTimestamp.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Diagnostics/MachineTimestamp.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Json/JsonSerializerConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Json/JsonSerializerConfiguration.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Json/JsonSerializerImpl.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Json/JsonSerializerImpl.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Logging/HardenedLoggingBuilder.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Logging/HardenedLoggingBuilder.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/IMetricLogger.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/IMetricLogger.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/IMetricLoggerProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/IMetricLoggerProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/MetricDefinition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/MetricDefinition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/MetricUnits.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/MetricUnits.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/NullMetricLoggerProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/NullMetricLoggerProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/NullMetricsLogger.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Metrics/NullMetricsLogger.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Utilities/DateTimeExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Utilities/DateTimeExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Utilities/FileExtToMimeTypeHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Utilities/FileExtToMimeTypeHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Utilities/MemoryStreamPoolWrapper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Utilities/MemoryStreamPoolWrapper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/AttributeCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/AttributeCollection.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/EnvironmentNameAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/EnvironmentNameAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/EnvironmentValueAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/EnvironmentValueAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/HardenedTestAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/HardenedTestAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/HardenedTestEntryPointAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/HardenedTestEntryPointAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedOrderedAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedOrderedAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedParameterProviderAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedParameterProviderAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedTestConfigurationAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedTestConfigurationAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedTestDependencyRegistrationAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedTestDependencyRegistrationAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedTestEnvironmentAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedTestEnvironmentAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedTestStartupAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/IHardenedTestStartupAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/MockAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Attributes/MockAttribute.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/IRetryEngine.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/IRetryEngine.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/ITestContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/ITestContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/AttributeUtility.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/AttributeUtility.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestCaseRunner.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestCaseRunner.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestDiscoverer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestDiscoverer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestEnvironmentBuilder.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestEnvironmentBuilder.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestInvoker.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestInvoker.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestRunner.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedTestRunner.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedXunitTheoryTestCase.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/HardenedXunitTheoryTestCase.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/RetryEngine.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/RetryEngine.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/SimpleParameterValueAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/SimpleParameterValueAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/TestApplication.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/TestApplication.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/TestContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/TestContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/TestEnvironment.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/TestEnvironment.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Logging/XUnitLogger.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Logging/XUnitLogger.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Logging/XunitLoggerProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Logging/XunitLoggerProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Utilties/TypeExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Utilties/TypeExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Class1.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/ConsoleSourceGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/LibrarySourceGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/LibrarySourceGenerator.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Hardened.SourceGenerator.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Hardened.SourceGenerator.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/RouteTableGeneratorTests/GenerateRouteMatchSourceTest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/RouteTableGeneratorTests/GenerateRouteMatchSourceTest.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/RouteTableGeneratorTests/SimpleOverlappingRouteTreeTest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/RouteTableGeneratorTests/SimpleOverlappingRouteTreeTest.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/Routing/RoutingAssertExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/Routing/RoutingAssertExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/Routing/SimpleRoutingTreeTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/Routing/SimpleRoutingTreeTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/Routing/SimpleWildCardRoutingTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/Routing/SimpleWildCardRoutingTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Configuration/ConfigurationEntryPointGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Configuration/ConfigurationEntryPointGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Configuration/ConfigurationFileModelComparer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Configuration/ConfigurationFileModelComparer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Configuration/ConfigurationIncrementalGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Configuration/ConfigurationIncrementalGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Configuration/ConfigurationPropertyImplementationGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Configuration/ConfigurationPropertyImplementationGenerator.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/DependencyInjectionFileGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/DependencyInjectionFileGenerator.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/DependencyInjectionIncrementalGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/DependencyInjectionIncrementalGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/ServiceModelComparer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/ServiceModelComparer.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/EntryPointModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/EntryPointModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/FilterInformationModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/FilterInformationModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/RequestHandlerModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/RequestHandlerModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/RequestHandlerNameModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/RequestHandlerNameModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/RequestParameterInformation.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/RequestParameterInformation.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/ResponseInformationModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/ResponseInformationModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Module/ModuleCodeGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Module/ModuleCodeGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Module/ModuleEntryPointFileWriter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Module/ModuleEntryPointFileWriter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BaseRequestModelGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BaseRequestModelGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BindRequestParametersMethodGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BindRequestParametersMethodGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/HandlerInfoCodeGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/HandlerInfoCodeGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/InvokeClassGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/InvokeClassGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/InvokeMethodCodeGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/InvokeMethodCodeGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/ParametersClassGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/ParametersClassGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/RequestHandlerModelComparer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/RequestHandlerModelComparer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/ApplicationEntryPointFileWriter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/ApplicationEntryPointFileWriter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/ApplicationRootImplementation.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/ApplicationRootImplementation.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/ClassDefinitionExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/ClassDefinitionExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/CollectionExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/CollectionExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/CompilerService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/CompilerService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/EntryPointHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/EntryPointHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/EntryPointSelector.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/EntryPointSelector.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/HardenedMethodDefinition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/HardenedMethodDefinition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/KnownTypes.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/KnownTypes.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/MethodDefinitionSyntaxExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/MethodDefinitionSyntaxExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/ReadOnlySpanExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/ReadOnlySpanExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/SourceGeneratorWrapper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/SourceGeneratorWrapper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/SyntaxNodeExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/SyntaxNodeExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/SyntaxSelector.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/SyntaxSelector.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/TypeSyntaxExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/TypeSyntaxExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/PartialTemplateCodeGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/PartialTemplateCodeGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/SyntaxReceiver.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/SyntaxReceiver.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateClassGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateClassGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateEntryPointGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateEntryPointGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateHelperGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateHelperGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateImplementationGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateImplementationGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateIncrementalGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateIncrementalGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateInvokeHelperCodeGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateInvokeHelperCodeGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateSource.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Generator/TemplateSource.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/StringTokenNode.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/StringTokenNode.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/StringTokenNodeCreatorService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/StringTokenNodeCreatorService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/StringTokenNodeParser.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/StringTokenNodeParser.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/TemplateActionNode.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/TemplateActionNode.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/TemplateActionNodeTrimAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/TemplateActionNodeTrimAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/TemplateParseService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/TemplateParseService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/TemplateWhiteSpaceCleaner.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Templates/Parser/TemplateWhiteSpaceCleaner.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/Routing/RouteTreeGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/Routing/RouteTreeGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/Routing/RouteTreeLeafNode.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/Routing/RouteTreeLeafNode.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/Routing/RouteTreeNode.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/Routing/RouteTreeNode.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/RoutingTableGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/RoutingTableGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/WebExecutionHandlerCodeGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/WebExecutionHandlerCodeGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/WebIncrementalGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/WebIncrementalGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/WebRequestHandlerModelGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/WebRequestHandlerModelGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Templates.SourceGenerator/Hardened.Templates.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Templates.SourceGenerator/Hardened.Templates.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Templates.SourceGenerator/TemplateSourceGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Templates.SourceGenerator/TemplateSourceGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.AspNetCore.SourceGenerator/Class1.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.AspNetCore.SourceGenerator/Class1.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.AspNetCore.SourceGenerator/Hardened.Web.AspNetCore.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.AspNetCore.SourceGenerator/Hardened.Web.AspNetCore.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.SourceGenerator/WebLibrarySourceGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.SourceGenerator/WebLibrarySourceGenerator.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/Hardened.Templates.Abstract.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/Hardened.Templates.Abstract.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IBooleanLogicService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IBooleanLogicService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IDataFormatProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IDataFormatProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IDataFormattingService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IDataFormattingService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IInternalTemplateServices.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IInternalTemplateServices.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IStringEscapeService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IStringEscapeService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IStringEscapeServiceProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/IStringEscapeServiceProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateExecutionContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateExecutionContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateExecutionHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateExecutionHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateExecutionHandlerProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateExecutionHandlerProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateExecutionService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateExecutionService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateHelperProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateHelperProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateHelperService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateHelperService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateOutputWriter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/ITemplateOutputWriter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/LayoutModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/LayoutModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/PropertyValue.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/PropertyValue.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/SafeString.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/SafeString.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/TemplateHelperAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/TemplateHelperAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/TemplatePackageAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/TemplatePackageAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Class1.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Class1.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Hardened.Templates.Runtime.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Hardened.Templates.Runtime.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/BaseHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/BaseHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/Collection/LookupHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/Collection/LookupHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/AppendHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/AppendHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/BaseSingleStringTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/BaseSingleStringTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/BaseTwoStringTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/BaseTwoStringTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ConcatHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ConcatHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ContainsHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ContainsHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/EndsWithHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/EndsWithHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/JoinHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/JoinHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ReplaceHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ReplaceHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/SplitHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/SplitHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/StartsWithHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/StartsWithHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ToHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ToHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ToLowerTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ToLowerTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ToUpperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/ToUpperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/TrimHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/String/TrimHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/Url/DecodeHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/Url/DecodeHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/Url/EncodeHelperTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Helpers/Url/EncodeHelperTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Impl/BooleanLogicServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Impl/BooleanLogicServiceTests.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/DependencyInjection/TemplateDI.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/DependencyInjection/TemplateDI.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Hardened.Templates.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Hardened.Templates.Runtime.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/Collection/LookupHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/Collection/LookupHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/Collection/RenderCollectionHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/Collection/RenderCollectionHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DefaultHelpers.CollectionHelperTokens.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DefaultHelpers.CollectionHelperTokens.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DefaultHelpers.StringHelperToken.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DefaultHelpers.StringHelperToken.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DefaultHelpers.UrlHelperTokens.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DefaultHelpers.UrlHelperTokens.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DefaultHelpers.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DefaultHelpers.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DynamicTemplateRenderHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/DynamicTemplateRenderHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/AppendHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/AppendHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/BaseStringEvaluationHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/BaseStringEvaluationHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/BaseStringHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/BaseStringHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ConcatHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ConcatHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ContainsHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ContainsHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/EndsWithHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/EndsWithHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/FormatHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/FormatHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/JoinHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/JoinHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/JsonHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/JsonHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ReplaceHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ReplaceHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/SplitHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/SplitHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/StartsWithHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/StartsWithHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/SubstringHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/SubstringHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ToHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ToHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ToLowerHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ToLowerHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ToUpperHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/ToUpperHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/TrimHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/String/TrimHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/Url/DecodeHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/Url/DecodeHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/Url/EncodeHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Helpers/Url/EncodeHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/BooleanLogicService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/BooleanLogicService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/DataFormattingService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/DataFormattingService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/DefaultDataFormatters.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/DefaultDataFormatters.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/DefaultOutputFuncHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/DefaultOutputFuncHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/HtmlEscapeStringService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/HtmlEscapeStringService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/InternalTemplateServices.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/InternalTemplateServices.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/NoopEscapeStringService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/NoopEscapeStringService.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/StringBuilderTemplateOutputWriter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/StringBuilderTemplateOutputWriter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/StringEscapeServiceProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/StringEscapeServiceProvider.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/TemplateDefaultOutputFunc.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/TemplateDefaultOutputFunc.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/TemplateExecutionContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/TemplateExecutionContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/TemplateExecutionService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/TemplateExecutionService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/TemplateHelperService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Impl/TemplateHelperService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/Class1.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/Class1.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/Class1.cs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/Hardened.Web.Runtime.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/Hardened.Web.Runtime.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/StaticContent/TestMD5Pool.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/StaticContent/TestMD5Pool.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/TestingAttributes.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/TestingAttributes.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/wwwroot/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/wwwroot/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/CacheControlAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/CacheControlAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/DeleteAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/DeleteAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/FromHeaderAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/FromHeaderAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/FromQueryStringAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/FromQueryStringAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/GetAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/GetAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/HttpMethodAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/HttpMethodAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/PatchAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/PatchAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/PostAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/PostAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/PutAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/PutAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/WebLibraryAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/WebLibraryAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/CacheControl/CacheControlEnum.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/CacheControl/CacheControlEnum.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Configuration/StaticContentConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Configuration/StaticContentConfiguration.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/DependencyInjection/FilterRegistryStartupService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/DependencyInjection/FilterRegistryStartupService.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/DependencyInjection/WebRuntimeDI.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/DependencyInjection/WebRuntimeDI.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Handlers/IWebExecutionRequestHandlerProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Handlers/IWebExecutionRequestHandlerProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Handlers/WebExecutionHandlerService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Handlers/WebExecutionHandlerService.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/StaticContent/ETagProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/StaticContent/ETagProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/StaticContent/GZipStaticContentCompressor.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/StaticContent/GZipStaticContentCompressor.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/StaticContent/StaticContentHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/StaticContent/StaticContentHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing.Tests/Class1.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing.Tests/Class1.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing.Tests/Hardened.Web.Testing.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing.Tests/Hardened.Web.Testing.Tests.csproj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing/ITestWebApp.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/ITestWebApp.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing/IWebAssertTest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/IWebAssertTest.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing/TestWebApp.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/TestWebApp.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing/TestWebRequest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/TestWebRequest.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing/TestWebResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/TestWebResponse.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing/WebAssertThat.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/WebAssertThat.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing/WebTestingAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/WebTestingAttribute.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -594,9 +67,27 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="file://$USER_HOME$/AppData/Local/Temp/SourceGeneratedDocuments/A88801B418E68C14D45FD051/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.LibrarySourceGenerator/Application.Configuration.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/BaseTypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/GenericTypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/ITypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/OutputContext.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/SyntaxHelpers.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/TypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/TypeStatement.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/AppData/Local/Temp/SourceGeneratedDocuments/6B304955BCD9A57A54491B01/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.LibrarySourceGenerator/Application.DependencyInjection.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/6518e12429e640b855e84dbcb556279a6dcdecc0f25132fcbc5510f956f771e7/CallSiteFactory.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/992277cdfee51f288c33a1178fdf15f722dfc3e96a1152f98f6c3a111f9/Span.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/9d4f4ac7db6d2c5d183ab2d92602280ed4349fd6e6a1b6313546b3d01fdab5/ServiceProvider.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/c6ad457575d35dcbff26c9a5e3fb1d92f1d3c55f25ef6ebf475367b5d8/List.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/f9f963d1c818ef2616b482a3ce99194ed90ebe1b4843c3d2a254fc096a24c/ServiceCollectionContainerBuilderExtensions.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/New folder/Amz/Hardened.Amz.IntegrationTests.Web.Lambda.SUT.Harness/Program.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/New folder/Amz/Hardened.Amz.Web.Lambda.Harness/AspNetExtensions.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/New folder/Amz/Hardened.Amz.Web.Lambda.Harness/RequestToLambdaService.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/New folder/Amz/Hardened.Amz.Web.Lambda.Runtime/Impl/ApiGatewayEventProcessor.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Application.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Controllers/HomeController.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/Bootstrap.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/IntegrationTests/RoutingTests.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
@@ -610,7 +101,9 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;.NET Launch Settings Profile.Hardened.IntegrationTests.WebApp.SUT.executor&quot;: &quot;Debug&quot;,
     &quot;.NET Project.Hardened.IntegrationTests.Console.SUT.executor&quot;: &quot;Debug&quot;,
+    &quot;1caeb6ee-4990-4a20-b03a-d519bfb0db1f.executor&quot;: &quot;Debug&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;XThreadsFramesViewSplitterKey&quot;: &quot;0.50764525&quot;,
@@ -630,7 +123,7 @@
     ]
   }
 }</component>
-  <component name="RunManager" selected=".NET Project.Hardened.IntegrationTests.Console.SUT">
+  <component name="RunManager" selected=".NET Launch Settings Profile.Hardened.IntegrationTests.WebApp.SUT">
     <configuration name="Hardened.IntegrationTests.Web.Lambda.SUT: FolderProfile" type="DotNetMsBuildPublish" factoryName="Publish to IIS">
       <riderPublish publish_profile="FolderProfile.pubxml" pubxml_path="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Properties/PublishProfiles/FolderProfile.pubxml" uuid_high="-941944924627450430" uuid_low="-5657219091243855633" />
       <method v="2" />
@@ -649,6 +142,24 @@
       <option name="PROJECT_WORKING_DIRECTORY_TRACKING" value="1" />
       <option name="PROJECT_KIND" value="DotNetCore" />
       <option name="PROJECT_TFM" value="net6.0" />
+      <method v="2">
+        <option name="Build" />
+      </method>
+    </configuration>
+    <configuration name="Hardened.Web.AspNetCore.Runtime" type="DotNetProject" factoryName=".NET Project">
+      <option name="EXE_PATH" value="" />
+      <option name="PROGRAM_PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="PASS_PARENT_ENVS" value="1" />
+      <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      <option name="USE_MONO" value="0" />
+      <option name="RUNTIME_ARGUMENTS" value="" />
+      <option name="PROJECT_PATH" value="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj" />
+      <option name="PROJECT_EXE_PATH_TRACKING" value="1" />
+      <option name="PROJECT_ARGUMENTS_TRACKING" value="1" />
+      <option name="PROJECT_WORKING_DIRECTORY_TRACKING" value="1" />
+      <option name="PROJECT_KIND" value="DotNetCore" />
+      <option name="PROJECT_TFM" value="" />
       <method v="2">
         <option name="Build" />
       </method>
@@ -683,6 +194,36 @@
         <option name="Build" />
       </method>
     </configuration>
+    <configuration name="Hardened.IntegrationTests.WebApp.SUT" type="LaunchSettings" factoryName=".NET Launch Settings Profile">
+      <option name="LAUNCH_PROFILE_PROJECT_FILE_PATH" value="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Hardened.IntegrationTests.WebApp.SUT.csproj" />
+      <option name="LAUNCH_PROFILE_TFM" value="net6.0" />
+      <option name="LAUNCH_PROFILE_NAME" value="Hardened.IntegrationTests.WebApp.SUT" />
+      <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      <option name="USE_MONO" value="0" />
+      <option name="RUNTIME_ARGUMENTS" value="" />
+      <option name="GENERATE_APPLICATIONHOST_CONFIG" value="1" />
+      <option name="SHOW_IIS_EXPRESS_OUTPUT" value="0" />
+      <option name="SEND_DEBUG_REQUEST" value="1" />
+      <option name="ADDITIONAL_IIS_EXPRESS_ARGUMENTS" value="" />
+      <method v="2">
+        <option name="Build" />
+      </method>
+    </configuration>
+    <configuration name="Hardened.IntegrationTests.WebApp.SUT: IIS Express" type="LaunchSettings" factoryName=".NET Launch Settings Profile">
+      <option name="LAUNCH_PROFILE_PROJECT_FILE_PATH" value="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Hardened.IntegrationTests.WebApp.SUT.csproj" />
+      <option name="LAUNCH_PROFILE_TFM" value="net6.0" />
+      <option name="LAUNCH_PROFILE_NAME" value="IIS Express" />
+      <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      <option name="USE_MONO" value="0" />
+      <option name="RUNTIME_ARGUMENTS" value="" />
+      <option name="GENERATE_APPLICATIONHOST_CONFIG" value="1" />
+      <option name="SHOW_IIS_EXPRESS_OUTPUT" value="0" />
+      <option name="SEND_DEBUG_REQUEST" value="1" />
+      <option name="ADDITIONAL_IIS_EXPRESS_ARGUMENTS" value="" />
+      <method v="2">
+        <option name="Build" />
+      </method>
+    </configuration>
     <configuration name="Hardened.IntegrationTests.Web.Lambda.SUT: Mock Lambda Test Tool" type="LaunchSettings" factoryName=".NET Launch Settings Profile">
       <option name="LAUNCH_PROFILE_PROJECT_FILE_PATH" value="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Hardened.IntegrationTests.Web.Lambda.SUT.csproj" />
       <option name="LAUNCH_PROFILE_TFM" value="net6.0" />
@@ -698,11 +239,43 @@
         <option name="Build" />
       </method>
     </configuration>
+    <configuration name="Hardened.IntegrationTests.WebApp.SUT/Dockerfile" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
+      <deployment type="dockerfile">
+        <settings>
+          <option name="imageTag" value="hardened.integrationtests.webapp.sut" />
+          <option name="containerName" value="hardened.integrationtests.webapp.sut" />
+          <option name="contextFolderPath" value="C:\Users\ipjoh\source\repos\Hardened.Framework\src" />
+          <option name="portBindings">
+            <list>
+              <DockerPortBindingImpl>
+                <option name="containerPort" value="80" />
+                <option name="hostIp" value="127.0.0.1" />
+                <option name="hostPort" value="8080" />
+              </DockerPortBindingImpl>
+            </list>
+          </option>
+          <option name="sourceFilePath" value="IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Dockerfile" />
+        </settings>
+      </deployment>
+      <EXTENSION ID="com.jetbrains.rider.docker.debug" isFastModeEnabled="true" isSslEnabled="false" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docker-deploy" factoryName="dockerfile" temporary="true">
+      <deployment type="dockerfile">
+        <settings />
+      </deployment>
+      <EXTENSION ID="com.jetbrains.rider.docker.debug" isFastModeEnabled="true" isSslEnabled="false" />
+      <method v="2" />
+    </configuration>
     <list>
+      <item itemvalue=".NET Launch Settings Profile.Hardened.IntegrationTests.WebApp.SUT" />
+      <item itemvalue=".NET Launch Settings Profile.Hardened.IntegrationTests.WebApp.SUT: IIS Express" />
       <item itemvalue=".NET Launch Settings Profile.Hardened.Amz.Web.Lambda.Harness: Hardened.Web.Lambda.Harness" />
       <item itemvalue=".NET Launch Settings Profile.Hardened.IntegrationTests.Function.Lambda.SUT: Mock Lambda Test Tool" />
       <item itemvalue=".NET Launch Settings Profile.Hardened.IntegrationTests.Web.Lambda.SUT: Mock Lambda Test Tool" />
+      <item itemvalue=".NET Project.Hardened.Web.AspNetCore.Runtime" />
       <item itemvalue=".NET Project.Hardened.IntegrationTests.Console.SUT" />
+      <item itemvalue="Docker.Hardened.IntegrationTests.WebApp.SUT/Dockerfile" />
       <item itemvalue="Publish to IIS.Hardened.IntegrationTests.Web.Lambda.SUT: FolderProfile" />
     </list>
   </component>
@@ -724,7 +297,9 @@
       <workItem from="1703378674617" duration="2268000" />
       <workItem from="1703380964145" duration="5738000" />
       <workItem from="1703533318369" duration="3402000" />
-      <workItem from="1703863522702" duration="2035000" />
+      <workItem from="1703863522702" duration="31590000" />
+      <workItem from="1704068993255" duration="9734000" />
+      <workItem from="1704201657594" duration="2518000" />
     </task>
     <servers />
   </component>
@@ -853,6 +428,19 @@
             </endOffsets>
           </properties>
           <option name="timeStamp" value="16" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Controllers/MathControllerTests.cs</url>
+          <line>9</line>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\IntegrationTests\Web\Hardened.IntegrationTests.WebApp.SUT.Tests\Controllers\MathControllerTests.cs" initialLine="10" containingFunctionPresentation="Method 'CompanyGetAllTest'">
+            <startOffsets>
+              <option value="262" />
+            </startOffsets>
+            <endOffsets>
+              <option value="333" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="19" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

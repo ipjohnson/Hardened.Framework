@@ -13,18 +13,16 @@ using Hardened.Requests.Runtime.Middleware;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
+using Hardened.Shared.Runtime.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.DependencyInjection;
 
-public static class RequestRuntimeDI {
-    private static readonly WeakReference<IServiceCollection> _lastServiceCollection = new(null);
-
+public class RequestRuntimeDI {
     public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
-        if (!_lastServiceCollection.TryGetTarget(out var lastServiceCollection) ||
-            !ReferenceEquals(lastServiceCollection, serviceCollection)) {
+        if (DependencyRegistry<RequestRuntimeDI>.ShouldRegisterModule(serviceCollection)) {
             serviceCollection.TryAddSingleton<IMiddlewareService, MiddlewareService>();
             serviceCollection.TryAddSingleton<IContextSerializationService, ContextSerializationService>();
             serviceCollection.TryAddSingleton<IRequestDeserializer, SystemTextJsonRequestDeserializer>();
@@ -51,8 +49,6 @@ public static class RequestRuntimeDI {
             serviceCollection.AddSingleton(
                 s => Options.Create(s.GetRequiredService<IConfigurationManager>()
                     .GetConfiguration<IJsonSerializerConfiguration>()));
-
-            _lastServiceCollection.SetTarget(serviceCollection);
         }
     }
 }

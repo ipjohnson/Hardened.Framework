@@ -35,7 +35,7 @@ public class IOFilterProvider : IIOFilterProvider {
                 for (var i = 0; i < commonList.Count; i++) {
                     var kvp = commonList[i];
 
-                    responseHeaders.Set(kvp.Key, kvp.Value);
+                    responseHeaders[kvp.Key] = kvp.Value;
                 }
             });
         }

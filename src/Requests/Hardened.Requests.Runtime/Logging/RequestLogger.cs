@@ -18,7 +18,7 @@ public partial class RequestLogger : IRequestLogger {
 
     public void RequestMapped(IExecutionContext context) {
         LogRequestMapped(context.Request.Method, context.Request.Path, context.HandlerInfo!.HandlerType.Name,
-            context.HandlerInfo!.InvokeMethod);
+             context.HandlerInfo!.InvokeMethod);
     }
 
     public void RequestEnd(IExecutionContext context) {

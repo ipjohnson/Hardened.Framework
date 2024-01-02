@@ -1,6 +1,8 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Headers;
+using Hardened.Shared.Runtime.Collections;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Testing;
 
@@ -15,8 +17,8 @@ public class TestExecutionResponse : IExecutionResponse {
     }
 
     public string? ContentType {
-        get => Headers.Get("Content-Type");
-        set => Headers.Set("Content-Type", value);
+        get => Headers.GetOrDefault("Content-Type");
+        set => Headers["Content-Type"] = value;
     }
 
     public object? ResponseValue { get; set; }
@@ -29,8 +31,7 @@ public class TestExecutionResponse : IExecutionResponse {
 
     public Stream Body { get; set; }
 
-    public IHeaderCollection Headers { get; set; }
-
+    public IDictionary<string, StringValues> Headers { get; set; }
     public Exception? ExceptionValue { get; set; }
 
     public bool ResponseStarted => Body.Position > 0;
