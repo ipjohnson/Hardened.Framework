@@ -35,6 +35,7 @@ public class RequestRuntimeDI {
             serviceCollection.TryAddSingleton<ISerializationLocatorService, SerializationLocatorService>();
             serviceCollection.TryAddSingleton<IExceptionToModelConverter, ExceptionToModelConverter>();
             serviceCollection.TryAddSingleton<IIOFilterProvider, IOFilterProvider>();
+            serviceCollection.TryAddSingleton<IInstanceFilterProvider, InstanceFilterProvider>();
             serviceCollection.TryAddSingleton<IStringConverterService, StringConverterService>();
             serviceCollection.TryAddSingleton<IKnownServices, KnownServices>();
             serviceCollection.AddSingleton<IConfigurationPackage>(

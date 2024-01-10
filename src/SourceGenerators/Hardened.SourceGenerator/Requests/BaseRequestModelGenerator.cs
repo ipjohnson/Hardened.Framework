@@ -9,7 +9,8 @@ namespace Hardened.SourceGenerator.Requests;
 public abstract class BaseRequestModelGenerator {
     private int _handlerCount = 1;
 
-    public virtual RequestHandlerModel GenerateRequestModel(GeneratorSyntaxContext context,
+    public virtual RequestHandlerModel GenerateRequestModel(
+        GeneratorSyntaxContext context,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -32,11 +33,15 @@ public abstract class BaseRequestModelGenerator {
             filters);
     }
 
-    protected abstract RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation);
+    protected abstract RequestHandlerNameModel GetRequestNameModel(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        CancellationToken cancellation);
 
-    protected abstract ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation);
+    protected abstract ITypeDefinition GetInvokeHandlerType(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        CancellationToken cancellation);
 
     protected virtual IReadOnlyList<RequestParameterInformation> GetParameters(
         GeneratorSyntaxContext generatorSyntaxContext,
@@ -49,7 +54,8 @@ public abstract class BaseRequestModelGenerator {
             cancellationToken.ThrowIfCancellationRequested();
 
             RequestParameterInformation? parameterInformation =
-                GetParameterInfoFromAttributes(generatorSyntaxContext, methodDeclaration, requestHandlerNameModel,
+                GetParameterInfoFromAttributes(generatorSyntaxContext, methodDeclaration,
+                    requestHandlerNameModel,
                     parameter);
 
             if (parameterInformation == null) {
@@ -63,46 +69,56 @@ public abstract class BaseRequestModelGenerator {
         return parameters;
     }
 
-    protected virtual RequestParameterInformation GetParameterInfo(GeneratorSyntaxContext generatorSyntaxContext,
+    protected virtual RequestParameterInformation GetParameterInfo(
+        GeneratorSyntaxContext generatorSyntaxContext,
         MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
         ParameterSyntax parameter) {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
 
         if (KnownTypes.Requests.IExecutionContext.Equals(parameterType)) {
-            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ExecutionContext,
+            return CreateRequestParameterInformation(parameter, parameterType,
+                ParameterBindType.ExecutionContext,
                 true);
         }
 
         if (KnownTypes.Requests.IExecutionRequest.Equals(parameterType)) {
-            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ExecutionRequest,
+            return CreateRequestParameterInformation(parameter, parameterType,
+                ParameterBindType.ExecutionRequest,
                 true);
         }
 
         if (KnownTypes.Requests.IExecutionResponse.Equals(parameterType)) {
-            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ExecutionResponse,
+            return CreateRequestParameterInformation(parameter, parameterType,
+                ParameterBindType.ExecutionResponse,
                 true);
         }
 
         if (KnownTypes.DI.IServiceProvider.Equals(parameterType)) {
-            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.ServiceProvider);
+            return CreateRequestParameterInformation(parameter, parameterType,
+                ParameterBindType.ServiceProvider);
         }
 
         if (parameterType.TypeDefinitionEnum == TypeDefinitionEnum.InterfaceDefinition) {
-            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.FromServiceProvider);
+            return CreateRequestParameterInformation(parameter, parameterType,
+                ParameterBindType.FromServiceProvider);
         }
 
         var id = parameter.Identifier.Text;
 
         if (requestHandlerNameModel.Path.Contains($"{{{id}}}")) {
-            return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.Path);
+            return CreateRequestParameterInformation(parameter, parameterType,
+                ParameterBindType.Path);
         }
 
         return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.Body);
     }
 
-    public static RequestParameterInformation CreateRequestParameterInformation(ParameterSyntax parameter,
-        ITypeDefinition parameterType, ParameterBindType parameterBindType, bool? required = null,
+    public static RequestParameterInformation CreateRequestParameterInformation(
+        ParameterSyntax parameter,
+        ITypeDefinition parameterType,
+        ParameterBindType parameterBindType,
+        bool? required = null,
         string? bindingName = null) {
         if (!parameterType.IsNullable && parameter.ToFullString().Contains("?")) {
             parameterType = parameterType.MakeNullable();
@@ -124,7 +140,8 @@ public abstract class BaseRequestModelGenerator {
     }
 
     protected abstract RequestParameterInformation? GetParameterInfoFromAttributes(
-        GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
+        GeneratorSyntaxContext generatorSyntaxContext,
+        MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
         ParameterSyntax parameter);
 
@@ -136,7 +153,8 @@ public abstract class BaseRequestModelGenerator {
         var classDeclarationSyntax =
             contextNode.Ancestors().OfType<ClassDeclarationSyntax>().First();
 
-        var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
+        var namespaceSyntax = classDeclarationSyntax.Ancestors()
+            .OfType<BaseNamespaceDeclarationSyntax>().First();
 
         return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd(),
             classDeclarationSyntax.Identifier.Text);
@@ -165,29 +183,39 @@ public abstract class BaseRequestModelGenerator {
 
         if (varResponseAttribute != null) {
             rawResponse =
-                varResponseAttribute.ArgumentList?.Arguments[0].ToString().Trim('"') ?? "text/plain";
+                varResponseAttribute.ArgumentList?.Arguments[0].ToString().Trim('"') ??
+                "text/plain";
         }
 
         return new ResponseInformationModel {
-            IsAsync = isAsync, TemplateName = template, ReturnType = returnType, RawResponseContentType = rawResponse
+            IsAsync = isAsync,
+            TemplateName = template,
+            ReturnType = returnType,
+            RawResponseContentType = rawResponse
         };
     }
 
-    protected virtual IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclarationSyntax, CancellationToken cancellationToken) {
-        var filterList = new List<FilterInformationModel>();
+    protected virtual IReadOnlyList<AttributeModel> GetFilters(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclarationSyntax,
+        CancellationToken cancellationToken) {
+        var filterList = new List<AttributeModel>();
 
-        filterList.AddRange(GetFiltersForMethod(context, methodDeclarationSyntax, cancellationToken));
+        filterList.AddRange(
+            GetFiltersForMethod(context, methodDeclarationSyntax, cancellationToken));
         filterList.AddRange(GetFiltersForClass(context,
-            methodDeclarationSyntax.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault(), cancellationToken));
+            methodDeclarationSyntax.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault(),
+            cancellationToken));
 
         return filterList;
     }
 
-    protected virtual IEnumerable<FilterInformationModel> GetFiltersForClass(GeneratorSyntaxContext context,
-        ClassDeclarationSyntax? parent, CancellationToken cancellationToken) {
+    protected virtual IEnumerable<AttributeModel> GetFiltersForClass(
+        GeneratorSyntaxContext context,
+        ClassDeclarationSyntax? parent,
+        CancellationToken cancellationToken) {
         if (parent == null) {
-            return Enumerable.Empty<FilterInformationModel>();
+            return Enumerable.Empty<AttributeModel>();
         }
 
         return GetFiltersFromAttributes(context, parent.AttributeLists, cancellationToken);
@@ -195,48 +223,23 @@ public abstract class BaseRequestModelGenerator {
 
     protected abstract bool IsFilterAttribute(AttributeSyntax attribute);
 
-    protected virtual IEnumerable<FilterInformationModel> GetFiltersForMethod(GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclarationSyntax, CancellationToken cancellationToken) {
-        return GetFiltersFromAttributes(context, methodDeclarationSyntax.AttributeLists, cancellationToken);
+    protected virtual IEnumerable<AttributeModel> GetFiltersForMethod(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclarationSyntax,
+        CancellationToken cancellationToken) {
+        return GetFiltersFromAttributes(context, methodDeclarationSyntax.AttributeLists,
+            cancellationToken);
     }
 
-    protected virtual IEnumerable<FilterInformationModel> GetFiltersFromAttributes(GeneratorSyntaxContext context,
-        SyntaxList<AttributeListSyntax> attributeListSyntax, CancellationToken cancellationToken) {
-        foreach (var attributeList in attributeListSyntax) {
-            foreach (var attribute in attributeList.Attributes) {
-                cancellationToken.ThrowIfCancellationRequested();
+    protected virtual IEnumerable<AttributeModel> GetFiltersFromAttributes(
+        GeneratorSyntaxContext context,
+        SyntaxList<AttributeListSyntax> attributeListSyntax,
+        CancellationToken cancellationToken) {
 
-                if (IsFilterAttribute(attribute)) {
-                    var operation = context.SemanticModel.GetOperation(attribute);
-
-                    if (operation is { Type: { } }) {
-                        var arguments = "";
-                        var propertyAssignment = "";
-
-                        if (attribute.ArgumentList != null) {
-                            foreach (var attributeArgumentSyntax in attribute.ArgumentList.Arguments) {
-                                if (attributeArgumentSyntax.ToString().Contains("=")) {
-                                    if (propertyAssignment.Length > 0) {
-                                        propertyAssignment += ", ";
-                                    }
-
-                                    propertyAssignment += attributeArgumentSyntax.ToString();
-                                }
-                                else {
-                                    if (arguments.Length > 0) {
-                                        arguments += ", ";
-                                    }
-
-                                    arguments += attributeArgumentSyntax.ToString();
-                                }
-                            }
-                        }
-
-                        yield return new FilterInformationModel(operation.Type.GetTypeDefinition(), arguments,
-                            propertyAssignment);
-                    }
-                }
-            }
-        }
+        return AttributeModelHelper.GetAttributes(
+            context,
+            attributeListSyntax,
+            cancellationToken,
+            IsFilterAttribute);
     }
 }

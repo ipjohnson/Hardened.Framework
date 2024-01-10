@@ -1,5 +1,6 @@
 ﻿using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
+using Hardened.Requests.Runtime.Filters;
 using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
@@ -7,6 +8,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 public class IntMathController {
     
     [Post("/int/add")]
+    [Retry(Retries = 4)]
     public int Add(IMathService<int> mathService, MathAddModel model) {
         return mathService.Add(model.Values?.ToArray() ?? Array.Empty<int>());
     }

@@ -1,6 +1,8 @@
 ﻿namespace Hardened.Requests.Abstract.RequestFilter;
 
 public static class FilterOrder {
+    public const int HandlerCreation = -1000;
+    
     public const int BeforeSerialization = Serialization - 1;
 
     public const int Serialization = 5;

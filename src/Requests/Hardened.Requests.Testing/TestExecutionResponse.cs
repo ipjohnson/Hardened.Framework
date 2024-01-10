@@ -12,7 +12,7 @@ public class TestExecutionResponse : IExecutionResponse {
         Cookies = new CookieSetCollectionImpl();
     }
 
-    public object Clone() {
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
         throw new NotImplementedException();
     }
 

@@ -21,7 +21,12 @@ public class TestExecutionRequest : IExecutionRequest {
         QueryString = queryString;
     }
 
-    public object Clone() {
+    public IExecutionRequest Clone(
+        string? method,
+        string? path,
+        IDictionary<string, StringValues> headers,
+        IQueryStringCollection queryString,
+        IReadOnlyList<string> cookies) {
         throw new NotImplementedException();
     }
 

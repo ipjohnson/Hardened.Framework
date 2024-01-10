@@ -3,7 +3,9 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Abstract.Execution;
 
-public interface IExecutionResponse : ICloneable {
+public interface IExecutionResponse {
+    IExecutionResponse Clone(IHeaderCollection? headerCollection);
+    
     string? ContentType { get; set; }
 
     object? ResponseValue { get; set; }

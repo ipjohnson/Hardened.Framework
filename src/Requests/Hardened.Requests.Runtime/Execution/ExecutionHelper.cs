@@ -37,7 +37,10 @@ public static class ExecutionHelper {
 
         var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
 
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter);
+        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+            .ProvideFilter<TController>(serviceProvider);
+        
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -62,7 +65,10 @@ public static class ExecutionHelper {
 
         var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
 
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter);
+        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+            .ProvideFilter<TController>(serviceProvider);
+        
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -85,8 +91,11 @@ public static class ExecutionHelper {
         );
 
         var invokeFilter = new AsyncInvokeNoParametersFilter<TController>(invokeMethod);
+        
+        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+            .ProvideFilter<TController>(serviceProvider);
 
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter);
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -112,8 +121,11 @@ public static class ExecutionHelper {
         );
 
         var invokeFilter = new AsyncInvokeWithParametersFilter<TController, TParameter>(invokeMethod);
-
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter);
+        
+        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+            .ProvideFilter<TController>(serviceProvider);
+        
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -125,7 +137,8 @@ public static class ExecutionHelper {
         IExecutionRequestHandlerInfo handlerInfo,
         IEnumerable<IRequestFilterProvider> filterProviders,
         IExecutionFilter ioFilter,
-        IExecutionFilter invokeFilter) {
+        IExecutionFilter invokeFilter,
+        IExecutionFilter instanceFilter) {
         var filterList =
             serviceProvider.GetRequiredService<IGlobalFilterRegistry>().GetFilters(handlerInfo);
 
@@ -133,6 +146,8 @@ public static class ExecutionHelper {
 
         filterList.Add(new RequestFilterInfo(_ => invokeFilter, FilterOrder.EndPointInvoke));
 
+        filterList.Add(new RequestFilterInfo(_ => instanceFilter, FilterOrder.HandlerCreation));
+        
         foreach (var requestFilterProvider in filterProviders) {
             filterList.AddRange(requestFilterProvider.GetFilters(handlerInfo));
         }

@@ -5,7 +5,15 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Abstract.Execution;
 
-public interface IExecutionRequest : ICloneable {
+public interface IExecutionRequest {
+    IExecutionRequest Clone(
+        string? method,
+        string? path,
+        IDictionary<string, StringValues> headers,
+        IQueryStringCollection queryString,
+        IReadOnlyList<string> cookies
+    );
+
     string Method { get; }
 
     string Path { get; }

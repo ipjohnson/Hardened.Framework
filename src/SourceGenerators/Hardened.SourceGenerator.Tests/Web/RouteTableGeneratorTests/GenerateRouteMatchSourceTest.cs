@@ -29,7 +29,7 @@ public class GenerateRouteMatchSourceTest {
                 TypeDefinition.Get("Testing", "Controller_SomeMethod"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel(),
-                Array.Empty<FilterInformationModel>()
+                Array.Empty<AttributeModel>()
             ),
             new(
                 new RequestHandlerNameModel("/companies/{company}/{id}", "GET"),
@@ -38,7 +38,7 @@ public class GenerateRouteMatchSourceTest {
                 TypeDefinition.Get("Testing", "Controller_HeaderMethod"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel(),
-                Array.Empty<FilterInformationModel>()
+                Array.Empty<AttributeModel>()
             ),
         };
 

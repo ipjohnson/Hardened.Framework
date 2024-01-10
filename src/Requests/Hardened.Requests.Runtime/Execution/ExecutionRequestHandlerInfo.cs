@@ -3,7 +3,11 @@
 namespace Hardened.Requests.Runtime.Execution;
 
 public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
-    public ExecutionRequestHandlerInfo(string path, string method, Type handlerType, string invokeMethod,
+    public ExecutionRequestHandlerInfo(
+        string path, 
+        string method, 
+        Type handlerType, 
+        string invokeMethod, 
         IReadOnlyList<IExecutionRequestParameter>? parameters = null) {
         Path = path;
         Method = method;

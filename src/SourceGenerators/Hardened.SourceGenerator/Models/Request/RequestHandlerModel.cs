@@ -12,7 +12,7 @@ public class RequestHandlerModel {
         ITypeDefinition invokeHandlerType,
         IReadOnlyList<RequestParameterInformation> requestParameterInformationList,
         ResponseInformationModel responseInformation,
-        IReadOnlyList<FilterInformationModel> filters) {
+        IReadOnlyList<AttributeModel> filters) {
         Name = name;
         ControllerType = controllerType;
         HandlerMethod = handlerMethod;
@@ -34,7 +34,7 @@ public class RequestHandlerModel {
 
     public ResponseInformationModel ResponseInformation { get; }
 
-    public IReadOnlyList<FilterInformationModel> Filters { get; }
+    public IReadOnlyList<AttributeModel> Filters { get; }
 
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {

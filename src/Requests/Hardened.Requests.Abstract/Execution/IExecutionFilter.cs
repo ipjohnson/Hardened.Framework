@@ -1,6 +1,12 @@
 ﻿namespace Hardened.Requests.Abstract.Execution;
 
 public enum ExecutionFilterOrder {
+    Init = -10000,
+    
+    FullRequestMetrics = -7000,
+    
+    RetryFilter = -5000,
+    
     BeforeSerialize = -1,
 
     BindParameters = 0,

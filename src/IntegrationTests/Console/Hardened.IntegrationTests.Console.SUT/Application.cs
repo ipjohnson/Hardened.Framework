@@ -6,8 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.Console.SUT;
 
-[HardenedStartup]
+[HardenedModule]
 public partial class Application {
+    
     private IEnumerable<IApplicationModule> Modules() {
         yield return new CommandsLibrary();
     }

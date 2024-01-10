@@ -13,8 +13,27 @@ using System.Security.Cryptography;
 namespace Hardened.Shared.Runtime.DependencyInjection;
 
 public sealed class StandardDependencies {
-    public static void ProcessModules(IEnvironment environment, IServiceCollection serviceCollection,
+    public static void ProcessModuleProviders(
+        IEnvironment environment,
+        IServiceCollection serviceCollection,
+        params object[] otherModules) {
+        
+        foreach (var objectModule in otherModules) {
+            if (objectModule is not IApplicationModuleProvider provider) {
+                continue;
+            }
+
+            foreach (var applicationModule in provider.ProvideModules()) {
+                applicationModule.ConfigureModule(environment, serviceCollection);
+            }
+        }
+    }
+    
+    public static void ProcessModules(
+        IEnvironment environment, 
+        IServiceCollection serviceCollection,
         IEnumerable<IApplicationModule> applicationModules) {
+        
         foreach (var applicationModule in applicationModules) {
             applicationModule.ConfigureModule(environment, serviceCollection);
         }

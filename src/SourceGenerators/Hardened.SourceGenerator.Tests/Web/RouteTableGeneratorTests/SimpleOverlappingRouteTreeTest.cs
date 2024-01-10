@@ -42,7 +42,7 @@ public class SimpleOverlappingRouteTreeTest {
                 TypeDefinition.Get("Testing", "Controller_SomeMethod"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel(),
-                Array.Empty<FilterInformationModel>()
+                Array.Empty<AttributeModel>()
             ),
             new(
                 new RequestHandlerNameModel("/Header", "GET"),
@@ -51,7 +51,7 @@ public class SimpleOverlappingRouteTreeTest {
                 TypeDefinition.Get("Testing", "Controller_HeaderMethod"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel(),
-                Array.Empty<FilterInformationModel>()
+                Array.Empty<AttributeModel>()
             ),
             new(
                 new RequestHandlerNameModel("/Api/person", "GET"),
@@ -60,7 +60,7 @@ public class SimpleOverlappingRouteTreeTest {
                 TypeDefinition.Get("Testing", "Person_GetAll"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel(),
-                Array.Empty<FilterInformationModel>()
+                Array.Empty<AttributeModel>()
             ),
             new(
                 new RequestHandlerNameModel("/Api/person/{id}", "GET"),
@@ -69,7 +69,7 @@ public class SimpleOverlappingRouteTreeTest {
                 TypeDefinition.Get("Testing", "Person_GetPerson"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel(),
-                Array.Empty<FilterInformationModel>()
+                Array.Empty<AttributeModel>()
             ),
             new(
                 new RequestHandlerNameModel("/Api/person/View", "GET"),
@@ -78,7 +78,7 @@ public class SimpleOverlappingRouteTreeTest {
                 TypeDefinition.Get("Testing", "Person_View"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel(),
-                Array.Empty<FilterInformationModel>()
+                Array.Empty<AttributeModel>()
             )
         };
 

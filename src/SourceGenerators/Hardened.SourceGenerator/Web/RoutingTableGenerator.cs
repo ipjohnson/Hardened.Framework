@@ -5,6 +5,7 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
+using System.CodeDom.Compiler;
 
 namespace Hardened.SourceGenerator.Web;
 
@@ -20,7 +21,7 @@ public static class RoutingTableGenerator {
 
         context.AddSource(fileName, outputString);
     }
-
+    
     public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken) {
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);

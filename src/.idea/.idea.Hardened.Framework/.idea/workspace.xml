@@ -15,8 +15,39 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Commands/Hardened.Commands/CommandsLibrary.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Commands/Hardened.Commands/CommandsLibrary.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IntegrationTests/Console/Hardened.IntegrationTests.Console.SUT/Application.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Console/Hardened.IntegrationTests.Console.SUT/Application.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/WebLibraryEntryPoint.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/WebLibrary.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Application.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Application.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Controllers/IntMathController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Controllers/IntMathController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionContext.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionFilter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionFilter.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequest.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionResponse.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/FilterOrder.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/RequestFilter/FilterOrder.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/DependencyInjection/RequestRuntimeDI.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/DependencyInjection/RequestRuntimeDI.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/BaseExecutionHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/BaseExecutionHandler.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionHelper.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionRequestHandlerInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionRequestHandlerInfo.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionContext.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionRequest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionRequest.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/TestExecutionResponse.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerLibrary.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerLibrary.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/HardenedStartupAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Attributes/HardenedStartupAttribute.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/DependencyInjection/StandardDependencies.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/DependencyInjection/StandardDependencies.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/RouteTableGeneratorTests/GenerateRouteMatchSourceTest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/RouteTableGeneratorTests/GenerateRouteMatchSourceTest.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/RouteTableGeneratorTests/SimpleOverlappingRouteTreeTest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Web/RouteTableGeneratorTests/SimpleOverlappingRouteTreeTest.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/DependencyInjectionFileGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/DependencyInjectionFileGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/TypeSyntaxExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/TypeSyntaxExtensions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/DependencyInjectionIncrementalGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/DependencyInjection/DependencyInjectionIncrementalGenerator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/FilterInformationModel.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/RequestHandlerModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Models/Request/RequestHandlerModel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BaseRequestModelGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BaseRequestModelGenerator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/EntryPointSelector.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/EntryPointSelector.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/RoutingTableGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/RoutingTableGenerator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/AspNetCoreRuntimeLibrary.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/AspNetCoreRuntimeLibrary.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/Impl/AspNetExecutionContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.AspNetCore.Runtime/Impl/AspNetExecutionContext.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,15 +63,13 @@
     <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/TypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/TypeStatement.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/AppData/Local/Temp/SourceGeneratedDocuments/6B304955BCD9A57A54491B01/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.LibrarySourceGenerator/Application.DependencyInjection.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/8e65599dd4514f1f98ec9fea8615070874510/f4/e3643785/GeneratedCodeAttribute.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/6518e12429e640b855e84dbcb556279a6dcdecc0f25132fcbc5510f956f771e7/CallSiteFactory.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/992277cdfee51f288c33a1178fdf15f722dfc3e96a1152f98f6c3a111f9/Span.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/9d4f4ac7db6d2c5d183ab2d92602280ed4349fd6e6a1b6313546b3d01fdab5/ServiceProvider.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/c6ad457575d35dcbff26c9a5e3fb1d92f1d3c55f25ef6ebf475367b5d8/List.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/f9f963d1c818ef2616b482a3ce99194ed90ebe1b4843c3d2a254fc096a24c/ServiceCollectionContainerBuilderExtensions.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/New folder/Amz/Hardened.Amz.IntegrationTests.Web.Lambda.SUT.Harness/Program.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/New folder/Amz/Hardened.Amz.Web.Lambda.Harness/AspNetExtensions.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/New folder/Amz/Hardened.Amz.Web.Lambda.Harness/RequestToLambdaService.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/New folder/Amz/Hardened.Amz.Web.Lambda.Runtime/Impl/ApiGatewayEventProcessor.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Application.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Controllers/HomeController.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/Bootstrap.cs" root0="SKIP_HIGHLIGHTING" />
@@ -257,12 +286,26 @@
       <workItem from="1703533318369" duration="3402000" />
       <workItem from="1703863522702" duration="31590000" />
       <workItem from="1704068993255" duration="9734000" />
-      <workItem from="1704201657594" duration="2903000" />
+      <workItem from="1704201657594" duration="13792000" />
+      <workItem from="1704329067455" duration="16850000" />
+      <workItem from="1704486862461" duration="7623000" />
+      <workItem from="1704913596367" duration="544000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
@@ -399,6 +442,32 @@
             </endOffsets>
           </properties>
           <option name="timeStamp" value="19" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/RetryFilter.cs</url>
+          <line>23</line>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Requests\Hardened.Requests.Runtime\Filters\RetryFilter.cs" initialLine="23" containingFunctionPresentation="Method 'Execute'">
+            <startOffsets>
+              <option value="819" />
+            </startOffsets>
+            <endOffsets>
+              <option value="852" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="21" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/RetryAttribute.cs</url>
+          <line>13</line>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Requests\Hardened.Requests.Runtime\Filters\RetryAttribute.cs" initialLine="13" containingFunctionPresentation="Method 'GetFilters'">
+            <startOffsets>
+              <option value="491" />
+            </startOffsets>
+            <endOffsets>
+              <option value="779" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="22" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

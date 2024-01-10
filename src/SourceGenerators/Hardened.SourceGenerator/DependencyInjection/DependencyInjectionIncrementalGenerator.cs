@@ -88,8 +88,13 @@ public static class DependencyInjectionIncrementalGenerator {
 
         var getEnvironments = GetEnvironments(classDeclarationSyntax);
 
-        return new ServiceModel(exposeTypeDef ?? classTypeDefinition, classTypeDefinition, lifeStyle, tryValue,
-            getEnvironments);
+        return new ServiceModel(
+            exposeTypeDef ?? classTypeDefinition, 
+            classTypeDefinition,
+            lifeStyle,
+            tryValue,
+            getEnvironments,
+            AttributeModelHelper.GetAttributes(arg1, classDeclarationSyntax.AttributeLists, arg2).ToList());
     }
 
     private static IReadOnlyList<string> GetEnvironments(ClassDeclarationSyntax classDeclarationSyntax) {
@@ -114,7 +119,8 @@ public static class DependencyInjectionIncrementalGenerator {
             ITypeDefinition implementationType,
             ServiceLifestyle lifestyle,
             bool @try,
-            IReadOnlyList<string> environments) {
+            IReadOnlyList<string> environments,
+            IReadOnlyList<AttributeModel> attributeModels) {
             ServiceType = serviceType;
             ImplementationType = implementationType;
             Lifestyle = lifestyle;
@@ -136,14 +142,14 @@ public static class DependencyInjectionIncrementalGenerator {
 
         public bool Try { get; set; }
         public IReadOnlyList<string> Environments { get; }
-
+        
         public override bool Equals(object obj) {
             if (obj is not ServiceModel serviceModel) {
                 return false;
             }
-
-            return ServiceType != null && ServiceType.Equals(serviceModel.ServiceType) &&
-                   ImplementationType != null && ImplementationType.Equals(serviceModel.ImplementationType) &&
+            
+            return ServiceType.Equals(serviceModel.ServiceType) &&
+                   ImplementationType.Equals(serviceModel.ImplementationType) &&
                    Lifestyle.Equals(serviceModel.Lifestyle);
         }
 

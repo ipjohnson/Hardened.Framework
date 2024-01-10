@@ -1,6 +1,6 @@
 ﻿namespace Hardened.Shared.Runtime.Attributes;
 
 /// <summary>
-/// Attribute library entry point
+/// Module entry point
 /// </summary>
-public class HardenedStartupAttribute : Attribute { }
+public class HardenedModuleAttribute : Attribute { }

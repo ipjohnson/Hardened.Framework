@@ -37,6 +37,8 @@ public class DependencyInjectionFileGenerator {
         CSharpFileDefinition diFile) {
         var applicationDefinition = diFile.AddClass(model.EntryPointType.Name);
 
+        AddModuleAttribute(model, dependencyDataRight, applicationDefinition);
+        
         applicationDefinition.AddConstructor().Modifiers = ComponentModifier.Static;
 
         applicationDefinition.AddBaseType(KnownTypes.Application.IApplicationModule);
@@ -46,6 +48,23 @@ public class DependencyInjectionFileGenerator {
         GenerateCreateServiceProvider(model, dependencyDataRight, applicationDefinition);
 
         GenerateConfigureServiceCollection(model, dependencyDataRight, applicationDefinition);
+    }
+
+    private void AddModuleAttribute(
+        EntryPointSelector.Model model,
+        ImmutableArray<DependencyInjectionIncrementalGenerator.ServiceModel> dependencyDataRight,
+        ClassDefinition applicationDefinition) {
+        var moduleAttribute = applicationDefinition.AddClass("ModuleAttribute");
+
+        moduleAttribute.AddBaseType(TypeDefinition.Get("", "Attribute"));
+        moduleAttribute.AddBaseType(
+            TypeDefinition.Get(KnownTypes.Namespace.Hardened.Shared.Runtime.Application, "IApplicationModuleProvider"));
+
+        var modulesMethod = moduleAttribute.AddMethod("ProvideModules");
+        modulesMethod.SetReturnType(
+            TypeDefinition.IEnumerable(KnownTypes.Application.IApplicationModule));
+        modulesMethod.AddIndentedStatement(new WrapStatement(New(model.EntryPointType),
+            "yield return ", ""));
     }
 
     private void GenerateConfigureServiceCollection(
@@ -158,6 +177,34 @@ public class DependencyInjectionFileGenerator {
 
         methodBody.NewLine();
 
+        if (model.AttributeModels.Count > 0) {
+            var parameters = new List<object> {
+                environment,
+                serviceCollectionDefinition,
+            };
+
+            foreach (var attributeModel in model.AttributeModels) {
+                if (attributeModel.TypeDefinition.Name.StartsWith("HardenedModule")) {
+                    continue;
+                }
+                
+                var newValue = New(attributeModel.TypeDefinition, attributeModel.Arguments);
+
+                if (!string.IsNullOrEmpty(attributeModel.PropertyAssignment)) {
+                    newValue.AddInitValue(attributeModel.PropertyAssignment);
+                }
+
+                parameters.Add(newValue);
+            }
+            
+            methodBody.AddIndentedStatement(Invoke(
+                KnownTypes.DI.Registry.StandardDependencies,
+                "ProcessModuleProviders",
+                parameters.ToArray()));
+
+            methodBody.NewLine();
+        }
+        
         var moduleMethod = model.MethodDefinitions.FirstOrDefault(m => m.Name == "Modules");
 
         if (moduleMethod != null) {
@@ -166,15 +213,17 @@ public class DependencyInjectionFileGenerator {
                     ? Invoke("Modules")
                     : Invoke("Modules", environment);
 
+            IOutputComponent objectList = Null();
+            
             methodBody.AddIndentedStatement(Invoke(
                 KnownTypes.DI.Registry.StandardDependencies,
                 "ProcessModules",
                 environment,
                 serviceCollectionDefinition,
                 moduleInvoke));
-        }
 
-        methodBody.NewLine();
+            methodBody.NewLine();
+        }
 
         var applyRegistration = new StaticInvokeStatement(dependencyType, "ApplyRegistration",
             new IOutputComponent[] {

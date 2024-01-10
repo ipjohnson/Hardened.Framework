@@ -2,19 +2,23 @@
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.AspNetCore.Runtime;
-using Hardened.Web.Runtime.DependencyInjection;
 
 namespace Hardened.IntegrationTests.WebApp.SUT;
 
-[HardenedStartup]
+[HardenedModule]
+[WebLibrary.Module]
+[AspNetCoreRuntime.Module]
 public partial class Application {
-    private IEnumerable<IApplicationModule> Modules() {
-        yield return new WebLibraryEntryPoint();
-        yield return new AspNetCoreRuntimeLibrary();
-    }
 
-    public void RegisterDependencies(IServiceCollection collection, IEnvironment environment) {
-        collection.AddTransient<IEnvironment>(_ => environment);
-        WebRuntimeDI.Register(environment, collection);
+    public static WebApplicationBuilder CreateBuilder(string[] args) {
+        var hardenedApp = new Application();
+        var environment = new EnvironmentImpl(arguments:  args);
+        var builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.AddTransient<IEnvironment>(_ => environment);
+        
+        hardenedApp.ConfigureModule(environment, builder.Services);
+
+        return builder;
     }
 }

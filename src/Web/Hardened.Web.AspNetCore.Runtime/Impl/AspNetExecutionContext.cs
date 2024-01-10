@@ -25,7 +25,11 @@ public class AspNetExecutionContext : IExecutionContext {
         RequestMetrics = logger;
     }
 
-    public object Clone() {
+    public IExecutionContext Clone(
+        IExecutionRequest? request,
+        IExecutionResponse? response,
+        IServiceProvider? serviceProvider,
+        IMetricLogger? metricLogger) {
         throw new NotImplementedException();
     }
 
@@ -50,7 +54,12 @@ public class AspNetExecutionRequest : IExecutionRequest {
         _httpRequest = httpRequest;
     }
 
-    public object Clone() {
+    public IExecutionRequest Clone(
+        string? method,
+        string? path,
+        IDictionary<string, StringValues> headers,
+        IQueryStringCollection queryString,
+        IReadOnlyList<string> cookies) {
         throw new NotImplementedException();
     }
 
@@ -85,8 +94,8 @@ public class AspNetExecutionResponse : IExecutionResponse {
         _httpResponse = httpResponse;
     }
 
-    public object Clone() {
-        return new AspNetExecutionResponse(_httpResponse);
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
+        throw new NotImplementedException();
     }
 
     public string? ContentType {

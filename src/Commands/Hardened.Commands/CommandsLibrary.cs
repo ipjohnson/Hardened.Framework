@@ -2,5 +2,5 @@
 
 namespace Hardened.Commands;
 
-[HardenedStartup]
+[HardenedModule]
 public partial class CommandsLibrary { }

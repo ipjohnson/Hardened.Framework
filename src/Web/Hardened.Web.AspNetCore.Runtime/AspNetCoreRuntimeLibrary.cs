@@ -2,5 +2,5 @@
 
 namespace Hardened.Web.AspNetCore.Runtime;
 
-[HardenedStartup]
-public partial class AspNetCoreRuntimeLibrary { }
+[HardenedModule]
+public partial class AspNetCoreRuntime { }

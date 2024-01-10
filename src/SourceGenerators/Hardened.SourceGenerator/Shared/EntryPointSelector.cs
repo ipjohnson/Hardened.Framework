@@ -12,6 +12,8 @@ public static class EntryPointSelector {
     public class Model {
         public ITypeDefinition EntryPointType { get; set; } = default!;
 
+        public IReadOnlyList<AttributeModel> AttributeModels { get; set; } = default!;
+
         public bool RootEntryPoint { get; set; }
 
         public IReadOnlyList<HardenedMethodDefinition> MethodDefinitions { get; set; } = default!;
@@ -28,10 +30,25 @@ public static class EntryPointSelector {
             if (ReferenceEquals(x, y)) return true;
             if (ReferenceEquals(x, null)) return false;
             if (ReferenceEquals(y, null)) return false;
-
+            
             return x.EntryPointType.Equals(y.EntryPointType) &&
                    x.RootEntryPoint == y.RootEntryPoint &&
+                   CompareAttributes(x, y) &&
                    CompareMethodDefinitions(x, y);
+        }
+
+        private bool CompareAttributes(Model x, Model y) {
+            if (x.MethodDefinitions.Count != y.MethodDefinitions.Count) {
+                return false;
+            }
+
+            for (var i = 0; i < x.MethodDefinitions.Count; i++) {
+                if (!x.MethodDefinitions[i].Equals(y.MethodDefinitions[i])) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private bool CompareMethodDefinitions(Model x, Model y) {
@@ -62,7 +79,7 @@ public static class EntryPointSelector {
     }
 
     public static Func<SyntaxNode, CancellationToken, bool> UsingAttribute() {
-        return (node, _) => node is ClassDeclarationSyntax && node.IsAttributed("HardenedStartup");
+        return (node, _) => node is ClassDeclarationSyntax && node.IsAttributed("HardenedModule");
     }
 
     private static IReadOnlyList<HardenedMethodDefinition> GenerateMethodDefinitions(
@@ -81,10 +98,19 @@ public static class EntryPointSelector {
         return (syntaxContext, token) => {
             var methods = syntaxContext.Node.DescendantNodes().OfType<MethodDeclarationSyntax>();
 
+            IReadOnlyList<AttributeModel> attributes = Array.Empty<AttributeModel>();
+            
+            if (syntaxContext.Node is ClassDeclarationSyntax classDeclarationSyntax) {
+                attributes = AttributeModelHelper
+                    .GetAttributes(syntaxContext, classDeclarationSyntax.AttributeLists, token)
+                    .ToList();
+            }
+            
             return new Model {
                 EntryPointType = ((ClassDeclarationSyntax)syntaxContext.Node).GetTypeDefinition(),
                 MethodDefinitions = GenerateMethodDefinitions(syntaxContext, methods),
-                RootEntryPoint = rootEntryPoint
+                RootEntryPoint = rootEntryPoint,
+                AttributeModels = attributes
             };
         };
     }

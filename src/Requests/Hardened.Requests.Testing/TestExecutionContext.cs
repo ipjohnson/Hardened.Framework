@@ -22,7 +22,11 @@ public class TestExecutionContext : IExecutionContext {
         CancellationToken = cancellationToken;
     }
 
-    public object Clone() {
+    public IExecutionContext Clone(
+        IExecutionRequest? request,
+        IExecutionResponse? response,
+        IServiceProvider? serviceProvider,
+        IMetricLogger? metricLogger) {
         throw new NotImplementedException();
     }
 
