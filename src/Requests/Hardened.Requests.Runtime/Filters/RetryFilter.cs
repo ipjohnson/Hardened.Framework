@@ -25,13 +25,9 @@ public class RetryFilter : IExecutionFilter {
         
         for (var i = 0; i < _retryCount && !success; i++) {
             replayBuffer.Position = 0;
-            await using var buffer = new MemoryStreamPoolWrapper(_memoryStreamPool.Get());
-
-            await buffer.CopyToAsync(replayBuffer);
             
             try {
-                buffer.Position = 0;
-                chain.Context.Request.Body = buffer;
+                chain.Context.Request.Body = replayBuffer;
 
                 await chain.Next();
                 
