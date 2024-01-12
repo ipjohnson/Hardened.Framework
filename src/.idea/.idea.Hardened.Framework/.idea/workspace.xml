@@ -16,28 +16,6 @@
   <component name="ChangeListManager">
     <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Commands/Hardened.Commands.Tests/Hardened.Commands.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Commands/Hardened.Commands.Tests/Hardened.Commands.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime.Tests/Hardened.Requests.Runtime.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime.Tests/Hardened.Requests.Runtime.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime.Tests/Hardened.Shared.Runtime.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime.Tests/Hardened.Shared.Runtime.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Hardened.SourceGenerator.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator.Tests/Hardened.SourceGenerator.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Templates.SourceGenerator/Hardened.Templates.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Templates.SourceGenerator/Hardened.Templates.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/Hardened.Templates.Abstract.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Abstract/Hardened.Templates.Abstract.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Hardened.Templates.Runtime.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime.Tests/Hardened.Templates.Runtime.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Hardened.Templates.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Templates/Hardened.Templates.Runtime/Hardened.Templates.Runtime.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/Hardened.Web.Runtime.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime.Tests/Hardened.Web.Runtime.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing.Tests/Hardened.Web.Testing.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing.Tests/Hardened.Web.Testing.Tests.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -278,7 +256,8 @@
       <workItem from="1704201657594" duration="13792000" />
       <workItem from="1704329067455" duration="16850000" />
       <workItem from="1704486862461" duration="7623000" />
-      <workItem from="1704913596367" duration="5996000" />
+      <workItem from="1704913596367" duration="6777000" />
+      <workItem from="1705020092354" duration="354000" />
     </task>
     <servers />
   </component>

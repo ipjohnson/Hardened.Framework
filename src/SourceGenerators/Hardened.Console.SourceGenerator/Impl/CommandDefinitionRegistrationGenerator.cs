@@ -113,6 +113,9 @@ public class CommandDefinitionRegistrationGenerator {
             var wrapper = new WrapStatement(newStatement, "yield return ", "");
             providerDefinitions.AddIndentedStatement(wrapper);
         }
+
+        providerDefinitions.AddIndentedStatement("yield break");
+        
     }
 
     private IOutputComponent GetOptionDefinitions(CommandDefinitionModel commandDefinitionModel) {
