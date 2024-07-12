@@ -12,7 +12,8 @@ public class CommandDefinitionRegistrationGenerator {
         (EntryPointSelector.Model Left, ImmutableArray<CommandDefinitionModel> Right) commandData) {
         var commandsFile = new CSharpFileDefinition(commandData.Left.EntryPointType.Namespace);
 
-        GeneratedCode(sourceProductionContext, commandData.Left, commandData.Right, commandsFile);
+        GeneratedCode(sourceProductionContext, commandData.Left, commandData.Right,
+            commandsFile);
 
         var outputContext = new OutputContext();
 
@@ -20,7 +21,9 @@ public class CommandDefinitionRegistrationGenerator {
 
         var fileName = commandData.Left.EntryPointType.Name + ".Commands.cs";
 
-        sourceProductionContext.AddSource(fileName, outputContext.Output());
+        var output = outputContext.Output();
+
+        sourceProductionContext.AddSource(fileName, output);
     }
 
     private void GeneratedCode(
@@ -31,6 +34,8 @@ public class CommandDefinitionRegistrationGenerator {
         var classDefinition = commandsFile.AddClass(model.EntryPointType.Name);
 
         classDefinition.Modifiers |= ComponentModifier.Partial;
+
+        GenerateConstructors(model, commandDataRight, classDefinition);
 
         var commandRegistration =
             GenerateCommandRegistrationMethod(model, commandDataRight, classDefinition);
@@ -44,6 +49,76 @@ public class CommandDefinitionRegistrationGenerator {
             .DependencyInjection);
         templateField.InitializeValue =
             $"DependencyRegistry<{classDefinition.Name}>.Register(RegisterCommands)";
+    }
+
+    private void GenerateConstructors(
+        EntryPointSelector.Model model,
+        ImmutableArray<CommandDefinitionModel> commandDataRight,
+        ClassDefinition classDefinition) {
+        var environment =
+            classDefinition.AddField(KnownTypes.Application.IEnvironment, "_environment");
+        var rootProvider =
+            classDefinition.AddField(KnownTypes.DI.IServiceProvider.MakeNullable(),
+                "_rootProvider");
+
+        classDefinition.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl)));
+
+        var argumentConstructor = classDefinition.AddConstructor(
+            This(New(KnownTypes.Application.EnvironmentImpl, Null(), Null(), "arguments")));
+        argumentConstructor.AddParameter(typeof(string[]), "arguments");
+
+        var constructorImpl = classDefinition.AddConstructor();
+
+        var env = constructorImpl.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+
+        constructorImpl.Assign(env).To(environment.Instance);
+
+        var provider = Invoke("CreateServiceProvider", environment.Instance, Null(), Null());
+        constructorImpl.Assign(provider).To(rootProvider.Instance);
+
+
+        var runMethod = classDefinition.AddMethod("Run");
+
+        runMethod.Modifiers |= ComponentModifier.Public;
+        runMethod.SetReturnType(TypeDefinition.Task(typeof(int)));
+
+        runMethod.Return(
+            new StaticInvokeStatement(
+                TypeDefinition.Get(
+                    KnownTypes.Namespace.Hardened.Shared.Runtime.Application, "ApplicationLogic"),
+                "RunApplication",
+                new[] {
+                    environment.Instance, rootProvider.Instance, Null()
+                }) { Indented = false });
+
+
+        var providerProperty =
+            classDefinition.AddProperty(KnownTypes.DI.IServiceProvider, "Provider");
+
+        providerProperty.Get.LambdaSyntax = true;
+        providerProperty.Get.AddIndentedStatement(
+            NullCoalesce(
+                rootProvider.Instance,
+                new CodeOutputComponent(
+                    "throw new Exception(\"rootProvider can't be null here\")") { Indented = false }
+            ));
+        providerProperty.Set = null;
+
+        var dispose = classDefinition.AddMethod("DisposeAsync");
+
+        dispose.Modifiers = ComponentModifier.Public | ComponentModifier.Async;
+        dispose.SetReturnType(typeof(ValueTask));
+
+        var disposeBlock =
+            dispose.If(
+                new CodeOutputComponent("_rootProvider is IAsyncDisposable container") {
+                    Indented = false
+                });
+        dispose.AddUsingNamespace("System");
+        disposeBlock.Assign(Null()).To(rootProvider.Instance);
+        disposeBlock.AddIndentedStatement(
+            Await(new CodeOutputComponent("container") { Indented = false }
+                .Invoke("DisposeAsync")));
     }
 
     private MethodDefinition GenerateCommandRegistrationMethod(
@@ -84,10 +159,10 @@ public class CommandDefinitionRegistrationGenerator {
         registerMethod.AddIndentedStatement(
             serviceCollection.Invoke(
                 "AddTransient",
-                TypeOf(type), 
+                TypeOf(type),
                 TypeOf(TypeDefinition.Get("", "CommandDefinitionProvider"))
-                ));        
-        
+            ));
+
         commandDefinitionProvider.AddBaseType(type);
 
         var providerDefinitions = commandDefinitionProvider.AddMethod("ProvideDefinitions");
@@ -115,7 +190,6 @@ public class CommandDefinitionRegistrationGenerator {
         }
 
         providerDefinitions.AddIndentedStatement("yield break");
-        
     }
 
     private IOutputComponent GetOptionDefinitions(CommandDefinitionModel commandDefinitionModel) {

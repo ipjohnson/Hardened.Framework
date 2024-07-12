@@ -4,6 +4,8 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>10</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsPackable>True</IsPackable>
         <Nullable>enable</Nullable>
         <PackageId>Hardened.Library.SourceGenerator</PackageId>
@@ -18,11 +20,11 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
         <PackageReference Include="System.Memory" Version="4.5.5" />
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -38,7 +40,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CSharpAuthor" Version="0.1.0-Beta964">
+        <PackageReference Include="CSharpAuthor" Version="0.1.0-Beta965">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
@@ -66,5 +68,4 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
     </ItemGroup>
-
 </Project>

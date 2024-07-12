@@ -4,7 +4,7 @@ using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.Console.SUT;
 
-[Command("add", Description = "Add two numbers together ", ParentCommand = "math")]
+[Command("add", Description = "Add two numbers together", ParentCommand = "math")]
 public class AddCommand : MathCommand{
 }
 
