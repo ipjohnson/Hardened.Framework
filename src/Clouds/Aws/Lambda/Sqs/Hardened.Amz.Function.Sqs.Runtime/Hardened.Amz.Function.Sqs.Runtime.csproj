@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
+      <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.1.0-Alpha1133" />
+      <PackageReference Include="Hardened.Requests.Runtime" Version="0.1.0-Alpha1133" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Function\Hardened.Amz.Function.Lambda.Runtime\Hardened.Amz.Function.Lambda.Runtime.csproj" />
+    </ItemGroup>
+
+</Project>

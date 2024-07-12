@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\Hardened.Amz.Shared.Lambda.Testing.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\Hardened.Amz.Shared.Lambda.Testing.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\Hardened.Amz.Shared.Lambda.Testing.csproj",
+        "projectName": "Hardened.Amz.Shared.Lambda.Testing",
+        "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\Hardened.Amz.Shared.Lambda.Testing.csproj",
+        "packagesPath": "C:\\Users\\ipjoh\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
+          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\ipjoh\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {},
+          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
+          "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
+          "https://ci.appveyor.com/nuget/simplefixture-nightly": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Amazon.Lambda.Core": {
+              "target": "Package",
+              "version": "[2.1.0, )"
+            },
+            "Hardened.Requests.Runtime": {
+              "target": "Package",
+              "version": "[0.1.0-Alpha1130, )"
+            },
+            "Microsoft.Extensions.Logging.Abstractions": {
+              "target": "Package",
+              "version": "[6.0.1, )"
+            },
+            "Microsoft.Extensions.Primitives": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[17.2.0-preview-20220131-20, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
