@@ -10,10 +10,10 @@ public delegate Task DefaultOutputFunc(IExecutionContext executionContext);
 /// </summary>
 public interface IExecutionContext {
     IExecutionContext Clone(
-        IExecutionRequest? request,
-        IExecutionResponse? response,
-        IServiceProvider? serviceProvider,
-        IMetricLogger? metricLogger
+        IExecutionRequest? request = null,
+        IExecutionResponse? response = null,
+        IServiceProvider? serviceProvider = null,
+        IMetricLogger? metricLogger = null
         );
     
     /// <summary>
