@@ -180,3 +180,4 @@ $RECYCLE.BIN/
 /.vs
 /.idea/.idea.Hardened.Framework/.idea
 src/.idea/
+obj/
