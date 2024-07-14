@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
-          source-url: https://nuget.pkg.github.com/ipjohnson/index.json
+          source-url: https://nuget.pkg.github.com/ipjohnson-org/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Install dependencies
