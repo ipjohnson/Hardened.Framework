@@ -19,6 +19,7 @@ jobs:
           source-url: https://nuget.pkg.github.com/ipjohnson-org/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          NugetVersion: 1.0.${{ github.run_number }}
       - name: Install dependencies
         run: dotnet restore
       - name: Build
