@@ -7,6 +7,7 @@ using Hardened.Requests.Runtime.Headers;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using System.Net.Http.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Amz.Web.Lambda.Runtime.Impl;
 
@@ -16,6 +17,7 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
     private IPathTokenCollection? _pathTokens;
     private IQueryStringCollection? _queryStringCollection;
     private IHeaderCollection? _headerCollection;
+    private IDictionary<string, StringValues> _headers;
 
     public ApiGatewayV2ExecutionRequest(APIGatewayHttpApiV2ProxyRequest request) {
         _proxyRequest = request;
@@ -23,7 +25,13 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
         Body = _empty;
     }
 
-    public object Clone() {
+
+    public IExecutionRequest Clone(
+        string? method,
+        string? path,
+        IDictionary<string, StringValues> headers,
+        IQueryStringCollection queryString,
+        IReadOnlyList<string> cookies) {
         throw new NotImplementedException();
     }
 
@@ -57,6 +65,8 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
 
     public IHeaderCollection Headers =>
         _headerCollection ??= new HeaderCollectionStringValues(_proxyRequest.Headers);
+
+    IDictionary<string, StringValues> IExecutionRequest.Headers => _headers;
 
     public IQueryStringCollection QueryString => _queryStringCollection ??=
         new SimpleQueryStringCollection(_proxyRequest.QueryStringParameters);

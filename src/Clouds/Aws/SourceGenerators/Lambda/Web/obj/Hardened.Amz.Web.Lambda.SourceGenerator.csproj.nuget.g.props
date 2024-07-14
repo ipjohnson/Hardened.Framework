@@ -15,11 +15,11 @@
     <SourceRoot Include="C:\Program Files (x86)\Microsoft\Xamarin\NuGet\" />
   </ItemGroup>
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)microsoft.codeanalysis.analyzers\3.3.3\build\Microsoft.CodeAnalysis.Analyzers.props" Condition="Exists('$(NuGetPackageRoot)microsoft.codeanalysis.analyzers\3.3.3\build\Microsoft.CodeAnalysis.Analyzers.props')" />
-    <Import Project="$(NuGetPackageRoot)hardened.sourcegenerator\0.1.0-alpha1133\build\Hardened.SourceGenerator.props" Condition="Exists('$(NuGetPackageRoot)hardened.sourcegenerator\0.1.0-alpha1133\build\Hardened.SourceGenerator.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.codeanalysis.analyzers\3.3.4\buildTransitive\Microsoft.CodeAnalysis.Analyzers.props" Condition="Exists('$(NuGetPackageRoot)microsoft.codeanalysis.analyzers\3.3.4\buildTransitive\Microsoft.CodeAnalysis.Analyzers.props')" />
+    <Import Project="$(NuGetPackageRoot)hardened.sourcegenerator\0.1.0-alpha1139\build\Hardened.SourceGenerator.props" Condition="Exists('$(NuGetPackageRoot)hardened.sourcegenerator\0.1.0-alpha1139\build\Hardened.SourceGenerator.props')" />
     <Import Project="$(NuGetPackageRoot)csharpauthor\0.1.0-beta964\build\CSharpAuthor.props" Condition="Exists('$(NuGetPackageRoot)csharpauthor\0.1.0-beta964\build\CSharpAuthor.props')" />
   </ImportGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <PkgMicrosoft_CodeAnalysis_Analyzers Condition=" '$(PkgMicrosoft_CodeAnalysis_Analyzers)' == '' ">C:\Users\ipjoh\.nuget\packages\microsoft.codeanalysis.analyzers\3.3.3</PkgMicrosoft_CodeAnalysis_Analyzers>
+    <PkgMicrosoft_CodeAnalysis_Analyzers Condition=" '$(PkgMicrosoft_CodeAnalysis_Analyzers)' == '' ">C:\Users\ipjoh\.nuget\packages\microsoft.codeanalysis.analyzers\3.3.4</PkgMicrosoft_CodeAnalysis_Analyzers>
   </PropertyGroup>
 </Project>

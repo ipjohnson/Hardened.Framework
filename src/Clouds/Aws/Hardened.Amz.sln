@@ -36,6 +36,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.Function.Sqs.R
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.Function.Sqs.Testing", "src\Lambda\Sqs\Hardened.Amz.Function.Sqs.Testing\Hardened.Amz.Function.Sqs.Testing.csproj", "{61128280-36A3-494B-B819-6B438AA64492}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{843C4A32-6639-4783-9AA2-4CEDA61642DA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{964F5AEF-C0BD-47D4-8730-7E77FE8580CE}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build-package.yaml = .github\workflows\build-package.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +66,7 @@ Global
 		{66A54B1F-071F-4FCF-8259-7F1056842C3C} = {C56165B1-95E4-40BC-824E-8746738A6E2B}
 		{32F7964B-536A-4888-B562-4617A6648426} = {66A54B1F-071F-4FCF-8259-7F1056842C3C}
 		{61128280-36A3-494B-B819-6B438AA64492} = {66A54B1F-071F-4FCF-8259-7F1056842C3C}
+		{964F5AEF-C0BD-47D4-8730-7E77FE8580CE} = {843C4A32-6639-4783-9AA2-4CEDA61642DA}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{9C3B326B-C630-4B5C-B124-46588E4DEF6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU

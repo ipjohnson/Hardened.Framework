@@ -59,21 +59,21 @@
               "include": "Build",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[0.1.0-Alpha1133, )"
+              "version": "[0.1.0-Alpha1139, )"
             },
             "Microsoft.CodeAnalysis.Analyzers": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[3.3.3, )"
+              "version": "[3.3.4, )"
             },
             "Microsoft.CodeAnalysis.CSharp": {
               "target": "Package",
-              "version": "[4.0.1, )"
+              "version": "[4.10.0, )"
             },
             "Microsoft.Extensions.Primitives": {
               "target": "Package",
-              "version": "[6.0.0, )"
+              "version": "[8.0.0, )"
             },
             "NETStandard.Library": {
               "suppressParent": "All",
@@ -83,7 +83,7 @@
             },
             "System.Memory": {
               "target": "Package",
-              "version": "[4.5.4, )"
+              "version": "[4.5.5, )"
             }
           },
           "imports": [

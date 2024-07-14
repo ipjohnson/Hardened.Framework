@@ -1,10 +1,13 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Amz.Function.Lambda.Runtime.Execution;
 
 public class LambdaExecutionResponse : IExecutionResponse {
+    private IDictionary<string, StringValues> _headers;
+
     public LambdaExecutionResponse(Stream body, IHeaderCollection headers) {
         Body = body;
         Headers = headers;
@@ -12,6 +15,10 @@ public class LambdaExecutionResponse : IExecutionResponse {
     }
 
     public object Clone() {
+        throw new NotImplementedException();
+    }
+
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
         throw new NotImplementedException();
     }
 
@@ -31,6 +38,8 @@ public class LambdaExecutionResponse : IExecutionResponse {
     public Stream Body { get; set; }
 
     public IHeaderCollection Headers { get; }
+
+    IDictionary<string, StringValues> IExecutionResponse.Headers => _headers;
 
     public Exception? ExceptionValue { get; set; }
 

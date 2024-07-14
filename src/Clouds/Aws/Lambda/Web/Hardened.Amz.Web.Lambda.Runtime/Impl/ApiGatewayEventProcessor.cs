@@ -98,7 +98,15 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
     }
 
     private void CopyHeadersAndCookies(IExecutionContext executionContext, APIGatewayHttpApiV2ProxyResponse response) {
-        response.Headers = executionContext.Response.Headers.ToStringDictionary();
+        if (executionContext.Response.Headers.Count > 0) {
+            var headers = new Dictionary<string, string>();
+
+            foreach (var kvp in response.Headers) {
+                headers[kvp.Key] = kvp.Value;
+            }
+            
+            response.Headers = headers;
+        }
 
         var cookies = executionContext.Response.Cookies.Cookies;
 

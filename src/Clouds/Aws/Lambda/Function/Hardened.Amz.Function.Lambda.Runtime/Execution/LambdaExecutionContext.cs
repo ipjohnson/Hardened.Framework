@@ -22,8 +22,20 @@ public class LambdaExecutionContext : IExecutionContext {
         KnownServices = knownServices;
     }
 
-    public object Clone() {
-        throw new NotImplementedException();
+    public IExecutionContext Clone(
+        IExecutionRequest? request,
+        IExecutionResponse? response,
+        IServiceProvider? serviceProvider,
+        IMetricLogger? metricLogger) {
+        return new LambdaExecutionContext(
+            this.RootServiceProvider,
+            serviceProvider ?? this.RequestServices,
+            this.KnownServices,
+            request ?? this.Request,
+            response ?? this.Response,
+            metricLogger ?? this.RequestMetrics,
+            this.StartTime
+        );
     }
 
     public IServiceProvider RootServiceProvider { get; }

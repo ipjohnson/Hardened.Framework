@@ -10,6 +10,7 @@ using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
 using Hardened.Shared.Runtime.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Amz.Function.Lambda.Runtime.Impl;
 
@@ -53,8 +54,13 @@ public class LambdaFunctionImplService : ILambdaFunctionImplService {
 
         IHeaderCollection headerCollection = new HeaderCollectionStringValues(customContext);
 
+        var headers = new Dictionary<string, StringValues>();
+        foreach (var kvp in customContext) {
+            headers[kvp.Key] = kvp.Value;
+        }
+        
         var request =
-            new LambdaExecutionRequest("Invoke", context.FunctionName, stream, headerCollection);
+            new LambdaExecutionRequest("Invoke", context.FunctionName, stream, headers);
         var response = new LambdaExecutionResponse(responseStream, new HeaderCollectionStringValues());
 
         var lambdaExecutionContext = new LambdaExecutionContext(

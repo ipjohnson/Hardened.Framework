@@ -2,5 +2,5 @@
 
 namespace Hardened.Amz.Function.Sqs.Runtime;
 
-[HardenedStartup]
+[HardenedModule]
 public partial class SqsEntryPoint { }

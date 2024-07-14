@@ -22,8 +22,18 @@ internal class ApiGatewayV2ExecutionContext : IExecutionContext {
         KnownServices = knownServices;
     }
 
-    public object Clone() {
-        throw new NotImplementedException();
+    public IExecutionContext Clone(
+        IExecutionRequest? request,
+        IExecutionResponse? response,
+        IServiceProvider? serviceProvider,
+        IMetricLogger? metricLogger) {
+        return new ApiGatewayV2ExecutionContext(RootServiceProvider, 
+            serviceProvider?? RequestServices,
+            KnownServices,
+            request ?? Request,
+            response ?? Response,
+            metricLogger ?? RequestMetrics,
+            StartTime);
     }
 
     public IServiceProvider RootServiceProvider { get; }

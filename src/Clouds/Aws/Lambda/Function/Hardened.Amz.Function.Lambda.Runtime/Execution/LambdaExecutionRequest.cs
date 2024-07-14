@@ -23,8 +23,15 @@ public class LambdaExecutionRequest : IExecutionRequest {
         Headers = headers;
     }
 
-    public object Clone() {
-        throw new NotImplementedException();
+
+    public IExecutionRequest Clone(
+        string? method,
+        string? path,
+        IDictionary<string, StringValues> headers,
+        IQueryStringCollection queryString,
+        IReadOnlyList<string> cookies) {
+        return new LambdaExecutionRequest(method ?? this.Method, path ?? this.Method, this.Body,
+            headers);
     }
 
     public string Method { get; }

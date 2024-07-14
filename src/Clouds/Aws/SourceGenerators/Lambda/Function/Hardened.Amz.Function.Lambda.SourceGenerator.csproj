@@ -15,13 +15,13 @@
     </PropertyGroup>
 
     <ItemGroup>             
-        <PackageReference Include="Microsoft.Extensions.Primitives" Version="6.0.0"/>
-        <PackageReference Include="System.Memory" Version="4.5.4"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
+        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+        <PackageReference Include="System.Memory" Version="4.5.5" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -37,7 +37,7 @@
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
 
-        <PackageReference Include="Hardened.SourceGenerator" Version="0.1.0-Alpha1133">
+        <PackageReference Include="Hardened.SourceGenerator" Version="0.1.0-Alpha1139">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>

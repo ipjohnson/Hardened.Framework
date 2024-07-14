@@ -180,9 +180,9 @@ public static class LambdaFunctionModelGenerator {
         };
     }
 
-    private static IReadOnlyList<FilterInformationModel> GetFilters(GeneratorSyntaxContext context,
+    private static IReadOnlyList<AttributeModel> GetFilters(GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclarationSyntax) {
-        var filterList = new List<FilterInformationModel>();
+        var filterList = new List<AttributeModel>();
 
         filterList.AddRange(GetFiltersForMethod(context, methodDeclarationSyntax));
         filterList.AddRange(GetFiltersForClass(context,
@@ -191,10 +191,10 @@ public static class LambdaFunctionModelGenerator {
         return filterList;
     }
 
-    private static IEnumerable<FilterInformationModel> GetFiltersForClass(GeneratorSyntaxContext context,
+    private static IEnumerable<AttributeModel> GetFiltersForClass(GeneratorSyntaxContext context,
         ClassDeclarationSyntax? parent) {
         if (parent == null) {
-            return Enumerable.Empty<FilterInformationModel>();
+            return Enumerable.Empty<AttributeModel>();
         }
 
         return GetFiltersFromAttributes(context, parent.AttributeLists);
@@ -213,12 +213,12 @@ public static class LambdaFunctionModelGenerator {
         return true;
     }
 
-    private static IEnumerable<FilterInformationModel> GetFiltersForMethod(GeneratorSyntaxContext context,
+    private static IEnumerable<AttributeModel> GetFiltersForMethod(GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclarationSyntax) {
         return GetFiltersFromAttributes(context, methodDeclarationSyntax.AttributeLists);
     }
 
-    private static IEnumerable<FilterInformationModel> GetFiltersFromAttributes(GeneratorSyntaxContext context,
+    private static IEnumerable<AttributeModel> GetFiltersFromAttributes(GeneratorSyntaxContext context,
         SyntaxList<AttributeListSyntax> attributeListSyntax) {
         foreach (var attributeList in attributeListSyntax) {
             foreach (var attribute in attributeList.Attributes) {
@@ -248,7 +248,7 @@ public static class LambdaFunctionModelGenerator {
                             }
                         }
 
-                        yield return new FilterInformationModel(operation.Type.GetTypeDefinition(), arguments,
+                        yield return new AttributeModel(operation.Type.GetTypeDefinition(), arguments,
                             propertyAssignment);
                     }
                 }

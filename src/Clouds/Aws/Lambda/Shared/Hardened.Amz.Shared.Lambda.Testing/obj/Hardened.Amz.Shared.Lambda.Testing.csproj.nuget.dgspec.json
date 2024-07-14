@@ -24,7 +24,7 @@
           "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "net6.0"
+          ".net8.0"
         ],
         "sources": {
           "C:\\Program Files\\dotnet\\library-packs": {},
@@ -34,8 +34,8 @@
           "https://ci.appveyor.com/nuget/simplefixture-nightly": {}
         },
         "frameworks": {
-          "net6.0": {
-            "targetAlias": "net6.0",
+          "net8.0": {
+            "targetAlias": ".net8.0",
             "projectReferences": {}
           }
         },
@@ -46,28 +46,28 @@
         }
       },
       "frameworks": {
-        "net6.0": {
-          "targetAlias": "net6.0",
+        "net8.0": {
+          "targetAlias": ".net8.0",
           "dependencies": {
             "Amazon.Lambda.Core": {
               "target": "Package",
-              "version": "[2.1.0, )"
+              "version": "[2.2.0, )"
             },
             "Hardened.Requests.Runtime": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1130, )"
+              "version": "[0.1.0-Alpha1139, )"
             },
             "Microsoft.Extensions.Logging.Abstractions": {
               "target": "Package",
-              "version": "[6.0.1, )"
+              "version": "[8.0.1, )"
             },
             "Microsoft.Extensions.Primitives": {
               "target": "Package",
-              "version": "[6.0.0, )"
+              "version": "[8.0.0, )"
             },
             "Microsoft.NET.Test.Sdk": {
               "target": "Package",
-              "version": "[17.2.0-preview-20220131-20, )"
+              "version": "[17.10.0, )"
             }
           },
           "imports": [
@@ -86,7 +86,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

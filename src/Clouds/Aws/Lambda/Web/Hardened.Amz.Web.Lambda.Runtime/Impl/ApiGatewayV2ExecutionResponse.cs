@@ -2,12 +2,14 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Amz.Web.Lambda.Runtime.Impl;
 
 public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
     private readonly APIGatewayHttpApiV2ProxyResponse _proxyResponse;
     private IHeaderCollection? _headerCollection;
+    private IDictionary<string, StringValues> _headers;
 
     public ApiGatewayV2ExecutionResponse(APIGatewayHttpApiV2ProxyResponse response) {
         _proxyResponse = response;
@@ -15,6 +17,10 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
     }
 
     public object Clone() {
+        throw new NotImplementedException();
+    }
+
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
         throw new NotImplementedException();
     }
 
@@ -38,6 +44,8 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
 
     public IHeaderCollection Headers =>
         _headerCollection ??= new HeaderCollectionStringValues();
+
+    IDictionary<string, StringValues> IExecutionResponse.Headers => _headers;
 
     public Exception? ExceptionValue { get; set; }
 
