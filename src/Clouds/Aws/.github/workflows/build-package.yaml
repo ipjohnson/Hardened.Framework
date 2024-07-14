@@ -27,6 +27,6 @@ jobs:
       - name: Test with the dotnet CLI
         run: dotnet test
       - name: Create the package
-        run: dotnet pack --configuration Release
+        run: dotnet pack --configuration Release /p:PackageVersion=$NugetVersion
       - name: Publish the package to GPR
         run: dotnet nuget push **/bin/Release/*.nupkg -k ${{secrets.PUBLISH_PAT}}
