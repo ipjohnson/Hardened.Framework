@@ -19,7 +19,6 @@ jobs:
           source-url: https://nuget.pkg.github.com/ipjohnson-org/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          NugetVersion: 1.0.${{ github.run_number }}
       - name: Install dependencies
         run: dotnet restore
       - name: Build
@@ -28,5 +27,7 @@ jobs:
         run: dotnet test
       - name: Create the package
         run: dotnet pack --configuration Release /p:PackageVersion=$NugetVersion
+        env:
+          NugetVersion: 1.0.${{ github.run_number }}
       - name: Publish the package to GPR
         run: dotnet nuget push **/bin/Release/*.nupkg -k ${{secrets.PUBLISH_PAT}}

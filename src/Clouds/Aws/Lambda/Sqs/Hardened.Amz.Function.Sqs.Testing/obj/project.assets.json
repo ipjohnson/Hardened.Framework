@@ -7828,7 +7828,7 @@
   "packageFolders": {
     "C:\\Users\\ipjoh\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {},
-    "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\": {}
+    "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet": {}
   },
   "project": {
     "version": "1.0.0",
@@ -7841,7 +7841,7 @@
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-        "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\"
+        "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
       ],
       "configFilePaths": [
         "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
@@ -7860,7 +7860,8 @@
         "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
         "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
         "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-        "https://ci.appveyor.com/nuget/simplefixture-nightly": {}
+        "https://ci.appveyor.com/nuget/simplefixture-nightly": {},
+        "https://nuget.pkg.github.com/ipjohnson-org/index.json": {}
       },
       "frameworks": {
         "net8.0": {
@@ -7879,11 +7880,6 @@
         "warnAsError": [
           "NU1605"
         ]
-      },
-      "restoreAuditProperties": {
-        "enableAudit": "true",
-        "auditLevel": "low",
-        "auditMode": "direct"
       }
     },
     "frameworks": {
