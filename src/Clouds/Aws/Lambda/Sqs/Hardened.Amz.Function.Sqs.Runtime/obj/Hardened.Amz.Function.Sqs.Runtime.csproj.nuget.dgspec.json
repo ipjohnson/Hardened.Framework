@@ -13,11 +13,8 @@
         "packagesPath": "C:\\Users\\ipjoh\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Function\\Hardened.Amz.Function.Lambda.Runtime\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
-        ],
         "configFilePaths": [
+          "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
           "C:\\Users\\ipjoh\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
@@ -27,11 +24,7 @@
           ".net8.0"
         ],
         "sources": {
-          "C:\\Program Files\\dotnet\\library-packs": {},
-          "https://api.nuget.org/v3/index.json": {},
-          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
-          "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/simplefixture-nightly": {}
+          "C:\\Program Files\\dotnet\\library-packs": {}
         },
         "frameworks": {
           "net8.0": {
@@ -103,11 +96,8 @@
         "packagesPath": "C:\\Users\\ipjoh\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Runtime\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
-        ],
         "configFilePaths": [
+          "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
           "C:\\Users\\ipjoh\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
@@ -117,11 +107,7 @@
           ".net8.0"
         ],
         "sources": {
-          "C:\\Program Files\\dotnet\\library-packs": {},
-          "https://api.nuget.org/v3/index.json": {},
-          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
-          "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/simplefixture-nightly": {}
+          "C:\\Program Files\\dotnet\\library-packs": {}
         },
         "frameworks": {
           "net8.0": {
@@ -201,11 +187,8 @@
         "packagesPath": "C:\\Users\\ipjoh\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Sqs\\Hardened.Amz.Function.Sqs.Runtime\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
-        ],
         "configFilePaths": [
+          "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
           "C:\\Users\\ipjoh\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
@@ -215,11 +198,7 @@
           ".net8.0"
         ],
         "sources": {
-          "C:\\Program Files\\dotnet\\library-packs": {},
-          "https://api.nuget.org/v3/index.json": {},
-          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
-          "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/simplefixture-nightly": {}
+          "C:\\Program Files\\dotnet\\library-packs": {}
         },
         "frameworks": {
           "net8.0": {
