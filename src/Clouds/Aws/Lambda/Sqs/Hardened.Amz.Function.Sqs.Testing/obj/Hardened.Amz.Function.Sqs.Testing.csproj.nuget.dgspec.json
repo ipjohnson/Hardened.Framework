@@ -15,7 +15,7 @@
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
+          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\"
         ],
         "configFilePaths": [
           "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
@@ -30,6 +30,7 @@
         "sources": {
           "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
+          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
@@ -49,6 +50,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -107,7 +113,7 @@
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
+          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\"
         ],
         "configFilePaths": [
           "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
@@ -122,6 +128,7 @@
         "sources": {
           "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
+          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
@@ -144,6 +151,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -206,7 +218,7 @@
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
+          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\"
         ],
         "configFilePaths": [
           "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
@@ -222,6 +234,7 @@
           "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
+          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
           "https://ci.appveyor.com/nuget/simplefixture-nightly": {}
@@ -236,6 +249,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -306,7 +324,7 @@
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
+          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\"
         ],
         "configFilePaths": [
           "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
@@ -322,6 +340,7 @@
           "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
+          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
           "https://ci.appveyor.com/nuget/simplefixture-nightly": {}
@@ -336,6 +355,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -394,7 +418,7 @@
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
+          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\"
         ],
         "configFilePaths": [
           "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
@@ -409,6 +433,7 @@
         "sources": {
           "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
+          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
@@ -428,6 +453,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -478,7 +508,7 @@
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
+          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\"
         ],
         "configFilePaths": [
           "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
@@ -493,6 +523,7 @@
         "sources": {
           "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
+          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
@@ -515,6 +546,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {

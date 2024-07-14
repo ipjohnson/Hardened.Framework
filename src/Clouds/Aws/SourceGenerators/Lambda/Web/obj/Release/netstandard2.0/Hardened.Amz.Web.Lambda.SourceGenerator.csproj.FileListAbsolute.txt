@@ -69,3 +69,14 @@ C:\Users\ipjoh\source\repos\Hardened.Framework\src\Amz\SourceGenerators\Hardened
 C:\Users\ipjoh\source\repos\Hardened.Framework\src\Amz\SourceGenerators\Hardened.Amz.Web.Lambda.SourceGenerator\bin\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.runtimeconfig.json
 C:\Users\ipjoh\source\repos\Hardened.Framework\src\Amz\SourceGenerators\Hardened.Amz.Web.Lambda.SourceGenerator\bin\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.runtimeconfig.dev.json
 C:\Users\ipjoh\source\repos\Hardened.Framework\src\Amz\SourceGenerators\Hardened.Amz.Web.Lambda.SourceGenerator\obj\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.genruntimeconfig.cache
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\bin\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.deps.json
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\bin\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.dll
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\bin\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.pdb
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\obj\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.csproj.AssemblyReference.cache
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\obj\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\obj\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.AssemblyInfoInputs.cache
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\obj\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.AssemblyInfo.cs
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\obj\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.csproj.CoreCompileInputs.cache
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\obj\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.sourcelink.json
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\obj\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.dll
+C:\Users\ipjoh\source\repos\Hardened.Amz\src\SourceGenerators\Lambda\Web\obj\Release\netstandard2.0\Hardened.Amz.Web.Lambda.SourceGenerator.pdb
