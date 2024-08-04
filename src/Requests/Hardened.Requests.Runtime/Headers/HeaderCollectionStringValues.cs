@@ -47,9 +47,29 @@ public class HeaderCollectionStringValues : IHeaderCollection {
         return stringValues;
     }
 
+    public void Add(string key, StringValues value) {
+        throw new NotImplementedException();
+    }
+
     public bool ContainsKey(string key) {
         return _headers.ContainsKey(key);
     }
+
+    public bool Remove(string key) {
+        return _headers.Remove(key);
+    }
+
+    public bool TryGetValue(string key, out StringValues value) {
+        return _headers.TryGetValue(key, out value);
+    }
+
+    public StringValues this[string key] {
+        get => _headers[key];
+        set => _headers[key] = value;
+    }
+
+    public ICollection<string> Keys => _headers.Keys;
+    public ICollection<StringValues> Values => _headers.Values;
 
     public StringValues Get(string key) {
         if (_headers.TryGetValue(key, out var stringValues)) {
@@ -73,12 +93,33 @@ public class HeaderCollectionStringValues : IHeaderCollection {
         return _headers[key] = value;
     }
 
+    public void Add(KeyValuePair<string, StringValues> item) {
+        _headers.Add(item);
+    }
+
+    public void Clear() {
+        _headers.Clear();
+    }
+
+    public bool Contains(KeyValuePair<string, StringValues> item) {
+        return _headers.Contains(item);
+    }
+
+    public void CopyTo(KeyValuePair<string, StringValues>[] array, int arrayIndex) {
+        _headers.CopyTo(array, arrayIndex);
+    }
+
+    public bool Remove(KeyValuePair<string, StringValues> item) {
+        return _headers.Remove(item);
+    }
+
     public int Count => _headers.Count;
+
+    public bool IsReadOnly => false;
 
     public bool TryGet(string key, out StringValues value) {
         return _headers.TryGetValue(key, out value);
     }
-
 
     public IDictionary<string, string> ToStringDictionary() {
         var dictionary = new Dictionary<string, string>();
