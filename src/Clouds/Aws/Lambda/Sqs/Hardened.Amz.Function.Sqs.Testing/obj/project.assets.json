@@ -2334,8 +2334,7 @@
           "Hardened.Amz.Shared.Lambda.Runtime": "1.0.0",
           "Hardened.Requests.Runtime": "0.1.0-Alpha1139",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
-          "Microsoft.Extensions.Primitives": "8.0.0",
-          "Microsoft.NET.Test.Sdk": "17.10.0"
+          "Microsoft.Extensions.Primitives": "8.0.0"
         },
         "compile": {
           "bin/placeholder/Hardened.Amz.Function.Lambda.Runtime.dll": {}

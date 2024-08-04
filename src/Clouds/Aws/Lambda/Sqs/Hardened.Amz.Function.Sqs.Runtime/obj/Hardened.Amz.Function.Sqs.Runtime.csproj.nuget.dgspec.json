@@ -72,10 +72,6 @@
             "Microsoft.Extensions.Primitives": {
               "target": "Package",
               "version": "[8.0.0, )"
-            },
-            "Microsoft.NET.Test.Sdk": {
-              "target": "Package",
-              "version": "[17.10.0, )"
             }
           },
           "imports": [
