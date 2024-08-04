@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Content Include="..\..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\LambdaWebTest\LambdaWebTest.csproj" />
+      <ProjectReference Include="..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj" />
+      <ProjectReference Include="..\Lambda\Web\Hardened.Amz.Web.Lambda.Harness\Hardened.Amz.Web.Lambda.Harness.csproj" />
+      <ProjectReference Include="..\Lambda\Web\Hardened.Amz.Web.Lambda.Runtime\Hardened.Amz.Web.Lambda.Runtime.csproj" />
+    </ItemGroup>
+
+</Project>

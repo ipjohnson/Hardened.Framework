@@ -40,6 +40,7 @@ public class RequestToLambdaService<T> : IRequestToLambdaService where T : IApiG
     }
 
     private void CopyHeadersToResponse(IDictionary<string, string> headers, IHeaderDictionary responseHeaders) {
+        
         foreach (var kvpHeader in headers) {
             responseHeaders[kvpHeader.Key] = kvpHeader.Value;
         }

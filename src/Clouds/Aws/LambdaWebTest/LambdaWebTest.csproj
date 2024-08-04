@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.1.0-Alpha1142" />
+        <PackageReference Include="Hardened.Requests.Abstract" Version="0.1.0-Alpha1142" />
+        <PackageReference Include="Hardened.Requests.Runtime" Version="0.1.0-Alpha1142" />
+        <PackageReference Include="Hardened.Shared.Runtime" Version="0.1.0-Alpha1142" />
+        <PackageReference Include="Hardened.SourceGenerator" Version="0.1.0-Alpha1142" />
+        <PackageReference Include="Hardened.Templates.SourceGenerator" Version="0.1.0-Alpha1142" />
+        <PackageReference Include="Hardened.Web.Runtime" Version="0.1.0-Alpha1142" />
+        <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.1.0-Alpha1142" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj" />
+      <ProjectReference Include="..\Lambda\Web\Hardened.Amz.Web.Lambda.Runtime\Hardened.Amz.Web.Lambda.Runtime.csproj" />
+      <ProjectReference Include="..\SourceGenerators\Lambda\Web\Hardened.Amz.Web.Lambda.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>

@@ -8,8 +8,7 @@ namespace Hardened.Amz.Web.Lambda.Runtime.Impl;
 
 public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
     private readonly APIGatewayHttpApiV2ProxyResponse _proxyResponse;
-    private IHeaderCollection? _headerCollection;
-    private IDictionary<string, StringValues> _headers;
+    private HeaderCollectionStringValues? _headerCollection;
 
     public ApiGatewayV2ExecutionResponse(APIGatewayHttpApiV2ProxyResponse response) {
         _proxyResponse = response;
@@ -45,7 +44,7 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
     public IHeaderCollection Headers =>
         _headerCollection ??= new HeaderCollectionStringValues();
 
-    IDictionary<string, StringValues> IExecutionResponse.Headers => _headers;
+    IDictionary<string, StringValues> IExecutionResponse.Headers => Headers;
 
     public Exception? ExceptionValue { get; set; }
 
