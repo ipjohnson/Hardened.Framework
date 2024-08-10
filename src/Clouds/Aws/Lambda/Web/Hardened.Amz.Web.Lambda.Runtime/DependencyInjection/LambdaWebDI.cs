@@ -16,6 +16,7 @@ public static class LambdaWebDI {
         serviceCollection.AddSingleton<IMetricLoggerProvider, EmbeddedMetricLoggerProvider>();
         serviceCollection.TryAddSingleton<IDimensionSetProvider, DimensionSetProvider>();
         serviceCollection.TryAddSingleton<ILambdaContextAccessor, LambdaContextAccessor>();
+        serviceCollection.TryAddSingleton<IProxyRequestContextAccessor, ProxyRequestContextAccessor>();
         serviceCollection.RemoveAll<ILoggerProvider>();
         serviceCollection.AddSingleton<ILoggerProvider, LambdaLoggerProvider>();
     }

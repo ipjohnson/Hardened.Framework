@@ -29,6 +29,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
     private readonly IStringBuilderPool _stringBuilderPool;
     private readonly IKnownServices _knownServices;
     private readonly ILambdaContextAccessor _lambdaContextAccessor;
+    private readonly IProxyRequestContextAccessor _requestContextAccessor;
 
     public ApiGatewayEventProcessor(
         IServiceProvider serviceProvider,
@@ -39,7 +40,8 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
         IMetricLoggerProvider metricLoggerProvider,
         IKnownServices knownServices,
         ILambdaContextAccessor lambdaContextAccessor,
-        IStringBuilderPool stringBuilderPool) {
+        IStringBuilderPool stringBuilderPool,
+        IProxyRequestContextAccessor requestContextAccessor) {
         _serviceProvider = serviceProvider;
         _middlewareService = middlewareService;
         _memoryStreamPool = memoryStreamPool;
@@ -49,6 +51,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
         _knownServices = knownServices;
         _lambdaContextAccessor = lambdaContextAccessor;
         _stringBuilderPool = stringBuilderPool;
+        _requestContextAccessor = requestContextAccessor;
     }
 
     public async Task<APIGatewayHttpApiV2ProxyResponse> Process(APIGatewayHttpApiV2ProxyRequest request,
@@ -56,6 +59,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
         var requestStartTimestamp = MachineTimestamp.Now;
 
         _lambdaContextAccessor.Context = context;
+        _requestContextAccessor.ProxyRequestContext = request.RequestContext;
 
         var response = new APIGatewayHttpApiV2ProxyResponse { StatusCode = 200 };
 
