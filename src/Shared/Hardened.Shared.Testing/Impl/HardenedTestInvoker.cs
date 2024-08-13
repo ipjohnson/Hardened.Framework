@@ -55,6 +55,8 @@ public class HardenedTestInvoker : XunitTestInvoker {
 
     public Action<IEnvironment, IServiceCollection> BuildOverrideAction(AttributeCollection attributeCollection,
         MethodInfo testMethod, IEnvironment environment) {
+        var extraModules = attributeCollection.GetAttributes<IApplicationModuleProvider>();
+        
         var registrationAttributeList =
             attributeCollection.GetAttributes<IHardenedTestDependencyRegistrationAttribute>();
 
@@ -75,7 +77,13 @@ public class HardenedTestInvoker : XunitTestInvoker {
         return (env, collection) => {
             collection.AddSingleton<ITestOutputHelper>(_testOutputHelper);
             collection.AddSingleton(new TestCancellationToken(CancellationTokenSource.Token));
-
+            
+            extraModules.Foreach(moduleProviderAttribute => {
+                var modules = moduleProviderAttribute.ProvideModules();
+                
+                modules.Foreach(module => module.ConfigureModule(env, collection));
+            });
+            
             registrationAttributeList.Foreach(hardenedTestDependencyRegistrationAttribute => {
                 hardenedTestDependencyRegistrationAttribute.RegisterDependencies(
                     attributeCollection,
