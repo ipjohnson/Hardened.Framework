@@ -2,7 +2,7 @@
 
 namespace Hardened.Requests.Abstract.Headers;
 
-public interface IHeaderCollection : IEnumerable<KeyValuePair<string, StringValues>> {
+public interface IHeaderCollection : IDictionary<string,StringValues> {
     StringValues Append(string key, object value);
 
     bool ContainsKey(string key);

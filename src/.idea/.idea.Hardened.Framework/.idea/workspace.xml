@@ -16,9 +16,8 @@
   <component name="ChangeListManager">
     <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionRequest.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Execution/IExecutionResponse.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/IHeaderCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/IHeaderCollection.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/HeaderCollectionStringValues.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/HeaderCollectionStringValues.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -293,6 +292,10 @@
       <workItem from="1720570760564" duration="4126000" />
       <workItem from="1720825883220" duration="379000" />
       <workItem from="1720874328699" duration="2279000" />
+      <workItem from="1721340735101" duration="1900000" />
+      <workItem from="1722642961837" duration="492000" />
+      <workItem from="1722696402183" duration="1219000" />
+      <workItem from="1722792872311" duration="4580000" />
     </task>
     <servers />
   </component>
