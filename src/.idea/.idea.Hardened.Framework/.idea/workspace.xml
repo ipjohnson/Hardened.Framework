@@ -15,46 +15,38 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/projectSettingsUpdater.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/projectSettingsUpdater.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/IHeaderCollection.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Headers/IHeaderCollection.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/HeaderCollectionStringValues.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/HeaderCollectionStringValues.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Controllers/HomeController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Controllers/HomeController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BaseRequestModelGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BaseRequestModelGenerator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/InvokeMethodCodeGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/InvokeMethodCodeGenerator.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "ipjohnson"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/ipjohnson/Hardened.Framework.git",
+    "accountId": "f96f6d52-f20d-4199-af78-9ac886a25606"
+  }
+}]]></component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="file://$PROJECT_DIR$/../../../../../../Temp/commands.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/AssignmentStatement.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/BaseBlockDefinition.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/BaseTypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/DelegateDefinition.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/GenericTypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/ITypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/IndentedStatementComponent.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/InterfaceMethodDefinition.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/OutputContext.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/SyntaxHelpers.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/ThrowNewExceptionStatement.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/TypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta964/src/CSharpAuthor/TypeStatement.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/8e65599dd4514f1f98ec9fea8615070874510/f4/e3643785/GeneratedCodeAttribute.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/6518e12429e640b855e84dbcb556279a6dcdecc0f25132fcbc5510f956f771e7/CallSiteFactory.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/992277cdfee51f288c33a1178fdf15f722dfc3e96a1152f98f6c3a111f9/Span.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/9d4f4ac7db6d2c5d183ab2d92602280ed4349fd6e6a1b6313546b3d01fdab5/ServiceProvider.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/c6ad457575d35dcbff26c9a5e3fb1d92f1d3c55f25ef6ebf475367b5d8/List.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/f9f963d1c818ef2616b482a3ce99194ed90ebe1b4843c3d2a254fc096a24c/ServiceCollectionContainerBuilderExtensions.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/New folder/Amz/Hardened.Amz.IntegrationTests.Web.Lambda.SUT.Harness/Program.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Application.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Controllers/HomeController.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/Bootstrap.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/New folder/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.Tests/IntegrationTests/RoutingTests.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLineParser.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/SharedSerializer.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerConfiguration.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/bin/Debug/net6.0/DependencyInjection/DependencyInjectionFileGenerator.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/LibrarySourceGenerator.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/64EC73EE207BC6DB33F75FB2/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.WebLibrarySourceGenerator/HomeController_HelloWorldAsync.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="SWEA" />
@@ -69,31 +61,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;.NET Launch Settings Profile.Hardened.IntegrationTests.WebApp.SUT.executor&quot;: &quot;Debug&quot;,
-    &quot;.NET Project.Hardened.IntegrationTests.Console.SUT.executor&quot;: &quot;Debug&quot;,
-    &quot;1caeb6ee-4990-4a20-b03a-d519bfb0db1f.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;XThreadsFramesViewSplitterKey&quot;: &quot;0.50764525&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
-  },
-  &quot;keyToStringList&quot;: {
-    &quot;rider.external.source.directories&quot;: [
-      &quot;C:\\Users\\ipjoh\\AppData\\Roaming\\JetBrains\\Rider2023.3\\resharper-host\\DecompilerCache&quot;,
-      &quot;C:\\Users\\ipjoh\\AppData\\Roaming\\JetBrains\\Rider2023.3\\resharper-host\\SourcesCache&quot;,
-      &quot;C:\\Users\\ipjoh\\AppData\\Local\\Symbols\\src&quot;
-    ]
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    ".NET Launch Settings Profile.Hardened.IntegrationTests.WebApp.SUT.executor": "Debug",
+    ".NET Project.Hardened.IntegrationTests.Console.SUT.executor": "Debug",
+    "1caeb6ee-4990-4a20-b03a-d519bfb0db1f.executor": "Debug",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "XThreadsFramesViewSplitterKey": "0.50764525",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected=".NET Launch Settings Profile.Hardened.IntegrationTests.WebApp.SUT">
     <configuration name="Hardened.IntegrationTests.Web.Lambda.SUT: FolderProfile" type="DotNetMsBuildPublish" factoryName="Publish to IIS">
       <riderPublish publish_profile="FolderProfile.pubxml" pubxml_path="$PROJECT_DIR$/IntegrationTests/Amz/Lambda/Hardened.IntegrationTests.Web.Lambda.SUT/Properties/PublishProfiles/FolderProfile.pubxml" uuid_high="-941944924627450430" uuid_low="-5657219091243855633" />
@@ -296,12 +282,14 @@
       <workItem from="1722642961837" duration="492000" />
       <workItem from="1722696402183" duration="1219000" />
       <workItem from="1722792872311" duration="4580000" />
+      <workItem from="1724616191293" duration="4945000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
@@ -314,6 +302,7 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
+    <option name="LOCAL_CHANGES_DETAILS_PREVIEW_SHOWN" value="false" />
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
   </component>
   <component name="XDebuggerManager">
@@ -322,38 +311,24 @@
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLineParser.cs</url>
           <line>135</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" initialLine="87" containingFunctionPresentation="Method 'ParseOptions'">
-            <startOffsets>
-              <option value="3318" />
-            </startOffsets>
-            <endOffsets>
-              <option value="3372" />
-            </endOffsets>
-          </properties>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" containingFunctionPresentation="Method 'ParseOptions'" />
           <option name="timeStamp" value="5" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLineParser.cs</url>
           <line>143</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" initialLine="95" containingFunctionPresentation="Method 'ParseOptions'">
-            <startOffsets>
-              <option value="3688" />
-            </startOffsets>
-            <endOffsets>
-              <option value="3730" />
-            </endOffsets>
-          </properties>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" containingFunctionPresentation="Method 'ParseOptions'" />
           <option name="timeStamp" value="8" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLineParser.cs</url>
           <line>57</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" initialLine="54" containingFunctionPresentation="Method 'ParseCommandBasedArgumentString'">
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" containingFunctionPresentation="Method 'ParseCommandBasedArgumentString'">
             <startOffsets>
-              <option value="1702" />
+              <option value="1754" />
             </startOffsets>
             <endOffsets>
-              <option value="1744" />
+              <option value="1807" />
             </endOffsets>
           </properties>
           <option name="timeStamp" value="10" />
@@ -361,38 +336,24 @@
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLineParser.cs</url>
           <line>42</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" initialLine="39" containingFunctionPresentation="Method 'ParseCommandLineArguments'">
-            <startOffsets>
-              <option value="1226" />
-            </startOffsets>
-            <endOffsets>
-              <option value="1284" />
-            </endOffsets>
-          </properties>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" containingFunctionPresentation="Method 'ParseCommandLineArguments'" />
           <option name="timeStamp" value="11" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLinePrinter.cs</url>
           <line>171</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLinePrinter.cs" initialLine="90" containingFunctionPresentation="Method 'WriteCommandHelp'">
-            <startOffsets>
-              <option value="-1" />
-            </startOffsets>
-            <endOffsets>
-              <option value="-1" />
-            </endOffsets>
-          </properties>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLinePrinter.cs" containingFunctionPresentation="Method 'WriteCommandHelp'" />
           <option name="timeStamp" value="12" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLinePrinter.cs</url>
           <line>198</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLinePrinter.cs" initialLine="117" containingFunctionPresentation="Method 'WriteCommandHelp'">
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLinePrinter.cs" containingFunctionPresentation="Method 'WriteCommandHelp'">
             <startOffsets>
-              <option value="-1" />
+              <option value="7449" />
             </startOffsets>
             <endOffsets>
-              <option value="-1" />
+              <option value="7474" />
             </endOffsets>
           </properties>
           <option name="timeStamp" value="14" />
@@ -400,12 +361,12 @@
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLinePrinter.cs</url>
           <line>196</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLinePrinter.cs" initialLine="115" containingFunctionPresentation="Lambda expression inside Method 'WriteCommandHelp'">
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLinePrinter.cs" containingFunctionPresentation="Lambda expression inside Method 'WriteCommandHelp'">
             <startOffsets>
-              <option value="-1" />
+              <option value="7363" />
             </startOffsets>
             <endOffsets>
-              <option value="-1" />
+              <option value="7433" />
             </endOffsets>
           </properties>
           <option name="timeStamp" value="15" />
@@ -413,7 +374,7 @@
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLineParser.cs</url>
           <line>171</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" initialLine="171" containingFunctionPresentation="Method 'ParseOptions'">
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLineParser.cs" containingFunctionPresentation="Method 'ParseOptions'">
             <startOffsets>
               <option value="6283" />
             </startOffsets>
@@ -426,33 +387,19 @@
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Controllers/MathControllerTests.cs</url>
           <line>9</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\IntegrationTests\Web\Hardened.IntegrationTests.WebApp.SUT.Tests\Controllers\MathControllerTests.cs" initialLine="10" containingFunctionPresentation="Method 'CompanyGetAllTest'">
-            <startOffsets>
-              <option value="262" />
-            </startOffsets>
-            <endOffsets>
-              <option value="333" />
-            </endOffsets>
-          </properties>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\IntegrationTests\Web\Hardened.IntegrationTests.WebApp.SUT.Tests\Controllers\MathControllerTests.cs" containingFunctionPresentation="Method 'CompanyGetAllTest'" />
           <option name="timeStamp" value="19" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/RetryFilter.cs</url>
           <line>23</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Requests\Hardened.Requests.Runtime\Filters\RetryFilter.cs" initialLine="23" containingFunctionPresentation="Method 'Execute'">
-            <startOffsets>
-              <option value="819" />
-            </startOffsets>
-            <endOffsets>
-              <option value="852" />
-            </endOffsets>
-          </properties>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Requests\Hardened.Requests.Runtime\Filters\RetryFilter.cs" containingFunctionPresentation="Method 'Execute'" />
           <option name="timeStamp" value="21" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/RetryAttribute.cs</url>
           <line>13</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Requests\Hardened.Requests.Runtime\Filters\RetryAttribute.cs" initialLine="13" containingFunctionPresentation="Method 'GetFilters'">
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Requests\Hardened.Requests.Runtime\Filters\RetryAttribute.cs" containingFunctionPresentation="Method 'GetFilters'">
             <startOffsets>
               <option value="491" />
             </startOffsets>
@@ -465,28 +412,27 @@
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Filters/RetryFilter.cs</url>
           <line>29</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Requests\Hardened.Requests.Runtime\Filters\RetryFilter.cs" initialLine="29" containingFunctionPresentation="Method 'Execute'">
-            <startOffsets>
-              <option value="1008" />
-            </startOffsets>
-            <endOffsets>
-              <option value="1050" />
-            </endOffsets>
-          </properties>
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Requests\Hardened.Requests.Runtime\Filters\RetryFilter.cs" containingFunctionPresentation="Method 'Execute'" />
           <option name="timeStamp" value="23" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/IntegrationTests/Console/Hardened.IntegrationTests.Console.SUT/Program.cs</url>
           <line>2</line>
-          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\IntegrationTests\Console\Hardened.IntegrationTests.Console.SUT\Program.cs" initialLine="2" containingFunctionPresentation="">
+          <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\IntegrationTests\Console\Hardened.IntegrationTests.Console.SUT\Program.cs" containingFunctionPresentation="" />
+          <option name="timeStamp" value="24" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Web/Hardened.Web.Testing/TestWebApp.cs</url>
+          <line>109</line>
+          <properties documentPath="$PROJECT_DIR$/Web/Hardened.Web.Testing/TestWebApp.cs" containingFunctionPresentation="Method 'SetupBodyStream'">
             <startOffsets>
-              <option value="46" />
+              <option value="4188" />
             </startOffsets>
             <endOffsets>
-              <option value="86" />
+              <option value="4238" />
             </endOffsets>
           </properties>
-          <option name="timeStamp" value="24" />
+          <option name="timeStamp" value="25" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

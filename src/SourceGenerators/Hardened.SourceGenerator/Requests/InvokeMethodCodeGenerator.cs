@@ -29,7 +29,13 @@ public static class InvokeMethodCodeGenerator {
             invokeStatement = Await(invokeStatement);
         }
 
-        invokeMethod.Assign(invokeStatement).To(context.Property("Response.ResponseValue"));
+        if (requestHandlerModel.ResponseInformation.ReturnType != null && 
+            requestHandlerModel.ResponseInformation.ReturnType.Name != typeof(void).Name) {
+            invokeMethod.Assign(invokeStatement).To(context.Property("Response.ResponseValue"));
+        }
+        else {
+            invokeMethod.AddIndentedStatement(invokeStatement);
+        }
     }
 
     private static void ProcessArguments(RequestHandlerModel requestHandlerModel, InvokeDefinition invoke,

@@ -8,4 +8,9 @@ public class HomeController {
     public string HelloWorld() {
         return "Hello World";
     }
+
+    [Post("/hello")]
+    public async Task HelloWorldAsync() {
+        
+    }
 }
