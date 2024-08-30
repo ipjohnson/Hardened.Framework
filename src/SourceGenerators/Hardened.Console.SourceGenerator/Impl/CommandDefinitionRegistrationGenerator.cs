@@ -8,22 +8,28 @@ namespace Hardened.Console.SourceGenerator.Impl;
 
 public class CommandDefinitionRegistrationGenerator {
     public void GenerateFile(
+        
         SourceProductionContext sourceProductionContext,
         (EntryPointSelector.Model Left, ImmutableArray<CommandDefinitionModel> Right) commandData) {
-        var commandsFile = new CSharpFileDefinition(commandData.Left.EntryPointType.Namespace);
+        try {
+            var commandsFile = new CSharpFileDefinition(commandData.Left.EntryPointType.Namespace);
 
-        GeneratedCode(sourceProductionContext, commandData.Left, commandData.Right,
-            commandsFile);
+            GeneratedCode(sourceProductionContext, commandData.Left, commandData.Right,
+                commandsFile);
 
-        var outputContext = new OutputContext();
+            var outputContext = new OutputContext();
 
-        commandsFile.WriteOutput(outputContext);
+            commandsFile.WriteOutput(outputContext);
 
-        var fileName = commandData.Left.EntryPointType.Name + ".Commands.cs";
+            var fileName = commandData.Left.EntryPointType.Name + ".Commands.cs";
 
-        var output = outputContext.Output();
+            var output = outputContext.Output();
 
-        sourceProductionContext.AddSource(fileName, output);
+            sourceProductionContext.AddSource(fileName, output);
+        }
+        catch (Exception ex) {
+            File.WriteAllText("/tmp/exception.txt", ex.Message);
+        }
     }
 
     private void GeneratedCode(

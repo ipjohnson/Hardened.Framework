@@ -16,9 +16,7 @@
   <component name="ChangeListManager">
     <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/EnvironmentImpl.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/EnvironmentImpl.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IEnvironment.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Application/IEnvironment.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/TestEnvironment.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Testing/Impl/TestEnvironment.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Impl/CommandDefinitionRegistrationGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Impl/CommandDefinitionRegistrationGenerator.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,7 +43,7 @@
     <setting file="file://$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/SharedSerializer.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerConfiguration.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/LibrarySourceGenerator.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/64EC73EE207BC6DB33F75FB2/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.WebLibrarySourceGenerator/HomeController_HelloWorldAsync.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/FA06B11CF2A40C08E676F514/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.ConsoleSourceGenerator/Application.Commands.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="SWEA" />
@@ -282,7 +280,7 @@
       <workItem from="1722696402183" duration="1219000" />
       <workItem from="1722792872311" duration="4580000" />
       <workItem from="1724616191293" duration="6359000" />
-      <workItem from="1725020392734" duration="1547000" />
+      <workItem from="1725020392734" duration="5039000" />
     </task>
     <servers />
   </component>
