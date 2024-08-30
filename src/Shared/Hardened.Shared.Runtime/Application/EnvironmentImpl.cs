@@ -2,12 +2,17 @@
 
 public class EnvironmentImpl : IEnvironment {
     private readonly IDictionary<string, string>? _environmentValues;
+    private readonly IDictionary<string, object>? _customData;
 
-    public EnvironmentImpl(string? name = null, IDictionary<string, string>? environmentValues = null,
-        IReadOnlyList<string>? arguments = null) {
+    public EnvironmentImpl(string? name = null,
+        IDictionary<string, string>? environmentValues = null,
+        IReadOnlyList<string>? arguments = null,
+        IDictionary<string, object>? customData = null) {
         Name = name ?? System.Environment.GetEnvironmentVariable("HARDENED_ENVIRONMENT") ?? "development";
         _environmentValues = environmentValues;
+        _customData = customData;
         Arguments = arguments ?? Array.Empty<string>();
+        
     }
 
     public string Name { get; }
@@ -31,6 +36,14 @@ public class EnvironmentImpl : IEnvironment {
             return (T)Convert.ChangeType(envValue, typeof(T));
         }
 
+        return defaultValue;
+    }
+
+    public T? CustomData<T>(string name, T? defaultValue = default) {
+        if (_customData != null && _customData.TryGetValue(name, out var value)) {
+            return (T)value;
+        }
+        
         return defaultValue;
     }
 }

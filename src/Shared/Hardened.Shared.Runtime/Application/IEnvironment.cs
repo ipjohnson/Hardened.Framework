@@ -6,6 +6,8 @@ public interface IEnvironment {
     IReadOnlyList<string> Arguments { get; }
 
     T? Value<T>(string name, T? defaultValue = default);
+    
+    T? CustomData<T>(string name, T? defaultValue = default);
 }
 
 public static class IEnvironmentExtensions {
