@@ -42,7 +42,8 @@
     <setting file="file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLineParser.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/SharedSerializer.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerConfiguration.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/LibrarySourceGenerator.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/LibrarySourceGenerator.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/3BC4D05BE7333D184E6F32D9/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.LibrarySourceGenerator/CommandsLibrary.DependencyInjection.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/FA06B11CF2A40C08E676F514/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.ConsoleSourceGenerator/Application.Commands.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
@@ -280,7 +281,7 @@
       <workItem from="1722696402183" duration="1219000" />
       <workItem from="1722792872311" duration="4580000" />
       <workItem from="1724616191293" duration="6359000" />
-      <workItem from="1725020392734" duration="5039000" />
+      <workItem from="1725020392734" duration="17357000" />
     </task>
     <servers />
   </component>

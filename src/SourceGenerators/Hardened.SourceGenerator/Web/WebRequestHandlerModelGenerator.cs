@@ -80,7 +80,8 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     protected override RequestParameterInformation? GetParameterInfoFromAttributes(
         GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
-        ParameterSyntax parameter) {
+        ParameterSyntax parameter,
+        int parameterIndex) {
         foreach (var attributeList in parameter.AttributeLists) {
             foreach (var attribute in attributeList.Attributes) {
                 var attributeName = attribute.Name.ToString().Replace("Attribute", "");
@@ -91,22 +92,25 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
                             attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
 
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.Header, headerName);
+                            ParameterBindType.Header, headerName,parameterIndex);
 
                     case "FromQueryString":
                         var queryName =
                             attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
 
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.QueryString, queryName);
+                            ParameterBindType.QueryString, queryName,parameterIndex);
 
                     case "FromServices":
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.FromServiceProvider, "");
+                            ParameterBindType.FromServiceProvider, "",parameterIndex);
 
                     case "FromBody":
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.Body, "");
+                            ParameterBindType.Body, "",parameterIndex);
+                    
+                    default:
+                        return DefaultGetParameterFromAttribute(attribute, generatorSyntaxContext, parameter, parameterIndex);
                 }
             }
         }
@@ -116,7 +120,8 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
     private RequestParameterInformation GetParameterInfoWithBinding(
         GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType,
-        string bindingName) {
+        string bindingName,
+        int parameterIndex) {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
         var name = parameter.Identifier.Text;
 
@@ -132,7 +137,8 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
             !parameterType.IsNullable,
             defaultValue,
             bindingType,
-            string.IsNullOrEmpty(bindingName) ? name : bindingName);
+            string.IsNullOrEmpty(bindingName) ? name : bindingName,
+            parameterIndex);
     }
 
     protected override bool IsFilterAttribute(AttributeSyntax attribute) {

@@ -1,4 +1,5 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -159,4 +160,13 @@ public static class ExecutionHelper {
     }
 
     #endregion
+
+    public static Task<T> CustomAttributeData<T>(IExecutionContext context, object attribute, IExecutionRequestParameter parameter) {
+        if (attribute is ICustomBindingAttribute customBindingAttribute) {
+            return customBindingAttribute.BindValue<T>(context, parameter);
+        }
+        else {
+            throw new Exception($"Attribute type {attribute.GetType().FullName} does not implement ICustomBindingAttribute");
+        }
+    }
 }

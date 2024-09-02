@@ -23,41 +23,53 @@ public static class AttributeModelHelper {
 
                 if (filter?.Invoke(attribute) ?? true) {
                     if (operation.Type != null) {
-                        var arguments = "";
-                        var propertyAssignment = "";
-
-                        if (attribute.ArgumentList != null) {
-                            foreach (var attributeArgumentSyntax in
-                                     attribute.ArgumentList.Arguments) {
-                                if (attributeArgumentSyntax.ToString().Contains("=")) {
-                                    if (propertyAssignment.Length > 0) {
-                                        propertyAssignment += ", ";
-                                    }
-
-                                    propertyAssignment += attributeArgumentSyntax.ToString();
-                                }
-                                else {
-                                    if (arguments.Length > 0) {
-                                        arguments += ", ";
-                                    }
-
-                                    arguments += attributeArgumentSyntax.ToString();
-                                }
-                            }
-                        }
-
-                        var type = operation.Type.GetTypeDefinition();
-
-                        if (!type.Name.EndsWith("Attribute")) {
-                            type = TypeDefinition.Get(type.Namespace, type.Name + "Attribute");
-                        }
-                        
-                        yield return new AttributeModel(type,
-                            arguments,
-                            propertyAssignment);
+                        yield return InternalAttributeModel(attribute, operation);
                     }
                 }
             }
         }
+    }
+
+    public static AttributeModel? GetAttribute(GeneratorSyntaxContext context, AttributeSyntax attribute) {
+        var operation = context.SemanticModel.GetTypeInfo(attribute);
+        
+        return operation.Type != null ? 
+            InternalAttributeModel(attribute, operation) : 
+            null;
+    }
+    
+    private static AttributeModel InternalAttributeModel(AttributeSyntax attribute, TypeInfo operation) {
+        var arguments = "";
+        var propertyAssignment = "";
+
+        if (attribute.ArgumentList != null) {
+            foreach (var attributeArgumentSyntax in
+                     attribute.ArgumentList.Arguments) {
+                if (attributeArgumentSyntax.ToString().Contains("=")) {
+                    if (propertyAssignment.Length > 0) {
+                        propertyAssignment += ", ";
+                    }
+
+                    propertyAssignment += attributeArgumentSyntax.ToString();
+                }
+                else {
+                    if (arguments.Length > 0) {
+                        arguments += ", ";
+                    }
+
+                    arguments += attributeArgumentSyntax.ToString();
+                }
+            }
+        }
+
+        var type = operation.Type.GetTypeDefinition();
+
+        if (!type.Name.EndsWith("Attribute")) {
+            type = TypeDefinition.Get(type.Namespace, type.Name + "Attribute");
+        }
+                        
+        return new AttributeModel(type,
+            arguments,
+            propertyAssignment);
     }
 }

@@ -49,18 +49,23 @@ public abstract class BaseRequestModelGenerator {
         RequestHandlerNameModel requestHandlerNameModel,
         CancellationToken cancellationToken) {
         var parameters = new List<RequestParameterInformation>();
-
-        foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
+        for(var i = 0; i < methodDeclaration.ParameterList.Parameters.Count; i++) {
+            var parameter = methodDeclaration.ParameterList.Parameters[i];
             cancellationToken.ThrowIfCancellationRequested();
 
             RequestParameterInformation? parameterInformation =
                 GetParameterInfoFromAttributes(generatorSyntaxContext, methodDeclaration,
                     requestHandlerNameModel,
-                    parameter);
+                    parameter,
+                    i);
 
             if (parameterInformation == null) {
-                parameterInformation = GetParameterInfo(generatorSyntaxContext, methodDeclaration,
-                    requestHandlerNameModel, parameter);
+                parameterInformation = GetParameterInfo(
+                    generatorSyntaxContext, 
+                    methodDeclaration,
+                    requestHandlerNameModel, 
+                    parameter,
+                    i);
             }
 
             parameters.Add(parameterInformation);
@@ -69,57 +74,90 @@ public abstract class BaseRequestModelGenerator {
         return parameters;
     }
 
+    protected virtual RequestParameterInformation? DefaultGetParameterFromAttribute(
+        AttributeSyntax attribute, 
+        GeneratorSyntaxContext generatorSyntaxContext, 
+        ParameterSyntax parameter, 
+        int parameterIndex) {
+        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+        var name = parameter.Identifier.Text;
+
+        string? defaultValue = null;
+
+        if (parameter.Default != null) {
+            defaultValue = parameter.Default.Value.ToFullString();
+        }
+
+        return new RequestParameterInformation(
+                parameterType,
+                name,
+                !parameterType.IsNullable,
+                defaultValue,
+                ParameterBindType.CustomAttribute,
+                "",
+                parameterIndex,
+                AttributeModelHelper.GetAttribute(generatorSyntaxContext, attribute)
+                );
+    }
+
+    
     protected virtual RequestParameterInformation GetParameterInfo(
         GeneratorSyntaxContext generatorSyntaxContext,
         MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
-        ParameterSyntax parameter) {
+        ParameterSyntax parameter,
+        int parameterIndex) {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
 
         if (KnownTypes.Requests.IExecutionContext.Equals(parameterType)) {
             return CreateRequestParameterInformation(parameter, parameterType,
                 ParameterBindType.ExecutionContext,
+                parameterIndex,
                 true);
         }
 
         if (KnownTypes.Requests.IExecutionRequest.Equals(parameterType)) {
             return CreateRequestParameterInformation(parameter, parameterType,
                 ParameterBindType.ExecutionRequest,
+                parameterIndex,
                 true);
         }
 
         if (KnownTypes.Requests.IExecutionResponse.Equals(parameterType)) {
             return CreateRequestParameterInformation(parameter, parameterType,
                 ParameterBindType.ExecutionResponse,
+                parameterIndex,
                 true);
         }
 
         if (KnownTypes.DI.IServiceProvider.Equals(parameterType)) {
             return CreateRequestParameterInformation(parameter, parameterType,
-                ParameterBindType.ServiceProvider);
+                ParameterBindType.ServiceProvider,parameterIndex);
         }
 
         if (parameterType.TypeDefinitionEnum == TypeDefinitionEnum.InterfaceDefinition) {
             return CreateRequestParameterInformation(parameter, parameterType,
-                ParameterBindType.FromServiceProvider);
+                ParameterBindType.FromServiceProvider,parameterIndex);
         }
 
         var id = parameter.Identifier.Text;
 
         if (requestHandlerNameModel.Path.Contains($"{{{id}}}")) {
             return CreateRequestParameterInformation(parameter, parameterType,
-                ParameterBindType.Path);
+                ParameterBindType.Path,parameterIndex);
         }
 
-        return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.Body);
+        return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.Body,parameterIndex);
     }
 
     public static RequestParameterInformation CreateRequestParameterInformation(
         ParameterSyntax parameter,
         ITypeDefinition parameterType,
         ParameterBindType parameterBindType,
+        int parameterIndex,
         bool? required = null,
-        string? bindingName = null) {
+        string? bindingName = null,
+        AttributeModel? customAttribute = null) {
         if (!parameterType.IsNullable && parameter.ToFullString().Contains("?")) {
             parameterType = parameterType.MakeNullable();
         }
@@ -129,21 +167,24 @@ public abstract class BaseRequestModelGenerator {
         if (parameter.Default != null) {
             defaultValue = parameter.Default.Value.ToFullString();
         }
-
+        
         return new RequestParameterInformation(
             parameterType,
             parameter.Identifier.Text,
             required ?? !parameterType.IsNullable,
             defaultValue,
             parameterBindType,
-            bindingName ?? string.Empty);
+            bindingName ?? string.Empty,
+            parameterIndex,
+            customAttribute);
     }
 
     protected abstract RequestParameterInformation? GetParameterInfoFromAttributes(
         GeneratorSyntaxContext generatorSyntaxContext,
         MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
-        ParameterSyntax parameter);
+        ParameterSyntax parameter,
+        int parameterIndex);
 
     protected virtual string GetControllerMethod(MethodDeclarationSyntax methodDeclaration) {
         return methodDeclaration.Identifier.Text;

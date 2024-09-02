@@ -2,6 +2,7 @@
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Requests;
 
@@ -13,15 +14,19 @@ public static class BindRequestParametersMethodGenerator {
 
         invokeMethod.Modifiers |= ComponentModifier.Async;
         invokeMethod.SetReturnType(new GenericTypeDefinition(typeof(Task<>),
-            new[] { KnownTypes.Requests.IExecutionRequestParameters }));
+            new[] {
+                KnownTypes.Requests.IExecutionRequestParameters
+            }));
 
         var context = invokeMethod.AddParameter(KnownTypes.Requests.IExecutionContext, "context");
 
         ProcessParameters(requestHandlerModel, classDefinition, invokeMethod, context);
     }
 
-    private static void ProcessParameters(RequestHandlerModel requestHandlerModel, ClassDefinition classDefinition,
-        MethodDefinition invokeMethod, ParameterDefinition context) {
+    private static void ProcessParameters(RequestHandlerModel requestHandlerModel,
+        ClassDefinition classDefinition,
+        MethodDefinition invokeMethod,
+        ParameterDefinition context) {
         var parametersVar = invokeMethod.Assign(New(InvokeClassGenerator.GenericParameters)).ToVar("parameters");
 
         foreach (var parameterInformation in requestHandlerModel.RequestParameterInformationList) {
@@ -50,12 +55,41 @@ public static class BindRequestParametersMethodGenerator {
                     BindFromServiceProviderType(parameterInformation, invokeMethod, context, parametersVar);
                     break;
 
+                case ParameterBindType.CustomAttribute:
+                    BindFromCustomAttribute(classDefinition, parameterInformation, invokeMethod, context, parametersVar);
+                    break;
+
                 default:
                     throw new NotImplementedException("Binding not supported yet: " + parameterInformation.BindingType);
             }
         }
 
         invokeMethod.Return(parametersVar);
+    }
+
+    private static void BindFromCustomAttribute(ClassDefinition classDefinition, RequestParameterInformation parameterInformation,
+        MethodDefinition invokeMethod,
+        ParameterDefinition context,
+        InstanceDefinition parametersVar) {
+        IOutputComponent invokeStatement;
+
+        InvokeGeneric(
+            KnownTypes.Requests.ExecutionHelper,
+            "CustomAttributeData",
+            new[] {
+                parameterInformation.ParameterType
+            },
+            new object[] {
+                context, New(
+                    parameterInformation.CustomAttribute!.TypeDefinition, 
+                    new CodeOutputComponent(parameterInformation.CustomAttribute.Arguments) {
+                        Indented = false
+                    }), 
+                new CodeOutputComponent($"_parameterInfo[{parameterInformation.ParameterIndex}]")
+            }
+        );
+
+        invokeMethod.Assign(context.Property("RequestServices")).To(parametersVar.Property(parameterInformation.Name));
     }
 
     private static void BindServiceProviderType(RequestParameterInformation parameterInformation,
@@ -69,11 +103,15 @@ public static class BindRequestParametersMethodGenerator {
 
         if (parameterInformation.Required) {
             invokeStatement = context.Property("RequestServices")
-                .InvokeGeneric("GetRequiredService", new[] { parameterInformation.ParameterType });
+                .InvokeGeneric("GetRequiredService", new[] {
+                    parameterInformation.ParameterType
+                });
         }
         else {
             invokeStatement = context.Property("RequestServices")
-                .InvokeGeneric("GetService", new[] { parameterInformation.ParameterType });
+                .InvokeGeneric("GetService", new[] {
+                    parameterInformation.ParameterType
+                });
         }
 
         invokeStatement.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
@@ -122,17 +160,23 @@ public static class BindRequestParametersMethodGenerator {
 
         if (!string.IsNullOrEmpty(parameterInformation.DefaultValue)) {
             invokeStatement =
-                stringInvokeStatement.InvokeGeneric("ParseWithDefault", new[] { parameterInformation.ParameterType },
+                stringInvokeStatement.InvokeGeneric("ParseWithDefault", new[] {
+                        parameterInformation.ParameterType
+                    },
                     valueStatement, QuoteString(bindingName), parameterInformation.DefaultValue!);
         }
         else if (parameterInformation.Required) {
             invokeStatement =
-                stringInvokeStatement.InvokeGeneric("ParseRequired", new[] { parameterInformation.ParameterType },
+                stringInvokeStatement.InvokeGeneric("ParseRequired", new[] {
+                        parameterInformation.ParameterType
+                    },
                     valueStatement, QuoteString(bindingName));
         }
         else {
             invokeStatement =
-                stringInvokeStatement.InvokeGeneric("ParseOptional", new[] { parameterInformation.ParameterType },
+                stringInvokeStatement.InvokeGeneric("ParseOptional", new[] {
+                        parameterInformation.ParameterType
+                    },
                     valueStatement, QuoteString(bindingName));
         }
 
@@ -149,7 +193,9 @@ public static class BindRequestParametersMethodGenerator {
             invokeMethod.Assign(getRequiredService).ToVar("contentSerializationService");
 
         var deserializeStatement = Await(contentSerializationService.InvokeGeneric("DeserializeRequestBody",
-            new[] { parameterInformation.ParameterType }, context));
+            new[] {
+                parameterInformation.ParameterType
+            }, context));
 
         invokeMethod.Assign(Bang(Parenthesis(deserializeStatement)))
             .To(parametersVar.Property(parameterInformation.Name));

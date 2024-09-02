@@ -8,28 +8,22 @@ namespace Hardened.Console.SourceGenerator.Impl;
 
 public class CommandDefinitionRegistrationGenerator {
     public void GenerateFile(
-        
         SourceProductionContext sourceProductionContext,
         (EntryPointSelector.Model Left, ImmutableArray<CommandDefinitionModel> Right) commandData) {
-        try {
-            var commandsFile = new CSharpFileDefinition(commandData.Left.EntryPointType.Namespace);
+        var commandsFile = new CSharpFileDefinition(commandData.Left.EntryPointType.Namespace);
 
-            GeneratedCode(sourceProductionContext, commandData.Left, commandData.Right,
-                commandsFile);
+        GeneratedCode(sourceProductionContext, commandData.Left, commandData.Right,
+            commandsFile);
 
-            var outputContext = new OutputContext();
+        var outputContext = new OutputContext();
 
-            commandsFile.WriteOutput(outputContext);
+        commandsFile.WriteOutput(outputContext);
 
-            var fileName = commandData.Left.EntryPointType.Name + ".Commands.cs";
+        var fileName = commandData.Left.EntryPointType.Name + ".Commands.cs";
 
-            var output = outputContext.Output();
+        var output = outputContext.Output();
 
-            sourceProductionContext.AddSource(fileName, output);
-        }
-        catch (Exception ex) {
-            File.WriteAllText("/tmp/exception.txt", ex.Message);
-        }
+        sourceProductionContext.AddSource(fileName, output);
     }
 
     private void GeneratedCode(
@@ -95,7 +89,9 @@ public class CommandDefinitionRegistrationGenerator {
                 "RunApplication",
                 new[] {
                     environment.Instance, rootProvider.Instance, Null()
-                }) { Indented = false });
+                }) {
+                Indented = false
+            });
 
 
         var providerProperty =
@@ -106,7 +102,9 @@ public class CommandDefinitionRegistrationGenerator {
             NullCoalesce(
                 rootProvider.Instance,
                 new CodeOutputComponent(
-                    "throw new Exception(\"rootProvider can't be null here\")") { Indented = false }
+                    "throw new Exception(\"rootProvider can't be null here\")") {
+                    Indented = false
+                }
             ));
         providerProperty.Set = null;
 
@@ -123,7 +121,9 @@ public class CommandDefinitionRegistrationGenerator {
         dispose.AddUsingNamespace("System");
         disposeBlock.Assign(Null()).To(rootProvider.Instance);
         disposeBlock.AddIndentedStatement(
-            Await(new CodeOutputComponent("container") { Indented = false }
+            Await(new CodeOutputComponent("container") {
+                    Indented = false
+                }
                 .Invoke("DisposeAsync")));
     }
 
@@ -226,7 +226,9 @@ public class CommandDefinitionRegistrationGenerator {
             TypeDefinitionEnum.InterfaceDefinition,
             KnownTypes.Namespace.Hardened.Commands.Impl,
             "ICommandBinder",
-            new[] { commandDefinitionModel.CommandModelType }
+            new[] {
+                commandDefinitionModel.CommandModelType
+            }
         );
 
         var binderClass = GenerateBinderCode(registerMethod, classDefinition, serviceCollection,
@@ -279,7 +281,9 @@ public class CommandDefinitionRegistrationGenerator {
 
         var dataParameter = bindMethod.AddParameter(
             new GenericTypeDefinition(typeof(IReadOnlyDictionary<,>),
-                new[] { TypeDefinition.Get(typeof(string)), TypeDefinition.Get(typeof(string[])) }),
+                new[] {
+                    TypeDefinition.Get(typeof(string)), TypeDefinition.Get(typeof(string[]))
+                }),
             "data"
         );
 
@@ -295,7 +299,9 @@ public class CommandDefinitionRegistrationGenerator {
             ).Invoke("FirstOrDefault");
 
             var convert = converter.Instance.InvokeGeneric("Convert",
-                new[] { optionModel.PropertyType },
+                new[] {
+                    optionModel.PropertyType
+                },
                 SyntaxHelpers.QuoteString(optionModel.OptionName),
                 "CommandOptionType." + optionModel.OptionType,
                 dataValueStatement,
@@ -311,13 +317,17 @@ public class CommandDefinitionRegistrationGenerator {
             var parentBinder = new GenericTypeDefinition(TypeDefinitionEnum.ClassDefinition,
                 KnownTypes.Namespace.Hardened.Commands.Impl,
                 "ICommandBinder",
-                new[] { commandDefinitionModel.ParentType }
+                new[] {
+                    commandDefinitionModel.ParentType
+                }
             );
 
             var binder =
                 bindMethod
                     .Assign(serviceProvider.Instance.InvokeGeneric("GetService",
-                        new[] { parentBinder })).ToVar("binder");
+                        new[] {
+                            parentBinder
+                        })).ToVar("binder");
 
             var ifStatement =
                 bindMethod.If(SyntaxHelpers.NotEquals(binder, SyntaxHelpers.Null()));
