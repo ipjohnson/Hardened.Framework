@@ -161,7 +161,7 @@ public static class ExecutionHelper {
 
     #endregion
 
-    public static Task<T> CustomAttributeData<T>(IExecutionContext context, object attribute, IExecutionRequestParameter parameter) {
+    public static ValueTask<T> CustomAttributeData<T>(IExecutionContext context, object attribute, IExecutionRequestParameter parameter) {
         if (attribute is ICustomBindingAttribute customBindingAttribute) {
             return customBindingAttribute.BindValue<T>(context, parameter);
         }

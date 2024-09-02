@@ -40,7 +40,9 @@ public static class InvokeClassGenerator {
                 TypeDefinitionEnum.ClassDefinition,
                 KnownTypes.Namespace.Hardened.Requests.Runtime.Execution,
                 "BaseExecutionHandler",
-                new[] { handlerModel.ControllerType }));
+                new[] {
+                    handlerModel.ControllerType
+                }));
     }
 
     private static void CreateConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
@@ -89,7 +91,9 @@ public static class InvokeClassGenerator {
         var filterMethod = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,
             "AsyncStandardFilterEmptyParameters",
-            new[] { handlerModel.ControllerType },
+            new[] {
+                handlerModel.ControllerType
+            },
             "serviceProvider",
             "_handlerInfo",
             "InvokeMethod",
@@ -105,7 +109,9 @@ public static class InvokeClassGenerator {
         var filterMethod = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,
             "AsyncStandardFilterWithParameters",
-            new[] { handlerModel.ControllerType, GenericParameters },
+            new[] {
+                handlerModel.ControllerType, GenericParameters
+            },
             "serviceProvider",
             "_handlerInfo",
             "BindRequestParameters",
@@ -123,7 +129,9 @@ public static class InvokeClassGenerator {
         var filterMethod = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,
             "StandardFilterEmptyParameters",
-            new[] { handlerModel.ControllerType },
+            new[] {
+                handlerModel.ControllerType
+            },
             "serviceProvider",
             "_handlerInfo",
             "InvokeMethod",
@@ -139,7 +147,9 @@ public static class InvokeClassGenerator {
         var filterMethod = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,
             "StandardFilterWithParameters",
-            new[] { handlerModel.ControllerType, GenericParameters },
+            new[] {
+                handlerModel.ControllerType, GenericParameters
+            },
             "serviceProvider",
             "_handlerInfo",
             "BindRequestParameters",
@@ -156,7 +166,9 @@ public static class InvokeClassGenerator {
         var arguments = new List<object>();
 
         foreach (var filterInformation in handlerModel.Filters) {
-            var newValue = New((ITypeDefinition)filterInformation.TypeDefinition, filterInformation.Arguments);
+            var newValue = New((ITypeDefinition)filterInformation.TypeDefinition, new CodeOutputComponent(filterInformation.Arguments) {
+                Indented = false
+            });
 
             if (!string.IsNullOrEmpty(filterInformation.PropertyAssignment)) {
                 newValue.AddInitValue(filterInformation.PropertyAssignment);

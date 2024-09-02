@@ -73,7 +73,7 @@ public static class BindRequestParametersMethodGenerator {
         InstanceDefinition parametersVar) {
         IOutputComponent invokeStatement;
 
-        InvokeGeneric(
+        var attributeDataStatement = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,
             "CustomAttributeData",
             new[] {
@@ -83,13 +83,13 @@ public static class BindRequestParametersMethodGenerator {
                 context, New(
                     parameterInformation.CustomAttribute!.TypeDefinition, 
                     new CodeOutputComponent(parameterInformation.CustomAttribute.Arguments) {
-                        Indented = false
+                        Indented = false,
                     }), 
                 new CodeOutputComponent($"_parameterInfo[{parameterInformation.ParameterIndex}]")
             }
         );
 
-        invokeMethod.Assign(context.Property("RequestServices")).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(Await(attributeDataStatement)).To(parametersVar.Property(parameterInformation.Name));
     }
 
     private static void BindServiceProviderType(RequestParameterInformation parameterInformation,

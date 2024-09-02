@@ -24,9 +24,12 @@ public static class MethodDefinitionSyntaxExtensions {
 
         foreach (var parameter in methodDeclarationSyntax.ParameterList.Parameters) {
             if (parameter.Type != null) {
+                var type =
+                    parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+                
                 parameters.Add(new HardenedParameterDefinition(
                     parameter.Identifier.ValueText,
-                    parameter.Type!.GetTypeDefinition(generatorSyntaxContext)!
+                    type
                 ));
             }
         }

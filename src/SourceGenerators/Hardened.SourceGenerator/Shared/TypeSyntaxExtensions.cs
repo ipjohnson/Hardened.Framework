@@ -63,6 +63,10 @@ public static class TypeSyntaxExtensions {
             return GetTypeDefinitionFromNamedSymbol(namedTypeSymbol);
         }
 
+        if (symbolInfo.Symbol is IArrayTypeSymbol arrayTypeSymbol) {
+            return GetTypeDefinitionFromType(arrayTypeSymbol.ElementType).MakeArray();
+        }
+
         return null;
     }
 
@@ -139,6 +143,10 @@ public static class TypeSyntaxExtensions {
 
         if (typeSymbol is ITypeParameterSymbol typeParameterSymbol) {
             return TypeDefinition.Get("", typeParameterSymbol.Name);
+        }
+
+        if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol) {
+            return GetTypeDefinitionFromType(arrayTypeSymbol.ElementType).MakeArray();
         }
 
         if (typeSymbol is INamedTypeSymbol namedTypeSymbol) {

@@ -90,8 +90,16 @@ public class HardenedParameterDefinition {
             return false;
         }
 
+        if (hardenedParameterDefinition == null) {
+            throw new ArgumentNullException(nameof(hardenedParameterDefinition));
+        }
+        
         if (hardenedParameterDefinition.Name != Name) {
             return false;
+        }
+
+        if (hardenedParameterDefinition.Type == null) {
+            throw new ArgumentNullException(nameof(hardenedParameterDefinition.Type));
         }
 
         if (!hardenedParameterDefinition.Type.Equals(Type)) {
