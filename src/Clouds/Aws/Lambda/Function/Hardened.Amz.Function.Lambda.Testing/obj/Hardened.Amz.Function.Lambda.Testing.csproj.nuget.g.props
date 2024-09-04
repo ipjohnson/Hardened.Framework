@@ -4,28 +4,26 @@
     <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
     <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
     <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
-    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
-    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\ipjoh\.nuget\packages\;C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages;C:\Program Files (x86)\Microsoft\Xamarin\NuGet</NuGetPackageFolders>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">/Users/ianjohnson/.nuget/packages/</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">/Users/ianjohnson/.nuget/packages/</NuGetPackageFolders>
     <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
-    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">6.9.1</NuGetToolVersion>
+    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">6.10.1</NuGetToolVersion>
   </PropertyGroup>
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <SourceRoot Include="C:\Users\ipjoh\.nuget\packages\" />
-    <SourceRoot Include="C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\" />
-    <SourceRoot Include="C:\Program Files (x86)\Microsoft\Xamarin\NuGet\" />
+    <SourceRoot Include="/Users/ianjohnson/.nuget/packages/" />
   </ItemGroup>
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Content Include="$(NuGetPackageRoot)hardened.shared.testing\0.1.0-alpha1130\contentFiles\any\net6.0\testhost.dll" Condition="Exists('$(NuGetPackageRoot)hardened.shared.testing\0.1.0-alpha1130\contentFiles\any\net6.0\testhost.dll')">
+    <Content Include="$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1147/contentFiles/any/net8.0/testhost.dll" Condition="Exists('$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1147/contentFiles/any/net8.0/testhost.dll')">
       <NuGetPackageId>Hardened.Shared.Testing</NuGetPackageId>
-      <NuGetPackageVersion>0.1.0-Alpha1130</NuGetPackageVersion>
+      <NuGetPackageVersion>0.1.0-Alpha1147</NuGetPackageVersion>
       <NuGetItemType>Content</NuGetItemType>
       <Pack>false</Pack>
       <Private>False</Private>
       <Link>testhost.dll</Link>
     </Content>
-    <Content Include="$(NuGetPackageRoot)hardened.shared.testing\0.1.0-alpha1130\contentFiles\any\net6.0\testhost.exe" Condition="Exists('$(NuGetPackageRoot)hardened.shared.testing\0.1.0-alpha1130\contentFiles\any\net6.0\testhost.exe')">
+    <Content Include="$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1147/contentFiles/any/net8.0/testhost.exe" Condition="Exists('$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1147/contentFiles/any/net8.0/testhost.exe')">
       <NuGetPackageId>Hardened.Shared.Testing</NuGetPackageId>
-      <NuGetPackageVersion>0.1.0-Alpha1130</NuGetPackageVersion>
+      <NuGetPackageVersion>0.1.0-Alpha1147</NuGetPackageVersion>
       <NuGetItemType>Content</NuGetItemType>
       <Pack>false</Pack>
       <Private>False</Private>
@@ -33,12 +31,12 @@
     </Content>
   </ItemGroup>
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)xunit.core\2.9.0\build\xunit.core.props" Condition="Exists('$(NuGetPackageRoot)xunit.core\2.9.0\build\xunit.core.props')" />
-    <Import Project="$(NuGetPackageRoot)microsoft.testplatform.testhost\17.10.0\build\netcoreapp3.1\Microsoft.TestPlatform.TestHost.props" Condition="Exists('$(NuGetPackageRoot)microsoft.testplatform.testhost\17.10.0\build\netcoreapp3.1\Microsoft.TestPlatform.TestHost.props')" />
-    <Import Project="$(NuGetPackageRoot)microsoft.codecoverage\17.10.0\build\netstandard2.0\Microsoft.CodeCoverage.props" Condition="Exists('$(NuGetPackageRoot)microsoft.codecoverage\17.10.0\build\netstandard2.0\Microsoft.CodeCoverage.props')" />
-    <Import Project="$(NuGetPackageRoot)microsoft.net.test.sdk\17.10.0\build\netcoreapp3.1\Microsoft.NET.Test.Sdk.props" Condition="Exists('$(NuGetPackageRoot)microsoft.net.test.sdk\17.10.0\build\netcoreapp3.1\Microsoft.NET.Test.Sdk.props')" />
+    <Import Project="$(NuGetPackageRoot)xunit.core/2.9.0/build/xunit.core.props" Condition="Exists('$(NuGetPackageRoot)xunit.core/2.9.0/build/xunit.core.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.testplatform.testhost/17.10.0/build/netcoreapp3.1/Microsoft.TestPlatform.TestHost.props" Condition="Exists('$(NuGetPackageRoot)microsoft.testplatform.testhost/17.10.0/build/netcoreapp3.1/Microsoft.TestPlatform.TestHost.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.codecoverage/17.10.0/build/netstandard2.0/Microsoft.CodeCoverage.props" Condition="Exists('$(NuGetPackageRoot)microsoft.codecoverage/17.10.0/build/netstandard2.0/Microsoft.CodeCoverage.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.net.test.sdk/17.10.0/build/netcoreapp3.1/Microsoft.NET.Test.Sdk.props" Condition="Exists('$(NuGetPackageRoot)microsoft.net.test.sdk/17.10.0/build/netcoreapp3.1/Microsoft.NET.Test.Sdk.props')" />
   </ImportGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Pkgxunit_analyzers Condition=" '$(Pkgxunit_analyzers)' == '' ">C:\Users\ipjoh\.nuget\packages\xunit.analyzers\1.15.0</Pkgxunit_analyzers>
+    <Pkgxunit_analyzers Condition=" '$(Pkgxunit_analyzers)' == '' ">/Users/ianjohnson/.nuget/packages/xunit.analyzers/1.15.0</Pkgxunit_analyzers>
   </PropertyGroup>
 </Project>

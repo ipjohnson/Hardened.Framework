@@ -15,7 +15,7 @@ internal class LambdaEntryIncrementalGenerator {
 
         var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
             methodSelector.Where,
-            LambdaFunctionModelGenerator.GenerateRequestModel
+            new LambdaFunctionModelGenerator().GenerateRequestModel
         ).WithComparer(new RequestHandlerModelComparer());
 
         var applicationCollect = applicationValuesProvider.Collect();

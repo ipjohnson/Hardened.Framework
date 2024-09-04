@@ -1,5 +1,9 @@
-﻿using Amazon.Lambda.SQSEvents;
+﻿using System.Text;
+using Amazon.Lambda.SQSEvents;
+using Hardened.Amz.Function.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Headers;
+using Hardened.Shared.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Json;
 using Hardened.Shared.Runtime.Utilities;
@@ -7,18 +11,24 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Amz.Function.Sqs.Runtime.Impl;
 
+/**
+[Expose(typeof(SqsBatchFilter))]
+[Singleton]
 public class SqsBatchFilter : IExecutionFilter {
     private readonly IJsonSerializer _jsonSerializer;
     private readonly IMemoryStreamPool _memoryStreamPool;
     private readonly ISqsMessageContext _sqsMessageContext;
+    private readonly ISqsExceptionHandler _sqsExceptionHandler;
     
     public SqsBatchFilter(
         IJsonSerializer jsonSerializer,
         IMemoryStreamPool memoryStreamPool, 
-        ISqsMessageContext sqsMessageContext) {
+        ISqsMessageContext sqsMessageContext, 
+        ISqsExceptionHandler sqsExceptionHandler) {
         _jsonSerializer = jsonSerializer;
         _memoryStreamPool = memoryStreamPool;
         _sqsMessageContext = sqsMessageContext;
+        _sqsExceptionHandler = sqsExceptionHandler;
     }
 
     public async Task Execute(IExecutionChain chain) {
@@ -40,29 +50,31 @@ public class SqsBatchFilter : IExecutionFilter {
     }
 
     private async Task<bool> ProcessMessage(IExecutionChain chain, SQSEvent.SQSMessage sqsMessage) {
-        var context = (IExecutionContext)chain.Context.Clone();
-        chain.Context.RequestServices.CreateScope();
+        using var outputStream = _memoryStreamPool.Get();
         
-        await using var bodyStream = new MemoryStreamPoolWrapper(_memoryStreamPool.Get());
-        await using (var streamWriter = new StreamWriter(bodyStream)) {
+        chain.Context.RequestServices.CreateScope();
 
-            await streamWriter.WriteAsync(sqsMessage.Body);
-        }
+        using var inputStream = _memoryStreamPool.Get();
+        
+        inputStream.Item.Write(Encoding.UTF8.GetBytes(sqsMessage.Body));
+        
+        inputStream.Item.Position = 0;
 
-        bodyStream.Position = 0;
-        context.Request.Body = bodyStream;
-
+        var request = 
+            new LambdaExecutionRequest(chain.Context.Request.Method, chain.Context.Request.Path, inputStream.Item, chain.Context.Request.Headers);
+        var response = 
+            new LambdaExecutionResponse(outputStream.Item, new HeaderCollectionStringValues());
+        var context = (IExecutionContext)chain.Context.Clone(request,response);
         var forkedChain = chain.Fork(context);
-
+        
         try {
             await forkedChain.Next();
             
-            return context.Response.Status is < 300;
+            return response.Status is null or < 300;
         }
         catch (Exception exp) {
-            
+            return await _sqsExceptionHandler.HandleException(forkedChain, sqsMessage, exp);
         }
-
-        return false;
     }
 }
+*/

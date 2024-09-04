@@ -1,10 +1,14 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Amz.Function.Sqs.Runtime.Impl;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Amz.Function.Sqs.Runtime.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class SqsTriggerAttribute : Attribute, IRequestFilterProvider {
+    private SqsBatchFilter? _sqsBatchFilter;
+    
     public SqsTriggerAttribute(string queueName) {
         QueueName = queueName;
     }
@@ -22,6 +26,9 @@ public class SqsTriggerAttribute : Attribute, IRequestFilterProvider {
     public int BatchWindow { get; set; } = 10;
 
     public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
-        throw new NotImplementedException();
+        yield return new RequestFilterInfo(
+            context => _sqsBatchFilter ??= 
+                context.RootServiceProvider.GetRequiredService<SqsBatchFilter>(), 
+            -10);
     }
 }

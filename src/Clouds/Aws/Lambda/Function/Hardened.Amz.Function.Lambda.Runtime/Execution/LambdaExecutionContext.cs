@@ -35,7 +35,10 @@ public class LambdaExecutionContext : IExecutionContext {
             response ?? this.Response,
             metricLogger ?? this.RequestMetrics,
             this.StartTime
-        );
+        ) {
+            HandlerInstance = HandlerInstance,
+            HandlerInfo = HandlerInfo,
+        };
     }
 
     public IServiceProvider RootServiceProvider { get; }

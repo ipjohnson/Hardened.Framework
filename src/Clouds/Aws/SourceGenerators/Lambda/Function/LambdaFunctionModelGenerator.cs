@@ -7,6 +7,100 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.Amz.Function.Lambda.SourceGenerator;
 
+public class LambdaFunctionModelGenerator : BaseRequestModelGenerator {
+    private List<string> _attributeNames = new() {
+        "LambdaFunction"
+    };
+    
+    protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation) {
+        var attribute =
+            methodDeclaration.GetAttribute(
+                KnownTypes.Requests.HardenedFunctionAttribute.Name.Replace("Attribute", ""))!;
+        var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
+
+        return new RequestHandlerNameModel(methodDeclaration.Identifier.Text, "POST");
+    }
+
+    protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation) {
+        var classDeclarationSyntax =
+            methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
+
+        var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
+
+        var className = classDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text;
+
+        if (methodDeclaration.ParameterList.Parameters.Count > 0) {
+            var parameterString = "";
+
+            foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
+                parameterString += '|' + parameter.Identifier.Text;
+            }
+
+            className += "_" + parameterString.Select(c => (int)c).Aggregate((total, c) => total + c);
+        }
+
+
+        return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated", className);
+    }
+
+    protected override RequestParameterInformation? GetParameterInfoFromAttributes(GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
+        RequestHandlerNameModel requestHandlerNameModel,
+        ParameterSyntax parameter, int parameterIndex) {
+        foreach (var attributeList in parameter.AttributeLists) {
+            foreach (var attribute in attributeList.Attributes) {
+                var attributeName = attribute.Name.ToString().Replace("Attribute", "");
+
+                switch (attributeName) {
+                    case "FromContext":
+                        var headerName =
+                            attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
+
+                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                            ParameterBindType.Header, headerName, parameterIndex);
+
+
+                    default:
+                        return DefaultGetParameterFromAttribute(
+                            attribute, generatorSyntaxContext, parameter, parameterIndex);
+                }
+            }
+        }
+
+        return null;
+    }
+    
+    protected override bool IsFilterAttribute(AttributeSyntax attribute) {
+        var attributeName = attribute.Name.ToString().Replace("Attribute", "");
+
+        switch (attributeName) {
+            case "Template":
+            case "RawResponse":
+                return false;
+
+            default:
+                return !_attributeNames.Contains(attributeName);
+        }
+    }
+
+    private static RequestParameterInformation GetParameterInfoWithBinding(
+        GeneratorSyntaxContext generatorSyntaxContext,
+        ParameterSyntax parameter,
+        ParameterBindType bindingType,
+        string bindingName, 
+        int parameterIndex) {
+        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+
+        return CreateRequestParameterInformation(parameter,
+            parameterType,
+            bindingType,
+            parameterIndex,
+            null,
+            bindingName);
+    }
+
+}
+
+/*
 public static class LambdaFunctionModelGenerator {
     public static RequestHandlerModel GenerateRequestModel(GeneratorSyntaxContext context,
         CancellationToken cancellation) {
@@ -48,13 +142,16 @@ public static class LambdaFunctionModelGenerator {
     }
 
     private static IReadOnlyList<RequestParameterInformation> GetParameters(
-        GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclaration,
+        GeneratorSyntaxContext generatorSyntaxContext,
+        MethodDeclarationSyntax methodDeclaration,
         CancellationToken cancellation) {
         var parameters = new List<RequestParameterInformation>();
 
-        foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
+        for(var i = 0; i < methodDeclaration.ParameterList.Parameters.Count; i++) {
+
             cancellation.ThrowIfCancellationRequested();
 
+            var parameter = methodDeclaration.ParameterList.Parameters[i];
             RequestParameterInformation? parameterInformation =
                 GetParameterInfoFromAttributes(generatorSyntaxContext, parameter);
 
@@ -116,6 +213,8 @@ public static class LambdaFunctionModelGenerator {
 
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
                             ParameterBindType.Header, headerName);
+                    default:
+
                 }
             }
         }
@@ -124,15 +223,18 @@ public static class LambdaFunctionModelGenerator {
     }
 
     private static RequestParameterInformation GetParameterInfoWithBinding(
-        GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType,
-        string bindingName) {
+        GeneratorSyntaxContext generatorSyntaxContext,
+        ParameterSyntax parameter,
+        ParameterBindType bindingType,
+        string bindingName,
+        AttributeModel? attributeModel = null) {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
 
         return BaseRequestModelGenerator.CreateRequestParameterInformation(parameter,
             parameterType,
             bindingType,
             null,
-            bindingName);
+            bindingName, attributeModel);
     }
 
     private static string GetControllerMethod(MethodDeclarationSyntax methodDeclaration) {
@@ -164,6 +266,11 @@ public static class LambdaFunctionModelGenerator {
 
         var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
         var isAsync = returnType is GenericTypeDefinition { Name: "Task" or "ValueTask" };
+
+        if (!isAsync && returnType?.Name == "Task") {
+            isAsync = true;
+            returnType = TypeDefinition.Get(typeof(void));
+        }
 
         var rawResponse = context.Node.GetAttribute("RawResponse");
         var rawResponseString = "";
@@ -223,12 +330,12 @@ public static class LambdaFunctionModelGenerator {
         foreach (var attributeList in attributeListSyntax) {
             foreach (var attribute in attributeList.Attributes) {
                 if (IsNotFilterAttribute(attribute)) {
-                    var operation = context.SemanticModel.GetOperation(attribute);
+                    var operation = context.SemanticModel.GetTypeInfo(attribute);
 
-                    if (operation is { Type: { } }) {
-                        var arguments = "";
-                        var propertyAssignment = "";
+                    var arguments = "";
+                    var propertyAssignment = "";
 
+                    if (operation.Type != null) {
                         if (attribute.ArgumentList != null) {
                             foreach (var attributeArgumentSyntax in attribute.ArgumentList.Arguments) {
                                 if (attributeArgumentSyntax.ToString().Contains("=")) {
@@ -256,3 +363,4 @@ public static class LambdaFunctionModelGenerator {
         }
     }
 }
+*/

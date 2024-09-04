@@ -1,40 +1,29 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Harness\\Hardened.Amz.Web.Lambda.Harness.csproj": {}
+    "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Harness/Hardened.Amz.Web.Lambda.Harness.csproj": {}
   },
   "projects": {
-    "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Runtime\\Hardened.Amz.Shared.Lambda.Runtime.csproj": {
+    "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Runtime\\Hardened.Amz.Shared.Lambda.Runtime.csproj",
+        "projectUniqueName": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj",
         "projectName": "Hardened.Amz.Shared.Lambda.Runtime",
-        "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Runtime\\Hardened.Amz.Shared.Lambda.Runtime.csproj",
-        "packagesPath": "C:\\Users\\ipjoh\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Runtime\\obj\\",
+        "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj",
+        "packagesPath": "/Users/ianjohnson/.nuget/packages/",
+        "outputPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
-        ],
         "configFilePaths": [
-          "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
-          "C:\\Users\\ipjoh\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+          "/Users/ianjohnson/source/Hardened/Hardened.Amz/NuGet.Config",
+          "/Users/ianjohnson/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           ".net8.0"
         ],
         "sources": {
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
-          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/simplefixture-nightly": {},
           "https://nuget.pkg.github.com/ipjohnson-org/index.json": {}
         },
         "frameworks": {
@@ -47,6 +36,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -63,7 +57,7 @@
             },
             "Hardened.Requests.Runtime": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1139, )"
+              "version": "[0.1.0-Alpha1147, )"
             },
             "Microsoft.Extensions.DependencyInjection.Abstractions": {
               "target": "Package",
@@ -102,41 +96,30 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.401/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\Hardened.Amz.Shared.Lambda.Testing.csproj": {
+    "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Testing/Hardened.Amz.Shared.Lambda.Testing.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\Hardened.Amz.Shared.Lambda.Testing.csproj",
+        "projectUniqueName": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Testing/Hardened.Amz.Shared.Lambda.Testing.csproj",
         "projectName": "Hardened.Amz.Shared.Lambda.Testing",
-        "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\Hardened.Amz.Shared.Lambda.Testing.csproj",
-        "packagesPath": "C:\\Users\\ipjoh\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\obj\\",
+        "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Testing/Hardened.Amz.Shared.Lambda.Testing.csproj",
+        "packagesPath": "/Users/ianjohnson/.nuget/packages/",
+        "outputPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Testing/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
-        ],
         "configFilePaths": [
-          "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
-          "C:\\Users\\ipjoh\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+          "/Users/ianjohnson/source/Hardened/Hardened.Amz/NuGet.Config",
+          "/Users/ianjohnson/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           ".net8.0"
         ],
         "sources": {
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
-          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/simplefixture-nightly": {},
           "https://nuget.pkg.github.com/ipjohnson-org/index.json": {}
         },
         "frameworks": {
@@ -149,6 +132,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -161,7 +149,7 @@
             },
             "Hardened.Requests.Runtime": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1139, )"
+              "version": "[0.1.0-Alpha1147, )"
             },
             "Microsoft.Extensions.Logging.Abstractions": {
               "target": "Package",
@@ -192,55 +180,44 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.401/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Harness\\Hardened.Amz.Web.Lambda.Harness.csproj": {
+    "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Harness/Hardened.Amz.Web.Lambda.Harness.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Harness\\Hardened.Amz.Web.Lambda.Harness.csproj",
+        "projectUniqueName": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Harness/Hardened.Amz.Web.Lambda.Harness.csproj",
         "projectName": "Hardened.Amz.Web.Lambda.Harness",
-        "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Harness\\Hardened.Amz.Web.Lambda.Harness.csproj",
-        "packagesPath": "C:\\Users\\ipjoh\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Harness\\obj\\",
+        "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Harness/Hardened.Amz.Web.Lambda.Harness.csproj",
+        "packagesPath": "/Users/ianjohnson/.nuget/packages/",
+        "outputPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Harness/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
-        ],
         "configFilePaths": [
-          "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
-          "C:\\Users\\ipjoh\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+          "/Users/ianjohnson/source/Hardened/Hardened.Amz/NuGet.Config",
+          "/Users/ianjohnson/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           ".net8.0"
         ],
         "sources": {
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
-          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/simplefixture-nightly": {},
           "https://nuget.pkg.github.com/ipjohnson-org/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": ".net8.0",
             "projectReferences": {
-              "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Runtime\\Hardened.Amz.Shared.Lambda.Runtime.csproj": {
-                "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Runtime\\Hardened.Amz.Shared.Lambda.Runtime.csproj"
+              "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj": {
+                "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj"
               },
-              "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\Hardened.Amz.Shared.Lambda.Testing.csproj": {
-                "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Testing\\Hardened.Amz.Shared.Lambda.Testing.csproj"
+              "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Testing/Hardened.Amz.Shared.Lambda.Testing.csproj": {
+                "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Testing/Hardened.Amz.Shared.Lambda.Testing.csproj"
               },
-              "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Runtime\\Hardened.Amz.Web.Lambda.Runtime.csproj": {
-                "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Runtime\\Hardened.Amz.Web.Lambda.Runtime.csproj"
+              "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj": {
+                "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj"
               }
             }
           }
@@ -249,6 +226,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -279,49 +261,38 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.401/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Runtime\\Hardened.Amz.Web.Lambda.Runtime.csproj": {
+    "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Runtime\\Hardened.Amz.Web.Lambda.Runtime.csproj",
+        "projectUniqueName": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj",
         "projectName": "Hardened.Amz.Web.Lambda.Runtime",
-        "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Runtime\\Hardened.Amz.Web.Lambda.Runtime.csproj",
-        "packagesPath": "C:\\Users\\ipjoh\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Web\\Hardened.Amz.Web.Lambda.Runtime\\obj\\",
+        "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj",
+        "packagesPath": "/Users/ianjohnson/.nuget/packages/",
+        "outputPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
-        ],
         "configFilePaths": [
-          "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
-          "C:\\Users\\ipjoh\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+          "/Users/ianjohnson/source/Hardened/Hardened.Amz/NuGet.Config",
+          "/Users/ianjohnson/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           ".net8.0"
         ],
         "sources": {
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {},
           "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
-          "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
           "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-          "https://ci.appveyor.com/nuget/simplefixture-nightly": {},
           "https://nuget.pkg.github.com/ipjohnson-org/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": ".net8.0",
             "projectReferences": {
-              "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Runtime\\Hardened.Amz.Shared.Lambda.Runtime.csproj": {
-                "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Shared\\Hardened.Amz.Shared.Lambda.Runtime\\Hardened.Amz.Shared.Lambda.Runtime.csproj"
+              "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj": {
+                "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj"
               }
             }
           }
@@ -330,6 +301,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -358,7 +334,7 @@
             },
             "Hardened.Requests.Abstract": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1142, )"
+              "version": "[0.1.0-Alpha1147, )"
             },
             "Microsoft.Extensions.DependencyInjection.Abstractions": {
               "target": "Package",
@@ -389,7 +365,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.401/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -44,7 +44,7 @@
           }
         }
       },
-      "Hardened.Library.SourceGenerator/0.1.0-Alpha1141": {
+      "Hardened.Library.SourceGenerator/0.1.0-Alpha1147": {
         "type": "package",
         "dependencies": {
           "Microsoft.CodeAnalysis.CSharp": "4.10.0",
@@ -52,10 +52,10 @@
           "System.Memory": "4.5.5"
         }
       },
-      "Hardened.Requests.Abstract/0.1.0-Alpha1141": {
+      "Hardened.Requests.Abstract/0.1.0-Alpha1147": {
         "type": "package",
         "dependencies": {
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1141",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1147",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -67,11 +67,11 @@
           "lib/net8.0/Hardened.Requests.Abstract.dll": {}
         }
       },
-      "Hardened.Requests.Runtime/0.1.0-Alpha1141": {
+      "Hardened.Requests.Runtime/0.1.0-Alpha1147": {
         "type": "package",
         "dependencies": {
-          "Hardened.Requests.Abstract": "0.1.0-Alpha1141",
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1141",
+          "Hardened.Requests.Abstract": "0.1.0-Alpha1147",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1147",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -83,7 +83,7 @@
           "lib/net8.0/Hardened.Requests.Runtime.dll": {}
         }
       },
-      "Hardened.Shared.Runtime/0.1.0-Alpha1141": {
+      "Hardened.Shared.Runtime/0.1.0-Alpha1147": {
         "type": "package",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection": "8.0.0",
@@ -428,7 +428,7 @@
         "dependencies": {
           "Amazon.Lambda.Core": "2.2.0",
           "Hardened.Amz.Shared.Lambda.Runtime": "1.0.0",
-          "Hardened.Requests.Runtime": "0.1.0-Alpha1139",
+          "Hardened.Requests.Runtime": "0.1.0-Alpha1147",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
         },
@@ -445,7 +445,7 @@
         "dependencies": {
           "Amazon.Lambda.Core": "2.2.0",
           "Amazon.Lambda.Serialization.SystemTextJson": "2.4.3",
-          "Hardened.Requests.Runtime": "0.1.0-Alpha1139",
+          "Hardened.Requests.Runtime": "0.1.0-Alpha1147",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging": "8.0.0",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
@@ -515,46 +515,46 @@
         "lib/netstandard2.0/Amazon.Lambda.SQSEvents.xml"
       ]
     },
-    "Hardened.Library.SourceGenerator/0.1.0-Alpha1141": {
-      "sha512": "bqfvRa9AIudfuCFw/RS7iNBw13IukhARWBkgvkEhAFERokYgVhqOvGeJe7MltZil1NPpLANAspjADwHxdPsqSg==",
+    "Hardened.Library.SourceGenerator/0.1.0-Alpha1147": {
+      "sha512": "j2bXIxk3oQ0NPnN4OJOx0hmkBL4/PKdfXrLh8nYyF368dPgWlSfyIjmRBxcnN83JA5So6eoP4zV0DeJhM9z+sA==",
       "type": "package",
-      "path": "hardened.library.sourcegenerator/0.1.0-alpha1141",
+      "path": "hardened.library.sourcegenerator/0.1.0-alpha1147",
       "files": [
         ".nupkg.metadata",
         "analyzers/dotnet/cs/Hardened.Library.SourceGenerator.dll",
-        "hardened.library.sourcegenerator.0.1.0-alpha1141.nupkg.sha512",
+        "hardened.library.sourcegenerator.0.1.0-alpha1147.nupkg.sha512",
         "hardened.library.sourcegenerator.nuspec"
       ]
     },
-    "Hardened.Requests.Abstract/0.1.0-Alpha1141": {
-      "sha512": "17d1/4T4hGZUUBX4RYa6J/d/LkGIi8Uzz4qcO2XAa3Bn2PNCHsMJAzdcpGqDys3ZJgHx4Y/VEsr9B3MbPER5/w==",
+    "Hardened.Requests.Abstract/0.1.0-Alpha1147": {
+      "sha512": "/bkNlEoSUNnm5nE0h/+e2kANVPqyWHjOTUln8SJxBjP8KoWrSvWjXp/NLDLqT08XyxjHDkSZzJEaJ3eeGJkJWw==",
       "type": "package",
-      "path": "hardened.requests.abstract/0.1.0-alpha1141",
+      "path": "hardened.requests.abstract/0.1.0-alpha1147",
       "files": [
         ".nupkg.metadata",
-        "hardened.requests.abstract.0.1.0-alpha1141.nupkg.sha512",
+        "hardened.requests.abstract.0.1.0-alpha1147.nupkg.sha512",
         "hardened.requests.abstract.nuspec",
         "lib/net8.0/Hardened.Requests.Abstract.dll"
       ]
     },
-    "Hardened.Requests.Runtime/0.1.0-Alpha1141": {
-      "sha512": "1ymHR58LcDoTgr4y27lOvnJUmWmBIRcsfPmv1AQ8B5SoUJitqXZ8880qx1u1biLdbs+B31ZngEIMeagr21NOiA==",
+    "Hardened.Requests.Runtime/0.1.0-Alpha1147": {
+      "sha512": "fDJzjcfL+yTgZ3HOegE4E1aK9LNiVuRW197P8oMAjZYEXbpDTetjbPqlkignNRUd5NlP7K2EnjqiPfKycVGglA==",
       "type": "package",
-      "path": "hardened.requests.runtime/0.1.0-alpha1141",
+      "path": "hardened.requests.runtime/0.1.0-alpha1147",
       "files": [
         ".nupkg.metadata",
-        "hardened.requests.runtime.0.1.0-alpha1141.nupkg.sha512",
+        "hardened.requests.runtime.0.1.0-alpha1147.nupkg.sha512",
         "hardened.requests.runtime.nuspec",
         "lib/net8.0/Hardened.Requests.Runtime.dll"
       ]
     },
-    "Hardened.Shared.Runtime/0.1.0-Alpha1141": {
-      "sha512": "fiV7SkXMgO7rBvkP6xK3cC+UPyEsM4/sqy9eSupARQWGQDG2UfckKGx/HsAK8qhvXps8GDGatixU2y0kft1Wrw==",
+    "Hardened.Shared.Runtime/0.1.0-Alpha1147": {
+      "sha512": "67dhIFYVTjCskd2hzhq2MhPCjLNjo3xCnhLyhaX4CXUzCj+RTEOQoWWdemo6yuO84xZa8ldsZb+Ro40IDRN4ag==",
       "type": "package",
-      "path": "hardened.shared.runtime/0.1.0-alpha1141",
+      "path": "hardened.shared.runtime/0.1.0-alpha1147",
       "files": [
         ".nupkg.metadata",
-        "hardened.shared.runtime.0.1.0-alpha1141.nupkg.sha512",
+        "hardened.shared.runtime.0.1.0-alpha1147.nupkg.sha512",
         "hardened.shared.runtime.nuspec",
         "lib/net8.0/Hardened.Shared.Runtime.dll"
       ]
@@ -1734,54 +1734,41 @@
     "net8.0": [
       "Amazon.Lambda.SQSEvents >= 2.2.0",
       "Hardened.Amz.Function.Lambda.Runtime >= 1.0.0",
-      "Hardened.Library.SourceGenerator >= 0.1.0-Alpha1141",
-      "Hardened.Requests.Runtime >= 0.1.0-Alpha1141"
+      "Hardened.Library.SourceGenerator >= 0.1.0-Alpha1147",
+      "Hardened.Requests.Runtime >= 0.1.0-Alpha1147"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\ipjoh\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {},
-    "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet": {}
+    "/Users/ianjohnson/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Sqs\\Hardened.Amz.Function.Sqs.Runtime\\Hardened.Amz.Function.Sqs.Runtime.csproj",
+      "projectUniqueName": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Sqs/Hardened.Amz.Function.Sqs.Runtime/Hardened.Amz.Function.Sqs.Runtime.csproj",
       "projectName": "Hardened.Amz.Function.Sqs.Runtime",
-      "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Sqs\\Hardened.Amz.Function.Sqs.Runtime\\Hardened.Amz.Function.Sqs.Runtime.csproj",
-      "packagesPath": "C:\\Users\\ipjoh\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Sqs\\Hardened.Amz.Function.Sqs.Runtime\\obj\\",
+      "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Sqs/Hardened.Amz.Function.Sqs.Runtime/Hardened.Amz.Function.Sqs.Runtime.csproj",
+      "packagesPath": "/Users/ianjohnson/.nuget/packages/",
+      "outputPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Sqs/Hardened.Amz.Function.Sqs.Runtime/obj/",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-        "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet"
-      ],
       "configFilePaths": [
-        "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\NuGet.Config",
-        "C:\\Users\\ipjoh\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+        "/Users/ianjohnson/source/Hardened/Hardened.Amz/NuGet.Config",
+        "/Users/ianjohnson/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         ".net8.0"
       ],
       "sources": {
-        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {},
         "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
-        "https://ci.appveyor.com/nuget/csharpauthor-nightly-build": {},
         "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-        "https://ci.appveyor.com/nuget/hardened-framework-nightly": {},
-        "https://ci.appveyor.com/nuget/simplefixture-nightly": {},
         "https://nuget.pkg.github.com/ipjohnson-org/index.json": {}
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": ".net8.0",
           "projectReferences": {
-            "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Function\\Hardened.Amz.Function.Lambda.Runtime\\Hardened.Amz.Function.Lambda.Runtime.csproj": {
-              "projectPath": "C:\\Users\\ipjoh\\source\\repos\\Hardened.Amz\\src\\Lambda\\Function\\Hardened.Amz.Function.Lambda.Runtime\\Hardened.Amz.Function.Lambda.Runtime.csproj"
+            "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Function/Hardened.Amz.Function.Lambda.Runtime/Hardened.Amz.Function.Lambda.Runtime.csproj": {
+              "projectPath": "/Users/ianjohnson/source/Hardened/Hardened.Amz/src/Lambda/Function/Hardened.Amz.Function.Lambda.Runtime/Hardened.Amz.Function.Lambda.Runtime.csproj"
             }
           }
         }
@@ -1790,6 +1777,11 @@
         "warnAsError": [
           "NU1605"
         ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
       }
     },
     "frameworks": {
@@ -1802,11 +1794,11 @@
           },
           "Hardened.Library.SourceGenerator": {
             "target": "Package",
-            "version": "[0.1.0-Alpha1141, )"
+            "version": "[0.1.0-Alpha1147, )"
           },
           "Hardened.Requests.Runtime": {
             "target": "Package",
-            "version": "[0.1.0-Alpha1141, )"
+            "version": "[0.1.0-Alpha1147, )"
           }
         },
         "imports": [
@@ -1825,7 +1817,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.401/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
