@@ -1,7 +1,7 @@
 using Amazon.Lambda.DynamoDBEvents;
 using Hardened.Shared.Runtime.Attributes;
 
-namespace Hardened.Amz.Function.DDB.Runtime;
+namespace Hardened.Amz.Function.DDB.Runtime.Impl;
 
 [Expose]
 [Singleton]

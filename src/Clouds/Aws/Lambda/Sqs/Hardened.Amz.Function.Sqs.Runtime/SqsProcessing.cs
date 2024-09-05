@@ -1,5 +1,5 @@
-﻿using Hardened.Amz.Function.Sqs.Runtime.Impl;
-using Hardened.Amz.Shared.Lambda.Runtime.Filter;
+﻿using Hardened.Amz.Function.Lambda.Runtime.Filter;
+using Hardened.Amz.Function.Sqs.Runtime.Impl;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Shared.Runtime.Attributes;
 using Microsoft.Extensions.DependencyInjection;

@@ -2,7 +2,7 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Attributes;
 using Microsoft.Extensions.Logging;
 
-namespace Hardened.Amz.Shared.Lambda.Runtime.Filter;
+namespace Hardened.Amz.Function.Lambda.Runtime.Filter;
 
 public interface IBatchProcessorExceptionHandler {
     Task<bool> HandleException(IExecutionContext context, ILogger logger, Exception exception);

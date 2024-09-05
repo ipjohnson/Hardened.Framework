@@ -1,13 +1,11 @@
-using System.Collections;
-using System.Text;
+using Hardened.Amz.Function.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Json;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Hardened.Amz.Shared.Lambda.Runtime.Filter;
+namespace Hardened.Amz.Function.Lambda.Runtime.Filter;
 
 public record Result<T>(bool Success, T Value);
 
@@ -46,7 +44,17 @@ public abstract class BaseBatchExecutionFilter<TEvent, TRecord> : IExecutionFilt
             using var inputStream = MemoryStreamPool.Get();
             using var outputStream = MemoryStreamPool.Get();
             
-            var forkedChain = await WriteRequestRecord(chain, record, inputStream.Item, outputStream.Item);
+            await WriteRequestRecord(chain, record, inputStream.Item);
+            
+            var request = 
+                new LambdaExecutionRequest(
+                    chain.Context.Request.Method, chain.Context.Request.Path, inputStream.Item, chain.Context.Request.Headers);
+            var response = 
+                new LambdaExecutionResponse(outputStream.Item, new HeaderCollectionStringValues());
+        
+            var context = chain.Context.Clone(request,response);
+        
+            var forkedChain = chain.Fork(context);
             
             await forkedChain.Next();
 
@@ -57,7 +65,7 @@ public abstract class BaseBatchExecutionFilter<TEvent, TRecord> : IExecutionFilt
         }
     }
 
-    protected abstract Task<IExecutionChain> WriteRequestRecord(IExecutionChain chain, TRecord record, Stream inputStream, Stream outputStream);
+    protected abstract Task WriteRequestRecord(IExecutionChain chain, TRecord record, Stream inputStream);
 
     protected abstract Task WriteResultsAsync(IExecutionContext context, IReadOnlyList<Result<TRecord>> record);
 

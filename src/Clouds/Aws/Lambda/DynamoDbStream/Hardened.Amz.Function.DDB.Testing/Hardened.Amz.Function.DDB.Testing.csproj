@@ -6,4 +6,13 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Amazon.Lambda.DynamoDBEvents" Version="3.1.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Function\Hardened.Amz.Function.Lambda.Testing\Hardened.Amz.Function.Lambda.Testing.csproj" />
+      <ProjectReference Include="..\Hardened.Amz.Function.DDB.Runtime\Hardened.Amz.Function.DDB.Runtime.csproj" />
+    </ItemGroup>
+
 </Project>
