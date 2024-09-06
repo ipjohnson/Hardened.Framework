@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Amz.Function.DDB.Runtime.Attributes;
 
+[AttributeUsage(AttributeTargets.Parameter)]
 public class NewImageAttribute : Attribute, ICustomBindingAttribute {
 
     public ValueTask<T> BindValue<T>(IExecutionContext context, IExecutionRequestParameter parameter) {
