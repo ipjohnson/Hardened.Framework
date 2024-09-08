@@ -3,4 +3,6 @@
 namespace Hardened.IntegrationTests.Web.SUT;
 
 [HardenedModule]
-public partial class WebLibrary { }
+public partial class WebLibrary {
+    public string Test { get; set; } = "Default";
+}

@@ -1,10 +1,7 @@
 ﻿using CSharpAuthor;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 
 namespace Hardened.SourceGenerator.Shared;
 
@@ -17,6 +14,8 @@ public static class EntryPointSelector {
         public bool RootEntryPoint { get; set; }
 
         public IReadOnlyList<HardenedMethodDefinition> MethodDefinitions { get; set; } = default!;
+
+        public IReadOnlyList<HardenedPropertyDefinition>? PropertyDefinitions { get; set; }
     }
 
     public class Comparer : IEqualityComparer<Model> {
@@ -30,42 +29,57 @@ public static class EntryPointSelector {
             if (ReferenceEquals(x, y)) return true;
             if (ReferenceEquals(x, null)) return false;
             if (ReferenceEquals(y, null)) return false;
-            
+
             return x.EntryPointType.Equals(y.EntryPointType) &&
                    x.RootEntryPoint == y.RootEntryPoint &&
                    CompareAttributes(x, y) &&
-                   CompareMethodDefinitions(x, y);
+                   CompareMethodDefinitions(x, y) &&
+                   CompareProperties(x, y);
+        }
+
+        private bool CompareProperties(Model x, Model y) {
+            if (x.PropertyDefinitions == null) {
+                if (y.PropertyDefinitions == null) {
+                    return true;
+                }
+                return false;
+            }
+
+            if (y.PropertyDefinitions == null) {
+                return false;
+            }
+
+            return x.PropertyDefinitions.SequenceEqual(y.PropertyDefinitions);
         }
 
         private bool CompareAttributes(Model x, Model y) {
-            if (x.MethodDefinitions.Count != y.MethodDefinitions.Count) {
+            if (x.AttributeModels == null) {
+                if (y.AttributeModels == null) {
+                    return true;
+                }
                 return false;
             }
 
-            for (var i = 0; i < x.MethodDefinitions.Count; i++) {
-                if (!x.MethodDefinitions[i].Equals(y.MethodDefinitions[i])) {
-                    return false;
-                }
+            if (y.AttributeModels == null) {
+                return false;
             }
 
-            return true;
+            return x.AttributeModels.SequenceEqual(y.AttributeModels);
         }
 
         private bool CompareMethodDefinitions(Model x, Model y) {
-            if (x.MethodDefinitions.Count != y.MethodDefinitions.Count) {
+            if (x.MethodDefinitions == null) {
+                if (y.MethodDefinitions == null) {
+                    return true;
+                }
                 return false;
             }
 
-            for (var i = 0; i < x.MethodDefinitions.Count; i++) {
-                var xDefinition = x.MethodDefinitions[i];
-                var yDefinition = y.MethodDefinitions[i];
-
-                if (!xDefinition.Equals(yDefinition)) {
-                    return false;
-                }
+            if (y.MethodDefinitions == null) {
+                return false;
             }
 
-            return true;
+            return x.MethodDefinitions.SequenceEqual(y.MethodDefinitions);
         }
 
         public int GetHashCode(Model obj) {
@@ -99,28 +113,61 @@ public static class EntryPointSelector {
             var methods = syntaxContext.Node.DescendantNodes().OfType<MethodDeclarationSyntax>();
 
             IReadOnlyList<AttributeModel> attributes = Array.Empty<AttributeModel>();
-            
+
             if (syntaxContext.Node is ClassDeclarationSyntax classDeclarationSyntax) {
                 attributes = AttributeModelHelper
                     .GetAttributes(syntaxContext, classDeclarationSyntax.AttributeLists, token)
                     .ToList();
             }
-            
+
             return new Model {
                 EntryPointType = ((ClassDeclarationSyntax)syntaxContext.Node).GetTypeDefinition(),
                 MethodDefinitions = GenerateMethodDefinitions(syntaxContext, methods),
                 RootEntryPoint = rootEntryPoint,
-                AttributeModels = attributes
+                AttributeModels = attributes,
+                PropertyDefinitions = GeneratePropertyDefinitions(syntaxContext)
             };
         };
     }
 
-    private class ModelComparer : IComparer<Model> {
-        public int Compare(Model x, Model y) {
-            if (ReferenceEquals(x, y)) return 0;
-            if (ReferenceEquals(null, y)) return 1;
-            if (ReferenceEquals(null, x)) return -1;
-            return x.RootEntryPoint.CompareTo(y.RootEntryPoint);
+    private static IReadOnlyList<HardenedPropertyDefinition>? GeneratePropertyDefinitions(GeneratorSyntaxContext syntaxContext) {
+        var propertyDeclarationSyntaxes =
+            syntaxContext.Node.DescendantNodes().OfType<PropertyDeclarationSyntax>();
+
+        var properties = new List<HardenedPropertyDefinition>();
+
+        foreach (var propertyDeclaration in propertyDeclarationSyntaxes) {
+            var publicValue = false;
+            var staticValue = false;
+
+            foreach (var modifier in propertyDeclaration.Modifiers) {
+                if (modifier.Text == "public") {
+                    publicValue = true;
+                }
+                else if (modifier.Text == "static") {
+                    staticValue = true;
+                }
+            }
+
+            var symbol = syntaxContext.SemanticModel.GetDeclaredSymbol(propertyDeclaration);
+            
+            if (publicValue &&
+                !staticValue &&
+                symbol is { IsReadOnly: false }) {
+                var propertyType =
+                    propertyDeclaration.Type.GetTypeDefinition(syntaxContext);
+
+                if (propertyType == null) {
+                    throw new Exception($"Property {propertyDeclaration.Identifier.ValueText} has no type");
+                }
+                
+                properties.Add(new HardenedPropertyDefinition(
+                    propertyDeclaration.Identifier.Text,
+                    propertyType
+                ));
+            }
         }
+
+        return properties;
     }
 }

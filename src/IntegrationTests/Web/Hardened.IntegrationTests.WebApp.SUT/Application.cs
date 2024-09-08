@@ -6,7 +6,7 @@ using Hardened.Web.AspNetCore.Runtime;
 namespace Hardened.IntegrationTests.WebApp.SUT;
 
 [HardenedModule]
-[WebLibrary.Module]
+[WebLibrary.Module("test")]
 [AspNetCoreRuntime.Module]
 public partial class Application {
 

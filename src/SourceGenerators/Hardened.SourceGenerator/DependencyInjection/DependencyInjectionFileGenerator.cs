@@ -60,10 +60,34 @@ public class DependencyInjectionFileGenerator {
         moduleAttribute.AddBaseType(
             TypeDefinition.Get(KnownTypes.Namespace.Hardened.Shared.Runtime.Application, "IApplicationModuleProvider"));
 
+        if (model.PropertyDefinitions is { Count: > 0 }) {
+            var fields = moduleAttribute.AddSimpleConstructor(
+                model.PropertyDefinitions
+                    //.Where(p => !p.PropertyType.IsNullable)
+                    .Select(p => 
+                        new ClassDefinitionExtensions.ConstructorParameter(p.PropertyType, p.PropertyName)).ToArray()
+                );
+
+            foreach (var fieldDefinition in fields) {
+                var propName = fieldDefinition.Name.TrimStart('_');
+                var property = moduleAttribute.AddProperty(fieldDefinition.TypeDefinition,propName);
+                
+                property.Get.Return(fieldDefinition.Instance);
+                property.Set = null;
+            }
+        }
+        
         var modulesMethod = moduleAttribute.AddMethod("ProvideModules");
         modulesMethod.SetReturnType(
             TypeDefinition.IEnumerable(KnownTypes.Application.IApplicationModule));
-        modulesMethod.AddIndentedStatement(new WrapStatement(New(model.EntryPointType),
+
+        var appInstance = modulesMethod.Assign(New(model.EntryPointType)).ToVar("appInstance");
+
+        foreach (var property in moduleAttribute.Properties) {
+            modulesMethod.Assign(property.Name).To(appInstance.Property(property.Name));
+        }        
+        
+        modulesMethod.AddIndentedStatement(new WrapStatement(appInstance,
             "yield return ", ""));
     }
 
