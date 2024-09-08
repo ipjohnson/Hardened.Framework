@@ -15,20 +15,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Controllers/HomeControllerTests.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Filters/TestFilter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Controllers/HomeController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Controllers/HomeController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/ICustomBindingAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Abstract/Attributes/ICustomBindingAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Execution/ExecutionHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BindRequestParametersMethodGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Requests/BindRequestParametersMethodGenerator.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/HardenedMethodDefinition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/HardenedMethodDefinition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/MethodDefinitionSyntaxExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/MethodDefinitionSyntaxExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/TypeSyntaxExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Shared/TypeSyntaxExtensions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DpaMonitoringSettings">
+    <option name="autoShow" value="false" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -299,7 +294,7 @@
       <workItem from="1722696402183" duration="1219000" />
       <workItem from="1722792872311" duration="4580000" />
       <workItem from="1724616191293" duration="6359000" />
-      <workItem from="1725020392734" duration="28462000" />
+      <workItem from="1725020392734" duration="33738000" />
     </task>
     <servers />
   </component>
