@@ -6,7 +6,7 @@ using Hardened.Shared.Testing.Utilties;
 namespace Hardened.Shared.Testing.Impl;
 
 public class HardenedTestEnvironmentBuilder {
-    public IEnvironment BuildEnvironment(AttributeCollection attributeCollection, MethodInfo testMethod,
+    public IHardenedEnvironment BuildEnvironment(AttributeCollection attributeCollection, MethodInfo testMethod,
         object testClassInstance) {
         var environmentName = attributeCollection.GetAttribute<EnvironmentNameAttribute>()?.Name ?? "test";
         var environmentValueAttributeList = attributeCollection.GetAttributes<EnvironmentValueAttribute>();

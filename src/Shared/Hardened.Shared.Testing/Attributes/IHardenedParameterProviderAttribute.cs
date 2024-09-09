@@ -9,7 +9,7 @@ public interface IHardenedParameterProviderAttribute : IHardenedOrderedAttribute
         AttributeCollection attributeCollection,
         MethodInfo methodInfo,
         ParameterInfo? parameterInfo,
-        IEnvironment environment,
+        IHardenedEnvironment environment,
         IServiceCollection serviceCollection);
 
     object? ProvideParameterValue(

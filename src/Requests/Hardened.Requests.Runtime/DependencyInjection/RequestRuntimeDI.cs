@@ -21,7 +21,7 @@ using Microsoft.Extensions.Options;
 namespace Hardened.Requests.Runtime.DependencyInjection;
 
 public class RequestRuntimeDI {
-    public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
+    public static void Register(IHardenedEnvironment environment, IServiceCollection serviceCollection) {
         if (DependencyRegistry<RequestRuntimeDI>.ShouldRegisterModule(serviceCollection)) {
             serviceCollection.TryAddSingleton<IMiddlewareService, MiddlewareService>();
             serviceCollection.TryAddSingleton<IContextSerializationService, ContextSerializationService>();

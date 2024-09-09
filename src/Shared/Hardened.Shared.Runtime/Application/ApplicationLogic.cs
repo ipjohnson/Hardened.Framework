@@ -11,7 +11,7 @@ public class ApplicationLogic {
     /// <param name="startupTask"></param>
     /// <returns></returns>
     public static async Task<int> RunApplication(
-        IEnvironment environment,
+        IHardenedEnvironment environment,
         IServiceProvider serviceProvider,
         Func<IServiceProvider, Task<bool>>? startupTask) {
         var delegateProvider = serviceProvider.GetRequiredService<IApplicationDelegateProvider>();

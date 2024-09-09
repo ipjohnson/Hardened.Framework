@@ -9,7 +9,7 @@ public class MockAttribute : Attribute, IHardenedParameterProviderAttribute {
     private object? _parameterValue;
 
     public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
-        ParameterInfo? parameterInfo, IEnvironment environment,
+        ParameterInfo? parameterInfo, IHardenedEnvironment environment,
         IServiceCollection serviceCollection) {
         if (parameterInfo != null) {
             var mock = NSubstitute.Substitute.For(new[] { parameterInfo.ParameterType }, Array.Empty<object>());

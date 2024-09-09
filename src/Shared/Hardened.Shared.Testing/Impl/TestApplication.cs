@@ -6,14 +6,14 @@ namespace Hardened.Shared.Testing.Impl;
 public class TestApplication : IApplicationRoot {
     private readonly ServiceProvider _rootServiceProvider;
 
-    public TestApplication(IApplicationModule testModule, string logNs, IEnvironment environment,
-        Action<IEnvironment, IServiceCollection>? overrideDependencies) {
+    public TestApplication(IApplicationModule testModule, string logNs, IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies) {
         _rootServiceProvider = CreateServiceProvider(testModule, environment, overrideDependencies);
         ApplicationLogic.StartWithWait(Provider, null, 15);
     }
 
-    private ServiceProvider CreateServiceProvider(IApplicationModule applicationModule, IEnvironment environment,
-        Action<IEnvironment, IServiceCollection>? overrideDependencies) {
+    private ServiceProvider CreateServiceProvider(IApplicationModule applicationModule, IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies) {
         var serviceCollection = new ServiceCollection();
 
         serviceCollection.AddLogging();

@@ -41,7 +41,7 @@ public class ModuleEntryPointFileWriter {
         var configureModuleMethod = moduleClass.AddMethod("ConfigureModule");
 
         var environment =
-            configureModuleMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+            configureModuleMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection =
             configureModuleMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
 

@@ -53,8 +53,8 @@ public class HardenedTestInvoker : XunitTestInvoker {
         }
     }
 
-    public Action<IEnvironment, IServiceCollection> BuildOverrideAction(AttributeCollection attributeCollection,
-        MethodInfo testMethod, IEnvironment environment) {
+    public Action<IHardenedEnvironment, IServiceCollection> BuildOverrideAction(AttributeCollection attributeCollection,
+        MethodInfo testMethod, IHardenedEnvironment environment) {
         var extraModules = attributeCollection.GetAttributes<IApplicationModuleProvider>();
         
         var registrationAttributeList =
@@ -122,8 +122,8 @@ public class HardenedTestInvoker : XunitTestInvoker {
         };
     }
 
-    private Action<IEnvironment, IServiceCollection> CreateConfigurationAction(
-        AttributeCollection attributeCollection, IEnvironment environment) {
+    private Action<IHardenedEnvironment, IServiceCollection> CreateConfigurationAction(
+        AttributeCollection attributeCollection, IHardenedEnvironment environment) {
         return (env, collection) => {
             var appConfig = new AppConfig();
 
@@ -166,7 +166,7 @@ public class HardenedTestInvoker : XunitTestInvoker {
     }
 
     private void ProcessInstanceRegistrationMethod(AttributeCollection attributeCollection, MethodInfo testMethod,
-        IEnvironment env, IServiceCollection collection) {
+        IHardenedEnvironment env, IServiceCollection collection) {
         var classInstanceType = _testClassInstance!.GetType();
         var registrationMethod =
             classInstanceType.FindInstanceMethod("RegisterDependencies");
@@ -264,8 +264,8 @@ public class HardenedTestInvoker : XunitTestInvoker {
         TestMethodArguments = methodArguments.ToArray();
     }
 
-    private Task ConstructRootApplication(AttributeCollection attributeCollection, IEnvironment environment,
-        Action<IEnvironment, IServiceCollection> dependencyOverrideAction) {
+    private Task ConstructRootApplication(AttributeCollection attributeCollection, IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, IServiceCollection> dependencyOverrideAction) {
         _testApplicationRoot = ProcessParameterTypesForRoot(attributeCollection, environment, dependencyOverrideAction);
 
         if (_testApplicationRoot == null) {
@@ -277,7 +277,7 @@ public class HardenedTestInvoker : XunitTestInvoker {
     }
 
     private IApplicationRoot ConstructApplicationFromEntryPoint(AttributeCollection attributeCollection,
-        IEnvironment environment, Action<IEnvironment, IServiceCollection> overrideAction) {
+        IHardenedEnvironment environment, Action<IHardenedEnvironment, IServiceCollection> overrideAction) {
         var entryPoint = attributeCollection.GetAttribute<HardenedTestEntryPointAttribute>();
 
         if (entryPoint == null) {
@@ -299,7 +299,7 @@ public class HardenedTestInvoker : XunitTestInvoker {
     }
 
     private IApplicationRoot? ProcessParameterTypesForRoot(AttributeCollection attributeCollection,
-        IEnvironment environment, Action<IEnvironment, IServiceCollection> overrideAction) {
+        IHardenedEnvironment environment, Action<IHardenedEnvironment, IServiceCollection> overrideAction) {
         foreach (var parameterInfo in TestMethod.GetParameters()) {
             if (typeof(IApplicationRoot).IsAssignableFrom(parameterInfo.ParameterType)) {
                 var applicationRoot =
@@ -315,7 +315,7 @@ public class HardenedTestInvoker : XunitTestInvoker {
         return null;
     }
 
-    private async Task StartApplication(AttributeCollection attributeCollection, IEnvironment environment) {
+    private async Task StartApplication(AttributeCollection attributeCollection, IHardenedEnvironment environment) {
         foreach (var startupAttribute in
                  attributeCollection.GetAttributes<IHardenedTestStartupAttribute>().OrderBy(a => a.Order)) {
             await startupAttribute.Startup(attributeCollection, TestMethod, environment,

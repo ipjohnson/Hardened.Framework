@@ -14,7 +14,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Hardened.Web.Runtime.DependencyInjection;
 
 public class WebRuntimeDI {
-    public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
+    public static void Register(IHardenedEnvironment environment, IServiceCollection serviceCollection) {
         if (DependencyRegistry<WebRuntimeDI>.ShouldRegisterModule(serviceCollection)) {
             RequestRuntimeDI.Register(environment, serviceCollection);
             

@@ -2,7 +2,7 @@
 
 namespace Hardened.Shared.Testing.Impl;
 
-public class TestEnvironment : IEnvironment {
+public class TestEnvironment : IHardenedEnvironment {
     private readonly IDictionary<string, object> _values;
     private readonly IDictionary<string, object>? _customData;
 

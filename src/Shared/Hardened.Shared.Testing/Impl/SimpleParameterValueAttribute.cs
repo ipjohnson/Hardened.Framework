@@ -14,7 +14,7 @@ public class SimpleParameterValueAttribute : Attribute, IHardenedParameterProvid
 
     public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
         ParameterInfo? parameterInfo,
-        IEnvironment environment, IServiceCollection serviceCollection) { }
+        IHardenedEnvironment environment, IServiceCollection serviceCollection) { }
 
     public object? ProvideParameterValue(MethodInfo methodInfo, ParameterInfo parameterInfo,
         IApplicationRoot applicationRoot) {

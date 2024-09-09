@@ -3,7 +3,7 @@
 namespace Hardened.Shared.Runtime.Configuration;
 
 public interface IConfigurationPackage {
-    IEnumerable<IConfigurationValueProvider> ConfigurationValueProviders(IEnvironment env);
+    IEnumerable<IConfigurationValueProvider> ConfigurationValueProviders(IHardenedEnvironment env);
 
-    IEnumerable<IConfigurationValueAmender> ConfigurationValueAmenders(IEnvironment env);
+    IEnumerable<IConfigurationValueAmender> ConfigurationValueAmenders(IHardenedEnvironment env);
 }

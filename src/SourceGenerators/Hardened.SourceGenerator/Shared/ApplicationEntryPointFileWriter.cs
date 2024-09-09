@@ -41,11 +41,11 @@ public abstract class ApplicationEntryPointFileWriter {
 
         var constructor = appClass.AddConstructor();
 
-        var environment = constructor.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+        var environment = constructor.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
 
         var overrides =
             constructor.AddParameter(
-                TypeDefinition.Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection)
+                TypeDefinition.Action(KnownTypes.Application.IHardenedEnvironment, KnownTypes.DI.IServiceCollection)
                     .MakeNullable(), "overrideDependencies");
 
         var loggingBuilderAction = SetupLoggingBuilderAction(entryPoint, constructor, environment);
@@ -57,7 +57,7 @@ public abstract class ApplicationEntryPointFileWriter {
         var registerInitDi = appClass.AddMethod("RegisterInitDi");
 
         registerInitDi.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
-        var env = registerInitDi.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+        var env = registerInitDi.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var coll = registerInitDi.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
 
         foreach (var typeDefinition in RegisterDiTypes()) {

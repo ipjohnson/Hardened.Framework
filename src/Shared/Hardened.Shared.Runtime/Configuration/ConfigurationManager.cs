@@ -4,12 +4,12 @@ using Hardened.Shared.Runtime.Application;
 namespace Hardened.Shared.Runtime.Configuration;
 
 public class ConfigurationManager : IConfigurationManager {
-    private readonly IEnvironment _environment;
+    private readonly IHardenedEnvironment _environment;
     private readonly ConcurrentDictionary<Type, object> _configuration;
     private readonly Dictionary<Type, IConfigurationValueProvider> _valueProviders;
     private readonly List<IConfigurationValueAmender> _amenders;
 
-    public ConfigurationManager(IEnvironment environment, IEnumerable<IConfigurationPackage> configurationPackages) {
+    public ConfigurationManager(IHardenedEnvironment environment, IEnumerable<IConfigurationPackage> configurationPackages) {
         _environment = environment;
         _configuration = new ConcurrentDictionary<Type, object>();
         _valueProviders = new Dictionary<Type, IConfigurationValueProvider>();
@@ -46,7 +46,7 @@ public class ConfigurationManager : IConfigurationManager {
         return (T)valueProvider.ProvideValue(_environment, ApplyAmenders);
     }
 
-    private void ApplyAmenders(IEnvironment env, object value) {
+    private void ApplyAmenders(IHardenedEnvironment env, object value) {
         for (var i = 0; i < _amenders.Count; i++) {
             value = _amenders[i].ApplyConfiguration(env, value);
         }

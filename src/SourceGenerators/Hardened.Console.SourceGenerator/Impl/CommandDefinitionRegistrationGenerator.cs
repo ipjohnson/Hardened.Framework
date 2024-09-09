@@ -56,7 +56,7 @@ public class CommandDefinitionRegistrationGenerator {
         ImmutableArray<CommandDefinitionModel> commandDataRight,
         ClassDefinition classDefinition) {
         var environment =
-            classDefinition.AddField(KnownTypes.Application.IEnvironment, "_environment");
+            classDefinition.AddField(KnownTypes.Application.IHardenedEnvironment, "_environment");
         var rootProvider =
             classDefinition.AddField(KnownTypes.DI.IServiceProvider.MakeNullable(),
                 "_rootProvider");
@@ -69,7 +69,7 @@ public class CommandDefinitionRegistrationGenerator {
 
         var constructorImpl = classDefinition.AddConstructor();
 
-        var env = constructorImpl.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+        var env = constructorImpl.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
 
         constructorImpl.Assign(env).To(environment.Instance);
 
@@ -136,7 +136,7 @@ public class CommandDefinitionRegistrationGenerator {
         registerMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
         var environment =
-            registerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+            registerMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection =
             registerMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
         var entryPointDef = registerMethod.AddParameter(model.EntryPointType, "entryPoint");

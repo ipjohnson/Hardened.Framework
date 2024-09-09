@@ -51,7 +51,7 @@ public class DependencyRegistry<T> where T : class {
     /// <param name="environment"></param>
     /// <param name="serviceCollection"></param>
     /// <param name="entryPoint"></param>
-    public static void ApplyRegistration(IEnvironment environment, IServiceCollection serviceCollection, T entryPoint) {
+    public static void ApplyRegistration(IHardenedEnvironment environment, IServiceCollection serviceCollection, T entryPoint) {
         foreach (var registration in _registrations) {
             if (registration.LastServiceCollection.TryGetTarget(out var collection) && ReferenceEquals(collection, entryPoint)){
                 continue;
@@ -65,7 +65,7 @@ public class DependencyRegistry<T> where T : class {
     /// <summary>
     /// Represents registration logic
     /// </summary>
-    public delegate void DependencyRegistrationFunc(IEnvironment environment, IServiceCollection serviceCollection,
+    public delegate void DependencyRegistrationFunc(IHardenedEnvironment environment, IServiceCollection serviceCollection,
         T entryPoint);
 
     /// <summary>

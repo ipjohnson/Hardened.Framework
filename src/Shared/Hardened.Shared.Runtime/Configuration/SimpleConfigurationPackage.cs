@@ -18,11 +18,11 @@ public class SimpleConfigurationPackage : IConfigurationPackage {
         _amenders = amenders;
     }
 
-    public IEnumerable<IConfigurationValueProvider> ConfigurationValueProviders(IEnvironment env) {
+    public IEnumerable<IConfigurationValueProvider> ConfigurationValueProviders(IHardenedEnvironment env) {
         return _valueProviders;
     }
 
-    public IEnumerable<IConfigurationValueAmender> ConfigurationValueAmenders(IEnvironment env) {
+    public IEnumerable<IConfigurationValueAmender> ConfigurationValueAmenders(IHardenedEnvironment env) {
         return _amenders;
     }
 }

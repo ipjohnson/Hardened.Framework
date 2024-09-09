@@ -14,7 +14,7 @@ namespace Hardened.Shared.Runtime.DependencyInjection;
 
 public sealed class StandardDependencies {
     public static void ProcessModuleProviders(
-        IEnvironment environment,
+        IHardenedEnvironment environment,
         IServiceCollection serviceCollection,
         params object[] otherModules) {
         
@@ -30,7 +30,7 @@ public sealed class StandardDependencies {
     }
     
     public static void ProcessModules(
-        IEnvironment environment, 
+        IHardenedEnvironment environment, 
         IServiceCollection serviceCollection,
         IEnumerable<IApplicationModule> applicationModules) {
         
@@ -39,7 +39,7 @@ public sealed class StandardDependencies {
         }
     }
 
-    public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
+    public static void Register(IHardenedEnvironment environment, IServiceCollection serviceCollection) {
         if (DependencyRegistry<StandardDependencies>.ShouldRegisterModule(serviceCollection)) {
 
             serviceCollection.TryAddSingleton<IStringBuilderPool, StringBuilderPool>();

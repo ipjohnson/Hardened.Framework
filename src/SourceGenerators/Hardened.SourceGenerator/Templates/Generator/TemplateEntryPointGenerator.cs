@@ -44,7 +44,7 @@ public static class TemplateEntryPointGenerator {
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
-        var environment = diMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+        var environment = diMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
         var entryPoint = diMethod.AddParameter(applicationModel.EntryPointType, "entryPoint");
 

@@ -15,7 +15,7 @@ public partial class Application {
         var environment = new EnvironmentImpl(arguments:  args);
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddTransient<IEnvironment>(_ => environment);
+        builder.Services.AddTransient<IHardenedEnvironment>(_ => environment);
         
         hardenedApp.ConfigureModule(environment, builder.Services);
 

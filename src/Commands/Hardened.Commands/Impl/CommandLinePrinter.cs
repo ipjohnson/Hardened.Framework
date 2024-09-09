@@ -13,13 +13,13 @@ public interface ICommandLinePrinter {
 [Expose]
 public class CommandLinePrinter : ICommandLinePrinter {
     private readonly ICommandLineDefinitionService _commandLineDefinitionService;
-    private readonly IEnvironment _environment;
+    private readonly IHardenedEnvironment _environment;
     private readonly IConsoleOutputService _consoleOutputService;
     private readonly IOptions<CommandLineParserOptions> _options;
     
     public CommandLinePrinter(
         ICommandLineDefinitionService commandLineDefinitionService,
-        IEnvironment environment, 
+        IHardenedEnvironment environment, 
         IConsoleOutputService consoleOutputService,
         IOptions<CommandLineParserOptions> options) {
         _commandLineDefinitionService = commandLineDefinitionService;

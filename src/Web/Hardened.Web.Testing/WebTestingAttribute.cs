@@ -12,7 +12,7 @@ namespace Hardened.Web.Testing;
 public class WebTestingAttribute : Attribute, IHardenedParameterProviderAttribute, IHardenedTestStartupAttribute {
     public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
         ParameterInfo? parameterInfo,
-        IEnvironment environment, IServiceCollection serviceCollection) { }
+        IHardenedEnvironment environment, IServiceCollection serviceCollection) { }
 
     public object? ProvideParameterValue(MethodInfo methodInfo,
         ParameterInfo parameterInfo,
@@ -27,7 +27,7 @@ public class WebTestingAttribute : Attribute, IHardenedParameterProviderAttribut
         return null;
     }
 
-    public Task Startup(AttributeCollection attributeCollection, MethodInfo methodInfo, IEnvironment environment,
+    public Task Startup(AttributeCollection attributeCollection, MethodInfo methodInfo, IHardenedEnvironment environment,
         IServiceProvider serviceProvider) {
         var entryPoint = attributeCollection.GetAttribute<HardenedTestEntryPointAttribute>()!;
 

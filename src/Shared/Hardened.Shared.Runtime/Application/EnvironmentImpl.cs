@@ -1,6 +1,6 @@
 ﻿namespace Hardened.Shared.Runtime.Application;
 
-public class EnvironmentImpl : IEnvironment {
+public class EnvironmentImpl : IHardenedEnvironment {
     private readonly IDictionary<string, string>? _environmentValues;
     private readonly IDictionary<string, object>? _customData;
 

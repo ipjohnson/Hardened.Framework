@@ -13,7 +13,7 @@ public class CommandLineApplicationDelegateProvider : IApplicationDelegateProvid
         _commandLinePrinter = commandLinePrinter;
     }
 
-    public async Task<ApplicationDelegate> ProvideDelegate(IEnvironment environment, IServiceProvider serviceProvider) {
+    public async Task<ApplicationDelegate> ProvideDelegate(IHardenedEnvironment environment, IServiceProvider serviceProvider) {
         var results = await _commandLineParser.ParseCommandLineArguments(environment.Arguments);
 
         if (results is {

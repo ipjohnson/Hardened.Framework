@@ -190,9 +190,9 @@ public static class KnownTypes {
         public static readonly ITypeDefinition ApplicationLogic =
             TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Application, "ApplicationLogic");
 
-        public static readonly ITypeDefinition IEnvironment =
+        public static readonly ITypeDefinition IHardenedEnvironment =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Shared.Runtime.Application,
-                "IEnvironment");
+                "IHardenedEnvironment");
 
         public static readonly ITypeDefinition EnvironmentImpl =
             TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Application, "EnvironmentImpl");

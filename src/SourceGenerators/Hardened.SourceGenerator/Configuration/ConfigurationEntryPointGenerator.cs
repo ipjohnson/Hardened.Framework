@@ -52,7 +52,7 @@ public static class ConfigurationEntryPointGenerator {
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
-        var environment = diMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+        var environment = diMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
         var entryPointDef = diMethod.AddParameter(entryPoint.EntryPointType, "entryPoint");
 
@@ -83,7 +83,7 @@ public static class ConfigurationEntryPointGenerator {
                     new[] { KnownTypes.Configuration.IConfigurationPackage }, fluentConfig));
             }
             else if (configureMethod.Parameters.Count == 2 &&
-                     configureMethod.Parameters[0].Type.Equals(KnownTypes.Application.IEnvironment) &&
+                     configureMethod.Parameters[0].Type.Equals(KnownTypes.Application.IHardenedEnvironment) &&
                      configureMethod.Parameters[1].Type.Equals(KnownTypes.Configuration.IAppConfig)) {
                 var fluentConfig = diMethod.Assign(New(KnownTypes.Configuration.AppConfig)).ToVar("fluentConfig");
                 diMethod.AddIndentedStatement(entryPointDef.Invoke("Configure", environment, fluentConfig));
@@ -103,7 +103,7 @@ public static class ConfigurationEntryPointGenerator {
 
         var providerMethod = configurationProvider.AddMethod("ConfigurationValueProviders");
 
-        providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+        providerMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         providerMethod.SetReturnType(
             TypeDefinition.IEnumerable(KnownTypes.Configuration.IConfigurationValueProvider));
 
@@ -121,7 +121,7 @@ public static class ConfigurationEntryPointGenerator {
 
         var amendersMethod = configurationProvider.AddMethod("ConfigurationValueAmenders");
 
-        amendersMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+        amendersMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         amendersMethod.SetReturnType(
             TypeDefinition.IEnumerable(KnownTypes.Configuration.IConfigurationValueAmender));
 
@@ -143,7 +143,7 @@ public static class ConfigurationEntryPointGenerator {
             var method = classDefinition.AddMethod(methodName);
 
             method.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
-            var env = method.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+            var env = method.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
             var model = method.AddParameter(configurationFileModel.ModelType, "model");
 
             foreach (var configurationFieldModel in modelArray) {

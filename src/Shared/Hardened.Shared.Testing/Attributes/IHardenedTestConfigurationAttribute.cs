@@ -8,6 +8,6 @@ public interface IHardenedTestConfigurationAttribute : IHardenedOrderedAttribute
     void Configure(
         AttributeCollection attributeCollection,
         MethodInfo methodInfo,
-        IEnvironment environment,
+        IHardenedEnvironment environment,
         IAppConfig appConfig);
 }

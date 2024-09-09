@@ -7,5 +7,5 @@ public interface IConfigurationValueProvider {
 
     Type ImplementationType { get; }
 
-    object ProvideValue(IEnvironment environment, Action<IEnvironment, object> amender);
+    object ProvideValue(IHardenedEnvironment environment, Action<IHardenedEnvironment, object> amender);
 }

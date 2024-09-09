@@ -100,7 +100,7 @@ public class DependencyInjectionFileGenerator {
         providerMethod.Modifiers |= ComponentModifier.Public;
 
         var environment =
-            providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+            providerMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollectionDefinition =
             providerMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
 
@@ -118,11 +118,11 @@ public class DependencyInjectionFileGenerator {
         providerMethod.SetReturnType(KnownTypes.DI.ServiceProvider);
 
         var environment =
-            providerMethod.AddParameter(KnownTypes.Application.IEnvironment, "environment");
+            providerMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
 
         var overrideDependenciesDefinition = providerMethod.AddParameter(
             TypeDefinition
-                .Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection)
+                .Action(KnownTypes.Application.IHardenedEnvironment, KnownTypes.DI.IServiceCollection)
                 .MakeNullable(),
             "overrideDependencies");
 
@@ -133,7 +133,7 @@ public class DependencyInjectionFileGenerator {
 
         var initAction = providerMethod.AddParameter(
             TypeDefinition
-                .Action(KnownTypes.Application.IEnvironment, KnownTypes.DI.IServiceCollection)
+                .Action(KnownTypes.Application.IHardenedEnvironment, KnownTypes.DI.IServiceCollection)
                 .MakeNullable(),
             "initDependencies");
 
@@ -310,7 +310,7 @@ public class DependencyInjectionFileGenerator {
                     if (parameterDefinition.Type.Equals(KnownTypes.DI.IServiceCollection)) {
                         parameters += serviceCollectionDefinition.Name;
                     } else if (
-                        parameterDefinition.Type.Equals(KnownTypes.Application.IEnvironment)) {
+                        parameterDefinition.Type.Equals(KnownTypes.Application.IHardenedEnvironment)) {
                         parameters += environment.Name;
                     } else {
                         throw new Exception(

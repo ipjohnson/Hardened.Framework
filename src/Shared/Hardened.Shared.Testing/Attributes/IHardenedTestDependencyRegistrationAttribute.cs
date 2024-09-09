@@ -8,6 +8,6 @@ public interface IHardenedTestDependencyRegistrationAttribute : IHardenedOrdered
     void RegisterDependencies(
         AttributeCollection attributeCollection,
         MethodInfo methodInfo,
-        IEnvironment environment,
+        IHardenedEnvironment environment,
         IServiceCollection serviceCollection);
 }
