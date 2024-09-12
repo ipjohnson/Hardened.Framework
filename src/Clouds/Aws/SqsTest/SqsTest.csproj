@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.1.0-Alpha1147" />
-      <PackageReference Include="Hardened.Requests.Runtime" Version="0.1.0-Alpha1147" />
+      <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.1.0-Alpha1150" />
+      <PackageReference Include="Hardened.Requests.Runtime" Version="0.1.0-Alpha1150" />
     </ItemGroup>
 
     <ItemGroup>

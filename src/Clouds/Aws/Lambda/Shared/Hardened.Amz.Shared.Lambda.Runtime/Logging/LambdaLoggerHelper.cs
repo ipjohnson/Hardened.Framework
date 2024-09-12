@@ -20,7 +20,7 @@ public class LambdaLoggerHelper {
             .AddFilter(_entryNamespace, _logLevel);
     }
 
-    public static Action<ILoggingBuilder> CreateAction(IEnvironment environment, string entryNamespace) {
+    public static Action<ILoggingBuilder> CreateAction(IHardenedEnvironment environment, string entryNamespace) {
         LogLevel logLevel = LogLevel.Information;
 
         if (environment.Name == "development" || environment.Name == "test") {

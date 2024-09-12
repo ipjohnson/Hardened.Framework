@@ -51,13 +51,13 @@
               "include": "Build",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[0.1.0-Beta964, )"
+              "version": "[0.1.0-Beta966, )"
             },
             "Hardened.SourceGenerator": {
               "include": "Build",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[0.1.0-Alpha1147, )"
+              "version": "[0.1.0-Alpha1150, )"
             },
             "Microsoft.CodeAnalysis.Analyzers": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",

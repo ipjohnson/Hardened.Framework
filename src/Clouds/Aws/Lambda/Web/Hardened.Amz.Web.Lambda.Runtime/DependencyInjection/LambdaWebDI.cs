@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace Hardened.Amz.Web.Lambda.Runtime.DependencyInjection;
 
 public static class LambdaWebDI {
-    public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
+    public static void Register(IHardenedEnvironment environment, IServiceCollection serviceCollection) {
         serviceCollection.TryAddSingleton<IApiGatewayEventProcessor, ApiGatewayEventProcessor>();
         serviceCollection.AddSingleton<IMetricLoggerProvider, EmbeddedMetricLoggerProvider>();
         serviceCollection.TryAddSingleton<IDimensionSetProvider, DimensionSetProvider>();

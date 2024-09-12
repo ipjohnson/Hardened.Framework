@@ -3,7 +3,7 @@
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <Import Project="$(NuGetPackageRoot)netstandard.library/2.0.3/build/netstandard2.0/NETStandard.Library.targets" Condition="Exists('$(NuGetPackageRoot)netstandard.library/2.0.3/build/netstandard2.0/NETStandard.Library.targets')" />
     <Import Project="$(NuGetPackageRoot)microsoft.codeanalysis.analyzers/3.3.4/buildTransitive/Microsoft.CodeAnalysis.Analyzers.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.codeanalysis.analyzers/3.3.4/buildTransitive/Microsoft.CodeAnalysis.Analyzers.targets')" />
-    <Import Project="$(NuGetPackageRoot)hardened.sourcegenerator/0.1.0-alpha1147/build/Hardened.SourceGenerator.targets" Condition="Exists('$(NuGetPackageRoot)hardened.sourcegenerator/0.1.0-alpha1147/build/Hardened.SourceGenerator.targets')" />
-    <Import Project="$(NuGetPackageRoot)csharpauthor/0.1.0-beta964/build/CSharpAuthor.targets" Condition="Exists('$(NuGetPackageRoot)csharpauthor/0.1.0-beta964/build/CSharpAuthor.targets')" />
+    <Import Project="$(NuGetPackageRoot)hardened.sourcegenerator/0.1.0-alpha1150/build/Hardened.SourceGenerator.targets" Condition="Exists('$(NuGetPackageRoot)hardened.sourcegenerator/0.1.0-alpha1150/build/Hardened.SourceGenerator.targets')" />
+    <Import Project="$(NuGetPackageRoot)csharpauthor/0.1.0-beta966/build/CSharpAuthor.targets" Condition="Exists('$(NuGetPackageRoot)csharpauthor/0.1.0-beta966/build/CSharpAuthor.targets')" />
   </ImportGroup>
 </Project>

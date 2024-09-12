@@ -63,6 +63,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamoDbStreamApp", "src\In
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamoDbStreamApp.Tests", "src\IntegTests\DynamoDbStreamApp.Tests\DynamoDbStreamApp.Tests.csproj", "{E4DC65C3-AC3B-4D16-8AB9-6098065F22DB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.Cdk", "src\Hardened.Amz.Cdk\Hardened.Amz.Cdk.csproj", "{C3CC30C1-9197-44A7-95DE-5B19E6441842}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,7 @@ Global
 		{2A020C89-FBE5-41BE-A245-8254BC58E5FA} = {02ACF125-0E19-4C0C-8D03-CF6B419A0027}
 		{5001D28D-2C92-4C73-B93E-077640E33C18} = {42630596-7D98-4419-ADCD-FA7D5CE24822}
 		{E4DC65C3-AC3B-4D16-8AB9-6098065F22DB} = {42630596-7D98-4419-ADCD-FA7D5CE24822}
+		{C3CC30C1-9197-44A7-95DE-5B19E6441842} = {6AFBF6D8-D4D7-4A97-9866-CCF4219CEB21}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{9C3B326B-C630-4B5C-B124-46588E4DEF6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -171,5 +174,9 @@ Global
 		{E4DC65C3-AC3B-4D16-8AB9-6098065F22DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E4DC65C3-AC3B-4D16-8AB9-6098065F22DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E4DC65C3-AC3B-4D16-8AB9-6098065F22DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3CC30C1-9197-44A7-95DE-5B19E6441842}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3CC30C1-9197-44A7-95DE-5B19E6441842}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3CC30C1-9197-44A7-95DE-5B19E6441842}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3CC30C1-9197-44A7-95DE-5B19E6441842}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

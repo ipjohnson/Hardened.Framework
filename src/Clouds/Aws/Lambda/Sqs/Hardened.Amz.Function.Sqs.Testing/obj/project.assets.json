@@ -60,7 +60,7 @@
           }
         }
       },
-      "Hardened.Library.SourceGenerator/0.1.0-Alpha1147": {
+      "Hardened.Library.SourceGenerator/0.1.0-Alpha1150": {
         "type": "package",
         "dependencies": {
           "Microsoft.CodeAnalysis.CSharp": "4.10.0",
@@ -68,10 +68,10 @@
           "System.Memory": "4.5.5"
         }
       },
-      "Hardened.Requests.Abstract/0.1.0-Alpha1147": {
+      "Hardened.Requests.Abstract/0.1.0-Alpha1150": {
         "type": "package",
         "dependencies": {
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1147",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1150",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -83,11 +83,11 @@
           "lib/net8.0/Hardened.Requests.Abstract.dll": {}
         }
       },
-      "Hardened.Requests.Runtime/0.1.0-Alpha1147": {
+      "Hardened.Requests.Runtime/0.1.0-Alpha1150": {
         "type": "package",
         "dependencies": {
-          "Hardened.Requests.Abstract": "0.1.0-Alpha1147",
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1147",
+          "Hardened.Requests.Abstract": "0.1.0-Alpha1150",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1150",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -99,7 +99,7 @@
           "lib/net8.0/Hardened.Requests.Runtime.dll": {}
         }
       },
-      "Hardened.Shared.Runtime/0.1.0-Alpha1147": {
+      "Hardened.Shared.Runtime/0.1.0-Alpha1150": {
         "type": "package",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection": "8.0.0",
@@ -116,10 +116,10 @@
           "lib/net8.0/Hardened.Shared.Runtime.dll": {}
         }
       },
-      "Hardened.Shared.Testing/0.1.0-Alpha1147": {
+      "Hardened.Shared.Testing/0.1.0-Alpha1150": {
         "type": "package",
         "dependencies": {
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1147",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1150",
           "Microsoft.Extensions.DependencyInjection": "8.0.0",
           "Microsoft.Extensions.Logging": "8.0.0",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
@@ -891,7 +891,7 @@
         "dependencies": {
           "Amazon.Lambda.Core": "2.2.0",
           "Hardened.Amz.Shared.Lambda.Runtime": "1.0.0",
-          "Hardened.Requests.Runtime": "0.1.0-Alpha1147",
+          "Hardened.Requests.Runtime": "0.1.0-Alpha1150",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
         },
@@ -909,7 +909,7 @@
           "Amazon.Lambda.Core": "2.2.0",
           "Hardened.Amz.Function.Lambda.Runtime": "1.0.0",
           "Hardened.Amz.Shared.Lambda.Testing": "1.0.0",
-          "Hardened.Shared.Testing": "0.1.0-Alpha1147",
+          "Hardened.Shared.Testing": "0.1.0-Alpha1150",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0",
           "Microsoft.NET.Test.Sdk": "17.10.0",
@@ -928,8 +928,8 @@
         "dependencies": {
           "Amazon.Lambda.SQSEvents": "2.2.0",
           "Hardened.Amz.Function.Lambda.Runtime": "1.0.0",
-          "Hardened.Library.SourceGenerator": "0.1.0-Alpha1147",
-          "Hardened.Requests.Runtime": "0.1.0-Alpha1147"
+          "Hardened.Library.SourceGenerator": "0.1.0-Alpha1150",
+          "Hardened.Requests.Runtime": "0.1.0-Alpha1150"
         },
         "compile": {
           "bin/placeholder/Hardened.Amz.Function.Sqs.Runtime.dll": {}
@@ -944,7 +944,7 @@
         "dependencies": {
           "Amazon.Lambda.Core": "2.2.0",
           "Amazon.Lambda.Serialization.SystemTextJson": "2.4.3",
-          "Hardened.Requests.Runtime": "0.1.0-Alpha1147",
+          "Hardened.Requests.Runtime": "0.1.0-Alpha1150",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging": "8.0.0",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
@@ -963,7 +963,7 @@
         "framework": ".NETCoreApp,Version=v8.0",
         "dependencies": {
           "Amazon.Lambda.Core": "2.2.0",
-          "Hardened.Requests.Runtime": "0.1.0-Alpha1147",
+          "Hardened.Requests.Runtime": "0.1.0-Alpha1150",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0",
           "Microsoft.NET.Test.Sdk": "17.10.0"
@@ -1055,61 +1055,61 @@
         "readme.txt"
       ]
     },
-    "Hardened.Library.SourceGenerator/0.1.0-Alpha1147": {
-      "sha512": "j2bXIxk3oQ0NPnN4OJOx0hmkBL4/PKdfXrLh8nYyF368dPgWlSfyIjmRBxcnN83JA5So6eoP4zV0DeJhM9z+sA==",
+    "Hardened.Library.SourceGenerator/0.1.0-Alpha1150": {
+      "sha512": "0E7E0Bj7lrdOq0joY3olcf1T3waTmmA50oXY9NyWodFY9zqWQeXa7iDriTL5MUXl0hKoOIRTcAqMLzDCMaqtqw==",
       "type": "package",
-      "path": "hardened.library.sourcegenerator/0.1.0-alpha1147",
+      "path": "hardened.library.sourcegenerator/0.1.0-alpha1150",
       "files": [
         ".nupkg.metadata",
         "analyzers/dotnet/cs/Hardened.Library.SourceGenerator.dll",
-        "hardened.library.sourcegenerator.0.1.0-alpha1147.nupkg.sha512",
+        "hardened.library.sourcegenerator.0.1.0-alpha1150.nupkg.sha512",
         "hardened.library.sourcegenerator.nuspec"
       ]
     },
-    "Hardened.Requests.Abstract/0.1.0-Alpha1147": {
-      "sha512": "/bkNlEoSUNnm5nE0h/+e2kANVPqyWHjOTUln8SJxBjP8KoWrSvWjXp/NLDLqT08XyxjHDkSZzJEaJ3eeGJkJWw==",
+    "Hardened.Requests.Abstract/0.1.0-Alpha1150": {
+      "sha512": "ow9mIwOGuGbRM4RhigXxBAGx7ITIrjsNIk7htrI7fl9ARskc3E1DrZJJXjJ1xW/echDfvKDKMwAABqS5R7hGXw==",
       "type": "package",
-      "path": "hardened.requests.abstract/0.1.0-alpha1147",
+      "path": "hardened.requests.abstract/0.1.0-alpha1150",
       "files": [
         ".nupkg.metadata",
-        "hardened.requests.abstract.0.1.0-alpha1147.nupkg.sha512",
+        "hardened.requests.abstract.0.1.0-alpha1150.nupkg.sha512",
         "hardened.requests.abstract.nuspec",
         "lib/net8.0/Hardened.Requests.Abstract.dll"
       ]
     },
-    "Hardened.Requests.Runtime/0.1.0-Alpha1147": {
-      "sha512": "fDJzjcfL+yTgZ3HOegE4E1aK9LNiVuRW197P8oMAjZYEXbpDTetjbPqlkignNRUd5NlP7K2EnjqiPfKycVGglA==",
+    "Hardened.Requests.Runtime/0.1.0-Alpha1150": {
+      "sha512": "XsMM9D366wtLpoLXyvili2MOidj+sgVtV1nqkPyN6TipP6XMra/OXa3lSS4pH5vZ/sqApiRJf23lZbH0VSwy/A==",
       "type": "package",
-      "path": "hardened.requests.runtime/0.1.0-alpha1147",
+      "path": "hardened.requests.runtime/0.1.0-alpha1150",
       "files": [
         ".nupkg.metadata",
-        "hardened.requests.runtime.0.1.0-alpha1147.nupkg.sha512",
+        "hardened.requests.runtime.0.1.0-alpha1150.nupkg.sha512",
         "hardened.requests.runtime.nuspec",
         "lib/net8.0/Hardened.Requests.Runtime.dll"
       ]
     },
-    "Hardened.Shared.Runtime/0.1.0-Alpha1147": {
-      "sha512": "67dhIFYVTjCskd2hzhq2MhPCjLNjo3xCnhLyhaX4CXUzCj+RTEOQoWWdemo6yuO84xZa8ldsZb+Ro40IDRN4ag==",
+    "Hardened.Shared.Runtime/0.1.0-Alpha1150": {
+      "sha512": "/n0gOaPXqZQVAD1F9C6Svc+fAuqwceEZKg+lJR8rBkTN82qa+V4Gj35cjNhZUYchSJymRPFoT4mWGD0jWwzgdQ==",
       "type": "package",
-      "path": "hardened.shared.runtime/0.1.0-alpha1147",
+      "path": "hardened.shared.runtime/0.1.0-alpha1150",
       "files": [
         ".nupkg.metadata",
-        "hardened.shared.runtime.0.1.0-alpha1147.nupkg.sha512",
+        "hardened.shared.runtime.0.1.0-alpha1150.nupkg.sha512",
         "hardened.shared.runtime.nuspec",
         "lib/net8.0/Hardened.Shared.Runtime.dll"
       ]
     },
-    "Hardened.Shared.Testing/0.1.0-Alpha1147": {
-      "sha512": "eIgVNJ2oV8hcF6NNNhIvNObI7tZFBdtcYXGJx0Tab+XWo41hKtmux3KWht6ZNfnE9GmDphEsb7Y2xcFUkdDctw==",
+    "Hardened.Shared.Testing/0.1.0-Alpha1150": {
+      "sha512": "MdImiC+aMx4OkQAW1gN5/W7B7eC6E+KKdzwENybtqbDFb4OO5EPo/SAHWj5f1RaEddngxkKVKdnUtdrqsW/tWg==",
       "type": "package",
-      "path": "hardened.shared.testing/0.1.0-alpha1147",
+      "path": "hardened.shared.testing/0.1.0-alpha1150",
       "files": [
         ".nupkg.metadata",
         "content/testhost.dll",
         "content/testhost.exe",
         "contentFiles/any/net8.0/testhost.dll",
         "contentFiles/any/net8.0/testhost.exe",
-        "hardened.shared.testing.0.1.0-alpha1147.nupkg.sha512",
+        "hardened.shared.testing.0.1.0-alpha1150.nupkg.sha512",
         "hardened.shared.testing.nuspec",
         "lib/net8.0/Hardened.Shared.Testing.dll",
         "lib/net8.0/Hardened.Shared.Testing.runtimeconfig.json"

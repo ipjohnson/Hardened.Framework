@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace Hardened.Amz.Function.Lambda.Runtime.DependencyInjection;
 
 public static class LambdaFunctionDI {
-    public static void Register(IEnvironment environment, IServiceCollection serviceCollection) {
+    public static void Register(IHardenedEnvironment environment, IServiceCollection serviceCollection) {
         serviceCollection.TryAddSingleton<ILambdaFunctionImplService, LambdaFunctionImplService>();
         serviceCollection.TryAddSingleton<ILambdaInvokeFilterProvider, LambdaInvokeFilterProvider>();
         serviceCollection.TryAddSingleton<ILambdaContextAccessor, LambdaContextAccessor>();

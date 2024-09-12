@@ -57,7 +57,7 @@
             },
             "Hardened.Requests.Runtime": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1147, )"
+              "version": "[0.1.0-Alpha1150, )"
             },
             "Microsoft.Extensions.DependencyInjection.Abstractions": {
               "target": "Package",
@@ -149,7 +149,7 @@
             },
             "Hardened.Requests.Runtime": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1147, )"
+              "version": "[0.1.0-Alpha1150, )"
             },
             "Microsoft.Extensions.Logging.Abstractions": {
               "target": "Package",
@@ -334,7 +334,7 @@
             },
             "Hardened.Requests.Abstract": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1147, )"
+              "version": "[0.1.0-Alpha1150, )"
             },
             "Microsoft.Extensions.DependencyInjection.Abstractions": {
               "target": "Package",
