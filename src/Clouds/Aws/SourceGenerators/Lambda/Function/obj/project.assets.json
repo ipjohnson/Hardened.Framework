@@ -2,7 +2,7 @@
   "version": 3,
   "targets": {
     ".NETStandard,Version=v2.0": {
-      "CSharpAuthor/0.1.0-Beta966": {
+      "CSharpAuthor/0.1.0-Beta970": {
         "type": "package",
         "compile": {
           "lib/netstandard2.0/_._": {}
@@ -15,7 +15,7 @@
           "build/CSharpAuthor.targets": {}
         }
       },
-      "Hardened.SourceGenerator/0.1.0-Alpha1150": {
+      "Hardened.SourceGenerator/0.1.0-Alpha1151": {
         "type": "package",
         "dependencies": {
           "Microsoft.CodeAnalysis.CSharp": "4.10.0",
@@ -333,15 +333,15 @@
     }
   },
   "libraries": {
-    "CSharpAuthor/0.1.0-Beta966": {
-      "sha512": "4ZEy+2ExDxgvxqJPQKWmfHTSwpvayCkZwfnLbalG+wWMN9hpQjPk3Wvy1yMbl6IjJt/f2dfdN/3GQsd6WhJcDA==",
+    "CSharpAuthor/0.1.0-Beta970": {
+      "sha512": "TviAATS47yDmEE1cJuaOge+7ZoM8L4IPlKEC1e142UHzdgZs/UJFqJPLrI0xCQqYn6qN3eKHJa2FaLyGbiUqtA==",
       "type": "package",
-      "path": "csharpauthor/0.1.0-beta966",
+      "path": "csharpauthor/0.1.0-beta970",
       "files": [
         ".nupkg.metadata",
         "build/CSharpAuthor.props",
         "build/CSharpAuthor.targets",
-        "csharpauthor.0.1.0-beta966.nupkg.sha512",
+        "csharpauthor.0.1.0-beta970.nupkg.sha512",
         "csharpauthor.nuspec",
         "lib/netstandard2.0/CSharpAuthor.dll",
         "src/CSharpAuthor/AppendStatement.cs",
@@ -411,15 +411,15 @@
         "src/CSharpAuthor/WrapStatement.cs"
       ]
     },
-    "Hardened.SourceGenerator/0.1.0-Alpha1150": {
-      "sha512": "9GPX1k/ID4h16p/lYDS2BBXDZK06G2aYMHay0xA7DyTz+SzF81REIlyHGqKLRcPSaacHaV7i9bSv882RCQt4hQ==",
+    "Hardened.SourceGenerator/0.1.0-Alpha1151": {
+      "sha512": "qs9wpHxupcjk7lAFQZ8pD8EsFPFIX6oG94O1J1z7pGjXak67JTZdcX9I7Z3yxC6oDy6ILZyWmv9KsvCVUsmKiQ==",
       "type": "package",
-      "path": "hardened.sourcegenerator/0.1.0-alpha1150",
+      "path": "hardened.sourcegenerator/0.1.0-alpha1151",
       "files": [
         ".nupkg.metadata",
         "build/Hardened.SourceGenerator.props",
         "build/Hardened.SourceGenerator.targets",
-        "hardened.sourcegenerator.0.1.0-alpha1150.nupkg.sha512",
+        "hardened.sourcegenerator.0.1.0-alpha1151.nupkg.sha512",
         "hardened.sourcegenerator.nuspec",
         "src/Hardened.SourceGenerator/Configuration/ConfigurationEntryPointGenerator.cs",
         "src/Hardened.SourceGenerator/Configuration/ConfigurationFileModelComparer.cs",
@@ -1645,8 +1645,8 @@
   },
   "projectFileDependencyGroups": {
     ".NETStandard,Version=v2.0": [
-      "CSharpAuthor >= 0.1.0-Beta966",
-      "Hardened.SourceGenerator >= 0.1.0-Alpha1150",
+      "CSharpAuthor >= 0.1.0-Beta970",
+      "Hardened.SourceGenerator >= 0.1.0-Alpha1151",
       "Microsoft.CodeAnalysis.Analyzers >= 3.3.4",
       "Microsoft.CodeAnalysis.CSharp >= 4.10.0",
       "Microsoft.Extensions.Primitives >= 8.0.0",
@@ -1704,13 +1704,13 @@
             "include": "Build",
             "suppressParent": "All",
             "target": "Package",
-            "version": "[0.1.0-Beta966, )"
+            "version": "[0.1.0-Beta970, )"
           },
           "Hardened.SourceGenerator": {
             "include": "Build",
             "suppressParent": "All",
             "target": "Package",
-            "version": "[0.1.0-Alpha1150, )"
+            "version": "[0.1.0-Alpha1151, )"
           },
           "Microsoft.CodeAnalysis.Analyzers": {
             "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",

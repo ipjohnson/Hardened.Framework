@@ -169,7 +169,7 @@
             },
             "Hardened.Requests.Abstract": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1150, )"
+              "version": "[0.1.0-Alpha1151, )"
             },
             "Microsoft.Extensions.DependencyInjection.Abstractions": {
               "target": "Package",

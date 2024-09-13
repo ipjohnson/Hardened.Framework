@@ -76,10 +76,10 @@
           }
         }
       },
-      "Hardened.Requests.Abstract/0.1.0-Alpha1150": {
+      "Hardened.Requests.Abstract/0.1.0-Alpha1151": {
         "type": "package",
         "dependencies": {
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1150",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1151",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -107,7 +107,7 @@
           "lib/net8.0/Hardened.Requests.Runtime.dll": {}
         }
       },
-      "Hardened.Shared.Runtime/0.1.0-Alpha1150": {
+      "Hardened.Shared.Runtime/0.1.0-Alpha1151": {
         "type": "package",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection": "8.0.0",
@@ -647,7 +647,7 @@
           "Amazon.Lambda.Logging.AspNetCore": "3.1.0",
           "Amazon.Lambda.Serialization.SystemTextJson": "2.4.3",
           "Hardened.Amz.Shared.Lambda.Runtime": "1.0.0",
-          "Hardened.Requests.Abstract": "0.1.0-Alpha1150",
+          "Hardened.Requests.Abstract": "0.1.0-Alpha1151",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -741,13 +741,13 @@
         "lib/netcoreapp3.1/Amazon.Lambda.Serialization.SystemTextJson.xml"
       ]
     },
-    "Hardened.Requests.Abstract/0.1.0-Alpha1150": {
-      "sha512": "ow9mIwOGuGbRM4RhigXxBAGx7ITIrjsNIk7htrI7fl9ARskc3E1DrZJJXjJ1xW/echDfvKDKMwAABqS5R7hGXw==",
+    "Hardened.Requests.Abstract/0.1.0-Alpha1151": {
+      "sha512": "1/vCBlrN0qRj0QDchDUfLcuRg5j2UVKvGn9w72ddYg6PtvByWCtrZCZL3vOKiVc0LBkAPFFZXYX+mSi+uQSFdw==",
       "type": "package",
-      "path": "hardened.requests.abstract/0.1.0-alpha1150",
+      "path": "hardened.requests.abstract/0.1.0-alpha1151",
       "files": [
         ".nupkg.metadata",
-        "hardened.requests.abstract.0.1.0-alpha1150.nupkg.sha512",
+        "hardened.requests.abstract.0.1.0-alpha1151.nupkg.sha512",
         "hardened.requests.abstract.nuspec",
         "lib/net8.0/Hardened.Requests.Abstract.dll"
       ]
@@ -763,13 +763,13 @@
         "lib/net8.0/Hardened.Requests.Runtime.dll"
       ]
     },
-    "Hardened.Shared.Runtime/0.1.0-Alpha1150": {
-      "sha512": "/n0gOaPXqZQVAD1F9C6Svc+fAuqwceEZKg+lJR8rBkTN82qa+V4Gj35cjNhZUYchSJymRPFoT4mWGD0jWwzgdQ==",
+    "Hardened.Shared.Runtime/0.1.0-Alpha1151": {
+      "sha512": "5Yi5AUL2q0OE893PFbIhIZpsd6S749Y/JSiDB4I9SeS2pH2l19ziPTtLRVid7Uh9cIkiFZIYQTes4imPf69H7A==",
       "type": "package",
-      "path": "hardened.shared.runtime/0.1.0-alpha1150",
+      "path": "hardened.shared.runtime/0.1.0-alpha1151",
       "files": [
         ".nupkg.metadata",
-        "hardened.shared.runtime.0.1.0-alpha1150.nupkg.sha512",
+        "hardened.shared.runtime.0.1.0-alpha1151.nupkg.sha512",
         "hardened.shared.runtime.nuspec",
         "lib/net8.0/Hardened.Shared.Runtime.dll"
       ]

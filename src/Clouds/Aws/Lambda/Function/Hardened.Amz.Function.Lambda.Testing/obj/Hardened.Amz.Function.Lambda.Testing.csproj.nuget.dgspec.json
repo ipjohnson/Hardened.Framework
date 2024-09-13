@@ -144,7 +144,7 @@
             },
             "Hardened.Shared.Testing": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1150, )"
+              "version": "[0.1.0-Alpha1151, )"
             },
             "Microsoft.Extensions.Logging.Abstractions": {
               "target": "Package",
