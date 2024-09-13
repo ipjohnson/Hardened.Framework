@@ -28,11 +28,6 @@ public class DeploymentGroupStack : IStackDefinition {
             context.Resources.Where(x => x.Item1 is Alias).
                 Select(x => new Tuple<Alias,string>((Alias)x.Item1, x.Item2)).ToList();
 
-        var monitor = new MonitoringFacade(context.Stack, "", new MonitoringFacadeProps { });
-
-        monitor.MonitorLambdaFunction(new LambdaFunctionMonitoringProps {
-        });
-        
         var config = context.Stage.IsProduction ? 
             LambdaDeploymentConfig.LINEAR_10PERCENT_EVERY_10MINUTES : 
             LambdaDeploymentConfig.LINEAR_10PERCENT_EVERY_3MINUTES;
