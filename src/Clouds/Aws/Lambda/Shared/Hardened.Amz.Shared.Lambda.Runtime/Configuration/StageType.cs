@@ -9,11 +9,11 @@ public interface IStageType {
 
 public record StageType(string StageName, bool IsProduction = false) : IStageType {
     
-    public static StageType Dev = new(nameof(Dev));
+    public static StageType Dev = new(nameof(Dev).ToLower());
     
-    public static StageType Beta = new(nameof(Beta));
+    public static StageType Beta = new(nameof(Beta).ToLower());
     
-    public static StageType Gamma = new(nameof(Gamma));
+    public static StageType Gamma = new(nameof(Gamma).ToLower());
     
-    public static StageType Prod => new(nameof(Prod), true);
+    public static StageType Production => new(nameof(Production).ToLower(), true);
 }
