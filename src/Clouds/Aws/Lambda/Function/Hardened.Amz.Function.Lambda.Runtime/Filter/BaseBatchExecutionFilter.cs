@@ -12,7 +12,7 @@ public record Result<T>(bool Success, T Value);
 public abstract class BaseBatchExecutionFilter<TEvent, TRecord> : IExecutionFilter {
     protected readonly IJsonSerializer JsonSerializer;
     protected readonly IMemoryStreamPool MemoryStreamPool;
-    private IBatchProcessorExceptionHandler _bulkProcessorExceptionHandler;
+    private readonly IBatchProcessorExceptionHandler _bulkProcessorExceptionHandler;
     private readonly ILogger _logger;
 
     protected BaseBatchExecutionFilter(

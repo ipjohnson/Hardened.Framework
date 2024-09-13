@@ -38,7 +38,7 @@ public class StackDeploymentContext<TConfig, TStage, TRegion> : IStackDeployment
     where TConfig : IStageConfiguration<TRegion, TStage>
     where TRegion : ISupportedRegion
     where TStage : IStageType {
-    private Dictionary<ICdkResourceRef, Tuple<object?, string>> _resources = new();
+    private readonly Dictionary<ICdkResourceRef, Tuple<object?, string>> _resources = new();
 
     public string DeploymentName {
         get;

@@ -67,7 +67,7 @@ public class DeploymentGroupStack : IStackDefinition {
                 ApplicationName = name + "-app-dg",
             });
 
-            var d = new LambdaDeploymentGroup(context.Stack, name + "-dg", new LambdaDeploymentGroupProps {
+            var lambdaDeploymentGroup = new LambdaDeploymentGroup(context.Stack, name + "-dg", new LambdaDeploymentGroupProps {
                 Application = application,
                 Alias = alias.Item1,
                 Alarms = [rollbackAlarm],

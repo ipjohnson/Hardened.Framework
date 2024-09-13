@@ -27,7 +27,7 @@ public class CdkConfigurationRegistry : ICdkConfigurationRegistry {
         where TConfig : IStageConfiguration<TRegion, TStage> 
         where TStage : IStageType 
         where TRegion : ISupportedRegion {
-        private StackDeploymentContext<TConfig, TStage, TRegion> _stackDeploymentContext;
+        private readonly StackDeploymentContext<TConfig, TStage, TRegion> _stackDeploymentContext;
         
         public TypedRegistryEntry(string appName, TConfig configuration) {
             _stackDeploymentContext = new StackDeploymentContext<TConfig, TStage, TRegion>(appName, configuration);
@@ -45,8 +45,8 @@ public class CdkConfigurationRegistry : ICdkConfigurationRegistry {
         where TConfig : IStageConfiguration<TRegion, TStage> 
         where TStage : IStageType 
         where TRegion : ISupportedRegion {
-        private IStackDefinition<TConfig> _stackDefinition;
-        private IStackDeploymentContext<TConfig> _stackDeploymentContext;
+        private readonly IStackDefinition<TConfig> _stackDefinition;
+        private readonly IStackDeploymentContext<TConfig> _stackDeploymentContext;
 
         public StackDefinitionDeployer(
             IStackDefinition<TConfig> stackDefinition, 
@@ -71,7 +71,7 @@ public class CdkConfigurationRegistry : ICdkConfigurationRegistry {
     }
     
     public class StackDefinitionDeployer : IStackDefinitionDeployer {
-        private IStackDeploymentContext _stackDeploymentContext;
+        private readonly IStackDeploymentContext _stackDeploymentContext;
         private readonly IStackDefinition _definition;
 
         public StackDefinitionDeployer(

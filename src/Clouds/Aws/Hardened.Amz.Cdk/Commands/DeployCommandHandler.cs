@@ -9,10 +9,10 @@ namespace Hardened.Amz.Cdk.Commands;
 
 [Expose]
 public class DeployCommandHandler : ICommandHandler<DeployCommand> {
-    private CdkConfigurationRegistry _registry;
-    private IServiceProvider _serviceProvider;
-    private IHardenedEnvironment _hardenedEnvironment;
-    private IDeploymentAccountProvider _deploymentAccountProvider;
+    private readonly CdkConfigurationRegistry _registry;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IHardenedEnvironment _hardenedEnvironment;
+    private readonly IDeploymentAccountProvider _deploymentAccountProvider;
     private readonly StackContextAccessor _stackContextAccessor;
 
     public DeployCommandHandler(
@@ -43,6 +43,8 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
 
         var (stageType, regionType) = GetRegionAndStageType();
         
+        Console.WriteLine($"Deploying ${stageType} to {regionType}");
+        
         configProvider.ProvideConfiguration(stageType, regionType, _registry);
 
         if (_registry.TypedStackDefinition == null) {
@@ -60,11 +62,12 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
         
         foreach (var deployer in deployers) {
             if (deployer.ShouldDeploy()) {
-                Console.WriteLine("Deploying Stack Definition: " + deployer.Definition.Name);
+                var name = deployer.Name();
+                Console.WriteLine("Deploying Stack Definition: " + name);
                 var account = _deploymentAccountProvider.GetDeploymentAccount(
                     deployer.ConfigValue(), deployer.AccountType());
 
-                var stack = new Stack(cdkApp, deployer.Name() + "-stack", new StackProps {
+                var stack = new Stack(cdkApp, name + "-stack", new StackProps {
                     Env = new Environment { Account = account, Region = regionType }
                 });
                 

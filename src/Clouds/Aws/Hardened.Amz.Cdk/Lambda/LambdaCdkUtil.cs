@@ -115,8 +115,6 @@ public class LambdaCdkUtil {
     }
 
     private void ValidateRequest(HttpApiLambdaRequest request) {
-        if (_stackContextAccessor.Context == null) {
-            
-        }
+
     }
 }

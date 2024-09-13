@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Hardened.Amz.Function.Lambda.SourceGenerator;
 
 public class LambdaFunctionModelGenerator : BaseRequestModelGenerator {
-    private List<string> _attributeNames = new() {
+    private readonly List<string> _attributeNames = new() {
         "LambdaFunction"
     };
     
