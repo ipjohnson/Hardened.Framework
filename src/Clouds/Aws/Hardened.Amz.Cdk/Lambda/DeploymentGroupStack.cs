@@ -4,9 +4,11 @@ using Amazon.CDK.AWS.CodeDeploy;
 using Amazon.CDK.AWS.Lambda;
 using Cdklabs.CdkMonitoringConstructs;
 using Hardened.Amz.Shared.Lambda.Runtime.Configuration;
+using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened.Amz.Cdk.Lambda;
 
+[Expose]
 public class DeploymentGroupStack : IStackDefinition {
 
     public int Order => 1000;
