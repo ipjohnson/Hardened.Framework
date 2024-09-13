@@ -64,7 +64,7 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
                 var account = _deploymentAccountProvider.GetDeploymentAccount(
                     deployer.ConfigValue(), deployer.AccountType());
 
-                var stack = new Stack(cdkApp, deployer.Name() + "Id", new StackProps {
+                var stack = new Stack(cdkApp, deployer.Name() + "-stack", new StackProps {
                     Env = new Environment { Account = account, Region = regionType }
                 });
                 
