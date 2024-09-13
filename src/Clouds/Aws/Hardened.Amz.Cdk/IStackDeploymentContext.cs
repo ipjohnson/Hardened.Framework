@@ -4,20 +4,7 @@ using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened.Amz.Cdk;
 
-public interface ICdkResourceRef {
-    string Name { get; }
 
-    Type TypeOfResource { get; }
-}
-
-public enum DeploymentAccount {
-    Service,
-    Test
-}
-
-public record CdkResourceRef<T>(string Name = "default") : ICdkResourceRef {
-    public Type TypeOfResource => typeof(T);
-}
 
 public interface IStackDeploymentContext {
     string DeploymentName { get; }
