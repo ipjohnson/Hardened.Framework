@@ -16,13 +16,8 @@ public class DeploymentGroupStack : IStackDefinition {
     }
 
     public string NameValue(IStackDeploymentContext context) {
-        var function = 
-            context.Resources
-                .Where(x => x.Item1 is Alias)
-                .Select(x => x.Item1)
-                .Cast<Alias>();
 
-        return function.Single().FunctionName + "-deployment-group";
+        return context.DeploymentName + "-deployment-group";
     }
 
     public void Deploy(IStackDeploymentContext context) {
@@ -36,27 +31,49 @@ public class DeploymentGroupStack : IStackDefinition {
         monitor.MonitorLambdaFunction(new LambdaFunctionMonitoringProps {
         });
         
-        var config = context.Stage == StageType.Prod ? 
+        var config = context.Stage.IsProduction ? 
             LambdaDeploymentConfig.LINEAR_10PERCENT_EVERY_10MINUTES : 
             LambdaDeploymentConfig.LINEAR_10PERCENT_EVERY_3MINUTES;
+
+        var alarms = new List<IAlarmRule>();
+        
+        foreach (var alias in aliases) {
+            var name = alias.Item2;
+            var failureAlarm = new Alarm(context.Stack, name + "-failure-alarm", new AlarmProps {
+                AlarmName = name + "-failure",
+                Metric = alias.Item1.MetricErrors(new MetricOptions {
+                    Period = Duration.Minutes(1),
+                    Statistic = Stats.SUM,
+                }),
+                EvaluationPeriods = 5,
+                Threshold = 3
+            });
+            
+            alarms.Add(failureAlarm);
+        }
+        
+        var rollBackAlarm = context.DeploymentName + "-rollback-alarm";
+        
+        var rollbackComposite = new CompositeAlarm(context.Stack, rollBackAlarm + "-comp", new CompositeAlarmProps {
+            CompositeAlarmName = rollBackAlarm,
+            AlarmRule = AlarmRule.AnyOf(alarms.ToArray())
+        });
+        
+        var rollbackAlarm = new CompositeAlarm(context.Stack, rollBackAlarm, new CompositeAlarmProps {
+            CompositeAlarmName = rollBackAlarm,
+            AlarmRule = AlarmRule.AnyOf(rollbackComposite)
+        });
         
         foreach (var alias in aliases) {
             var name = alias.Item2;
             var application = new LambdaApplication(context.Stack, name + "-app-dg", new LambdaApplicationProps {
                 ApplicationName = name + "-app-dg",
             });
-            
+
             var d = new LambdaDeploymentGroup(context.Stack, name + "-dg", new LambdaDeploymentGroupProps {
                 Application = application,
                 Alias = alias.Item1,
-                Alarms = [
-                    new Alarm(context.Stack, name + "-Alarm",new AlarmProps {
-                        Metric = alias.Item1.MetricErrors(new MetricOptions { 
-                            Period = Duration.Minutes(1)
-                        }),
-                        AlarmName = name + "-Alarm",
-                    })
-                ],
+                Alarms = [rollbackAlarm],
                 DeploymentConfig = config,
             });
         }
