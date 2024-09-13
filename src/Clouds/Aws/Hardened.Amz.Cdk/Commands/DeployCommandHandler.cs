@@ -15,8 +15,8 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
     private IDeploymentAccountProvider _deploymentAccountProvider;
 
     public DeployCommandHandler(
-        CdkConfigurationRegistry registry, 
-        IServiceProvider serviceProvider, 
+        CdkConfigurationRegistry registry,
+        IServiceProvider serviceProvider,
         IHardenedEnvironment hardenedEnvironment,
         IDeploymentAccountProvider deploymentAccountProvider) {
         _registry = registry;
