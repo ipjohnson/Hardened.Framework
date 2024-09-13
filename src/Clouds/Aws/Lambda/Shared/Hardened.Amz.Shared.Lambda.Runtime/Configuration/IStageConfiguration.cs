@@ -4,7 +4,7 @@ public interface ISupportedRegion {
     string Name { get; }
 }
 
-public interface IStageConfiguration<TRegion, TStageType> 
+public interface IStageConfiguration<out TRegion, out TStageType> 
     where TRegion : ISupportedRegion where TStageType : IStageType {
     
     TRegion Region { get; }
