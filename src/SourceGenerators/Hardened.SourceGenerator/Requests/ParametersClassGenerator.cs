@@ -148,10 +148,11 @@ public static class ParametersClassGenerator {
 
     private static void WriteProperties(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
         foreach (var requestParameterInformation in handlerModel.RequestParameterInformationList) {
-            parametersClass.AddProperty(
-                    requestParameterInformation.ParameterType,
-                    requestParameterInformation.Name)
-                .AddAttribute(typeof(SuppressMessageAttribute), "\"Microsoft.Design\", \"CS8618\"");
+            var property = parametersClass.AddProperty(
+                requestParameterInformation.ParameterType,
+                requestParameterInformation.Name);
+
+            property.DefaultValue = CodeOutputComponent.Get("default!");
         }
     }
 }
