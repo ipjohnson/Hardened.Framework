@@ -30,6 +30,10 @@ public class PartialTemplateCodeGenerator {
     }
 
     private string GetTemplateArgument(TemplateImplementationGenerator.GenerationContext context) {
+        if (context.CurrentNode == null) {
+            throw new ArgumentNullException(nameof(context.CurrentNode));
+        }
+        
         if (context.CurrentNode.ActionText.StartsWith("$")) {
             return _helperCodeGenerator.AssignNodeToVariable(context);
         }

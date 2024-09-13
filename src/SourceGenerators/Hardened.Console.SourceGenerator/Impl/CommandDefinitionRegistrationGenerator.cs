@@ -88,7 +88,9 @@ public class CommandDefinitionRegistrationGenerator {
                     KnownTypes.Namespace.Hardened.Shared.Runtime.Application, "ApplicationLogic"),
                 "RunApplication",
                 new[] {
-                    environment.Instance, rootProvider.Instance, Null()
+                    environment.Instance, 
+                    new WrapStatement(rootProvider.Instance, "", "!"),
+                    Null()
                 }) {
                 Indented = false
             });

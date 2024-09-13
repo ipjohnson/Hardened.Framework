@@ -120,7 +120,7 @@ public static class TemplateEntryPointGenerator {
             var caseBlock = switchBlock.AddCase(QuoteString(templateModel.TemplateName));
 
             caseBlock.Return(NullCoalesceEqual(instanceField.Instance,
-                New(templateModel.TemplateDefinitionType, templateExecutionService.Instance,
+                New(templateModel.TemplateDefinitionType!, templateExecutionService.Instance,
                     internalServices.Instance)));
         }
 

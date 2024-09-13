@@ -71,7 +71,6 @@ public static class BindRequestParametersMethodGenerator {
         MethodDefinition invokeMethod,
         ParameterDefinition context,
         InstanceDefinition parametersVar) {
-        IOutputComponent invokeStatement;
 
         var attributeDataStatement = InvokeGeneric(
             KnownTypes.Requests.ExecutionHelper,

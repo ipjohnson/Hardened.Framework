@@ -62,6 +62,10 @@ public static class AttributeModelHelper {
             }
         }
 
+        if (operation.Type == null) {
+            throw new ArgumentNullException("operation.Type", "The type argument cannot be null.");
+        }
+        
         var type = operation.Type.GetTypeDefinition();
 
         if (!type.Name.EndsWith("Attribute")) {

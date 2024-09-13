@@ -13,6 +13,7 @@
         <PackageLicenseUrl>https://github.com/ipjohnson/CSharpAuthor/blob/main/LICENSE</PackageLicenseUrl>
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/ipjohnson/CSharpAuthor</RepositoryUrl>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     </PropertyGroup>
 
     <ItemGroup>
