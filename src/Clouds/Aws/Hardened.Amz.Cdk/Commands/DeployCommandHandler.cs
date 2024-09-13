@@ -68,6 +68,8 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
                 deployer.Deploy();
             }    
         }
+
+        cdkApp.Synth();
         
         return 0;
     }
