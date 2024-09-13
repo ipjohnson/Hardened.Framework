@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repo: ['FriendsWithRecipes.Recipes']
+        repo: ['FriendsWithRecipes.Common']
         
     steps:
     - uses: passeidireto/trigger-external-workflow-action@main
