@@ -43,8 +43,8 @@ public class HttpApiLambdaRequest : BaseLambdaRequest {
 
 [Expose]
 public class LambdaCdkUtil {
-    private StackContextAccessor _stackContextAccessor;
-    private IDefaultFunctionProps _defaultFunctionProps;
+    private readonly StackContextAccessor _stackContextAccessor;
+    private readonly IDefaultFunctionProps _defaultFunctionProps;
 
     public LambdaCdkUtil(
         StackContextAccessor stackContextAccessor, 
@@ -115,6 +115,8 @@ public class LambdaCdkUtil {
     }
 
     private void ValidateRequest(HttpApiLambdaRequest request) {
-        
+        if (_stackContextAccessor.Context == null) {
+            
+        }
     }
 }

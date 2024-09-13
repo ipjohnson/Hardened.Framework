@@ -13,21 +13,24 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
     private IServiceProvider _serviceProvider;
     private IHardenedEnvironment _hardenedEnvironment;
     private IDeploymentAccountProvider _deploymentAccountProvider;
+    private readonly StackContextAccessor _stackContextAccessor;
 
     public DeployCommandHandler(
         CdkConfigurationRegistry registry,
         IServiceProvider serviceProvider,
         IHardenedEnvironment hardenedEnvironment,
-        IDeploymentAccountProvider deploymentAccountProvider) {
+        IDeploymentAccountProvider deploymentAccountProvider, 
+        StackContextAccessor stackContextAccessor) {
         _registry = registry;
         _serviceProvider = serviceProvider;
         _hardenedEnvironment = hardenedEnvironment;
         _deploymentAccountProvider = deploymentAccountProvider;
+        _stackContextAccessor = stackContextAccessor;
     }
 
     public async Task<int> Handle(DeployCommand value) {
         var cdkApp = _hardenedEnvironment.CustomData<App>("cdkApp");
-
+        
         if (cdkApp == null) {
             throw new Exception("Could not find cdkApp in environment");
         }
@@ -45,14 +48,19 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
         if (_registry.TypedStackDefinition == null) {
             throw new ApplicationException("No Stack Definitions exposed, please implement.");
         }
-
+        
         var deployers = 
             _registry.TypedStackDefinition.GetTypedDeployers(_serviceProvider).ToList();
 
+        deployers.AddRange(GetDefaultStackDeployers(_serviceProvider, _registry.TypedStackDefinition.Context));
+        
         SortStackDefinitions(deployers);
 
+        _stackContextAccessor.Context = _registry.TypedStackDefinition.Context;
+        
         foreach (var deployer in deployers) {
             if (deployer.ShouldDeploy()) {
+                Console.WriteLine("Deploying Stack Definition: " + deployer.Definition.Name);
                 var account = _deploymentAccountProvider.GetDeploymentAccount(
                     deployer.ConfigValue(), deployer.AccountType());
 
@@ -63,7 +71,10 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
                 _registry.TypedStackDefinition.Context.Stack = stack;
                 
                 deployer.Deploy();
-            }    
+            }
+            else {
+                Console.WriteLine("Skipping Stack Definition: " + deployer.Definition.Name);
+            }
         }
 
         cdkApp.Synth();
@@ -71,7 +82,15 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
         return 0;
     }
 
-    
+    private IEnumerable<IStackDefinitionDeployer> GetDefaultStackDeployers(IServiceProvider serviceProvider, IStackDeploymentContext context) {
+        var stackDefinitions = serviceProvider.GetServices<IStackDefinition>();
+
+        foreach (var definition in stackDefinitions) {
+            yield return new CdkConfigurationRegistry.StackDefinitionDeployer(context, definition);
+        }
+    }
+
+
     private void SortStackDefinitions(List<IStackDefinitionDeployer> deployers) {
         deployers.Sort((xDeployer, yDeployer) => {
             var x = xDeployer.Definition;
