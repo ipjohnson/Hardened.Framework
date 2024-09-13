@@ -1,11 +1,8 @@
 using Amazon.CDK;
-using Hardened.Amz.Shared.Lambda.Runtime.Configuration;
 using Hardened.Commands;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Environment = Amazon.CDK.Environment;
 
 namespace Hardened.Amz.Cdk.Commands;
