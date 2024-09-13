@@ -57,7 +57,7 @@
               "include": "Build",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[0.1.0-Alpha1151, )"
+              "version": "[0.1.0-Alpha1152, )"
             },
             "Microsoft.CodeAnalysis.Analyzers": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",

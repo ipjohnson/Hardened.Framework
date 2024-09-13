@@ -76,10 +76,10 @@
           }
         }
       },
-      "Hardened.Requests.Abstract/0.1.0-Alpha1151": {
+      "Hardened.Requests.Abstract/0.1.0-Alpha1152": {
         "type": "package",
         "dependencies": {
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1151",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1152",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -91,11 +91,11 @@
           "lib/net8.0/Hardened.Requests.Abstract.dll": {}
         }
       },
-      "Hardened.Requests.Runtime/0.1.0-Alpha1150": {
+      "Hardened.Requests.Runtime/0.1.0-Alpha1152": {
         "type": "package",
         "dependencies": {
-          "Hardened.Requests.Abstract": "0.1.0-Alpha1150",
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1150",
+          "Hardened.Requests.Abstract": "0.1.0-Alpha1152",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1152",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -107,7 +107,7 @@
           "lib/net8.0/Hardened.Requests.Runtime.dll": {}
         }
       },
-      "Hardened.Shared.Runtime/0.1.0-Alpha1151": {
+      "Hardened.Shared.Runtime/0.1.0-Alpha1152": {
         "type": "package",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection": "8.0.0",
@@ -311,7 +311,7 @@
         "dependencies": {
           "Amazon.Lambda.Core": "2.2.0",
           "Amazon.Lambda.Serialization.SystemTextJson": "2.4.3",
-          "Hardened.Requests.Runtime": "0.1.0-Alpha1150",
+          "Hardened.Requests.Runtime": "0.1.0-Alpha1152",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging": "8.0.0",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
@@ -407,35 +407,35 @@
         "lib/netcoreapp3.1/Amazon.Lambda.Serialization.SystemTextJson.xml"
       ]
     },
-    "Hardened.Requests.Abstract/0.1.0-Alpha1151": {
-      "sha512": "1/vCBlrN0qRj0QDchDUfLcuRg5j2UVKvGn9w72ddYg6PtvByWCtrZCZL3vOKiVc0LBkAPFFZXYX+mSi+uQSFdw==",
+    "Hardened.Requests.Abstract/0.1.0-Alpha1152": {
+      "sha512": "BKamIxTkba6zvkEe96xidRENsnUp5GT31GZTkqH9EYGcs9pFfgpdORd5A3dqpFs9eOugfkrx2ZJT8q2R0QHFNg==",
       "type": "package",
-      "path": "hardened.requests.abstract/0.1.0-alpha1151",
+      "path": "hardened.requests.abstract/0.1.0-alpha1152",
       "files": [
         ".nupkg.metadata",
-        "hardened.requests.abstract.0.1.0-alpha1151.nupkg.sha512",
+        "hardened.requests.abstract.0.1.0-alpha1152.nupkg.sha512",
         "hardened.requests.abstract.nuspec",
         "lib/net8.0/Hardened.Requests.Abstract.dll"
       ]
     },
-    "Hardened.Requests.Runtime/0.1.0-Alpha1150": {
-      "sha512": "XsMM9D366wtLpoLXyvili2MOidj+sgVtV1nqkPyN6TipP6XMra/OXa3lSS4pH5vZ/sqApiRJf23lZbH0VSwy/A==",
+    "Hardened.Requests.Runtime/0.1.0-Alpha1152": {
+      "sha512": "OYhD1sxVLwHqU9iQjYizuqYSBCDPyFQjOMCv0F3/ChgrITtqzT2fi9dLPk820Dl+CXSWYO248U1zdEZLNHkOEw==",
       "type": "package",
-      "path": "hardened.requests.runtime/0.1.0-alpha1150",
+      "path": "hardened.requests.runtime/0.1.0-alpha1152",
       "files": [
         ".nupkg.metadata",
-        "hardened.requests.runtime.0.1.0-alpha1150.nupkg.sha512",
+        "hardened.requests.runtime.0.1.0-alpha1152.nupkg.sha512",
         "hardened.requests.runtime.nuspec",
         "lib/net8.0/Hardened.Requests.Runtime.dll"
       ]
     },
-    "Hardened.Shared.Runtime/0.1.0-Alpha1151": {
-      "sha512": "5Yi5AUL2q0OE893PFbIhIZpsd6S749Y/JSiDB4I9SeS2pH2l19ziPTtLRVid7Uh9cIkiFZIYQTes4imPf69H7A==",
+    "Hardened.Shared.Runtime/0.1.0-Alpha1152": {
+      "sha512": "Nxpo4jYCZuk3GCFy3yKeFK4NFvHP/JZZW7/sCbynhrjqEFwzFSqBJc2Fd6AZYyIerRZFnspzYtaucvaASfMkgg==",
       "type": "package",
-      "path": "hardened.shared.runtime/0.1.0-alpha1151",
+      "path": "hardened.shared.runtime/0.1.0-alpha1152",
       "files": [
         ".nupkg.metadata",
-        "hardened.shared.runtime.0.1.0-alpha1151.nupkg.sha512",
+        "hardened.shared.runtime.0.1.0-alpha1152.nupkg.sha512",
         "hardened.shared.runtime.nuspec",
         "lib/net8.0/Hardened.Shared.Runtime.dll"
       ]
@@ -848,7 +848,7 @@
       "Amazon.Lambda.Logging.AspNetCore >= 3.1.0",
       "Amazon.Lambda.Serialization.SystemTextJson >= 2.4.3",
       "Hardened.Amz.Shared.Lambda.Runtime >= 1.0.0",
-      "Hardened.Requests.Abstract >= 0.1.0-Alpha1151",
+      "Hardened.Requests.Abstract >= 0.1.0-Alpha1152",
       "Microsoft.Extensions.DependencyInjection.Abstractions >= 8.0.1",
       "Microsoft.Extensions.Logging.Abstractions >= 8.0.1",
       "Microsoft.Extensions.Primitives >= 8.0.0"
@@ -926,7 +926,7 @@
           },
           "Hardened.Requests.Abstract": {
             "target": "Package",
-            "version": "[0.1.0-Alpha1151, )"
+            "version": "[0.1.0-Alpha1152, )"
           },
           "Microsoft.Extensions.DependencyInjection.Abstractions": {
             "target": "Package",

@@ -13,17 +13,17 @@
     <SourceRoot Include="/Users/ianjohnson/.nuget/packages/" />
   </ItemGroup>
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Content Include="$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1151/contentFiles/any/net8.0/testhost.dll" Condition="Exists('$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1151/contentFiles/any/net8.0/testhost.dll')">
+    <Content Include="$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1152/contentFiles/any/net8.0/testhost.dll" Condition="Exists('$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1152/contentFiles/any/net8.0/testhost.dll')">
       <NuGetPackageId>Hardened.Shared.Testing</NuGetPackageId>
-      <NuGetPackageVersion>0.1.0-Alpha1151</NuGetPackageVersion>
+      <NuGetPackageVersion>0.1.0-Alpha1152</NuGetPackageVersion>
       <NuGetItemType>Content</NuGetItemType>
       <Pack>false</Pack>
       <Private>False</Private>
       <Link>testhost.dll</Link>
     </Content>
-    <Content Include="$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1151/contentFiles/any/net8.0/testhost.exe" Condition="Exists('$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1151/contentFiles/any/net8.0/testhost.exe')">
+    <Content Include="$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1152/contentFiles/any/net8.0/testhost.exe" Condition="Exists('$(NuGetPackageRoot)hardened.shared.testing/0.1.0-alpha1152/contentFiles/any/net8.0/testhost.exe')">
       <NuGetPackageId>Hardened.Shared.Testing</NuGetPackageId>
-      <NuGetPackageVersion>0.1.0-Alpha1151</NuGetPackageVersion>
+      <NuGetPackageVersion>0.1.0-Alpha1152</NuGetPackageVersion>
       <NuGetItemType>Content</NuGetItemType>
       <Pack>false</Pack>
       <Private>False</Private>

@@ -57,7 +57,7 @@
             },
             "Hardened.Requests.Runtime": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1150, )"
+              "version": "[0.1.0-Alpha1152, )"
             },
             "Microsoft.Extensions.Logging.Abstractions": {
               "target": "Package",
@@ -141,7 +141,7 @@
             },
             "Hardened.Requests.Runtime": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1150, )"
+              "version": "[0.1.0-Alpha1152, )"
             },
             "Microsoft.Extensions.DependencyInjection.Abstractions": {
               "target": "Package",

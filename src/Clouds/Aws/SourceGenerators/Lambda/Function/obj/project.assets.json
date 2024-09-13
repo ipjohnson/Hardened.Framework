@@ -15,7 +15,7 @@
           "build/CSharpAuthor.targets": {}
         }
       },
-      "Hardened.SourceGenerator/0.1.0-Alpha1151": {
+      "Hardened.SourceGenerator/0.1.0-Alpha1152": {
         "type": "package",
         "dependencies": {
           "Microsoft.CodeAnalysis.CSharp": "4.10.0",
@@ -411,15 +411,15 @@
         "src/CSharpAuthor/WrapStatement.cs"
       ]
     },
-    "Hardened.SourceGenerator/0.1.0-Alpha1151": {
-      "sha512": "qs9wpHxupcjk7lAFQZ8pD8EsFPFIX6oG94O1J1z7pGjXak67JTZdcX9I7Z3yxC6oDy6ILZyWmv9KsvCVUsmKiQ==",
+    "Hardened.SourceGenerator/0.1.0-Alpha1152": {
+      "sha512": "eCKi79UnuGyKMHjsN1p3AFaPcOpGLpARV53Oyn2w2IsfF01JOjUkagY81UpKs5aXGQOC+W40EpxeatK8XSxGBw==",
       "type": "package",
-      "path": "hardened.sourcegenerator/0.1.0-alpha1151",
+      "path": "hardened.sourcegenerator/0.1.0-alpha1152",
       "files": [
         ".nupkg.metadata",
         "build/Hardened.SourceGenerator.props",
         "build/Hardened.SourceGenerator.targets",
-        "hardened.sourcegenerator.0.1.0-alpha1151.nupkg.sha512",
+        "hardened.sourcegenerator.0.1.0-alpha1152.nupkg.sha512",
         "hardened.sourcegenerator.nuspec",
         "src/Hardened.SourceGenerator/Configuration/ConfigurationEntryPointGenerator.cs",
         "src/Hardened.SourceGenerator/Configuration/ConfigurationFileModelComparer.cs",
@@ -1646,7 +1646,7 @@
   "projectFileDependencyGroups": {
     ".NETStandard,Version=v2.0": [
       "CSharpAuthor >= 0.1.0-Beta970",
-      "Hardened.SourceGenerator >= 0.1.0-Alpha1151",
+      "Hardened.SourceGenerator >= 0.1.0-Alpha1152",
       "Microsoft.CodeAnalysis.Analyzers >= 3.3.4",
       "Microsoft.CodeAnalysis.CSharp >= 4.10.0",
       "Microsoft.Extensions.Primitives >= 8.0.0",
@@ -1710,7 +1710,7 @@
             "include": "Build",
             "suppressParent": "All",
             "target": "Package",
-            "version": "[0.1.0-Alpha1151, )"
+            "version": "[0.1.0-Alpha1152, )"
           },
           "Microsoft.CodeAnalysis.Analyzers": {
             "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
