@@ -34,7 +34,10 @@ public class DeploymentGroupStack : IStackDefinition {
 
         var alarms = new List<IAlarmRule>();
         
+        
         foreach (var alias in aliases) {
+            context.Stack.AddDependency(alias.Item1.Stack);
+            
             var name = alias.Item2;
             var failureAlarm = new Alarm(context.Stack, name + "-failure-alarm", new AlarmProps {
                 AlarmName = name + "-failure",
