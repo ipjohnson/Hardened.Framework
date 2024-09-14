@@ -8,7 +8,7 @@ using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened.Amz.Cdk.Lambda;
 
-[Expose]
+//[Expose]
 public class DeploymentGroupStack : IStackDefinition {
 
     public int Order => 1000;

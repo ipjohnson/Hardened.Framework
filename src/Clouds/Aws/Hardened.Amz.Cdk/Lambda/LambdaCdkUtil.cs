@@ -7,20 +7,23 @@ using HttpMethod = Amazon.CDK.AWS.Apigatewayv2.HttpMethod;
 
 namespace Hardened.Amz.Cdk.Lambda;
 
-public class BaseLambdaRequest {
+public class LambdaRequest {
     
     public string Name { get; set; } = string.Empty;
 
     public string DistLocation { get; set; } = "../dist/function.zip";
+    
 
-    public string AliasName = "live";
+    public string? AliasName { get; set; } = "live";
 
+    public bool UseCodeDeploy { get; set; } = true;
+    
     public Action<FunctionProps> Props { get; set; } = props => { };
     
     public Type ApplicationType { get; set; } = default!;
 }
 
-public class HttpApiLambdaRequest : BaseLambdaRequest {
+public class HttpApiLambdaRequest : LambdaRequest {
     
     public Action<HttpApiProps> HttpApiProps { get; set; } = props => {};
 
@@ -74,10 +77,9 @@ public class LambdaCdkUtil {
         return (lambdaFunction, apiGateway);
     }
 
-    public (Function function, Alias alias) LambdaFunctionCreate(HttpApiLambdaRequest request) {
+    public (Function function, Alias? alias) LambdaFunctionCreate(LambdaRequest request) {
         var context = _stackContextAccessor.Context;
 
-        ValidateRequest(request);
         var assemblyName = request.ApplicationType.Assembly.GetName().Name;
         var handlerName = $"{assemblyName}::{request.ApplicationType.FullName}::Invoke";
 
@@ -106,12 +108,17 @@ public class LambdaCdkUtil {
 
         var lambdaFunction = new Function(context.Stack, request.Name + "-function", lambdaProps);
 
-        var alias = lambdaFunction.AddAlias(request.AliasName);
-
         context.Set(KnownCdkResources.LambdaFunction, lambdaFunction, request.Name);
-        context.Set(KnownCdkResources.LambdaFunctionAlias, alias, request.Name);
         
-        return (lambdaFunction, alias);
+        if (request.AliasName != null) {
+            var alias = lambdaFunction.AddAlias(request.AliasName);
+
+            context.Set(KnownCdkResources.LambdaFunctionAlias, alias, request.Name);
+            
+            return (lambdaFunction, alias);
+        }
+        
+        return (lambdaFunction, null);
     }
 
     private void ValidateRequest(HttpApiLambdaRequest request) {
