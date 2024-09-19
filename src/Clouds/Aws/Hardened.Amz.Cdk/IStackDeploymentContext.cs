@@ -7,6 +7,8 @@ namespace Hardened.Amz.Cdk;
 
 
 public interface IStackDeploymentContext {
+    IServiceProvider ServiceProvider { get; }
+    
     string DeploymentName { get; }
 
     IStageType Stage {
@@ -40,6 +42,10 @@ public class StackDeploymentContext<TConfig, TStage, TRegion> : IStackDeployment
     where TStage : IStageType {
     private readonly Dictionary<ICdkResourceRef, Tuple<object?, string>> _resources = new();
 
+    public IServiceProvider ServiceProvider {
+        get;
+    }
+
     public string DeploymentName {
         get;
     }
@@ -50,9 +56,10 @@ public class StackDeploymentContext<TConfig, TStage, TRegion> : IStackDeployment
 
     public Stack Stack { get; set; }
 
-    public StackDeploymentContext(string deploymentName, TConfig value) {
+    public StackDeploymentContext(string deploymentName, TConfig value, IServiceProvider serviceProvider) {
         DeploymentName = deploymentName;
         Value = value;
+        ServiceProvider = serviceProvider;
     }
 
     public T Get<T>(CdkResourceRef<T> resource) {

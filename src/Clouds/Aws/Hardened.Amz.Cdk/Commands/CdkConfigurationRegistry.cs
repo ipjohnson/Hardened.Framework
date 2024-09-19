@@ -13,12 +13,18 @@ public interface ITypedStackDefinition {
 [Expose(typeof(CdkConfigurationRegistry))]
 [Singleton]
 public class CdkConfigurationRegistry : ICdkConfigurationRegistry {
+    private readonly IServiceProvider _serviceProvider;
+
+    public CdkConfigurationRegistry(IServiceProvider serviceProvider) {
+        _serviceProvider = serviceProvider;
+
+    }
     
     public void RegisterConfiguration<TConfig, TStage, TRegion>(string appName, TConfig config) 
         where TConfig : IStageConfiguration<TRegion, TStage> 
         where TStage : IStageType 
         where TRegion : ISupportedRegion {
-        TypedStackDefinition = new TypedRegistryEntry<TConfig, TStage, TRegion>(appName, config);
+        TypedStackDefinition = new TypedRegistryEntry<TConfig, TStage, TRegion>(appName, config, _serviceProvider);
     }
     
     public ITypedStackDefinition? TypedStackDefinition { get; private set; }
@@ -29,8 +35,8 @@ public class CdkConfigurationRegistry : ICdkConfigurationRegistry {
         where TRegion : ISupportedRegion {
         private readonly StackDeploymentContext<TConfig, TStage, TRegion> _stackDeploymentContext;
         
-        public TypedRegistryEntry(string appName, TConfig configuration) {
-            _stackDeploymentContext = new StackDeploymentContext<TConfig, TStage, TRegion>(appName, configuration);
+        public TypedRegistryEntry(string appName, TConfig configuration, IServiceProvider serviceProvider) {
+            _stackDeploymentContext = new StackDeploymentContext<TConfig, TStage, TRegion>(appName, configuration, serviceProvider);
         }
         
         public IStackDeploymentContext Context  => _stackDeploymentContext;

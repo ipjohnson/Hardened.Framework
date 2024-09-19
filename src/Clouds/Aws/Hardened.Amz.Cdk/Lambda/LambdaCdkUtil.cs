@@ -65,7 +65,7 @@ public class LambdaCdkUtil {
             CorsPreflight = new CorsPreflightOptions {
                 AllowOrigins = ["*"],
                 AllowMethods = [CorsHttpMethod.ANY]
-            }
+            },
         };
         
         request.HttpApiProps(apiProps);
