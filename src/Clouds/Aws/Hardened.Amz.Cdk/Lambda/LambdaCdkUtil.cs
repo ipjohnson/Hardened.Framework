@@ -33,10 +33,7 @@ public class HttpApiLambdaRequest : LambdaRequest {
         api.AddRoutes(new AddRoutesOptions {
             Path = "/{proxy+}",
             Methods = [
-                HttpMethod.GET,
-                HttpMethod.POST,
-                HttpMethod.PUT,
-                HttpMethod.DELETE
+                HttpMethod.ANY,
             ],
             Integration = lambdaIntegration
         });

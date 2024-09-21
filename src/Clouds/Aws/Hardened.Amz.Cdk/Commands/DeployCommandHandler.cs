@@ -105,13 +105,13 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
 
             foreach (var produced in x.Produces) {
                 if (y.Consumes.Contains(produced)) {
-                    return -1;
+                    return 1;
                 }
             }
 
             foreach (var produced in y.Produces) {
                 if (x.Consumes.Contains(produced)) {
-                    return 1;
+                    return -1;
                 }
             }
             
