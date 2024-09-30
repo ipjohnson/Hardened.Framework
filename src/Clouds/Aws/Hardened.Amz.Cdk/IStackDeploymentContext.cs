@@ -1,6 +1,8 @@
 using Amazon.CDK;
+using Hardened.Amz.Cdk.Commands;
 using Hardened.Amz.Shared.Lambda.Runtime.Configuration;
 using Hardened.Shared.Runtime.Attributes;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Amz.Cdk;
 
@@ -30,6 +32,8 @@ public interface IStackDeploymentContext {
     void Set<T>(CdkResourceRef<T> resource, T? value, string name = "");
     
     object ConfigValue { get; }
+
+    T GetProvidedConfigValue<T>();
 }
 
 public interface IStackDeploymentContext<TConfig> : IStackDeploymentContext {
@@ -94,6 +98,13 @@ public class StackDeploymentContext<TConfig, TStage, TRegion> : IStackDeployment
     }
 
     public object ConfigValue => Value;
+
+    public T GetProvidedConfigValue<T>() {
+        var provider =
+            ServiceProvider.GetRequiredService<IConfigurationValueProvider<T>>();
+
+        return provider.ProvideValue(Stage, SupportedRegion);
+    }
 
     public Dictionary<ICdkResourceRef, Tuple<object?, string>>.ValueCollection Resources => _resources.Values;
 
