@@ -101,7 +101,7 @@ public class StackDeploymentContext<TConfig, TStage, TRegion> : IStackDeployment
 
     public T GetProvidedConfigValue<T>() {
         var provider =
-            ServiceProvider.GetRequiredService<IConfigurationValueProvider<T>>();
+            ServiceProvider.GetRequiredService<ICdkConfigurationValueProvider<T>>();
 
         return provider.ProvideValue(Stage, SupportedRegion);
     }
