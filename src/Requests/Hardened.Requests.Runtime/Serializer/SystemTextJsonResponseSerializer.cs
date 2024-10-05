@@ -12,7 +12,7 @@ public class SystemTextJsonResponseSerializer : IResponseSerializer {
 
     public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration) {
         _serializerOptions =
-            configuration.Value.DeSerializerOptions ??
+            configuration.Value.SerializeOptions ??
             new(JsonSerializerDefaults.Web);
     }
 

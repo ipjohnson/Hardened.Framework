@@ -14,7 +14,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="" />
+    <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Json/JsonSerializerConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Json/JsonSerializerConfiguration.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -44,14 +48,17 @@
     <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta965/src/CSharpAuthor/GenericTypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta965/src/CSharpAuthor/IEnumerableExtensions.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta965/src/CSharpAuthor/OutputContext.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta970/src/CSharpAuthor/KeyWords.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta970/src/CSharpAuthor/NewArrayStatement.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta970/src/CSharpAuthor/WhileDefinition.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Commands/Hardened.Commands/Impl/CommandLineParser.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/SharedSerializer.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Impl/SharedSerializer.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/NewtonsoftSerializerConfiguration.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/ConsoleSourceGenerator.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Impl/CommandDefinitionModelComparer.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Impl/CommandDefinitionRegistrationGenerator.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/LibrarySourceGenerator.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/3BC4D05BE7333D184E6F32D9/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.LibrarySourceGenerator/CommandsLibrary.DependencyInjection.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/64EC73EE207BC6DB33F75FB2/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.WebLibrarySourceGenerator/HomeController_TestValue_1081.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/F9A67B0909ECBF7CEC9FB348/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.WebLibrarySourceGenerator/WebLibrary.Routing.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/FA06B11CF2A40C08E676F514/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.ConsoleSourceGenerator/Application.Commands.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///usr/local/share/dotnet/sdk/8.0.401/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="Toolset" />
@@ -294,6 +301,8 @@
       <workItem from="1724616191293" duration="6359000" />
       <workItem from="1725020392734" duration="33738000" />
       <workItem from="1725811472346" duration="1079000" />
+      <workItem from="1726180382277" duration="2956000" />
+      <workItem from="1726259810259" duration="12736000" />
     </task>
     <servers />
   </component>
@@ -361,10 +370,10 @@
           <line>198</line>
           <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLinePrinter.cs" containingFunctionPresentation="Method 'WriteCommandHelp'">
             <startOffsets>
-              <option value="7449" />
+              <option value="7465" />
             </startOffsets>
             <endOffsets>
-              <option value="7474" />
+              <option value="7490" />
             </endOffsets>
           </properties>
           <option name="timeStamp" value="14" />
@@ -374,10 +383,10 @@
           <line>196</line>
           <properties documentPath="C:\Users\ipjoh\source\repos\Hardened.Framework\src\Commands\Hardened.Commands\Impl\CommandLinePrinter.cs" containingFunctionPresentation="Lambda expression inside Method 'WriteCommandHelp'">
             <startOffsets>
-              <option value="7363" />
+              <option value="7379" />
             </startOffsets>
             <endOffsets>
-              <option value="7433" />
+              <option value="7449" />
             </endOffsets>
           </properties>
           <option name="timeStamp" value="15" />
