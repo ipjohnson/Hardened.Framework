@@ -20,12 +20,17 @@ public class StructuredLogLineBuilder {
         using var stringBuilder = _stringBuilderPool.Get();
 
         stringBuilder.Item.Append("{");
-
+        
         AppendKeyedStringValue(stringBuilder.Item, "logger", _logger);
         AppendKeyedStringValue(stringBuilder.Item, "logLevel", logLevel.ToString());
         AppendKeyedStringValue(stringBuilder.Item, "eventId", eventId.ToString());
-        AppendKeyedStringValue(stringBuilder.Item, "message", formatter(state, exception));
-
+        
+        if (exception != null) {
+            AppendKeyedStringValue(stringBuilder.Item, "exception", exception.Message);
+            AppendKeyedStringValue(stringBuilder.Item, "exceptionType", exception.GetType().Name);
+            AppendKeyedStringValue(stringBuilder.Item, "stackTrace", exception.StackTrace ?? "");
+        }
+        
         if (state is IEnumerable<Tuple<string, object>> tupleData) {
             foreach (var tuple in tupleData) {
                 AppendKeyedStringValue(stringBuilder.Item, tuple.Item1, tuple.Item2.ToString() ?? "");
@@ -34,14 +39,12 @@ public class StructuredLogLineBuilder {
         else {
             var serializedState = JsonSerializer.Serialize(state);
             
-            AppendKeyedStringValue(stringBuilder.Item, "data", serializedState);
+            stringBuilder.Item.Append("\"state\":");
+            stringBuilder.Item.Append(serializedState);
+            stringBuilder.Item.Append(',');
         }
-
-        if (exception != null) {
-            AppendKeyedStringValue(stringBuilder.Item, "exception", exception.Message);
-            AppendKeyedStringValue(stringBuilder.Item, "exceptionType", exception.GetType().Name);
-            AppendKeyedStringValue(stringBuilder.Item, "stackTrace", exception.StackTrace ?? "");
-        }
+        
+        AppendKeyedStringValue(stringBuilder.Item, "message", formatter(state, exception), false);
         
         stringBuilder.Item.Append("}");
 
