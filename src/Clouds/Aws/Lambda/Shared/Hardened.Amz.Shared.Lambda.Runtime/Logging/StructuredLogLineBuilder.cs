@@ -42,6 +42,8 @@ public class StructuredLogLineBuilder {
             stringBuilder.Item.Append("\"state\":");
             stringBuilder.Item.Append(serializedState);
             stringBuilder.Item.Append(',');
+            
+            stringBuilder.Item.Append($"\"stateType\":\"{state?.GetType().Name}\",");
         }
         
         AppendKeyedStringValue(stringBuilder.Item, "message", formatter(state, exception), false);
