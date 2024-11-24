@@ -17,7 +17,6 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
     private IPathTokenCollection? _pathTokens;
     private IQueryStringCollection? _queryStringCollection;
     private IHeaderCollection? _headerCollection;
-    private IDictionary<string, StringValues> _headers;
 
     public ApiGatewayV2ExecutionRequest(APIGatewayHttpApiV2ProxyRequest request) {
         _proxyRequest = request;
@@ -66,8 +65,9 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
     public IHeaderCollection Headers =>
         _headerCollection ??= new HeaderCollectionStringValues(_proxyRequest.Headers);
 
-    IDictionary<string, StringValues> IExecutionRequest.Headers => _headers;
+    IDictionary<string, StringValues> IExecutionRequest.Headers => Headers;
 
+    
     public IQueryStringCollection QueryString => _queryStringCollection ??=
         new SimpleQueryStringCollection(_proxyRequest.QueryStringParameters);
 
