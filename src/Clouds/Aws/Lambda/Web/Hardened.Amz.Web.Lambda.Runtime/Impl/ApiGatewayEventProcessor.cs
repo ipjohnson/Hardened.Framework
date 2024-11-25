@@ -78,7 +78,10 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
 
         await chain.Next();
 
-        response.StatusCode = executionContext.Response.Status ?? 200;
+        if (executionContext.Response.Status == null ||
+            executionContext.Response.Status == 0) {
+            executionContext.Response.Status = 200;
+        }
 
         CopyHeadersAndCookies(executionContext, response);
 
