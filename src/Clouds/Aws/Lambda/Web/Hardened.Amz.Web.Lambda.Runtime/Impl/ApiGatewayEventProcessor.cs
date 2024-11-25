@@ -61,7 +61,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
         _lambdaContextAccessor.Context = context;
         _requestContextAccessor.ProxyRequestContext = request.RequestContext;
 
-        var response = new APIGatewayHttpApiV2ProxyResponse { StatusCode = 200 };
+        var response = new APIGatewayHttpApiV2ProxyResponse();
 
         using var scope = _serviceProvider.CreateScope();
         using var memoryStreamReservation = _memoryStreamPool.Get();
@@ -78,9 +78,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
 
         await chain.Next();
 
-        if (executionContext.Response.Status.HasValue) {
-            response.StatusCode = executionContext.Response.Status.Value;
-        }
+        response.StatusCode = executionContext.Response.Status ?? 200;
 
         CopyHeadersAndCookies(executionContext, response);
 
