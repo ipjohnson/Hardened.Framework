@@ -21,7 +21,7 @@ public class LambdaStructuredLogger : ILogger {
         string categoryName) {
         _jsonSerializer = jsonSerializer;
         _lambdaContextAccessor = lambdaContextAccessor;
-        _structuredLogLineBuilder = new StructuredLogLineBuilder(stringBuilderPool, categoryName);
+        _structuredLogLineBuilder = new StructuredLogLineBuilder(jsonSerializer, stringBuilderPool, categoryName);
         
     }
 

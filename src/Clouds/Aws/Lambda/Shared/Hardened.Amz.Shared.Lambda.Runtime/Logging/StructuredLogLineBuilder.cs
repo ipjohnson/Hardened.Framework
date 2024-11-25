@@ -2,15 +2,19 @@ using System.Collections;
 using System.Text;
 using System.Text.Json;
 using Hardened.Shared.Runtime.Collections;
+using Hardened.Shared.Runtime.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Shared.Lambda.Runtime.Logging;
 
 public class StructuredLogLineBuilder {
+    private readonly IJsonSerializer _jsonSerializer;
     private readonly IStringBuilderPool _stringBuilderPool;
     private readonly string _logger;
 
-    public StructuredLogLineBuilder(IStringBuilderPool stringBuilderPool, string logger) {
+    public StructuredLogLineBuilder(IJsonSerializer jsonSerializer, 
+        IStringBuilderPool stringBuilderPool, string logger) {
+        _jsonSerializer = jsonSerializer;
         _stringBuilderPool = stringBuilderPool;
         _logger = logger;
     }
@@ -31,15 +35,28 @@ public class StructuredLogLineBuilder {
             AppendKeyedStringValue(stringBuilder.Item, "stackTrace", exception.StackTrace ?? "");
         }
         
-        if (state is IEnumerable<Tuple<string, object>> tupleData) {
-            foreach (var tuple in tupleData) {
-                AppendKeyedStringValue(stringBuilder.Item, tuple.Item1, tuple.Item2.ToString() ?? "");
+        if (state is IEnumerable<KeyValuePair<string,object?>> tupleData) {
+            foreach (var keyValuePair in tupleData) {
+                if (keyValuePair.Key == "{OriginalFormat}" || 
+                    keyValuePair.Value == null) {
+                    continue;
+                }
+
+                if (keyValuePair.Value is string || 
+                    (keyValuePair.Value?.GetType().IsPrimitive ?? false)) {
+                    AppendKeyedStringValue(stringBuilder.Item,"request." + keyValuePair.Key, keyValuePair.Value?.ToString() ?? "");
+                }
+                else {
+                    var valueString = _jsonSerializer.Serialize(keyValuePair.Value!);
+                    
+                    stringBuilder.Item.Append($"\"request.{keyValuePair.Key}\":\"{valueString}\",");
+                }
             }
         }
         else {
-            var serializedState = JsonSerializer.Serialize(state);
+            var serializedState = _jsonSerializer.Serialize(state!);
             
-            stringBuilder.Item.Append("\"state\":");
+            stringBuilder.Item.Append("\"request\":");
             stringBuilder.Item.Append(serializedState);
             stringBuilder.Item.Append(',');
             
