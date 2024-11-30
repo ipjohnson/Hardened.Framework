@@ -35,7 +35,7 @@
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
 
-        <PackageReference Include="Hardened.SourceGenerator" Version="0.1.0-Alpha1152">
+        <PackageReference Include="Hardened.SourceGenerator" Version="0.1.0-Alpha1158">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>

@@ -8,14 +8,14 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.1.0-Alpha1152" />
-        <PackageReference Include="Hardened.Requests.Abstract" Version="0.1.0-Alpha1152" />
-        <PackageReference Include="Hardened.Requests.Runtime" Version="0.1.0-Alpha1152" />
-        <PackageReference Include="Hardened.Shared.Runtime" Version="0.1.0-Alpha1152" />
-        <PackageReference Include="Hardened.SourceGenerator" Version="0.1.0-Alpha1152" />
-        <PackageReference Include="Hardened.Templates.SourceGenerator" Version="0.1.0-Alpha1152" />
-        <PackageReference Include="Hardened.Web.Runtime" Version="0.1.0-Alpha1152" />
-        <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.1.0-Alpha1152" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.1.0-Alpha1158" />
+        <PackageReference Include="Hardened.Requests.Abstract" Version="0.1.0-Alpha1158" />
+        <PackageReference Include="Hardened.Requests.Runtime" Version="0.1.0-Alpha1158" />
+        <PackageReference Include="Hardened.Shared.Runtime" Version="0.1.0-Alpha1158" />
+        <PackageReference Include="Hardened.SourceGenerator" Version="0.1.0-Alpha1158" />
+        <PackageReference Include="Hardened.Templates.SourceGenerator" Version="0.1.0-Alpha1158" />
+        <PackageReference Include="Hardened.Web.Runtime" Version="0.1.0-Alpha1158" />
+        <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.1.0-Alpha1158" />
     </ItemGroup>
     
     <ItemGroup>

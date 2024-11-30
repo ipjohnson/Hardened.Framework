@@ -44,7 +44,7 @@
           }
         }
       },
-      "Hardened.Library.SourceGenerator/0.1.0-Alpha1152": {
+      "Hardened.Library.SourceGenerator/0.1.0-Alpha1158": {
         "type": "package",
         "dependencies": {
           "Microsoft.CodeAnalysis.CSharp": "4.10.0",
@@ -52,10 +52,10 @@
           "System.Memory": "4.5.5"
         }
       },
-      "Hardened.Requests.Abstract/0.1.0-Alpha1152": {
+      "Hardened.Requests.Abstract/0.1.0-Alpha1158": {
         "type": "package",
         "dependencies": {
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1152",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1158",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -67,11 +67,11 @@
           "lib/net8.0/Hardened.Requests.Abstract.dll": {}
         }
       },
-      "Hardened.Requests.Runtime/0.1.0-Alpha1152": {
+      "Hardened.Requests.Runtime/0.1.0-Alpha1158": {
         "type": "package",
         "dependencies": {
-          "Hardened.Requests.Abstract": "0.1.0-Alpha1152",
-          "Hardened.Shared.Runtime": "0.1.0-Alpha1152",
+          "Hardened.Requests.Abstract": "0.1.0-Alpha1158",
+          "Hardened.Shared.Runtime": "0.1.0-Alpha1158",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
@@ -83,7 +83,7 @@
           "lib/net8.0/Hardened.Requests.Runtime.dll": {}
         }
       },
-      "Hardened.Shared.Runtime/0.1.0-Alpha1152": {
+      "Hardened.Shared.Runtime/0.1.0-Alpha1158": {
         "type": "package",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection": "8.0.0",
@@ -428,7 +428,7 @@
         "dependencies": {
           "Amazon.Lambda.Core": "2.2.0",
           "Hardened.Amz.Shared.Lambda.Runtime": "1.0.0",
-          "Hardened.Requests.Runtime": "0.1.0-Alpha1152",
+          "Hardened.Requests.Runtime": "0.1.0-Alpha1158",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
           "Microsoft.Extensions.Primitives": "8.0.0"
         },
@@ -445,7 +445,7 @@
         "dependencies": {
           "Amazon.Lambda.Core": "2.2.0",
           "Amazon.Lambda.Serialization.SystemTextJson": "2.4.3",
-          "Hardened.Requests.Runtime": "0.1.0-Alpha1152",
+          "Hardened.Requests.Runtime": "0.1.0-Alpha1158",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.Logging": "8.0.0",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
@@ -515,46 +515,46 @@
         "lib/netstandard2.0/Amazon.Lambda.SQSEvents.xml"
       ]
     },
-    "Hardened.Library.SourceGenerator/0.1.0-Alpha1152": {
-      "sha512": "GAC9HLrx6AoO3PS6nKvcINqlp6KJXCRzazX0isjknuztfg1u/5zkaFKNEzKxcWsaqo2Jy2NTNYm6CRm9K2EZWg==",
+    "Hardened.Library.SourceGenerator/0.1.0-Alpha1158": {
+      "sha512": "4xb06hhf9YwJTzjGJZWrCgN+DGgnHLjYTGG4qEW7L0p4YYRwk1cL3kei+Hh5j86cUpVWJB2EZ4j8BUiGA+zg7A==",
       "type": "package",
-      "path": "hardened.library.sourcegenerator/0.1.0-alpha1152",
+      "path": "hardened.library.sourcegenerator/0.1.0-alpha1158",
       "files": [
         ".nupkg.metadata",
         "analyzers/dotnet/cs/Hardened.Library.SourceGenerator.dll",
-        "hardened.library.sourcegenerator.0.1.0-alpha1152.nupkg.sha512",
+        "hardened.library.sourcegenerator.0.1.0-alpha1158.nupkg.sha512",
         "hardened.library.sourcegenerator.nuspec"
       ]
     },
-    "Hardened.Requests.Abstract/0.1.0-Alpha1152": {
-      "sha512": "BKamIxTkba6zvkEe96xidRENsnUp5GT31GZTkqH9EYGcs9pFfgpdORd5A3dqpFs9eOugfkrx2ZJT8q2R0QHFNg==",
+    "Hardened.Requests.Abstract/0.1.0-Alpha1158": {
+      "sha512": "oYtSQWFKfYLYWPHMI0n9WJKMKesRi6Ajx95DkQQJHpVlB/0YZhTAc6xuCSTsniEfchKzOKMDkxfzlcJpHbvpqg==",
       "type": "package",
-      "path": "hardened.requests.abstract/0.1.0-alpha1152",
+      "path": "hardened.requests.abstract/0.1.0-alpha1158",
       "files": [
         ".nupkg.metadata",
-        "hardened.requests.abstract.0.1.0-alpha1152.nupkg.sha512",
+        "hardened.requests.abstract.0.1.0-alpha1158.nupkg.sha512",
         "hardened.requests.abstract.nuspec",
         "lib/net8.0/Hardened.Requests.Abstract.dll"
       ]
     },
-    "Hardened.Requests.Runtime/0.1.0-Alpha1152": {
-      "sha512": "OYhD1sxVLwHqU9iQjYizuqYSBCDPyFQjOMCv0F3/ChgrITtqzT2fi9dLPk820Dl+CXSWYO248U1zdEZLNHkOEw==",
+    "Hardened.Requests.Runtime/0.1.0-Alpha1158": {
+      "sha512": "Ia9HsCep5AmjXJbqc1lbz6ydQ60uu4plED2eVpxvIIt7KpeBQG3guDOvlYAWVQ/JRIJ4YovECheAvCBECpisig==",
       "type": "package",
-      "path": "hardened.requests.runtime/0.1.0-alpha1152",
+      "path": "hardened.requests.runtime/0.1.0-alpha1158",
       "files": [
         ".nupkg.metadata",
-        "hardened.requests.runtime.0.1.0-alpha1152.nupkg.sha512",
+        "hardened.requests.runtime.0.1.0-alpha1158.nupkg.sha512",
         "hardened.requests.runtime.nuspec",
         "lib/net8.0/Hardened.Requests.Runtime.dll"
       ]
     },
-    "Hardened.Shared.Runtime/0.1.0-Alpha1152": {
-      "sha512": "Nxpo4jYCZuk3GCFy3yKeFK4NFvHP/JZZW7/sCbynhrjqEFwzFSqBJc2Fd6AZYyIerRZFnspzYtaucvaASfMkgg==",
+    "Hardened.Shared.Runtime/0.1.0-Alpha1158": {
+      "sha512": "hY7E17VUm+343/wLfXb09wgvOs+foz7cFNgtmC14uDrkcQ7l7Q9KcGZFiFY8AmfKv5KVhVxLNXwjDGVIvuKS3g==",
       "type": "package",
-      "path": "hardened.shared.runtime/0.1.0-alpha1152",
+      "path": "hardened.shared.runtime/0.1.0-alpha1158",
       "files": [
         ".nupkg.metadata",
-        "hardened.shared.runtime.0.1.0-alpha1152.nupkg.sha512",
+        "hardened.shared.runtime.0.1.0-alpha1158.nupkg.sha512",
         "hardened.shared.runtime.nuspec",
         "lib/net8.0/Hardened.Shared.Runtime.dll"
       ]
@@ -1734,8 +1734,8 @@
     "net8.0": [
       "Amazon.Lambda.SQSEvents >= 2.2.0",
       "Hardened.Amz.Function.Lambda.Runtime >= 1.0.0",
-      "Hardened.Library.SourceGenerator >= 0.1.0-Alpha1152",
-      "Hardened.Requests.Runtime >= 0.1.0-Alpha1152"
+      "Hardened.Library.SourceGenerator >= 0.1.0-Alpha1158",
+      "Hardened.Requests.Runtime >= 0.1.0-Alpha1158"
     ]
   },
   "packageFolders": {
@@ -1794,11 +1794,11 @@
           },
           "Hardened.Library.SourceGenerator": {
             "target": "Package",
-            "version": "[0.1.0-Alpha1152, )"
+            "version": "[0.1.0-Alpha1158, )"
           },
           "Hardened.Requests.Runtime": {
             "target": "Package",
-            "version": "[0.1.0-Alpha1152, )"
+            "version": "[0.1.0-Alpha1158, )"
           }
         },
         "imports": [

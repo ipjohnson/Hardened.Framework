@@ -14,7 +14,7 @@
   </ItemGroup>
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <Import Project="$(NuGetPackageRoot)microsoft.codeanalysis.analyzers/3.3.4/buildTransitive/Microsoft.CodeAnalysis.Analyzers.props" Condition="Exists('$(NuGetPackageRoot)microsoft.codeanalysis.analyzers/3.3.4/buildTransitive/Microsoft.CodeAnalysis.Analyzers.props')" />
-    <Import Project="$(NuGetPackageRoot)hardened.sourcegenerator/0.1.0-alpha1152/build/Hardened.SourceGenerator.props" Condition="Exists('$(NuGetPackageRoot)hardened.sourcegenerator/0.1.0-alpha1152/build/Hardened.SourceGenerator.props')" />
+    <Import Project="$(NuGetPackageRoot)hardened.sourcegenerator/0.1.0-alpha1158/build/Hardened.SourceGenerator.props" Condition="Exists('$(NuGetPackageRoot)hardened.sourcegenerator/0.1.0-alpha1158/build/Hardened.SourceGenerator.props')" />
     <Import Project="$(NuGetPackageRoot)csharpauthor/0.1.0-beta970/build/CSharpAuthor.props" Condition="Exists('$(NuGetPackageRoot)csharpauthor/0.1.0-beta970/build/CSharpAuthor.props')" />
   </ImportGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">

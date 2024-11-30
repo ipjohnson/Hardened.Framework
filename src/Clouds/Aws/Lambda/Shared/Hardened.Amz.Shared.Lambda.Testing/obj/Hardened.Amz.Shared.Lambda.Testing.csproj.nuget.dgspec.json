@@ -53,7 +53,7 @@
             },
             "Hardened.Requests.Runtime": {
               "target": "Package",
-              "version": "[0.1.0-Alpha1152, )"
+              "version": "[0.1.0-Alpha1158, )"
             },
             "Microsoft.Extensions.Logging.Abstractions": {
               "target": "Package",
