@@ -557,14 +557,16 @@ public static class RoutingTableGenerator {
     }
 
     private static string GetBasePath(EntryPointSelector.Model appModel) {
-        var basePathAttribute = appModel.AttributeModels.FirstOrDefault(model => model.TypeDefinition.Name.StartsWith("BasePath"));
+        if (appModel.AttributeModels != null) {
+            var basePathAttribute = appModel.AttributeModels.FirstOrDefault(model => model.TypeDefinition.Name.StartsWith("BasePath"));
 
-        if (basePathAttribute != null) {
-            var basePath = basePathAttribute.Arguments.Split(',').First();
-            
-            return basePath.Trim('"');
+            if (basePathAttribute != null) {
+                var basePath = basePathAttribute.Arguments.Split(',').First();
+
+                return basePath.Trim('"');
+            }
         }
-        
+
         return "";
     }
 }
