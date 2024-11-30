@@ -56,11 +56,6 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         if (classDeclarationSyntaxes != null) {
             var pathAttribute = 
                 AttributeModelHelper.GetAttributes(generatorSyntaxContext, classDeclarationSyntaxes.AttributeLists, cancellation, syntax => syntax.Name.ToString().StartsWith("BasePath")).FirstOrDefault();
-
-                    
-#pragma warning disable RS1035
-            File.AppendAllLines(@"/tmp/class-declaration.txt",new []{$"class count {pathAttribute?.ToString()}"});
-#pragma warning restore RS1035
             
             if (pathAttribute != null) {
                 var path = pathAttribute.Arguments.Split(',').FirstOrDefault()?.ToString();
