@@ -64,7 +64,12 @@ public class HeaderCollectionStringValues : IHeaderCollection {
     }
 
     public StringValues this[string key] {
-        get => _headers[key];
+        get {
+            if (_headers.TryGetValue(key, out var value)) {
+                return value;
+            }
+            return StringValues.Empty;
+        }
         set => _headers[key] = value;
     }
 

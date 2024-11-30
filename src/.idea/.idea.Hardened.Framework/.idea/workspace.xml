@@ -15,9 +15,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="211d34e4-4186-4ae1-9f1b-4114f2136a9f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/SomeController.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Attributes/BasePathAttribute.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Hardened.Framework/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Json/JsonSerializerConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Shared/Hardened.Shared.Runtime/Json/JsonSerializerConfiguration.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/WebLibrary.cs" beforeDir="false" afterPath="$PROJECT_DIR$/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/WebLibrary.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/HeaderCollectionStringValues.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Requests/Hardened.Requests.Runtime/Headers/HeaderCollectionStringValues.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/Routing/RouteTreeGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/Routing/RouteTreeGenerator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/RoutingTableGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/RoutingTableGenerator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/WebRequestHandlerModelGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SourceGenerators/Hardened.SourceGenerator/Web/WebRequestHandlerModelGenerator.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,6 +48,8 @@
   }
 }</component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///AIAssistantSnippet." root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///AIAssistantSnippet." root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta965/src/CSharpAuthor/CodeOutputComponent.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta965/src/CSharpAuthor/ForEachDefinition.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.nuget/packages/csharpauthor/0.1.0-beta965/src/CSharpAuthor/GenericTypeDefinition.cs" root0="SKIP_HIGHLIGHTING" />
@@ -58,7 +65,11 @@
     <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Impl/CommandDefinitionModelComparer.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Console.SourceGenerator/Impl/CommandDefinitionRegistrationGenerator.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/SourceGenerators/Hardened.Library.SourceGenerator/LibrarySourceGenerator.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/ianjohnson/source/Hardened/Framework/src/SourceGenerators/Hardened.SourceGenerator/Web/WebRequestHandlerModelGenerator.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file:///usr/local/share/dotnet/sdk/8.0.401/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/F9A67B0909ECBF7CEC9FB348/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.LibrarySourceGenerator/WebLibrary.DependencyInjection.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/F9A67B0909ECBF7CEC9FB348/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.WebLibrarySourceGenerator/SomeController_Concat_443.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file:///var/folders/0p/ht4ftmrs7w10___nk6pwwyw80000gn/T/SourceGeneratedDocuments/F9A67B0909ECBF7CEC9FB348/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.WebLibrarySourceGenerator/WebLibrary.Routing.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="Toolset" />
@@ -302,7 +313,8 @@
       <workItem from="1725020392734" duration="33738000" />
       <workItem from="1725811472346" duration="1079000" />
       <workItem from="1726180382277" duration="2956000" />
-      <workItem from="1726259810259" duration="12736000" />
+      <workItem from="1726259810259" duration="13482000" />
+      <workItem from="1732483263073" duration="9674000" />
     </task>
     <servers />
   </component>

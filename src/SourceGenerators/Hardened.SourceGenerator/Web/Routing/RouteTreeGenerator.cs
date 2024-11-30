@@ -26,8 +26,12 @@ public class RouteTreeGenerator<T> {
     }
 
     public RouteTreeNode<T> GenerateTree(List<Entry> entries) {
-        if (entries.Any(e => e.PathTemplate.First() != '/')) {
-            throw new Exception("All paths must start with '/' ");
+        foreach (var entry in entries) {
+            var firstChar = entry.PathTemplate.FirstOrDefault();
+
+            if (firstChar != '/') {
+                throw new Exception($"All paths must start with '/' but started with '{firstChar}'  entry {entry.PathTemplate} {entry.Method}");
+            }
         }
 
         entries.Sort(((x, y) => string.Compare(x.PathTemplate, y.PathTemplate, StringComparison.Ordinal)));

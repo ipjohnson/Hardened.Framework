@@ -52,7 +52,7 @@ public static class RoutingTableGenerator {
 
         routingClass.AddBaseType(KnownTypes.Web.IWebExecutionRequestHandlerProvider);
 
-        ImplementHandlerMethod(routingClass, endPointModels, cancellationToken);
+        ImplementHandlerMethod(appModel, routingClass, endPointModels, cancellationToken);
 
         var routingType = TypeDefinition.Get(appModel.EntryPointType.Namespace,
             appModel.EntryPointType.Name + ".RoutingTable");
@@ -122,7 +122,7 @@ public static class RoutingTableGenerator {
         }
     }
 
-    private static void ImplementHandlerMethod(ClassDefinition routingClass,
+    private static void ImplementHandlerMethod(EntryPointSelector.Model appModel, ClassDefinition routingClass,
         IReadOnlyList<RequestHandlerModel> endPointModels, CancellationToken cancellationToken) {
         var handlerMethod = routingClass.AddMethod("GetExecutionRequestHandler");
 
@@ -132,15 +132,15 @@ public static class RoutingTableGenerator {
 
         handlerMethod.Assign(context.Property("Request").Property("Path").Invoke("AsSpan")).ToVar("pathSpan");
 
-        WriteRoutingTable(routingClass, handlerMethod, endPointModels,
+        WriteRoutingTable(appModel, routingClass, handlerMethod, endPointModels,
             context.Property("Request").Property("Method"), cancellationToken);
     }
 
-    private static void WriteRoutingTable(ClassDefinition routingClass,
+    private static void WriteRoutingTable(EntryPointSelector.Model appModel, ClassDefinition routingClass,
         MethodDefinition handlerMethod,
         IReadOnlyList<RequestHandlerModel> endPointModels,
         InstanceDefinition methodString, CancellationToken cancellationToken) {
-        var routeNode = GetRoutingNodes(endPointModels, cancellationToken);
+        var routeNode = GetRoutingNodes(appModel, endPointModels, cancellationToken);
 
         var routeTestMethod = WriteRouteNode(routingClass, routeNode, 0, cancellationToken);
 
@@ -543,15 +543,28 @@ public static class RoutingTableGenerator {
         return testMethodName;
     }
 
-    private static RouteTreeNode<RequestHandlerModel> GetRoutingNodes(
-        IReadOnlyList<RequestHandlerModel> endPointModels, CancellationToken cancellationToken) {
+    private static RouteTreeNode<RequestHandlerModel> GetRoutingNodes(EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> endPointModels, CancellationToken cancellationToken) {
         var generator = new RouteTreeGenerator<RequestHandlerModel>(cancellationToken);
 
+        var basePath = GetBasePath(appModel);
+        
         return generator.GenerateTree(endPointModels.Select(
             m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
-                m.Name.Path,
+                basePath + m.Name.Path,
                 m.Name.Method,
                 m
             )).ToList());
+    }
+
+    private static string GetBasePath(EntryPointSelector.Model appModel) {
+        var basePathAttribute = appModel.AttributeModels.FirstOrDefault(model => model.TypeDefinition.Name.StartsWith("BasePath"));
+
+        if (basePathAttribute != null) {
+            var basePath = basePathAttribute.Arguments.Split(',').First();
+            
+            return basePath.Trim('"');
+        }
+        
+        return "";
     }
 }

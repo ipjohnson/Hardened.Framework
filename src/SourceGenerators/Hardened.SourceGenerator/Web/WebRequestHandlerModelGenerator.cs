@@ -29,13 +29,13 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
             throw new NotImplementedException("HttpMethodAttribute not supported yet.");
         }
 
-        var pathTemplate = GetPathFromAttribute(context, attribute);
+        var pathTemplate = GetPathFromAttribute(context, attribute, cancellation);
 
         return new RequestHandlerNameModel(pathTemplate, methodName);
     }
 
     private static string GetPathFromAttribute(GeneratorSyntaxContext generatorSyntaxContext,
-        AttributeSyntax attribute) {
+        AttributeSyntax attribute, CancellationToken cancellation) {
         var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
         var pathTemplate = "/";
         if (argument != null) {
@@ -50,6 +50,28 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
             }
         }
 
+        var classDeclarationSyntaxes = generatorSyntaxContext.Node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+
+        
+        if (classDeclarationSyntaxes != null) {
+            var pathAttribute = 
+                AttributeModelHelper.GetAttributes(generatorSyntaxContext, classDeclarationSyntaxes.AttributeLists, cancellation, syntax => syntax.Name.ToString().StartsWith("BasePath")).FirstOrDefault();
+
+                    
+#pragma warning disable RS1035
+            File.AppendAllLines(@"/tmp/class-declaration.txt",new []{$"class count {pathAttribute?.ToString()}"});
+#pragma warning restore RS1035
+            
+            if (pathAttribute != null) {
+                var path = pathAttribute.Arguments.Split(',').FirstOrDefault()?.ToString();
+
+                if (path != null) {
+                    path = path.Trim('"');
+                    pathTemplate = path + pathTemplate;
+                }
+            }
+        }
+        
         return pathTemplate;
     }
 
