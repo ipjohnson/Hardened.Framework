@@ -55,8 +55,11 @@ public class LambdaFunctionImplService : ILambdaFunctionImplService {
         IHeaderCollection headerCollection = new HeaderCollectionStringValues(customContext);
 
         var headers = new Dictionary<string, StringValues>();
-        foreach (var kvp in customContext) {
-            headers[kvp.Key] = kvp.Value;
+
+        if (customContext != null) {
+            foreach (var kvp in customContext) {
+                headers[kvp.Key] = kvp.Value;
+            }
         }
         
         var request =
