@@ -10,7 +10,7 @@ namespace Hardened.Amz.Function.Lambda.Runtime.Impl;
 public sealed class LambdaFunctionInvokeFilter : IExecutionFilter {
     private readonly ILambdaContextAccessor _lambdaContextAccessor;
     private readonly IEnumerable<ILambdaHandlerPackage> _handlerPackages;
-    private IExecutionRequestHandler? _executionRequestHandler;
+    private volatile IExecutionRequestHandler? _executionRequestHandler;
 
     public LambdaFunctionInvokeFilter(ILambdaContextAccessor lambdaContextAccessor,
         IEnumerable<ILambdaHandlerPackage> handlerPackages) {
@@ -19,11 +19,14 @@ public sealed class LambdaFunctionInvokeFilter : IExecutionFilter {
     }
 
     public Task Execute(IExecutionChain chain) {
-        if (_executionRequestHandler == null) {
-            _executionRequestHandler = FindRequestHandler(chain.Context.RootServiceProvider);
+        var handler = _executionRequestHandler;
+
+        if (handler == null) {
+            handler = FindRequestHandler(chain.Context.RootServiceProvider);
+            _executionRequestHandler = handler;
         }
 
-        return _executionRequestHandler.GetExecutionChain(chain.Context).Next();
+        return handler.GetExecutionChain(chain.Context).Next();
     }
 
     private IExecutionRequestHandler FindRequestHandler(IServiceProvider serviceProvider) {

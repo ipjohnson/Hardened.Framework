@@ -24,7 +24,7 @@ public class TestDynamoDbStream : TestContext {
     }
     
     public async Task<StreamsEventResponse> ProcessUpdates(params DynamoDBEvent.DynamodbStreamRecord[] records) {
-        var stream = _memoryStreamPool.Get();
+        using var stream = _memoryStreamPool.Get();
         await _jsonSerializer.SerializeAsync(stream.Item, new DynamoDBEvent {
             Records = records
         });

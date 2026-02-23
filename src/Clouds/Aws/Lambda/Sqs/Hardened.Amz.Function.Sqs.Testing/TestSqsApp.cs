@@ -28,7 +28,7 @@ public class TestSqsApp : TestContext {
     public async Task<SQSBatchResponse> SendMessage<T>(params T[] messages) {
         var sqsEvent = GenerateEvent(messages);
 
-        var stream = _memoryStreamPool.Get();
+        using var stream = _memoryStreamPool.Get();
         await _jsonSerializer.SerializeAsync(stream.Item, sqsEvent);
 
         stream.Item.Position = 0;
@@ -36,7 +36,7 @@ public class TestSqsApp : TestContext {
         var responseStream = await _functionImplService.InvokeFunction(stream.Item, TestLambdaContext.FromName("Process"));
 
         responseStream.Position = 0;
-        
+
         return await _jsonSerializer.DeserializeAsync<SQSBatchResponse>(responseStream);
     }
 
