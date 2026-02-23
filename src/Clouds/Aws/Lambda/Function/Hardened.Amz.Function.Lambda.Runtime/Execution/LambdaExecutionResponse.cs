@@ -6,7 +6,7 @@ using Microsoft.Extensions.Primitives;
 namespace Hardened.Amz.Function.Lambda.Runtime.Execution;
 
 public class LambdaExecutionResponse : IExecutionResponse {
-    private IDictionary<string, StringValues> _headers;
+    private IDictionary<string, StringValues> _headers = new Dictionary<string, StringValues>();
 
     public LambdaExecutionResponse(Stream body, IHeaderCollection headers) {
         Body = body;

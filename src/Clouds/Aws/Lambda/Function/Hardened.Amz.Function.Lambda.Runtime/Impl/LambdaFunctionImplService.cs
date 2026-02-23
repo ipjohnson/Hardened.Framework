@@ -50,9 +50,7 @@ public class LambdaFunctionImplService : ILambdaFunctionImplService {
         await using var requestContext = _serviceProvider.CreateAsyncScope();
         var responseStream = new MemoryStreamPoolWrapper(_memoryStreamPool.Get());
 
-        var customContext = context.ClientContext.Custom;
-
-        IHeaderCollection headerCollection = new HeaderCollectionStringValues(customContext);
+        var customContext = context.ClientContext?.Custom;
 
         var headers = new Dictionary<string, StringValues>();
 
@@ -61,6 +59,8 @@ public class LambdaFunctionImplService : ILambdaFunctionImplService {
                 headers[kvp.Key] = kvp.Value;
             }
         }
+
+        IHeaderCollection headerCollection = new HeaderCollectionStringValues(customContext);
         
         var request =
             new LambdaExecutionRequest("Invoke", context.FunctionName, stream, headers);

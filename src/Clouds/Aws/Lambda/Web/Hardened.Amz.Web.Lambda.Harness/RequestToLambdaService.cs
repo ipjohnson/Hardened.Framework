@@ -77,8 +77,8 @@ public class RequestToLambdaService<T> : IRequestToLambdaService where T : IApiG
             request.QueryStringParameters[queryPair.Key] = queryPair.Value;
         }
 
-        if (context.Response.Body.CanRead) {
-            using var textReader = new StreamReader(context.Response.Body);
+        if (context.Request.Body.CanRead) {
+            using var textReader = new StreamReader(context.Request.Body);
 
             request.Body = await textReader.ReadToEndAsync();
         }

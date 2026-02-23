@@ -20,8 +20,16 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
 
     public ApiGatewayV2ExecutionRequest(APIGatewayHttpApiV2ProxyRequest request) {
         _proxyRequest = request;
-        Path = request.RawPath.Replace("/Beta", "");
+        Path = StripStagePath(request.RawPath, request.RequestContext?.Stage);
         Body = _empty;
+    }
+
+    private static string StripStagePath(string rawPath, string? stage) {
+        if (!string.IsNullOrEmpty(stage) && rawPath.StartsWith("/" + stage)) {
+            return rawPath.Substring(stage.Length + 1);
+        }
+
+        return rawPath;
     }
 
 
