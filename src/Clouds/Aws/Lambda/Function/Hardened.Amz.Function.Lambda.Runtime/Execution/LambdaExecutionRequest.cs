@@ -30,7 +30,7 @@ public class LambdaExecutionRequest : IExecutionRequest {
         IDictionary<string, StringValues> headers,
         IQueryStringCollection queryString,
         IReadOnlyList<string> cookies) {
-        return new LambdaExecutionRequest(method ?? this.Method, path ?? this.Method, this.Body,
+        return new LambdaExecutionRequest(method ?? this.Method, path ?? this.Path, this.Body,
             headers);
     }
 

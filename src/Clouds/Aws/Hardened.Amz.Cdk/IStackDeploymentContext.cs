@@ -83,7 +83,7 @@ public class StackDeploymentContext<TConfig, TStage, TRegion> : IStackDeployment
     public T? GetNullable<T>(CdkResourceRef<T> resource) {
         if (_resources.TryGetValue(resource, out var value)) {
             if (value.Item1 != null) {
-                return (T)(object)value;
+                return (T)value.Item1;
             }
         }
         return default;
