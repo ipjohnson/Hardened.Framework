@@ -252,7 +252,7 @@ public class StaticContentHandler : IStaticContentHandler {
     }
 
     private StringValues GetRequestETag(IExecutionContext context) {
-        if (context.Request.Headers.TryGetValue(KnownHeaders.IfMatch, out var ifMatch)) {
+        if (context.Request.Headers.TryGetValue(KnownHeaders.IfNoneMatch, out var ifMatch)) {
             return ifMatch;
         }
 

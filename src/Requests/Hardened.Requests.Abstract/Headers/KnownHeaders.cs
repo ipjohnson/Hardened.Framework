@@ -15,6 +15,8 @@ public static class KnownHeaders {
 
     public const string IfMatch = "If-Match";
 
+    public const string IfNoneMatch = "If-None-Match";
+
     public static class Cors {
         public const string AccessControlAllowOrigin = "Access-Control-Allow-Origin";
 

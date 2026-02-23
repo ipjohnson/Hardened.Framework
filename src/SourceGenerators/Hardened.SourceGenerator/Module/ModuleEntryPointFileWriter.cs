@@ -20,8 +20,8 @@ public class ModuleEntryPointFileWriter {
 
             context.AddSource(model.EntryPointType.Name + ".Module.cs", outputContext.Output());
         }
-        catch (Exception exp) {
-            throw exp;
+        catch (Exception) {
+            throw;
         }
     }
 

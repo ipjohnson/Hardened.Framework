@@ -17,7 +17,7 @@ public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper {
                 return ("text/csv", false);
 
             case "docx":
-                return ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", false);
+                return ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", true);
 
             case "gz":
                 return ("application/gzip", true);
@@ -46,7 +46,7 @@ public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper {
                 return ("image/png", true);
 
             case "pptx":
-                return ("image/pptx", true);
+                return ("application/vnd.openxmlformats-officedocument.presentationml.presentation", true);
 
             case "txt":
             case "text":
