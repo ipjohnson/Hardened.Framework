@@ -43,8 +43,8 @@ public class TestExecutionRequest : IExecutionRequest {
     public Stream Body { get; set; }
 
 
-    public IDictionary<string, StringValues> Headers { get; set; }
-    
+    public IDictionary<string, StringValues> Headers { get; set; } = new Dictionary<string, StringValues>();
+
     public IQueryStringCollection QueryString { get; }
 
     public IPathTokenCollection PathTokens {
@@ -52,5 +52,5 @@ public class TestExecutionRequest : IExecutionRequest {
         set => _pathTokens = value;
     }
 
-    public IReadOnlyList<string> Cookies { get; set; }
+    public IReadOnlyList<string> Cookies { get; set; } = Array.Empty<string>();
 }
