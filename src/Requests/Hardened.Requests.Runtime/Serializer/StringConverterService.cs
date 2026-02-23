@@ -37,7 +37,7 @@ public class StringConverterService : IStringConverterService {
         try {
             return InternalParseRequired<T>(value);
         }
-        catch {
+        catch (Exception) {
             return defaultValue;
         }
     }
@@ -50,7 +50,7 @@ public class StringConverterService : IStringConverterService {
         try {
             return InternalParseRequired<T>(value);
         }
-        catch {
+        catch (Exception) {
             return default;
         }
     }

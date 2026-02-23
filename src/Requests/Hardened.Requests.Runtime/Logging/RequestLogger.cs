@@ -22,8 +22,6 @@ public partial class RequestLogger : IRequestLogger {
     }
 
     public void RequestEnd(IExecutionContext context) {
-        var currentTime = DateTime.Now;
-
         LogRequestFinished(
             context.Request.Method,
             context.Request.Path,

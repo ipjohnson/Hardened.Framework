@@ -75,8 +75,6 @@ public class TestWebApp : TestContext, ITestWebApp {
             context.Request.Headers[KnownHeaders.ContentType] = KnownContentType.Js;
         }
 
-        webRequest?.Invoke(new TestWebRequest { Headers = context.Request.Headers });
-
         context.Request.Body = SetupBodyStream(bodyValue);
 
         var chain = middlewareService.GetExecutionChain(context);
@@ -138,7 +136,8 @@ public class TestWebApp : TestContext, ITestWebApp {
             new TestExecutionRequest(httpMethod, pathMinusQuery, "", ParseQueryStringFromPath(path)) {
                 Headers = header
             };
-        var response = new TestExecutionResponse(responseBody) { Headers = header };
+        var responseHeaders = new Dictionary<string, StringValues>();
+        var response = new TestExecutionResponse(responseBody) { Headers = responseHeaders };
 
         return new TestExecutionContext(
             _applicationRoot.Provider,
