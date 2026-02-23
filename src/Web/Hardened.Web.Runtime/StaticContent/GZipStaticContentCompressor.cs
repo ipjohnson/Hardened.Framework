@@ -16,10 +16,10 @@ public class GZipStaticContentCompressor : IGZipStaticContentCompressor {
 
     public byte[] CompressContent(byte[] bytes, CompressionLevel compressionLevel) {
         using var memoryStreamRes = _memoryStreamPool.Get();
-        using var gzipStream = new GZipStream(memoryStreamRes.Item, compressionLevel, true);
 
-        gzipStream.Write(bytes, 0, bytes.Length);
-        gzipStream.Flush();
+        using (var gzipStream = new GZipStream(memoryStreamRes.Item, compressionLevel, true)) {
+            gzipStream.Write(bytes, 0, bytes.Length);
+        }
 
         return memoryStreamRes.Item.ToArray();
     }

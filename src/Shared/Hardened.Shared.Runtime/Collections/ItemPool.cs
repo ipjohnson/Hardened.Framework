@@ -36,15 +36,17 @@ public class ItemPool<T> : IItemPool<T>, IDisposable {
     }
 
     public IPoolItemReservation<T> Get() {
-        if (_reservations != null) {
+        for (var i = 0; i < 5; i++) {
             var currentReservation = _reservations;
 
-            for (var i = 0; i < 5; i++) {
-                if (Interlocked.CompareExchange(ref _reservations, currentReservation.Next, currentReservation) ==
-                    currentReservation) {
-                    currentReservation.Next = null;
-                    return currentReservation;
-                }
+            if (currentReservation == null) {
+                break;
+            }
+
+            if (Interlocked.CompareExchange(ref _reservations, currentReservation.Next, currentReservation) ==
+                currentReservation) {
+                currentReservation.Next = null;
+                return currentReservation;
             }
         }
 

@@ -80,7 +80,9 @@ public class AspNetExecutionRequest : IExecutionRequest {
 
     public IDictionary<string, StringValues> Headers => _httpRequest.Headers;
     
-    public IQueryStringCollection QueryString => new EmptyQueryStringCollection();
+    public IQueryStringCollection QueryString =>
+        new SimpleQueryStringCollection(
+            _httpRequest.Query.ToDictionary(q => q.Key, q => q.Value.ToString()));
     
     public IPathTokenCollection PathTokens { get; set; }
 
@@ -127,7 +129,7 @@ public class AspNetExecutionResponse : IExecutionResponse {
     
     public bool IsBinary { get; set; }
     
-    public ICookieSetCollection Cookies { get; }
+    public ICookieSetCollection Cookies { get; } = new CookieSetCollectionImpl();
 
     public bool ShouldSerialize { get; set; } = true;
 }

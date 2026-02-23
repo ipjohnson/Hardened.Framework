@@ -125,7 +125,7 @@ public static class BindRequestParametersMethodGenerator {
         if (parameterInformation.BindingType == ParameterBindType.ExecutionRequest) {
             invokeStatement = context.Property("Request");
         }
-        else if (parameterInformation.BindingType != ParameterBindType.ExecutionResponse) {
+        else if (parameterInformation.BindingType == ParameterBindType.ExecutionResponse) {
             invokeStatement = context.Property("Response");
         }
 
