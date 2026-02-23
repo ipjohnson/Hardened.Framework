@@ -24,7 +24,7 @@ public class SqsExceptionHandler : ISqsExceptionHandler {
         SQSEvent.SQSMessage message, 
         Exception exception) {
         
-        _logger.LogError($"SQS exception thrown {exception.Message}", exception);
+        _logger.LogError(exception, "SQS exception thrown {Message}", exception.Message);
         
         return _defaultResult;
     }

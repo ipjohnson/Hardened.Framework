@@ -17,6 +17,6 @@ public class NewImageAttribute : Attribute, ICustomBindingAttribute {
             return new ValueTask<T>(tValue);
         }
         
-        throw new InvalidCastException($"OldImage can only be used on Dictionary<string,AttributeValue>.");
+        throw new InvalidCastException($"NewImage can only be used on Dictionary<string,AttributeValue>.");
     }
 }
