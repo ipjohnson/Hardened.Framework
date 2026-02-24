@@ -1,0 +1,18 @@
+name: build-package
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+          source-url: https://nuget.pkg.github.com/ipjohnson-org/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - run: dotnet restore src/Hardened.Framework.sln
+      - run: dotnet build src/Hardened.Framework.sln --no-restore
+      - run: dotnet test src/Hardened.Framework.sln --no-build
+      - run: dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=0.1.0-Alpha${{ github.run_number }}
+      - run: dotnet nuget push src/**/bin/Release/*.nupkg -k ${{secrets.PUBLISH_PAT}} --skip-duplicate

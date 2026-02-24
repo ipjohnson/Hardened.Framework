@@ -48,7 +48,7 @@ public class CommandDefinitionRegistrationGenerator {
         templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime
             .DependencyInjection);
         templateField.InitializeValue =
-            $"DependencyRegistry<{classDefinition.Name}>.Register(RegisterCommands)";
+            new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(RegisterCommands)");
     }
 
     private void GenerateConstructors(
@@ -100,14 +100,8 @@ public class CommandDefinitionRegistrationGenerator {
             classDefinition.AddProperty(KnownTypes.DI.IServiceProvider, "Provider");
 
         providerProperty.Get.LambdaSyntax = true;
-        providerProperty.Get.AddIndentedStatement(
-            NullCoalesce(
-                rootProvider.Instance,
-                new CodeOutputComponent(
-                    "throw new Exception(\"rootProvider can't be null here\")") {
-                    Indented = false
-                }
-            ));
+        providerProperty.Get.AddCode(
+            "_rootProvider ?? throw new Exception(\"rootProvider can't be null here\");");
         providerProperty.Set = null;
 
         var dispose = classDefinition.AddMethod("DisposeAsync");

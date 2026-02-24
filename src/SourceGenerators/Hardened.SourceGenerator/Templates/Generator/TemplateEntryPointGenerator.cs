@@ -38,7 +38,7 @@ public static class TemplateEntryPointGenerator {
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
-        templateField.InitializeValue = $"DependencyRegistry<{classDefinition.Name}>.Register(HardenedTemplateDI)";
+        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(HardenedTemplateDI)");
 
         var diMethod = classDefinition.AddMethod("HardenedTemplateDI");
 

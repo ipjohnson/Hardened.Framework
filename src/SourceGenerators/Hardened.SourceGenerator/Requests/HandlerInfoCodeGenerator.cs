@@ -19,7 +19,7 @@ public static class HandlerInfoCodeGenerator {
                 KnownTypes.Requests.IExecutionRequestParameter.MakeArray(),
                 "_parameterInfo");
 
-            parameterInfoField.InitializeValue = "CreateParameterInfo()";
+            parameterInfoField.InitializeValue = new CodeOutputComponent("CreateParameterInfo()");
 
             parameterInfoField.Modifiers =
                 ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
@@ -65,7 +65,7 @@ public static class HandlerInfoCodeGenerator {
         }
 
         handlerInfoField.InitializeValue =
-            $"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField})";
+            new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField})");
 
         var handlerProperty =
             classDefinition.AddProperty(KnownTypes.Requests.IExecutionRequestHandlerInfo, "HandlerInfo");
