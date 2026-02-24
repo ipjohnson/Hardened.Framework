@@ -86,7 +86,7 @@ public class TemplateClassGenerator {
                     var field = classDefinition.AddField(typeof(string), fieldName);
 
                     field.Modifiers = ComponentModifier.Static | ComponentModifier.Readonly;
-                    field.InitializeValue = initializeString;
+                    field.InitializeValue = new CodeOutputComponent(initializeString);
 
                     templateNode.FieldName = fieldName;
                 }
