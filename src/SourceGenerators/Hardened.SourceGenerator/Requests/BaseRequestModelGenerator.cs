@@ -7,8 +7,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Hardened.SourceGenerator.Requests;
 
 public abstract class BaseRequestModelGenerator {
-    private int _handlerCount = 1;
-
     public virtual RequestHandlerModel GenerateRequestModel(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken) {

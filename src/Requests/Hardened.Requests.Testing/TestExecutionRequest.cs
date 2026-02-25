@@ -24,9 +24,9 @@ public class TestExecutionRequest : IExecutionRequest {
     public IExecutionRequest Clone(
         string? method,
         string? path,
-        IDictionary<string, StringValues> headers,
-        IQueryStringCollection queryString,
-        IReadOnlyList<string> cookies) {
+        IDictionary<string, StringValues>? headers,
+        IQueryStringCollection? queryString,
+        IReadOnlyList<string>? cookies) {
         throw new NotImplementedException();
     }
 
@@ -40,7 +40,7 @@ public class TestExecutionRequest : IExecutionRequest {
 
     public IExecutionRequestParameters? Parameters { get; set; }
 
-    public Stream Body { get; set; }
+    public Stream Body { get; set; } = Stream.Null;
 
 
     public IDictionary<string, StringValues> Headers { get; set; } = new Dictionary<string, StringValues>();

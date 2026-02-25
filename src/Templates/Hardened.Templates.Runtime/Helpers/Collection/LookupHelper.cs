@@ -5,7 +5,7 @@ namespace Hardened.Templates.Runtime.Helpers.Collection;
 
 public class LookupHelper : ITemplateHelper {
     public ValueTask<object> Execute(ITemplateExecutionContext handlerDataContext, params object[] arguments) {
-        var returnValue = (object)null;
+        object? returnValue = null;
 
         if (arguments?.Length == 2) {
             if (arguments[0] is Array array && arguments[1] is int intValue) {
@@ -27,6 +27,6 @@ public class LookupHelper : ITemplateHelper {
             }
         }
 
-        return new ValueTask<object>(returnValue);
+        return new ValueTask<object>(returnValue!);
     }
 }

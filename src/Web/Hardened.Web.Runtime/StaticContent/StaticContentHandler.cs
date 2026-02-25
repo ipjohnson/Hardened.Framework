@@ -56,11 +56,9 @@ public class StaticContentHandler : IStaticContentHandler {
 
         if (!_pathExists) {
             _rootPath =
-                Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetName().CodeBase) ?? "";
+                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
 
             if (!string.IsNullOrEmpty(_rootPath)) {
-                _rootPath = _rootPath.Substring(6);
-
                 _rootPath = Path.Combine(_rootPath, _configuration.Path);
                 _pathExists = Directory.Exists(_rootPath);
             }

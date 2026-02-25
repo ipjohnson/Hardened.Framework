@@ -51,6 +51,6 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
             return await System.Text.Json.JsonSerializer.DeserializeAsync<T>(decompressStream, _serializerOptions);
         }
 
-        throw new BadContentEncodingException(contentEncoding);
+        throw new BadContentEncodingException(contentEncoding.ToString());
     }
 }
