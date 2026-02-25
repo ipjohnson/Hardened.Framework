@@ -12,7 +12,7 @@ public class SafeString {
 
     public int Length => _value.Length;
 
-    public override bool Equals(object obj) {
+    public override bool Equals(object? obj) {
         if (obj is SafeString safeString) {
             return _value.Equals(safeString._value);
         }

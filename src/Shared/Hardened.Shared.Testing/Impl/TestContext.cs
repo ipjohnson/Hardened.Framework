@@ -96,6 +96,6 @@ public class TestContext : ITestContext {
         else {
             Logger.LogError(logMessage, parameterList.ToArray());
         }
-#pragma warning enable CA2254 // Template should be a static expression
+#pragma warning restore CA2254 // Template should be a static expression
     }
 }

@@ -39,7 +39,7 @@ public class TestExecutionResponse : IExecutionResponse {
 
     public Stream Body { get; set; }
 
-    public IDictionary<string, StringValues> Headers { get; set; }
+    public IDictionary<string, StringValues> Headers { get; set; } = new Dictionary<string, StringValues>();
     public Exception? ExceptionValue { get; set; }
 
     public bool ResponseStarted => Body.Position > 0;

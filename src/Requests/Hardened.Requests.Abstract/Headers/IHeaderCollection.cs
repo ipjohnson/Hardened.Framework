@@ -5,7 +5,7 @@ namespace Hardened.Requests.Abstract.Headers;
 public interface IHeaderCollection : IDictionary<string,StringValues> {
     StringValues Append(string key, object value);
 
-    bool ContainsKey(string key);
+    new bool ContainsKey(string key);
 
     StringValues Get(String key);
 
@@ -13,7 +13,7 @@ public interface IHeaderCollection : IDictionary<string,StringValues> {
 
     StringValues Set(String key, StringValues value);
 
-    int Count { get; }
+    new int Count { get; }
 
     bool TryGet(string key, out StringValues value);
 

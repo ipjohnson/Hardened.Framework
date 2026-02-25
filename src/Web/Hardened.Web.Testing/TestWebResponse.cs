@@ -41,7 +41,7 @@ public class TestWebResponse {
                        throw new Exception("Could not deserialize response");
             }
 
-            throw new BadContentEncodingException(contentEncoding);
+            throw new BadContentEncodingException(contentEncoding.ToString());
         }
 
         return System.Text.Json.JsonSerializer.Deserialize<T>(Body,

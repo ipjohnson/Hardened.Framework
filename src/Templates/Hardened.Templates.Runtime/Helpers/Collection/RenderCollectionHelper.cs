@@ -29,6 +29,6 @@ public class RenderCollectionHelper : ITemplateHelper {
             }
         }
 
-        return null;
+        return null!;
     }
 }

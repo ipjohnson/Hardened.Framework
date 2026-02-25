@@ -79,7 +79,7 @@ public static class ParametersClassGenerator {
         foreach (var parameterInformation in handlerModel.RequestParameterInformationList) {
             var caseBlock = switchStatement.AddCase(index++);
 
-            caseBlock.Return(parameterInformation.Name);
+            caseBlock.Return(parameterInformation.Name + "!");
         }
 
         var throwMessage =
