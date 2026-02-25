@@ -2,32 +2,23 @@ name: build-package
 
 on: [push]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dotnet-version: [ '8.0.x' ]
-
     steps:
       - uses: actions/checkout@v4
-      - name: Setup dotnet ${{ matrix.dotnet-version }}
-        uses: actions/setup-dotnet@v3
+      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          dotnet-version: 8.0.x
           source-url: https://nuget.pkg.github.com/ipjohnson-org/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      - name: Install dependencies
-        run: dotnet restore
-      - name: Build
-        run: dotnet build
-      - name: Test with the dotnet CLI
-        run: dotnet test
-      - name: Create the package
-        run: dotnet pack --configuration Release /p:PackageVersion=$NugetVersion
-        env:
-          NugetVersion: 1.0.${{ github.run_number }}
-      - name: Publish the package to GPR
-        run: dotnet nuget push **/bin/Release/*.nupkg -k ${{secrets.PUBLISH_PAT}}
+      - run: dotnet restore
+      - run: dotnet build --configuration Release --no-restore
+      - run: dotnet test --configuration Release --no-build
+      - run: dotnet pack --configuration Release --no-build /p:PackageVersion=1.0.${{ github.run_number }}
+      - run: dotnet nuget push **/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/ipjohnson-org/index.json" --skip-duplicate
