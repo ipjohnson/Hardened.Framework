@@ -12,7 +12,7 @@ jobs:
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - run: dotnet restore src/Hardened.Framework.sln
-      - run: dotnet build src/Hardened.Framework.sln --no-restore
-      - run: dotnet test src/Hardened.Framework.sln --no-build
+      - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release
+      - run: dotnet test src/Hardened.Framework.sln --no-build --configuration Release
       - run: dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=0.1.0-Alpha${{ github.run_number }}
       - run: dotnet nuget push src/**/bin/Release/*.nupkg -k ${{secrets.PUBLISH_PAT}} --skip-duplicate
