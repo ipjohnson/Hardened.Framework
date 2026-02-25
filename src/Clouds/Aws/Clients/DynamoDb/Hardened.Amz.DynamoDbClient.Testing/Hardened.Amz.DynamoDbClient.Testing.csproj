@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
@@ -16,10 +16,10 @@
     <ItemGroup>
         <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.100.26"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0-preview-20220131-20"/>
+        <PackageReference Include="Hardened.Shared.Testing" Version="0.1.0-Alpha1158"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
         <ProjectReference Include="..\Hardened.Amz.DynamoDbClient\Hardened.Amz.DynamoDbClient.csproj"/>
     </ItemGroup>
 
