@@ -16,11 +16,17 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
     }
 
     public object Clone() {
-        throw new NotImplementedException();
+        return Clone(null);
     }
 
     public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
-        throw new NotImplementedException();
+        return new ApiGatewayV2ExecutionResponse(_proxyResponse) {
+            ResponseValue = ResponseValue,
+            TemplateName = TemplateName,
+            ShouldCompress = ShouldCompress,
+            IsBinary = IsBinary,
+            ShouldSerialize = ShouldSerialize,
+        };
     }
 
     public string? ContentType {

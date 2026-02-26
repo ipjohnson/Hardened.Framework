@@ -14,7 +14,7 @@ public class LocalDynamoDbAttribute : Attribute,
     public virtual string LibPath { get; set; } = "../../../../tools/LocalDynamoDb";
 
     public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
-        IEnvironment environment,
+        IHardenedEnvironment environment,
         IServiceCollection serviceCollection) {
         var (dynamoService, dynamoPort) = CreateLocalDynamoDb();
 
@@ -77,7 +77,7 @@ public class LocalDynamoDbAttribute : Attribute,
     public Task Startup(
         AttributeCollection attributeCollection,
         MethodInfo methodInfo,
-        IEnvironment environment,
+        IHardenedEnvironment environment,
         IServiceProvider serviceProvider) {
         return DdbSetup(attributeCollection, methodInfo, environment, serviceProvider);
     }
@@ -85,7 +85,7 @@ public class LocalDynamoDbAttribute : Attribute,
     protected virtual Task DdbSetup(
         AttributeCollection attributeCollection,
         MethodInfo methodInfo,
-        IEnvironment environment,
+        IHardenedEnvironment environment,
         IServiceProvider serviceProvider) {
         return Task.CompletedTask;
     }

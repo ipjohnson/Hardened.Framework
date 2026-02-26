@@ -2,5 +2,5 @@
 
 namespace Hardened.Amz.DynamoDbClient;
 
-[HardenedStartup]
+[HardenedModule]
 public partial class DynamoDbClientLibrary { }

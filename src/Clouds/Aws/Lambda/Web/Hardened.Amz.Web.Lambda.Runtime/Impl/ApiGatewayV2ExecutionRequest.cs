@@ -39,7 +39,11 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
         IDictionary<string, StringValues> headers,
         IQueryStringCollection queryString,
         IReadOnlyList<string> cookies) {
-        throw new NotImplementedException();
+        return new ApiGatewayV2ExecutionRequest(_proxyRequest) {
+            Parameters = Parameters,
+            Body = Body,
+            PathTokens = PathTokens,
+        };
     }
 
     public string Method => _proxyRequest.RequestContext.Http.Method;
