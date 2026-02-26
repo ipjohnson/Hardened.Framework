@@ -58,12 +58,19 @@ public class LambdaHandlerPackageFileWriter {
         method.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
 
         var serviceProvider = method.AddParameter(KnownTypes.DI.IServiceProvider, "serviceProvider");
-        method.AddParameter(KnownTypes.Lambda.ILambdaContext, "context");
-        
-        if (requestHandlers.Length != 1) {
-            throw new Exception("Invalid number of request handlers, expected 1, found " + requestHandlers.Length);
+        var lambdaContext = method.AddParameter(KnownTypes.Lambda.ILambdaContext, "context");
+
+        if (requestHandlers.Length == 1) {
+            method.Return(New(requestHandlers.Single().InvokeHandlerType, serviceProvider));
+        } else {
+            var switchBlock = method.Switch($"{lambdaContext}.FunctionName");
+
+            foreach (var handler in requestHandlers) {
+                var caseBlock = switchBlock.AddCase($"\"{handler.Name.Path}\"");
+                caseBlock.Return(New(handler.InvokeHandlerType, serviceProvider));
+            }
+
+            method.Return(new CodeOutputComponent("null"));
         }
-        
-        method.Return(New(requestHandlers.Single().InvokeHandlerType, serviceProvider));
     }
 }
