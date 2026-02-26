@@ -63,7 +63,7 @@ public class LambdaHandlerPackageFileWriter {
         if (requestHandlers.Length == 1) {
             method.Return(New(requestHandlers.Single().InvokeHandlerType, serviceProvider));
         } else {
-            var switchBlock = method.Switch($"{lambdaContext}.FunctionName");
+            var switchBlock = method.Switch("context.FunctionName");
 
             foreach (var handler in requestHandlers) {
                 var caseBlock = switchBlock.AddCase($"\"{handler.Name.Path}\"");
