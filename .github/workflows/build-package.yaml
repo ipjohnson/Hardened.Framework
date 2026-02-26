@@ -20,5 +20,5 @@ jobs:
       - run: dotnet restore src/Hardened.Framework.sln
       - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release
       - run: dotnet test src/Hardened.Framework.sln --no-build --configuration Release
-      - run: dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=0.1.0-Alpha${{ github.run_number }}
+      - run: dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=0.2.0-Alpha${{ github.run_number }}
       - run: dotnet nuget push src/**/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/ipjohnson-org/index.json" --skip-duplicate
