@@ -53,7 +53,7 @@ public class DependencyRegistry<T> where T : class {
     /// <param name="entryPoint"></param>
     public static void ApplyRegistration(IHardenedEnvironment environment, IServiceCollection serviceCollection, T entryPoint) {
         foreach (var registration in _registrations) {
-            if (registration.LastServiceCollection.TryGetTarget(out var collection) && ReferenceEquals(collection, entryPoint)){
+            if (registration.LastServiceCollection.TryGetTarget(out var collection) && ReferenceEquals(collection, serviceCollection)){
                 continue;
             }
             

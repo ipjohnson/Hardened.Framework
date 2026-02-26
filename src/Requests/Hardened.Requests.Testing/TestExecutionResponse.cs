@@ -13,7 +13,15 @@ public class TestExecutionResponse : IExecutionResponse {
     }
 
     public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
-        throw new NotImplementedException();
+        return new TestExecutionResponse(Body) {
+            ResponseValue = ResponseValue,
+            TemplateName = TemplateName,
+            Status = Status,
+            ShouldCompress = ShouldCompress,
+            Headers = headerCollection as IDictionary<string, StringValues> ?? Headers,
+            IsBinary = IsBinary,
+            ShouldSerialize = ShouldSerialize,
+        };
     }
 
     public string? ContentType {
