@@ -2,7 +2,7 @@
 
 namespace Hardened.SqsClient;
 
-[HardenedStartup]
+[HardenedModule]
 public partial class SqsClientLibrary
 {
 

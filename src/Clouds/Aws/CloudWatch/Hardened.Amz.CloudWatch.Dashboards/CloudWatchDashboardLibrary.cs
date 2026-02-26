@@ -2,5 +2,5 @@
 
 namespace Hardened.Amz.CloudWatch.Dashboards;
 
-[HardenedStartup]
+[HardenedModule]
 public partial class CloudWatchDashboardLibrary { }

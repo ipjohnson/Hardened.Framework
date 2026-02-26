@@ -75,6 +75,7 @@ public class LambdaFunctionModelGenerator : BaseRequestModelGenerator {
         switch (attributeName) {
             case "Template":
             case "RawResponse":
+            case "HardenedFunction":
                 return false;
 
             default:
