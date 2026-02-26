@@ -1,59 +1,64 @@
-﻿using Amazon.DynamoDBv2;
+using System.Collections.Concurrent;
+using Amazon.DynamoDBv2;
 using Amazon.Runtime;
-using Hardened.Amz.DynamoDbClient.Testing.Impl;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using Testcontainers.DynamoDb;
 
 namespace Hardened.Amz.DynamoDbClient.Testing;
 
 public class LocalDynamoDbAttribute : Attribute,
     IHardenedTestDependencyRegistrationAttribute,
     IHardenedTestStartupAttribute {
-    public virtual string LibPath { get; set; } = "../../../../tools/LocalDynamoDb";
+    private static readonly ConcurrentDictionary<string, SharedContainer> Containers = new();
+    private static readonly SemaphoreSlim InitLock = new(1, 1);
 
     public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
         IHardenedEnvironment environment,
         IServiceCollection serviceCollection) {
-        var (dynamoService, dynamoPort) = CreateLocalDynamoDb();
-
         serviceCollection.AddSingleton<IDynamoDbClientProvider>(_ =>
-            new TestDynamoDbClientProvider(dynamoPort, dynamoService));
+            new TestDynamoDbClientProvider());
     }
 
-    private (LocalDynamoDbWrapper dynamoService, int dynamoPort) CreateLocalDynamoDb() {
-        var random = new Random();
-        Exception? exp = null;
-        for (var i = 0; i < 10; i++) {
-            try {
-                var tempPort = random.Next(50000, 60000);
+    private static SharedContainer GetOrCreateContainer() {
+        const string key = "default";
 
-                return (new LocalDynamoDbWrapper(LibPath, null, tempPort), tempPort);
-            }
-            catch (Exception e) {
-                Console.WriteLine(e);
-                exp = e;
-            }
+        if (Containers.TryGetValue(key, out var existing)) {
+            return existing;
         }
 
-        throw new Exception($"Could not create local dynamo db {exp!.Message}\r\n{exp!.StackTrace}");
+        InitLock.Wait();
+        try {
+            if (Containers.TryGetValue(key, out existing)) {
+                return existing;
+            }
+
+            var container = new DynamoDbBuilder("amazon/dynamodb-local:latest")
+                .Build();
+
+            container.StartAsync().GetAwaiter().GetResult();
+
+            var connectionString = container.GetConnectionString();
+            var shared = new SharedContainer(container, connectionString);
+            Containers[key] = shared;
+            return shared;
+        }
+        finally {
+            InitLock.Release();
+        }
     }
 
     private class TestDynamoDbClientProvider : IDynamoDbClientProvider, IDisposable {
         private AmazonDynamoDBClient? _dynamoDbClient;
-        private readonly int _port;
-        private readonly LocalDynamoDbWrapper _localDynamoDbWrapper;
-
-        public TestDynamoDbClientProvider(int port, LocalDynamoDbWrapper localDynamoDbWrapper) {
-            _port = port;
-            _localDynamoDbWrapper = localDynamoDbWrapper;
-        }
 
         public AmazonDynamoDBClient GetClient(string clientName = "") {
             if (_dynamoDbClient == null) {
-                var clientConfig = new AmazonDynamoDBConfig();
-                clientConfig.ServiceURL = $"http://localhost:{_port}";
+                var shared = GetOrCreateContainer();
+                var clientConfig = new AmazonDynamoDBConfig {
+                    ServiceURL = shared.ConnectionString
+                };
                 var credentials = new BasicAWSCredentials("fakeKey", "secretKey");
                 _dynamoDbClient = new AmazonDynamoDBClient(credentials, clientConfig);
             }
@@ -66,13 +71,10 @@ public class LocalDynamoDbAttribute : Attribute,
                 _dynamoDbClient?.Dispose();
             }
             catch (Exception) { }
-
-            try {
-                _localDynamoDbWrapper.Dispose();
-            }
-            catch (Exception) { }
         }
     }
+
+    private record SharedContainer(DynamoDbContainer Container, string ConnectionString);
 
     public Task Startup(
         AttributeCollection attributeCollection,
