@@ -15,7 +15,7 @@
 
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.Core" Version="2.2.0" />
-        <PackageReference Include="Hardened.Requests.Runtime" Version="0.1.0-Alpha1158" />
+        <PackageReference Include="Hardened.Requests.Runtime" Version="0.2.0-Alpha11" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
