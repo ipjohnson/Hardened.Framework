@@ -12,7 +12,13 @@ public static class BindRequestParametersMethodGenerator {
 
         invokeMethod.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
 
-        invokeMethod.Modifiers |= ComponentModifier.Async;
+        var needsAsync = requestHandlerModel.RequestParameterInformationList.Any(
+            p => p.BindingType == ParameterBindType.Body || p.BindingType == ParameterBindType.CustomAttribute);
+
+        if (needsAsync) {
+            invokeMethod.Modifiers |= ComponentModifier.Async;
+        }
+
         invokeMethod.SetReturnType(new GenericTypeDefinition(typeof(Task<>),
             new[] {
                 KnownTypes.Requests.IExecutionRequestParameters
@@ -20,13 +26,14 @@ public static class BindRequestParametersMethodGenerator {
 
         var context = invokeMethod.AddParameter(KnownTypes.Requests.IExecutionContext, "context");
 
-        ProcessParameters(requestHandlerModel, classDefinition, invokeMethod, context);
+        ProcessParameters(requestHandlerModel, classDefinition, invokeMethod, context, needsAsync);
     }
 
     private static void ProcessParameters(RequestHandlerModel requestHandlerModel,
         ClassDefinition classDefinition,
         MethodDefinition invokeMethod,
-        ParameterDefinition context) {
+        ParameterDefinition context,
+        bool needsAsync) {
         var parametersVar = invokeMethod.Assign(New(InvokeClassGenerator.GenericParameters)).ToVar("parameters");
 
         foreach (var parameterInformation in requestHandlerModel.RequestParameterInformationList) {
@@ -64,7 +71,16 @@ public static class BindRequestParametersMethodGenerator {
             }
         }
 
-        invokeMethod.Return(parametersVar);
+        if (needsAsync) {
+            invokeMethod.Return(parametersVar);
+        } else {
+            invokeMethod.Return(
+                InvokeGeneric(
+                    TypeDefinition.Get(typeof(Task)),
+                    "FromResult",
+                    new[] { KnownTypes.Requests.IExecutionRequestParameters },
+                    parametersVar));
+        }
     }
 
     private static void BindFromCustomAttribute(ClassDefinition classDefinition, RequestParameterInformation parameterInformation,
@@ -151,7 +167,7 @@ public static class BindRequestParametersMethodGenerator {
                 break;
         }
 
-        var valueStatement = context.Property("Request").Property(instance).Invoke("Get", QuoteString(bindingName));
+        var valueStatement = Bang(context.Property("Request").Property(instance).Invoke("Get", QuoteString(bindingName)));
 
         var stringInvokeStatement = context.Property("KnownServices").Property("StringConverterService");
 

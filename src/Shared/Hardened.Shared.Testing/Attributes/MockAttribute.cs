@@ -14,6 +14,7 @@ public class MockAttribute : Attribute, IHardenedParameterProviderAttribute {
         if (parameterInfo != null) {
             var mock = NSubstitute.Substitute.For(new[] { parameterInfo.ParameterType }, Array.Empty<object>());
 
+            _parameterValue = mock;
             serviceCollection.AddSingleton(parameterInfo.ParameterType, mock);
         }
     }

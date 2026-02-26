@@ -9,7 +9,7 @@ public class DecodeHelper : ITemplateHelper {
             return new ValueTask<object>("");
         }
 
-        var decodedString = HttpUtility.UrlDecode(arguments[0].ToString());
+        var decodedString = HttpUtility.UrlDecode(arguments[0].ToString()) ?? "";
 
         return new ValueTask<object>(decodedString);
     }
