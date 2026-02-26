@@ -21,8 +21,11 @@ internal static class RecordEmitter {
         sb.Append($"public record {recordName}(");
         sb.AppendLine();
 
-        for (var i = 0; i < schema.Properties.Count; i++) {
-            var prop = schema.Properties[i];
+        // Required parameters must precede optional ones in C# record constructors.
+        var sorted = schema.Properties.OrderByDescending(p => p.IsRequired).ToList();
+
+        for (var i = 0; i < sorted.Count; i++) {
+            var prop = sorted[i];
             var csType = TypeMapper.MapPropertyToCSharpType(prop);
             var propName = NamingHelper.ToPascalCase(prop.Name);
             var nullable = !prop.IsRequired ? "?" : "";
@@ -33,7 +36,7 @@ internal static class RecordEmitter {
                 sb.Append(" = default");
             }
 
-            if (i < schema.Properties.Count - 1) {
+            if (i < sorted.Count - 1) {
                 sb.AppendLine(",");
             } else {
                 sb.Append(")");

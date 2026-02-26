@@ -137,7 +137,7 @@ internal static class OpenApiSpecParser {
             Name = name,
             Kind = SchemaKind.Dictionary,
             DictionaryValueType = addlProps?.Type,
-            DictionaryValueRef = addlProps?.Reference?.ReferenceV3
+            DictionaryValueRef = GetNonPrimitiveRef(addlProps)
         };
     }
 
@@ -145,7 +145,7 @@ internal static class OpenApiSpecParser {
         return new SchemaModel {
             Name = name,
             Kind = SchemaKind.Array,
-            ArrayItemsRef = schema.Items?.Reference?.ReferenceV3,
+            ArrayItemsRef = GetNonPrimitiveRef(schema.Items),
             ArrayItemsType = schema.Items?.Type,
             ArrayItemsFormat = schema.Items?.Format
         };
@@ -157,8 +157,11 @@ internal static class OpenApiSpecParser {
             IsRequired = isRequired
         };
 
-        if (prop.Reference != null) {
-            model.Ref = prop.Reference.ReferenceV3;
+        // Only keep $ref when it points to an object or enum that gets a generated C# type.
+        // Primitive refs (e.g. CustomId → string) are inlined to their underlying type.
+        var nonPrimitiveRef = GetNonPrimitiveRef(prop);
+        if (nonPrimitiveRef != null) {
+            model.Ref = nonPrimitiveRef;
             return model;
         }
 
@@ -173,7 +176,7 @@ internal static class OpenApiSpecParser {
 
         if (prop.Type == "array") {
             model.IsArray = true;
-            model.ArrayItemsRef = prop.Items?.Reference?.ReferenceV3;
+            model.ArrayItemsRef = GetNonPrimitiveRef(prop.Items);
             model.ArrayItemsType = prop.Items?.Type;
             model.ArrayItemsFormat = prop.Items?.Format;
             return model;
@@ -182,13 +185,31 @@ internal static class OpenApiSpecParser {
         if (prop.Type == "object" && prop.AdditionalProperties != null) {
             model.IsDictionary = true;
             model.DictionaryValueType = prop.AdditionalProperties.Type;
-            model.DictionaryValueRef = prop.AdditionalProperties.Reference?.ReferenceV3;
+            model.DictionaryValueRef = GetNonPrimitiveRef(prop.AdditionalProperties);
             return model;
         }
 
         model.Type = prop.Type;
         model.Format = prop.Format;
         return model;
+    }
+
+    /// <summary>
+    /// Returns the ReferenceV3 string only if the schema references an object or enum
+    /// (types that get generated C# classes). Returns null for primitive type refs
+    /// so that the caller inlines the underlying type instead.
+    /// </summary>
+    private static string? GetNonPrimitiveRef(OpenApiSchema? schema) {
+        if (schema?.Reference == null) return null;
+
+        // Enums and objects get generated C# types — keep the ref.
+        if (schema.Enum is { Count: > 0 }) return schema.Reference.ReferenceV3;
+        if (schema.Type == "object" || schema.Properties is { Count: > 0 }) return schema.Reference.ReferenceV3;
+        if (schema.Type == "array") return schema.Reference.ReferenceV3;
+        if (schema.AllOf is { Count: > 0 }) return schema.Reference.ReferenceV3;
+
+        // Primitive types (string, integer, number, boolean) — inline them.
+        return null;
     }
 
     private static void ParsePath(string path, OpenApiPathItem pathItem,
@@ -215,10 +236,10 @@ internal static class OpenApiSpecParser {
                         IsRequired = param.Required,
                         Type = param.Schema?.Type,
                         Format = param.Schema?.Format,
-                        Ref = param.Schema?.Reference?.ReferenceV3,
+                        Ref = GetNonPrimitiveRef(param.Schema),
                         IsArray = param.Schema?.Type == "array",
                         ArrayItemsType = param.Schema?.Items?.Type,
-                        ArrayItemsRef = param.Schema?.Items?.Reference?.ReferenceV3
+                        ArrayItemsRef = GetNonPrimitiveRef(param.Schema?.Items)
                     });
                 }
             }
