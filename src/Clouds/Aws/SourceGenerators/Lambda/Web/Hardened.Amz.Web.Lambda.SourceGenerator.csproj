@@ -30,12 +30,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CSharpAuthor" Version="0.1.0-Beta970">
+        <PackageReference Include="CSharpAuthor" Version="1.1.1006">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
 
-        <PackageReference Include="Hardened.SourceGenerator" Version="0.1.0-Alpha1158">
+        <PackageReference Include="Hardened.SourceGenerator" Version="0.2.0-Alpha11">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>

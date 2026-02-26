@@ -7,10 +7,10 @@
         <IsPackable>true</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Hardened.Commands" Version="0.1.0-Alpha1158" />
-        <PackageReference Include="Hardened.Console.SourceGenerator" Version="0.1.0-Alpha1158" />
-        <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.1.0-Alpha1158" />
-        <PackageReference Include="Hardened.Requests.Runtime" Version="0.1.0-Alpha1158" />
+        <PackageReference Include="Hardened.Commands" Version="0.2.0-Alpha11" />
+        <PackageReference Include="Hardened.Console.SourceGenerator" Version="0.2.0-Alpha11" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.2.0-Alpha11" />
+        <PackageReference Include="Hardened.Requests.Runtime" Version="0.2.0-Alpha11" />
         <PackageReference Include="Amazon.CDK.Lib" Version="2.155.0" />
         <PackageReference Include="Cdklabs.CdkMonitoringConstructs" Version="8.1.1" />
     </ItemGroup>
