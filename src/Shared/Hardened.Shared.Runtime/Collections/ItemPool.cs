@@ -24,7 +24,9 @@ public class ItemPool<T> : IItemPool<T>, IDisposable {
     public void Dispose() {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0) {
             if (this._disposeAction != null) {
-                var current = _reservations;
+                // Atomically detach the entire list to prevent concurrent returns
+                // from corrupting the iteration.
+                var current = Interlocked.Exchange(ref _reservations, null);
 
                 while (current != null) {
                     _disposeAction(current.Item);
@@ -65,9 +67,20 @@ public class ItemPool<T> : IItemPool<T>, IDisposable {
 
         public void Dispose() {
             if (Next == null) {
+                // Don't return items to a disposed pool.
+                if (_pool._disposed != 0) {
+                    return;
+                }
+
                 _pool._cleanupAction(Item);
 
                 while (true) {
+                    // Re-check disposal status before each CAS attempt
+                    // to avoid pushing onto a pool that's being torn down.
+                    if (_pool._disposed != 0) {
+                        return;
+                    }
+
                     var current = _pool._reservations;
 
                     Next = current;

@@ -27,7 +27,17 @@ public class TestExecutionRequest : IExecutionRequest {
         IDictionary<string, StringValues> headers,
         IQueryStringCollection queryString,
         IReadOnlyList<string> cookies) {
-        throw new NotImplementedException();
+        return new TestExecutionRequest(
+            method ?? Method,
+            path ?? Path,
+            Accept,
+            queryString ?? QueryString) {
+            Parameters = Parameters,
+            Body = Body,
+            Headers = headers ?? Headers,
+            PathTokens = PathTokens,
+            Cookies = cookies ?? Cookies,
+        };
     }
 
     public string Method { get; }

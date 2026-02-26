@@ -27,7 +27,16 @@ public class TestExecutionContext : IExecutionContext {
         IExecutionResponse? response,
         IServiceProvider? serviceProvider,
         IMetricLogger? metricLogger) {
-        throw new NotImplementedException();
+        return new TestExecutionContext(
+            RootServiceProvider,
+            serviceProvider ?? RequestServices,
+            KnownServices,
+            request ?? Request,
+            response ?? Response,
+            CancellationToken) {
+            HandlerInstance = HandlerInstance,
+            HandlerInfo = HandlerInfo,
+        };
     }
 
     public IServiceProvider RootServiceProvider { get; }
