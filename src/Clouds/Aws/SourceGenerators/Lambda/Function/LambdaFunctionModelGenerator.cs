@@ -18,7 +18,19 @@ public class LambdaFunctionModelGenerator : BaseRequestModelGenerator {
                 KnownTypes.Requests.HardenedFunctionAttribute.Name.Replace("Attribute", ""))!;
         var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
 
-        return new RequestHandlerNameModel(methodDeclaration.Identifier.Text, "POST");
+        var functionName = methodDeclaration.Identifier.Text;
+
+        if (argument != null) {
+            var constantValue = context.SemanticModel.GetConstantValue(argument.Expression);
+
+            if (constantValue.HasValue && constantValue.Value != null) {
+                functionName = constantValue.Value.ToString();
+            } else {
+                functionName = argument.Expression.ToString().Trim('"');
+            }
+        }
+
+        return new RequestHandlerNameModel(functionName, "POST");
     }
 
     protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation) {
