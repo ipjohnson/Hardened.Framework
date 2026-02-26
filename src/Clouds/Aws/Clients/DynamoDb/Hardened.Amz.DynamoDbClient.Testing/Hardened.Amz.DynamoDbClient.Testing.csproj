@@ -15,8 +15,8 @@
 
     <ItemGroup>
         <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.100.26"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0"/>
         <PackageReference Include="Hardened.Shared.Testing" Version="0.1.0-Alpha1158"/>
+        <PackageReference Include="Testcontainers.DynamoDb" Version="4.10.0"/>
     </ItemGroup>
 
     <ItemGroup>
