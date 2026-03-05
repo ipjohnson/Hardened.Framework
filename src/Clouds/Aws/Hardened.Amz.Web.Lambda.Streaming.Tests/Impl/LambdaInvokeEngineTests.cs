@@ -42,8 +42,7 @@ public class LambdaInvokeEngineTests {
             _middlewareService,
             _requestMapper,
             _metricLoggerProvider,
-            _lambdaContextAccessor,
-            NullLogger<LambdaInvokeEngine>.Instance);
+            _lambdaContextAccessor);
     }
 
     private static IServiceProvider CreateServiceProvider() {
