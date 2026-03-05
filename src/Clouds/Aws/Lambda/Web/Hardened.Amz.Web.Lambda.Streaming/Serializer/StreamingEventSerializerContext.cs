@@ -4,7 +4,7 @@ using Hardened.Amz.Web.Lambda.Streaming.Impl;
 
 namespace Hardened.Amz.Web.Lambda.Streaming.Serializer;
 
-[JsonSourceGenerationOptions]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(APIGatewayHttpApiV2ProxyRequest))]
 [JsonSerializable(typeof(ResponsePrelude))]
 [JsonSerializable(typeof(LambdaErrorResponse))]
