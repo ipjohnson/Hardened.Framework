@@ -5,6 +5,7 @@ using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Hardened.Amz.Web.Lambda.Streaming.Context;
 using Hardened.Amz.Web.Lambda.Streaming.Serializer;
+using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Web.Lambda.Streaming.Impl;
 
@@ -22,12 +23,14 @@ public interface ILambdaServerProxy {
 
 public class LambdaServerProxy : ILambdaServerProxy {
     private readonly ILambdaHttpClientProvider _clientProvider;
+    private readonly ILogger<LambdaServerProxy> _logger;
 
     private static readonly MediaTypeHeaderValue StreamingContentType =
         MediaTypeHeaderValue.Parse("application/vnd.awslambda.http-integration-response");
 
-    public LambdaServerProxy(ILambdaHttpClientProvider clientProvider) {
+    public LambdaServerProxy(ILambdaHttpClientProvider clientProvider, ILogger<LambdaServerProxy> logger) {
         _clientProvider = clientProvider;
+        _logger = logger;
     }
 
     public async Task<InvocationData> GetNextInvocation(CancellationToken ct) {
@@ -39,14 +42,23 @@ public class LambdaServerProxy : ILambdaServerProxy {
         var response = await client.SendAsync(httpRequest, ct);
         response.EnsureSuccessStatusCode();
 
-        var request = await JsonSerializer.DeserializeAsync(
-            response.Content.ReadAsStream(),
-            StreamingEventSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest,
-            ct);
+        var rawPayload = await response.Content.ReadAsStringAsync(ct);
+        _logger.LogInformation("Raw Lambda invocation payload: {Payload}", rawPayload);
+
+        var request = JsonSerializer.Deserialize(
+            rawPayload,
+            StreamingEventSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest);
 
         if (request == null) {
             throw new InvalidOperationException("Failed to deserialize invocation request.");
         }
+
+        _logger.LogInformation(
+            "Deserialized request - Method: {Method}, Path: {Path}, RequestContext null: {RcNull}, Http null: {HttpNull}",
+            request.RequestContext?.Http?.Method ?? "NULL",
+            request.RawPath ?? "NULL",
+            request.RequestContext == null,
+            request.RequestContext?.Http == null);
 
         var requestId = response.Headers
             .GetValues("Lambda-Runtime-Aws-Request-Id").First();
