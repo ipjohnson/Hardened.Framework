@@ -211,8 +211,22 @@ public class DependencyInjectionFileGenerator {
                 if (attributeModel.TypeDefinition.Name.StartsWith("HardenedModule")) {
                     continue;
                 }
-                
-                var newValue = New(attributeModel.TypeDefinition, attributeModel.Arguments);
+
+                var typeDef = attributeModel.TypeDefinition;
+
+                // If the attribute is a nested type whose outer type name matches the
+                // current class name, use the fully qualified name to avoid ambiguity.
+                // e.g. [OtherNamespace.Application.Module] on a class also named Application
+                // would incorrectly resolve to the current class's own ModuleAttribute.
+                var dotIndex = typeDef.Name.IndexOf('.');
+                if (dotIndex > 0 && !string.IsNullOrEmpty(typeDef.Namespace)) {
+                    var outerTypeName = typeDef.Name.Substring(0, dotIndex);
+                    if (outerTypeName == model.EntryPointType.Name) {
+                        typeDef = TypeDefinition.Get("", typeDef.Namespace + "." + typeDef.Name);
+                    }
+                }
+
+                var newValue = New(typeDef, attributeModel.Arguments);
 
                 if (!string.IsNullOrEmpty(attributeModel.PropertyAssignment)) {
                     newValue.AddInitValue(attributeModel.PropertyAssignment);
