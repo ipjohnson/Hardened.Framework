@@ -16,6 +16,22 @@ public class StreamingLambdaWebApplicationFileWriter : ApplicationEntryPointFile
                 "Hardened.Amz.Web.Lambda.Streaming.DependencyInjection", "StreamingLambdaWebDI");
     }
 
+    protected override void ImplementApplicationRoot(EntryPointSelector.Model model, ClassDefinition classDefinition) {
+        base.ImplementApplicationRoot(model, classDefinition);
+
+        var iAppModuleProvider = TypeDefinition.Get(
+            TypeDefinitionEnum.InterfaceDefinition,
+            KnownTypes.Namespace.Hardened.Shared.Runtime.Application,
+            "IApplicationModuleProvider");
+
+        classDefinition.AddBaseType(iAppModuleProvider);
+
+        var provideModules = classDefinition.AddMethod("ProvideModules");
+        provideModules.SetReturnType(
+            TypeDefinition.IEnumerable(KnownTypes.Application.IApplicationModule));
+        provideModules.AddIndentedStatement("yield return this");
+    }
+
     protected override void CustomConstructorLogic(EntryPointSelector.Model entryPoint, ClassDefinition appClass,
         ConstructorDefinition constructor,
         ParameterDefinition environment) {
