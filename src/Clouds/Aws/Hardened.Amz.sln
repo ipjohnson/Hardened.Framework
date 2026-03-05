@@ -76,6 +76,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.DynamoDbClient
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.DynamoDbClient.Testing", "src\Clients\DynamoDb\Hardened.Amz.DynamoDbClient.Testing\Hardened.Amz.DynamoDbClient.Testing.csproj", "{98CB5F95-A667-41DF-81BB-BEE1D3713C85}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.Web.Lambda.Streaming", "src\Lambda\Web\Hardened.Amz.Web.Lambda.Streaming\Hardened.Amz.Web.Lambda.Streaming.csproj", "{AFFE034E-2F66-4DFA-B79E-27D95054E06C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Amz.Web.Lambda.Streaming.Tests", "src\Hardened.Amz.Web.Lambda.Streaming.Tests\Hardened.Amz.Web.Lambda.Streaming.Tests.csproj", "{2CCF2911-88BB-4805-8F8A-A81118619DF4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -116,6 +120,8 @@ Global
 		{69AD2602-3AFD-4A01-BF2B-A7428F4AF3D8} = {0313AE3A-69DC-4607-91DB-A8CBF30E066A}
 		{8607613B-29C0-4F86-986A-CCE23BFA79F3} = {69AD2602-3AFD-4A01-BF2B-A7428F4AF3D8}
 		{98CB5F95-A667-41DF-81BB-BEE1D3713C85} = {69AD2602-3AFD-4A01-BF2B-A7428F4AF3D8}
+		{AFFE034E-2F66-4DFA-B79E-27D95054E06C} = {BCDA7951-3974-4F01-ABA7-88AA73D03E31}
+		{2CCF2911-88BB-4805-8F8A-A81118619DF4} = {6AFBF6D8-D4D7-4A97-9866-CCF4219CEB21}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{9C3B326B-C630-4B5C-B124-46588E4DEF6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -206,5 +212,13 @@ Global
 		{98CB5F95-A667-41DF-81BB-BEE1D3713C85}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98CB5F95-A667-41DF-81BB-BEE1D3713C85}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98CB5F95-A667-41DF-81BB-BEE1D3713C85}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFFE034E-2F66-4DFA-B79E-27D95054E06C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFFE034E-2F66-4DFA-B79E-27D95054E06C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFFE034E-2F66-4DFA-B79E-27D95054E06C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFFE034E-2F66-4DFA-B79E-27D95054E06C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CCF2911-88BB-4805-8F8A-A81118619DF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CCF2911-88BB-4805-8F8A-A81118619DF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CCF2911-88BB-4805-8F8A-A81118619DF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CCF2911-88BB-4805-8F8A-A81118619DF4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
