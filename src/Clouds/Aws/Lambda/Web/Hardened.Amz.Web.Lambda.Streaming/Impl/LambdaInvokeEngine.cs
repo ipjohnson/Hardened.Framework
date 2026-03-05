@@ -8,7 +8,6 @@ using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Web.Lambda.Streaming.Impl;
 
@@ -23,7 +22,6 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
     private readonly IStreamingRequestMapper _requestMapper;
     private readonly IMetricLoggerProvider _metricLoggerProvider;
     private readonly ILambdaContextAccessor _lambdaContextAccessor;
-    private readonly ILogger<LambdaInvokeEngine> _logger;
 
     public LambdaInvokeEngine(
         IServiceProvider serviceProvider,
@@ -31,15 +29,13 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
         IMiddlewareService middlewareService,
         IStreamingRequestMapper requestMapper,
         IMetricLoggerProvider metricLoggerProvider,
-        ILambdaContextAccessor lambdaContextAccessor,
-        ILogger<LambdaInvokeEngine> logger) {
+        ILambdaContextAccessor lambdaContextAccessor) {
         _serviceProvider = serviceProvider;
         _serverProxy = serverProxy;
         _middlewareService = middlewareService;
         _requestMapper = requestMapper;
         _metricLoggerProvider = metricLoggerProvider;
         _lambdaContextAccessor = lambdaContextAccessor;
-        _logger = logger;
     }
 
     public async Task InvokeAsync(CancellationToken ct) {
@@ -89,7 +85,8 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                 break;
             }
             catch (Exception ex) {
-                _logger.LogError(ex, "Error processing Lambda invocation");
+                // Use Console.Error since ILambdaContext may not be set yet
+                Console.Error.WriteLine($"[LambdaInvokeEngine] Error processing invocation: {ex}");
 
                 if (responseTask == null) {
                     // Response not started yet — try to complete pipe and report error
