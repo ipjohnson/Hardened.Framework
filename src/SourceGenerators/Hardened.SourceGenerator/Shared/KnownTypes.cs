@@ -414,7 +414,7 @@ public static class KnownTypes {
                 "ILambdaHandler");
 
         public static readonly ITypeDefinition IApiGatewayV2Handler =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Amazon.LambdaAPIGatewayEvents,
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Amz.Web.LambdaRuntimeImpl,
                 "IApiGatewayV2Handler");
 
         public static readonly ITypeDefinition ILambdaHandlerPackage =

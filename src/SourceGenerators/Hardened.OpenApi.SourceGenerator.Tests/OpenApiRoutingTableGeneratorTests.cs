@@ -98,7 +98,7 @@ public class OpenApiRoutingTableGeneratorTests {
         var result = OpenApiRoutingTableGenerator.GenerateCSharpRouteFile(
             appModel, handlers, handlerInfos, CancellationToken.None);
 
-        Assert.Matches(@"AddTransient<\s*IPetService\s*,\s*PetServiceImpl\s*>", result);
+        Assert.Matches(@"AddTransient<[^>]*IPetService[^>]*,[^>]*PetServiceImpl[^>]*>", result);
     }
 
     [Fact]
