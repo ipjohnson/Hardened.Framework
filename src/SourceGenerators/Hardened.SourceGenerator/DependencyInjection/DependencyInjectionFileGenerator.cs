@@ -22,7 +22,10 @@ public class DependencyInjectionFileGenerator {
 
         GeneratedCode(dependencyData.Left, dependencyData.Right, diFile);
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         diFile.WriteOutput(outputContext);
 

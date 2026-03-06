@@ -19,7 +19,10 @@ public static class ConfigurationPropertyImplementationGenerator {
 
         ProcessModelDefinition(arg2, modelDefinition, interfaceDefinition);
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         csharpFile.WriteOutput(outputContext);
 

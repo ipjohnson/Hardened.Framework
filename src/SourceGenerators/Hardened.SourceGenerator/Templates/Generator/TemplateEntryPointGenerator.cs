@@ -24,7 +24,10 @@ public static class TemplateEntryPointGenerator {
 
         var templateFileName = templateData.applicationModel.EntryPointType.Name + ".Templates.cs";
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         applicationFile.WriteOutput(outputContext);
 

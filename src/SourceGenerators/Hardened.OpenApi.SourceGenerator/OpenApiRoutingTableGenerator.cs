@@ -31,7 +31,10 @@ internal static class OpenApiRoutingTableGenerator {
 
         CreateRoutingTable(appModel, handlers, handlerInfos, applicationFile, cancellationToken);
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
         applicationFile.WriteOutput(outputContext);
         return outputContext.Output();
     }

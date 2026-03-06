@@ -15,7 +15,10 @@ public class CommandDefinitionRegistrationGenerator {
         GeneratedCode(sourceProductionContext, commandData.Left, commandData.Right,
             commandsFile);
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         commandsFile.WriteOutput(outputContext);
 

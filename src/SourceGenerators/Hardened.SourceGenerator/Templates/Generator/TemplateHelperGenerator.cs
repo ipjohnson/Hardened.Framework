@@ -28,7 +28,10 @@ public static class TemplateHelperGenerator {
 
         var fileName = helperData.applicationModel.EntryPointType.Name + ".TemplateHelpers.cs";
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         helperFile.WriteOutput(outputContext);
 
