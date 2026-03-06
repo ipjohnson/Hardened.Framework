@@ -38,7 +38,9 @@ public class ResponsiveStreamContent : HttpContent {
             }
         }
 
-        await stream.FlushAsync(cancellationToken);
+        if (!cancellationToken.IsCancellationRequested) {
+            await stream.FlushAsync(cancellationToken);
+        }
     }
 
     protected override bool TryComputeLength(out long length) {
