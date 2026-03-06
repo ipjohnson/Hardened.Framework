@@ -14,7 +14,10 @@ public class ModuleEntryPointFileWriter {
 
             GenerateClassDefinition(context, model, csharpFile);
 
-            var outputContext = new OutputContext();
+            var outputContext = new OutputContext(
+                new OutputContextOptions {
+                    TypeOutputMode = TypeOutputMode.Global
+                });
 
             csharpFile.WriteOutput(outputContext);
 

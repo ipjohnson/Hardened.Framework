@@ -49,7 +49,10 @@ public class TemplateClassGenerator {
 
         _executionMethodGenerator.GenerateImplementation(classDefinition, templateExtension, templateNodes.ToList());
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         csharpFile.WriteOutput(outputContext);
 

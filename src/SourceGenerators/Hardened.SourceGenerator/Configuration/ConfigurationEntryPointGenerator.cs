@@ -19,7 +19,10 @@ public static class ConfigurationEntryPointGenerator {
 
         GenerateConfiguration(classDefinition, arg2.AppModel, arg2.ConfigFiles);
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         cSharpFile.WriteOutput(outputContext);
 

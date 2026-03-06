@@ -149,7 +149,7 @@ public static class KnownTypes {
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, "System", "IServiceProvider");
 
         public static readonly ITypeDefinition ServiceProvider =
-            TypeDefinition.Get("System", "ServiceProvider");
+            TypeDefinition.Get(Namespace.Microsoft.Extensions.DependencyInjection, "ServiceProvider");
 
         public static readonly ITypeDefinition ExposeAttribute =
             TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Attributes, "ExposeAttribute");
