@@ -3,18 +3,16 @@ using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Shared.Runtime.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hardened.Requests.Runtime;
 
 public class AotSerializerModule : IDependencyModule {
     public void PopulateServiceCollection(IServiceCollection services) {
-        services.Replace(new ServiceDescriptor(
-            typeof(IResponseSerializer), typeof(AotResponseSerializer), ServiceLifetime.Singleton));
-        services.Replace(new ServiceDescriptor(
-            typeof(IRequestDeserializer), typeof(AotRequestDeserializer), ServiceLifetime.Singleton));
-        services.Replace(new ServiceDescriptor(
-            typeof(IJsonSerializer), typeof(AotJsonSerializer), ServiceLifetime.Singleton));
+        // Register AOT serializers first; RequestRuntimeDI uses TryAddSingleton
+        // so its reflection-based serializers will be skipped (last in wins).
+        services.AddSingleton<IResponseSerializer, AotResponseSerializer>();
+        services.AddSingleton<IRequestDeserializer, AotRequestDeserializer>();
+        services.AddSingleton<IJsonSerializer, AotJsonSerializer>();
     }
 
     public override bool Equals(object? obj) => obj is AotSerializerModule;
