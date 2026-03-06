@@ -37,6 +37,8 @@ public class ResponsiveStreamContent : HttpContent {
                 break;
             }
         }
+
+        await stream.FlushAsync(cancellationToken);
     }
 
     protected override bool TryComputeLength(out long length) {
