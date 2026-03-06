@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\Hardened.Amz.Web.Lambda.Harness.props" />
-</Project>

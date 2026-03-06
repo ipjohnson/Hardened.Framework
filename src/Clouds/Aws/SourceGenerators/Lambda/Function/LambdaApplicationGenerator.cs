@@ -20,7 +20,10 @@ public class LambdaApplicationGenerator {
 
         writer.CreateApplicationClass(arg2, csharpFile);
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
         csharpFile.WriteOutput(outputContext);
 
         arg1.AddSource(arg2.EntryPointType.Name + ".LambdaApplication.cs", outputContext.Output());

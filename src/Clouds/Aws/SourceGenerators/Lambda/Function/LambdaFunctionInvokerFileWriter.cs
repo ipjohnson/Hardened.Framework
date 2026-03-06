@@ -27,7 +27,10 @@ public class LambdaFunctionInvokerFileWriter {
 
         InvokeClassGenerator.GenerateInvokeClass(entryModel, csharpFile, cancellationToken);
 
-        var outputContext = new OutputContext();
+        var outputContext = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         csharpFile.WriteOutput(outputContext);
 

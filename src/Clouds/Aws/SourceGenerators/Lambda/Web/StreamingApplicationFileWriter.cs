@@ -85,7 +85,10 @@ public static class StreamingApplicationFileWriter {
 
         lambdaFileWriter.CreateApplicationClass(entryPoint, applicationFile);
 
-        var context = new OutputContext();
+        var context = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         applicationFile.WriteOutput(context);
 

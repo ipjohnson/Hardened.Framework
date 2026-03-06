@@ -45,7 +45,10 @@ internal class LambdaEntryIncrementalGenerator {
 
         lambdaHandlerPackageFileWriter.WriteFile(context, model.Item1, model.Item2, csharpFile);
 
-        var output = new OutputContext();
+        var output = new OutputContext(
+            new OutputContextOptions {
+                TypeOutputMode = TypeOutputMode.Global
+            });
 
         csharpFile.WriteOutput(output);
 
