@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
@@ -42,6 +43,8 @@ public class StreamingContextSerializationService : IContextSerializationService
         return _locatorService.FindResponseSerializer(context).SerializeResponse(context);
     }
 
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Streaming ndjson serializes concrete types known at compile time.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Streaming ndjson serializes concrete types known at compile time.")]
     private static async Task SerializeAsyncEnumerable(
         IExecutionContext context, IAsyncEnumerable<object> enumerable) {
         context.Response.ContentType ??= "application/x-ndjson";
