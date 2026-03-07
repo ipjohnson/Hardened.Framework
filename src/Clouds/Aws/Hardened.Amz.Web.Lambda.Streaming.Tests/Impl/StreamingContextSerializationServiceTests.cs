@@ -3,6 +3,7 @@ using System.Text.Json;
 using Hardened.Amz.Web.Lambda.Streaming.Impl;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Configuration;
 using NSubstitute;
 using Xunit;
 
@@ -18,8 +19,11 @@ public class StreamingContextSerializationServiceTests {
         _locatorService = Substitute.For<ISerializationLocatorService>();
         _exceptionSerializer = Substitute.For<IExceptionResponseSerializer>();
         _nullValueResponse = Substitute.For<INullValueResponseHandler>();
+        var serializerConfig = Substitute.For<IJsonSerializerConfiguration>();
+        serializerConfig.SerializeOptions.Returns(
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         _service = new StreamingContextSerializationService(
-            _locatorService, _exceptionSerializer, _nullValueResponse);
+            _locatorService, _exceptionSerializer, _nullValueResponse, serializerConfig);
     }
 
     private static IExecutionContext CreateContext(
@@ -104,14 +108,15 @@ public class StreamingContextSerializationServiceTests {
 
         Assert.Equal(3, lines.Length);
 
-        var first = JsonSerializer.Deserialize<TestItem>(lines[0]);
+        var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var first = JsonSerializer.Deserialize<TestItem>(lines[0], opts);
         Assert.Equal("a", first!.Name);
         Assert.Equal(1, first.Value);
 
-        var second = JsonSerializer.Deserialize<TestItem>(lines[1]);
+        var second = JsonSerializer.Deserialize<TestItem>(lines[1], opts);
         Assert.Equal("b", second!.Name);
 
-        var third = JsonSerializer.Deserialize<TestItem>(lines[2]);
+        var third = JsonSerializer.Deserialize<TestItem>(lines[2], opts);
         Assert.Equal("c", third!.Name);
     }
 
