@@ -74,11 +74,23 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                 var chain = _middlewareService.GetExecutionChain(executionContext);
                 await chain.Next();
 
+                Console.Error.WriteLine($"[LambdaInvokeEngine] Chain completed. ResponseStarted: {responseStream.HasResponseStarted}, WrittenBytes: {responseStream.Length}");
+
                 await responseStream.FlushAsync(ct);
+
+                Console.Error.WriteLine("[LambdaInvokeEngine] ResponseStream flushed, completing pipe writer");
+
                 await pipe.Writer.CompleteAsync();
 
+                Console.Error.WriteLine($"[LambdaInvokeEngine] Pipe writer completed. ResponseTask null: {responseTask == null}");
+
                 if (responseTask != null) {
+                    Console.Error.WriteLine("[LambdaInvokeEngine] Awaiting response task...");
                     await responseTask;
+                    Console.Error.WriteLine("[LambdaInvokeEngine] Response task completed successfully");
+                }
+                else {
+                    Console.Error.WriteLine("[LambdaInvokeEngine] WARNING: responseTask is null - response was never started");
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) {

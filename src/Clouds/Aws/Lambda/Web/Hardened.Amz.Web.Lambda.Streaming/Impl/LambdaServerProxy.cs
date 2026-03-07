@@ -66,6 +66,8 @@ public class LambdaServerProxy : ILambdaServerProxy {
     }
 
     public async Task SendResponse(string requestId, PipeReader reader, CancellationToken ct) {
+        Console.Error.WriteLine($"[LambdaServerProxy] SendResponse started for requestId: {requestId}");
+
         var client = _clientProvider.GetClient();
 
         var streamContent = new ResponsiveStreamContent(reader.AsStream(true));
@@ -80,7 +82,12 @@ public class LambdaServerProxy : ILambdaServerProxy {
         request.Headers.Add("Lambda-Runtime-Function-Response-Mode", "streaming");
         request.Headers.TransferEncodingChunked = true;
 
+        Console.Error.WriteLine($"[LambdaServerProxy] Sending streaming response POST for requestId: {requestId}");
+
         var response = await client.SendAsync(request, ct).ConfigureAwait(false);
+
+        Console.Error.WriteLine($"[LambdaServerProxy] Response POST completed - Status: {response.StatusCode} for requestId: {requestId}");
+
         response.EnsureSuccessStatusCode();
     }
 

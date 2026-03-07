@@ -77,13 +77,16 @@ public class ResponseStream : Stream {
                     "ExecutionResponse must be set before writing to the stream.");
             }
 
+            Console.Error.WriteLine($"[ResponseStream] Writing prelude - Status: {_executionResponse.Status}");
             _writePrelude(_executionResponse, _pipeWriter);
+            Console.Error.WriteLine("[ResponseStream] Prelude written");
         }
     }
 
     private void EnsureResponseStarted() {
         if (!_responseStarted) {
             _responseStarted = true;
+            Console.Error.WriteLine("[ResponseStream] Starting response (beginning SendResponse task)");
             _beginResponse();
         }
     }
