@@ -78,7 +78,11 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
 
                 await responseStream.FlushAsync(ct);
 
-                Console.Error.WriteLine("[LambdaInvokeEngine] ResponseStream flushed, completing pipe writer");
+                Console.Error.WriteLine("[LambdaInvokeEngine] ResponseStream flushed, flushing pipe writer");
+
+                await pipe.Writer.FlushAsync(ct);
+
+                Console.Error.WriteLine("[LambdaInvokeEngine] Pipe writer flushed, completing pipe writer");
 
                 await pipe.Writer.CompleteAsync();
 
