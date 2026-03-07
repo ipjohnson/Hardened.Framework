@@ -4,6 +4,7 @@ using Hardened.Amz.Web.Lambda.Streaming.Impl;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
 
@@ -22,8 +23,9 @@ public class StreamingContextSerializationServiceTests {
         var serializerConfig = Substitute.For<IJsonSerializerConfiguration>();
         serializerConfig.SerializeOptions.Returns(
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var options = Options.Create(serializerConfig);
         _service = new StreamingContextSerializationService(
-            _locatorService, _exceptionSerializer, _nullValueResponse, serializerConfig);
+            _locatorService, _exceptionSerializer, _nullValueResponse, options);
     }
 
     private static IExecutionContext CreateContext(

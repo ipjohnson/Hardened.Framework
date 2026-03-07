@@ -3,6 +3,7 @@ using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Hardened.Amz.Function.Lambda.Streaming.Impl;
 
@@ -16,11 +17,11 @@ public class StreamingContextSerializationService : IContextSerializationService
         ISerializationLocatorService locatorService,
         IExceptionResponseSerializer exceptionSerializer,
         INullValueResponseHandler nullValueResponse,
-        IJsonSerializerConfiguration serializerConfiguration) {
+        IOptions<IJsonSerializerConfiguration> serializerConfiguration) {
         _locatorService = locatorService;
         _exceptionSerializer = exceptionSerializer;
         _nullValueResponse = nullValueResponse;
-        _serializerOptions = serializerConfiguration.SerializeOptions
+        _serializerOptions = serializerConfiguration.Value.SerializeOptions
             ?? new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     }
 
