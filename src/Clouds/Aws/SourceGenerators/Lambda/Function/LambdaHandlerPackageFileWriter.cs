@@ -27,6 +27,7 @@ public class LambdaHandlerPackageFileWriter {
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
         templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{appClass.Name}>.Register(LambdaPackageDi)");
+        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(LambdaPackageDi)");
 
         var diMethod = appClass.AddMethod("LambdaPackageDi");
 
