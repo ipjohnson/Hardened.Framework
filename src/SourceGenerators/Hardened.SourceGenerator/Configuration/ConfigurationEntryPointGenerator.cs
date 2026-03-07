@@ -50,6 +50,7 @@ public static class ConfigurationEntryPointGenerator {
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
         templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(ConfigurationDI)");
+        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(ConfigurationDI)");
 
         var diMethod = classDefinition.AddMethod("ConfigurationDI");
 

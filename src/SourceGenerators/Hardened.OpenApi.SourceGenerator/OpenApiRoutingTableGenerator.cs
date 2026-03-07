@@ -84,6 +84,7 @@ internal static class OpenApiRoutingTableGenerator {
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
         templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(OpenApiRoutingTableDI)");
+        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(OpenApiRoutingTableDI)");
 
         var diMethod = classDefinition.AddMethod("OpenApiRoutingTableDI");
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;

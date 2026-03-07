@@ -52,6 +52,7 @@ public class CommandDefinitionRegistrationGenerator {
             .DependencyInjection);
         templateField.InitializeValue =
             new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(RegisterCommands)");
+        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(RegisterCommands)");
     }
 
     private void GenerateConstructors(

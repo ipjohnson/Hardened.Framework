@@ -81,6 +81,7 @@ public static class RoutingTableGenerator {
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
         templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(RoutingTableDI)");
+        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(RoutingTableDI)");
 
         var diMethod = classDefinition.AddMethod("RoutingTableDI");
 
