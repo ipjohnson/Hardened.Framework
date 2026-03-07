@@ -4,7 +4,7 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 
-namespace Hardened.Amz.Web.Lambda.Streaming.Impl;
+namespace Hardened.Amz.Function.Lambda.Streaming.Impl;
 
 public class StreamingContextSerializationService : IContextSerializationService {
     private readonly ISerializationLocatorService _locatorService;

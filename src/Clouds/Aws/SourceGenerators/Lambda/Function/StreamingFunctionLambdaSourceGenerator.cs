@@ -1,20 +1,19 @@
-﻿using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.Amz.Function.Lambda.SourceGenerator;
 
 [Generator]
-public class LambdaFunctionSourceGenerator : IIncrementalGenerator {
+public class StreamingFunctionLambdaSourceGenerator : IIncrementalGenerator {
     public void Initialize(IncrementalGeneratorInitializationContext context) {
-        var isEntryPoint = EntryPointSelector.UsingAttribute();
         var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-            (node, ct) => isEntryPoint(node, ct) &&
-                         !node.IsAttributed("StreamingLambdaFunctionApplication"),
+            (node, _) => node is ClassDeclarationSyntax &&
+                         node.IsAttributed("StreamingLambdaFunctionApplication"),
             EntryPointSelector.TransformModel(true)
         ).WithComparer(new EntryPointSelector.Comparer());
 
         LambdaEntryIncrementalGenerator.Setup(context, applicationModel);
-        LambdaApplicationGenerator.Setup(context, applicationModel);
+        StreamingFunctionBootstrapGenerator.Setup(context, applicationModel);
     }
 }
