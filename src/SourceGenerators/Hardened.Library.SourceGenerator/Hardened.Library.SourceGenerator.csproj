@@ -35,12 +35,14 @@
 
     <ItemGroup>
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+        <None Include="../Hardened.DependencyModules.SourceGenerator/bin/$(Configuration)/$(TargetFramework)/Hardened.DependencyModules.SourceGenerator.dll"
+              Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="../Hardened.DependencyModules.SourceGenerator/Hardened.DependencyModules.SourceGenerator.csproj"
                           ReferenceOutputAssembly="false"
-                          PrivateAssets="none" />
+                          PrivateAssets="all" />
     </ItemGroup>
 
     <PropertyGroup>
