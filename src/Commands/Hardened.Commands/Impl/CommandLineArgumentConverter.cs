@@ -1,4 +1,4 @@
-﻿using Hardened.Shared.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Json;
 
 namespace Hardened.Commands.Impl;
@@ -7,7 +7,7 @@ public interface ICommandLineArgumentConverter {
     T Convert<T>(string optionName, CommandOptionType optionType, string? argument, T? defaultValue);
 }
 
-[Expose]
+[TransientService]
 public class CommandLineArgumentConverter : ICommandLineArgumentConverter {
     private readonly IJsonSerializer _jsonSerializer;
     

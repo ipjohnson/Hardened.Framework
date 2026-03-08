@@ -1,13 +1,13 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
-using Hardened.Shared.Runtime.Attributes;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Hardened.Requests.Serializers.Newtonsoft.Impl;
 
-[Expose]
+[TransientService]
 public class NewtonsoftDeserializer : IRequestDeserializer {
     private readonly IMemoryStreamPool _memoryStreamPool;
     private readonly ISharedSerializer _sharedSerializer;

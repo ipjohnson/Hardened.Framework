@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Hardened.SourceGenerator.Configuration;
 using Hardened.SourceGenerator.DependencyInjection;
 using Hardened.SourceGenerator.Shared;
@@ -13,7 +13,12 @@ public class LibrarySourceGenerator : IIncrementalGenerator {
             EntryPointSelector.TransformModel(false)
         ).WithComparer(new EntryPointSelector.Comparer());
 
-        DependencyInjectionIncrementalGenerator.Setup(context, applicationModel);
+        var generator = new ServiceProviderFileGenerator();
+
+        context.RegisterSourceOutput(
+            applicationModel,
+            SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(generator.GenerateFile));
+
         ConfigurationIncrementalGenerator.Setup(context, applicationModel);
     }
 }

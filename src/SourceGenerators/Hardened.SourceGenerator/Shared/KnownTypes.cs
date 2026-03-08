@@ -13,6 +13,12 @@ public static class KnownTypes {
                 "Amazon.Lambda.Serialization.SystemTextJson";
         }
 
+        public static class DependencyModules {
+            public static class Runtime {
+                public const string Helpers = "DependencyModules.Runtime.Helpers";
+            }
+        }
+
         public static class Microsoft {
             public static class Extensions {
                 public const string Logging = "Microsoft.Extensions.Logging";
@@ -151,16 +157,8 @@ public static class KnownTypes {
         public static readonly ITypeDefinition ServiceProvider =
             TypeDefinition.Get(Namespace.Microsoft.Extensions.DependencyInjection, "ServiceProvider");
 
-        public static readonly ITypeDefinition ExposeAttribute =
-            TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Attributes, "ExposeAttribute");
-
         public static readonly ITypeDefinition DependencyRegistry =
-            TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.DependencyInjection, "DependencyRegistry");
-
-        public static class Registry {
-            public static readonly ITypeDefinition StandardDependencies =
-                TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.DependencyInjection, "StandardDependencies");
-        }
+            TypeDefinition.Get("DependencyModules.Runtime.Helpers", "DependencyRegistry");
     }
 
     public static class Application {

@@ -1,4 +1,4 @@
-﻿using Hardened.Shared.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
 using Microsoft.Extensions.Options;
 
 namespace Hardened.Commands.Impl;
@@ -25,7 +25,7 @@ public interface ICommandLineParser {
     Task<ParseResult> ParseCommandLineArguments(IReadOnlyList<string> arguments);
 }
 
-[Expose]
+[TransientService]
 public class CommandLineParser : ICommandLineParser {
     private readonly ICommandLineDefinitionService _commandLineDefinitionService;
     private readonly IOptions<CommandLineParserOptions> _options;

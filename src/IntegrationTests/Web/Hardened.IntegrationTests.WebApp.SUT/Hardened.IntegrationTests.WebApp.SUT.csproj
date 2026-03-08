@@ -5,7 +5,12 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <DependencyModules_AutoGenerateModule>false</DependencyModules_AutoGenerateModule>
     </PropertyGroup>
+
+    <ItemGroup>
+        <CompilerVisibleProperty Include="DependencyModules_AutoGenerateModule"/>
+    </ItemGroup>
 
     <ItemGroup>
       <Content Include="..\..\..\.dockerignore">
@@ -24,6 +29,7 @@
       <ProjectReference Include="..\..\..\Web\Hardened.Web.AspNetCore.Runtime\Hardened.Web.AspNetCore.Runtime.csproj" />
       <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj" />
       <ProjectReference Include="..\Hardened.IntegrationTests.Web.SUT\Hardened.IntegrationTests.Web.SUT.csproj" />
+      <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
     <ItemGroup>

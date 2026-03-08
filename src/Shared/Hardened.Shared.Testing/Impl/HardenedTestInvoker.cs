@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using DependencyModules.Runtime.Interfaces;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Configuration;
@@ -291,6 +292,12 @@ public class HardenedTestInvoker : XunitTestInvoker {
 
         if (typeof(IApplicationModule).IsAssignableFrom(entryPoint.EntryPoint)) {
             var module = (IApplicationModule)Activator.CreateInstance(entryPoint.EntryPoint)!;
+
+            return new TestApplication(module, module.GetType().Namespace + ".test", environment, overrideAction);
+        }
+
+        if (typeof(IDependencyModule).IsAssignableFrom(entryPoint.EntryPoint)) {
+            var module = (IDependencyModule)Activator.CreateInstance(entryPoint.EntryPoint)!;
 
             return new TestApplication(module, module.GetType().Namespace + ".test", environment, overrideAction);
         }

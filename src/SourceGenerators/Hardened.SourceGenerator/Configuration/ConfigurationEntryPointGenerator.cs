@@ -48,17 +48,15 @@ public static class ConfigurationEntryPointGenerator {
         var templateField = classDefinition.AddField(typeof(int), "_configDi");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-        templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
-        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(ConfigurationDI)");
+        templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime.Helpers);
+        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add(ConfigurationDI)");
         templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(ConfigurationDI)");
 
         var diMethod = classDefinition.AddMethod("ConfigurationDI");
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
-        var environment = diMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-        var entryPointDef = diMethod.AddParameter(entryPoint.EntryPointType, "entryPoint");
 
         foreach (var configurationFileModel in configFiles) {
             var ioptionsType =
@@ -74,27 +72,6 @@ public static class ConfigurationEntryPointGenerator {
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Configuration.IConfigurationPackage, providerType }));
 
-        var configureMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "Configure");
-
-        if (configureMethod != null) {
-            diMethod.NewLine();
-
-            if (configureMethod.Parameters.Count == 1 &&
-                configureMethod.Parameters[0].Type.Equals(KnownTypes.Configuration.IAppConfig)) {
-                var fluentConfig = diMethod.Assign(New(KnownTypes.Configuration.AppConfig)).ToVar("fluentConfig");
-                diMethod.AddIndentedStatement(entryPointDef.Invoke("Configure", fluentConfig));
-                diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-                    new[] { KnownTypes.Configuration.IConfigurationPackage }, fluentConfig));
-            }
-            else if (configureMethod.Parameters.Count == 2 &&
-                     configureMethod.Parameters[0].Type.Equals(KnownTypes.Application.IHardenedEnvironment) &&
-                     configureMethod.Parameters[1].Type.Equals(KnownTypes.Configuration.IAppConfig)) {
-                var fluentConfig = diMethod.Assign(New(KnownTypes.Configuration.AppConfig)).ToVar("fluentConfig");
-                diMethod.AddIndentedStatement(entryPointDef.Invoke("Configure", environment, fluentConfig));
-                diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-                    new[] { KnownTypes.Configuration.IConfigurationPackage }, fluentConfig));
-            }
-        }
     }
 
     private static ITypeDefinition GenerateProviderType(

@@ -48,10 +48,10 @@ public class CommandDefinitionRegistrationGenerator {
         var templateField = classDefinition.AddField(typeof(int), "_commandsDi");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-        templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime
-            .DependencyInjection);
+        templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime
+            .Helpers);
         templateField.InitializeValue =
-            new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(RegisterCommands)");
+            new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add(RegisterCommands)");
         templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(RegisterCommands)");
     }
 
@@ -135,11 +135,8 @@ public class CommandDefinitionRegistrationGenerator {
 
         registerMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
-        var environment =
-            registerMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection =
             registerMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-        var entryPointDef = registerMethod.AddParameter(model.EntryPointType, "entryPoint");
 
         foreach (var commandDefinitionModel in commandDataRight) {
             GenerateCommandRegistrationCode(registerMethod, classDefinition, serviceCollection,

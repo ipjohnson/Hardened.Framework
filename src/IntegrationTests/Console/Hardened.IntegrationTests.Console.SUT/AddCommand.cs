@@ -1,6 +1,6 @@
-﻿using Hardened.Commands;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Commands;
 using Hardened.Commands.Attributes;
-using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.Console.SUT;
 
@@ -8,7 +8,7 @@ namespace Hardened.IntegrationTests.Console.SUT;
 public class AddCommand : MathCommand{
 }
 
-[Expose]
+[TransientService]
 public class AddCommandHandler : ICommandHandler<AddCommand> {
     public async Task<int> Handle(AddCommand value) {
         await System.Console.Out.WriteLineAsync($"{value.X} + {value.Y} = {value.X + value.Y}");

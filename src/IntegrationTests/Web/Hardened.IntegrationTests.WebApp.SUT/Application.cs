@@ -6,8 +6,8 @@ using Hardened.Web.AspNetCore.Runtime;
 namespace Hardened.IntegrationTests.WebApp.SUT;
 
 [HardenedModule]
-[WebLibrary.Module("test")]
-[AspNetCoreRuntime.Module]
+[WebLibrary(Test = "test")]
+[AspNetCoreRuntime]
 public partial class Application {
 
     public static WebApplicationBuilder CreateBuilder(string[] args) {
@@ -16,8 +16,8 @@ public partial class Application {
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddTransient<IHardenedEnvironment>(_ => environment);
-        
-        hardenedApp.ConfigureModule(environment, builder.Services);
+
+        hardenedApp.PopulateServiceCollection(builder.Services);
 
         return builder;
     }

@@ -1,6 +1,6 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
-using Hardened.Shared.Runtime.Attributes;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,7 +11,7 @@ public interface IAspNetCoreRequestHandler {
     Task HandleRequest(HttpContext context, RequestDelegate requestDelegate);
 }
 
-[Expose]
+[TransientService]
 public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
     private IMetricLoggerProvider _metricLoggerProvider;
     private IMiddlewareService _middlewareService;

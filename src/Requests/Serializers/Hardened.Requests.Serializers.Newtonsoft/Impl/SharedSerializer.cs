@@ -1,4 +1,4 @@
-﻿using Hardened.Shared.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
@@ -8,8 +8,7 @@ public interface ISharedSerializer {
     JsonSerializer Serializer { get; }
 }
 
-[Expose]
-[Singleton]
+[SingletonService]
 public class SharedSerializer : ISharedSerializer {
     public SharedSerializer(IServiceProvider serviceProvider,
         IOptions<INewtonsoftSerializerConfiguration> configuration) {

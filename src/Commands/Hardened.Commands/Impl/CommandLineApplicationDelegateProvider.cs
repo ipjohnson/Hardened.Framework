@@ -1,9 +1,9 @@
 ﻿using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Runtime.Attributes;
+using DependencyModules.Runtime.Attributes;
 
 namespace Hardened.Commands.Impl;
 
-[Expose]
+[TransientService]
 public class CommandLineApplicationDelegateProvider : IApplicationDelegateProvider {
     private readonly ICommandLineParser _commandLineParser;
     private readonly ICommandLinePrinter _commandLinePrinter;

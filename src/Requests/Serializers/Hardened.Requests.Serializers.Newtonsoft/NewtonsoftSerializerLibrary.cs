@@ -1,6 +1,6 @@
-﻿using Hardened.Shared.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
 
 namespace Hardened.Requests.Serializers.Newtonsoft;
 
-[HardenedModule]
+[DependencyModule]
 public partial class NewtonsoftSerializerLibrary { }
