@@ -25,17 +25,15 @@ public class LambdaHandlerPackageFileWriter {
         var templateField = appClass.AddField(typeof(int), "_lambdaPackageDi");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-        templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
-        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{appClass.Name}>.Register(LambdaPackageDi)");
+        templateField.AddUsingNamespace("DependencyModules.Runtime.Helpers");
+        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{appClass.Name}>.Add(LambdaPackageDi)");
         templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(LambdaPackageDi)");
 
         var diMethod = appClass.AddMethod("LambdaPackageDi");
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
-        var environment = diMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-        var entryPoint = diMethod.AddParameter(appModel.EntryPointType, "entryPoint");
 
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Lambda.ILambdaHandlerPackage, TypeDefinition.Get("", "LambdaHandlerPackage") }));
