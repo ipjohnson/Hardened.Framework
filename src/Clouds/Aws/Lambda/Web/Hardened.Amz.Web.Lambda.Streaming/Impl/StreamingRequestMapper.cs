@@ -1,5 +1,6 @@
 using System.Text;
 using Amazon.Lambda.APIGatewayEvents;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
@@ -23,6 +24,7 @@ public interface IStreamingRequestMapper {
         IMetricLogger metricLogger);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class StreamingRequestMapper : IStreamingRequestMapper {
     private readonly IKnownServices _knownServices;
 

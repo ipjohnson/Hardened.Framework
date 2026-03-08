@@ -1,4 +1,5 @@
 using System.IO.Pipelines;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Amz.Shared.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Metrics;
@@ -10,6 +11,7 @@ public interface IFunctionInvokeEngine {
     Task InvokeAsync(CancellationToken ct);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class FunctionInvokeEngine : IFunctionInvokeEngine {
     private readonly IServiceProvider _serviceProvider;
     private readonly IFunctionServerProxy _serverProxy;

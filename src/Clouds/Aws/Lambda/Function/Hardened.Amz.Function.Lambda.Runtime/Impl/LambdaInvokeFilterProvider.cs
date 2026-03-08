@@ -1,4 +1,5 @@
-﻿using Hardened.Amz.Shared.Lambda.Runtime.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Amz.Shared.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,6 +14,7 @@ public interface ILambdaInvokeFilterProvider {
     IExecutionFilter ProvideFilter(IServiceProvider serviceProvider);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class LambdaInvokeFilterProvider : ILambdaInvokeFilterProvider {
     public IExecutionFilter ProvideFilter(IServiceProvider serviceProvider) {
         return new LambdaFunctionInvokeFilter(

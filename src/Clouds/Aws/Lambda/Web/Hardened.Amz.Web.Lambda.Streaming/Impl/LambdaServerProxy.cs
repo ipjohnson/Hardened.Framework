@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Amz.Web.Lambda.Streaming.Context;
 using Hardened.Amz.Web.Lambda.Streaming.Serializer;
 namespace Hardened.Amz.Web.Lambda.Streaming.Impl;
@@ -19,6 +20,7 @@ public interface ILambdaServerProxy {
     Task ReportError(string requestId, Exception ex, CancellationToken ct);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class LambdaServerProxy : ILambdaServerProxy {
     private readonly ILambdaHttpClientProvider _clientProvider;
 

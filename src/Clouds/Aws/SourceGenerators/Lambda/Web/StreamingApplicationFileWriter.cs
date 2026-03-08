@@ -10,10 +10,6 @@ public class StreamingLambdaWebApplicationFileWriter : ApplicationEntryPointFile
         public static readonly ITypeDefinition ILambdaInvokeEngine =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition,
                 "Hardened.Amz.Web.Lambda.Streaming.Impl", "ILambdaInvokeEngine");
-
-        public static readonly ITypeDefinition StreamingLambdaWebDI =
-            TypeDefinition.Get(
-                "Hardened.Amz.Web.Lambda.Streaming.DependencyInjection", "StreamingLambdaWebDI");
     }
 
     protected override void ImplementApplicationRoot(EntryPointSelector.Model model, ClassDefinition classDefinition) {
@@ -73,9 +69,6 @@ public class StreamingLambdaWebApplicationFileWriter : ApplicationEntryPointFile
                 CodeOutputComponent.Get("System.Threading.CancellationToken.None"))));
     }
 
-    protected override IEnumerable<ITypeDefinition> RegisterDiTypes() {
-        yield return StreamingKnownTypes.StreamingLambdaWebDI;
-    }
 }
 
 public static class StreamingApplicationFileWriter {

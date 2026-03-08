@@ -1,5 +1,6 @@
 ﻿using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Amz.Shared.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
@@ -18,6 +19,7 @@ public interface IApiGatewayEventProcessor {
     Task<APIGatewayHttpApiV2ProxyResponse> Process(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext context);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
     private static readonly MemoryStream _emptyStream = new(Array.Empty<byte>());
     private readonly IServiceProvider _serviceProvider;

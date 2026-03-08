@@ -1,5 +1,6 @@
 using System.IO.Pipelines;
 using System.Text.Json;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Amz.Shared.Lambda.Runtime.Execution;
 using Hardened.Amz.Web.Lambda.Streaming.Serializer;
 using Hardened.Requests.Abstract.Execution;
@@ -15,6 +16,7 @@ public interface ILambdaInvokeEngine {
     Task InvokeAsync(CancellationToken ct);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class LambdaInvokeEngine : ILambdaInvokeEngine {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILambdaServerProxy _serverProxy;
