@@ -4,6 +4,10 @@
         <_CSharpAuthorRoot>$(MSBuildThisFileDirectory)../../../CSharpAuthor</_CSharpAuthorRoot>
         <CSharpAuthorProject>$(_CSharpAuthorRoot)/CSharpAuthor/CSharpAuthor.csproj</CSharpAuthorProject>
         <UseLocalCSharpAuthor Condition="Exists('$(CSharpAuthorProject)')">true</UseLocalCSharpAuthor>
+
+        <_DependencyModulesRoot>$(MSBuildThisFileDirectory)../../../../DependencyModules</_DependencyModulesRoot>
+        <_DependencyModulesImplProject>$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator.Impl/DependencyModules.SourceGenerator.Impl.csproj</_DependencyModulesImplProject>
+        <UseLocalDependencyModules Condition="Exists('$(_DependencyModulesImplProject)')">true</UseLocalDependencyModules>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -20,6 +24,7 @@
 
     <PropertyGroup>
         <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
+        <PackageDependencyModuleIncludeSource Condition="'$(UseLocalDependencyModules)' != 'true'">true</PackageDependencyModuleIncludeSource>
     </PropertyGroup>
 
     <ItemGroup>
@@ -40,19 +45,27 @@
         <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+    <!-- DependencyModules source: NuGet package or local linked files -->
+    <ItemGroup Condition="'$(UseLocalDependencyModules)' != 'true'">
+        <PackageReference Include="DependencyModules.SourceGenerator.Impl" Version="1.0.0-*">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
-    <ItemGroup>
-        <Compile Include="../../../../DependencyModules/src/DependencyModules.SourceGenerator.Impl/**/*.cs" Exclude="../../../../DependencyModules/src/DependencyModules.SourceGenerator.Impl/obj/**/*">
+    <ItemGroup Condition="'$(UseLocalDependencyModules)' == 'true'">
+        <Compile Include="$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator.Impl/**/*.cs" Exclude="$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator.Impl/obj/**/*">
             <Link>Impl\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
-        <Compile Include="../../../../DependencyModules/src/DependencyModules.SourceGenerator/ServiceSourceGenerator.cs">
+        <Compile Include="$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator/ServiceSourceGenerator.cs">
             <Link>ServiceSourceGenerator.cs</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
 
 </Project>
