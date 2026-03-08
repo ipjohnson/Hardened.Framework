@@ -1,8 +1,10 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class SerializationLocatorService : ISerializationLocatorService {
     private readonly IRequestDeserializer[] _requestDeserializers;
     private readonly IResponseSerializer[] _responseSerializers;

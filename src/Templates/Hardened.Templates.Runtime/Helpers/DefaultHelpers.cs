@@ -1,10 +1,12 @@
-﻿using Hardened.Templates.Abstract;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Templates.Abstract;
 using Hardened.Templates.Runtime.Helpers.Collection;
 using Hardened.Templates.Runtime.Helpers.String;
 using Hardened.Templates.Runtime.Helpers.Url;
 
 namespace Hardened.Templates.Runtime.Helpers;
 
+[SingletonService(Using = RegistrationType.Try)]
 public partial class DefaultHelpers : ITemplateHelperProvider {
     private TemplateHelperFactory? _appendHelper;
     private TemplateHelperFactory? _concatHelper;

@@ -1,9 +1,11 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Requests.Runtime.Logging;
 
+[SingletonService(Using = RegistrationType.Try)]
 public partial class RequestLogger : IRequestLogger {
     private static readonly TimeSpan _emptyTimeSpan = new(0);
     private readonly ILogger<RequestLogger> _logger;

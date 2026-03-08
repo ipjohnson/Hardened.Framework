@@ -1,9 +1,12 @@
-﻿namespace Hardened.Shared.Runtime.Utilities;
+﻿using DependencyModules.Runtime.Attributes;
+
+namespace Hardened.Shared.Runtime.Utilities;
 
 public interface IFileExtToMimeTypeHelper {
     (string, bool) GetMimeTypeInfo(string fileExtension);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper {
     public (string, bool) GetMimeTypeInfo(string fileExtension) {
         switch (fileExtension.ToLowerInvariant().TrimStart('.')) {

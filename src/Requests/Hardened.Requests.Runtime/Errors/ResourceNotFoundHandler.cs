@@ -1,9 +1,11 @@
-﻿using Hardened.Requests.Abstract.Errors;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Requests.Runtime.Errors;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class ResourceNotFoundHandler : IResourceNotFoundHandler {
     private readonly ILogger<ResourceNotFoundHandler> _logger;
 

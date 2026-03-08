@@ -1,9 +1,11 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Templates.Abstract;
 
 namespace Hardened.Templates.Runtime.Impl;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class TemplateExecutionService : ITemplateExecutionService {
     private readonly IStringBuilderPool _stringBuilderPool;
     private readonly IReadOnlyList<ITemplateExecutionHandlerProvider> _handlerProviders;

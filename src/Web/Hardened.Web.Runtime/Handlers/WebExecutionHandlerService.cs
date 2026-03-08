@@ -1,4 +1,5 @@
-﻿using Hardened.Requests.Abstract.Errors;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Runtime.PathTokens;
@@ -8,6 +9,7 @@ namespace Hardened.Web.Runtime.Handlers;
 
 public interface IWebExecutionHandlerService : IExecutionFilter { }
 
+[SingletonService(Using = RegistrationType.Try)]
 public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
     private readonly IEnumerable<IWebExecutionRequestHandlerProvider> _handlers;
     private readonly IStaticContentHandler _staticContentHandler;

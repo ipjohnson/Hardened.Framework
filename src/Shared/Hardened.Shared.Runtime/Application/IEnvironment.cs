@@ -1,13 +1,19 @@
-﻿namespace Hardened.Shared.Runtime.Application;
+﻿using DependencyModules.Runtime.Interfaces;
 
-public interface IHardenedEnvironment {
+namespace Hardened.Shared.Runtime.Application;
+
+public interface IHardenedEnvironment : IModuleEnvironment {
     string Name { get; }
 
     IReadOnlyList<string> Arguments { get; }
 
     T? Value<T>(string name, T? defaultValue = default);
-    
+
     T? CustomData<T>(string name, T? defaultValue = default);
+
+    string IModuleEnvironment.EnvironmentName => Name;
+
+    string? IModuleEnvironment.Value(string name) => Value<string>(name);
 }
 
 public static class IEnvironmentExtensions {

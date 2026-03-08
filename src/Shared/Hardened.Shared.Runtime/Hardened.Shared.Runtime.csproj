@@ -16,6 +16,7 @@
 
     <ItemGroup>
         <PackageReference Include="DependencyModules.Runtime" Version="1.0.0-*" />
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-*" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />

@@ -1,8 +1,10 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 
 namespace Hardened.Requests.Runtime.Execution;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class KnownServices : IKnownServices {
     public KnownServices(IContextSerializationService contextSerializationService,
         IStringConverterService stringConverterService) {

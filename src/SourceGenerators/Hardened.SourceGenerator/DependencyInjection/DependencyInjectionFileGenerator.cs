@@ -7,10 +7,7 @@ using Microsoft.CodeAnalysis;
 namespace Hardened.SourceGenerator.DependencyInjection;
 
 public class DependencyInjectionFileGenerator {
-    private readonly IReadOnlyList<ITypeDefinition> _dependencies;
-
-    public DependencyInjectionFileGenerator(IReadOnlyList<ITypeDefinition> dependencies) {
-        _dependencies = dependencies;
+    public DependencyInjectionFileGenerator() {
     }
 
     public void GenerateFile(
@@ -196,13 +193,6 @@ public class DependencyInjectionFileGenerator {
         
         var methodBody = providerMethod.If(new StaticInvokeStatement(dependencyType,
             "ShouldRegisterModule", new[] { serviceCollectionDefinition }){Indented = false});
-
-        foreach (var typeDefinition in _dependencies) {
-            methodBody.AddIndentedStatement(
-                Invoke(typeDefinition, "Register", environment, serviceCollectionDefinition));
-        }
-
-        methodBody.NewLine();
 
         if (model.AttributeModels.Count > 0) {
             var parameters = new List<object> {

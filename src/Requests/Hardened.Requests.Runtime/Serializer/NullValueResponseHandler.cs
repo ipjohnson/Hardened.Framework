@@ -1,9 +1,11 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class NullValueResponseHandler : INullValueResponseHandler {
     private readonly ILogger<NullValueResponseHandler> _logger;
 

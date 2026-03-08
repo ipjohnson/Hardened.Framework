@@ -1,9 +1,11 @@
-﻿using Hardened.Requests.Abstract.Serializer;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Errors;
 using Exception = System.Exception;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class StringConverterService : IStringConverterService {
     private readonly Dictionary<Type, IStringConverter> _converters;
 

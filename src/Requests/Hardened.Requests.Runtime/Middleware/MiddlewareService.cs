@@ -1,9 +1,11 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Runtime.Execution;
 
 namespace Hardened.Requests.Runtime.Middleware;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class MiddlewareService : IMiddlewareService {
     private readonly List<Func<IExecutionContext, IExecutionFilter>> _filters = new();
 

@@ -2,6 +2,7 @@
 using System.IO.Compression;
 using System.Net;
 using System.Reflection;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
@@ -18,6 +19,7 @@ public interface IStaticContentHandler {
     Task<bool> Handle(IExecutionContext context);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class StaticContentHandler : IStaticContentHandler {
     private static readonly Task<bool> FalseComplete = Task.FromResult(false);
     private static readonly Task<bool> TrueComplete = Task.FromResult(true);

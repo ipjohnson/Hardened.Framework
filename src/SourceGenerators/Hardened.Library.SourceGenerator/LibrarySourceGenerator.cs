@@ -8,16 +8,12 @@ namespace Hardened.Library.SourceGenerator;
 [Generator]
 public class LibrarySourceGenerator : IIncrementalGenerator {
     public void Initialize(IncrementalGeneratorInitializationContext context) {
-        var dependencyRegistry = new[] { KnownTypes.DI.Registry.StandardDependencies };
-
         var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
             EntryPointSelector.UsingAttribute(),
             EntryPointSelector.TransformModel(false)
         ).WithComparer(new EntryPointSelector.Comparer());
 
-        DependencyInjectionIncrementalGenerator.Setup(context, applicationModel, dependencyRegistry);
+        DependencyInjectionIncrementalGenerator.Setup(context, applicationModel);
         ConfigurationIncrementalGenerator.Setup(context, applicationModel);
-
-        //ModuleCodeGenerator.Setup(context, applicationModel);
     }
 }

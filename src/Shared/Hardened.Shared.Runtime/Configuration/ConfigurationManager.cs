@@ -1,8 +1,10 @@
 ﻿using System.Collections.Concurrent;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Application;
 
 namespace Hardened.Shared.Runtime.Configuration;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class ConfigurationManager : IConfigurationManager {
     private readonly IHardenedEnvironment _environment;
     private readonly ConcurrentDictionary<Type, object> _configuration;

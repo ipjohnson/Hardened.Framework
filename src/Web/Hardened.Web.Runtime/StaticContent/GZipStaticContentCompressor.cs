@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 
 namespace Hardened.Web.Runtime.StaticContent;
@@ -7,6 +8,7 @@ public interface IGZipStaticContentCompressor {
     byte[] CompressContent(byte[] bytes, CompressionLevel compressionLevel = CompressionLevel.Fastest);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class GZipStaticContentCompressor : IGZipStaticContentCompressor {
     private readonly IMemoryStreamPool _memoryStreamPool;
 

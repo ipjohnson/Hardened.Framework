@@ -1,4 +1,5 @@
-﻿using Hardened.Templates.Abstract;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Templates.Abstract;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +9,7 @@ using System.Web;
 
 namespace Hardened.Templates.Runtime.Impl;
 
+[SingletonService]
 public class NoopEscapeStringService : IStringEscapeService {
     public bool CanEscapeTemplate(string templateExtension) {
         return templateExtension.EndsWith("css") ||

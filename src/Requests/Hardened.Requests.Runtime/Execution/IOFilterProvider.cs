@@ -1,4 +1,5 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Execution;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class IOFilterProvider : IIOFilterProvider {
     private readonly IContextSerializationService _contextSerializationService;
     private readonly Action<IExecutionContext>? _headerActions;

@@ -60,10 +60,6 @@ public abstract class ApplicationEntryPointFileWriter {
         var env = registerInitDi.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var coll = registerInitDi.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
 
-        foreach (var typeDefinition in RegisterDiTypes()) {
-            registerInitDi.AddIndentedStatement(
-                Invoke(typeDefinition, "Register", env, coll));
-        }
 
         var startupMethod = "null";
 
@@ -80,10 +76,6 @@ public abstract class ApplicationEntryPointFileWriter {
                 15));
 
         CustomConstructorLogic(entryPoint, appClass, constructor, environment);
-    }
-
-    protected virtual IEnumerable<ITypeDefinition> RegisterDiTypes() {
-        yield break;
     }
 
     protected virtual void CustomConstructorLogic(EntryPointSelector.Model entryPoint, ClassDefinition appClass,
