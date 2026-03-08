@@ -1,8 +1,10 @@
-﻿using Hardened.Requests.Abstract.Errors;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 
 namespace Hardened.Requests.Runtime.Errors;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class ExceptionToModelConverter : IExceptionToModelConverter {
     public (int, object) ConvertExceptionToModel(IExecutionContext context, Exception exp) {
         var statusCode = 500;

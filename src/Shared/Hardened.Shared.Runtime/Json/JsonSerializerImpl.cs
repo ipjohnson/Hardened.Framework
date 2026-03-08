@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using DependencyModules.Runtime.Attributes;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,7 @@ public interface IJsonSerializer {
         CancellationToken cancellationToken = default);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class JsonSerializerImpl : IJsonSerializer {
     private readonly JsonSerializerOptions _serializerOptions;
     private readonly JsonSerializerOptions _prettyOptions;

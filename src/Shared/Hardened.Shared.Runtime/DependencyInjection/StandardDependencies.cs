@@ -32,10 +32,4 @@ public sealed class StandardDependencies {
             applicationModule.ConfigureModule(environment, serviceCollection);
         }
     }
-
-    public static void Register(IHardenedEnvironment environment, IServiceCollection serviceCollection) {
-        if (DependencyRegistry<StandardDependencies>.ShouldRegisterModule(serviceCollection)) {
-            new HardenedCoreModule().ConfigureServices(serviceCollection);
-        }
-    }
 }

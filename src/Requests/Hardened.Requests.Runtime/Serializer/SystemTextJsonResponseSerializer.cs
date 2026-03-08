@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using System.Text.Json;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class SystemTextJsonResponseSerializer : IResponseSerializer {
     private readonly JsonSerializerOptions _serializerOptions;
 

@@ -158,23 +158,8 @@ public static class KnownTypes {
             TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.DependencyInjection, "DependencyRegistry");
 
         public static class Registry {
-            public static readonly ITypeDefinition LambdaWebDI =
-                TypeDefinition.Get(Namespace.Hardened.Amz.Web.LambdaRuntimeDependencyInjection, "LambdaWebDI");
-
             public static readonly ITypeDefinition StandardDependencies =
                 TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.DependencyInjection, "StandardDependencies");
-
-            public static readonly ITypeDefinition RequestRuntimeDI =
-                TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.DependencyInjection, "RequestRuntimeDI");
-
-            public static readonly ITypeDefinition TemplateDI =
-                TypeDefinition.Get(Namespace.Hardened.Templates.Runtime.DependencyInjection, "TemplateDI");
-
-            public static readonly ITypeDefinition WebRuntimeDI =
-                TypeDefinition.Get(Namespace.Hardened.Web.RuntimeDependencyInjection, "WebRuntimeDI");
-
-            public static readonly ITypeDefinition LambdaFunctionRuntimeDI =
-                TypeDefinition.Get(Namespace.Hardened.Amz.Lambda.LambdaRuntimeDI, "LambdaFunctionDI");
         }
     }
 

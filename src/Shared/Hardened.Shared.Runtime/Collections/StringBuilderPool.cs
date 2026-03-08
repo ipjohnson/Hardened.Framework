@@ -1,9 +1,11 @@
-﻿using System.Text;
+﻿using DependencyModules.Runtime.Attributes;
+using System.Text;
 
 namespace Hardened.Shared.Runtime.Collections;
 
 public interface IStringBuilderPool : IItemPool<StringBuilder> { }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class StringBuilderPool : ItemPool<StringBuilder>, IStringBuilderPool {
     public StringBuilderPool() : this(2) { }
 

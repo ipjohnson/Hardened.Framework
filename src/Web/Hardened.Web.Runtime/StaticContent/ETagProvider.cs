@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 
 namespace Hardened.Web.Runtime.StaticContent;
@@ -7,6 +8,7 @@ public interface IETagProvider {
     string GenerateETag(byte[] content);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class ETagProvider : IETagProvider {
     private readonly IItemPool<MD5> _md5Pool;
 

@@ -1,8 +1,10 @@
-﻿using Hardened.Shared.Runtime.Collections;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Shared.Runtime.Collections;
 using Hardened.Templates.Abstract;
 
 namespace Hardened.Templates.Runtime.Impl;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class InternalTemplateServices : IInternalTemplateServices {
     public InternalTemplateServices(
         IStringBuilderPool stringBuilderPool,

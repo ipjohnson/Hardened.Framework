@@ -1,7 +1,9 @@
-﻿using Hardened.Templates.Abstract;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Templates.Abstract;
 
 namespace Hardened.Templates.Runtime.Impl;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class StringEscapeServiceProvider : IStringEscapeServiceProvider {
     private readonly IEnumerable<IStringEscapeService> _escapeServices;
 

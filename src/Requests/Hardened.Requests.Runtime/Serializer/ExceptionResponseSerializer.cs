@@ -1,10 +1,12 @@
-﻿using Hardened.Requests.Abstract.Errors;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Serializer;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class ExceptionResponseSerializer : IExceptionResponseSerializer {
     private readonly IRequestLogger _requestLogger;
     private readonly ISerializationLocatorService _serializationLocatorService;

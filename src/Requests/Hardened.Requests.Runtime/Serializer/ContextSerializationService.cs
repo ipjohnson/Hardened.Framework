@@ -1,9 +1,11 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
+[SingletonService(Using = RegistrationType.Try)]
 public class ContextSerializationService : IContextSerializationService {
     private readonly ILogger<ContextSerializationService> _logger;
     private readonly ISerializationLocatorService _serializationLocatorService;

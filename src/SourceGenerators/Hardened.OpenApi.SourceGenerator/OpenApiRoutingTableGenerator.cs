@@ -93,12 +93,6 @@ internal static class OpenApiRoutingTableGenerator {
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
         var entryPoint = diMethod.AddParameter(applicationModel.EntryPointType, "entryPoint");
 
-        diMethod.AddIndentedStatement(Invoke(
-            KnownTypes.DI.Registry.RequestRuntimeDI, "Register", environment, serviceCollection));
-
-        diMethod.AddIndentedStatement(Invoke(
-            KnownTypes.DI.Registry.WebRuntimeDI, "Register", environment, serviceCollection));
-
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
 

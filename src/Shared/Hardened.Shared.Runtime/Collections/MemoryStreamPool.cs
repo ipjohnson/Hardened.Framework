@@ -1,7 +1,10 @@
-﻿namespace Hardened.Shared.Runtime.Collections;
+﻿using DependencyModules.Runtime.Attributes;
+
+namespace Hardened.Shared.Runtime.Collections;
 
 public interface IMemoryStreamPool : IItemPool<MemoryStream> { }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class MemoryStreamPool : ItemPool<MemoryStream>, IMemoryStreamPool {
     public MemoryStreamPool()
         : base(
