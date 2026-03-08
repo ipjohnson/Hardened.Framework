@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Hardened.Amz.Function.Lambda.Streaming.Impl;
 
+[SingletonService]
 public class StreamingContextSerializationService : IContextSerializationService {
     private readonly ISerializationLocatorService _locatorService;
     private readonly IExceptionResponseSerializer _exceptionSerializer;

@@ -1,9 +1,12 @@
+using DependencyModules.Runtime.Attributes;
+
 namespace Hardened.Amz.Function.Lambda.Streaming.Impl;
 
 public interface ILambdaHttpClientProvider {
     HttpClient GetClient();
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class LambdaHttpClientProvider : ILambdaHttpClientProvider {
     private HttpClient? _client;
 

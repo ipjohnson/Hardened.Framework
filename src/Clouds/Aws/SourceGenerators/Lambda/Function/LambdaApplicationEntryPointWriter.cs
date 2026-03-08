@@ -47,8 +47,4 @@ public class LambdaApplicationEntryPointWriter : ApplicationEntryPointFileWriter
 
     protected override ITypeDefinition LoggerHelper => KnownTypes.Lambda.LambdaLoggerHelper;
 
-    protected override IEnumerable<ITypeDefinition> RegisterDiTypes() {
-        yield return KnownTypes.DI.Registry.RequestRuntimeDI;
-        yield return KnownTypes.DI.Registry.LambdaFunctionRuntimeDI;
-    }
 }

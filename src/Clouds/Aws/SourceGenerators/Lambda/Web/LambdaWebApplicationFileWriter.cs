@@ -49,7 +49,4 @@ public class LambdaWebApplicationFileWriter : ApplicationEntryPointFileWriter {
         handler.Return(eventProcessor.Instance.Invoke("Process", request, context));
     }
 
-    protected override IEnumerable<ITypeDefinition> RegisterDiTypes() {
-        yield return KnownTypes.DI.Registry.LambdaWebDI;
-    }
 }

@@ -1,3 +1,4 @@
+using DependencyModules.Runtime.Attributes;
 using Hardened.Amz.Function.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Headers;
@@ -16,6 +17,7 @@ public interface IStreamingFunctionRequestMapper {
         IMetricLogger metricLogger);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class StreamingFunctionRequestMapper : IStreamingFunctionRequestMapper {
     private readonly IKnownServices _knownServices;
 

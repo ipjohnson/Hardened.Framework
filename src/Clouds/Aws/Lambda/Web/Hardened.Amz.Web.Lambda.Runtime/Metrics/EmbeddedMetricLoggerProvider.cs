@@ -1,8 +1,10 @@
-﻿using Hardened.Shared.Runtime.Metrics;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Web.Lambda.Runtime.Metrics;
 
+[SingletonService]
 public class EmbeddedMetricLoggerProvider : IMetricLoggerProvider {
     private readonly IDimensionSetProvider _dimensionSetProvider;
     private readonly ILoggerFactory _loggerFactory;

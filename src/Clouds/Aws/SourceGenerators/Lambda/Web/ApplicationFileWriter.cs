@@ -82,9 +82,6 @@ public static class ApplicationFileWriter {
         var env = registerInitDi.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var coll = registerInitDi.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
 
-        registerInitDi.AddIndentedStatement(
-            Invoke(KnownTypes.DI.Registry.LambdaWebDI, "Register", env, coll));
-
         var startupMethod = "null";
 
         if (entryPoint.MethodDefinitions.Any(m => m.Name == "Startup")) {

@@ -1,4 +1,5 @@
 ﻿using Amazon.Lambda.Core;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Amz.Function.Lambda.Runtime.Execution;
 using Hardened.Amz.Shared.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
@@ -22,6 +23,7 @@ public interface ILambdaFunctionImplService {
     Task<Stream> InvokeFunction(Stream stream, ILambdaContext context);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class LambdaFunctionImplService : ILambdaFunctionImplService {
     private readonly IServiceProvider _serviceProvider;
     private readonly IMiddlewareService _middlewareService;

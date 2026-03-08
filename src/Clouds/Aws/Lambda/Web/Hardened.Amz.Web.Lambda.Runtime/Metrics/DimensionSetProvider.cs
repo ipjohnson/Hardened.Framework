@@ -1,4 +1,5 @@
 ﻿using Amazon.CloudWatch.EMF.Model;
+using DependencyModules.Runtime.Attributes;
 
 namespace Hardened.Amz.Web.Lambda.Runtime.Metrics;
 
@@ -6,6 +7,7 @@ public interface IDimensionSetProvider {
     IEnumerable<DimensionSet> Get(IReadOnlyCollection<Tuple<string, object>> tags);
 }
 
+[SingletonService(Using = RegistrationType.Try)]
 public class DimensionSetProvider : IDimensionSetProvider {
     public IEnumerable<DimensionSet> Get(IReadOnlyCollection<Tuple<string, object>> tags) {
         var dimensionSet = new DimensionSet();
