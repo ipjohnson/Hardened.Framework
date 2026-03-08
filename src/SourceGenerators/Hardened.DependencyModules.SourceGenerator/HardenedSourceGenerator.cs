@@ -14,6 +14,8 @@ public class HardenedSourceGenerator : BaseSourceGenerator {
         TypeDefinition.Get(TypeDefinitionEnum.ClassDefinition,
             "Hardened.Shared.Runtime.Attributes", "HardenedModuleAttribute");
 
+    protected override bool ShouldAutoApproveCompilationUnit => false;
+
     protected override ITypeDefinition[] ModuleAttributeTypes() {
         return new[] { HardenedModuleAttribute };
     }
