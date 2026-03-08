@@ -1,8 +1,7 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using CSharpAuthor;
-using Hardened.SourceGenerator.DependencyInjection;
-using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
+using static CSharpAuthor.SyntaxHelpers;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Templates.Generator;
@@ -43,17 +42,15 @@ public static class TemplateHelperGenerator {
         var templateField = appClass.AddField(typeof(int), "_templateHelperDependencies");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-        templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
-        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{appClass.Name}>.Register(HardenedTemplateHelperDI)");
+        templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime.Helpers);
+        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{appClass.Name}>.Add(HardenedTemplateHelperDI)");
         templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(HardenedTemplateHelperDI)");
 
         var diMethod = appClass.AddMethod("HardenedTemplateHelperDI");
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
-        var environment = diMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-        var entryPoint = diMethod.AddParameter(applicationModel, "entryPoint");
 
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] {
@@ -65,10 +62,10 @@ public static class TemplateHelperGenerator {
             string methodName;
 
             switch (helperModel.Lifestyle) {
-                case DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle.Singleton:
+                case ServiceLifestyle.Singleton:
                     methodName = "AddSingleton";
                     break;
-                case DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle.Scoped:
+                case ServiceLifestyle.Scoped:
                     methodName = "AddScoped";
                     break;
                 default:

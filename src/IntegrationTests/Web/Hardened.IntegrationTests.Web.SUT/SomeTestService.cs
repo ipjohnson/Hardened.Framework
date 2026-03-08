@@ -1,8 +1,8 @@
-﻿using Hardened.Shared.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.Web.SUT;
 
 public interface ISomeTestService { }
 
-[Expose]
+[TransientService]
 internal class SomeTestService : ISomeTestService { }

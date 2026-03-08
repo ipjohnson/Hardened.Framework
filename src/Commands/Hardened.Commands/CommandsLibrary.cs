@@ -1,6 +1,6 @@
-﻿using Hardened.Shared.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
 
 namespace Hardened.Commands;
 
-[HardenedModule]
+[DependencyModule]
 public partial class CommandsLibrary { }

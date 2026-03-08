@@ -1,6 +1,6 @@
-﻿using Hardened.Shared.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
 
 namespace Hardened.Web.AspNetCore.Runtime;
 
-[HardenedModule]
+[DependencyModule]
 public partial class AspNetCoreRuntime { }

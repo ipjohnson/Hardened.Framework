@@ -1,4 +1,5 @@
-﻿using Hardened.Shared.Runtime.Application;
+﻿using DependencyModules.Runtime.Interfaces;
+using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Shared.Testing.Impl;
@@ -12,6 +13,12 @@ public class TestApplication : IApplicationRoot {
         ApplicationLogic.StartWithWait(Provider, null, 15);
     }
 
+    public TestApplication(IDependencyModule testModule, string logNs, IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies) {
+        _rootServiceProvider = CreateServiceProvider(testModule, environment, overrideDependencies);
+        ApplicationLogic.StartWithWait(Provider, null, 15);
+    }
+
     private ServiceProvider CreateServiceProvider(IApplicationModule applicationModule, IHardenedEnvironment environment,
         Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies) {
         var serviceCollection = new ServiceCollection();
@@ -20,6 +27,20 @@ public class TestApplication : IApplicationRoot {
         serviceCollection.AddSingleton(environment);
 
         applicationModule.ConfigureModule(environment, serviceCollection);
+
+        overrideDependencies?.Invoke(environment, serviceCollection);
+
+        return serviceCollection.BuildServiceProvider();
+    }
+
+    private ServiceProvider CreateServiceProvider(IDependencyModule dependencyModule, IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies) {
+        var serviceCollection = new ServiceCollection();
+
+        serviceCollection.AddLogging();
+        serviceCollection.AddSingleton(environment);
+
+        dependencyModule.PopulateServiceCollection(serviceCollection);
 
         overrideDependencies?.Invoke(environment, serviceCollection);
 

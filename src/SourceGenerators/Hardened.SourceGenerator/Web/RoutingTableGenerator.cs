@@ -79,17 +79,15 @@ public static class RoutingTableGenerator {
         var templateField = classDefinition.AddField(typeof(int), "_routingTableDependencies");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-        templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
-        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(RoutingTableDI)");
+        templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime.Helpers);
+        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add(RoutingTableDI)");
         templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(RoutingTableDI)");
 
         var diMethod = classDefinition.AddMethod("RoutingTableDI");
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
-        var environment = diMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-        var entryPoint = diMethod.AddParameter(applicationModel.EntryPointType, "entryPoint");
 
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
@@ -104,17 +102,6 @@ public static class RoutingTableGenerator {
                 new[] { controllerType }));
         }
 
-        var registerFiltersMethod =
-            applicationModel.MethodDefinitions.FirstOrDefault(m => m.Name == "RegisterFilters");
-
-        if (registerFiltersMethod != null) {
-            diMethod.AddIndentedStatement(
-                serviceCollection.InvokeGeneric(
-                    "AddSingleton",
-                    new[] { KnownTypes.Application.IStartupService },
-                    New(KnownTypes.Web.FilterRegistryStartupService, "entryPoint.RegisterFilters")
-                ));
-        }
     }
 
     private static void ImplementHandlerMethod(EntryPointSelector.Model appModel, ClassDefinition routingClass,

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using CSharpAuthor;
-using Hardened.SourceGenerator.DependencyInjection;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Templates.Parser;
 using Microsoft.CodeAnalysis;
@@ -89,7 +88,7 @@ public static class TemplateIncrementalGenerator {
 
         return new TemplateHelperModel(helperName,
             TypeDefinition.Get(classDeclarationSyntax.GetNamespace(), classDeclarationSyntax.Identifier.ToString()),
-            DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle.Singleton);
+            ServiceLifestyle.Singleton);
     }
 
     private static void GenerateTemplateSource(SourceProductionContext sourceProductionContext,
@@ -123,7 +122,7 @@ public static class TemplateIncrementalGenerator {
 
     public class TemplateHelperModel {
         public TemplateHelperModel(string name, ITypeDefinition helper,
-            DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle lifestyle) {
+            ServiceLifestyle lifestyle) {
             Name = name;
             Helper = helper;
             Lifestyle = lifestyle;
@@ -133,7 +132,7 @@ public static class TemplateIncrementalGenerator {
 
         public ITypeDefinition Helper { get; }
 
-        public DependencyInjection.DependencyInjectionIncrementalGenerator.ServiceModel.ServiceLifestyle Lifestyle {
+        public ServiceLifestyle Lifestyle {
             get;
         }
 

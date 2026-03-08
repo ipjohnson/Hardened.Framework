@@ -19,6 +19,7 @@
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
 </Project>

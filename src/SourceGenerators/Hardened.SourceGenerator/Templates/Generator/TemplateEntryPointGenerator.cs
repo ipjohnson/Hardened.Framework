@@ -40,17 +40,15 @@ public static class TemplateEntryPointGenerator {
         var templateField = classDefinition.AddField(typeof(int), "_templateDependencies");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
-        templateField.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.DependencyInjection);
-        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Register(HardenedTemplateDI)");
+        templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime.Helpers);
+        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add(HardenedTemplateDI)");
         templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(HardenedTemplateDI)");
 
         var diMethod = classDefinition.AddMethod("HardenedTemplateDI");
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
-        var environment = diMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-        var entryPoint = diMethod.AddParameter(applicationModel.EntryPointType, "entryPoint");
 
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Templates.ITemplateExecutionHandlerProvider, templateProviderClass }));

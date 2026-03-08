@@ -1,5 +1,5 @@
 ﻿using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Runtime.Attributes;
+using DependencyModules.Runtime.Attributes;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Text;
@@ -10,7 +10,7 @@ public interface ICommandLinePrinter {
     Task PrintParseResult(ParseResult result);
 }
 
-[Expose]
+[TransientService]
 public class CommandLinePrinter : ICommandLinePrinter {
     private readonly ICommandLineDefinitionService _commandLineDefinitionService;
     private readonly IHardenedEnvironment _environment;

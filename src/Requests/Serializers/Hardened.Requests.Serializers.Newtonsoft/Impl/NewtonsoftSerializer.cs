@@ -1,11 +1,11 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
-using Hardened.Shared.Runtime.Attributes;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 
 namespace Hardened.Requests.Serializers.Newtonsoft.Impl;
 
-[Expose]
+[TransientService]
 public class NewtonsoftSerializer : IResponseSerializer {
     private readonly ISharedSerializer _sharedSerializer;
     private readonly IMemoryStreamPool _memoryStreamPool;

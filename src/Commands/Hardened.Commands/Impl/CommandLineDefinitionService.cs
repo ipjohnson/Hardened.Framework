@@ -1,4 +1,4 @@
-﻿using Hardened.Shared.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
 
 namespace Hardened.Commands.Impl;
 
@@ -12,7 +12,7 @@ public interface ICommandLineDefinitionService {
     CommandTreeNode GetTree();
 }
 
-[Expose]
+[TransientService]
 public class CommandLineDefinitionService : ICommandLineDefinitionService {
     private readonly IReadOnlyList<ICommandDefinitionProvider> _definitionProviders;
     private CommandTreeNode? _commandTreeNode;
