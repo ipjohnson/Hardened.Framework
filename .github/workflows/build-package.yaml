@@ -11,10 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: ipjohnson-org/DependencyModules
-          path: ../DependencyModules
+      - name: Checkout DependencyModules (linked source files)
+        run: git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/ipjohnson-org/DependencyModules.git ../DependencyModules --depth 1
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
