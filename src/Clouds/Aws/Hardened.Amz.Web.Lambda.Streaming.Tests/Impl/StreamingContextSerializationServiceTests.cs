@@ -188,7 +188,7 @@ public class StreamingContextSerializationServiceTests {
 
         await _service.SerializeResponse(context);
 
-        Assert.Equal(0, body.Length);
+        Assert.Equal(1, body.Length); // trailing newline to ensure streaming response is initiated
     }
 
     private static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(IEnumerable<T> items) {
