@@ -63,5 +63,11 @@ public class StreamingContextSerializationService : IContextSerializationService
             context.Response.Body.WriteByte((byte)'\n');
             await context.Response.Body.FlushAsync(context.CancellationToken);
         }
+
+        // Write a trailing newline to ensure the response body is never empty.
+        // NDJSON clients ignore empty lines, but this guarantees the Lambda
+        // streaming response is properly initiated and closed.
+        context.Response.Body.WriteByte((byte)'\n');
+        await context.Response.Body.FlushAsync(context.CancellationToken);
     }
 }
