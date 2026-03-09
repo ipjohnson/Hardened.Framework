@@ -1,4 +1,5 @@
 using Hardened.Amz.Shared.Lambda.Runtime.Configuration;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,7 +12,7 @@ public interface ITypedStackDefinition {
 }
 
 [Expose(typeof(CdkConfigurationRegistry))]
-[Singleton]
+[SingletonService]
 public class CdkConfigurationRegistry : ICdkConfigurationRegistry {
     private readonly IServiceProvider _serviceProvider;
 

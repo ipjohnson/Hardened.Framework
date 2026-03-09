@@ -1,6 +1,7 @@
 using Amazon.CDK;
 using Hardened.Amz.Cdk.Commands;
 using Hardened.Amz.Shared.Lambda.Runtime.Configuration;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -156,7 +157,7 @@ public interface IStackDefinition<T> : IStackDefinitionBase {
 }
 
 [Expose]
-[Singleton]
+[SingletonService]
 public class StackContextAccessor {
     public IStackDeploymentContext Context { get; set; } = null!;
 }

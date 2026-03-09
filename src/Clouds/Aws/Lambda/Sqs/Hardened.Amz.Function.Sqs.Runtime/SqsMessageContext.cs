@@ -1,4 +1,5 @@
 ﻿using Amazon.Lambda.SQSEvents;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened.Amz.Function.Sqs.Runtime;
@@ -10,7 +11,7 @@ public interface ISqsMessageContext {
 }
 
 [Expose]
-[Singleton]
+[SingletonService]
 public class SqsMessageContext : ISqsMessageContext {
     public SQSEvent? SqsEvent { get; set; }
     
