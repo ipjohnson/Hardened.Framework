@@ -42,7 +42,7 @@
     <ItemGroup>
         <ProjectReference Include="../Hardened.DependencyModules.SourceGenerator/Hardened.DependencyModules.SourceGenerator.csproj"
                           ReferenceOutputAssembly="false"
-                          PrivateAssets="all" />
+                          PrivateAssets="none" />
     </ItemGroup>
 
     <PropertyGroup>
