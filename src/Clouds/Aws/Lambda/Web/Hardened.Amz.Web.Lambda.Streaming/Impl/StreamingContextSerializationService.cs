@@ -1,10 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
-using Hardened.Requests.Runtime.Configuration;
-using Microsoft.Extensions.Options;
 
 namespace Hardened.Amz.Web.Lambda.Streaming.Impl;
 
@@ -13,18 +9,14 @@ public class StreamingContextSerializationService : IContextSerializationService
     private readonly ISerializationLocatorService _locatorService;
     private readonly IExceptionResponseSerializer _exceptionSerializer;
     private readonly INullValueResponseHandler _nullValueResponse;
-    private readonly JsonSerializerOptions _serializerOptions;
 
     public StreamingContextSerializationService(
         ISerializationLocatorService locatorService,
         IExceptionResponseSerializer exceptionSerializer,
-        INullValueResponseHandler nullValueResponse,
-        IOptions<IJsonSerializerConfiguration> serializerConfiguration) {
+        INullValueResponseHandler nullValueResponse) {
         _locatorService = locatorService;
         _exceptionSerializer = exceptionSerializer;
         _nullValueResponse = nullValueResponse;
-        _serializerOptions = serializerConfiguration.Value.SerializeOptions
-            ?? new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     }
 
     public ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) {
@@ -44,30 +36,6 @@ public class StreamingContextSerializationService : IContextSerializationService
             return _nullValueResponse.Handle(context);
         }
 
-        if (context.Response.ResponseValue is IAsyncEnumerable<object> asyncEnumerable) {
-            return SerializeAsyncEnumerable(context, asyncEnumerable);
-        }
-
         return _locatorService.FindResponseSerializer(context).SerializeResponse(context);
-    }
-
-    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Streaming ndjson serializes concrete types known at compile time.")]
-    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Streaming ndjson serializes concrete types known at compile time.")]
-    private async Task SerializeAsyncEnumerable(
-        IExecutionContext context, IAsyncEnumerable<object> enumerable) {
-        context.Response.ContentType ??= "application/x-ndjson";
-        context.Response.ShouldSerialize = false;
-
-        await foreach (var item in enumerable.WithCancellation(context.CancellationToken)) {
-            JsonSerializer.Serialize(context.Response.Body, item, item.GetType(), _serializerOptions);
-            context.Response.Body.WriteByte((byte)'\n');
-            await context.Response.Body.FlushAsync(context.CancellationToken);
-        }
-
-        // Write a trailing newline to ensure the response body is never empty.
-        // NDJSON clients ignore empty lines, but this guarantees the Lambda
-        // streaming response is properly initiated and closed.
-        context.Response.Body.WriteByte((byte)'\n');
-        await context.Response.Body.FlushAsync(context.CancellationToken);
     }
 }
