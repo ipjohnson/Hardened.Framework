@@ -38,7 +38,8 @@ internal static class RequestModelBuilder {
         foreach (var model in models) {
             var handlerInfo = FindHandlerInfo(model, handlerInfos);
             if (handlerInfo != null) {
-                var filters = new List<AttributeModel>(handlerInfo.ClassFilters);
+                var filters = new List<AttributeModel>(model.Filters);
+                filters.AddRange(handlerInfo.ClassFilters);
 
                 // Find method-level filters matching this handler's method
                 foreach (var methodFilter in handlerInfo.MethodFilters) {
