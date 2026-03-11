@@ -142,6 +142,10 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             context.AddSource($"{spec.FileName}.{interfaceName}.g.cs", interfaceSource);
         }
 
+        // Emit JsonTypeInfoResolver for AOT serialization
+        var resolverSource = JsonTypeInfoEmitter.Emit(spec.Schemas, ns);
+        context.AddSource($"{spec.FileName}.OpenApiJsonTypeInfoResolver.g.cs", resolverSource);
+
         // Emit validation filter providers for operations with validation constraints
         foreach (var service in spec.Services) {
             foreach (var operation in service.Operations) {
