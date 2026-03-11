@@ -23,6 +23,18 @@ public class TestWebResponse {
 
     public IWebAssertThat Assert => _assertThat ??= new WebAssertThat(this);
 
+    public async IAsyncEnumerable<T> DeserializeAsyncEnumerable<T>() {
+        Body.Position = 0;
+        using var reader = new StreamReader(Body, leaveOpen: true);
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        while (await reader.ReadLineAsync() is { } line) {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            yield return JsonSerializer.Deserialize<T>(line, options) ??
+                         throw new Exception("Could not deserialize NDJSON line");
+        }
+    }
+
     public T Deserialize<T>() {
         if (Headers.TryGetValue(KnownHeaders.ContentEncoding, out var contentEncoding)) {
             if (contentEncoding.Contains(KnownEncoding.GZip)) {

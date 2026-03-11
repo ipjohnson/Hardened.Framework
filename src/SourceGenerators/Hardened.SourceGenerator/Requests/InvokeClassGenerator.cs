@@ -67,7 +67,15 @@ public static class InvokeClassGenerator {
                 contentType);
         }
 
-        if (handlerModel.RequestParameterInformationList.Count == 0) {
+        if (handlerModel.ResponseInformation.IsAsyncEnumerable) {
+            if (handlerModel.RequestParameterInformationList.Count == 0) {
+                CreateAsyncEnumerableNoParameterConstructor(handlerModel, classDefinition, defaultOutput);
+            }
+            else {
+                CreateAsyncEnumerableParametersConstructor(handlerModel, classDefinition, defaultOutput);
+            }
+        }
+        else if (handlerModel.RequestParameterInformationList.Count == 0) {
             if (handlerModel.ResponseInformation.IsAsync) {
                 CreateAsyncNoParameterConstructor(handlerModel, classDefinition, defaultOutput);
             }
@@ -149,6 +157,46 @@ public static class InvokeClassGenerator {
             "StandardFilterWithParameters",
             new[] {
                 handlerModel.ControllerType, GenericParameters
+            },
+            "serviceProvider",
+            "_handlerInfo",
+            "BindRequestParameters",
+            "InvokeMethod",
+            GenerateFilterEnumerable(handlerModel, classDefinition)
+        );
+        var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
+
+        constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+    }
+
+    private static void CreateAsyncEnumerableNoParameterConstructor(RequestHandlerModel handlerModel,
+        ClassDefinition classDefinition,
+        IOutputComponent defaultOutput) {
+        var filterMethod = InvokeGeneric(
+            KnownTypes.Requests.ExecutionHelper,
+            "AsyncEnumerableFilterEmptyParameters",
+            new[] {
+                handlerModel.ControllerType,
+                handlerModel.ResponseInformation.AsyncEnumerableItemType!
+            },
+            "serviceProvider",
+            "_handlerInfo",
+            "InvokeMethod",
+            GenerateFilterEnumerable(handlerModel, classDefinition)
+        );
+        var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
+
+        constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+    }
+
+    private static void CreateAsyncEnumerableParametersConstructor(RequestHandlerModel handlerModel,
+        ClassDefinition classDefinition, IOutputComponent defaultOutput) {
+        var filterMethod = InvokeGeneric(
+            KnownTypes.Requests.ExecutionHelper,
+            "AsyncEnumerableFilterWithParameters",
+            new[] {
+                handlerModel.ControllerType, GenericParameters,
+                handlerModel.ResponseInformation.AsyncEnumerableItemType!
             },
             "serviceProvider",
             "_handlerInfo",

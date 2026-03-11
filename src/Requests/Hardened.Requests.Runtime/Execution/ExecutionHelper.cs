@@ -131,6 +131,57 @@ public static class ExecutionHelper {
 
     #endregion
 
+    #region async enumerable with parameters
+
+    public static Func<IExecutionContext, IExecutionFilter>[]
+        AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(
+            IServiceProvider serviceProvider,
+            IExecutionRequestHandlerInfo handlerInfo,
+            Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
+            InvokeWithParameters<TController, TParameter> invokeMethod,
+            IEnumerable<IRequestFilterProvider> filterProviders) where TController : class {
+        var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
+
+        var ioFilter = ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(
+            handlerInfo,
+            deserializeRequestFunc
+        );
+
+        var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
+
+        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+            .ProvideFilter<TController>(serviceProvider);
+
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
+    }
+
+    #endregion
+
+    #region async enumerable no parameters
+
+    public static Func<IExecutionContext, IExecutionFilter>[]
+        AsyncEnumerableFilterEmptyParameters<TController, TItem>(
+            IServiceProvider serviceProvider,
+            IExecutionRequestHandlerInfo handlerInfo,
+            InvokeNoParameters<TController> invokeMethod,
+            IEnumerable<IRequestFilterProvider> filterProviders) {
+        var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
+
+        var ioFilter = ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(
+            handlerInfo,
+            _emptyDeserializeRequest
+        );
+
+        var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
+
+        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+            .ProvideFilter<TController>(serviceProvider);
+
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
+    }
+
+    #endregion
+
     #region create filter array
 
     private static Func<IExecutionContext, IExecutionFilter>[] CreateFilterArray(

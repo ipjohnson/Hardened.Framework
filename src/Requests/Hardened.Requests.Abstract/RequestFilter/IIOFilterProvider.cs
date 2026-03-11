@@ -6,4 +6,8 @@ public interface IIOFilterProvider {
     IExecutionFilter ProvideFilter(
         IExecutionRequestHandlerInfo handlerInfo,
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest);
+
+    IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(
+        IExecutionRequestHandlerInfo handlerInfo,
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest);
 }
