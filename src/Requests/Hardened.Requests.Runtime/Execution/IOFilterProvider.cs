@@ -62,4 +62,14 @@ public class IOFilterProvider : IIOFilterProvider {
             _headerActions
         );
     }
+
+    public IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(
+        IExecutionRequestHandlerInfo handlerInfo,
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest) {
+        return new AsyncEnumerableIoFilter<TItem>(
+            deserializeRequest,
+            _contextSerializationService.SerializeResponse,
+            _headerActions
+        );
+    }
 }

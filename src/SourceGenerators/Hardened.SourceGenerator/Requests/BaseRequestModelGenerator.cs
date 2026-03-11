@@ -212,9 +212,16 @@ public abstract class BaseRequestModelGenerator {
         var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
 
         var isAsync = false;
+        var isAsyncEnumerable = false;
+        ITypeDefinition? asyncEnumerableItemType = null;
 
         if (returnType is GenericTypeDefinition genericType) {
-            isAsync = genericType.Name.Equals("Task") || genericType.Name.Equals("ValueTask");
+            if (genericType.Name.Equals("Task") || genericType.Name.Equals("ValueTask")) {
+                isAsync = true;
+            } else if (genericType.Name.Equals("IAsyncEnumerable")) {
+                isAsyncEnumerable = true;
+                asyncEnumerableItemType = genericType.TypeArguments[0];
+            }
         } else if (returnType?.Name == "Task") {
             isAsync = true;
             returnType = TypeDefinition.Get(typeof(void));
@@ -231,6 +238,8 @@ public abstract class BaseRequestModelGenerator {
 
         return new ResponseInformationModel {
             IsAsync = isAsync,
+            IsAsyncEnumerable = isAsyncEnumerable,
+            AsyncEnumerableItemType = asyncEnumerableItemType,
             TemplateName = template,
             ReturnType = returnType,
             RawResponseContentType = rawResponse

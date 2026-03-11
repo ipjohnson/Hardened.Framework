@@ -5,6 +5,10 @@ namespace Hardened.SourceGenerator.Models.Request;
 public record ResponseInformationModel {
     public bool IsAsync { get; set; }
 
+    public bool IsAsyncEnumerable { get; set; }
+
+    public ITypeDefinition? AsyncEnumerableItemType { get; set; }
+
     public ITypeDefinition? ReturnType { get; set; }
 
     public string? TemplateName { get; set; }

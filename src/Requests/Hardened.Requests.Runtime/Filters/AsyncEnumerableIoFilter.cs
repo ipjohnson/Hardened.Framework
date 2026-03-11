@@ -1,0 +1,79 @@
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Logging;
+using Hardened.Requests.Abstract.Metrics;
+using Hardened.Shared.Runtime.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Hardened.Requests.Runtime.Filters;
+
+public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
+    private readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> _deserializeRequest;
+    private readonly Func<IExecutionContext, Task> _serializeResponse;
+    private readonly Action<IExecutionContext>? _headerActions;
+
+    public AsyncEnumerableIoFilter(
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
+        Func<IExecutionContext, Task> serializeResponse,
+        Action<IExecutionContext>? headerActions) {
+        _deserializeRequest = deserializeRequest;
+        _serializeResponse = serializeResponse;
+        _headerActions = headerActions;
+    }
+
+    public async Task Execute(IExecutionChain chain) {
+        var context = chain.Context;
+        var bindParameterStartTimestamp = MachineTimestamp.Now;
+
+        try {
+            if (context.Request.Parameters == null) {
+                context.Request.Parameters = await _deserializeRequest(chain.Context);
+            }
+        }
+        catch (Exception exp) {
+            chain.Context.RequestServices.GetRequiredService<IRequestLogger>()
+                .RequestParameterBindFailed(chain.Context, exp);
+
+            chain.Context.Response.ExceptionValue = exp;
+        }
+        finally {
+            context.RequestMetrics.Record(RequestMetrics.ParameterBindDuration,
+                bindParameterStartTimestamp.GetElapsedMilliseconds());
+        }
+
+        if (chain.Context.Response.ExceptionValue == null) {
+            try {
+                await chain.Next();
+            }
+            catch (Exception exp) {
+                chain.Context.Response.ExceptionValue = exp;
+            }
+        }
+
+        var responseTimestamp = MachineTimestamp.Now;
+
+        try {
+            _headerActions?.Invoke(chain.Context);
+
+            if (chain.Context.Response.ExceptionValue != null) {
+                await _serializeResponse(chain.Context);
+            }
+            else if (chain.Context.Response.ResponseValue is IAsyncEnumerable<TItem> asyncEnumerable) {
+                context.Response.ContentType = "application/x-ndjson";
+                context.Response.ShouldSerialize = false;
+
+                await foreach (var item in asyncEnumerable.WithCancellation(context.CancellationToken)) {
+                    context.Response.ResponseValue = item;
+                    await _serializeResponse(context);
+                    context.Response.Body.WriteByte((byte)'\n');
+                    await context.Response.Body.FlushAsync(context.CancellationToken);
+                }
+            }
+            else if (chain.Context.Response.ShouldSerialize) {
+                await _serializeResponse(chain.Context);
+            }
+        }
+        finally {
+            context.RequestMetrics.Record(RequestMetrics.ResponseDuration, responseTimestamp.GetElapsedMilliseconds());
+        }
+    }
+}
