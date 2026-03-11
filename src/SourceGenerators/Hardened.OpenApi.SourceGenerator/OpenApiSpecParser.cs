@@ -157,6 +157,9 @@ internal static class OpenApiSpecParser {
             IsRequired = isRequired
         };
 
+        // Extract validation constraints
+        ExtractValidationConstraints(prop, model);
+
         // Only keep $ref when it points to an object or enum that gets a generated C# type.
         // Primitive refs (e.g. CustomId → string) are inlined to their underlying type.
         var nonPrimitiveRef = GetNonPrimitiveRef(prop);
@@ -194,6 +197,18 @@ internal static class OpenApiSpecParser {
         return model;
     }
 
+    private static void ExtractValidationConstraints(OpenApiSchema schema, PropertyModel model) {
+        if (schema.MinLength.HasValue) model.MinLength = schema.MinLength;
+        if (schema.MaxLength.HasValue) model.MaxLength = schema.MaxLength;
+        if (schema.Minimum.HasValue) model.Minimum = schema.Minimum.Value;
+        if (schema.Maximum.HasValue) model.Maximum = schema.Maximum.Value;
+        if (schema.ExclusiveMinimum == true) model.ExclusiveMinimum = true;
+        if (schema.ExclusiveMaximum == true) model.ExclusiveMaximum = true;
+        if (!string.IsNullOrEmpty(schema.Pattern)) model.Pattern = schema.Pattern;
+        if (schema.MinItems.HasValue) model.MinItems = schema.MinItems;
+        if (schema.MaxItems.HasValue) model.MaxItems = schema.MaxItems;
+    }
+
     /// <summary>
     /// Returns the ReferenceV3 string only if the schema references an object or enum
     /// (types that get generated C# classes). Returns null for primitive type refs
@@ -210,6 +225,42 @@ internal static class OpenApiSpecParser {
 
         // Primitive types (string, integer, number, boolean) — inline them.
         return null;
+    }
+
+    /// <summary>
+    /// Follows $ref to resolve the actual schema with properties.
+    /// OpenApiSchema.Reference is non-null for $ref entries; the reader
+    /// already resolves these into the same schema object graph, so
+    /// properties/required are on the same object.
+    /// </summary>
+    private static OpenApiSchema? ResolveSchema(OpenApiSchema? schema) {
+        if (schema == null) return null;
+
+        // If the schema has properties directly, use it
+        if (schema.Properties is { Count: > 0 }) return schema;
+
+        // For allOf, merge properties
+        if (schema.AllOf is { Count: > 0 }) {
+            var merged = new OpenApiSchema {
+                Required = new HashSet<string>(schema.Required ?? Enumerable.Empty<string>())
+            };
+            foreach (var allOfSchema in schema.AllOf) {
+                if (allOfSchema.Required != null) {
+                    foreach (var req in allOfSchema.Required) {
+                        merged.Required.Add(req);
+                    }
+                }
+                if (allOfSchema.Properties != null) {
+                    merged.Properties ??= new Dictionary<string, OpenApiSchema>();
+                    foreach (var kvp in allOfSchema.Properties) {
+                        merged.Properties[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+            return merged;
+        }
+
+        return schema;
     }
 
     private static void ParsePath(string path, OpenApiPathItem pathItem,
@@ -230,7 +281,7 @@ internal static class OpenApiSpecParser {
 
             if (operation.Parameters != null) {
                 foreach (var param in operation.Parameters) {
-                    opModel.Parameters.Add(new ParameterModel {
+                    var paramModel = new ParameterModel {
                         Name = param.Name,
                         In = param.In?.ToString()?.ToLowerInvariant() ?? "query",
                         IsRequired = param.Required,
@@ -240,7 +291,28 @@ internal static class OpenApiSpecParser {
                         IsArray = param.Schema?.Type == "array",
                         ArrayItemsType = param.Schema?.Items?.Type,
                         ArrayItemsRef = GetNonPrimitiveRef(param.Schema?.Items)
-                    });
+                    };
+
+                    // Extract validation constraints from parameter schema
+                    if (param.Schema != null) {
+                        if (param.Schema.MinLength.HasValue) paramModel.MinLength = param.Schema.MinLength;
+                        if (param.Schema.MaxLength.HasValue) paramModel.MaxLength = param.Schema.MaxLength;
+                        if (param.Schema.Minimum.HasValue) paramModel.Minimum = param.Schema.Minimum.Value;
+                        if (param.Schema.Maximum.HasValue) paramModel.Maximum = param.Schema.Maximum.Value;
+                        if (param.Schema.ExclusiveMinimum == true) paramModel.ExclusiveMinimum = true;
+                        if (param.Schema.ExclusiveMaximum == true) paramModel.ExclusiveMaximum = true;
+                        if (!string.IsNullOrEmpty(param.Schema.Pattern)) paramModel.Pattern = param.Schema.Pattern;
+                        if (param.Schema.MinItems.HasValue) paramModel.MinItems = param.Schema.MinItems;
+                        if (param.Schema.MaxItems.HasValue) paramModel.MaxItems = param.Schema.MaxItems;
+                        if (param.Schema.Enum is { Count: > 0 }) {
+                            paramModel.EnumValues = param.Schema.Enum
+                                .OfType<Microsoft.OpenApi.Any.OpenApiString>()
+                                .Select(e => e.Value)
+                                .ToList();
+                        }
+                    }
+
+                    opModel.Parameters.Add(paramModel);
                 }
             }
 
@@ -252,6 +324,19 @@ internal static class OpenApiSpecParser {
                     var bodySchema = jsonContent.Value.Schema;
                     opModel.RequestBodyRef = bodySchema.Reference?.ReferenceV3;
                     opModel.RequestBodyType = bodySchema.Type;
+
+                    // Resolve body schema properties for validation
+                    var resolvedSchema = ResolveSchema(bodySchema);
+                    if (resolvedSchema != null) {
+                        opModel.RequestBodyRequired = resolvedSchema.Required?.ToList() ?? new List<string>();
+                        if (resolvedSchema.Properties != null) {
+                            foreach (var propKvp in resolvedSchema.Properties) {
+                                var isRequired = opModel.RequestBodyRequired.Contains(propKvp.Key);
+                                opModel.RequestBodyProperties.Add(
+                                    ParseProperty(propKvp.Key, propKvp.Value, isRequired));
+                            }
+                        }
+                    }
                 }
             }
 

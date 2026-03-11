@@ -141,6 +141,22 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             var interfaceName = NamingHelper.ToInterfaceName(service.Tag);
             context.AddSource($"{spec.FileName}.{interfaceName}.g.cs", interfaceSource);
         }
+
+        // Emit validation filter providers for operations with validation constraints
+        foreach (var service in spec.Services) {
+            foreach (var operation in service.Operations) {
+                context.CancellationToken.ThrowIfCancellationRequested();
+
+                var validationSource = ValidationFilterEmitter.Emit(
+                    operation, ns + ".Generated", ns + ".Models");
+                if (validationSource != null) {
+                    var filterName = NamingHelper.ToPascalCase(operation.OperationId);
+                    context.AddSource(
+                        $"{spec.FileName}.{filterName}_ValidationFilterProvider.g.cs",
+                        validationSource);
+                }
+            }
+        }
     }
 
     private static void ReportError(SourceProductionContext context, string message) {

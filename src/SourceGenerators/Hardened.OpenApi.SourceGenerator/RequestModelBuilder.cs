@@ -112,6 +112,15 @@ internal static class RequestModelBuilder {
         var parameters = BuildParameters(operation, modelsNamespace);
         var responseInfo = BuildResponseInfo(operation, modelsNamespace);
 
+        var filters = new List<AttributeModel>();
+
+        // Wire in validation filter provider if operation has constraints
+        if (operation.HasValidationConstraints) {
+            var filterProviderName = NamingHelper.ToPascalCase(operation.OperationId) + "_ValidationFilterProvider";
+            var filterProviderType = TypeDefinition.Get(generatedNamespace, filterProviderName);
+            filters.Add(new AttributeModel(filterProviderType, "", ""));
+        }
+
         return new RequestHandlerModel(
             nameModel,
             serviceType,
@@ -119,7 +128,7 @@ internal static class RequestModelBuilder {
             invokeHandlerType,
             parameters,
             responseInfo,
-            Array.Empty<AttributeModel>());
+            filters);
     }
 
     private static IReadOnlyList<RequestParameterInformation> BuildParameters(

@@ -15,11 +15,33 @@ internal class PropertyModel : IEquatable<PropertyModel> {
     public string? DictionaryValueRef { get; set; }
     public List<string>? EnumValues { get; set; }
 
+    // Validation constraints
+    public int? MinLength { get; set; }
+    public int? MaxLength { get; set; }
+    public decimal? Minimum { get; set; }
+    public decimal? Maximum { get; set; }
+    public bool ExclusiveMinimum { get; set; }
+    public bool ExclusiveMaximum { get; set; }
+    public string? Pattern { get; set; }
+    public int? MinItems { get; set; }
+    public int? MaxItems { get; set; }
+
+    public bool HasValidationConstraints =>
+        IsRequired || MinLength.HasValue || MaxLength.HasValue ||
+        Minimum.HasValue || Maximum.HasValue ||
+        ExclusiveMinimum || ExclusiveMaximum ||
+        Pattern != null || MinItems.HasValue || MaxItems.HasValue ||
+        EnumValues is { Count: > 0 };
+
     public bool Equals(PropertyModel? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return Name == other.Name && Type == other.Type && Format == other.Format &&
-               Ref == other.Ref && IsArray == other.IsArray && IsRequired == other.IsRequired;
+               Ref == other.Ref && IsArray == other.IsArray && IsRequired == other.IsRequired &&
+               MinLength == other.MinLength && MaxLength == other.MaxLength &&
+               Minimum == other.Minimum && Maximum == other.Maximum &&
+               ExclusiveMinimum == other.ExclusiveMinimum && ExclusiveMaximum == other.ExclusiveMaximum &&
+               Pattern == other.Pattern && MinItems == other.MinItems && MaxItems == other.MaxItems;
     }
 
     public override bool Equals(object? obj) => Equals(obj as PropertyModel);
@@ -29,6 +51,9 @@ internal class PropertyModel : IEquatable<PropertyModel> {
             var hash = Name.GetHashCode();
             hash = (hash * 397) ^ (Type?.GetHashCode() ?? 0);
             hash = (hash * 397) ^ IsRequired.GetHashCode();
+            hash = (hash * 397) ^ (MinLength?.GetHashCode() ?? 0);
+            hash = (hash * 397) ^ (MaxLength?.GetHashCode() ?? 0);
+            hash = (hash * 397) ^ (Pattern?.GetHashCode() ?? 0);
             return hash;
         }
     }
