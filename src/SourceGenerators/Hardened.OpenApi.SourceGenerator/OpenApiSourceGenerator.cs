@@ -141,6 +141,10 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             var interfaceName = NamingHelper.ToInterfaceName(service.Tag);
             context.AddSource($"{spec.FileName}.{interfaceName}.g.cs", interfaceSource);
         }
+
+        // Emit JsonTypeInfoResolver for AOT serialization
+        var resolverSource = JsonTypeInfoEmitter.Emit(spec.Schemas, ns);
+        context.AddSource($"{spec.FileName}.OpenApiJsonTypeInfoResolver.g.cs", resolverSource);
     }
 
     private static void ReportError(SourceProductionContext context, string message) {
