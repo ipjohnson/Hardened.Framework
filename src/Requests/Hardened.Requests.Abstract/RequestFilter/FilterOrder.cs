@@ -7,6 +7,8 @@ public static class FilterOrder {
 
     public const int Serialization = 5;
 
+    public const int Validation = Serialization + 1;
+
     public const int DefaultValue = 1000;
 
     public const int EndPointHandlers = DefaultValue * 2;
