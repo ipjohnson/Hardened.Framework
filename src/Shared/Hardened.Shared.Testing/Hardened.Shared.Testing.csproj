@@ -25,7 +25,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"/>
+        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"
+                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
+        <PackageReference Include="DependencyModules.xUnit" Version="1.0.0-*"
+                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
     </ItemGroup>
 
 </Project>
