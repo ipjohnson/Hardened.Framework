@@ -1,10 +1,6 @@
-using System.Text;
-using System.Text.Json;
 using Hardened.Amz.Web.Lambda.Streaming.Impl;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
-using Hardened.Requests.Runtime.Configuration;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
 
@@ -20,12 +16,8 @@ public class StreamingContextSerializationServiceTests {
         _locatorService = Substitute.For<ISerializationLocatorService>();
         _exceptionSerializer = Substitute.For<IExceptionResponseSerializer>();
         _nullValueResponse = Substitute.For<INullValueResponseHandler>();
-        var serializerConfig = Substitute.For<IJsonSerializerConfiguration>();
-        serializerConfig.SerializeOptions.Returns(
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-        var options = Options.Create(serializerConfig);
         _service = new StreamingContextSerializationService(
-            _locatorService, _exceptionSerializer, _nullValueResponse, options);
+            _locatorService, _exceptionSerializer, _nullValueResponse);
     }
 
     private static IExecutionContext CreateContext(
@@ -95,78 +87,6 @@ public class StreamingContextSerializationServiceTests {
     }
 
     [Fact]
-    public async Task SerializeResponse_HandlesAsyncEnumerable_AsNdjson() {
-        var body = new MemoryStream();
-        var items = new[] { new TestItem("a", 1), new TestItem("b", 2), new TestItem("c", 3) };
-        var context = CreateContext(
-            responseValue: ToAsyncEnumerable(items),
-            body: body);
-
-        await _service.SerializeResponse(context);
-
-        body.Position = 0;
-        var output = Encoding.UTF8.GetString(body.ToArray());
-        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-        Assert.Equal(3, lines.Length);
-
-        var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var first = JsonSerializer.Deserialize<TestItem>(lines[0], opts);
-        Assert.Equal("a", first!.Name);
-        Assert.Equal(1, first.Value);
-
-        var second = JsonSerializer.Deserialize<TestItem>(lines[1], opts);
-        Assert.Equal("b", second!.Name);
-
-        var third = JsonSerializer.Deserialize<TestItem>(lines[2], opts);
-        Assert.Equal("c", third!.Name);
-    }
-
-    [Fact]
-    public async Task SerializeResponse_SetsContentType_ForAsyncEnumerable() {
-        var body = new MemoryStream();
-        var context = CreateContext(
-            responseValue: ToAsyncEnumerable(new[] { "a" }),
-            body: body);
-
-        string? setContentType = null;
-        context.Response.ContentType = Arg.Do<string?>(v => setContentType = v);
-        context.Response.ContentType.Returns(_ => setContentType);
-
-        await _service.SerializeResponse(context);
-
-        Assert.Equal("application/x-ndjson", setContentType);
-    }
-
-    [Fact]
-    public async Task SerializeResponse_SetsShouldSerializeFalse_ForAsyncEnumerable() {
-        var body = new MemoryStream();
-        var context = CreateContext(
-            responseValue: ToAsyncEnumerable(new[] { "test" }),
-            body: body);
-
-        await _service.SerializeResponse(context);
-
-        context.Response.Received().ShouldSerialize = false;
-    }
-
-    [Fact]
-    public async Task SerializeResponse_PreservesExistingContentType_ForAsyncEnumerable() {
-        var body = new MemoryStream();
-        var context = CreateContext(
-            responseValue: ToAsyncEnumerable(new[] { "a" }),
-            body: body);
-
-        context.Response.ContentType.Returns("text/event-stream");
-
-        await _service.SerializeResponse(context);
-
-        // ContentType should not be overwritten since it was already set
-        // The ??= operator means it only sets when null
-        context.Response.DidNotReceive().ContentType = "application/x-ndjson";
-    }
-
-    [Fact]
     public async Task DeserializeRequestBody_DelegatesToLocatorService() {
         var context = CreateContext();
         var deserializer = Substitute.For<IRequestDeserializer>();
@@ -179,24 +99,4 @@ public class StreamingContextSerializationServiceTests {
         Assert.Equal("result", result);
     }
 
-    [Fact]
-    public async Task SerializeResponse_EmptyAsyncEnumerable_WritesNothing() {
-        var body = new MemoryStream();
-        var context = CreateContext(
-            responseValue: ToAsyncEnumerable(Array.Empty<string>()),
-            body: body);
-
-        await _service.SerializeResponse(context);
-
-        Assert.Equal(1, body.Length); // trailing newline to ensure streaming response is initiated
-    }
-
-    private static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(IEnumerable<T> items) {
-        foreach (var item in items) {
-            await Task.Yield();
-            yield return item;
-        }
-    }
-
-    private record TestItem(string Name, int Value);
 }
