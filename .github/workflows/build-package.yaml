@@ -11,14 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: Hardened.Framework
+      - uses: actions/checkout@v4
+        with:
+          repository: ipjohnson-org/DependencyModules
+          path: DependencyModules
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
           source-url: https://nuget.pkg.github.com/ipjohnson-org/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      - run: dotnet restore src/Hardened.Framework.sln
-      - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release
-      - run: dotnet test src/Hardened.Framework.sln --no-build --configuration Release
-      - run: dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=0.2.0-Alpha${{ github.run_number }}
-      - run: dotnet nuget push src/**/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/ipjohnson-org/index.json" --skip-duplicate
+      - run: dotnet restore Hardened.Framework/src/Hardened.Framework.sln
+      - run: dotnet build Hardened.Framework/src/Hardened.Framework.sln --no-restore --configuration Release
+      - run: dotnet test Hardened.Framework/src/Hardened.Framework.sln --no-build --configuration Release
+      - run: dotnet pack Hardened.Framework/src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=0.2.0-Alpha${{ github.run_number }}
+      - run: dotnet nuget push Hardened.Framework/src/**/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/ipjohnson-org/index.json" --skip-duplicate
