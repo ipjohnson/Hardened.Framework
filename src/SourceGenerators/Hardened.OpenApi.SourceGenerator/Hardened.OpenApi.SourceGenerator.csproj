@@ -35,6 +35,14 @@
         <PackageReference Include="SharpYaml" Version="2.1.1" GeneratePathProperty="true" PrivateAssets="all" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="Package\Hardened.OpenApi.SourceGenerator.*">
+            <Pack>true</Pack>
+            <PackagePath>build\</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
     <!-- Pack the analyzer DLL and its dependencies into the correct NuGet folder -->
     <ItemGroup>
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>

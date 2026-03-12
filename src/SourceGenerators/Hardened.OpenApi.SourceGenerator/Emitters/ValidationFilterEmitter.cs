@@ -4,7 +4,7 @@ using Hardened.OpenApi.SourceGenerator.Models;
 namespace Hardened.OpenApi.SourceGenerator.Emitters;
 
 internal static class ValidationFilterEmitter {
-    public static string? Emit(OperationModel operation, string ns, string modelsNamespace) {
+    public static string? Emit(OperationModel operation, string ns, string modelsNamespace, bool excludeFromCoverage = false) {
         if (!operation.HasValidationConstraints) return null;
 
         var sb = new StringBuilder();
@@ -22,6 +22,9 @@ internal static class ValidationFilterEmitter {
 
         var className = NamingHelper.ToPascalCase(operation.OperationId) + "_ValidationFilterProvider";
 
+        if (excludeFromCoverage) {
+            sb.AppendLine("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
+        }
         sb.AppendLine($"public class {className} : IRequestFilterProvider {{");
         sb.AppendLine("    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {");
         sb.AppendLine("        yield return new RequestFilterInfo(");

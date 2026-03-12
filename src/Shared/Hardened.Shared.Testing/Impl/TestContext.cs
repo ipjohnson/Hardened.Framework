@@ -1,6 +1,5 @@
 ﻿using Hardened.Shared.Runtime.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
 
 namespace Hardened.Shared.Testing.Impl;
 
