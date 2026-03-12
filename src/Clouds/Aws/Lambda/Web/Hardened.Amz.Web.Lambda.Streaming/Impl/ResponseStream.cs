@@ -40,6 +40,7 @@ public class ResponseStream : Stream {
 
     public override void Write(byte[] buffer, int offset, int count) {
         EnsurePreludeWritten();
+        EnsureResponseStarted();
 
         var span = _pipeWriter.GetSpan(count);
         buffer.AsSpan(offset, count).CopyTo(span);
@@ -61,6 +62,7 @@ public class ResponseStream : Stream {
 
     public override void WriteByte(byte value) {
         EnsurePreludeWritten();
+        EnsureResponseStarted();
 
         var span = _pipeWriter.GetSpan(1);
         span[0] = value;

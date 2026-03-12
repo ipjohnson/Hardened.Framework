@@ -79,8 +79,7 @@ public class ResponseStreamTests {
 
         Assert.Equal(data.Length, stream.Length);
         Assert.True(_preludeWritten);
-        // Sync Write does not trigger beginResponse
-        Assert.False(_responseStarted);
+        Assert.True(_responseStarted);
     }
 
     [Fact]

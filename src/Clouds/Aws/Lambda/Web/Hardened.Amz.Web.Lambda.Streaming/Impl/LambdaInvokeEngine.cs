@@ -45,9 +45,11 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
 
         while (!ct.IsCancellationRequested) {
             Task? responseTask = null;
+                string? requestId = null;
 
             try {
                 var invocation = await _serverProxy.GetNextInvocation(ct);
+                requestId = invocation.RequestId;
 
                 _lambdaContextAccessor.Context = invocation.LambdaContext;
 
@@ -107,12 +109,21 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                 Console.Error.WriteLine($"[LambdaInvokeEngine] Error processing invocation: {ex}");
 
                 if (responseTask == null) {
-                    // Response not started yet — try to complete pipe and report error
+                    // Response not started yet — complete pipe and report error to Lambda runtime
                     try {
                         await pipe.Writer.CompleteAsync();
                     }
                     catch {
                         // Ignore pipe completion errors
+                    }
+
+                    if (requestId != null) {
+                        try {
+                            await _serverProxy.ReportError(requestId, ex, ct);
+                        }
+                        catch (Exception reportEx) {
+                            Console.Error.WriteLine($"[LambdaInvokeEngine] Failed to report error: {reportEx}");
+                        }
                     }
                 }
                 else {
