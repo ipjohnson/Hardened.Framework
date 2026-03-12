@@ -9,7 +9,7 @@ public class TrimHelperTests : BaseSingleStringTests {
     [InlineData(" Hello", "Hello")]
     [InlineData("Hello ", "Hello")]
     [InlineData("Hello", "Hello")]
-    public async void TrimLogicTests(string input, string expected) {
+    public async Task TrimLogicTests(string input, string expected) {
         await Evaluate(input, expected);
     }
 

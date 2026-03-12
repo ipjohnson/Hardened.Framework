@@ -8,7 +8,7 @@ public class ToUpperTests : BaseSingleStringTests {
     [Theory]
     [InlineData("Hello", "HELLO")]
     [InlineData("hello world", "HELLO WORLD")]
-    public async void ToUpperLogicTests(string input, string expected) {
+    public async Task ToUpperLogicTests(string input, string expected) {
         await Evaluate(input, expected);
     }
 
