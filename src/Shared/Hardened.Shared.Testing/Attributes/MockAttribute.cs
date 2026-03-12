@@ -1,26 +1,20 @@
-﻿using System.Reflection;
-using Hardened.Shared.Runtime.Application;
+using System.Reflection;
+using DependencyModules.xUnit.Attributes.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit.v3;
 
 namespace Hardened.Shared.Testing.Attributes;
 
 [AttributeUsage(AttributeTargets.Parameter)]
-public class MockAttribute : Attribute, IHardenedParameterProviderAttribute {
-    private object? _parameterValue;
-
-    public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
-        ParameterInfo? parameterInfo, IHardenedEnvironment environment,
-        IServiceCollection serviceCollection) {
-        if (parameterInfo != null) {
-            var mock = NSubstitute.Substitute.For(new[] { parameterInfo.ParameterType }, Array.Empty<object>());
-
-            _parameterValue = mock;
-            serviceCollection.AddSingleton(parameterInfo.ParameterType, mock);
-        }
+public class MockAttribute : Attribute, ITestParameterValueProvider {
+    public void SetupServiceCollection(IXunitTestMethod testCaseContext, IServiceCollection serviceCollection,
+        ParameterInfo parameter) {
+        var mock = NSubstitute.Substitute.For(new[] { parameter.ParameterType }, Array.Empty<object>());
+        serviceCollection.AddSingleton(parameter.ParameterType, _ => mock);
     }
 
-    public object? ProvideParameterValue(MethodInfo methodInfo, ParameterInfo parameterInfo,
-        IApplicationRoot applicationRoot) {
-        return _parameterValue;
+    public Task<object?> GetParameterValueAsync(IXunitTestMethod context, IServiceProvider serviceProvider,
+        ParameterInfo parameter) {
+        return Task.FromResult(serviceProvider.GetService(parameter.ParameterType));
     }
 }

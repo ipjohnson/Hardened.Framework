@@ -12,10 +12,15 @@ public static class InvokeClassGenerator {
     public static readonly ITypeDefinition GenericParameters = TypeDefinition.Get("", "Parameters");
 
     public static void GenerateInvokeClass(RequestHandlerModel handlerModel, IConstructContainer constructContainer,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool excludeFromCoverage = false) {
         var invokeClass = constructContainer.AddClass(handlerModel.InvokeHandlerType.Name);
 
         invokeClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
+
+        if (excludeFromCoverage) {
+            invokeClass.AddAttribute(
+                TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "ExcludeFromCodeCoverage"));
+        }
 
         AssignBaseTypes(handlerModel, invokeClass);
 

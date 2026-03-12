@@ -16,8 +16,9 @@ internal static class OpenApiRoutingTableGenerator {
     public static void GenerateRoute(
         SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
-        ImmutableArray<HandlerInfo?> handlerInfos) {
-        var outputString = GenerateCSharpRouteFile(models.Left, models.Right, handlerInfos, context.CancellationToken);
+        ImmutableArray<HandlerInfo?> handlerInfos,
+        bool excludeFromCoverage = false) {
+        var outputString = GenerateCSharpRouteFile(models.Left, models.Right, handlerInfos, context.CancellationToken, excludeFromCoverage);
         var fileName = models.Left.EntryPointType.Name + ".OpenApiRouting";
         context.AddSource(fileName, outputString);
     }
@@ -26,10 +27,11 @@ internal static class OpenApiRoutingTableGenerator {
         EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers,
         ImmutableArray<HandlerInfo?> handlerInfos,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool excludeFromCoverage = false) {
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
-        CreateRoutingTable(appModel, handlers, handlerInfos, applicationFile, cancellationToken);
+        CreateRoutingTable(appModel, handlers, handlerInfos, applicationFile, cancellationToken, excludeFromCoverage);
 
         var outputContext = new OutputContext(
             new OutputContextOptions {
@@ -44,7 +46,8 @@ internal static class OpenApiRoutingTableGenerator {
         IReadOnlyList<RequestHandlerModel> endPointModels,
         ImmutableArray<HandlerInfo?> handlerInfos,
         CSharpFileDefinition applicationFile,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool excludeFromCoverage = false) {
         cancellationToken.ThrowIfCancellationRequested();
 
         var appClass = applicationFile.AddClass(appModel.EntryPointType.Name);
@@ -53,6 +56,11 @@ internal static class OpenApiRoutingTableGenerator {
         var routingClass = appClass.AddClass("OpenApiRoutingTable");
         routingClass.Modifiers |= ComponentModifier.Private;
         routingClass.AddBaseType(KnownTypes.Web.IWebExecutionRequestHandlerProvider);
+
+        if (excludeFromCoverage) {
+            routingClass.AddAttribute(
+                TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "ExcludeFromCodeCoverage"));
+        }
 
         CreateConstructor(routingClass);
         ImplementHandlerMethod(appModel, routingClass, endPointModels, cancellationToken);

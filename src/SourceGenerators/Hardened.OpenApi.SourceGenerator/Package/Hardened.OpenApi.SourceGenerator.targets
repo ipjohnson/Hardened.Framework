@@ -1,0 +1,10 @@
+<Project>
+    <PropertyGroup>
+        <ExcludeGeneratedCodeFromCoverage Condition="'$(ExcludeGeneratedCodeFromCoverage)' == ''">true</ExcludeGeneratedCodeFromCoverage>
+    </PropertyGroup>
+    <ItemGroup>
+        <CompilerVisibleProperty Include="ExcludeGeneratedCodeFromCoverage"/>
+        <CompilerVisibleProperty Include="HardenedOpenApiNamespace"/>
+        <CompilerVisibleProperty Include="HardenedOpenApiGenerateJsonSerializers"/>
+    </ItemGroup>
+</Project>

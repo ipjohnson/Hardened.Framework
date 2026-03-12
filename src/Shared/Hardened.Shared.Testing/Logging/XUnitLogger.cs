@@ -1,27 +1,29 @@
-﻿using Hardened.Shared.Runtime.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
-using Xunit.Sdk;
+using XunitTestContext = Xunit.TestContext;
 
 namespace Hardened.Shared.Testing.Logging;
 
 public class XUnitLogger : ILogger {
-    private readonly IJsonSerializer _jsonSerializer;
-    private readonly string _loggerName;
-    private readonly ITestOutputHelper _testOutputHelper;
+    private static readonly JsonSerializerOptions LogSerializerOptions = new() {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
-    public XUnitLogger(
-        IJsonSerializer jsonSerializer, string loggerName, ITestOutputHelper testOutputHelper) {
-        _jsonSerializer = jsonSerializer;
+    private readonly string _loggerName;
+
+    public XUnitLogger(string loggerName) {
         _loggerName = loggerName;
-        _testOutputHelper = testOutputHelper;
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter) {
         var record = GetRecord(logLevel, eventId, state, exception, formatter);
 
-        _testOutputHelper.WriteLine(_jsonSerializer.Serialize(record, true));
+        var output = XunitTestContext.Current?.TestOutputHelper;
+        output?.WriteLine(JsonSerializer.Serialize(record, LogSerializerOptions));
     }
 
     private StructuredLogEntry<TState> GetRecord<TState>(LogLevel logLevel, EventId eventId, TState state,

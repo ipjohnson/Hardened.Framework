@@ -22,7 +22,7 @@ internal static class TypeMapper {
             ("number", "double") => "double",
             ("number", _) => "double",
             ("boolean", _) => "bool",
-            _ => "object"
+            _ => "JsonElement"
         };
     }
 
@@ -109,6 +109,7 @@ internal static class TypeMapper {
             "bool" => TypeDefinition.Get(typeof(bool)),
             "DateTime" => TypeDefinition.Get(typeof(DateTime)),
             "DateOnly" => TypeDefinition.Get("System", "DateOnly"),
+            "JsonElement" => TypeDefinition.Get("System.Text.Json", "JsonElement"),
             _ => null
         };
     }
