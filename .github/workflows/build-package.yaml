@@ -1,6 +1,6 @@
 name: build-package
 
-on: [push]
+on: [push, workflow_dispatch]
 
 permissions:
   contents: read
