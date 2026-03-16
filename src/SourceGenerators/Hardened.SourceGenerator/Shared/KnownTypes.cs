@@ -228,6 +228,10 @@ public static class KnownTypes {
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
                 "IExecutionRequestHandler");
 
+        public static readonly ITypeDefinition IFunctionHandlerProvider =
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
+                "IFunctionHandlerProvider");
+
         public static readonly ITypeDefinition IExecutionRequestHandlerInfo =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
                 "IExecutionRequestHandlerInfo");

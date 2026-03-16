@@ -97,6 +97,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.IntegrationTests.O
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.DependencyModules.SourceGenerator", "SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj", "{76585983-2ECC-4BDA-85C6-19A35993796D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Function.SourceGenerator", "SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj", "{06999170-205C-49C4-8F0D-81481F558819}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -243,6 +245,10 @@ Global
 		{76585983-2ECC-4BDA-85C6-19A35993796D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76585983-2ECC-4BDA-85C6-19A35993796D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76585983-2ECC-4BDA-85C6-19A35993796D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06999170-205C-49C4-8F0D-81481F558819}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06999170-205C-49C4-8F0D-81481F558819}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06999170-205C-49C4-8F0D-81481F558819}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06999170-205C-49C4-8F0D-81481F558819}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -287,6 +293,7 @@ Global
 		{10C9842A-FBBA-400F-9D3B-B4350C79D49C} = {3692338C-6161-4EC7-826E-53FB6DD8114C}
 		{B2941D10-F532-485E-AC98-D5D8A989B7CA} = {3692338C-6161-4EC7-826E-53FB6DD8114C}
 		{76585983-2ECC-4BDA-85C6-19A35993796D} = {EABCDDC0-6E72-43FB-9AF7-04E6681B83FD}
+		{06999170-205C-49C4-8F0D-81481F558819} = {EABCDDC0-6E72-43FB-9AF7-04E6681B83FD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF6CD1AB-6B41-427D-BA1B-C4803CF67E97}
