@@ -9,7 +9,9 @@ public class StreamingFunctionLambdaSourceGenerator : IIncrementalGenerator {
     public void Initialize(IncrementalGeneratorInitializationContext context) {
         var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
             (node, _) => node is ClassDeclarationSyntax &&
-                         node.IsAttributed("StreamingLambdaFunctionApplication"),
+                         (node.IsAttributed("StreamingLambdaFunction") ||
+                          node.IsAttributed("StreamingLambdaFunctionApplication") ||
+                          node.IsAttributed("LambdaFunctionApplication")),
             EntryPointSelector.TransformModel(true)
         ).WithComparer(new EntryPointSelector.Comparer());
 

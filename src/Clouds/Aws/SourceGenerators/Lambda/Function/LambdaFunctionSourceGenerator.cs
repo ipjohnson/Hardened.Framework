@@ -10,7 +10,9 @@ public class LambdaFunctionSourceGenerator : IIncrementalGenerator {
         var isEntryPoint = EntryPointSelector.UsingAttribute();
         var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
             (node, ct) => isEntryPoint(node, ct) &&
-                         !node.IsAttributed("StreamingLambdaFunctionApplication"),
+                         !node.IsAttributed("StreamingLambdaFunction") &&
+                         !node.IsAttributed("StreamingLambdaFunctionApplication") &&
+                         !node.IsAttributed("LambdaFunctionApplication"),
             EntryPointSelector.TransformModel(true)
         ).WithComparer(new EntryPointSelector.Comparer());
 

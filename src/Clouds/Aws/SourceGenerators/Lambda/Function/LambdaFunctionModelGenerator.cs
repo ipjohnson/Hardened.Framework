@@ -9,7 +9,7 @@ namespace Hardened.Amz.Function.Lambda.SourceGenerator;
 
 public class LambdaFunctionModelGenerator : BaseRequestModelGenerator {
     private readonly List<string> _attributeNames = new() {
-        "LambdaFunction"
+        "HardenedFunction"
     };
     
     protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation) {
