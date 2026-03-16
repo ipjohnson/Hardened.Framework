@@ -20,7 +20,8 @@ public class StructuredLogLineBuilder {
     }
 
     public string Build<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-        Func<TState, Exception?, string> formatter) {
+        Func<TState, Exception?, string> formatter,
+        IReadOnlyList<KeyValuePair<string, object?>>? scopeProperties = null) {
         using var stringBuilder = _stringBuilderPool.Get();
 
         stringBuilder.Item.Append("{");
@@ -63,6 +64,13 @@ public class StructuredLogLineBuilder {
             stringBuilder.Item.Append($"\"stateType\":\"{state?.GetType().Name}\",");
         }
         
+        if (scopeProperties is { Count: > 0 }) {
+            foreach (var kvp in scopeProperties) {
+                if (kvp.Value is null) continue;
+                AppendKeyedStringValue(stringBuilder.Item, kvp.Key, kvp.Value.ToString() ?? "");
+            }
+        }
+
         AppendKeyedStringValue(stringBuilder.Item, "message", formatter(state, exception), false);
         
         stringBuilder.Item.Append("}");

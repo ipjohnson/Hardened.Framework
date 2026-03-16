@@ -10,6 +10,7 @@ using Hardened.Shared.Runtime.Collections;
 namespace Hardened.Amz.Shared.Lambda.Runtime.Logging;
 
 public class LambdaStructuredLogger : ILogger {
+    private static readonly AsyncLocal<LogScope?> _currentScope = new();
     private readonly IJsonSerializer _jsonSerializer;
     private readonly ILambdaContextAccessor _lambdaContextAccessor;
     private readonly StructuredLogLineBuilder _structuredLogLineBuilder;
@@ -22,19 +23,47 @@ public class LambdaStructuredLogger : ILogger {
         _jsonSerializer = jsonSerializer;
         _lambdaContextAccessor = lambdaContextAccessor;
         _structuredLogLineBuilder = new StructuredLogLineBuilder(jsonSerializer, stringBuilderPool, categoryName);
-        
+
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter) {
-        var serializedData = _structuredLogLineBuilder.Build(logLevel, eventId, state, exception, formatter);
-        
+        var scopeProperties = GetScopeProperties();
+        var serializedData = _structuredLogLineBuilder.Build(logLevel, eventId, state, exception, formatter, scopeProperties);
+
         _lambdaContextAccessor.Context!.Logger.LogLine(serializedData);
     }
-    
+
     public bool IsEnabled(LogLevel logLevel) {
         return true;
     }
 
-    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => default!;
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull {
+        var scope = new LogScope(state, _currentScope.Value);
+        _currentScope.Value = scope;
+        return scope;
+    }
+
+    private static IReadOnlyList<KeyValuePair<string, object?>>? GetScopeProperties() {
+        var scope = _currentScope.Value;
+        if (scope is null) return null;
+
+        var properties = new List<KeyValuePair<string, object?>>();
+        var current = scope;
+        while (current is not null) {
+            properties.AddRange(current.Properties);
+            current = current.Parent;
+        }
+        return properties;
+    }
+
+    private sealed class LogScope(object state, LogScope? parent) : IDisposable {
+        public LogScope? Parent { get; } = parent;
+        public KeyValuePair<string, object?>[] Properties { get; } = state switch {
+            IEnumerable<KeyValuePair<string, object?>> kvps => kvps.ToArray(),
+            _ => [new KeyValuePair<string, object?>("scope", state.ToString())]
+        };
+
+        public void Dispose() => _currentScope.Value = Parent;
+    }
 }
