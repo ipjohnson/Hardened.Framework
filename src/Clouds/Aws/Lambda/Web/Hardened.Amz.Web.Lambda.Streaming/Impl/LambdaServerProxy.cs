@@ -41,8 +41,6 @@ public class LambdaServerProxy : ILambdaServerProxy {
         response.EnsureSuccessStatusCode();
 
         var rawPayload = await response.Content.ReadAsStringAsync(ct);
-        // Use Console directly since ILambdaContext is not yet set on the accessor
-        Console.Error.WriteLine($"[LambdaServerProxy] Raw payload: {rawPayload}");
 
         var request = JsonSerializer.Deserialize(
             rawPayload,
@@ -51,9 +49,6 @@ public class LambdaServerProxy : ILambdaServerProxy {
         if (request == null) {
             throw new InvalidOperationException("Failed to deserialize invocation request.");
         }
-
-        Console.Error.WriteLine(
-            $"[LambdaServerProxy] Deserialized - Method: {request.RequestContext?.Http?.Method ?? "NULL"}, Path: {request.RawPath ?? "NULL"}, RC null: {request.RequestContext == null}, Http null: {request.RequestContext?.Http == null}");
 
         var requestId = response.Headers
             .GetValues("Lambda-Runtime-Aws-Request-Id").First();
@@ -68,8 +63,6 @@ public class LambdaServerProxy : ILambdaServerProxy {
     }
 
     public async Task SendResponse(string requestId, PipeReader reader, CancellationToken ct) {
-        Console.Error.WriteLine($"[LambdaServerProxy] SendResponse started for requestId: {requestId}");
-
         var client = _clientProvider.GetClient();
 
         var streamContent = new ResponsiveStreamContent(reader.AsStream(true));
@@ -84,12 +77,7 @@ public class LambdaServerProxy : ILambdaServerProxy {
         request.Headers.Add("Lambda-Runtime-Function-Response-Mode", "streaming");
         request.Headers.TransferEncodingChunked = true;
 
-        Console.Error.WriteLine($"[LambdaServerProxy] Sending streaming response POST for requestId: {requestId}");
-
         var response = await client.SendAsync(request, ct).ConfigureAwait(false);
-
-        Console.Error.WriteLine($"[LambdaServerProxy] Response POST completed - Status: {response.StatusCode} for requestId: {requestId}");
-
         response.EnsureSuccessStatusCode();
     }
 
