@@ -146,4 +146,26 @@ public class StructuredLogLineBuilderTests {
         Assert.Contains("\"stateType\":\"String\"", result);
         _jsonSerializer.Received(1).Serialize(state);
     }
+
+    [Fact]
+    public void IncludesScopeProperties_WhenProvided() {
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "test")
+        };
+        var scopeProperties = new List<KeyValuePair<string, object?>> {
+            new("userId", "user-123"),
+            new("sessionId", "sess-456"),
+            new("requestId", "req-789")
+        };
+
+        var result = _builder.Build(LogLevel.Information, new EventId(1),
+            state, null, (s, e) => "test message", scopeProperties);
+
+        var doc = JsonDocument.Parse(result);
+        var root = doc.RootElement;
+
+        Assert.Equal("user-123", root.GetProperty("userId").GetString());
+        Assert.Equal("sess-456", root.GetProperty("sessionId").GetString());
+        Assert.Equal("req-789", root.GetProperty("requestId").GetString());
+    }
 }

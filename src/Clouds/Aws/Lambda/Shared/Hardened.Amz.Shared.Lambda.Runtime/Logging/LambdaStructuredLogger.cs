@@ -11,6 +11,7 @@ namespace Hardened.Amz.Shared.Lambda.Runtime.Logging;
 
 public class LambdaStructuredLogger : ILogger {
     private static readonly AsyncLocal<LogScope?> _currentScope = new();
+    private static long _beginScopeCallCount;
     private readonly IJsonSerializer _jsonSerializer;
     private readonly ILambdaContextAccessor _lambdaContextAccessor;
     private readonly StructuredLogLineBuilder _structuredLogLineBuilder;
@@ -29,7 +30,8 @@ public class LambdaStructuredLogger : ILogger {
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter) {
         var scopeProperties = GetScopeProperties();
-        var serializedData = _structuredLogLineBuilder.Build(logLevel, eventId, state, exception, formatter, scopeProperties);
+        var serializedData = _structuredLogLineBuilder.Build(logLevel, eventId, state, exception, formatter, scopeProperties,
+            BeginScopeCallCount, _currentScope.Value != null);
 
         _lambdaContextAccessor.Context!.Logger.LogLine(serializedData);
     }
@@ -39,10 +41,13 @@ public class LambdaStructuredLogger : ILogger {
     }
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull {
+        Interlocked.Increment(ref _beginScopeCallCount);
         var scope = new LogScope(state, _currentScope.Value);
         _currentScope.Value = scope;
         return scope;
     }
+
+    internal static long BeginScopeCallCount => Interlocked.Read(ref _beginScopeCallCount);
 
     private static IReadOnlyList<KeyValuePair<string, object?>>? GetScopeProperties() {
         var scope = _currentScope.Value;

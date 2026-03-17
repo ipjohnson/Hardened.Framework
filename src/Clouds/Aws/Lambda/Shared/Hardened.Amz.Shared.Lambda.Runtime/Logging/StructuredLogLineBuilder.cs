@@ -21,7 +21,9 @@ public class StructuredLogLineBuilder {
 
     public string Build<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter,
-        IReadOnlyList<KeyValuePair<string, object?>>? scopeProperties = null) {
+        IReadOnlyList<KeyValuePair<string, object?>>? scopeProperties = null,
+        long beginScopeCallCount = 0,
+        bool scopeActive = false) {
         using var stringBuilder = _stringBuilderPool.Get();
 
         stringBuilder.Item.Append("{");
@@ -64,6 +66,15 @@ public class StructuredLogLineBuilder {
             stringBuilder.Item.Append($"\"stateType\":\"{state?.GetType().Name}\",");
         }
         
+        // Diagnostic: emit scope debug info to verify scope propagation in CloudWatch
+        stringBuilder.Item.Append("\"__scopeCount\":");
+        stringBuilder.Item.Append(scopeProperties?.Count ?? 0);
+        stringBuilder.Item.Append(",\"__beginScopeCalls\":");
+        stringBuilder.Item.Append(beginScopeCallCount);
+        stringBuilder.Item.Append(",\"__scopeActive\":");
+        stringBuilder.Item.Append(scopeActive ? "true" : "false");
+        stringBuilder.Item.Append(',');
+
         if (scopeProperties is { Count: > 0 }) {
             foreach (var kvp in scopeProperties) {
                 if (kvp.Value is null) continue;
