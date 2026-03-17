@@ -6,8 +6,8 @@ namespace Hardened.Requests.Runtime.QueryString;
 public class SimpleQueryStringCollection : IQueryStringCollection {
     private readonly IDictionary<string, string> _queryParameters;
 
-    public SimpleQueryStringCollection(IDictionary<string, string> queryParameters) {
-        _queryParameters = queryParameters;
+    public SimpleQueryStringCollection(IDictionary<string, string>? queryParameters) {
+        _queryParameters = queryParameters ?? new Dictionary<string, string>();
     }
 
     public int Count => _queryParameters.Count;
