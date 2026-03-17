@@ -4,6 +4,7 @@ using DependencyModules.Runtime.Attributes;
 using Hardened.Amz.Shared.Lambda.Runtime.Execution;
 using Hardened.Amz.Web.Lambda.Streaming.Serializer;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
@@ -50,6 +51,7 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
             try {
                 var invocation = await _serverProxy.GetNextInvocation(ct);
                 requestId = invocation.RequestId;
+                var requestStartTimestamp = MachineTimestamp.Now;
 
                 _lambdaContextAccessor.Context = invocation.LambdaContext;
 
@@ -65,49 +67,36 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                                 invocation.RequestId, pipe.Reader, ct), ct);
                     });
 
+                var metricLogger = _metricLoggerProvider.CreateLogger("HardenedRequests");
                 var executionContext = _requestMapper.CreateExecutionContext(
                     _serviceProvider,
                     scope.ServiceProvider,
                     invocation.Request,
                     responseStream,
                     bodyStream,
-                    _metricLoggerProvider.CreateLogger("HardenedRequests"));
+                    metricLogger);
 
                 responseStream.SetExecutionResponse(executionContext.Response);
 
                 var chain = _middlewareService.GetExecutionChain(executionContext);
                 await chain.Next();
 
-                Console.Error.WriteLine($"[LambdaInvokeEngine] Chain completed. ResponseStarted: {responseStream.HasResponseStarted}, WrittenBytes: {responseStream.Length}");
-
                 await responseStream.FlushAsync(ct);
-
-                Console.Error.WriteLine("[LambdaInvokeEngine] ResponseStream flushed, flushing pipe writer");
-
                 await pipe.Writer.FlushAsync(ct);
-
-                Console.Error.WriteLine("[LambdaInvokeEngine] Pipe writer flushed, completing pipe writer");
-
                 await pipe.Writer.CompleteAsync();
 
-                Console.Error.WriteLine($"[LambdaInvokeEngine] Pipe writer completed. ResponseTask null: {responseTask == null}");
-
                 if (responseTask != null) {
-                    Console.Error.WriteLine("[LambdaInvokeEngine] Awaiting response task...");
                     await responseTask;
-                    Console.Error.WriteLine("[LambdaInvokeEngine] Response task completed successfully");
                 }
-                else {
-                    Console.Error.WriteLine("[LambdaInvokeEngine] WARNING: responseTask is null - response was never started");
-                }
+
+                metricLogger.Record(RequestMetrics.TotalRequestDuration,
+                    requestStartTimestamp.GetElapsedMilliseconds());
+                metricLogger.Dispose();
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) {
                 break;
             }
             catch (Exception ex) {
-                // Use Console.Error since ILambdaContext may not be set yet
-                Console.Error.WriteLine($"[LambdaInvokeEngine] Error processing invocation: {ex}");
-
                 if (responseTask == null) {
                     // Response not started yet — complete pipe and report error to Lambda runtime
                     try {
@@ -121,8 +110,8 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                         try {
                             await _serverProxy.ReportError(requestId, ex, ct);
                         }
-                        catch (Exception reportEx) {
-                            Console.Error.WriteLine($"[LambdaInvokeEngine] Failed to report error: {reportEx}");
+                        catch {
+                            // Best effort error reporting
                         }
                     }
                 }
