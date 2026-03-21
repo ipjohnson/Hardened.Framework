@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -20,12 +21,35 @@ public class AotRequestDeserializer : IRequestDeserializer {
         ILogger<AotRequestDeserializer> logger,
         IEnumerable<IJsonTypeInfoResolver> resolvers) {
         _logger = logger;
-        _serializerOptions =
-            configuration.Value.DeSerializerOptions ??
-            new(JsonSerializerDefaults.Web);
+
+        // Build options without a default reflection-based resolver so that
+        // tests fail the same way AOT production does when source-gen type
+        // registrations are missing.
+        var sourceOptions = configuration.Value.DeSerializerOptions;
+        _serializerOptions = new JsonSerializerOptions {
+            PropertyNameCaseInsensitive = sourceOptions?.PropertyNameCaseInsensitive ?? true,
+            PropertyNamingPolicy = sourceOptions?.PropertyNamingPolicy ?? JsonNamingPolicy.CamelCase,
+            NumberHandling = sourceOptions?.NumberHandling ?? JsonNumberHandling.AllowReadingFromString,
+        };
+
+        // Copy converters from configured options
+        if (sourceOptions != null) {
+            foreach (var converter in sourceOptions.Converters) {
+                _serializerOptions.Converters.Add(converter);
+            }
+        }
 
         foreach (var resolver in resolvers) {
             _serializerOptions.TypeInfoResolverChain.Add(resolver);
+
+            // Pull converters from source-generated contexts (e.g. UnixEpochDateTimeConverter)
+            if (resolver is JsonSerializerContext ctx) {
+                foreach (var converter in ctx.Options.Converters) {
+                    if (!_serializerOptions.Converters.Contains(converter)) {
+                        _serializerOptions.Converters.Add(converter);
+                    }
+                }
+            }
         }
     }
 
