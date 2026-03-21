@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Hardened.Shared.Runtime.Metrics;
 
-namespace Hardened.Amz.Web.Lambda.Runtime.Metrics;
+namespace Hardened.Amz.Shared.Lambda.Runtime.Metrics;
 
 public class EmbeddedMetricLogger : IMetricLogger {
     private int _disposed;
