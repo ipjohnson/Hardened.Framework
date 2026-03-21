@@ -1,6 +1,6 @@
 using DependencyModules.Runtime.Attributes;
 
-namespace Hardened.Amz.Web.Lambda.Runtime.Metrics;
+namespace Hardened.Amz.Shared.Lambda.Runtime.Metrics;
 
 public interface IDimensionSetProvider {
     IEnumerable<IReadOnlyList<string>> Get(IReadOnlyCollection<Tuple<string, object>> tags);

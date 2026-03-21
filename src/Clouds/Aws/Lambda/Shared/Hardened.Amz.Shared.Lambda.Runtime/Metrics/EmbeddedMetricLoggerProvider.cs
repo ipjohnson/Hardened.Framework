@@ -1,7 +1,7 @@
 using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Metrics;
 
-namespace Hardened.Amz.Web.Lambda.Runtime.Metrics;
+namespace Hardened.Amz.Shared.Lambda.Runtime.Metrics;
 
 [SingletonService]
 public class EmbeddedMetricLoggerProvider : IMetricLoggerProvider {
