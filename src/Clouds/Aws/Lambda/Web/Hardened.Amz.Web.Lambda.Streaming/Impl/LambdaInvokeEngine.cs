@@ -79,14 +79,29 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                 responseStream.SetExecutionResponse(executionContext.Response);
 
                 var chain = _middlewareService.GetExecutionChain(executionContext);
+                Console.Error.WriteLine($"[StreamDiag] {requestId} chain.Next starting");
                 await chain.Next();
+                Console.Error.WriteLine($"[StreamDiag] {requestId} chain.Next done, responseStarted={responseStream.HasResponseStarted}, bodyBytes={responseStream.Length}");
 
+                Console.Error.WriteLine($"[StreamDiag] {requestId} responseStream.FlushAsync starting");
                 await responseStream.FlushAsync(ct);
+                Console.Error.WriteLine($"[StreamDiag] {requestId} responseStream.FlushAsync done, responseStarted={responseStream.HasResponseStarted}");
+
+                Console.Error.WriteLine($"[StreamDiag] {requestId} pipe.Writer.FlushAsync starting");
                 await pipe.Writer.FlushAsync(ct);
+                Console.Error.WriteLine($"[StreamDiag] {requestId} pipe.Writer.FlushAsync done");
+
+                Console.Error.WriteLine($"[StreamDiag] {requestId} pipe.Writer.CompleteAsync starting");
                 await pipe.Writer.CompleteAsync();
+                Console.Error.WriteLine($"[StreamDiag] {requestId} pipe.Writer.CompleteAsync done, responseTask={responseTask != null}");
 
                 if (responseTask != null) {
+                    Console.Error.WriteLine($"[StreamDiag] {requestId} awaiting responseTask");
                     await responseTask;
+                    Console.Error.WriteLine($"[StreamDiag] {requestId} responseTask completed");
+                }
+                else {
+                    Console.Error.WriteLine($"[StreamDiag] {requestId} WARNING: responseTask is null - no response sent!");
                 }
 
                 metricLogger.Record(RequestMetrics.TotalRequestDuration,
