@@ -67,6 +67,12 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
                     context.Response.Body.WriteByte((byte)'\n');
                     await context.Response.Body.FlushAsync(context.CancellationToken);
                 }
+
+                // Write a trailing newline so the streaming response body is never
+                // empty. Lambda Function URLs don't close the body stream promptly
+                // for zero-byte responses, causing downstream readers to hang.
+                context.Response.Body.WriteByte((byte)'\n');
+                await context.Response.Body.FlushAsync(context.CancellationToken);
             }
             else if (chain.Context.Response.ShouldSerialize) {
                 await _serializeResponse(chain.Context);
