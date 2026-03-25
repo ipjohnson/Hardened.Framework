@@ -51,9 +51,9 @@ public class JsonTypeInfoEmitterTests {
 
         Assert.Contains("CreatePropertyInfo<string>(options", result);
         Assert.Contains("DeclaringType = typeof(Pet)", result);
-        Assert.Contains("PropertyName = \"Id\"", result);
-        Assert.Contains("PropertyName = \"Name\"", result);
-        Assert.Contains("PropertyName = \"Tag\"", result);
+        Assert.Contains("PropertyName = \"id\"", result);
+        Assert.Contains("PropertyName = \"name\"", result);
+        Assert.Contains("PropertyName = \"tag\"", result);
         Assert.Contains("((Pet)obj).Id", result);
         Assert.Contains("((Pet)obj).Name", result);
         Assert.Contains("((Pet)obj).Tag", result);
@@ -78,9 +78,9 @@ public class JsonTypeInfoEmitterTests {
         var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
 
         Assert.Contains("ConstructorParameterMetadataInitializer", result);
-        Assert.Contains("Name = \"Id\"", result);
-        Assert.Contains("Name = \"Name\"", result);
-        Assert.Contains("Name = \"Tag\"", result);
+        Assert.Contains("Name = \"id\"", result);
+        Assert.Contains("Name = \"name\"", result);
+        Assert.Contains("Name = \"tag\"", result);
         // Required params: HasDefaultValue = false
         Assert.Contains("Position = 0", result);
         Assert.Contains("Position = 1", result);
@@ -509,7 +509,7 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_PascalCasePropertyNames() {
+    public void Emit_PreservesOriginalJsonPropertyNames() {
         var schemas = new List<SchemaModel> {
             new() {
                 Name = "user-profile",
@@ -523,12 +523,14 @@ public class JsonTypeInfoEmitterTests {
 
         var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
 
+        // C# type and property names are PascalCase
         Assert.Contains("typeof(UserProfile)", result);
         Assert.Contains("CreateUserProfileTypeInfo", result);
-        Assert.Contains("PropertyName = \"FirstName\"", result);
-        Assert.Contains("PropertyName = \"LastName\"", result);
         Assert.Contains("((UserProfile)obj).FirstName", result);
         Assert.Contains("((UserProfile)obj).LastName", result);
+        // JSON property names preserve original OpenAPI casing
+        Assert.Contains("PropertyName = \"first_name\"", result);
+        Assert.Contains("PropertyName = \"last-name\"", result);
     }
 
     [Fact]

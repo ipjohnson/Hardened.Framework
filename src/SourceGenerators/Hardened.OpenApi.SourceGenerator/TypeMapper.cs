@@ -17,6 +17,7 @@ internal static class TypeMapper {
             ("string", "binary") => "byte[]",
             ("string", _) => "string",
             ("integer", "int64") => "long",
+            ("integer", "uint32") => "uint",
             ("integer", _) => "int",
             ("number", "float") => "float",
             ("number", "double") => "double",
@@ -103,6 +104,7 @@ internal static class TypeMapper {
         return csType switch {
             "string" => TypeDefinition.Get(typeof(string)),
             "int" => TypeDefinition.Get(typeof(int)),
+            "uint" => TypeDefinition.Get(typeof(uint)),
             "long" => TypeDefinition.Get(typeof(long)),
             "float" => TypeDefinition.Get(typeof(float)),
             "double" => TypeDefinition.Get(typeof(double)),
