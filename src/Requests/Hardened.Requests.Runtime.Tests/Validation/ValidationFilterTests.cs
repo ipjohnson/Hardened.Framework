@@ -61,7 +61,7 @@ public class ValidationFilterTests {
         await filter.Execute(chain);
 
         response.Received(1).Status = 400;
-        Assert.IsType<ValidationErrorModel>(response.ResponseValue);
+        Assert.IsType<RequestValidationError>(response.ResponseValue);
         await chain.DidNotReceive().Next();
     }
 
@@ -94,7 +94,7 @@ public class ValidationFilterTests {
         await filter.Execute(chain);
 
         response.Received(1).Status = 400;
-        var errorModel = (ValidationErrorModel)response.ResponseValue!;
+        var errorModel = (RequestValidationError)response.ResponseValue!;
         Assert.Equal(2, errorModel.Errors.Count);
         await chain.DidNotReceive().Next();
     }

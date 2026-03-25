@@ -9,10 +9,10 @@ namespace Hardened.Requests.Runtime.Errors;
 public class ExceptionToModelConverter : IExceptionToModelConverter {
     public (int, object) ConvertExceptionToModel(IExecutionContext context, Exception exp) {
         if (exp is ValidationException validationException) {
-            var errorModel = new ValidationErrorModel {
+            var errorModel = new RequestValidationError {
                 Type = "ValidationError",
                 Message = validationException.Message,
-                Errors = validationException.ValidationResult.Errors.Select(e => new ValidationFieldError {
+                Errors = validationException.ValidationResult.Errors.Select(e => new RequestValidationFieldError {
                     Field = e.Field,
                     Code = e.Code,
                     Message = e.Message

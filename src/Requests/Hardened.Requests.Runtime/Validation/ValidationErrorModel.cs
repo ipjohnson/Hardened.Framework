@@ -1,14 +1,14 @@
 namespace Hardened.Requests.Runtime.Validation;
 
-public class ValidationErrorModel {
+public class RequestValidationError {
     public string Type { get; set; } = "";
 
     public string Message { get; set; } = "";
 
-    public List<ValidationFieldError> Errors { get; set; } = new();
+    public List<RequestValidationFieldError> Errors { get; set; } = new();
 }
 
-public class ValidationFieldError {
+public class RequestValidationFieldError {
     public string Field { get; set; } = "";
 
     public string Code { get; set; } = "";
