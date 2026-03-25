@@ -76,12 +76,12 @@ public class ValidationFilter : IExecutionFilter {
             }
         }
 
-        // 4. If errors: set 400 + ValidationErrorModel, return
+        // 4. If errors: set 400 + RequestValidationError, return
         if (!result.IsValid) {
-            var errorModel = new ValidationErrorModel {
+            var errorModel = new RequestValidationError {
                 Type = "ValidationError",
                 Message = "One or more validation errors occurred.",
-                Errors = result.Errors.Select(e => new ValidationFieldError {
+                Errors = result.Errors.Select(e => new RequestValidationFieldError {
                     Field = e.Field,
                     Code = e.Code,
                     Message = e.Message
