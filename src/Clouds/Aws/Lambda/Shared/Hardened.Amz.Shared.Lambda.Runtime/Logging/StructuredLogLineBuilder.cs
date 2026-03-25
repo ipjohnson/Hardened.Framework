@@ -8,15 +8,29 @@ using Microsoft.Extensions.Logging;
 namespace Hardened.Amz.Shared.Lambda.Runtime.Logging;
 
 public class StructuredLogLineBuilder {
+    private const int DefaultMaxLogLineLength = 3 * 1024;
+    private const int DefaultMaxFieldLength = 1024;
+    private const int DefaultMaxStackTraceLength = 512;
+    private const string TruncationMarker = "...[truncated]";
+
     private readonly IJsonSerializer _jsonSerializer;
     private readonly IStringBuilderPool _stringBuilderPool;
     private readonly string _logger;
+    private readonly int _maxLogLineLength;
+    private readonly int _maxFieldLength;
+    private readonly int _maxStackTraceLength;
 
-    public StructuredLogLineBuilder(IJsonSerializer jsonSerializer, 
-        IStringBuilderPool stringBuilderPool, string logger) {
+    public StructuredLogLineBuilder(IJsonSerializer jsonSerializer,
+        IStringBuilderPool stringBuilderPool, string logger,
+        int maxLogLineLength = DefaultMaxLogLineLength,
+        int maxFieldLength = DefaultMaxFieldLength,
+        int maxStackTraceLength = DefaultMaxStackTraceLength) {
         _jsonSerializer = jsonSerializer;
         _stringBuilderPool = stringBuilderPool;
         _logger = logger;
+        _maxLogLineLength = maxLogLineLength;
+        _maxFieldLength = maxFieldLength;
+        _maxStackTraceLength = maxStackTraceLength;
     }
 
     public string Build<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
@@ -33,9 +47,9 @@ public class StructuredLogLineBuilder {
         AppendKeyedStringValue(stringBuilder.Item, "eventId", eventId.ToString());
         
         if (exception != null) {
-            AppendKeyedStringValue(stringBuilder.Item, "exception", exception.Message);
+            AppendKeyedStringValue(stringBuilder.Item, "exception", exception.Message, maxValueLength: _maxFieldLength);
             AppendKeyedStringValue(stringBuilder.Item, "exceptionType", exception.GetType().Name);
-            AppendKeyedStringValue(stringBuilder.Item, "stackTrace", exception.StackTrace ?? "");
+            AppendKeyedStringValue(stringBuilder.Item, "stackTrace", exception.StackTrace ?? "", maxValueLength: _maxStackTraceLength);
         }
         
         if (state is IEnumerable<KeyValuePair<string,object?>> tupleData) {
@@ -45,24 +59,26 @@ public class StructuredLogLineBuilder {
                     continue;
                 }
 
-                if (keyValuePair.Value is string || 
+                if (keyValuePair.Value is string ||
                     (keyValuePair.Value?.GetType().IsPrimitive ?? false)) {
-                    AppendKeyedStringValue(stringBuilder.Item,"request." + keyValuePair.Key, keyValuePair.Value?.ToString() ?? "");
+                    AppendKeyedStringValue(stringBuilder.Item,"request." + keyValuePair.Key, keyValuePair.Value?.ToString() ?? "", maxValueLength: _maxFieldLength);
                 }
                 else {
                     var valueString = _jsonSerializer.Serialize(keyValuePair.Value!);
-                    
+                    valueString = Truncate(valueString, _maxFieldLength);
+
                     stringBuilder.Item.Append($"\"request.{keyValuePair.Key}\":\"{valueString}\",");
                 }
             }
         }
         else {
             var serializedState = _jsonSerializer.Serialize(state!);
-            
+            serializedState = Truncate(serializedState, _maxFieldLength);
+
             stringBuilder.Item.Append("\"request\":");
             stringBuilder.Item.Append(serializedState);
             stringBuilder.Item.Append(',');
-            
+
             stringBuilder.Item.Append($"\"stateType\":\"{state?.GetType().Name}\",");
         }
         
@@ -82,27 +98,45 @@ public class StructuredLogLineBuilder {
             }
         }
 
-        AppendKeyedStringValue(stringBuilder.Item, "message", formatter(state, exception), false);
-        
+        AppendKeyedStringValue(stringBuilder.Item, "message", formatter(state, exception), includeComma: false, maxValueLength: _maxFieldLength);
+
         stringBuilder.Item.Append("}");
+
+        if (stringBuilder.Item.Length > _maxLogLineLength) {
+            stringBuilder.Item.Length = _maxLogLineLength - TruncationMarker.Length - 1;
+            stringBuilder.Item.Append(TruncationMarker);
+            stringBuilder.Item.Append('}');
+        }
 
         return stringBuilder.Item.ToString();
     }
 
-    private void AppendKeyedStringValue(StringBuilder stringBuilder, string key, string value, bool includeComma = true) {
+    private void AppendKeyedStringValue(StringBuilder stringBuilder, string key, string value, bool includeComma = true, int maxValueLength = 0) {
         stringBuilder.Append('"');
         stringBuilder.Append(key);
         stringBuilder.Append("\":\"");
-        WriteEscapedStringToBuilder(stringBuilder, value);
+        WriteEscapedStringToBuilder(stringBuilder, value, maxValueLength > 0 ? maxValueLength : _maxFieldLength);
         stringBuilder.Append('"');
 
         if (includeComma)
             stringBuilder.Append(',');
     }
-    
-    private void WriteEscapedStringToBuilder(StringBuilder stringBuilder, string value) {
+
+    private static string Truncate(string value, int maxLength) {
+        if (value.Length <= maxLength) return value;
+        return string.Concat(value.AsSpan(0, maxLength - TruncationMarker.Length), TruncationMarker);
+    }
+
+    private void WriteEscapedStringToBuilder(StringBuilder stringBuilder, string value, int maxLength = 0) {
+        var effectiveMax = maxLength > 0 ? maxLength : _maxFieldLength;
+        var startLength = stringBuilder.Length;
 
         foreach (char c in value) {
+            if (stringBuilder.Length - startLength >= effectiveMax) {
+                stringBuilder.Append(TruncationMarker);
+                return;
+            }
+
             switch (c) {
                 case '"':    
                     stringBuilder.Append("\\\"");

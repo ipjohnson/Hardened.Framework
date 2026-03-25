@@ -148,6 +148,61 @@ public class StructuredLogLineBuilderTests {
     }
 
     [Fact]
+    public void TruncatesStackTrace_WhenExceedsMaxLength() {
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "error")
+        };
+
+        // Generate a real exception with a stack trace
+        Exception exception;
+        try { throw new InvalidOperationException("something went wrong"); }
+        catch (Exception ex) { exception = ex; }
+
+        var builder = new StructuredLogLineBuilder(
+            _jsonSerializer, new StringBuilderPool(), "TestLogger",
+            maxStackTraceLength: 50);
+
+        var result = builder.Build(LogLevel.Error, new EventId(1),
+            state, exception, (s, e) => "error");
+
+        var doc = JsonDocument.Parse(result);
+        var stackTrace = doc.RootElement.GetProperty("stackTrace").GetString()!;
+        Assert.Contains("...[truncated]", stackTrace);
+    }
+
+    [Fact]
+    public void TruncatesOverallLogLine_WhenExceedsMaxLength() {
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "test"),
+            new("bigData", new string('y', 5000))
+        };
+
+        var builder = new StructuredLogLineBuilder(
+            _jsonSerializer, new StringBuilderPool(), "TestLogger",
+            maxLogLineLength: 512);
+
+        var result = builder.Build(LogLevel.Information, new EventId(1),
+            state, null, (s, e) => "test");
+
+        Assert.True(result.Length <= 512);
+        Assert.EndsWith("}", result);
+    }
+
+    [Fact]
+    public void DoesNotTruncate_WhenUnderLimits() {
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "short message")
+        };
+
+        var result = _builder.Build(LogLevel.Information, new EventId(1),
+            state, null, (s, e) => "short message");
+
+        Assert.DoesNotContain("...[truncated]", result);
+        var doc = JsonDocument.Parse(result);
+        Assert.Equal("short message", doc.RootElement.GetProperty("message").GetString());
+    }
+
+    [Fact]
     public void IncludesScopeProperties_WhenProvided() {
         var state = new List<KeyValuePair<string, object?>> {
             new("{OriginalFormat}", "test")
