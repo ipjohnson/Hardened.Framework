@@ -65,6 +65,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        if (type == typeof(string)) return JsonMetadataServices.CreateValueInfo<string>(options, JsonMetadataServices.StringConverter);");
         sb.AppendLine("        if (type == typeof(bool)) return JsonMetadataServices.CreateValueInfo<bool>(options, JsonMetadataServices.BooleanConverter);");
         sb.AppendLine("        if (type == typeof(int)) return JsonMetadataServices.CreateValueInfo<int>(options, JsonMetadataServices.Int32Converter);");
+        sb.AppendLine("        if (type == typeof(uint)) return JsonMetadataServices.CreateValueInfo<uint>(options, JsonMetadataServices.UInt32Converter);");
         sb.AppendLine("        if (type == typeof(long)) return JsonMetadataServices.CreateValueInfo<long>(options, JsonMetadataServices.Int64Converter);");
         sb.AppendLine("        if (type == typeof(float)) return JsonMetadataServices.CreateValueInfo<float>(options, JsonMetadataServices.SingleConverter);");
         sb.AppendLine("        if (type == typeof(double)) return JsonMetadataServices.CreateValueInfo<double>(options, JsonMetadataServices.DoubleConverter);");
@@ -76,6 +77,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        // Nullable value types");
         sb.AppendLine("        if (type == typeof(bool?)) return JsonMetadataServices.CreateValueInfo<bool?>(options, JsonMetadataServices.GetNullableConverter<bool>(options));");
         sb.AppendLine("        if (type == typeof(int?)) return JsonMetadataServices.CreateValueInfo<int?>(options, JsonMetadataServices.GetNullableConverter<int>(options));");
+        sb.AppendLine("        if (type == typeof(uint?)) return JsonMetadataServices.CreateValueInfo<uint?>(options, JsonMetadataServices.GetNullableConverter<uint>(options));");
         sb.AppendLine("        if (type == typeof(long?)) return JsonMetadataServices.CreateValueInfo<long?>(options, JsonMetadataServices.GetNullableConverter<long>(options));");
         sb.AppendLine("        if (type == typeof(float?)) return JsonMetadataServices.CreateValueInfo<float?>(options, JsonMetadataServices.GetNullableConverter<float>(options));");
         sb.AppendLine("        if (type == typeof(double?)) return JsonMetadataServices.CreateValueInfo<double?>(options, JsonMetadataServices.GetNullableConverter<double>(options));");
@@ -145,7 +147,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("                    IsProperty = true,");
         sb.AppendLine("                    IsPublic = true,");
         sb.AppendLine($"                    DeclaringType = typeof({declaringTypeName}),");
-        sb.AppendLine($"                    PropertyName = \"{propName}\",");
+        sb.AppendLine($"                    PropertyName = \"{prop.Name}\",");
         sb.AppendLine($"                    Getter = static obj => (({declaringTypeName})obj).{propName},");
         sb.AppendLine("                    Setter = null,");
         sb.AppendLine("                }),");
@@ -162,7 +164,7 @@ internal static class JsonTypeInfoEmitter {
 
         sb.AppendLine("                new()");
         sb.AppendLine("                {");
-        sb.AppendLine($"                    Name = \"{propName}\",");
+        sb.AppendLine($"                    Name = \"{prop.Name}\",");
         sb.AppendLine($"                    ParameterType = typeof({paramType}),");
         sb.AppendLine($"                    Position = {position},");
         sb.AppendLine($"                    HasDefaultValue = {(prop.IsRequired ? "false" : "true")},");
@@ -251,6 +253,7 @@ internal static class JsonTypeInfoEmitter {
     private static bool IsValueType(string csType, PropertyModel prop, List<SchemaModel> allSchemas) {
         switch (csType) {
             case "int":
+            case "uint":
             case "long":
             case "float":
             case "double":
