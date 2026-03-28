@@ -21,7 +21,7 @@ public class RecordEmitterTests {
         var result = RecordEmitter.Emit(schema, "Test.Api");
 
         Assert.Contains("namespace Test.Api.Models;", result);
-        Assert.Contains("public record Pet(", result);
+        Assert.Contains("public partial record Pet(", result);
         Assert.Contains("string Id,", result);
         Assert.Contains("string Name,", result);
         Assert.Contains("string? Tag = default)", result);
@@ -37,7 +37,7 @@ public class RecordEmitterTests {
 
         var result = RecordEmitter.Emit(schema, "Test.Api");
 
-        Assert.Contains("public record EmptyModel;", result);
+        Assert.Contains("public partial record EmptyModel;", result);
     }
 
     [Fact]
