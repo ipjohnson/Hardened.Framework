@@ -42,7 +42,7 @@ public class ServiceInterfaceEmitterTests {
         var result = ServiceInterfaceEmitter.Emit(service, "Test.Api");
 
         Assert.Contains("namespace Test.Api.Services;", result);
-        Assert.Contains("public interface IPetService", result);
+        Assert.Contains("public partial interface IPetService", result);
         Assert.Contains("Task<PetList> ListPets(int? limit);", result);
         Assert.Contains("Task<Pet> CreatePet(CreatePetRequest body);", result);
     }
