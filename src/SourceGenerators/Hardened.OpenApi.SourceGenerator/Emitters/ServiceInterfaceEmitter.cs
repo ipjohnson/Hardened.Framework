@@ -15,7 +15,7 @@ internal static class ServiceInterfaceEmitter {
 
         var interfaceName = NamingHelper.ToInterfaceName(service.Tag);
 
-        sb.AppendLine($"public interface {interfaceName}");
+        sb.AppendLine($"public partial interface {interfaceName}");
         sb.AppendLine("{");
 
         foreach (var op in service.Operations) {
