@@ -1,6 +1,8 @@
 <Project>
     <PropertyGroup>
         <ExcludeGeneratedCodeFromCoverage Condition="'$(ExcludeGeneratedCodeFromCoverage)' == ''">true</ExcludeGeneratedCodeFromCoverage>
+        <!-- Write generated files to disk so IDEs that struggle with AdditionalText-only generators can index them -->
+        <EmitCompilerGeneratedFiles Condition="'$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
     <ItemGroup>
         <CompilerVisibleProperty Include="ExcludeGeneratedCodeFromCoverage"/>
