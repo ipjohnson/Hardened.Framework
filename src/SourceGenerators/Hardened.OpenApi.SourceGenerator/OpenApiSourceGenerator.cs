@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using System.Linq;
+using System.Reflection;
 using Hardened.OpenApi.SourceGenerator.Emitters;
 using Hardened.OpenApi.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
@@ -11,11 +13,62 @@ namespace Hardened.OpenApi.SourceGenerator;
 
 [Generator]
 public class OpenApiSourceGenerator : IIncrementalGenerator {
+    static OpenApiSourceGenerator() {
+        // Rider's Roslyn host doesn't probe the analyzer directory for co-located
+        // dependencies (Microsoft.OpenApi, SharpYaml). Register a resolver that
+        // loads them from the same directory as this generator DLL.
+        AppDomain.CurrentDomain.AssemblyResolve += (_, args) => {
+            var name = new AssemblyName(args.Name).Name;
+            var directory = Path.GetDirectoryName(typeof(OpenApiSourceGenerator).Assembly.Location);
+            if (directory == null) return null;
+#pragma warning disable RS1035 // Resolver must probe the file system to load co-located analyzer dependencies
+            var candidate = Path.Combine(directory, name + ".dll");
+            return File.Exists(candidate) ? Assembly.LoadFrom(candidate) : null;
+#pragma warning restore RS1035
+        };
+    }
+
     public void Initialize(IncrementalGeneratorInitializationContext context) {
-        var openApiFiles = context.AdditionalTextsProvider
+        // Parse AdditionalTexts, keeping both successes and errors for diagnostics
+        var parseResults = context.AdditionalTextsProvider
             .Where(IsOpenApiFile)
-            .Select(ParseOpenApiFile)
-            .Where(model => model != null)!;
+            .Select(ParseOpenApiFile);
+
+        var openApiFiles = parseResults
+            .Where(r => r.Model != null)
+            .Select((r, _) => r.Model)!;
+
+        // Diagnostic: report AdditionalTexts state and any parse errors
+        var diagProvider = context.AdditionalTextsProvider.Collect()
+            .Combine(parseResults.Collect());
+        context.RegisterSourceOutput(diagProvider, (ctx, pair) => {
+            var allTexts = pair.Left;
+            var results = pair.Right;
+            var paths = string.Join("\n//   ", allTexts.Select(t => t.Path));
+            var errors = results.Where(r => r.Error != null).ToList();
+            var errorLines = errors.Count > 0
+                ? "\n// Parse errors:\n" + string.Join("\n", errors.Select(e => $"//   {e.Error}"))
+                : "";
+            ctx.AddSource("_OpenApiDiagnostic.g.cs",
+                $@"// OpenAPI Generator Diagnostic
+// Total AdditionalTexts: {allTexts.Length}
+// OpenAPI files parsed: {results.Count(r => r.Model != null)}
+// AdditionalText paths:
+//   {(allTexts.Length > 0 ? paths : "(none)")}{errorLines}
+");
+
+            // Also emit as a compiler warning so it shows in the error list
+            foreach (var error in errors) {
+                var descriptor = new DiagnosticDescriptor(
+                    id: "HOAG002",
+                    title: "OpenAPI Parse Error",
+                    messageFormat: "{0}",
+                    category: "Hardened.OpenApi",
+                    defaultSeverity: DiagnosticSeverity.Warning,
+                    isEnabledByDefault: true);
+                ctx.ReportDiagnostic(Diagnostic.Create(descriptor, Location.None, error.Error));
+            }
+        });
 
         var configProvider = context.AnalyzerConfigOptionsProvider.Select((options, _) => {
             options.GlobalOptions.TryGetValue("build_property.HardenedOpenApiNamespace", out var ns);
@@ -35,10 +88,6 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
         var specWithNamespace = openApiFiles.Combine(namespaceProvider);
         var specWithConfig = openApiFiles.Combine(configProvider);
 
-        // Emit records, enums, and interfaces
-        context.RegisterSourceOutput(specWithConfig,
-            SourceGeneratorWrapper.Wrap<(OpenApiSpecModel? Left, (string Namespace, bool ExcludeFromCoverage) Right)>(EmitTypes));
-
         // Build RequestHandlerModels from specs for handler generation
         var handlerModels = specWithNamespace.Select((pair, ct) => {
             if (pair.Left == null) return ImmutableArray<RequestHandlerModel>.Empty;
@@ -52,6 +101,12 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             HandlerSelector.Predicate,
             HandlerSelector.Transform
         ).Where(info => info != null).Collect();
+
+        // Emit records, enums, and interfaces
+        // Combined with handlerInfoProvider (SyntaxProvider) so Rider's design-time host triggers evaluation
+        context.RegisterSourceOutput(specWithConfig.Combine(handlerInfoProvider),
+            SourceGeneratorWrapper.Wrap<((OpenApiSpecModel? Left, (string Namespace, bool ExcludeFromCoverage) Right) Left, ImmutableArray<HandlerInfo?> Right)>(
+                (ctx, pair) => EmitTypes(ctx, pair.Left)));
 
         // Collect all handler models across all spec files
         var allHandlerModels = handlerModels.Collect().Select((arrays, _) => {
@@ -112,16 +167,19 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
                path.EndsWith(".json", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static OpenApiSpecModel? ParseOpenApiFile(AdditionalText text, CancellationToken cancellationToken) {
+    private static (OpenApiSpecModel? Model, string? Error) ParseOpenApiFile(AdditionalText text, CancellationToken cancellationToken) {
         var content = text.GetText(cancellationToken)?.ToString();
-        if (string.IsNullOrEmpty(content)) return null;
+        if (string.IsNullOrEmpty(content)) {
+            return (null, $"Empty content for {text.Path}");
+        }
 
         var fileName = System.IO.Path.GetFileNameWithoutExtension(text.Path);
 
         try {
-            return OpenApiSpecParser.Parse(content!, fileName, cancellationToken);
-        } catch {
-            return null;
+            var model = OpenApiSpecParser.Parse(content!, fileName, cancellationToken);
+            return model != null ? (model, null) : (null, $"Parser returned null for {text.Path}");
+        } catch (Exception ex) {
+            return (null, $"{text.Path}: {ex.GetType().Name}: {ex.Message}");
         }
     }
 
