@@ -16,4 +16,6 @@ public interface IExecutionRequestHandlerInfo {
     int? NullResponseStatus => null;
 
     IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
+
+    IReadOnlyList<object> Metadata => Array.Empty<object>();
 }

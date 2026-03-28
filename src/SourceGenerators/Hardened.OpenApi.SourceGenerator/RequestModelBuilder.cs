@@ -13,6 +13,12 @@ internal static class RequestModelBuilder {
         string generatedNamespace) {
         var models = new List<RequestHandlerModel>();
 
+        // Build lookup for x-filter-types by short name
+        var filterTypeLookup = new Dictionary<string, FilterTypeModel>(StringComparer.OrdinalIgnoreCase);
+        foreach (var ft in spec.FilterTypes) {
+            filterTypeLookup[ft.Name] = ft;
+        }
+
         foreach (var service in spec.Services) {
             var interfaceName = NamingHelper.ToInterfaceName(service.Tag);
             var serviceType = TypeDefinition.Get(servicesNamespace, interfaceName);
@@ -20,7 +26,7 @@ internal static class RequestModelBuilder {
 
             foreach (var operation in service.Operations) {
                 var model = BuildHandlerModel(operation, serviceType, handlerClassPrefix,
-                    modelsNamespace, generatedNamespace);
+                    modelsNamespace, generatedNamespace, filterTypeLookup);
                 models.Add(model);
             }
         }
@@ -103,7 +109,8 @@ internal static class RequestModelBuilder {
         ITypeDefinition serviceType,
         string handlerClassPrefix,
         string modelsNamespace,
-        string generatedNamespace) {
+        string generatedNamespace,
+        Dictionary<string, FilterTypeModel> filterTypeLookup) {
         var methodName = NamingHelper.ToMethodName(operation.OperationId);
         var handlerTypeName = $"{handlerClassPrefix}_{methodName}";
         var invokeHandlerType = TypeDefinition.Get(generatedNamespace, handlerTypeName);
@@ -122,6 +129,20 @@ internal static class RequestModelBuilder {
             filters.Add(new AttributeModel(filterProviderType, "", ""));
         }
 
+        // Wire in x-filters as typed attribute instances
+        foreach (var filterInstance in operation.FilterInstances) {
+            if (filterTypeLookup.TryGetValue(filterInstance.FilterTypeName, out var filterType)) {
+                var attrType = TypeDefinition.Get(filterType.Namespace, filterType.ClassName);
+
+                // Build property assignment string: "MaxRequests = 100, WindowSeconds = 60"
+                var propAssignment = string.Join(", ",
+                    filterInstance.PropertyValues.Select(kvp =>
+                        $"{kvp.Key} = {FormatPropertyValue(kvp.Key, kvp.Value, filterType)}"));
+
+                filters.Add(new AttributeModel(attrType, "", propAssignment));
+            }
+        }
+
         return new RequestHandlerModel(
             nameModel,
             serviceType,
@@ -130,6 +151,27 @@ internal static class RequestModelBuilder {
             parameters,
             responseInfo,
             filters);
+    }
+
+    /// <summary>
+    /// Formats a property value as a C# literal based on the property's type
+    /// from the filter type definition.
+    /// </summary>
+    private static string FormatPropertyValue(string propertyName, string value, FilterTypeModel filterType) {
+        var prop = filterType.Properties.FirstOrDefault(p =>
+            string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
+
+        if (prop?.EnumType != null) {
+            return $"{prop.EnumType}.{value}";
+        }
+
+        var csType = prop?.CSharpType ?? "string";
+
+        return csType switch {
+            "int" or "long" or "float" or "double" => value,
+            "bool" => value.ToLowerInvariant(),
+            _ => $"\"{value.Replace("\\", "\\\\").Replace("\"", "\\\"")}\""
+        };
     }
 
     private static IReadOnlyList<RequestParameterInformation> BuildParameters(

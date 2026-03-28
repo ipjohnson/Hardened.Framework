@@ -216,20 +216,12 @@ public static class InvokeClassGenerator {
 
     private static IOutputComponent GenerateFilterEnumerable(RequestHandlerModel handlerModel,
         ClassDefinition classDefinition) {
-        var arguments = new List<object>();
-
-        foreach (var filterInformation in handlerModel.Filters) {
-            var newValue = New((ITypeDefinition)filterInformation.TypeDefinition, new CodeOutputComponent(filterInformation.Arguments) {
-                Indented = false
-            });
-
-            if (!string.IsNullOrEmpty(filterInformation.PropertyAssignment)) {
-                newValue.AddInitValue(filterInformation.PropertyAssignment);
-            }
-
-            arguments.Add(newValue);
+        // _metadata field is created by HandlerInfoCodeGenerator (before _handlerInfo)
+        // to ensure correct static initialization order
+        if (handlerModel.Filters.Count > 0) {
+            return Invoke(KnownTypes.Requests.ExecutionHelper, "GetFilterInfo", "_metadata");
         }
 
-        return Invoke(KnownTypes.Requests.ExecutionHelper, "GetFilterInfo", arguments.ToArray());
+        return Invoke(KnownTypes.Requests.ExecutionHelper, "GetFilterInfo");
     }
 }

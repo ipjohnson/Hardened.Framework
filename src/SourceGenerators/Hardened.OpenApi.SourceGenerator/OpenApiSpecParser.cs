@@ -1,3 +1,4 @@
+using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Readers;
 using Hardened.OpenApi.SourceGenerator.Models;
@@ -28,6 +29,19 @@ internal static class OpenApiSpecParser {
                 var schema = ParseSchema(kvp.Key, kvp.Value);
                 if (schema != null) {
                     model.Schemas.Add(schema);
+                }
+            }
+        }
+
+        // Parse x-filter-types extension
+        if (document.Extensions != null &&
+            document.Extensions.TryGetValue("x-filter-types", out var filterTypesExt) &&
+            filterTypesExt is OpenApiObject filterTypesObj) {
+            foreach (var kvp in filterTypesObj) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var filterType = ParseFilterType(kvp.Key, kvp.Value);
+                if (filterType != null) {
+                    model.FilterTypes.Add(filterType);
                 }
             }
         }
@@ -365,6 +379,13 @@ internal static class OpenApiSpecParser {
                 }
             }
 
+            // Parse x-filters extension on the operation
+            if (operation.Extensions != null &&
+                operation.Extensions.TryGetValue("x-filters", out var filtersExt) &&
+                filtersExt is OpenApiObject filtersObj) {
+                opModel.FilterInstances = ParseFilterInstances(filtersObj);
+            }
+
             if (!operationsByTag.TryGetValue(tag, out var list)) {
                 list = new List<OperationModel>();
                 operationsByTag[tag] = list;
@@ -380,5 +401,109 @@ internal static class OpenApiSpecParser {
             .Select(NamingHelper.ToPascalCase);
 
         return method.ToLowerInvariant() + string.Join("", parts);
+    }
+
+    // ── x-filter-types parsing ─────────────────────────────────────────
+
+    private static FilterTypeModel? ParseFilterType(string name, IOpenApiAny value) {
+        if (value is not OpenApiObject obj) return null;
+
+        var model = new FilterTypeModel { Name = name };
+
+        if (obj.TryGetValue("namespace", out var nsValue) && nsValue is OpenApiString nsStr) {
+            model.Namespace = nsStr.Value;
+        }
+
+        if (obj.TryGetValue("generate", out var genValue) && genValue is OpenApiBoolean genBool) {
+            model.Generate = genBool.Value;
+        }
+
+        if (obj.TryGetValue("properties", out var propsValue) && propsValue is OpenApiObject propsObj) {
+            foreach (var propKvp in propsObj) {
+                var prop = ParseFilterTypeProperty(propKvp.Key, propKvp.Value);
+                if (prop != null) {
+                    model.Properties.Add(prop);
+                }
+            }
+        }
+
+        return model.Namespace.Length > 0 ? model : null;
+    }
+
+    private static FilterTypePropertyModel? ParseFilterTypeProperty(string name, IOpenApiAny value) {
+        if (value is not OpenApiObject obj) return null;
+
+        var prop = new FilterTypePropertyModel { Name = name };
+
+        if (obj.TryGetValue("type", out var typeValue) && typeValue is OpenApiString typeStr) {
+            prop.CSharpType = MapFilterPropertyType(typeStr.Value);
+        }
+
+        if (obj.TryGetValue("default", out var defaultValue)) {
+            prop.Default = GetOpenApiPrimitiveValue(defaultValue);
+        }
+
+        if (obj.TryGetValue("enum", out var enumValue) && enumValue is OpenApiArray enumArr) {
+            prop.EnumValues = enumArr
+                .OfType<OpenApiString>()
+                .Select(s => s.Value)
+                .ToList();
+        }
+
+        if (obj.TryGetValue("enumType", out var enumTypeValue) && enumTypeValue is OpenApiString enumTypeStr) {
+            prop.EnumType = enumTypeStr.Value;
+        }
+
+        return prop;
+    }
+
+    private static string MapFilterPropertyType(string openApiType) {
+        return openApiType.ToLowerInvariant() switch {
+            "integer" or "int" => "int",
+            "long" => "long",
+            "boolean" or "bool" => "bool",
+            "number" or "double" => "double",
+            "float" => "float",
+            _ => "string"
+        };
+    }
+
+    // ── x-filters parsing ──────────────────────────────────────────────
+
+    private static List<FilterInstanceModel> ParseFilterInstances(OpenApiObject filtersObj) {
+        var instances = new List<FilterInstanceModel>();
+
+        foreach (var kvp in filtersObj) {
+            var instance = new FilterInstanceModel { FilterTypeName = kvp.Key };
+
+            if (kvp.Value is OpenApiObject propsObj) {
+                foreach (var propKvp in propsObj) {
+                    var propValue = GetOpenApiPrimitiveValue(propKvp.Value);
+                    if (propValue != null) {
+                        instance.PropertyValues[propKvp.Key] = propValue;
+                    }
+                }
+            }
+
+            instances.Add(instance);
+        }
+
+        return instances;
+    }
+
+    /// <summary>
+    /// Extracts a string representation of a primitive OpenAPI value
+    /// suitable for emitting as a C# literal.
+    /// </summary>
+    private static string? GetOpenApiPrimitiveValue(IOpenApiAny value) {
+        return value switch {
+            OpenApiString s => s.Value,
+            OpenApiInteger i => i.Value.ToString(),
+            OpenApiLong l => l.Value.ToString(),
+            OpenApiBoolean b => b.Value ? "true" : "false",
+            OpenApiDouble d => d.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            OpenApiFloat f => f.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            _ => null
+        };
     }
 }
