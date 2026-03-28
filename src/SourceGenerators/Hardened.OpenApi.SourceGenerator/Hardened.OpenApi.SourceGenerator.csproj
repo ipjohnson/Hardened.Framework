@@ -43,12 +43,9 @@
         </Content>
     </ItemGroup>
 
-    <!-- Pack the analyzer DLL and its dependencies into the correct NuGet folder -->
+    <!-- Pack the analyzer DLL (now self-contained with embedded dependencies) into the NuGet folder -->
     <ItemGroup>
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
-        <None Include="$(PkgMicrosoft_OpenApi_Readers)\lib\netstandard2.0\Microsoft.OpenApi.Readers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
-        <None Include="$(PkgMicrosoft_OpenApi)\lib\netstandard2.0\Microsoft.OpenApi.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
-        <None Include="$(PkgSharpYaml)\lib\netstandard2.0\SharpYaml.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
 
     <!-- Bundle OpenAPI dependencies with the analyzer so they're available at compile time -->
@@ -59,6 +56,13 @@
             <TargetPathWithTargetPlatformMoniker Include="$(PkgSharpYaml)\lib\netstandard2.0\SharpYaml.dll" IncludeRuntimeDependency="false" />
         </ItemGroup>
     </Target>
+
+    <!-- Embed dependency DLLs as resources so the AssemblyResolve hook can load them in any host -->
+    <ItemGroup>
+        <EmbeddedResource Include="$(PkgMicrosoft_OpenApi_Readers)\lib\netstandard2.0\Microsoft.OpenApi.Readers.dll" LogicalName="Microsoft.OpenApi.Readers.dll" Visible="false" />
+        <EmbeddedResource Include="$(PkgMicrosoft_OpenApi)\lib\netstandard2.0\Microsoft.OpenApi.dll" LogicalName="Microsoft.OpenApi.dll" Visible="false" />
+        <EmbeddedResource Include="$(PkgSharpYaml)\lib\netstandard2.0\SharpYaml.dll" LogicalName="SharpYaml.dll" Visible="false" />
+    </ItemGroup>
 
     <PropertyGroup>
         <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>

@@ -31,14 +31,14 @@ internal static class RecordEmitter {
             if (excludeFromCoverage) {
                 sb.AppendLine("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
             }
-            sb.AppendLine($"public record {recordName};");
+            sb.AppendLine($"public partial record {recordName};");
             return sb.ToString();
         }
 
         if (excludeFromCoverage) {
             sb.AppendLine("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
         }
-        sb.Append($"public record {recordName}(");
+        sb.Append($"public partial record {recordName}(");
         sb.AppendLine();
 
         // Required parameters must precede optional ones in C# record constructors.

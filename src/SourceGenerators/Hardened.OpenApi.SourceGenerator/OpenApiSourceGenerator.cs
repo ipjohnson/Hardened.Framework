@@ -13,18 +13,26 @@ namespace Hardened.OpenApi.SourceGenerator;
 
 [Generator]
 public class OpenApiSourceGenerator : IIncrementalGenerator {
+    private static readonly Dictionary<string, Assembly> _embeddedAssemblies = new();
+
     static OpenApiSourceGenerator() {
-        // Rider's Roslyn host doesn't probe the analyzer directory for co-located
-        // dependencies (Microsoft.OpenApi, SharpYaml). Register a resolver that
-        // loads them from the same directory as this generator DLL.
+        // Some Roslyn hosts (Rider, older VS) don't resolve co-located analyzer
+        // dependencies. Pre-load all embedded dependencies so they share a single
+        // loading context and avoid type-identity mismatches.
+        var generatorAssembly = typeof(OpenApiSourceGenerator).Assembly;
+        foreach (var dllName in new[] { "Microsoft.OpenApi", "Microsoft.OpenApi.Readers", "SharpYaml" }) {
+            using var stream = generatorAssembly.GetManifestResourceStream(dllName + ".dll");
+            if (stream == null) continue;
+            var bytes = new byte[stream.Length];
+            stream.Read(bytes, 0, bytes.Length);
+#pragma warning disable RS1035 // Load embedded dependency DLLs for hosts that can't resolve co-located assemblies
+            _embeddedAssemblies[dllName] = Assembly.Load(bytes);
+#pragma warning restore RS1035
+        }
+
         AppDomain.CurrentDomain.AssemblyResolve += (_, args) => {
             var name = new AssemblyName(args.Name).Name;
-            var directory = Path.GetDirectoryName(typeof(OpenApiSourceGenerator).Assembly.Location);
-            if (directory == null) return null;
-#pragma warning disable RS1035 // Resolver must probe the file system to load co-located analyzer dependencies
-            var candidate = Path.Combine(directory, name + ".dll");
-            return File.Exists(candidate) ? Assembly.LoadFrom(candidate) : null;
-#pragma warning restore RS1035
+            return _embeddedAssemblies.TryGetValue(name!, out var asm) ? asm : null;
         };
     }
 
