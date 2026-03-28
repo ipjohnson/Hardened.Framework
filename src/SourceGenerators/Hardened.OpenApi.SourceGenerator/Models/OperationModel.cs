@@ -15,6 +15,9 @@ internal class OperationModel : IEquatable<OperationModel> {
     public string? ResponseArrayItemsRef { get; set; }
     public int SuccessStatusCode { get; set; } = 200;
 
+    // x-filters: typed filter attribute instances applied to this operation
+    public List<FilterInstanceModel> FilterInstances { get; set; } = new();
+
     // Validation: body schema properties for validation filter generation
     public List<PropertyModel> RequestBodyProperties { get; set; } = new();
     public List<string> RequestBodyRequired { get; set; } = new();
@@ -37,6 +40,7 @@ internal class OperationModel : IEquatable<OperationModel> {
         return OperationId == other.OperationId && Path == other.Path &&
                HttpMethod == other.HttpMethod && Tag == other.Tag &&
                Parameters.SequenceEqual(other.Parameters) &&
+               FilterInstances.SequenceEqual(other.FilterInstances) &&
                RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&
                RequestBodyRequired.SequenceEqual(other.RequestBodyRequired);
     }

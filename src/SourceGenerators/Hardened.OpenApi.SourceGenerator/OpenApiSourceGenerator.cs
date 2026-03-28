@@ -161,6 +161,18 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
         var resolverSource = JsonTypeInfoEmitter.Emit(spec.Schemas, ns, excludeFromCoverage);
         context.AddSource($"{spec.FileName}.OpenApiJsonTypeInfoResolver.g.cs", resolverSource);
 
+        // Emit partial attribute classes from x-filter-types (skip externally-defined types)
+        foreach (var filterType in spec.FilterTypes) {
+            if (!filterType.Generate) continue;
+
+            context.CancellationToken.ThrowIfCancellationRequested();
+
+            var filterSource = FilterTypeEmitter.Emit(filterType, excludeFromCoverage);
+            context.AddSource(
+                $"{spec.FileName}.{filterType.ClassName}.g.cs",
+                filterSource);
+        }
+
         // Emit validation filter providers for operations with validation constraints
         foreach (var service in spec.Services) {
             foreach (var operation in service.Operations) {

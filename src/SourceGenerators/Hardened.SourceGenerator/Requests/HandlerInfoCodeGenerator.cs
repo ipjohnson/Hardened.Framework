@@ -52,6 +52,13 @@ public static class HandlerInfoCodeGenerator {
     }
 
     private static void CreateHandlerInfoField(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
+        // Emit _metadata BEFORE _handlerInfo so static initialization order is correct
+        var metadataArg = "";
+        if (handlerModel.Filters.Count > 0) {
+            CreateMetadataField(handlerModel, classDefinition);
+            metadataArg = ", _metadata";
+        }
+
         var handlerInfoField =
             classDefinition.AddField(KnownTypes.Requests.ExecutionRequestHandlerInfo, "_handlerInfo");
 
@@ -65,7 +72,7 @@ public static class HandlerInfoCodeGenerator {
         }
 
         handlerInfoField.InitializeValue =
-            new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField})");
+            new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField}{metadataArg})");
 
         var handlerProperty =
             classDefinition.AddProperty(KnownTypes.Requests.IExecutionRequestHandlerInfo, "HandlerInfo");
@@ -75,5 +82,25 @@ public static class HandlerInfoCodeGenerator {
         handlerProperty.Set = null;
 
         handlerProperty.Get.AddCode("_handlerInfo;");
+    }
+
+    private static void CreateMetadataField(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
+        var arguments = new List<object>();
+
+        foreach (var filterInformation in handlerModel.Filters) {
+            var newValue = New((ITypeDefinition)filterInformation.TypeDefinition, new CodeOutputComponent(filterInformation.Arguments) {
+                Indented = false
+            });
+
+            if (!string.IsNullOrEmpty(filterInformation.PropertyAssignment)) {
+                newValue.AddInitValue(filterInformation.PropertyAssignment);
+            }
+
+            arguments.Add(newValue);
+        }
+
+        var metadataField = classDefinition.AddField(typeof(object).MakeArrayType(), "_metadata");
+        metadataField.Modifiers = ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+        metadataField.InitializeValue = NewArray(typeof(object), arguments.ToArray());
     }
 }
