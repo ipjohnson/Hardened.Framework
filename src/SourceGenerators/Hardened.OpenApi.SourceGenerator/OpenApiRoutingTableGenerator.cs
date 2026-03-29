@@ -102,6 +102,18 @@ internal static class OpenApiRoutingTableGenerator {
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
 
+        // Register the OpenAPI-generated JSON type info resolver for AOT serialization.
+        // The resolver lives in {RootNamespace}.Models; the service interfaces are in
+        // {RootNamespace}.Services, so strip the trailing segment and append Models.
+        if (webEndPointModels.Count > 0) {
+            var serviceNs = webEndPointModels[0].ControllerType.Namespace;
+            var rootNs = serviceNs.EndsWith(".Services")
+                ? serviceNs.Substring(0, serviceNs.Length - ".Services".Length)
+                : serviceNs;
+            diMethod.AddIndentedStatement(new CodeOutputComponent(
+                $"serviceCollection.AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), global::{rootNs}.Models.OpenApiJsonTypeInfoResolver.Instance)"));
+        }
+
         // Register interface → implementation mappings from [Handler] classes
         foreach (var handlerInfo in handlerInfos) {
             if (handlerInfo == null) continue;
