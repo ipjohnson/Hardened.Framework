@@ -295,6 +295,13 @@ internal static class OpenApiSpecParser {
 
             if (operation.Parameters != null) {
                 foreach (var param in operation.Parameters) {
+                    // Skip parameters marked with x-codegen-exclude
+                    if (param.Extensions != null &&
+                        param.Extensions.TryGetValue("x-codegen-exclude", out var excludeExt) &&
+                        excludeExt is OpenApiBoolean excludeBool && excludeBool.Value) {
+                        continue;
+                    }
+
                     var paramModel = new ParameterModel {
                         Name = param.Name,
                         In = param.In?.ToString()?.ToLowerInvariant() ?? "query",
