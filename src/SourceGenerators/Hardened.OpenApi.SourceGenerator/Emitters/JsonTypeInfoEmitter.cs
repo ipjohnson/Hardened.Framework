@@ -178,8 +178,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine();
         sb.AppendLine($"    private static JsonTypeInfo<{typeName}> Create{typeName}TypeInfo(JsonSerializerOptions options)");
         sb.AppendLine("    {");
-        sb.AppendLine($"        var converter = new JsonStringEnumConverter<{typeName}>();");
-        sb.AppendLine($"        return JsonMetadataServices.CreateValueInfo<{typeName}>(options, converter);");
+        sb.AppendLine($"        return JsonMetadataServices.CreateValueInfo<{typeName}>(options, JsonMetadataServices.GetEnumConverter<{typeName}>(options));");
         sb.AppendLine("    }");
     }
 
