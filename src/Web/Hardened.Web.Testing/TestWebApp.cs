@@ -10,6 +10,7 @@ using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Diagnostics;
+using Hardened.Shared.Runtime.Json;
 using Hardened.Shared.Testing.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -103,10 +104,15 @@ public class TestWebApp : TestContext, ITestWebApp {
         if (bodyValue == null)
             return Stream.Null;
 
+        // Resolve IJsonSerializer first so its constructor populates the
+        // shared JsonSerializerConfiguration.Options TypeInfoResolverChain
+        // with the source-gen contexts the application has registered. The
+        // options instance held by IJsonSerializerConfiguration is the same
+        // one mutated by AotJsonSerializer/JsonSerializerImpl on construction.
+        var serializer = _applicationRoot.Provider.GetRequiredService<IJsonSerializer>();
         var memoryStream = new MemoryStream();
-
-        JsonSerializer.Serialize(memoryStream, bodyValue);
-
+        serializer.SerializeAsync(memoryStream, bodyValue, false, CancellationToken.None)
+            .GetAwaiter().GetResult();
         memoryStream.Position = 0;
 
         return memoryStream;
