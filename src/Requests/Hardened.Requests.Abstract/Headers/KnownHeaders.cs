@@ -21,5 +21,9 @@ public static class KnownHeaders {
         public const string AccessControlAllowOrigin = "Access-Control-Allow-Origin";
 
         public const string AccessControlAllowHeaders = "Access-Control-Allow-Headers";
+
+        public const string AccessControlAllowMethods = "Access-Control-Allow-Methods";
+
+        public const string AccessControlMaxAge = "Access-Control-Max-Age";
     }
 }
