@@ -11,7 +11,7 @@ public class CorsConfiguration {
 
     public string AllowedMethods { get; set; } = "GET, POST, PUT, DELETE, OPTIONS";
 
-    public string AllowedHeaders { get; set; } = "Authorization, Content-Type, Accept";
+    public string AllowedHeaders { get; set; } = "Authorization, Content-Type, Accept, x-auth-token, x-amz-content-sha256";
 
     public int MaxAgeSec { get; set; } = 86400;
 
