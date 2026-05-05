@@ -83,6 +83,12 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                 await chain.Next();
                 Console.Error.WriteLine($"[StreamDiag] {requestId} chain.Next done, responseStarted={responseStream.HasResponseStarted}, bodyBytes={responseStream.Length}");
 
+                // Streaming responses with no body content cause CloudFront to hang
+                // waiting for data. Write a newline so the stream has content to terminate.
+                if (responseStream.Length == 0) {
+                    await responseStream.WriteAsync("\n"u8.ToArray(), ct);
+                }
+
                 Console.Error.WriteLine($"[StreamDiag] {requestId} responseStream.FlushAsync starting");
                 await responseStream.FlushAsync(ct);
                 Console.Error.WriteLine($"[StreamDiag] {requestId} responseStream.FlushAsync done, responseStarted={responseStream.HasResponseStarted}");
