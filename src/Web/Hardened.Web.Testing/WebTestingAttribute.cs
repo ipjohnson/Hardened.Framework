@@ -22,15 +22,18 @@ public class WebTestingAttribute : Attribute, ITestStartupAttribute {
         });
     }
 
-    public Task StartupAsync(IXunitTestMethod testMethod, IServiceProvider serviceProvider) {
+    public async Task StartupAsync(IXunitTestMethod testMethod, IServiceProvider serviceProvider) {
         var entryPoint = testMethod.Method.GetTestAttribute<HardenedTestEntryPointAttribute>();
+
+        // Run registered startup services (CORS, filters, etc.)
+        foreach (var startupService in serviceProvider.GetServices<IStartupService>()) {
+            await startupService.Startup(serviceProvider);
+        }
 
         if (entryPoint != null && !typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint)) {
             var handler = serviceProvider.GetRequiredService<IWebExecutionHandlerService>();
             var middleware = serviceProvider.GetRequiredService<IMiddlewareService>();
             middleware.Use(_ => handler);
         }
-
-        return Task.CompletedTask;
     }
 }
