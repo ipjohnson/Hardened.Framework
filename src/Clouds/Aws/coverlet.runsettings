@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+    <DataCollectionRunSettings>
+        <DataCollectors>
+            <DataCollector friendlyName="XPlat code coverage">
+                <Configuration>
+                    <Format>cobertura</Format>
+
+                    <!--
+                      Excluded from coverage because none of it is shipped, hand-written
+                      product code:
+                        *.Tests       - the test suites themselves
+                        LambdaWebTest - local sample/harness apps, not shipped
+
+                      The *.Testing packages (Hardened.Amz.Shared.Lambda.Testing,
+                      Hardened.Amz.Function.Lambda.Testing, Hardened.Amz.Function.DDB.Testing,
+                      Hardened.Amz.Function.Sqs.Testing) are deliberately NOT excluded - they
+                      ship to consumers and their coverage counts.
+                    -->
+                    <Exclude>[*.Tests]*,[LambdaWebTest*]*</Exclude>
+
+                    <!--
+                      Source-generated output is verified through behaviour, not by line
+                      coverage of emitted files. This matters most in this repository:
+                      StreamingEventSerializerContext alone is ~1,400 lines of
+                      System.Text.Json generated source that otherwise dominates the numbers.
+                    -->
+                    <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+                    <ExcludeByFile>**/*.g.cs</ExcludeByFile>
+
+                    <SkipAutoProps>true</SkipAutoProps>
+                    <DeterministicReport>true</DeterministicReport>
+                </Configuration>
+            </DataCollector>
+        </DataCollectors>
+    </DataCollectionRunSettings>
+</RunSettings>

@@ -180,3 +180,6 @@ $RECYCLE.BIN/
 /.vs
 .idea/
 obj/
+# Code coverage output (dotnet test --collect + ReportGenerator)
+coverage/
+coverage-report/
