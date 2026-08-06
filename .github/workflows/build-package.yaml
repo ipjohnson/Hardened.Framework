@@ -1,6 +1,13 @@
 name: build-package
 
-on: [push, workflow_dispatch]
+# Publishing is restricted to main. Previously this workflow ran on `[push]` with no
+# branch filter, so every push to any branch packed and pushed packages to the feed.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,8 +24,51 @@ jobs:
           source-url: https://nuget.pkg.github.com/ipjohnson-org/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
       - run: dotnet restore src/Hardened.Framework.sln
       - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release
-      - run: dotnet test src/Hardened.Framework.sln --no-build --configuration Release
-      - run: dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=0.2.0-Alpha${{ github.run_number }}
-      - run: dotnet nuget push src/**/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/ipjohnson-org/index.json" --skip-duplicate
+
+      - name: Test with coverage
+        run: |
+          set -o pipefail
+          dotnet test src/Hardened.Framework.sln \
+            --no-build --configuration Release \
+            --settings coverlet.runsettings \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage \
+            | tee test-output.log
+
+      # xUnit drops test cases that share a unique ID, reporting it only as an
+      # informational line. A green run can therefore hide tests that never executed.
+      # Treat any such message as a build failure.
+      - name: Fail if any test was silently skipped
+        run: |
+          if grep -q "duplicate ID" test-output.log; then
+            echo "::error::Test cases were silently skipped due to duplicate test-case IDs. Give the colliding test methods distinct names."
+            grep "duplicate ID" test-output.log
+            exit 1
+          fi
+          echo "No silently skipped tests."
+
+      - name: Coverage summary
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator \
+            -reports:"coverage/**/*.cobertura.xml" \
+            -targetdir:coverage-report \
+            -reporttypes:"TextSummary;MarkdownSummaryGithub;Html"
+          cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          cat coverage-report/Summary.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report
+
+      - name: Pack
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=0.2.0-Alpha${{ github.run_number }}
+
+      - name: Push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: dotnet nuget push src/**/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/ipjohnson-org/index.json" --skip-duplicate

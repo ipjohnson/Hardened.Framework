@@ -8,7 +8,7 @@ namespace Hardened.Commands.Tests.Impl;
 public partial class CommandLineParserSingleCommandTests {
     
     [HardenedTest]
-    public async Task ParseSimpleCommand(
+    public async Task ParseSingleLevelCommand(
         CommandLineParser parser,
         [Mock] ICommandDefinitionProvider commandDefinitionProvider) {
         var command = GetSimpleCommand();
@@ -28,7 +28,7 @@ public partial class CommandLineParserSingleCommandTests {
 
     
     [HardenedTest]
-    public async Task MissingCommand(
+    public async Task MissingOptionOnSingleLevelCommand(
         CommandLineParser parser,
         [Mock] ICommandDefinitionProvider commandDefinitionProvider) {
         var command = GetSimpleCommand();

@@ -1,0 +1,17 @@
+<Project>
+
+    <!--
+      Applies to every project under src/.
+
+      Test projects get coverlet.collector so that collecting "XPlat Code Coverage" during
+      `dotnet test` produces Cobertura reports. Collection settings (what is excluded from
+      the numbers) live in coverlet.runsettings at the repository root.
+    -->
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+        <PackageReference Include="coverlet.collector" Version="6.0.2">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+</Project>

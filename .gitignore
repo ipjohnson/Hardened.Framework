@@ -180,3 +180,6 @@ $RECYCLE.BIN/
 /.vs
 .idea/
 tools/ddb_local_dist/
+# Code coverage output (dotnet test --collect + ReportGenerator)
+coverage/
+coverage-report/

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+    <DataCollectionRunSettings>
+        <DataCollectors>
+            <DataCollector friendlyName="XPlat code coverage">
+                <Configuration>
+                    <Format>cobertura</Format>
+
+                    <!--
+                      Excluded from coverage because none of it is shipped, hand-written
+                      product code:
+                        *.Tests  - the test suites themselves
+                        *.SUT    - systems-under-test that exist only as test fixtures
+
+                      Note that the *.Testing packages (Hardened.Shared.Testing,
+                      Hardened.Web.Testing, Hardened.Requests.Testing) are deliberately NOT
+                      excluded - they ship to consumers and their coverage counts.
+                    -->
+                    <Exclude>[*.Tests]*,[*.SUT]*</Exclude>
+
+                    <!-- Source-generated output is verified through behaviour in the
+                         integration tests, not by line coverage of the emitted files. -->
+                    <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+                    <ExcludeByFile>**/*.g.cs</ExcludeByFile>
+
+                    <SkipAutoProps>true</SkipAutoProps>
+                    <DeterministicReport>true</DeterministicReport>
+                </Configuration>
+            </DataCollector>
+        </DataCollectors>
+    </DataCollectionRunSettings>
+</RunSettings>

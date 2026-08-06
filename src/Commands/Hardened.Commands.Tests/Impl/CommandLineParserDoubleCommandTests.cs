@@ -8,7 +8,7 @@ namespace Hardened.Commands.Tests.Impl;
 public class CommandLineParserDoubleCommandTests {
     
     [HardenedTest]
-    public async Task ParseSimpleCommand(
+    public async Task ParseNestedCommand(
         CommandLineParser parser,
         [Mock] ICommandDefinitionProvider commandDefinitionProvider) {
         var command = AddCommand();
@@ -28,7 +28,7 @@ public class CommandLineParserDoubleCommandTests {
 
     
     [HardenedTest]
-    public async Task MissingCommand(
+    public async Task MissingOptionOnNestedCommand(
         CommandLineParser parser,
         [Mock] ICommandDefinitionProvider commandDefinitionProvider) {
         var command = AddCommand();
