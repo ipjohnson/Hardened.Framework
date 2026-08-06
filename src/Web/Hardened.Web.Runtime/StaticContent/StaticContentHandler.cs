@@ -53,7 +53,9 @@ public class StaticContentHandler : IStaticContentHandler {
         _configuration = configuration.Value;
         _cachedStaticContentEntries = new ConcurrentDictionary<string, CachedStaticContentEntry>();
 
-        _rootPath = Path.Combine(Directory.GetCurrentDirectory(), _configuration.Path);
+        // Fully qualified so that containment checks in ResolveWithinRoot compare
+        // canonical paths on both sides.
+        _rootPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), _configuration.Path));
         _pathExists = Directory.Exists(_rootPath);
 
         if (!_pathExists) {
@@ -61,7 +63,7 @@ public class StaticContentHandler : IStaticContentHandler {
                 Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
 
             if (!string.IsNullOrEmpty(_rootPath)) {
-                _rootPath = Path.Combine(_rootPath, _configuration.Path);
+                _rootPath = Path.GetFullPath(Path.Combine(_rootPath, _configuration.Path));
                 _pathExists = Directory.Exists(_rootPath);
             }
         }
@@ -81,12 +83,53 @@ public class StaticContentHandler : IStaticContentHandler {
         return HandleRequestForPath(context, context.Request.Path);
     }
 
+    /// <summary>
+    /// Maps a request path onto the filesystem and confirms the result is still inside the
+    /// configured root, returning null when it is not.
+    ///
+    /// Path.Combine does not resolve traversal sequences, so "/../secret" combined with the
+    /// root points outside it. Hardened is transport agnostic and not every transport
+    /// normalises the request path the way Kestrel does - API Gateway delivers RawPath - so
+    /// the handler cannot assume that has already happened.
+    /// </summary>
+    private string? ResolveWithinRoot(string requestPath) {
+        string candidate;
+
+        try {
+            candidate = Path.GetFullPath(Path.Combine(_rootPath, requestPath.TrimStart('/')));
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or NotSupportedException or PathTooLongException) {
+            // Malformed path - treat exactly like one that escapes the root.
+            return null;
+        }
+
+        var relative = Path.GetRelativePath(_rootPath, candidate);
+
+        if (relative == ".." ||
+            relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+            Path.IsPathRooted(relative)) {
+            _logger.LogWarning(
+                "Static content request {RequestPath} resolved outside the configured root and was refused",
+                requestPath);
+
+            return null;
+        }
+
+        return candidate;
+    }
+
     private Task<bool> HandleRequestForPath(IExecutionContext context, string requestPath) {
+        var filePath = ResolveWithinRoot(requestPath);
+
+        // Outside the configured root - refuse before touching the filesystem or the cache.
+        if (filePath == null) {
+            return FalseComplete;
+        }
+
         if (_cachedStaticContentEntries.TryGetValue(requestPath, out var cacheEntry)) {
             return RespondWithContent(context, cacheEntry);
         }
-
-        var filePath = Path.Combine(_rootPath, requestPath.TrimStart('/'));
 
         if (File.Exists(filePath)) {
             return ReturnFile(context, filePath);
