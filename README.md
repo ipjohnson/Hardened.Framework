@@ -18,9 +18,9 @@ Hardened uses C# source generators to wire up dependency injection, request rout
 | `Hardened.Web.Testing` | `ITestWebApp`, `TestWebRequest`, `TestWebResponse` |
 | `Hardened.Templates.Abstract` | Template abstractions: `[TemplatePackage]`, `[TemplateHelper]` |
 | `Hardened.Templates.Runtime` | Mustache-style template engine |
-| `Hardened.SourceGenerator` | Core source generator (DI, modules, configuration) |
+| `Hardened.SourceGenerator` | Shared generator source library (not referenced directly) |
+| `Hardened.DependencyModules.SourceGenerator` | Module wiring and DI source generator |
 | `Hardened.Web.SourceGenerator` | Web routing source generator |
-| `Hardened.Web.AspNetCore.SourceGenerator` | ASP.NET Core source generator |
 | `Hardened.Library.SourceGenerator` | Library/module source generator |
 | `Hardened.Templates.SourceGenerator` | Template compilation source generator |
 | `Hardened.Console.SourceGenerator` | Console application source generator |
