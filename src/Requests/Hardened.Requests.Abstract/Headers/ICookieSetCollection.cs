@@ -21,7 +21,10 @@ public record CookieSetOptions(
 
     public void AppendSettings(StringBuilder builder) {
         if (Expires.HasValue) {
-            builder.AppendFormat("; Expire={0:ddd, dd MMM yyyy HH:mm:ss}", Expires);
+            // RFC 6265 names the attribute "Expires" and requires an RFC 1123 date in GMT.
+            // The "R" format specifier produces exactly that, but only reads correctly if
+            // the value is already UTC.
+            builder.AppendFormat("; Expires={0:R}", Expires.Value.ToUniversalTime());
         }
 
         if (MaxAge.HasValue) {
@@ -32,6 +35,11 @@ public record CookieSetOptions(
         if (!string.IsNullOrEmpty(Domain)) {
             builder.Append("; Domain=");
             builder.Append(Domain);
+        }
+
+        if (!string.IsNullOrEmpty(Path)) {
+            builder.Append("; Path=");
+            builder.Append(Path);
         }
 
         if (SameSite.HasValue) {

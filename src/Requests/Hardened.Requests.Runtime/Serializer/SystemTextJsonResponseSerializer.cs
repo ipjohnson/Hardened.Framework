@@ -34,7 +34,10 @@ public class SystemTextJsonResponseSerializer : IResponseSerializer {
         if (context.Response.ShouldCompress) {
             await using var gzipStream = new GZipStream(context.Response.Body, CompressionLevel.Fastest, true);
 
-            await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue,
+            // Serialize into the gzip stream, not the response body underneath it - writing
+            // to the body directly leaves the payload uncompressed while a GZipStream is
+            // open over it.
+            await System.Text.Json.JsonSerializer.SerializeAsync(gzipStream, context.Response.ResponseValue,
                 _serializerOptions);
 
             await gzipStream.FlushAsync();
