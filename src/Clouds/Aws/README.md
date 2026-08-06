@@ -32,7 +32,6 @@ AWS integrations for the [Hardened](https://ipjohnson-org.github.io/Hardened.Doc
 
 | Package | Description |
 |---|---|
-| `Hardened.Amz.CloudWatch.Dashboards` | CloudWatch dashboard support |
 | `Hardened.Amz.Cdk` | AWS CDK constructs |
 
 ## Quick Start
