@@ -18,6 +18,10 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+        <!-- Referenced directly rather than relied on transitively through
+             Hardened.Shared.Testing, because the Conformance suite exposes xUnit types
+             (Fact, Assert) as part of this package's public surface. -->
+        <PackageReference Include="xunit.v3" Version="1.*" />
     </ItemGroup>
 
     <ItemGroup>

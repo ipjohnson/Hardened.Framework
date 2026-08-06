@@ -4,7 +4,9 @@ using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Headers;
+using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
+using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.AspNetCore.Http;
@@ -72,32 +74,67 @@ public class AspNetExecutionContext : IExecutionContext {
 }
 
 public class AspNetExecutionRequest : IExecutionRequest {
-    private HttpRequest _httpRequest;
+    private readonly HttpRequest _httpRequest;
+
+    // Values supplied by Clone. Null means "fall through to the underlying HttpRequest",
+    // which is what keeps Clone(x: null) preserving the current value.
+    private readonly string? _methodOverride;
+    private readonly string? _pathOverride;
+    private readonly IDictionary<string, StringValues>? _headersOverride;
+    private readonly IQueryStringCollection? _queryStringOverride;
+    private readonly IReadOnlyList<string>? _cookiesOverride;
+
+    private IPathTokenCollection? _pathTokens;
+    private IQueryStringCollection? _queryString;
+    private IReadOnlyList<string>? _cookies;
 
     public AspNetExecutionRequest(HttpRequest httpRequest) {
         _httpRequest = httpRequest;
     }
 
+    private AspNetExecutionRequest(
+        HttpRequest httpRequest,
+        string? methodOverride,
+        string? pathOverride,
+        IDictionary<string, StringValues>? headersOverride,
+        IQueryStringCollection? queryStringOverride,
+        IReadOnlyList<string>? cookiesOverride) {
+        _httpRequest = httpRequest;
+        _methodOverride = methodOverride;
+        _pathOverride = pathOverride;
+        _headersOverride = headersOverride;
+        _queryStringOverride = queryStringOverride;
+        _cookiesOverride = cookiesOverride;
+    }
+
+    /// <summary>
+    /// A null argument keeps the current value, a non-null argument replaces it.
+    /// </summary>
     public IExecutionRequest Clone(
-        string? method,
-        string? path,
-        IDictionary<string, StringValues> headers,
-        IQueryStringCollection queryString,
-        IReadOnlyList<string> cookies) {
-        return new AspNetExecutionRequest(_httpRequest) {
+        string? method = null,
+        string? path = null,
+        IDictionary<string, StringValues>? headers = null,
+        IQueryStringCollection? queryString = null,
+        IReadOnlyList<string>? cookies = null) {
+        return new AspNetExecutionRequest(
+            _httpRequest,
+            method ?? _methodOverride,
+            path ?? _pathOverride,
+            headers ?? _headersOverride,
+            queryString ?? _queryStringOverride,
+            cookies ?? _cookiesOverride) {
             Parameters = Parameters,
-            Body = Body,
             PathTokens = PathTokens,
         };
     }
 
-    public string Method => _httpRequest.Method;
+    public string Method => _methodOverride ?? _httpRequest.Method;
 
-    public string Path => _httpRequest.Path;
+    public string Path => _pathOverride ?? _httpRequest.Path;
 
-    public string? ContentType => _httpRequest.ContentType;
+    public string? ContentType => Headers.GetOrDefault(KnownHeaders.ContentType);
 
-    public string? Accept => null;
+    public string? Accept => Headers.GetOrDefault(KnownHeaders.Accept);
 
     public IExecutionRequestParameters? Parameters { get; set; }
 
@@ -106,15 +143,24 @@ public class AspNetExecutionRequest : IExecutionRequest {
         set => _httpRequest.Body = value;
     }
 
-    public IDictionary<string, StringValues> Headers => _httpRequest.Headers;
+    public IDictionary<string, StringValues> Headers => _headersOverride ?? _httpRequest.Headers;
 
     public IQueryStringCollection QueryString =>
-        new SimpleQueryStringCollection(
-            _httpRequest.Query.ToDictionary(q => q.Key, q => q.Value.ToString()));
+        _queryStringOverride ?? (_queryString ??= new SimpleQueryStringCollection(
+            _httpRequest.Query.ToDictionary(q => q.Key, q => q.Value.ToString())));
 
-    public IPathTokenCollection PathTokens { get; set; }
+    public IPathTokenCollection PathTokens {
+        get => _pathTokens ?? PathTokenCollection.Empty;
+        set => _pathTokens = value;
+    }
 
-    public IReadOnlyList<string> Cookies => new List<string>();
+    /// <summary>
+    /// ASP.NET Core parses the Cookie header into name/value pairs; the framework contract
+    /// is the raw <c>name=value</c> form that API Gateway v2 delivers, so reassemble it.
+    /// </summary>
+    public IReadOnlyList<string> Cookies =>
+        _cookiesOverride ?? (_cookies ??=
+            _httpRequest.Cookies.Select(cookie => $"{cookie.Key}={cookie.Value}").ToList());
 }
 
 public class AspNetExecutionResponse : IExecutionResponse {
