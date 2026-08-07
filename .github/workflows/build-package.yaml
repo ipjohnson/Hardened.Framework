@@ -53,6 +53,26 @@ jobs:
           fi
           echo "No silently skipped tests."
 
+      # The check above catches tests that vanish by accident. This one catches
+      # tests that vanish on purpose: a Skip is a test the suite is not running,
+      # and once it is green nothing distinguishes it from one that passed.
+      #
+      # Skipping is still the right answer locally, for a machine missing
+      # something the suite needs. It is not an answer on a runner, where
+      # everything is present and a skip means a requirement went missing.
+      #
+      # A repro pinned to a defect belongs in the same change as the fix, so it
+      # runs. If a test genuinely cannot run here, delete it and open an issue -
+      # a permanent Skip is a comment that costs a test run.
+      - name: Fail if any test skipped
+        run: |
+          if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log; then
+            echo "::error::Tests skipped in CI. A skipped test is one the suite is not running - land the repro with its fix, or remove it."
+            grep -E "Skipped:[[:space:]]*[1-9]" test-output.log
+            exit 1
+          fi
+          echo "Every test ran."
+
       - name: Coverage summary
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
