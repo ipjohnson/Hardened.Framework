@@ -2,15 +2,11 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <Description>API Gateway hosting for Hardened web applications. Maps API Gateway proxy events onto the Hardened execution pipeline.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Amz.Web.Lambda.Runtime</PackageId>
-        <Authors>Ian Johnson</Authors>
-        <PackageTags>Hardened.Framework</PackageTags>
-        <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Framework</PackageProjectUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/ipjohnson/Hardened.Framework</RepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>

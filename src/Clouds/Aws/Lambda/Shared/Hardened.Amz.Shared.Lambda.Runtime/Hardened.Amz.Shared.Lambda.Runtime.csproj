@@ -2,15 +2,11 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <Description>Shared AWS Lambda runtime support for Hardened: bootstrap, logging and embedded CloudWatch metrics.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Amz.Shared.Lambda.Runtime</PackageId>
-        <Authors>Ian Johnson</Authors>
-        <PackageTags>Hardened.Framework</PackageTags>
-        <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Framework</PackageProjectUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/ipjohnson/Hardened.Framework</RepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>

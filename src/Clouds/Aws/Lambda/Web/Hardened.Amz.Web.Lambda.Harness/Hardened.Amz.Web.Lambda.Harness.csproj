@@ -7,11 +7,6 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Amz.Web.Lambda.Harness</PackageId>
-        <Authors>Ian Johnson</Authors>
-        <PackageTags>Hardened.Framework</PackageTags>
-        <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Framework</PackageProjectUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/ipjohnson/Hardened.Framework</RepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>
