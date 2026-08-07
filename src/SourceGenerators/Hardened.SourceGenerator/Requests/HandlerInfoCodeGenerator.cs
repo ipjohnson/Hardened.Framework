@@ -70,6 +70,12 @@ public static class HandlerInfoCodeGenerator {
         if (handlerModel.RequestParameterInformationList.Count > 0) {
             parameterInfoField = ", _parameterInfo";
         }
+        else if (metadataArg.Length > 0) {
+            // Both are optional constructor arguments, and parameters comes first. A handler
+            // with metadata but no parameters must still fill the parameters slot, or the
+            // metadata array lands in it and the generated code does not compile.
+            parameterInfoField = ", null";
+        }
 
         handlerInfoField.InitializeValue =
             new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField}{metadataArg})");

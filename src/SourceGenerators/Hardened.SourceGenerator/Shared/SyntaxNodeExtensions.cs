@@ -6,6 +6,35 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Hardened.SourceGenerator.Shared;
 
 public static class SyntaxNodeExtensions {
+
+    /// <summary>
+    /// The value of an attribute's first argument as a string, or empty when there is none.
+    ///
+    /// This deliberately does not use ToFullString(). That returns the argument's source
+    /// text, so a name written as [FromHeader("X-Tenant")] comes back including its quotes
+    /// and gets quoted a second time when emitted, producing ""X-Tenant"" - which does not
+    /// compile. The constant value is what callers actually want.
+    /// </summary>
+    public static string GetFirstStringArgumentValue(
+        this AttributeSyntax attribute, GeneratorSyntaxContext generatorSyntaxContext) {
+        var expression = attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression;
+
+        if (expression == null) {
+            return "";
+        }
+
+        // Handles literals and references to string constants alike.
+        var constant = generatorSyntaxContext.SemanticModel.GetConstantValue(expression);
+
+        if (constant is { HasValue: true, Value: string value }) {
+            return value;
+        }
+
+        // Fall back to the source text with any surrounding quotes removed, so an argument
+        // the semantic model cannot fold still yields something usable rather than nothing.
+        return expression.ToFullString().Trim().Trim('"');
+    }
+
     public static string GetNamespace(this BaseTypeDeclarationSyntax syntax) {
         var parentSyntaxNode = syntax.Parent;
 
