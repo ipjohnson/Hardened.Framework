@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="1.*" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+          Hardened.Web.SourceGenerator is referenced as a normal assembly rather than an
+          analyzer so a GeneratorDriver can drive it directly.
+
+          Hardened.SourceGenerator is deliberately NOT referenced here. It is compiled into
+          Hardened.Web.SourceGenerator via linked Compile items, so referencing both puts
+          two copies of RequestHandlerModel, RouteTreeNode<T> and friends in scope and every
+          use becomes ambiguous (CS0433).
+        -->
+        <ProjectReference Include="..\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+    </ItemGroup>
+
+</Project>

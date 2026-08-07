@@ -2,16 +2,11 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <Description>Transport-agnostic request and response abstractions for the Hardened execution pipeline: IExecutionContext, IExecutionRequest, IExecutionResponse and IExecutionFilter.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Requests.Abstract</PackageId>
-        <Authors>Ian Johnson</Authors>
-        <PackageTags>Hardened.Framework</PackageTags>
-        <PackageProjectUrl>https://github.com/ipjohnson/CSharpAuthor</PackageProjectUrl>
-        <PackageLicenseUrl>https://github.com/ipjohnson/CSharpAuthor/blob/main/LICENSE</PackageLicenseUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/ipjohnson/CSharpAuthor</RepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>
