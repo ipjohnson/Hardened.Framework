@@ -5,7 +5,7 @@ namespace LambdaWebTest.Controller;
 public class GetMethod {
     
     [Get("/{author}/{name}")]
-    public async Task<object> Get(string author, string name) {
-        return new {};
+    public Task<object> Get(string author, string name) {
+        return Task.FromResult<object>(new {});
     }
 }

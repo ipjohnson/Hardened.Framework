@@ -34,11 +34,11 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
 
 
     public IExecutionRequest Clone(
-        string? method,
-        string? path,
-        IDictionary<string, StringValues> headers,
-        IQueryStringCollection queryString,
-        IReadOnlyList<string> cookies) {
+        string? method = null,
+        string? path = null,
+        IDictionary<string, StringValues>? headers = null,
+        IQueryStringCollection? queryString = null,
+        IReadOnlyList<string>? cookies = null) {
         return new ApiGatewayV2ExecutionRequest(_proxyRequest) {
             Parameters = Parameters,
             Body = Body,

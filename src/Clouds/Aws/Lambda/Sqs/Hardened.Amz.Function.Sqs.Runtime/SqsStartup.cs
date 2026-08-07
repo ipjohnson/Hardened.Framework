@@ -9,10 +9,10 @@ namespace Hardened.Amz.Function.Sqs.Runtime;
 [Expose]
 public class SqsStartup : IStartupService{
 
-    public async Task<bool> Startup(IServiceProvider rootProvider) {
+    public Task<bool> Startup(IServiceProvider rootProvider) {
         rootProvider.GetRequiredService<IGlobalFilterRegistry>().RegisterFilter(
             rootProvider.GetRequiredService<SqsBatchFilter>(), -1);
         
-        return true;
+        return Task.FromResult(true);
     }
 }

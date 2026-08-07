@@ -28,7 +28,7 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
         _stackContextAccessor = stackContextAccessor;
     }
 
-    public async Task<int> Handle(DeployCommand value) {
+    public Task<int> Handle(DeployCommand value) {
         var cdkApp = _hardenedEnvironment.CustomData<App>("cdkApp");
         
         if (cdkApp == null) {
@@ -82,7 +82,7 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
 
         cdkApp.Synth();
         
-        return 0;
+        return Task.FromResult(0);
     }
 
     private IEnumerable<IStackDefinitionDeployer> GetDefaultStackDeployers(IServiceProvider serviceProvider, IStackDeploymentContext context) {

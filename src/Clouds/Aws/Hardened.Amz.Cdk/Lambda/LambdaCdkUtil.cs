@@ -83,7 +83,14 @@ public class LambdaCdkUtil {
         var lambdaProps = new FunctionProps {
             Runtime = Runtime.DOTNET_8,
             MemorySize = 768,
+            // TODO: migrate to LogGroup. CDK deprecated LogRetention in favour of passing
+            // an explicit LogGroup, but the two produce different CloudFormation - the
+            // former provisions a log-retention custom resource, the latter an actual
+            // LogGroup resource. Switching changes the deployed stack, so it needs a
+            // deliberate infrastructure decision rather than a warning cleanup.
+#pragma warning disable CS0618
             LogRetention = RetentionDays.ONE_MONTH,
+#pragma warning restore CS0618
             FunctionName = request.Name,
             Handler = handlerName,
             Code = Code.FromCustomCommand(request.DistLocation,

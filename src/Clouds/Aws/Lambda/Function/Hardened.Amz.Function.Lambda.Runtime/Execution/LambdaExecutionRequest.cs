@@ -25,13 +25,16 @@ public class LambdaExecutionRequest : IExecutionRequest {
 
 
     public IExecutionRequest Clone(
-        string? method,
-        string? path,
-        IDictionary<string, StringValues> headers,
-        IQueryStringCollection queryString,
-        IReadOnlyList<string> cookies) {
+        string? method = null,
+        string? path = null,
+        IDictionary<string, StringValues>? headers = null,
+        IQueryStringCollection? queryString = null,
+        IReadOnlyList<string>? cookies = null) {
+        // Null means keep the current value, matching the rest of the Clone contract.
+        // Passing headers straight through would leave Headers null on a Clone() with no
+        // arguments, which the interface has always permitted.
         return new LambdaExecutionRequest(method ?? this.Method, path ?? this.Path, this.Body,
-            headers);
+            headers ?? this.Headers);
     }
 
     public string Method { get; }
