@@ -17,6 +17,14 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <!--
+          RS2008 asks for analyzer release tracking files declaring every diagnostic ID the
+          project defines. The IDs it flags here - DM0001 to DM0003 - are declared in
+          DependencyModules source that this project compiles in via Compile Include, not in
+          code owned by this repository. Tracking them here would assert ownership of another
+          project's diagnostics, so the rule is suppressed rather than satisfied.
+        -->
+        <NoWarn>$(NoWarn);RS2008</NoWarn>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.DependencyModules.SourceGenerator</PackageId>
