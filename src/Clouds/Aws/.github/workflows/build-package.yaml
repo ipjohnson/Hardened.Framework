@@ -63,9 +63,16 @@ jobs:
           name: coverage-report
           path: coverage-report
 
+      # GitHub Actions expressions have no arithmetic operators, so the 10000 offset
+      # is applied in the shell. The offset keeps the build number at five digits:
+      # NuGet compares alphanumeric prerelease labels lexically, so preview9999 would
+      # sort above preview10000.
       - name: Pack
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: dotnet pack --configuration Release --no-build /p:PackageVersion=1.0.${{ github.run_number }}
+        run: |
+          BUILD=$(( 10000 + GITHUB_RUN_NUMBER ))
+          echo "Packing 1.0.0-preview$BUILD"
+          dotnet pack --configuration Release --no-build /p:PackageVersion=1.0.0-preview$BUILD
 
       - name: Push
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
