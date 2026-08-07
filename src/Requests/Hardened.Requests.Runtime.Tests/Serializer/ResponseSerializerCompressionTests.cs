@@ -114,7 +114,7 @@ public class ResponseSerializerCompressionTests {
         using var reader = new StreamReader(gzip);
 
         var payload = JsonSerializer.Deserialize<Payload>(
-            await reader.ReadToEndAsync(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            await reader.ReadToEndAsync(TestContext.Current.CancellationToken), new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
         Assert.Equal("compress me", payload!.Name);
         Assert.Equal(7, payload.Value);

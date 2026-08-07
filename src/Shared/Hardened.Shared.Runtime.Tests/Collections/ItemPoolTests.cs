@@ -44,7 +44,7 @@ public class ItemPoolTests {
     }
 
     [Fact]
-    public void ConcurrentGetDispose_IsSafe() {
+    public async Task ConcurrentGetDispose_IsSafe() {
         var created = 0;
         using var pool = new ItemPool<int>(() => Interlocked.Increment(ref created), _ => { });
 
@@ -55,7 +55,7 @@ public class ItemPoolTests {
             }
         }));
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks.ToArray());
 
         Assert.True(created > 0);
         Assert.True(created <= 10000);

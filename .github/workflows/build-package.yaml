@@ -26,7 +26,10 @@ jobs:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - run: dotnet restore src/Hardened.Framework.sln
-      - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release
+
+      # ContinuousIntegrationBuild turns warnings into errors (see src/Directory.Build.props).
+      # The solution builds warning-free; this is what stops that drifting back.
+      - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
       - name: Test with coverage
         run: |

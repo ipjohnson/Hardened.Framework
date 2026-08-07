@@ -37,16 +37,16 @@ public class CommandLineParser : ICommandLineParser {
         _options = options;
     }
 
-    public async Task<ParseResult> ParseCommandLineArguments(IReadOnlyList<string> arguments) {
+    public Task<ParseResult> ParseCommandLineArguments(IReadOnlyList<string> arguments) {
         var commandTree = _commandLineDefinitionService.GetTree();
 
         var isCommandBased = IsArgumentCommand(arguments);
 
         if (!isCommandBased) {
-            return ParseNoCommandArguments(arguments, commandTree);
+            return Task.FromResult(ParseNoCommandArguments(arguments, commandTree));
         }
 
-        return ParseCommandBasedArgumentString(arguments, 0, commandTree);
+        return Task.FromResult(ParseCommandBasedArgumentString(arguments, 0, commandTree));
     }
 
     private ParseResult ParseCommandBasedArgumentString(

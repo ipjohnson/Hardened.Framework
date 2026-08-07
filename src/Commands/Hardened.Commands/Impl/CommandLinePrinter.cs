@@ -117,7 +117,7 @@ public class CommandLinePrinter : ICommandLinePrinter {
         }
     }
 
-    private async Task WriteCommandOptionsHelp(ParseResult result, CommandTreeNode commands) {
+    private Task WriteCommandOptionsHelp(ParseResult result, CommandTreeNode commands) {
         var entryPointName = Assembly.GetEntryAssembly()?.GetName().Name ?? "entrypoint";
 
         var usageCommand = GetCommands(result.CommandTreeNode);
@@ -140,6 +140,8 @@ public class CommandLinePrinter : ICommandLinePrinter {
             
             WriteWrappingLine($"    {optionName}{padString}  {requiredString}  ",option.Description);
         }
+
+        return Task.CompletedTask;
     }
 
     private void GetAllOptions(CommandTreeNode commandTree, List<CommandOption> allOptions) {
@@ -168,7 +170,7 @@ public class CommandLinePrinter : ICommandLinePrinter {
         return returnString;
     }
 
-    protected virtual async Task WriteCommandHelp(ParseResult result, CommandTreeNode commands) {
+    protected virtual Task WriteCommandHelp(ParseResult result, CommandTreeNode commands) {
         var entryPointName = Assembly.GetEntryAssembly()?.GetName().Name ?? "entrypoint";
         
         var usageCommand = "";
@@ -215,6 +217,8 @@ public class CommandLinePrinter : ICommandLinePrinter {
                 WriteWrappingLine(commandString, command.Command.Description);
             }
         }
+
+        return Task.CompletedTask;
     }
 
     protected virtual void WriteWrappingLine(string commandString, string commandDescription) {

@@ -27,13 +27,14 @@ public abstract class BaseHelperTests {
 
         Assert.NotNull(helperFactory);
 
-        var helper = helperFactory(null);
-        Assert.Same(helper, helperFactory(null));
+        var helper = helperFactory(null!);
+        Assert.Same(helper, helperFactory(null!));
 
         var helperFactory2 = defaultHelper.GetTemplateHelperFactory(Token);
 
+        Assert.NotNull(helperFactory2);
         Assert.Same(helperFactory, helperFactory2);
-        Assert.Same(helper, helperFactory2(null));
+        Assert.Same(helper, helperFactory2(null!));
     }
 
     protected ITemplateHelper GetHelper() {
@@ -43,7 +44,7 @@ public abstract class BaseHelperTests {
 
         Assert.NotNull(helperFactory);
 
-        var helper = helperFactory(null);
+        var helper = helperFactory(null!);
 
         Assert.NotNull(helper);
 

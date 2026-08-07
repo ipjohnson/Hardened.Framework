@@ -1,6 +1,17 @@
 <Project>
 
     <!--
+      The solution builds warning-free. Escalating warnings to errors is what keeps it that
+      way; without it the count drifts back up one commit at a time.
+
+      Deliberately scoped to CI rather than local builds, so an in-progress edit with an
+      unused variable does not block someone's inner loop. CI sets ContinuousIntegrationBuild.
+    -->
+    <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <!--
       Applies to every project under src/.
 
       Test projects get coverlet.collector so that collecting "XPlat Code Coverage" during

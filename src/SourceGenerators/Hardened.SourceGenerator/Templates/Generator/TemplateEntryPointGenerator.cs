@@ -108,19 +108,24 @@ public static class TemplateEntryPointGenerator {
         PropertyDefinition templateExecutionService) {
         var internalServices = templateProviderClass.Fields.First(f => f.Name == "_internalTemplateServices");
 
-        var switchBlock = handlerMethod.Switch(templateNameParameter);
+        // Only emit the switch when there is at least one case to put in it. An empty switch
+        // block is legal C# but raises CS1522 in the consuming project's build, which makes
+        // our generated code the source of a warning in their compilation.
+        if (!templateModels.IsEmpty) {
+            var switchBlock = handlerMethod.Switch(templateNameParameter);
 
-        foreach (var templateModel in
-                 templateModels.Sort((x, y) => string.CompareOrdinal(x.TemplateName, y.TemplateName))) {
-            var instanceField = templateProviderClass.AddField(
-                KnownTypes.Templates.ITemplateExecutionHandler.MakeNullable(),
-                "_instance_" + SanitizeNameString(templateModel.TemplateName));
+            foreach (var templateModel in
+                     templateModels.Sort((x, y) => string.CompareOrdinal(x.TemplateName, y.TemplateName))) {
+                var instanceField = templateProviderClass.AddField(
+                    KnownTypes.Templates.ITemplateExecutionHandler.MakeNullable(),
+                    "_instance_" + SanitizeNameString(templateModel.TemplateName));
 
-            var caseBlock = switchBlock.AddCase(QuoteString(templateModel.TemplateName));
+                var caseBlock = switchBlock.AddCase(QuoteString(templateModel.TemplateName));
 
-            caseBlock.Return(NullCoalesceEqual(instanceField.Instance,
-                New(templateModel.TemplateDefinitionType!, templateExecutionService.Instance,
-                    internalServices.Instance)));
+                caseBlock.Return(NullCoalesceEqual(instanceField.Instance,
+                    New(templateModel.TemplateDefinitionType!, templateExecutionService.Instance,
+                        internalServices.Instance)));
+            }
         }
 
         handlerMethod.Return(Null());

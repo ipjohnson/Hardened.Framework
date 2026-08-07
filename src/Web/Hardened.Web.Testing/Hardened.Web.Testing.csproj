@@ -4,6 +4,10 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <!-- This is a shipped library, not a test project. Microsoft.NET.Test.Sdk is
+             referenced for the xUnit integration types, but its auto-generated entry point
+             collides with the testing platform's own (CS8892). Libraries need neither. -->
+        <GenerateProgramFile>false</GenerateProgramFile>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Web.Testing</PackageId>
         <Authors>Ian Johnson</Authors>

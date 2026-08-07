@@ -11,9 +11,9 @@ public class TestFilterAttribute : Attribute, ICustomBindingAttribute {
 
     }
     
-    public async ValueTask<T> BindValue<T>(IExecutionContext context, IExecutionRequestParameter parameter) {
+    public ValueTask<T> BindValue<T>(IExecutionContext context, IExecutionRequestParameter parameter) {
         if (typeof(T) == typeof(string)) {
-            return (T)(object)_value;
+            return new ValueTask<T>((T)(object)_value);
         }
         
         throw new NotSupportedException("Not supported");

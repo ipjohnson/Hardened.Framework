@@ -43,7 +43,7 @@ public class ReplaceHelperTests : BaseHelperTests {
         var helper = GetHelper();
 
         var result =
-            await helper.Execute(GetExecutionContext(), "Some Interesting String", null);
+            await helper.Execute(GetExecutionContext(), "Some Interesting String", null!);
 
         Assert.NotNull(result);
         Assert.Equal("Some Interesting String", result);

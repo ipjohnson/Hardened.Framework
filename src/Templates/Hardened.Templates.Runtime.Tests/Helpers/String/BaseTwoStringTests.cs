@@ -9,8 +9,10 @@ public abstract class BaseTwoStringTests : BaseHelperTests {
 
         var templateHelperFunc = defaultHelper.GetTemplateHelperFactory(Token);
 
-        var templateHelper = templateHelperFunc(null);
+        Assert.NotNull(templateHelperFunc);
 
-        Assert.Equal(result, await templateHelper.Execute(null, one, two));
+        var templateHelper = templateHelperFunc(null!);
+
+        Assert.Equal(result, await templateHelper.Execute(null!, one, two));
     }
 }
