@@ -87,28 +87,56 @@ public class ExceptionToModelConverterTests {
         public BadgeNotFoundException() : base("no badge") { }
     }
 
-    /// <summary>
-    /// Classification is done by substring match on the exception type name rather than by
-    /// type hierarchy, so any type whose name contains "Validation" is treated as a client
-    /// error without deriving from anything.
-    /// </summary>
-    [Fact]
-    public void ExceptionNamedForValidationMapsTo400WithoutInheritance() {
-        var (status, _) = Converter.ConvertExceptionToModel(
-            Context(), new CustomValidationProblemException());
-
-        Assert.Equal(400, status);
+    private class TenantMismatchException : BadRequestException {
+        public TenantMismatchException() : base("tenant does not match") { }
     }
 
     /// <summary>
-    /// The same substring matching catches "Bad" anywhere in the name, so BadgeNotFound is
-    /// classified as a 400. Pinned deliberately: this is current behaviour, and a test
-    /// failing here means the classification strategy changed.
+    /// Classification is by type, not by the shape of the name. A type merely named for
+    /// validation, without deriving from BadRequestException, is not a client error.
     /// </summary>
     [Fact]
-    public void SubstringMatchingAlsoCatchesUnrelatedNamesContainingBad() {
+    public void ExceptionMerelyNamedForValidationIsNotAClientError() {
+        var (status, _) = Converter.ConvertExceptionToModel(
+            Context(), new CustomValidationProblemException());
+
+        Assert.Equal(500, status);
+    }
+
+    /// <summary>
+    /// The case that motivated the change: substring matching on "Bad" classified
+    /// BadgeNotFoundException - an unrelated type - as a client error.
+    /// </summary>
+    [Fact]
+    public void UnrelatedNameContainingBadIsNotAClientError() {
         var (status, _) = Converter.ConvertExceptionToModel(
             Context(), new BadgeNotFoundException());
+
+        Assert.Equal(500, status);
+    }
+
+    /// <summary>
+    /// The supported way to have an exception treated as a client error: derive it from
+    /// BadRequestException. The name is irrelevant.
+    /// </summary>
+    [Fact]
+    public void DerivingFromBadRequestExceptionMakesItAClientError() {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(), new TenantMismatchException());
+
+        Assert.Equal(400, status);
+        Assert.Equal(nameof(TenantMismatchException), Assert.IsType<ErrorModel>(model).Type);
+    }
+
+    /// <summary>
+    /// BadContentEncodingException is raised when a client sends an unsupported
+    /// Content-Encoding, so it is a client error. It previously reached 400 only because
+    /// its name contains "Bad"; it now derives from BadRequestException and earns it.
+    /// </summary>
+    [Fact]
+    public void UnsupportedContentEncodingIsAClientError() {
+        var (status, _) = Converter.ConvertExceptionToModel(
+            Context(), new BadContentEncodingException("deflate"));
 
         Assert.Equal(400, status);
     }
