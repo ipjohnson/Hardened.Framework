@@ -1,6 +1,6 @@
 # Hardened.Framework
 
-The core framework for the [Hardened](https://ipjohnson-org.github.io/Hardened.Docs) ecosystem — a compile-time, source-generated .NET framework for building web APIs, AWS Lambda functions, and canary tests.
+The core framework for the [Hardened](https://ipjohnson.github.io/Hardened.Docs) ecosystem — a compile-time, source-generated .NET framework for building web APIs, AWS Lambda functions, and canary tests.
 
 Hardened uses C# source generators to wire up dependency injection, request routing, configuration, and more at compile time — eliminating runtime reflection and delivering fast startup, small binaries, and strong type safety.
 
@@ -53,17 +53,17 @@ app.Run();
 
 ## Documentation
 
-Full documentation is available at **[ipjohnson-org.github.io/Hardened.Docs](https://ipjohnson-org.github.io/Hardened.Docs)**.
+Full documentation is available at **[ipjohnson.github.io/Hardened.Docs](https://ipjohnson.github.io/Hardened.Docs)**.
 
-- [Getting Started](https://ipjohnson-org.github.io/Hardened.Docs/getting-started/installation/)
-- [Architecture Overview](https://ipjohnson-org.github.io/Hardened.Docs/architecture/overview/)
-- [Dependency Injection](https://ipjohnson-org.github.io/Hardened.Docs/framework/shared/dependency-injection/)
-- [Web Routing](https://ipjohnson-org.github.io/Hardened.Docs/framework/web/routing/)
-- [Testing](https://ipjohnson-org.github.io/Hardened.Docs/framework/testing/hardened-test/)
-- [Recipes](https://ipjohnson-org.github.io/Hardened.Docs/recipes/web-api-crud/)
+- [Getting Started](https://ipjohnson.github.io/Hardened.Docs/getting-started/installation/)
+- [Architecture Overview](https://ipjohnson.github.io/Hardened.Docs/architecture/overview/)
+- [Dependency Injection](https://ipjohnson.github.io/Hardened.Docs/framework/shared/dependency-injection/)
+- [Web Routing](https://ipjohnson.github.io/Hardened.Docs/framework/web/routing/)
+- [Testing](https://ipjohnson.github.io/Hardened.Docs/framework/testing/hardened-test/)
+- [Recipes](https://ipjohnson.github.io/Hardened.Docs/recipes/web-api-crud/)
 
 ## Related Repositories
 
-- [Hardened.Amz](https://github.com/ipjohnson-org/Hardened.Amz) — AWS Lambda runtimes, DynamoDB/SQS clients, CDK support
-- [Hardened.Canaries](https://github.com/ipjohnson-org/Hardened.Canaries) — Canary testing framework
-- [Hardened.Docs](https://github.com/ipjohnson-org/Hardened.Docs) — Documentation site
+- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — AWS Lambda runtimes, DynamoDB/SQS clients, CDK support
+- [Hardened.Canaries](https://github.com/ipjohnson/Hardened.Canaries) — Canary testing framework
+- [Hardened.Docs](https://github.com/ipjohnson/Hardened.Docs) — Documentation site

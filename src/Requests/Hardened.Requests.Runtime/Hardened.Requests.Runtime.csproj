@@ -2,21 +2,16 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <Description>Execution pipeline implementation for Hardened: filters, serialization, parameter validation and error handling.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Requests.Runtime</PackageId>
-        <Authors>Ian Johnson</Authors>
-        <PackageTags>Hardened.Framework</PackageTags>
-        <PackageProjectUrl>https://github.com/ipjohnson/CSharpAuthor</PackageProjectUrl>
-        <PackageLicenseUrl>https://github.com/ipjohnson/CSharpAuthor/blob/main/LICENSE</PackageLicenseUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/ipjohnson/CSharpAuthor</RepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="DependencyModules.Runtime" Version="1.0.0-*" />
-        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-*" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <PackageReference Include="DependencyModules.Runtime" Version="1.0.0-rc9200" />
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9200" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />

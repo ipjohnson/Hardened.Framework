@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
+        <Description>Source generator that produces OpenAPI documents from Hardened route definitions at build time.</Description>
         <LangVersion>10</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -9,12 +10,6 @@
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.OpenApi.SourceGenerator</PackageId>
-        <Authors>Ian Johnson</Authors>
-        <PackageTags>Hardened.Framework</PackageTags>
-        <PackageProjectUrl>https://github.com/ipjohnson/CSharpAuthor</PackageProjectUrl>
-        <PackageLicenseUrl>https://github.com/ipjohnson/CSharpAuthor/blob/main/LICENSE</PackageLicenseUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/ipjohnson/CSharpAuthor</RepositoryUrl>
         <IncludeBuildOutput>false</IncludeBuildOutput>
     </PropertyGroup>
 
