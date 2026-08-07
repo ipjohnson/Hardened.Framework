@@ -8,17 +8,12 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
+        <Description>Source generator that builds compile-time route tables and request handler invocation classes for Hardened web applications.</Description>
         <LangVersion>10</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Web.SourceGenerator</PackageId>
-        <Authors>Ian Johnson</Authors>
-        <PackageTags>Hardened.Framework</PackageTags>
-        <PackageProjectUrl>https://github.com/ipjohnson/CSharpAuthor</PackageProjectUrl>
-        <PackageLicenseUrl>https://github.com/ipjohnson/CSharpAuthor/blob/main/LICENSE</PackageLicenseUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/ipjohnson/CSharpAuthor</RepositoryUrl>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     </PropertyGroup>
 
