@@ -6,7 +6,7 @@ namespace Hardened.Templates.Runtime.Impl;
 
 [SingletonService(Using = RegistrationType.Try)]
 public class BooleanLogicService : IBooleanLogicService {
-    public bool IsTrueValue(object value) {
+    public bool IsTrueValue(object? value) {
         if (value == null) {
             return false;
         }

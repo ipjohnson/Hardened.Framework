@@ -53,6 +53,6 @@ public partial class CommandLineParserSingleCommandTests {
                 new CommandOption("x", CommandOptionType.Number, "",true, false),
                 new CommandOption("y", CommandOptionType.Number, "",true, false),
             },
-            async (provider, options) => 0);
+            (provider, options) => Task.FromResult(0));
     }
 }

@@ -11,12 +11,12 @@ public class HomeController {
     }
 
     [Post("/hello")]
-    public async Task HelloWorldAsync() {
-        
+    public Task HelloWorldAsync() {
+        return Task.CompletedTask;
     }
 
     [Get("/test")]
-    public async Task<string> TestValue([TestFilter("somevalue")] string testValue) {
-        return testValue;
+    public Task<string> TestValue([TestFilter("somevalue")] string testValue) {
+        return Task.FromResult(testValue);
     }
 }

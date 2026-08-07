@@ -12,7 +12,7 @@ public class BooleanLogicServiceTests {
     [InlineData(0, false)]
     [InlineData(true, true)]
     [InlineData(false, false)]
-    public void TestValues(object testValue, bool result) {
+    public void TestValues(object? testValue, bool result) {
         var booleanLogicService = new BooleanLogicService();
 
         Assert.Equal(result, booleanLogicService.IsTrueValue(testValue));

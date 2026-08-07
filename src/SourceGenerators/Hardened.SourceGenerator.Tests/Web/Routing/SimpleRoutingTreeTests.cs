@@ -25,8 +25,7 @@ public class SimpleRoutingTreeTests {
             var childNode = routeTree.ChildNodes[i];
             Assert.Equal((i + 1).ToString(), childNode.Path);
 
-            Assert.Equal(1, childNode.LeafNodes.Count);
-            var leafNode = childNode.LeafNodes.First();
+            var leafNode = Assert.Single(childNode.LeafNodes);
             Assert.Equal(i + 1, leafNode.Value);
         }
     }
@@ -58,16 +57,13 @@ public class SimpleRoutingTreeTests {
             var childNode = routeTree.ChildNodes[i];
             Assert.Equal(assertValue.ToString(), childNode.Path);
 
-            Assert.Equal(1, childNode.LeafNodes.Count);
-            var leafNode = childNode.LeafNodes.First();
+            var leafNode = Assert.Single(childNode.LeafNodes);
             Assert.Equal(assertValue, leafNode.Value);
 
-            Assert.Equal(1, childNode.ChildNodes.Count);
-            var nestedChild = childNode.ChildNodes.First();
+            var nestedChild = Assert.Single(childNode.ChildNodes);
             Assert.Equal(2.ToString(), nestedChild.Path);
 
-            Assert.Equal(1, nestedChild.LeafNodes.Count);
-            var nestedLeafNode = nestedChild.LeafNodes.First();
+            var nestedLeafNode = Assert.Single(nestedChild.LeafNodes);
             Assert.Equal((assertValue * 10) + 2, nestedLeafNode.Value);
         }
     }
@@ -101,14 +97,10 @@ public class SimpleRoutingTreeTests {
         var routeTree = generator.GenerateTree(routes);
 
         Assert.Equal("/", routeTree.Path);
-        Assert.Equal(1, routeTree.ChildNodes.Count);
-
-        var oneNode = routeTree.ChildNodes.First();
+        var oneNode = Assert.Single(routeTree.ChildNodes);
         Assert.Equal("1", oneNode.Path);
-        Assert.Equal(1, oneNode.LeafNodes.Count);
-        Assert.Equal(1, oneNode.ChildNodes.Count);
-
-        var twoNode = oneNode.ChildNodes.First();
+        Assert.Single(oneNode.LeafNodes);
+        var twoNode = Assert.Single(oneNode.ChildNodes);
         Assert.Equal("2", twoNode.Path);
 
         var threeNode = twoNode.ChildNodes.First();
@@ -120,7 +112,7 @@ public class SimpleRoutingTreeTests {
             var assertValue = i + 3;
             var childNode = threeNode.ChildNodes[i];
             Assert.Equal(assertValue.ToString(), childNode.Path);
-            Assert.Equal(1, childNode.LeafNodes.Count);
+            Assert.Single(childNode.LeafNodes);
             Assert.Equal(1230 + assertValue, childNode.LeafNodes.First().Value);
         }
     }

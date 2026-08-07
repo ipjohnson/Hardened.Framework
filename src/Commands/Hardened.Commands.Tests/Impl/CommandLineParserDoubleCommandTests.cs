@@ -52,7 +52,7 @@ public class CommandLineParserDoubleCommandTests {
             "",
             new CommandOption[] {
             },
-            async (provider, options) => 0);
+            (provider, options) => Task.FromResult(0));
     }
     
     private CommandDefinition AddCommand() {
@@ -65,6 +65,6 @@ public class CommandLineParserDoubleCommandTests {
                 new CommandOption("x", CommandOptionType.Number, "",true, false),
                 new CommandOption("y", CommandOptionType.Number,"", true, false),
             },
-            async (provider, options) => 0);
+            (provider, options) => Task.FromResult(0));
     }
 }

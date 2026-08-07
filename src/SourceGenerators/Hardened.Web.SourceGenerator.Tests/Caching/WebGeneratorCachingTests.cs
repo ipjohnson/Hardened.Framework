@@ -35,7 +35,7 @@ public class WebGeneratorCachingTests {
     [Fact]
     public void GeneratorProducesOutputForAController() {
         var compilation = GeneratorTestHarness.CreateCompilation(ControllerSource);
-        var driver = GeneratorTestHarness.CreateDriver(Generator()).RunGenerators(compilation);
+        var driver = GeneratorTestHarness.CreateDriver(Generator()).RunGenerators(compilation, TestContext.Current.CancellationToken);
 
         var diagnostics = driver.GetRunResult().Diagnostics
             .Where(d => d.Severity == DiagnosticSeverity.Error)
@@ -55,10 +55,10 @@ public class WebGeneratorCachingTests {
         var compilation = GeneratorTestHarness.CreateCompilation(ControllerSource);
 
         var driver = GeneratorTestHarness.CreateDriver(Generator());
-        driver = driver.RunGenerators(compilation);
+        driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
 
         // Re-run against the very same compilation.
-        driver = driver.RunGenerators(compilation);
+        driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
 
         var reasons = GeneratorTestHarness.OutputStepReasons(driver);
 
@@ -85,10 +85,10 @@ public class WebGeneratorCachingTests {
         var second = GeneratorTestHarness.CreateCompilation(edited);
 
         var driver = GeneratorTestHarness.CreateDriver(Generator());
-        driver = driver.RunGenerators(first);
+        driver = driver.RunGenerators(first, TestContext.Current.CancellationToken);
         var firstSources = GeneratorTestHarness.GeneratedSources(driver);
 
-        driver = driver.RunGenerators(second);
+        driver = driver.RunGenerators(second, TestContext.Current.CancellationToken);
         var secondSources = GeneratorTestHarness.GeneratedSources(driver);
 
         Assert.Equal(firstSources, secondSources);
@@ -111,10 +111,10 @@ public class WebGeneratorCachingTests {
 
         var driver = GeneratorTestHarness.CreateDriver(Generator());
 
-        driver = driver.RunGenerators(GeneratorTestHarness.CreateCompilation(ControllerSource));
+        driver = driver.RunGenerators(GeneratorTestHarness.CreateCompilation(ControllerSource), TestContext.Current.CancellationToken);
         var before = GeneratorTestHarness.GeneratedSources(driver);
 
-        driver = driver.RunGenerators(GeneratorTestHarness.CreateCompilation(withExtraRoute));
+        driver = driver.RunGenerators(GeneratorTestHarness.CreateCompilation(withExtraRoute), TestContext.Current.CancellationToken);
         var after = GeneratorTestHarness.GeneratedSources(driver);
 
         Assert.NotEqual(before, after);
@@ -128,10 +128,10 @@ public class WebGeneratorCachingTests {
     [Fact]
     public void GenerationIsDeterministicAcrossIndependentDrivers() {
         var one = GeneratorTestHarness.CreateDriver(Generator())
-            .RunGenerators(GeneratorTestHarness.CreateCompilation(ControllerSource));
+            .RunGenerators(GeneratorTestHarness.CreateCompilation(ControllerSource), TestContext.Current.CancellationToken);
 
         var two = GeneratorTestHarness.CreateDriver(Generator())
-            .RunGenerators(GeneratorTestHarness.CreateCompilation(ControllerSource));
+            .RunGenerators(GeneratorTestHarness.CreateCompilation(ControllerSource), TestContext.Current.CancellationToken);
 
         Assert.Equal(
             GeneratorTestHarness.GeneratedSources(one),
@@ -147,7 +147,7 @@ public class WebGeneratorCachingTests {
         var compilation = GeneratorTestHarness.CreateCompilation(
             "namespace TestApp; public class NotAController { public int Value { get; set; } }");
 
-        var driver = GeneratorTestHarness.CreateDriver(Generator()).RunGenerators(compilation);
+        var driver = GeneratorTestHarness.CreateDriver(Generator()).RunGenerators(compilation, TestContext.Current.CancellationToken);
 
         Assert.Empty(driver.GetRunResult().Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
     }

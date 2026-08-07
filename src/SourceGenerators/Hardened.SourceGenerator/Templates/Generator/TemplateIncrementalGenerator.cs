@@ -45,11 +45,17 @@ public static class TemplateIncrementalGenerator {
 
         var helperSelector = new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.Templates.TemplateHelperAttribute);
 
+        // TemplateHelperModelGenerator returns null for syntax it cannot turn into a model.
+        // Those are filtered out before the comparer sees them - TemplateHelperModelComparer
+        // dereferences what it is given, so a null reaching it would throw.
         var templateHelperModels =
             initializationContext.SyntaxProvider.CreateSyntaxProvider(
-                helperSelector.Where,
-                TemplateHelperModelGenerator
-            ).WithComparer(new TemplateHelperModelComparer());
+                    helperSelector.Where,
+                    TemplateHelperModelGenerator
+                )
+                .Where(model => model is not null)
+                .Select((model, _) => model!)
+                .WithComparer(new TemplateHelperModelComparer());
 
         var templateHelperProviders = entryPointProvider.Combine(templateHelperModels.Collect());
 

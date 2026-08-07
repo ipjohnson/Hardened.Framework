@@ -27,12 +27,12 @@ public class HeaderCollectionStringValuesTests {
     public void ConstructsEmptyFromNullDictionary() {
         var headers = new HeaderCollectionStringValues((IDictionary<string, string>?)null);
 
-        Assert.Equal(0, headers.Count);
+        Assert.Empty(headers);
     }
 
     [Fact]
     public void DefaultConstructorStartsEmpty() {
-        Assert.Equal(0, new HeaderCollectionStringValues().Count);
+        Assert.Empty(new HeaderCollectionStringValues());
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class HeaderCollectionStringValuesTests {
 
         headers.Clear();
 
-        Assert.Equal(0, headers.Count);
+        Assert.Empty(headers);
     }
 
     [Fact]
@@ -183,8 +183,8 @@ public class HeaderCollectionStringValuesTests {
     public void ContainsMatchesOnKeyAndValue() {
         var headers = new HeaderCollectionStringValues(new Dictionary<string, string> { { "A", "1" } });
 
-        Assert.True(headers.Contains(new KeyValuePair<string, StringValues>("A", "1")));
-        Assert.False(headers.Contains(new KeyValuePair<string, StringValues>("A", "2")));
+        Assert.Contains(new KeyValuePair<string, StringValues>("A", "1"), headers);
+        Assert.DoesNotContain(new KeyValuePair<string, StringValues>("A", "2"), headers);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class HeaderCollectionStringValuesTests {
         Assert.Equal("1", headers.Get("A").ToString());
 
         Assert.True(headers.Remove(new KeyValuePair<string, StringValues>("A", "1")));
-        Assert.Equal(0, headers.Count);
+        Assert.Empty(headers);
     }
 
     [Fact]

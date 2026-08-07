@@ -9,8 +9,10 @@ public abstract class BaseSingleStringTests : BaseHelperTests {
 
         var templateHelperFunc = defaultHelper.GetTemplateHelperFactory(Token);
 
-        var templateHelper = templateHelperFunc(null);
+        Assert.NotNull(templateHelperFunc);
 
-        Assert.Equal(expected, await templateHelper.Execute(null, input));
+        var templateHelper = templateHelperFunc(null!);
+
+        Assert.Equal(expected, await templateHelper.Execute(null!, input));
     }
 }
