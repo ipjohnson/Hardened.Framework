@@ -15,8 +15,8 @@
 
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.Core" Version="2.2.0" />
-        <PackageReference Include="DependencyModules.Runtime" Version="1.0.0-*" />
-        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-*" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <PackageReference Include="DependencyModules.Runtime" Version="1.0.0-rc9200" />
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9200" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <PackageReference Include="Hardened.Requests.Runtime" Version="0.2.0-*" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />

@@ -1,6 +1,6 @@
 # Hardened.Amz
 
-AWS integrations for the [Hardened](https://ipjohnson-org.github.io/Hardened.Docs) ecosystem — Lambda runtimes, DynamoDB and SQS client libraries, and CDK support.
+AWS integrations for the [Hardened](https://ipjohnson.github.io/Hardened.Docs) ecosystem — Lambda runtimes, DynamoDB and SQS client libraries, and CDK support.
 
 ## Packages
 
@@ -74,18 +74,18 @@ public class ProductController {
 
 ## Documentation
 
-Full documentation is available at **[ipjohnson-org.github.io/Hardened.Docs](https://ipjohnson-org.github.io/Hardened.Docs)**.
+Full documentation is available at **[ipjohnson.github.io/Hardened.Docs](https://ipjohnson.github.io/Hardened.Docs)**.
 
-- [AWS Overview](https://ipjohnson-org.github.io/Hardened.Docs/aws/overview/)
-- [Function Runtime](https://ipjohnson-org.github.io/Hardened.Docs/aws/lambda/function-runtime/)
-- [Web Runtime (API Gateway)](https://ipjohnson-org.github.io/Hardened.Docs/aws/lambda/web-runtime/)
-- [DDB Stream Processing](https://ipjohnson-org.github.io/Hardened.Docs/aws/lambda/ddb-stream/)
-- [SQS Processing](https://ipjohnson-org.github.io/Hardened.Docs/aws/lambda/sqs-processing/)
-- [DynamoDB Client](https://ipjohnson-org.github.io/Hardened.Docs/aws/clients/dynamodb/)
-- [Lambda Testing](https://ipjohnson-org.github.io/Hardened.Docs/aws/lambda/testing/)
+- [AWS Overview](https://ipjohnson.github.io/Hardened.Docs/aws/overview/)
+- [Function Runtime](https://ipjohnson.github.io/Hardened.Docs/aws/lambda/function-runtime/)
+- [Web Runtime (API Gateway)](https://ipjohnson.github.io/Hardened.Docs/aws/lambda/web-runtime/)
+- [DDB Stream Processing](https://ipjohnson.github.io/Hardened.Docs/aws/lambda/ddb-stream/)
+- [SQS Processing](https://ipjohnson.github.io/Hardened.Docs/aws/lambda/sqs-processing/)
+- [DynamoDB Client](https://ipjohnson.github.io/Hardened.Docs/aws/clients/dynamodb/)
+- [Lambda Testing](https://ipjohnson.github.io/Hardened.Docs/aws/lambda/testing/)
 
 ## Related Repositories
 
-- [Hardened.Framework](https://github.com/ipjohnson-org/Hardened.Framework) — Core framework (DI, routing, testing)
-- [Hardened.Canaries](https://github.com/ipjohnson-org/Hardened.Canaries) — Canary testing framework
-- [Hardened.Docs](https://github.com/ipjohnson-org/Hardened.Docs) — Documentation site
+- [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework) — Core framework (DI, routing, testing)
+- [Hardened.Canaries](https://github.com/ipjohnson/Hardened.Canaries) — Canary testing framework
+- [Hardened.Docs](https://github.com/ipjohnson/Hardened.Docs) — Documentation site
