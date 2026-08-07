@@ -106,14 +106,14 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
                 switch (attributeName) {
                     case "FromHeader":
                         var headerName =
-                            attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
+                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
 
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
                             ParameterBindType.Header, headerName,parameterIndex);
 
                     case "FromQueryString":
                         var queryName =
-                            attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
+                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
 
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
                             ParameterBindType.QueryString, queryName,parameterIndex);

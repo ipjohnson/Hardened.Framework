@@ -67,7 +67,7 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
                 switch (attributeName) {
                     case "FromContext":
                         var headerName =
-                            attribute.ArgumentList?.Arguments.FirstOrDefault()?.ToFullString() ?? "";
+                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
 
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
                             ParameterBindType.Header, headerName, parameterIndex);
