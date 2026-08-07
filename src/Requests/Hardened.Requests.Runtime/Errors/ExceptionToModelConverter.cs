@@ -21,14 +21,17 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
             return (400, errorModel);
         }
 
-        var statusCode = 500;
         var model = new ErrorModel { Type = exp.GetType().Name, Message = exp.Message };
 
-        if (exp.GetType().Name.Contains("Validation") ||
-            exp.GetType().Name.Contains("Bad") ||
-            exp is FormatException) {
-            statusCode = 400;
-        }
+        // Client errors are identified by type, not by the shape of the type's name.
+        //
+        // This previously matched any exception whose name contained "Validation" or "Bad",
+        // which classified unrelated types - a BadgeNotFoundException became a 400 - while
+        // missing any client error that happened not to be named that way.
+        //
+        // To have an exception treated as a client error, derive it from
+        // BadRequestException.
+        var statusCode = exp is BadRequestException or FormatException ? 400 : 500;
 
         return (statusCode, model);
     }
