@@ -8,6 +8,7 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
+        <Description>Source generator for Hardened library and module projects: dependency injection registrations and configuration implementations.</Description>
         <LangVersion>10</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <IsRoslynComponent>true</IsRoslynComponent>
@@ -15,12 +16,6 @@
         <IsPackable>True</IsPackable>
         <Nullable>enable</Nullable>
         <PackageId>Hardened.Library.SourceGenerator</PackageId>
-        <Authors>Ian Johnson</Authors>
-        <PackageTags>Hardened.Framework</PackageTags>
-        <PackageProjectUrl>https://github.com/ipjohnson/CSharpAuthor</PackageProjectUrl>
-        <PackageLicenseUrl>https://github.com/ipjohnson/CSharpAuthor/blob/main/LICENSE</PackageLicenseUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/ipjohnson/CSharpAuthor</RepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>

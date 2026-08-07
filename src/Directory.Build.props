@@ -1,6 +1,28 @@
 <Project>
 
     <!--
+      Package metadata shared by every package in this repository.
+
+      It lives here rather than in each csproj because it was previously copy-pasted per
+      project, and had drifted: all 15 packable projects claimed to belong to the CSharpAuthor
+      repository, and every one of them shipped with the default "Package Description".
+
+      Per-package Description and PackageId stay in the individual csproj files, since those
+      genuinely differ.
+    -->
+    <PropertyGroup>
+        <Authors>Ian Johnson</Authors>
+        <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Framework</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/ipjohnson/Hardened.Framework</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>Hardened;Hardened.Framework;source-generator;aot</PackageTags>
+
+        <!-- licenseUrl is deprecated (NU5125) and pointed at another project's licence.
+             Both repositories are MIT. -->
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    </PropertyGroup>
+
+    <!--
       Applies to every project under src/.
 
       Test projects get coverlet.collector so that collecting "XPlat Code Coverage" during
