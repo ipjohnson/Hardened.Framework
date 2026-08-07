@@ -12,8 +12,8 @@
     -->
     <PropertyGroup>
         <Authors>Ian Johnson</Authors>
-        <PackageProjectUrl>https://github.com/ipjohnson-org/Hardened.Framework</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/ipjohnson-org/Hardened.Framework</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Framework</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/ipjohnson/Hardened.Framework</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>Hardened;Hardened.Framework;source-generator;aot</PackageTags>
 
