@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -8,14 +8,14 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
         <PackageReference Include="Hardened.Requests.Abstract" Version="1.0.0-preview*" />
         <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
         <PackageReference Include="Hardened.Shared.Runtime" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.SourceGenerator" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.Templates.SourceGenerator" Version="1.0.0-preview*" />
+        <PackageReference Include="Hardened.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Templates.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
         <PackageReference Include="Hardened.Web.Runtime" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.Web.SourceGenerator" Version="1.0.0-preview*" />
+        <PackageReference Include="Hardened.Web.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
     </ItemGroup>
     
     <ItemGroup>

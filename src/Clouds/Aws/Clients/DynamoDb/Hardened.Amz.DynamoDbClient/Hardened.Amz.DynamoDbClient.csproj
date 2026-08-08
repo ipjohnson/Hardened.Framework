@@ -12,9 +12,8 @@
 
     <ItemGroup>
         <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.*" />
-        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
         <PackageReference Include="Hardened.Shared.Runtime" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.SourceGenerator" Version="1.0.0-preview*" />
     </ItemGroup>
 
     <ItemGroup>

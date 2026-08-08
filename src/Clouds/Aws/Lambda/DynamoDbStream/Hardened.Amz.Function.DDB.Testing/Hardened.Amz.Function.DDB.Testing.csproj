@@ -5,6 +5,8 @@
         <Description>Test support for Hardened DynamoDB Streams handlers.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Amz.Function.DDB.Testing</PackageId>
     </PropertyGroup>
 
     <ItemGroup>

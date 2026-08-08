@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.DynamoDBEvents" Version="3.1.1" />
-        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
         <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
     </ItemGroup>
 

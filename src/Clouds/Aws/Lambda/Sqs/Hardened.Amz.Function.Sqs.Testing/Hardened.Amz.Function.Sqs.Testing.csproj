@@ -5,7 +5,8 @@
         <Description>Test support for Hardened SQS handlers.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <IsPackable>true</IsPackable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Amz.Function.Sqs.Testing</PackageId>
     </PropertyGroup>
 
     <ItemGroup>

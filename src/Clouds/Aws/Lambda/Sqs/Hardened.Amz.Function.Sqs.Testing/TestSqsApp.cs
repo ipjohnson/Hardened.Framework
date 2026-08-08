@@ -1,3 +1,4 @@
+using System.Globalization;
 using Amazon.Lambda.SQSEvents;
 using Hardened.Amz.Function.Lambda.Runtime.Impl;
 using Hardened.Amz.Shared.Lambda.Testing;
@@ -40,17 +41,28 @@ public class TestSqsApp : TestContext {
         return await _jsonSerializer.DeserializeAsync<SQSBatchResponse>(responseStream);
     }
 
+    /// <summary>
+    /// Each message is identified by its position in the array handed to
+    /// <see cref="SendMessage{T}"/>, so a caller correlates a failure back to the message that
+    /// caused it.
+    ///
+    /// <para>
+    /// The id matters more than it looks: a partial batch response names failed messages by
+    /// <c>MessageId</c>, so leaving it unset produced a response whose every
+    /// <c>ItemIdentifier</c> was null — the count of failures was right and which ones failed was
+    /// unknowable, which is the one thing a batch handler test needs to assert.
+    /// </para>
+    /// </summary>
     private SQSEvent GenerateEvent<T>(T[] messages) {
         var list = new List<SQSEvent.SQSMessage>();
 
-        foreach (var message in messages) {
-            var serializedMessage = _jsonSerializer.Serialize(message!);
-            
+        for (var i = 0; i < messages.Length; i++) {
             list.Add(new SQSEvent.SQSMessage {
-                Body = serializedMessage,
+                MessageId = i.ToString(CultureInfo.InvariantCulture),
+                Body = _jsonSerializer.Serialize(messages[i]!),
             });
         }
-        
+
         return new SQSEvent {
             Records = list
         };

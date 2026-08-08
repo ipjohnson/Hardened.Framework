@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -9,8 +9,8 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Hardened.Commands" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.Console.SourceGenerator" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" />
+        <PackageReference Include="Hardened.Console.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
         <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
         <PackageReference Include="Amazon.CDK.Lib" Version="2.263.0" />
         <PackageReference Include="Cdklabs.CdkMonitoringConstructs" Version="8.1.1" />

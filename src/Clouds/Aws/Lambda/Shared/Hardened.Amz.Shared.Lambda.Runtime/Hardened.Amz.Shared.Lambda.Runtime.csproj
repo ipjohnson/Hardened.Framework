@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -11,6 +11,12 @@
 
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.Core" Version="2.2.0" />
+        <!--
+          Declared rather than inherited. This used to arrive transitively through
+          Hardened.Requests.Runtime; the generator is now opt-in, so a project using
+          [SingletonService] asks for it.
+        -->
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9200" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.3" />
         <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />

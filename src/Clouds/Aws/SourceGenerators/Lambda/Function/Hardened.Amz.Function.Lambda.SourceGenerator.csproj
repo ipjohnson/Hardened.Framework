@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
@@ -46,6 +46,8 @@
 
     <PropertyGroup>
         <IncludeBuildOutput>false</IncludeBuildOutput>
+        <!-- Build-only: consumers must not inherit it as a runtime dependency. -->
+        <DevelopmentDependency>true</DevelopmentDependency>
     </PropertyGroup>
 
 
