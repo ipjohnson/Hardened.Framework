@@ -29,6 +29,13 @@
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.DependencyModules.SourceGenerator</PackageId>
         <IncludeBuildOutput>false</IncludeBuildOutput>
+
+        <!--
+          Build-only. This does not stop the package flowing to consumers on its own - only
+          PrivateAssets on the reference does that - but it is what makes `dotnet add package`
+          write PrivateAssets for you, so the next reference starts out right.
+        -->
+        <DevelopmentDependency>true</DevelopmentDependency>
     </PropertyGroup>
 
     <PropertyGroup>
