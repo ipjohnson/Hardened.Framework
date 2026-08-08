@@ -8,6 +8,16 @@
         <IsPackable>true</IsPackable>
     </PropertyGroup>
 
+        <!--
+      Declared rather than inherited. It used to arrive transitively from
+      Hardened.Shared.Runtime, which meant a project in this repository got the module
+      generator for free while a consumer of the package never did - the flowed dependency
+      excludes analyzers. Every project that writes a [HardenedModule] asks for it.
+    -->
+    <ItemGroup>
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9200" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    </ItemGroup>
+
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
