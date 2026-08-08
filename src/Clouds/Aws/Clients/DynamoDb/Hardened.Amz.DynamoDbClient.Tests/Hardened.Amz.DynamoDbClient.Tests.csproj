@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <!--
+      xunit.v3 rather than the xunit 2.9 the other test projects here use, because it is not a
+      choice: Hardened.Shared.Testing depends on DependencyModules.xUnit, which brings xunit.v3, and
+      referencing the Testing project alongside xunit 2.9 makes every Fact and Assert ambiguous
+      between the two assemblies. Versions match the Hardened.Framework test projects.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="NSubstitute" Version="5.1.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="1.*" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Amz.DynamoDbClient\Hardened.Amz.DynamoDbClient.csproj" />
+        <ProjectReference Include="..\Hardened.Amz.DynamoDbClient.Testing\Hardened.Amz.DynamoDbClient.Testing.csproj" />
+    </ItemGroup>
+
+</Project>

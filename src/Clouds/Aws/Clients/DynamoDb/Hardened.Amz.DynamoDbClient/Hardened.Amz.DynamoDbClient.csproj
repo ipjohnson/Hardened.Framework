@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>A DynamoDB client provider for Hardened applications: named clients that bring their own credentials, built on first use and cached for the process.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsAotCompatible>true</IsAotCompatible>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Amz.DynamoDbClient</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.*" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" />
+        <PackageReference Include="Hardened.Shared.Runtime" Version="1.0.0-preview*" />
+        <PackageReference Include="Hardened.SourceGenerator" Version="1.0.0-preview*" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+          DefaultClientSettings is internal: the AWS SDK exposes a built client's endpoint but not
+          its credentials, and which credentials the ServiceUrl branch chooses is the behaviour
+          worth asserting. Separating the decision keeps that testable without reflection.
+        -->
+        <InternalsVisibleTo Include="Hardened.Amz.DynamoDbClient.Tests" />
+    </ItemGroup>
+
+</Project>

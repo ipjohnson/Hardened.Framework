@@ -48,6 +48,21 @@ jobs:
           fi
           echo "No silently skipped tests."
 
+      # Some tests skip themselves rather than fail when what they need is not
+      # there - the DynamoDB Local tests skip without a Docker daemon, so that a
+      # developer without one gets a stated reason instead of a container timeout.
+      # On a runner that is never the right answer: every requirement is present
+      # here, so a skip means one stopped being present and the run would go green
+      # with fewer tests than it thinks. Nothing may skip in CI.
+      - name: Fail if any test skipped
+        run: |
+          if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log; then
+            echo "::error::Tests skipped in CI. Everything the suite needs is available on the runner, so a skip means a requirement went missing - not that the test is optional."
+            grep -E "Skipped:[[:space:]]*[1-9]" test-output.log
+            exit 1
+          fi
+          echo "Every test ran."
+
       - name: Coverage summary
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
