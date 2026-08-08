@@ -1,37 +1,26 @@
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
-/// A known routing defect, captured as a runnable reproduction rather than left in a
-/// tracker.
-///
-/// When two routes share a prefix and both have a path token in the same position, the
-/// route tree stores the token name on the tree *node* - that is, on the position - rather
-/// than on the individual route. Both routes therefore share whichever name was registered
-/// first, and the other one fails to bind.
-///
-/// BindingController declares:
+/// Two routes sharing a prefix, with a path token in the same position under different
+/// names. BindingController declares:
 ///
 ///     [Get("/path/{id}")]                  FromPath
 ///     [Get("/path/{first}/{second}")]      OverlappingPathTokens
 ///
-/// A request to /binding/path/a/b routes correctly to OverlappingPathTokens - the log shows
-/// the right handler - and then fails binding with BadRequestException "first was missing",
-/// returning 400. The generated binding code is correct; it asks PathTokens for "first",
-/// and the collection was populated under the name from the shorter route.
+/// The route tree shares one node for that token position, so the node cannot know which
+/// name applies. It used to take the name from whichever route registered first, which meant
+/// /binding/path/a/b routed correctly to OverlappingPathTokens and then failed binding with
+/// "first was missing" - a 400 that only appeared when the route was called.
 ///
-/// This fails at runtime rather than at build time, which makes it more dangerous than the
-/// generator defects fixed alongside it: nothing surfaces until someone calls the route.
+/// Token names now belong to the route rather than the tree node: the matched leaf supplies
+/// them and values are filled in positionally as the match unwinds.
 ///
-/// Fixing it means moving the token name from RouteTreeNode onto the leaf so each route
-/// carries its own, and updating the routing table emitter to match. That is a structural
-/// change to the route tree, so it is recorded here rather than bundled into this work.
-///
-/// Remove the Skip when the token name moves to the route.
+/// This shape is ordinary REST - /users/{id} alongside /users/{userId}/posts/{postId} - and
+/// the old behaviour was triggered by the rename that makes the second route clearer.
 /// </summary>
 public class OverlappingRouteTokenNamesTests {
 
-    [HardenedTest(Skip = "Known defect: route tree stores path token names per position, " +
-                         "so overlapping routes with differently named tokens cannot both bind.")]
+    [HardenedTest]
     public async Task OverlappingRoutesBindTheirOwnTokenNames(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/binding/path/alpha/beta");
 
@@ -40,8 +29,8 @@ public class OverlappingRouteTokenNamesTests {
     }
 
     /// <summary>
-    /// The shorter route still works, which is why the defect goes unnoticed: whichever
-    /// route registered first behaves correctly.
+    /// The shorter route keeps working. It always did, which is why the defect went
+    /// unnoticed: whichever route registered first behaved correctly.
     /// </summary>
     [HardenedTest]
     public async Task TheFirstRegisteredOverlappingRouteStillBinds(ITestWebApp testWebApp) {
@@ -49,5 +38,17 @@ public class OverlappingRouteTokenNamesTests {
 
         response.Assert.Ok();
         Assert.Equal("only-one", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// The deeper route's second token is unambiguous - only one route reaches that position
+    /// - so it was never affected. Asserted so a future change cannot regress it silently.
+    /// </summary>
+    [HardenedTest]
+    public async Task DeeperUnsharedTokenStillBinds(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/pair/one/two");
+
+        response.Assert.Ok();
+        Assert.Equal("one:two", response.Deserialize<string>());
     }
 }

@@ -125,7 +125,7 @@ public class RouteTreeGenerator<T> {
         foreach (var entry in entries) {
             _cancellationToken.ThrowIfCancellationRequested();
 
-            leafNodes.Add(new RouteTreeLeafNode<T>(entry.Method, entry.Value));
+            leafNodes.Add(new RouteTreeLeafNode<T>(entry.Method, entry.Value, entry.WildCardTokens));
         }
 
         return leafNodes;

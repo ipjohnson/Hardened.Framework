@@ -372,19 +372,16 @@ public static class RoutingTableGenerator {
         var matchIfHandlerBlock =
             ifStatement.If(NotEquals(handlerInfo, Null()));
 
-        var newPathToken = New(KnownTypes.Requests.PathToken,
-            QuoteString(wildCardNode.WildCardToken!),
-            span.Invoke(
-                "Slice",
-                index,
-                Subtract(currentIndex, index)).Invoke("ToString")
-        );
-
+        // The value is positional. Its name belongs to whichever route matched, which is
+        // only known further down, so the collection was created with that route's names.
         matchIfHandlerBlock.AddIndentedStatement(
             handlerInfo.Property("PathTokens").Invoke(
-                "Set",
+                "SetValue",
                 wildCardNode.WildCardDepth - 1,
-                newPathToken
+                span.Invoke(
+                    "Slice",
+                    index,
+                    Subtract(currentIndex, index)).Invoke("ToString")
             ));
 
         matchIfHandlerBlock.Return(handlerInfo);
@@ -411,15 +408,11 @@ public static class RoutingTableGenerator {
 
                 coalesceHandler.PrintParentheses = false;
 
-                var pathToken = New(KnownTypes.Requests.PathToken,
-                    QuoteString(wildCardNode.WildCardToken!),
-                    span.Invoke("Slice", index).Invoke("ToString")
-                );
-
                 IOutputComponent pathTokensCollection =
                     New(KnownTypes.Requests.PathTokenCollection,
                         wildCardNode.WildCardDepth,
-                        pathToken
+                        PathTokenNamesField(routingClass, leafNode),
+                        span.Invoke("Slice", index).Invoke("ToString")
                     );
 
                 caseStatement.Return(
@@ -462,7 +455,9 @@ public static class RoutingTableGenerator {
             IOutputComponent pathTokensCollection = EmptyTokens;
 
             if (routeNode.WildCardDepth > 0) {
-                pathTokensCollection = New(KnownTypes.Requests.PathTokenCollection, routeNode.WildCardDepth);
+                pathTokensCollection = New(KnownTypes.Requests.PathTokenCollection,
+                    routeNode.WildCardDepth,
+                    PathTokenNamesField(routingClass, leafNode));
             }
 
             caseStatement.Return(
@@ -551,4 +546,31 @@ public static class RoutingTableGenerator {
 
         return "";
     }
+
+    /// <summary>
+    /// Emits a static readonly array of the route's path token names and returns a reference
+    /// to it. The names are compile-time constants belonging to the route, so one shared
+    /// array serves every request rather than allocating a PathToken per token per request.
+    /// </summary>
+    private static IOutputComponent PathTokenNamesField(
+        ClassDefinition routingClass, RouteTreeLeafNode<RequestHandlerModel> leafNode) {
+        var fieldName = "_pathTokenNames" + leafNode.Value.InvokeHandlerType.Name;
+
+        var existing = routingClass.Fields.FirstOrDefault(f => f.Name == fieldName);
+
+        if (existing != null) {
+            return existing.Instance;
+        }
+
+        var field = routingClass.AddField(typeof(string).MakeArrayType(), fieldName);
+
+        field.Modifiers |= ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+
+        var names = string.Join(", ", leafNode.WildCardTokens.Select(t => "\"" + t + "\""));
+
+        field.InitializeValue = new CodeOutputComponent("new string[] { " + names + " }");
+
+        return field.Instance;
+    }
+
 }
