@@ -54,7 +54,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1006">
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1007">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
@@ -63,7 +63,7 @@
 
     <!-- DependencyModules source: NuGet package or local linked files -->
     <ItemGroup Condition="'$(UseLocalDependencyModules)' != 'true'">
-        <PackageReference Include="DependencyModules.SourceGenerator.Impl" Version="1.0.0-rc9200">
+        <PackageReference Include="DependencyModules.SourceGenerator.Impl" Version="1.0.0-rc9220">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
@@ -76,6 +76,15 @@
         </Compile>
         <Compile Include="$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator/ServiceSourceGenerator.cs">
             <Link>ServiceSourceGenerator.cs</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <!--
+          Convention registration and decoration. ConventionGenerator is a single emission stage
+          owning both, because a generic decorator has to be closed over the type arguments each
+          registration used. Packed as a tree - it depends on its own Models and Utilities.
+        -->
+        <Compile Include="$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator/Conventions/**/*.cs">
+            <Link>Conventions\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
     </ItemGroup>

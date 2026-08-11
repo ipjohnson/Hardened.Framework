@@ -5,10 +5,6 @@
         <Description>Test support for Hardened applications: the [HardenedTest] attribute, [Mock] parameter injection and ITestContext.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <!-- This is a shipped library, not a test project. Microsoft.NET.Test.Sdk is
-             referenced for the xUnit integration types, but its auto-generated entry point
-             collides with the testing platform's own (CS8892). Libraries need neither. -->
-        <GenerateProgramFile>false</GenerateProgramFile>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Shared.Testing</PackageId>
     </PropertyGroup>
@@ -18,7 +14,13 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+        <!--
+             The extensibility surface only. This is a shipped library that other people's test
+             projects reference, not a test project itself, and xunit.v3 pulls in
+             xunit.v3.core.mtp-v1, whose targets hard-error unless the project is an executable
+             test project. Microsoft.NET.Test.Sdk went with it for the same reason.
+        -->
+        <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2" />
         <PackageReference Include="NSubstitute" Version="5.1.0" />
     </ItemGroup>
 
@@ -26,7 +28,7 @@
         <ProjectReference Include="..\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"
                           Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
-        <PackageReference Include="DependencyModules.xUnit" Version="1.0.0-rc9200"
+        <PackageReference Include="DependencyModules.xUnit" Version="1.0.0-rc9220"
                           Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
     </ItemGroup>
 
