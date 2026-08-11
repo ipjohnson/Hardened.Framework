@@ -8,7 +8,7 @@ Hardened uses C# source generators to wire up dependency injection, request rout
 
 | Package | Description |
 |---|---|
-| `Hardened.Shared.Runtime` | Core: DI attributes (`[Expose]`, `[Singleton]`, `[Scoped]`), configuration, environment, application lifecycle |
+| `Hardened.Shared.Runtime` | Core: module entry point (`[HardenedModule]`), configuration, environment, application lifecycle |
 | `Hardened.Shared.Testing` | Test framework: `[HardenedTest]`, `[Mock]`, `ITestContext` |
 | `Hardened.Requests.Abstract` | Request/response abstractions, execution pipeline interfaces |
 | `Hardened.Requests.Runtime` | Execution pipeline implementation, filters |

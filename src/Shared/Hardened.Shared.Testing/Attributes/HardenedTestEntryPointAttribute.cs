@@ -1,6 +1,6 @@
 using System.Reflection;
 using DependencyModules.Runtime.Interfaces;
-using DependencyModules.xUnit.Attributes.Interfaces;
+using DependencyModules.Testing.Attributes.Interfaces;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing.Impl;
@@ -14,7 +14,8 @@ using Xunit.v3;
 namespace Hardened.Shared.Testing.Attributes;
 
 [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method)]
-public class HardenedTestEntryPointAttribute : Attribute, IDependencyModuleProvider, ITestStartupAttribute {
+public class HardenedTestEntryPointAttribute
+    : Attribute, IDependencyModuleProvider, ITestServiceSetupAttribute, ITestStartupAttribute {
     public HardenedTestEntryPointAttribute(Type entryPoint) {
         EntryPoint = entryPoint;
     }
@@ -25,7 +26,7 @@ public class HardenedTestEntryPointAttribute : Attribute, IDependencyModuleProvi
         return (IDependencyModule)Activator.CreateInstance(EntryPoint)!;
     }
 
-    public void SetupServiceCollection(IXunitTestMethod testMethod, IServiceCollection serviceCollection) {
+    public void SetupServiceCollection(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
         var methodInfo = testMethod.Method;
         var attributeCollection = AttributeCollection.FromMethodInfo(methodInfo);
         var environment = BuildEnvironment(attributeCollection, methodInfo);
@@ -60,7 +61,7 @@ public class HardenedTestEntryPointAttribute : Attribute, IDependencyModuleProvi
         serviceCollection.AddSingleton<ILoggerProvider, XunitLoggerProvider>();
     }
 
-    public async Task StartupAsync(IXunitTestMethod testMethod, IServiceProvider serviceProvider) {
+    public async Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider) {
         ApplicationLogic.StartWithWait(serviceProvider, null, 15);
 
         var methodInfo = testMethod.Method;

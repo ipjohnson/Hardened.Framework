@@ -1,5 +1,5 @@
-using DependencyModules.xUnit.Attributes.Interfaces;
-using DependencyModules.xUnit.Impl;
+using DependencyModules.Testing.Attributes.Interfaces;
+using DependencyModules.Testing.Impl;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Attributes;
@@ -11,8 +11,8 @@ using Xunit.v3;
 namespace Hardened.Web.Testing;
 
 [AttributeUsage(AttributeTargets.Assembly)]
-public class WebTestingAttribute : Attribute, ITestStartupAttribute {
-    public void SetupServiceCollection(IXunitTestMethod testMethod, IServiceCollection serviceCollection) {
+public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestStartupAttribute {
+    public void SetupServiceCollection(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
         var declaringType = testMethod.Method.DeclaringType!;
         serviceCollection.AddTransient<ITestWebApp>(sp => {
             var loggerType = typeof(ILogger<>).MakeGenericType(declaringType);
@@ -22,7 +22,7 @@ public class WebTestingAttribute : Attribute, ITestStartupAttribute {
         });
     }
 
-    public async Task StartupAsync(IXunitTestMethod testMethod, IServiceProvider serviceProvider) {
+    public async Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider) {
         var entryPoint = testMethod.Method.GetTestAttribute<HardenedTestEntryPointAttribute>();
 
         // Run registered startup services (CORS, filters, etc.)

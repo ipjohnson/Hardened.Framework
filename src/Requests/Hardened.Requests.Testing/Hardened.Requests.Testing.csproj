@@ -5,10 +5,6 @@
         <Description>Test doubles for the Hardened execution pipeline, and the shared transport conformance suite every IExecutionRequest implementation is held to.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <!-- This is a shipped library, not a test project. Microsoft.NET.Test.Sdk is
-             referenced for the xUnit integration types, but its auto-generated entry point
-             collides with the testing platform's own (CS8892). Libraries need neither. -->
-        <GenerateProgramFile>false</GenerateProgramFile>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Requests.Testing</PackageId>
     </PropertyGroup>
@@ -16,11 +12,17 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
         <!-- Referenced directly rather than relied on transitively through
              Hardened.Shared.Testing, because the Conformance suite exposes xUnit types
-             (Fact, Assert) as part of this package's public surface. -->
-        <PackageReference Include="xunit.v3" Version="1.*" />
+             (Fact, Assert) as part of this package's public surface.
+
+             The extensibility surface only: this is a shipped library that other people's test
+             projects reference, not a test project itself, and xunit.v3 pulls in
+             xunit.v3.core.mtp-v1, whose targets hard-error unless the project is an executable
+             test project. Microsoft.NET.Test.Sdk went with it for the same reason. -->
+        <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2" />
+        <!-- Assert is not part of the extensibility surface; the Conformance suite asserts. -->
+        <PackageReference Include="xunit.v3.assert" Version="3.2.2" />
     </ItemGroup>
 
     <ItemGroup>

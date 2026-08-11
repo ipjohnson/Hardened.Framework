@@ -22,6 +22,11 @@ public class HardenedSourceGenerator : BaseSourceGenerator {
 
     protected override IEnumerable<IDependencyModuleSourceGenerator> AttributeSourceGenerators() {
         yield return new ServiceSourceGenerator();
+
+        // Conventions and decorators, so a [HardenedModule] gets them against its own module
+        // attribute rather than only against [DependencyModule]. One stage owns both: closing a
+        // generic decorator over a registration's type arguments needs them together.
+        yield return new global::DependencyModules.Conventions.ConventionGenerator();
     }
 
     protected override void SetupRootGenerator(IncrementalGeneratorInitializationContext context,
