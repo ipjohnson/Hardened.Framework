@@ -16,7 +16,16 @@
           Hardened.Requests.Runtime; the generator is now opt-in, so a project using
           [SingletonService] asks for it.
         -->
-        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9200" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9220" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <!--
+             Referenced directly because the generator above emits code against this assembly, and
+             the generator reference is analyzer-only so it supplies none of it. Without this the
+             runtime is whatever the published Hardened.* packages happen to depend on - rc9200
+             today - which has no DecoratorRegistration and a different InternalApplyServices
+             signature than the emitted code expects. Naming it here keeps the pair in step
+             instead of letting a transitive dependency decide which half the other compiles against.
+        -->
+        <PackageReference Include="DependencyModules.Runtime" Version="1.0.0-rc9220" />
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.3" />
         <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />

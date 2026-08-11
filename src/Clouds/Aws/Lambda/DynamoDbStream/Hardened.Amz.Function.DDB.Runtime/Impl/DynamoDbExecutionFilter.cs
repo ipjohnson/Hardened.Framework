@@ -1,14 +1,16 @@
 using Amazon.Lambda.DynamoDBEvents;
 using Hardened.Amz.Function.Lambda.Runtime.Filter;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Shared.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Function.DDB.Runtime.Impl;
 
-[Expose(typeof(DynamoDbExecutionFilter))]
+// Registered as the concrete type: FilterStartup resolves it by class to hand to the filter
+// registry, and inference would otherwise pick an interface off BaseBatchExecutionFilter.
+[TransientService(As = typeof(DynamoDbExecutionFilter))]
 public class DynamoDbExecutionFilter : BaseBatchExecutionFilter<DynamoDBEvent, DynamoDBEvent.DynamodbStreamRecord> {
     private readonly CurrentDdbRecordContext _currentDdbRecordContext;
     

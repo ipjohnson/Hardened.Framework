@@ -5,15 +5,15 @@ using Hardened.Amz.Function.Lambda.Runtime.Filter;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Headers;
 using DependencyModules.Runtime.Attributes;
-using Hardened.Shared.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Function.Sqs.Runtime.Impl;
 
-[Expose(typeof(SqsBatchFilter))]
-[SingletonService]
+// Registered as the concrete type: SqsStartup resolves it by class to hand to the filter registry,
+// and inference would otherwise pick an interface off BaseBatchExecutionFilter.
+[SingletonService(As = typeof(SqsBatchFilter))]
 public class SqsBatchFilter : BaseBatchExecutionFilter<SQSEvent, SQSEvent.SQSMessage> {
 
     public SqsBatchFilter(

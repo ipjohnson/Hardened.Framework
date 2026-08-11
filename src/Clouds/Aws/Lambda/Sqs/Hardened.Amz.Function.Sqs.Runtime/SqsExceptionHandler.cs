@@ -1,7 +1,6 @@
 using Amazon.Lambda.SQSEvents;
 using Hardened.Requests.Abstract.Execution;
 using DependencyModules.Runtime.Attributes;
-using Hardened.Shared.Runtime.Attributes;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Function.Sqs.Runtime;
@@ -10,7 +9,6 @@ public interface ISqsExceptionHandler {
     ValueTask<bool> HandleException(IExecutionChain chain, SQSEvent.SQSMessage message, Exception exception);
 }
 
-[Expose]
 [SingletonService]
 public class SqsExceptionHandler : ISqsExceptionHandler {
     private readonly ValueTask<bool> _defaultResult = new (false);

@@ -1,13 +1,13 @@
 using Amazon.CDK;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Commands;
 using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Runtime.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Environment = Amazon.CDK.Environment;
 
 namespace Hardened.Amz.Cdk.Commands;
 
-[Expose]
+[TransientService]
 public class DeployCommandHandler : ICommandHandler<DeployCommand> {
     private readonly CdkConfigurationRegistry _registry;
     private readonly IServiceProvider _serviceProvider;

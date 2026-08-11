@@ -2,7 +2,7 @@ using Amazon.CDK.AWS.Apigatewayv2;
 using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AwsApigatewayv2Integrations;
-using Hardened.Shared.Runtime.Attributes;
+using DependencyModules.Runtime.Attributes;
 using HttpMethod = Amazon.CDK.AWS.Apigatewayv2.HttpMethod;
 
 namespace Hardened.Amz.Cdk.Lambda;
@@ -41,7 +41,7 @@ public class HttpApiLambdaRequest : LambdaRequest {
     
 }
 
-[Expose]
+[TransientService]
 public class LambdaCdkUtil {
     private readonly StackContextAccessor _stackContextAccessor;
     private readonly IDefaultFunctionProps _defaultFunctionProps;

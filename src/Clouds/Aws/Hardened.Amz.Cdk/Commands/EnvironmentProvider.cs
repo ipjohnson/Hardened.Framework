@@ -1,4 +1,4 @@
-using Hardened.Shared.Runtime.Attributes;
+using DependencyModules.Runtime.Attributes;
 
 namespace Hardened.Amz.Cdk.Commands;
 
@@ -6,7 +6,7 @@ public interface IDeploymentAccountProvider {
     string GetDeploymentAccount(object configuration, string accountType);
 }
 
-[Expose]
+[TransientService]
 public class DeploymentAccountProvider : IDeploymentAccountProvider {
 
     public string GetDeploymentAccount(object configuration, string accountType) {

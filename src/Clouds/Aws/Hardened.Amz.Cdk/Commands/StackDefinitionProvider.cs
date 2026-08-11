@@ -1,5 +1,5 @@
+using DependencyModules.Runtime.Attributes;
 using Hardened.Amz.Shared.Lambda.Runtime.Configuration;
-using Hardened.Shared.Runtime.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Amz.Cdk.Commands;
@@ -13,7 +13,7 @@ public interface IStackDefinitionProvider {
         where TStage : IStageType;
 }
 
-[Expose]
+[TransientService]
 public class StackDefinitionProvider : IStackDefinitionProvider {
 
     public IEnumerable<IStackDefinitionDeployer> ProvideDeployers<TConfig, TStage, TRegion>(

@@ -1,6 +1,5 @@
 using Hardened.Amz.Shared.Lambda.Runtime.Configuration;
 using DependencyModules.Runtime.Attributes;
-using Hardened.Shared.Runtime.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Amz.Cdk.Commands;
@@ -11,8 +10,9 @@ public interface ITypedStackDefinition {
     IEnumerable<IStackDefinitionDeployer> GetTypedDeployers(IServiceProvider serviceProvider);
 }
 
-[Expose(typeof(CdkConfigurationRegistry))]
-[SingletonService]
+// Registered as the concrete type, not as ICdkConfigurationRegistry: HardenedCdk maps the
+// interface to this registration itself, and DeployCommandHandler injects the class.
+[SingletonService(As = typeof(CdkConfigurationRegistry))]
 public class CdkConfigurationRegistry : ICdkConfigurationRegistry {
     private readonly IServiceProvider _serviceProvider;
 

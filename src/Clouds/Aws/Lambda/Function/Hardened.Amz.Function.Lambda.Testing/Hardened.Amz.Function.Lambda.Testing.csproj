@@ -12,6 +12,12 @@
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.Core" Version="2.2.0" />
         <PackageReference Include="Hardened.Shared.Testing" Version="1.0.0-preview*" />
+        <!--
+             The framework-neutral test contracts this attribute implements. Referenced directly
+             rather than taken through Hardened.Shared.Testing, because they are this project's own
+             public surface: LambdaFunctionTestingAttribute implements them by name.
+        -->
+        <PackageReference Include="DependencyModules.Testing" Version="1.0.0-rc9220" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
