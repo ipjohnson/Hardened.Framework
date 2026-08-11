@@ -13,7 +13,7 @@ Hardened uses C# source generators to wire up dependency injection, request rout
 | `Hardened.Requests.Abstract` | Request/response abstractions, execution pipeline interfaces |
 | `Hardened.Requests.Runtime` | Execution pipeline implementation, filters |
 | `Hardened.Requests.Testing` | Request testing utilities |
-| `Hardened.Web.Runtime` | Web routing: `[Get]`, `[Post]`, `[Put]`, `[Delete]`, `[BasePath]` |
+| `Hardened.Web.Runtime` | Web routing: `[Get]`, `[Post]`, `[Put]`, `[Delete]`, `[Patch]`, `[BasePath]` |
 | `Hardened.Web.AspNetCore.Runtime` | ASP.NET Core integration bridge |
 | `Hardened.Web.Testing` | `ITestWebApp`, `TestWebRequest`, `TestWebResponse` |
 | `Hardened.Templates.Abstract` | Template abstractions: `[TemplatePackage]`, `[TemplateHelper]` |

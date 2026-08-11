@@ -1,0 +1,212 @@
+namespace Hardened.Web.Runtime.Attributes
+{
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public class BasePathAttribute : System.Attribute
+    {
+        public BasePathAttribute(string path) { }
+        public string Path { get; }
+    }
+    public class CacheControlAttribute : System.Attribute
+    {
+        public CacheControlAttribute() { }
+        public int MaxAge { get; set; }
+        public Hardened.Web.Runtime.CacheControl.CacheControlEnum Type { get; set; }
+    }
+    public class DeleteAttribute : System.Attribute
+    {
+        public DeleteAttribute(string path = "") { }
+        public int ErrorStatus { get; set; }
+        public int NullReturnStatus { get; set; }
+        public string Path { get; }
+        public int SuccessStatus { get; set; }
+        public int ValidationErrorStatus { get; set; }
+    }
+    public class FromHeaderAttribute : System.Attribute
+    {
+        public FromHeaderAttribute(string? name = null) { }
+        public string? Name { get; }
+    }
+    public class FromQueryStringAttribute : System.Attribute
+    {
+        public FromQueryStringAttribute(string? name = null) { }
+        public string? Name { get; }
+    }
+    public class GetAttribute : System.Attribute
+    {
+        public GetAttribute(string path = "") { }
+        public int ErrorStatus { get; set; }
+        public int NullReturnStatus { get; set; }
+        public string Path { get; }
+        public int SuccessStatus { get; set; }
+        public int ValidationErrorStatus { get; set; }
+    }
+    public class HttpMethodAttribute
+    {
+        public HttpMethodAttribute() { }
+    }
+    public class PatchAttribute : System.Attribute
+    {
+        public PatchAttribute(string path = "") { }
+        public int ErrorStatus { get; set; }
+        public int NullReturnStatus { get; set; }
+        public string Path { get; }
+        public int SuccessStatus { get; set; }
+        public int ValidationErrorStatus { get; set; }
+    }
+    public class PostAttribute : System.Attribute
+    {
+        public PostAttribute(string path = "") { }
+        public string Path { get; }
+    }
+    public class PutAttribute : System.Attribute
+    {
+        public PutAttribute(string path = "") { }
+        public int ErrorStatus { get; set; }
+        public int NullReturnStatus { get; set; }
+        public string Path { get; }
+        public int SuccessStatus { get; set; }
+        public int ValidationErrorStatus { get; set; }
+    }
+    public class WebLibraryAttribute : System.Attribute
+    {
+        public WebLibraryAttribute() { }
+    }
+}
+namespace Hardened.Web.Runtime.CacheControl
+{
+    [System.Flags]
+    public enum CacheControlEnum
+    {
+        MaxAge = 1,
+        NoCache = 2,
+        NoStore = 4,
+        NoTransform = 8,
+        Public = 32,
+        Private = 64,
+    }
+}
+namespace Hardened.Web.Runtime.Configuration
+{
+    public interface IStaticContentConfiguration
+    {
+        Hardened.Web.Runtime.CacheControl.CacheControlEnum CacheControlType { get; }
+        int? CacheMaxAge { get; }
+        bool CompressTextContent { get; }
+        bool EnableETag { get; }
+        string? FallBackFile { get; }
+        bool Immutable { get; }
+        System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; }
+        string Path { get; }
+    }
+    public class StaticContentConfiguration : Hardened.Web.Runtime.Configuration.IStaticContentConfiguration
+    {
+        public StaticContentConfiguration() { }
+        public Hardened.Web.Runtime.CacheControl.CacheControlEnum CacheControlType { get; set; }
+        public int? CacheMaxAge { get; set; }
+        public bool CompressTextContent { get; set; }
+        public bool EnableETag { get; set; }
+        public string? FallBackFile { get; set; }
+        public bool Immutable { get; set; }
+        public System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; set; }
+        public string Path { get; set; }
+    }
+}
+namespace Hardened.Web.Runtime.Cors
+{
+    public class CorsConfiguration
+    {
+        public const string DefaultEnvironmentVariable = "CORS_ALLOWED_ORIGINS";
+        public CorsConfiguration() { }
+        public string AllowedHeaders { get; set; }
+        public string AllowedMethods { get; set; }
+        public System.Collections.Generic.IReadOnlySet<string> AllowedOrigins { get; }
+        public string EnvironmentVariable { get; set; }
+        public int MaxAgeSec { get; set; }
+        public void AllowOrigin(string origin) { }
+        public bool IsOriginAllowed(string origin) { }
+        public void LoadFromEnvironment() { }
+    }
+    public class CorsFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public CorsFilter(Hardened.Web.Runtime.Cors.CorsConfiguration config) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+}
+namespace Hardened.Web.Runtime.DependencyInjection
+{
+    public class FilterRegistryStartupService : Hardened.Shared.Runtime.Application.IStartupService
+    {
+        public FilterRegistryStartupService(System.Action<Hardened.Requests.Abstract.RequestFilter.IGlobalFilterRegistry> registryAction) { }
+        public System.Threading.Tasks.Task<bool> Startup(System.IServiceProvider rootProvider) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class HardenedWebModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public HardenedWebModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class HardenedWebModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public HardenedWebModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Web.Runtime.Handlers
+{
+    public interface IWebExecutionHandlerService : Hardened.Requests.Abstract.Execution.IExecutionFilter { }
+    public interface IWebExecutionRequestHandlerProvider
+    {
+        Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public class RequestHandlerInfo : System.IEquatable<Hardened.Web.Runtime.Handlers.RequestHandlerInfo>
+    {
+        public RequestHandlerInfo(Hardened.Requests.Abstract.Execution.IExecutionRequestHandler Handler, Hardened.Requests.Runtime.PathTokens.PathTokenCollection PathTokens) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestHandler Handler { get; init; }
+        public Hardened.Requests.Runtime.PathTokens.PathTokenCollection PathTokens { get; init; }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class WebExecutionHandlerService : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService
+    {
+        public WebExecutionHandlerService(System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider> handlers, Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler resourceNotFoundHandler, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Hardened.Web.Runtime.StaticContent.IStaticContentHandler staticContentHandler) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+}
+namespace Hardened.Web.Runtime.StaticContent
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ETagProvider : Hardened.Web.Runtime.StaticContent.IETagProvider
+    {
+        public ETagProvider(Hardened.Shared.Runtime.Collections.IItemPool<System.Security.Cryptography.MD5> md5Pool) { }
+        public string GenerateETag(byte[] content) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class GZipStaticContentCompressor : Hardened.Web.Runtime.StaticContent.IGZipStaticContentCompressor
+    {
+        public GZipStaticContentCompressor(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
+        public byte[] CompressContent(byte[] bytes, System.IO.Compression.CompressionLevel compressionLevel) { }
+    }
+    public interface IETagProvider
+    {
+        string GenerateETag(byte[] content);
+    }
+    public interface IGZipStaticContentCompressor
+    {
+        byte[] CompressContent(byte[] bytes, System.IO.Compression.CompressionLevel compressionLevel = 1);
+    }
+    public interface IStaticContentHandler
+    {
+        System.Threading.Tasks.Task<bool> Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class StaticContentHandler : Hardened.Web.Runtime.StaticContent.IStaticContentHandler
+    {
+        public StaticContentHandler(Microsoft.Extensions.Options.IOptions<Hardened.Web.Runtime.Configuration.IStaticContentConfiguration> configuration, Hardened.Shared.Runtime.Utilities.IFileExtToMimeTypeHelper fileExtToMimeTypeHelper, Hardened.Web.Runtime.StaticContent.IGZipStaticContentCompressor gZipStaticContentCompressor, Hardened.Web.Runtime.StaticContent.IETagProvider etagProvider, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Microsoft.Extensions.Logging.ILogger<Hardened.Web.Runtime.StaticContent.StaticContentHandler> logger) { }
+        public System.Threading.Tasks.Task<bool> Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+}

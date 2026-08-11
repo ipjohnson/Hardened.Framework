@@ -1,0 +1,277 @@
+namespace Hardened.Templates.Runtime.DependencyInjection
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class HardenedTemplateModule : DependencyModules.Runtime.Interfaces.IDependencyModule
+    {
+        public HardenedTemplateModule() { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class HardenedTemplateModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public HardenedTemplateModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Templates.Runtime.Helpers.Collection
+{
+    public class LookupHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public LookupHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class RenderCollectionHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public RenderCollectionHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+}
+namespace Hardened.Templates.Runtime.Helpers
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class DefaultHelpers : Hardened.Templates.Abstract.ITemplateHelperProvider
+    {
+        public DefaultHelpers() { }
+        public Hardened.Templates.Abstract.TemplateHelperFactory? GetTemplateHelperFactory(string mustacheToken) { }
+        public static Hardened.Templates.Abstract.TemplateHelperFactory CreateTemplateHelperFactory(Hardened.Templates.Abstract.ITemplateHelper templateHelper) { }
+        public static class CollectionHelperTokens
+        {
+            public const string Lookup = "Lookup";
+            public const string Render = "Render";
+            public const string RenderCollection = "RenderCollection";
+        }
+        public static class StringHelperToken
+        {
+            public const string Append = "String.Append";
+            public const string Concat = "String.Concat";
+            public const string Contains = "String.Contains";
+            public const string EndsWith = "String.EndsWith";
+            public const string Format = "String.Format";
+            public const string Join = "String.Join";
+            public const string Json = "String.Json";
+            public const string Replace = "String.Replace";
+            public const string Split = "String.Split";
+            public const string StartsWith = "String.StartsWith";
+            public const string Substring = "String.Substring";
+            public const string To = "String.To";
+            public const string ToLower = "String.ToLower";
+            public const string ToUpper = "String.ToUpper";
+            public const string Trim = "String.Trim";
+        }
+        public static class UrlHelperTokens
+        {
+            public const string Decode = "Url.Decode";
+            public const string Encode = "Url.Encode";
+        }
+    }
+    public class DynamicTemplateRenderHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public DynamicTemplateRenderHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+}
+namespace Hardened.Templates.Runtime.Helpers.String
+{
+    public class AppendHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public AppendHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public abstract class BaseStringEvaluationHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        protected BaseStringEvaluationHelper() { }
+        protected abstract bool EvaluateStrings(string one, string two);
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public abstract class BaseStringHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        protected BaseStringHelper() { }
+        protected abstract object AugmentString(string value);
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class ConcatHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public ConcatHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class ContainsHelper : Hardened.Templates.Runtime.Helpers.String.BaseStringEvaluationHelper
+    {
+        public ContainsHelper() { }
+        protected override bool EvaluateStrings(string oneString, string twoString) { }
+    }
+    public class EndsWithHelper : Hardened.Templates.Runtime.Helpers.String.BaseStringEvaluationHelper
+    {
+        public EndsWithHelper() { }
+        protected override bool EvaluateStrings(string oneString, string twoString) { }
+    }
+    public class FormatHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public FormatHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class JoinHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public JoinHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class JsonHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public JsonHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class ReplaceHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public ReplaceHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class SplitHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public SplitHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class StartsWithHelper : Hardened.Templates.Runtime.Helpers.String.BaseStringEvaluationHelper
+    {
+        public StartsWithHelper() { }
+        protected override bool EvaluateStrings(string oneString, string twoString) { }
+    }
+    public class SubstringHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public SubstringHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class ToHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public ToHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class ToLowerHelper : Hardened.Templates.Runtime.Helpers.String.BaseStringHelper
+    {
+        public ToLowerHelper() { }
+        protected override object AugmentString(string value) { }
+    }
+    public class ToUpperHelper : Hardened.Templates.Runtime.Helpers.String.BaseStringHelper
+    {
+        public ToUpperHelper() { }
+        protected override object AugmentString(string stringValue) { }
+    }
+    public class TrimHelper : Hardened.Templates.Runtime.Helpers.String.BaseStringHelper
+    {
+        public TrimHelper() { }
+        protected override object AugmentString(string stringValue) { }
+    }
+}
+namespace Hardened.Templates.Runtime.Helpers.Url
+{
+    public class DecodeHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public DecodeHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+    public class EncodeHelper : Hardened.Templates.Abstract.ITemplateHelper
+    {
+        public EncodeHelper() { }
+        public System.Threading.Tasks.ValueTask<object> Execute(Hardened.Templates.Abstract.ITemplateExecutionContext handlerDataContext, params object[] arguments) { }
+    }
+}
+namespace Hardened.Templates.Runtime.Impl
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class BooleanLogicService : Hardened.Templates.Abstract.IBooleanLogicService
+    {
+        public BooleanLogicService() { }
+        public bool IsTrueValue(object? value) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class DataFormattingService : Hardened.Templates.Abstract.IDataFormattingService
+    {
+        public DataFormattingService(System.Collections.Generic.IEnumerable<Hardened.Templates.Abstract.IDataFormatProvider> providers) { }
+        public object FormatData(Hardened.Templates.Abstract.ITemplateExecutionContext templateExecutionContext, string propertyName, object? data, string? formatString = null) { }
+        public Hardened.Templates.Abstract.FormatDataFunc LocateFormatDataFunc(System.Type dataType) { }
+    }
+    public static class DefaultDataFormatters
+    {
+        public static object DefaultIFormattable(Hardened.Templates.Abstract.ITemplateExecutionContext executionContext, string propertyName, object? data, string? formatString) { }
+        public static object DefaultObjectFormatter(Hardened.Templates.Abstract.ITemplateExecutionContext executionContext, string propertyName, object? data, string? formatString) { }
+        public static void RegisterFormatters(System.Collections.Generic.IDictionary<System.Type, Hardened.Templates.Abstract.FormatDataFunc> formatters) { }
+    }
+    public static class DefaultOutputFuncHelper
+    {
+        public static Hardened.Requests.Abstract.Execution.DefaultOutputFunc GetTemplateOut(System.IServiceProvider serviceProvider, string templateName) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class HtmlEscapeStringService : Hardened.Templates.Abstract.IStringEscapeService
+    {
+        public HtmlEscapeStringService() { }
+        public bool CanEscapeTemplate(string templateExtension) { }
+        public string EscapeString(string? value) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class InternalTemplateServices : Hardened.Templates.Abstract.IInternalTemplateServices
+    {
+        public InternalTemplateServices(Hardened.Shared.Runtime.Collections.IStringBuilderPool stringBuilderPool, Hardened.Templates.Abstract.IDataFormattingService dataFormattingService, Hardened.Templates.Abstract.ITemplateHelperService templateHelperService, Hardened.Templates.Abstract.IBooleanLogicService booleanLogicService, Hardened.Templates.Abstract.IStringEscapeServiceProvider stringEscapeServiceProvider) { }
+        public Hardened.Templates.Abstract.IBooleanLogicService BooleanLogicService { get; }
+        public Hardened.Templates.Abstract.IDataFormattingService DataFormattingService { get; }
+        public Hardened.Shared.Runtime.Collections.IStringBuilderPool StringBuilderPool { get; }
+        public Hardened.Templates.Abstract.IStringEscapeServiceProvider StringEscapeServiceProvider { get; }
+        public Hardened.Templates.Abstract.ITemplateHelperService TemplateHelperService { get; }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class NoopEscapeStringService : Hardened.Templates.Abstract.IStringEscapeService
+    {
+        public NoopEscapeStringService() { }
+        public bool CanEscapeTemplate(string templateExtension) { }
+        public string EscapeString(string? value) { }
+    }
+    public class StringBuilderTemplateOutputWriter : Hardened.Templates.Abstract.ITemplateOutputWriter
+    {
+        public StringBuilderTemplateOutputWriter(System.Text.StringBuilder stringBuilder, System.IO.Stream? outputStream = null) { }
+        public Hardened.Templates.Abstract.IStringEscapeService? EscapeService { get; set; }
+        public System.Threading.Tasks.Task FlushWriter(Hardened.Requests.Abstract.Execution.IExecutionContext executionContext) { }
+        public void Write(object? text) { }
+        public void WriteRaw(object? text) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class StringEscapeServiceProvider : Hardened.Templates.Abstract.IStringEscapeServiceProvider
+    {
+        public StringEscapeServiceProvider(System.Collections.Generic.IEnumerable<Hardened.Templates.Abstract.IStringEscapeService> escapeServices) { }
+        public Hardened.Templates.Abstract.IStringEscapeService GetEscapeService(string templateExtension) { }
+    }
+    public class TemplateDefaultOutputFunc
+    {
+        public TemplateDefaultOutputFunc(Hardened.Shared.Runtime.Collections.IStringBuilderPool stringBuilderPool, Hardened.Templates.Abstract.TemplateExecutionFunction templateExecutionFunction, Hardened.Templates.Abstract.TemplateExecutionFunction? layoutFunction) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public class TemplateExecutionContext : Hardened.Templates.Abstract.ITemplateExecutionContext
+    {
+        public TemplateExecutionContext(string templateExtension, System.IServiceProvider requestServiceProvider, object objectValue, Hardened.Templates.Abstract.IInternalTemplateServices templateServices, Hardened.Templates.Abstract.ITemplateExecutionService executionService, Hardened.Templates.Abstract.IStringEscapeService stringEscapeService, Hardened.Templates.Abstract.ITemplateOutputWriter writer, Hardened.Templates.Abstract.ITemplateExecutionContext? parentContext, Hardened.Requests.Abstract.Execution.IExecutionContext? executionContext) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionContext? ExecutionContext { get; }
+        public Hardened.Templates.Abstract.ITemplateExecutionService ExecutionService { get; }
+        public object ObjectValue { get; }
+        public Hardened.Templates.Abstract.ITemplateExecutionContext? ParentContext { get; }
+        public System.IServiceProvider RequestServiceProvider { get; }
+        public Hardened.Templates.Abstract.IStringEscapeService StringEscapeService { get; }
+        public string TemplateExtension { get; }
+        public Hardened.Templates.Abstract.IInternalTemplateServices TemplateServices { get; }
+        public Hardened.Templates.Abstract.ITemplateOutputWriter Writer { get; }
+        public object? GetCustomValue(string key) { }
+        public Hardened.Templates.Abstract.SafeString GetEscapedString(object value, string propertyName = "", string formattingString = "") { }
+        public void SetCustomValue(string key, object value) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class TemplateExecutionService : Hardened.Templates.Abstract.ITemplateExecutionService
+    {
+        public TemplateExecutionService(System.Collections.Generic.IEnumerable<Hardened.Templates.Abstract.ITemplateExecutionHandlerProvider> handlerProviders, Hardened.Shared.Runtime.Collections.IStringBuilderPool stringBuilderPool) { }
+        public System.Threading.Tasks.Task<string> Execute(string templateName, object templateData, System.IServiceProvider serviceProvider) { }
+        public System.Threading.Tasks.Task Execute(string templateName, object? templateData, System.IServiceProvider serviceProvider, Hardened.Templates.Abstract.ITemplateOutputWriter writer, Hardened.Templates.Abstract.ITemplateExecutionContext? parentContext, Hardened.Requests.Abstract.Execution.IExecutionContext? executionContext) { }
+        public Hardened.Templates.Abstract.TemplateExecutionFunction? FindTemplateExecutionFunction(string templateName) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class TemplateHelperService : Hardened.Templates.Abstract.ITemplateHelperService
+    {
+        public TemplateHelperService(System.Collections.Generic.IEnumerable<Hardened.Templates.Abstract.ITemplateHelperProvider> providers) { }
+        public Hardened.Templates.Abstract.TemplateHelperFactory LocateHelper(string helperToken) { }
+    }
+}

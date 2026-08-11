@@ -1,0 +1,41 @@
+namespace Hardened.SourceGeneration.Testing
+{
+    public static class GeneratorReferences
+    {
+        public static System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.MetadataReference> Platform { get; }
+        public static System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.MetadataReference> For(System.Collections.Generic.IReadOnlyList<System.Type> anchorTypes) { }
+        public static System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.MetadataReference> For(params System.Type[] anchorTypes) { }
+    }
+    public class GeneratorResult
+    {
+        public GeneratorResult(System.Collections.Generic.IReadOnlyDictionary<string, string> generatedSources, System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.Diagnostic> generatorDiagnostics, System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.Diagnostic> compilationDiagnostics, Microsoft.CodeAnalysis.Compilation compilation, System.Collections.Generic.IReadOnlyList<System.Exception> generatorExceptions, System.Collections.Generic.IReadOnlyList<string>? duplicateHintNames = null) { }
+        public Microsoft.CodeAnalysis.Compilation Compilation { get; }
+        public System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.Diagnostic> CompilationDiagnostics { get; }
+        public System.Collections.Generic.IReadOnlyList<string> DuplicateHintNames { get; }
+        public System.Collections.Generic.IEnumerable<Microsoft.CodeAnalysis.Diagnostic> Errors { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string> GeneratedSources { get; }
+        public System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.Diagnostic> GeneratorDiagnostics { get; }
+        public System.Collections.Generic.IReadOnlyList<System.Exception> GeneratorExceptions { get; }
+        public Hardened.SourceGeneration.Testing.GeneratorResult AssertNoErrors() { }
+        public string SourceContaining(string fragment) { }
+        public string ToSnapshot() { }
+    }
+    public static class GeneratorTestHarness
+    {
+        [return: System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Reference",
+                "Assembly"})]
+        public static System.ValueTuple<Microsoft.CodeAnalysis.MetadataReference, System.Reflection.Assembly> CompileLibrary(string source, string assemblyName, System.Collections.Generic.IReadOnlyList<System.Type>? referenceAnchors = null) { }
+        public static Hardened.SourceGeneration.Testing.GeneratorResult Run(string source, Microsoft.CodeAnalysis.IIncrementalGenerator generator, System.Collections.Generic.IReadOnlyList<System.Type>? referenceAnchors = null, System.Collections.Generic.IReadOnlyDictionary<string, string>? additionalTexts = null, System.Collections.Generic.IReadOnlyDictionary<string, string>? buildProperties = null) { }
+        public static Hardened.SourceGeneration.Testing.GeneratorResult Run(System.Collections.Generic.IReadOnlyDictionary<string, string> sources, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.IIncrementalGenerator> generators, System.Collections.Generic.IReadOnlyList<System.Type>? referenceAnchors = null, System.Collections.Generic.IReadOnlyDictionary<string, string>? additionalTexts = null, System.Collections.Generic.IReadOnlyDictionary<string, string>? buildProperties = null, Microsoft.CodeAnalysis.OutputKind outputKind = 2, string assemblyName = "GeneratorTestAssembly", System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.MetadataReference>? additionalReferences = null) { }
+        public static Hardened.SourceGeneration.Testing.IncrementalRunResult RunIncremental(System.Collections.Generic.IReadOnlyDictionary<string, string> first, System.Collections.Generic.IReadOnlyDictionary<string, string> second, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.IIncrementalGenerator> generators, System.Collections.Generic.IReadOnlyList<System.Type>? referenceAnchors = null, System.Collections.Generic.IReadOnlyDictionary<string, string>? additionalTexts = null, System.Collections.Generic.IReadOnlyDictionary<string, string>? buildProperties = null) { }
+    }
+    public class IncrementalRunResult
+    {
+        public IncrementalRunResult(System.Collections.Generic.IReadOnlyDictionary<string, string> firstRun, System.Collections.Generic.IReadOnlyDictionary<string, string> secondRun, System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.IncrementalStepRunReason> outputReasons) { }
+        public bool AllOutputsCached { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string> FirstRun { get; }
+        public System.Collections.Generic.IReadOnlyList<Microsoft.CodeAnalysis.IncrementalStepRunReason> OutputReasons { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string> SecondRun { get; }
+    }
+}

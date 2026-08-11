@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Testing utilities for Hardened source generation: runs a generator over an in-memory compilation and asserts that what it emits compiles.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.SourceGeneration.Testing</PackageId>
+    </PropertyGroup>
+
+    <!--
+      Roslyn and an assert library, and nothing else.
+
+      Deliberately references no Hardened generator. Hardened.SourceGenerator is compiled into
+      each of the other generator assemblies via linked Compile items, so a project referencing
+      two of them gets two copies of RequestHandlerModel and friends and every use becomes
+      ambiguous (CS0433). A caller hands this harness the generator instance and the reference
+      anchors its source needs.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+        <PackageReference Include="xunit.v3.assert" Version="3.2.2" />
+    </ItemGroup>
+
+</Project>

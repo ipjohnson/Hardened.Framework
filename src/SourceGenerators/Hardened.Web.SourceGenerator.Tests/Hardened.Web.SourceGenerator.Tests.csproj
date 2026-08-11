@@ -29,6 +29,7 @@
           use becomes ambiguous (CS0433).
         -->
         <ProjectReference Include="..\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj"/>
+        <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>

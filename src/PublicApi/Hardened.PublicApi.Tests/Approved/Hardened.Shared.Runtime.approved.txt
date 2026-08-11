@@ -1,0 +1,358 @@
+namespace Hardened.Shared.Runtime.Application
+{
+    public class ApplicationDelegate : System.IEquatable<Hardened.Shared.Runtime.Application.ApplicationDelegate>
+    {
+        public ApplicationDelegate(System.Func<System.Threading.Tasks.Task<int>> Delegate, bool ShouldStartApp) { }
+        public System.Func<System.Threading.Tasks.Task<int>> Delegate { get; init; }
+        public bool ShouldStartApp { get; init; }
+    }
+    public class ApplicationLogic
+    {
+        public ApplicationLogic() { }
+        public static System.Threading.Tasks.Task<int> RunApplication(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.IServiceProvider serviceProvider, System.Func<System.IServiceProvider, System.Threading.Tasks.Task<bool>>? startupTask) { }
+        public static System.Threading.Tasks.Task<int> Start(System.IServiceProvider serviceProvider, System.Func<System.IServiceProvider, System.Threading.Tasks.Task<bool>>? startupTask) { }
+        public static void StartWithWait(System.IServiceProvider serviceProvider, System.Func<System.IServiceProvider, System.Threading.Tasks.Task<bool>>? startup, int timeoutInSeconds) { }
+    }
+    public class EnvironmentImpl : DependencyModules.Runtime.Interfaces.IModuleEnvironment, Hardened.Shared.Runtime.Application.IHardenedEnvironment
+    {
+        public EnvironmentImpl(string? name = null, System.Collections.Generic.IDictionary<string, string>? environmentValues = null, System.Collections.Generic.IReadOnlyList<string>? arguments = null, System.Collections.Generic.IDictionary<string, object>? customData = null) { }
+        public System.Collections.Generic.IReadOnlyList<string> Arguments { get; }
+        public string Name { get; }
+        public T? CustomData<T>(string name, T? defaultValue = default) { }
+        public T? Value<T>(string name, T? defaultValue = default) { }
+    }
+    public interface IApplicationDelegateProvider
+    {
+        System.Threading.Tasks.Task<Hardened.Shared.Runtime.Application.ApplicationDelegate> ProvideDelegate(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.IServiceProvider serviceProvider);
+    }
+    public interface IApplicationModule
+    {
+        void ConfigureModule(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection);
+    }
+    public interface IApplicationModuleProvider
+    {
+        System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Application.IApplicationModule> ProvideModules();
+    }
+    public interface IApplicationRoot : System.IAsyncDisposable
+    {
+        System.IServiceProvider Provider { get; }
+    }
+    public static class IEnvironmentExtensions
+    {
+        public static bool Matches(this Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, params string[] environments) { }
+        public static bool MatchesVariable(this Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, string variable, string value) { }
+    }
+    public interface IHardenedEnvironment : DependencyModules.Runtime.Interfaces.IModuleEnvironment
+    {
+        System.Collections.Generic.IReadOnlyList<string> Arguments { get; }
+        string Name { get; }
+        T? CustomData<T>(string name, T? defaultValue = default);
+        T? Value<T>(string name, T? defaultValue = default);
+    }
+    public interface IStartupService
+    {
+        System.Threading.Tasks.Task<bool> Startup(System.IServiceProvider rootProvider);
+    }
+}
+namespace Hardened.Shared.Runtime.Attributes
+{
+    public class ConfigurationModelAttribute : System.Attribute
+    {
+        public ConfigurationModelAttribute() { }
+    }
+    public class ConfigurationProviderAttribute : System.Attribute
+    {
+        public ConfigurationProviderAttribute() { }
+    }
+    public class FromEnvironmentVariableAttribute : System.Attribute
+    {
+        public FromEnvironmentVariableAttribute(string environmentVariable) { }
+        public string EnvironmentVariable { get; }
+    }
+    public class HardenedModuleAttribute : System.Attribute
+    {
+        public HardenedModuleAttribute() { }
+    }
+    public class HideConfigurationFieldAttribute : System.Attribute
+    {
+        public HideConfigurationFieldAttribute() { }
+    }
+}
+namespace Hardened.Shared.Runtime.Collections
+{
+    public static class Extensions
+    {
+        public static void Foreach<T>(this System.Collections.Generic.IEnumerable<T> enumerable, System.Action<T> action) { }
+        public static TValue GetOrDefault<TKey, TValue>(this System.Collections.Generic.IDictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue = default) { }
+    }
+    public interface IItemPool<T>
+    {
+        Hardened.Shared.Runtime.Collections.IPoolItemReservation<T> Get();
+    }
+    public interface IMemoryStreamPool : Hardened.Shared.Runtime.Collections.IItemPool<System.IO.MemoryStream> { }
+    public interface IPoolItemReservation<T> : System.IDisposable
+    {
+        T Item { get; }
+    }
+    public interface IStringBuilderPool : Hardened.Shared.Runtime.Collections.IItemPool<System.Text.StringBuilder> { }
+    public class ItemPool<T> : Hardened.Shared.Runtime.Collections.IItemPool<T>, System.IDisposable
+    {
+        public ItemPool(System.Func<T> factory, System.Action<T> cleanupAction, System.Action<T>? disposeAction = null) { }
+        public void Dispose() { }
+        public Hardened.Shared.Runtime.Collections.IPoolItemReservation<T> Get() { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class MemoryStreamPool : Hardened.Shared.Runtime.Collections.ItemPool<System.IO.MemoryStream>, Hardened.Shared.Runtime.Collections.IItemPool<System.IO.MemoryStream>, Hardened.Shared.Runtime.Collections.IMemoryStreamPool
+    {
+        public MemoryStreamPool() { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class StringBuilderPool : Hardened.Shared.Runtime.Collections.ItemPool<System.Text.StringBuilder>, Hardened.Shared.Runtime.Collections.IItemPool<System.Text.StringBuilder>, Hardened.Shared.Runtime.Collections.IStringBuilderPool
+    {
+        public StringBuilderPool() { }
+        public StringBuilderPool(int defaultSize) { }
+    }
+}
+namespace Hardened.Shared.Runtime.Configuration
+{
+    public class AppConfig : Hardened.Shared.Runtime.Configuration.IAppConfig, Hardened.Shared.Runtime.Configuration.IConfigurationPackage
+    {
+        public AppConfig() { }
+        public Hardened.Shared.Runtime.Configuration.IAppConfig Amend<TImpl>(System.Func<Hardened.Shared.Runtime.Application.IHardenedEnvironment, TImpl, TImpl> amendFunc)
+            where TImpl :  class { }
+        public Hardened.Shared.Runtime.Configuration.IAppConfig Amend<TImpl>(System.Action<TImpl> amendAction, string environment = "")
+            where TImpl :  class { }
+        public Hardened.Shared.Runtime.Configuration.IAppConfig ProvideValue<TInterface, TImpl>(System.Func<Hardened.Shared.Runtime.Application.IHardenedEnvironment, TImpl> valueProvider)
+            where TImpl :  class, TInterface { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ConfigurationManager : Hardened.Shared.Runtime.Configuration.IConfigurationManager
+    {
+        public ConfigurationManager(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationPackage> configurationPackages) { }
+        public T GetConfiguration<T>()
+            where T :  class { }
+    }
+    public class FuncConfigurationValueProvider<TInterface, TImpl> : Hardened.Shared.Runtime.Configuration.IConfigurationValueProvider
+        where TImpl :  class
+    {
+        public FuncConfigurationValueProvider(System.Func<Hardened.Shared.Runtime.Application.IHardenedEnvironment, TImpl> provider) { }
+        public System.Type ImplementationType { get; }
+        public System.Type InterfaceType { get; }
+        public object ProvideValue(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, object> amender) { }
+    }
+    public interface IAppConfig
+    {
+        Hardened.Shared.Runtime.Configuration.IAppConfig Amend<TImpl>(System.Func<Hardened.Shared.Runtime.Application.IHardenedEnvironment, TImpl, TImpl> amendFunc)
+            where TImpl :  class;
+        Hardened.Shared.Runtime.Configuration.IAppConfig Amend<TImpl>(System.Action<TImpl> amendAction, string environment = "")
+            where TImpl :  class;
+        Hardened.Shared.Runtime.Configuration.IAppConfig ProvideValue<TInterface, TImpl>(System.Func<Hardened.Shared.Runtime.Application.IHardenedEnvironment, TImpl> valueProvider)
+            where TImpl :  class, TInterface;
+    }
+    public interface IConfigurationManager
+    {
+        T GetConfiguration<T>()
+            where T :  class;
+    }
+    public interface IConfigurationPackage
+    {
+        System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueAmender> ConfigurationValueAmenders(Hardened.Shared.Runtime.Application.IHardenedEnvironment env);
+        System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueProvider> ConfigurationValueProviders(Hardened.Shared.Runtime.Application.IHardenedEnvironment env);
+    }
+    public interface IConfigurationValueAmender
+    {
+        object ApplyConfiguration(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, object configurationValue);
+    }
+    public interface IConfigurationValueProvider
+    {
+        System.Type ImplementationType { get; }
+        System.Type InterfaceType { get; }
+        object ProvideValue(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, object> amender);
+    }
+    public class NewConfigurationValueProvider<TInterface, TImpl> : Hardened.Shared.Runtime.Configuration.IConfigurationValueProvider
+        where TImpl :  class, TInterface, new ()
+    {
+        public NewConfigurationValueProvider(System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, TImpl>? initAction) { }
+        public System.Type ImplementationType { get; }
+        public System.Type InterfaceType { get; }
+        public object ProvideValue(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, object> amender) { }
+    }
+    public class SimpleConfigurationPackage : Hardened.Shared.Runtime.Configuration.IConfigurationPackage
+    {
+        public SimpleConfigurationPackage(System.Collections.Generic.IReadOnlyList<Hardened.Shared.Runtime.Configuration.IConfigurationValueProvider> valueProviders) { }
+        public SimpleConfigurationPackage(System.Collections.Generic.IReadOnlyList<Hardened.Shared.Runtime.Configuration.IConfigurationValueProvider> valueProviders, System.Collections.Generic.IReadOnlyCollection<Hardened.Shared.Runtime.Configuration.IConfigurationValueAmender> amenders) { }
+        public System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueAmender> ConfigurationValueAmenders(Hardened.Shared.Runtime.Application.IHardenedEnvironment env) { }
+        public System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueProvider> ConfigurationValueProviders(Hardened.Shared.Runtime.Application.IHardenedEnvironment env) { }
+    }
+    public class SimpleConfigurationValueAmender<T> : Hardened.Shared.Runtime.Configuration.IConfigurationValueAmender
+        where T :  class
+    {
+        public SimpleConfigurationValueAmender(System.Func<Hardened.Shared.Runtime.Application.IHardenedEnvironment, T, T> amender) { }
+        public System.Type ConfigurationType { get; }
+        public object ApplyConfiguration(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, object configurationValue) { }
+    }
+}
+namespace Hardened.Shared.Runtime.DependencyInjection
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class HardenedCoreModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public HardenedCoreModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class HardenedCoreModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public HardenedCoreModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Shared.Runtime.Diagnostics
+{
+    public readonly struct MachineTimestamp
+    {
+        public static readonly double MillisecondsToTicksRatio;
+        public static readonly double SecondsToTicksRatio;
+        public static Hardened.Shared.Runtime.Diagnostics.MachineTimestamp Now { get; }
+        public double GetElapsedMilliseconds() { }
+        public System.TimeSpan GetElapsedTime() { }
+        public static Hardened.Shared.Runtime.Diagnostics.MachineTimestamp FromTicks(long ticks) { }
+    }
+}
+namespace Hardened.Shared.Runtime.Json
+{
+    public interface IJsonSerializer
+    {
+        T Deserialize<T>(string json);
+        System.Threading.Tasks.Task<T> DeserializeAsync<T>(System.IO.Stream jsonStream, System.Threading.CancellationToken cancellationToken = default);
+        string Serialize(object obj, bool pretty = false);
+        System.Threading.Tasks.Task SerializeAsync(System.IO.Stream jsonStream, object obj, bool pretty = false, System.Threading.CancellationToken cancellationToken = default);
+    }
+    public interface IJsonSerializerConfiguration
+    {
+        System.Text.Json.JsonSerializerOptions Options { get; }
+    }
+    public class JsonSerializerConfiguration : Hardened.Shared.Runtime.Json.IJsonSerializerConfiguration
+    {
+        public JsonSerializerConfiguration() { }
+        public System.Text.Json.JsonSerializerOptions Options { get; set; }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class JsonSerializerImpl : Hardened.Shared.Runtime.Json.IJsonSerializer
+    {
+        public JsonSerializerImpl(Microsoft.Extensions.Options.IOptions<Hardened.Shared.Runtime.Json.IJsonSerializerConfiguration> configuration) { }
+        public T Deserialize<T>(string json) { }
+        public System.Threading.Tasks.Task<T> DeserializeAsync<T>(System.IO.Stream jsonStream, System.Threading.CancellationToken cancellationToken = default) { }
+        public string Serialize(object obj, bool pretty) { }
+        public System.Threading.Tasks.Task SerializeAsync(System.IO.Stream jsonStream, object obj, bool pretty, System.Threading.CancellationToken cancellationToken) { }
+    }
+}
+namespace Hardened.Shared.Runtime.Logging
+{
+    [System.ComponentModel.DesignTimeVisible(false)]
+    public class HardenedLoggingBuilder : Microsoft.Extensions.Logging.ILoggingBuilder
+    {
+        public HardenedLoggingBuilder(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public Microsoft.Extensions.DependencyInjection.IServiceCollection Services { get; }
+    }
+}
+namespace Hardened.Shared.Runtime.Metrics
+{
+    public interface IMetricDefinition
+    {
+        string Name { get; }
+        Hardened.Shared.Runtime.Metrics.MetricUnits Units { get; }
+    }
+    public interface IMetricLogger : System.IDisposable
+    {
+        void Data(string dataName, object dataValue);
+        System.Threading.Tasks.Task Flush();
+        void Record(Hardened.Shared.Runtime.Metrics.IMetricDefinition metric, double value);
+        void Tag(string tagName, object tagValue);
+    }
+    public interface IMetricLoggerProvider
+    {
+        Hardened.Shared.Runtime.Metrics.IMetricLogger CreateLogger(string loggerName);
+    }
+    public class MetricDefinition : Hardened.Shared.Runtime.Metrics.IMetricDefinition
+    {
+        public MetricDefinition(string name, Hardened.Shared.Runtime.Metrics.MetricUnits units) { }
+        public string Name { get; }
+        public Hardened.Shared.Runtime.Metrics.MetricUnits Units { get; }
+    }
+    public class MetricUnits
+    {
+        public static readonly Hardened.Shared.Runtime.Metrics.MetricUnits Count;
+        public static readonly Hardened.Shared.Runtime.Metrics.MetricUnits Milliseconds;
+        public static readonly Hardened.Shared.Runtime.Metrics.MetricUnits Seconds;
+        public MetricUnits(string name) { }
+        public string Name { get; }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class NullMetricLoggerProvider : Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider
+    {
+        public NullMetricLoggerProvider() { }
+        public Hardened.Shared.Runtime.Metrics.IMetricLogger CreateLogger(string loggerName) { }
+    }
+    public class NullMetricsLogger : Hardened.Shared.Runtime.Metrics.IMetricLogger, System.IDisposable
+    {
+        public NullMetricsLogger() { }
+        public void Data(string dataName, object dataValue) { }
+        public void Dispose() { }
+        public System.Threading.Tasks.Task Flush() { }
+        public void Record(Hardened.Shared.Runtime.Metrics.IMetricDefinition metric, double value) { }
+        public void Tag(string tagName, object tagValue) { }
+    }
+}
+namespace Hardened.Shared.Runtime.Utilities
+{
+    public class ArrayFrom
+    {
+        public ArrayFrom() { }
+        public static object[] ObjectValues(params object[] values) { }
+        public static T[] Values<T>(params T[] values) { }
+    }
+    public static class DateTimeExtensions
+    {
+        public static System.DateTime Floor(this System.DateTime dateTime, Hardened.Shared.Runtime.Utilities.DateTimePrecision precision) { }
+        public static long ToEpoch(this System.DateTime dateTime) { }
+        public static long ToEpochMilliseconds(this System.DateTime dateTime) { }
+    }
+    public enum DateTimePrecision : long
+    {
+        Millisecond = 10000,
+        Second = 10000000,
+        Minute = 600000000,
+        Hour = 36000000000,
+        Day = 864000000000,
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class FileExtToMimeTypeHelper : Hardened.Shared.Runtime.Utilities.IFileExtToMimeTypeHelper
+    {
+        public FileExtToMimeTypeHelper() { }
+        public System.ValueTuple<string, bool> GetMimeTypeInfo(string fileExtension) { }
+    }
+    public interface IFileExtToMimeTypeHelper
+    {
+        System.ValueTuple<string, bool> GetMimeTypeInfo(string fileExtension);
+    }
+    public class MemoryStreamPoolWrapper : System.IO.Stream
+    {
+        public MemoryStreamPoolWrapper(Hardened.Shared.Runtime.Collections.IPoolItemReservation<System.IO.MemoryStream> poolItemReservation) { }
+        public override bool CanRead { get; }
+        public override bool CanSeek { get; }
+        public override bool CanWrite { get; }
+        public override long Length { get; }
+        public override long Position { get; set; }
+        protected override void Dispose(bool disposing) { }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) { }
+        public override long Seek(long offset, System.IO.SeekOrigin origin) { }
+        public override void SetLength(long value) { }
+        public override void Write(byte[] buffer, int offset, int count) { }
+    }
+}
