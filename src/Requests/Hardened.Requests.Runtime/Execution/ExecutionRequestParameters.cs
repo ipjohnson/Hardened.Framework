@@ -105,7 +105,11 @@ public abstract class ExecutionRequestParameters : IExecutionRequestParameters {
 
         for (var i = 0; i < info.Count; i++) {
             if (string.Equals(info[i].Name, parameterName, StringComparison.Ordinal)) {
-                return i;
+                // The declared index, not the position it was found at. The generator emits them
+                // equal, but the indexer is keyed by IExecutionRequestParameter.Index, so reading
+                // the position would quietly bind the wrong argument for any Info that is filtered
+                // or reordered.
+                return info[i].Index;
             }
         }
 

@@ -60,9 +60,56 @@ public class ExecutionRequestParametersTests {
         ];
     }
 
+    /// <summary>
+    /// Info whose declared indices do not match their position in the list, which is what
+    /// separates "the slot this parameter occupies" from "where its description happened to sit".
+    /// </summary>
+    private class ReorderedInfoParameters : ExecutionRequestParameters {
+        public object? Slot0 { get; set; }
+
+        public object? Slot1 { get; set; }
+
+        public override object this[int index] {
+            get => index == 0 ? Slot0! : Slot1!;
+            set {
+                if (index == 0) {
+                    Slot0 = value;
+                }
+                else {
+                    Slot1 = value;
+                }
+            }
+        }
+
+        // "second" is described first but occupies slot 1.
+        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } = [
+            new ExecutionRequestParameter("second", 1, typeof(object)),
+            new ExecutionRequestParameter("first", 0, typeof(object))
+        ];
+    }
+
     [Fact]
     public void ParameterCountComesFromTheDeclaredParameters() {
         Assert.Equal(2, new TwoParameters().ParameterCount);
+    }
+
+    /// <summary>
+    /// Lookup follows the declared <see cref="IExecutionRequestParameter.Index"/>, not the
+    /// position the description sits at. The generator emits them equal, so this is the
+    /// difference between a base class that happens to work and one that is correct by
+    /// construction.
+    /// </summary>
+    [Fact]
+    public void LookupUsesTheDeclaredIndexRatherThanThePositionInInfo() {
+        var parameters = new ReorderedInfoParameters();
+
+        Assert.True(parameters.TrySetParameter("second", "went to slot one"));
+
+        Assert.Equal("went to slot one", parameters.Slot1);
+        Assert.Null(parameters.Slot0);
+
+        Assert.True(parameters.TryGetParameter("second", out var value));
+        Assert.Equal("went to slot one", value);
     }
 
     [Fact]
