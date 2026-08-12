@@ -28,7 +28,11 @@ public static class ApplicationRootImplementation {
 
         var ifBlock = disposeAsync.If("RootServiceProvider != null");
 
-        ifBlock.AddIndentedStatement("RootServiceProvider = null");
+        // null!, not null: the field is declared non-nullable but is genuinely nullable - the
+        // Provider getter above is "RootServiceProvider ?? throw". Emitting a bare null made every
+        // generated application root carry a CS8625, which fails CI in any consumer building with
+        // TreatWarningsAsErrors. Hardened.Amz's LambdaWebTest was doing exactly that.
+        ifBlock.AddIndentedStatement("RootServiceProvider = null!");
         ifBlock.AddIndentedStatement(invokeStatement);
 
         return rootService.Instance;
