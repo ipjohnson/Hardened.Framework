@@ -76,7 +76,7 @@ public class UnresolvableTypeTests {
     [Fact]
     public void TheCrashIsReportedAsAWarningRatherThanAnError() {
         var generatorFailed = Assert.Single(
-            Run().Diagnostics.Where(diagnostic => diagnostic.Id == "CS8785"));
+            Run().Diagnostics, diagnostic => diagnostic.Id == "CS8785");
 
         Assert.Equal(DiagnosticSeverity.Warning, generatorFailed.Severity);
     }
