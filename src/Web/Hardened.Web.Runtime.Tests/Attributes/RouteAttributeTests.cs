@@ -48,6 +48,16 @@ public class RouteAttributeTests {
     [BasePath("/api")]
     private class BasePathController { }
 
+    private class BindingController {
+        public string Named(
+            [FromHeader("X-Tenant")] string tenant,
+            [FromQueryString("q")] string term) => tenant + term;
+
+        public string Unnamed(
+            [FromHeader] string tenant,
+            [FromQueryString] string term) => tenant + term;
+    }
+
     [Theory]
     [InlineData(typeof(GetAttribute))]
     [InlineData(typeof(PostAttribute))]
@@ -143,6 +153,36 @@ public class RouteAttributeTests {
 
         Assert.Equal(86400, attribute.MaxAge);
         Assert.Equal(CacheControlEnum.NoStore, attribute.Type);
+    }
+
+    /// <summary>
+    /// The two binding attributes the web package adds on top of
+    /// <c>Hardened.Requests.Abstract</c>'s. Both are applied to a parameter and read back, because
+    /// the named form is what emitted a double-quoted string literal before the 2026-08-11
+    /// generator fix — code that could not compile in any project using it.
+    /// </summary>
+    [Fact]
+    public void TheWebBindingAttributesCarryTheNameTheyWereGiven() {
+        var parameters = typeof(BindingController)
+            .GetMethod("Named", BindingFlags.Instance | BindingFlags.Public)!
+            .GetParameters();
+
+        Assert.Equal("X-Tenant", parameters[0].GetCustomAttribute<FromHeaderAttribute>()!.Name);
+        Assert.Equal("q", parameters[1].GetCustomAttribute<FromQueryStringAttribute>()!.Name);
+    }
+
+    /// <summary>
+    /// The name is optional on both. An unnamed binding falls back to the parameter's own name,
+    /// which the generator supplies — the attribute itself carries null.
+    /// </summary>
+    [Fact]
+    public void AnUnnamedWebBindingAttributeCarriesNoName() {
+        var parameters = typeof(BindingController)
+            .GetMethod("Unnamed", BindingFlags.Instance | BindingFlags.Public)!
+            .GetParameters();
+
+        Assert.Null(parameters[0].GetCustomAttribute<FromHeaderAttribute>()!.Name);
+        Assert.Null(parameters[1].GetCustomAttribute<FromQueryStringAttribute>()!.Name);
     }
 
     private static string PathOf(object attribute) =>

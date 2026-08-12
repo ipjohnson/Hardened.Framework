@@ -629,6 +629,54 @@ public class RouteCompilationTests {
         Assert.Contains("TestApplication.RoutingTable", routing);
     }
 
+    /// <summary>
+    /// A controller is not required to be only handlers. Every method in the compilation is
+    /// offered to the verb check, so an ordinary helper, a method carrying an unrelated attribute,
+    /// and a private method all have to be passed over rather than routed or crashed on.
+    /// </summary>
+    [Fact]
+    public void MethodsWithoutAVerbAttributeAreNotRoutes() {
+        var result = CompileApplication("""
+            public class MixedController {
+                [Get("/orders")]
+                public string List() => Format("orders");
+
+                public string Format(string value) => value.ToUpperInvariant();
+
+                [System.Obsolete("internal")]
+                public string Legacy() => "legacy";
+
+                private string Hidden() => "hidden";
+            }
+            """);
+
+        Assert.Contains("MixedController_List.cs", result.GeneratedSources.Keys);
+
+        Assert.DoesNotContain(result.GeneratedSources.Keys, name =>
+            name.Contains("Format", StringComparison.Ordinal) ||
+            name.Contains("Legacy", StringComparison.Ordinal) ||
+            name.Contains("Hidden", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// A parameter carrying an attribute the web generator does not recognise falls through to the
+    /// custom-binding path, which passes the attribute itself into the emitted parameter
+    /// information. That is the seam a consumer's own binding attribute arrives through, so it has
+    /// to produce code that compiles rather than an unresolved type name.
+    /// </summary>
+    [Fact]
+    public void AParameterCarryingAnUnrecognisedAttributeCompiles() {
+        CompileApplication("""
+            [System.AttributeUsage(System.AttributeTargets.Parameter)]
+            public class FromTenantAttribute : System.Attribute { }
+
+            public class TenantController {
+                [Get("/tenant")]
+                public string Handle([FromTenant] string tenant) => tenant;
+            }
+            """);
+    }
+
     private static int Occurrences(string source, string value) {
         var count = 0;
         var index = source.IndexOf(value, StringComparison.Ordinal);
