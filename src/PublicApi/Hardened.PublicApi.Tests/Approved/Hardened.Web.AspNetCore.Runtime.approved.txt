@@ -1,0 +1,84 @@
+namespace Hardened.Web.AspNetCore.Runtime
+{
+    public static class AspNetCoreExtensions
+    {
+        public static System.Threading.Tasks.Task HardenedMiddleware(Microsoft.AspNetCore.Http.HttpContext context, Microsoft.AspNetCore.Http.RequestDelegate next) { }
+        public static Microsoft.AspNetCore.Builder.IApplicationBuilder UseHardened(this Microsoft.AspNetCore.Builder.IApplicationBuilder builder) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class AspNetCoreRuntime : DependencyModules.Runtime.Interfaces.IDependencyModule
+    {
+        public AspNetCoreRuntime() { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class AspNetCoreRuntimeAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public AspNetCoreRuntimeAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Web.AspNetCore.Runtime.Impl
+{
+    [DependencyModules.Runtime.Attributes.TransientService]
+    public class AspNetCoreRequestHandler : Hardened.Web.AspNetCore.Runtime.Impl.IAspNetCoreRequestHandler
+    {
+        public AspNetCoreRequestHandler(Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService) { }
+        public System.Threading.Tasks.Task HandleRequest(Microsoft.AspNetCore.Http.HttpContext context, Microsoft.AspNetCore.Http.RequestDelegate requestDelegate) { }
+    }
+    public class AspNetExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
+    {
+        public AspNetExecutionContext(Microsoft.AspNetCore.Http.HttpContext httpContext, Hardened.Shared.Runtime.Metrics.IMetricLogger logger) { }
+        public System.Threading.CancellationToken CancellationToken { get; }
+        public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
+        public object? HandlerInstance { get; set; }
+        public Hardened.Requests.Abstract.Execution.IKnownServices KnownServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Request { get; }
+        public Hardened.Shared.Runtime.Metrics.IMetricLogger RequestMetrics { get; }
+        public System.IServiceProvider RequestServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Response { get; }
+        public System.IServiceProvider RootServiceProvider { get; }
+        public Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request, Hardened.Requests.Abstract.Execution.IExecutionResponse? response, System.IServiceProvider? serviceProvider, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger) { }
+    }
+    public class AspNetExecutionRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public AspNetExecutionRequest(Microsoft.AspNetCore.Http.HttpRequest httpRequest) { }
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+    public class AspNetExecutionResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    {
+        public AspNetExecutionResponse(Microsoft.AspNetCore.Http.HttpResponse httpResponse) { }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; set; }
+        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        public System.Exception? ExceptionValue { get; set; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public bool IsBinary { get; set; }
+        public bool ResponseStarted { get; }
+        public object? ResponseValue { get; set; }
+        public bool ShouldCompress { get; set; }
+        public bool ShouldSerialize { get; set; }
+        public int? Status { get; set; }
+        public string? TemplateName { get; set; }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+    public interface IAspNetCoreRequestHandler
+    {
+        System.Threading.Tasks.Task HandleRequest(Microsoft.AspNetCore.Http.HttpContext context, Microsoft.AspNetCore.Http.RequestDelegate requestDelegate);
+    }
+}

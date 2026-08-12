@@ -1,0 +1,47 @@
+namespace Hardened.Requests.Serializers.Newtonsoft
+{
+    public interface INewtonsoftSerializerConfiguration
+    {
+        System.Func<System.IServiceProvider, Newtonsoft.Json.JsonSerializer> SerializerProvider { get; }
+    }
+    [Hardened.Shared.Runtime.Attributes.ConfigurationModel]
+    public class NewtonsoftSerializerConfiguration : Hardened.Requests.Serializers.Newtonsoft.INewtonsoftSerializerConfiguration
+    {
+        public NewtonsoftSerializerConfiguration() { }
+        public System.Func<System.IServiceProvider, Newtonsoft.Json.JsonSerializer> SerializerProvider { get; set; }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    public class NewtonsoftSerializerLibrary
+    {
+        public NewtonsoftSerializerLibrary() { }
+    }
+}
+namespace Hardened.Requests.Serializers.Newtonsoft.Impl
+{
+    public interface ISharedSerializer
+    {
+        Newtonsoft.Json.JsonSerializer Serializer { get; }
+    }
+    [DependencyModules.Runtime.Attributes.TransientService]
+    public class NewtonsoftDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
+    {
+        public NewtonsoftDeserializer(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Hardened.Requests.Serializers.Newtonsoft.Impl.ISharedSerializer sharedSerializer, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Serializers.Newtonsoft.Impl.NewtonsoftDeserializer> logger) { }
+        public bool IsDefaultSerializer { get; }
+        public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    [DependencyModules.Runtime.Attributes.TransientService]
+    public class NewtonsoftSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
+    {
+        public NewtonsoftSerializer(Hardened.Requests.Serializers.Newtonsoft.Impl.ISharedSerializer sharedSerializer, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
+        public bool IsDefaultSerializer { get; }
+        public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class SharedSerializer : Hardened.Requests.Serializers.Newtonsoft.Impl.ISharedSerializer
+    {
+        public SharedSerializer(System.IServiceProvider serviceProvider, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Serializers.Newtonsoft.INewtonsoftSerializerConfiguration> configuration) { }
+        public Newtonsoft.Json.JsonSerializer Serializer { get; }
+    }
+}

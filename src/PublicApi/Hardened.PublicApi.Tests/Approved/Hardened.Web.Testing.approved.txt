@@ -1,0 +1,65 @@
+namespace Hardened.Web.Testing
+{
+    public interface ITestWebApp : Hardened.Shared.Testing.ITestContext
+    {
+        System.IServiceProvider RootServiceProvider { get; }
+        System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Delete(string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null);
+        System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Get(string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null);
+        System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Patch(object value, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null);
+        System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Post(object value, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null);
+        System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Put(object value, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null);
+        System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Request(string method, object? value, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null);
+    }
+    public interface IWebAssertThat
+    {
+        void BadRequest();
+        void Forbidden();
+        void NotFound();
+        void Ok();
+        void Unauthorized();
+    }
+    public class TestWebApp : Hardened.Shared.Testing.Impl.TestContext, Hardened.Shared.Testing.ITestContext, Hardened.Web.Testing.ITestWebApp
+    {
+        public TestWebApp(Hardened.Shared.Runtime.Application.IApplicationRoot applicationRoot, Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.IServiceProvider RootServiceProvider { get; }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Delete(string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null) { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Get(string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null) { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Patch(object value, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null) { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Post(object postValue, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null) { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Put(object value, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null) { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Request(string method, object? value, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null) { }
+    }
+    public class TestWebRequest
+    {
+        public TestWebRequest() { }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; set; }
+        public System.Threading.CancellationToken? Token { get; set; }
+    }
+    public class TestWebResponse
+    {
+        public TestWebResponse(Hardened.Requests.Abstract.Execution.IExecutionResponse executionResponse) { }
+        public Hardened.Web.Testing.IWebAssertThat Assert { get; }
+        public System.IO.Stream Body { get; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public int StatusCode { get; }
+        public T Deserialize<T>() { }
+        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(Hardened.Web.Testing.TestWebResponse.<DeserializeAsyncEnumerable>d__11<T>))]
+        public System.Collections.Generic.IAsyncEnumerable<T> DeserializeAsyncEnumerable<T>() { }
+    }
+    public class WebAssertThat : Hardened.Web.Testing.IWebAssertThat
+    {
+        public WebAssertThat(Hardened.Web.Testing.TestWebResponse response) { }
+        public void BadRequest() { }
+        public void Forbidden() { }
+        public void NotFound() { }
+        public void Ok() { }
+        public void Unauthorized() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly)]
+    public class WebTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute, DependencyModules.Testing.Attributes.Interfaces.ITestStartupAttribute
+    {
+        public WebTestingAttribute() { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+        public System.Threading.Tasks.Task StartupAsync(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, System.IServiceProvider serviceProvider) { }
+    }
+}

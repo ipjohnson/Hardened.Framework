@@ -4,9 +4,11 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
@@ -14,12 +16,35 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="xunit.v3" Version="3.2.2" />
+        <PackageReference Include="NSubstitute" Version="5.1.0" />
         <PackageReference Include="SimpleFixture.NSubstitute" Version="4.0.0-RC191"/>
         <PackageReference Include="SimpleFixture.xUnit" Version="4.0.0-RC191"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+
+        <!--
+          Hardened.Library.SourceGenerator is referenced as a normal assembly rather than an
+          analyzer so a GeneratorDriver can drive it directly. It is the shipped analyzer that
+          runs the configuration generator, so driving it is the consumer's position.
+
+          Hardened.SourceGenerator is deliberately NOT referenced alongside it. Its files are
+          compiled into Hardened.Library.SourceGenerator via linked Compile items, so referencing
+          both puts two copies of ConfigurationFileModel and friends in scope and every use
+          becomes ambiguous (CS0433).
+        -->
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"/>
+
+        <!--
+          The other half of what a consumer installs: Hardened.Library.SourceGenerator packs
+          Hardened.DependencyModules.SourceGenerator alongside itself, and [HardenedModule] is
+          only fully wired when both run. PopulateServiceCollection comes from this one, and the
+          configuration generator's entry point calls it, so a test running only one of the two
+          would fail on a member the other was always going to supply.
+        -->
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
     </ItemGroup>
 
 </Project>

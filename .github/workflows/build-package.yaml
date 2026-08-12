@@ -79,9 +79,15 @@ jobs:
           reportgenerator \
             -reports:"coverage/**/*.cobertura.xml" \
             -targetdir:coverage-report \
-            -reporttypes:"TextSummary;MarkdownSummaryGithub;Html"
+            -reporttypes:"TextSummary;MarkdownSummaryGithub;Html;JsonSummary"
           cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
           cat coverage-report/Summary.txt
+
+      # Coverage was measured and printed on every build and enforced nothing, so it could fall to
+      # zero and stay green. This gate holds each assembly at the coverage it already had.
+      # Raising a floor is a deliberate act: scripts/coverage-gate.py --update, reviewed and committed.
+      - name: Coverage gate
+        run: python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
 
       - uses: actions/upload-artifact@v4
         with:

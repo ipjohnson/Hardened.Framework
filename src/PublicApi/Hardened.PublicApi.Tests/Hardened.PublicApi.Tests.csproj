@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <!--
+      The approved files are read from the build output, not from the source tree.
+      ContinuousIntegrationBuild=true turns on deterministic source paths, so [CallerFilePath]
+      resolves to a placeholder like /_/src/... in CI - every one of these tests failed there with
+      UnauthorizedAccessException on /_ while passing on a developer machine. Copying them here
+      makes the comparison independent of where the source happened to be built.
+    -->
+    <ItemGroup>
+        <None Include="Approved\*.approved.txt" CopyToOutputDirectory="PreserveNewest" LinkBase="Approved"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="PublicApiGenerator" Version="11.4.6" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="3.2.2" />
+    </ItemGroup>
+
+    <!--
+      Every shipped net8.0 assembly. A package added to the repository and not listed here has no
+      approved surface, which AllShippedAssembliesAreCovered turns into a failing test.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\Commands\Hardened.Commands\Hardened.Commands.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
+        <ProjectReference Include="..\..\Requests\Serializers\Hardened.Requests.Serializers.Newtonsoft\Hardened.Requests.Serializers.Newtonsoft.csproj"/>
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
+        <ProjectReference Include="..\..\Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj"/>
+        <ProjectReference Include="..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.AspNetCore.Runtime\Hardened.Web.AspNetCore.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
+    </ItemGroup>
+
+</Project>

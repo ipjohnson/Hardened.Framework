@@ -42,6 +42,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
+  /pets/search:
+    get:
+      tags:
+        - Pet
+      operationId: searchPets
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 20
+            pattern: "^[a-zA-Z ]+$"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - available
+              - pending
+              - sold
+      responses:
+        '200':
+          description: Matching pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
   /pets/{petId}:
     get:
       tags:
@@ -56,6 +88,50 @@ paths:
       responses:
         '200':
           description: A single pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+    put:
+      tags:
+        - Pet
+      operationId: replacePet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePetRequest'
+      responses:
+        '200':
+          description: Pet replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+    patch:
+      tags:
+        - Pet
+      operationId: updatePet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePetRequest'
+      responses:
+        '200':
+          description: Pet updated
           content:
             application/json:
               schema:
@@ -120,6 +196,17 @@ components:
           type: string
           maxLength: 50
           pattern: "^[a-zA-Z0-9-]*$"
+    UpdatePetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
     Store:
       type: object
       required:

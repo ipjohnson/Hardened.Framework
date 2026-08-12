@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <Description>HTTP routing for Hardened: [Get], [Post], [Put], [Delete] and [BasePath], plus static content serving and CORS.</Description>
+        <Description>HTTP routing for Hardened: [Get], [Post], [Put], [Delete], [Patch] and [BasePath], plus static content serving and CORS.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>

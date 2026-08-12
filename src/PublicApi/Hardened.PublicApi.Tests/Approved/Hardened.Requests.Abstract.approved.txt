@@ -1,0 +1,432 @@
+namespace Hardened.Requests.Abstract.Attributes
+{
+    public class AuthorizeActivitiesAttribute : System.Attribute
+    {
+        public AuthorizeActivitiesAttribute(params string[] activities) { }
+        public string[] Activities { get; }
+    }
+    public class FromBodyAttribute : System.Attribute
+    {
+        public FromBodyAttribute() { }
+    }
+    public class FromServicesAttribute : System.Attribute
+    {
+        public FromServicesAttribute() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public class HandlerAttribute : System.Attribute
+    {
+        public HandlerAttribute() { }
+    }
+    public class HardenedFunctionAttribute : System.Attribute
+    {
+        public HardenedFunctionAttribute(string? functionName = null) { }
+        public string? FunctionName { get; }
+    }
+    public interface ICustomBindingAttribute
+    {
+        System.Threading.Tasks.ValueTask<T> BindValue<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter);
+    }
+    public class RawResponseAttribute : System.Attribute
+    {
+        public RawResponseAttribute(string contentType = "text/plain") { }
+    }
+    public class TemplateAttribute : System.Attribute
+    {
+        public TemplateAttribute(string templateName) { }
+        public string TemplateName { get; }
+    }
+}
+namespace Hardened.Requests.Abstract.Authorization
+{
+    public interface IActivityAuthorizationHandler
+    {
+        System.Threading.Tasks.ValueTask<bool?> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] actions);
+    }
+    public interface IActivityAuthorizationService
+    {
+        System.Threading.Tasks.ValueTask<bool?> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] actions);
+    }
+}
+namespace Hardened.Requests.Abstract.Errors
+{
+    public class ErrorModel
+    {
+        public ErrorModel() { }
+        public string Details { get; set; }
+        public string Message { get; set; }
+        public string Type { get; set; }
+    }
+    public interface IExceptionToModelConverter
+    {
+        System.ValueTuple<int, object> ConvertExceptionToModel(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception exp);
+    }
+    public interface IResourceNotFoundHandler
+    {
+        System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionChain chain);
+    }
+}
+namespace Hardened.Requests.Abstract.Execution
+{
+    public delegate System.Threading.Tasks.Task DefaultOutputFunc(Hardened.Requests.Abstract.Execution.IExecutionContext executionContext);
+    public enum ExecutionFilterOrder
+    {
+        Init = -10000,
+        FullRequestMetrics = -7000,
+        RetryFilter = -5000,
+        BeforeSerialize = -1,
+        BindParameters = 0,
+        First = 1,
+        Second = 2,
+        Third = 3,
+        Normal = 100,
+        Last = 2147483647,
+    }
+    public interface IExecutionChain
+    {
+        Hardened.Requests.Abstract.Execution.IExecutionContext Context { get; }
+        bool IsLastFilter { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionChain Fork(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.Task Next();
+    }
+    public interface IExecutionContext
+    {
+        System.Threading.CancellationToken CancellationToken { get; }
+        Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
+        Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
+        object? HandlerInstance { get; set; }
+        Hardened.Requests.Abstract.Execution.IKnownServices KnownServices { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionRequest Request { get; }
+        Hardened.Shared.Runtime.Metrics.IMetricLogger RequestMetrics { get; }
+        System.IServiceProvider RequestServices { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionResponse Response { get; }
+        System.IServiceProvider RootServiceProvider { get; }
+        Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request = null, Hardened.Requests.Abstract.Execution.IExecutionResponse? response = null, System.IServiceProvider? serviceProvider = null, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null);
+    }
+    public interface IExecutionFilter
+    {
+        System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain);
+    }
+    public interface IExecutionRequest
+    {
+        string? Accept { get; }
+        System.IO.Stream Body { get; set; }
+        string? ContentType { get; }
+        System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        string Method { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        string Path { get; }
+        Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null);
+    }
+    public interface IExecutionRequestHandler
+    {
+        Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo HandlerInfo { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionChain GetExecutionChain(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IExecutionRequestHandlerInfo
+    {
+        int? FailureStatus { get; }
+        System.Type HandlerType { get; }
+        string InvokeMethod { get; }
+        System.Collections.Generic.IReadOnlyList<object> Metadata { get; }
+        string Method { get; }
+        int? NullResponseStatus { get; }
+        System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
+        string Path { get; }
+        int? SuccessStatus { get; }
+    }
+    public interface IExecutionRequestParameter
+    {
+        int Index { get; }
+        string Name { get; }
+        System.Type Type { get; }
+    }
+    public interface IExecutionRequestParameters
+    {
+        System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Info { get; }
+        object this[int index] { get; set; }
+        object this[string parameterName] { get; set; }
+        int ParameterCount { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionRequestParameters Clone();
+        bool TryGetParameter(string parameterName, out object? parameterValue);
+        bool TrySetParameter(string parameterName, object parameterValue);
+    }
+    public interface IExecutionResponse
+    {
+        System.IO.Stream Body { get; set; }
+        string? ContentType { get; set; }
+        Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        System.Exception? ExceptionValue { get; set; }
+        System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        bool IsBinary { get; set; }
+        bool ResponseStarted { get; }
+        object? ResponseValue { get; set; }
+        bool ShouldCompress { get; set; }
+        bool ShouldSerialize { get; set; }
+        int? Status { get; set; }
+        string? TemplateName { get; set; }
+        Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null);
+    }
+    public interface IFunctionHandlerProvider
+    {
+        Hardened.Requests.Abstract.Execution.IExecutionRequestHandler? GetFunctionHandler(string functionName, System.IServiceProvider serviceProvider);
+    }
+    public interface IKnownServices
+    {
+        Hardened.Requests.Abstract.Serializer.IContextSerializationService ContextSerializationService { get; }
+        Hardened.Requests.Abstract.Serializer.IStringConverterService StringConverterService { get; }
+    }
+}
+namespace Hardened.Requests.Abstract.Headers
+{
+    public class CookieSetOptions : System.IEquatable<Hardened.Requests.Abstract.Headers.CookieSetOptions>
+    {
+        public static Hardened.Requests.Abstract.Headers.CookieSetOptions Empty;
+        public CookieSetOptions(System.DateTime? Expires = default, double? MaxAge = default, string? Domain = null, string? Path = null, bool Secure = true, bool HttpOnly = true, Hardened.Requests.Abstract.Headers.SameSite? SameSite = default) { }
+        public string? Domain { get; init; }
+        public System.DateTime? Expires { get; init; }
+        public bool HttpOnly { get; init; }
+        public double? MaxAge { get; init; }
+        public string? Path { get; init; }
+        public Hardened.Requests.Abstract.Headers.SameSite? SameSite { get; init; }
+        public bool Secure { get; init; }
+        public void AppendSettings(System.Text.StringBuilder builder) { }
+    }
+    public interface ICookieSetCollection
+    {
+        System.Collections.Generic.IReadOnlyDictionary<string, System.Tuple<string, Hardened.Requests.Abstract.Headers.CookieSetOptions>> Cookies { get; }
+        void Append(string cookieName, string cookieValue, Hardened.Requests.Abstract.Headers.CookieSetOptions? options = null);
+    }
+    public interface IHeaderCollection : System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>>, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>>, System.Collections.IEnumerable
+    {
+        new int Count { get; }
+        Microsoft.Extensions.Primitives.StringValues Append(string key, object value);
+        bool ContainsKey(string key);
+        Microsoft.Extensions.Primitives.StringValues Get(string key);
+        Microsoft.Extensions.Primitives.StringValues Set(string key, Microsoft.Extensions.Primitives.StringValues value);
+        Microsoft.Extensions.Primitives.StringValues Set(string key, object? value);
+        System.Collections.Generic.IDictionary<string, string> ToStringDictionary();
+        bool TryGet(string key, out Microsoft.Extensions.Primitives.StringValues value);
+    }
+    public class KnownContentType
+    {
+        public const string Css = "text/css";
+        public const string Html = "text/html";
+        public const string Js = "text/js";
+        public const string Json = "application/json";
+        public static Microsoft.Extensions.Primitives.StringValues CssStringValues;
+        public static Microsoft.Extensions.Primitives.StringValues HtmlStringValues;
+        public static Microsoft.Extensions.Primitives.StringValues JsStringValues;
+        public static Microsoft.Extensions.Primitives.StringValues JsonStringValues;
+        public KnownContentType() { }
+    }
+    public static class KnownEncoding
+    {
+        public const string Br = "br";
+        public const string GZip = "gzip";
+        public static readonly Microsoft.Extensions.Primitives.StringValues BrStringValues;
+        public static readonly Microsoft.Extensions.Primitives.StringValues GZipStringValues;
+    }
+    public static class KnownHeaders
+    {
+        public const string Accept = "Accept";
+        public const string AcceptEncoding = "Accept-Encoding";
+        public const string CacheControl = "Cache-Control";
+        public const string ContentEncoding = "Content-Encoding";
+        public const string ContentLength = "Content-Length";
+        public const string ContentType = "Content-Type";
+        public const string IfMatch = "If-Match";
+        public const string IfNoneMatch = "If-None-Match";
+        public static class Cors
+        {
+            public const string AccessControlAllowHeaders = "Access-Control-Allow-Headers";
+            public const string AccessControlAllowMethods = "Access-Control-Allow-Methods";
+            public const string AccessControlAllowOrigin = "Access-Control-Allow-Origin";
+            public const string AccessControlMaxAge = "Access-Control-Max-Age";
+        }
+    }
+    public enum SameSite
+    {
+        Strict = 0,
+        Lax = 1,
+        None = 2,
+    }
+}
+namespace Hardened.Requests.Abstract.Logging
+{
+    public interface IRequestLogger
+    {
+        void RequestBegin(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        void RequestEnd(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        void RequestFailed(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception exp);
+        void RequestMapped(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        void RequestParameterBindFailed(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception? exp);
+        void ResourceNotFound(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+}
+namespace Hardened.Requests.Abstract.Metrics
+{
+    public static class RequestMetrics
+    {
+        public static readonly Hardened.Shared.Runtime.Metrics.IMetricDefinition HandlerInvokeDuration;
+        public static readonly Hardened.Shared.Runtime.Metrics.IMetricDefinition ParameterBindDuration;
+        public static readonly Hardened.Shared.Runtime.Metrics.IMetricDefinition ResponseDuration;
+        public static readonly Hardened.Shared.Runtime.Metrics.IMetricDefinition TotalRequestDuration;
+    }
+}
+namespace Hardened.Requests.Abstract.Middleware
+{
+    public interface IMiddlewareProvider
+    {
+        System.Collections.Generic.IEnumerable<System.Func<System.IServiceProvider, Hardened.Requests.Abstract.Execution.IExecutionFilter>> ProvideMiddleware();
+    }
+    public interface IMiddlewareService
+    {
+        Hardened.Requests.Abstract.Execution.IExecutionChain GetExecutionChain(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        void Use(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> middlewareFunc);
+    }
+}
+namespace Hardened.Requests.Abstract.PathTokens
+{
+    public interface IPathTokenCollection
+    {
+        int Count { get; }
+        Hardened.Requests.Abstract.PathTokens.PathToken Get(int index);
+        Microsoft.Extensions.Primitives.StringValues Get(string id);
+    }
+    public class PathToken : System.IEquatable<Hardened.Requests.Abstract.PathTokens.PathToken>
+    {
+        public PathToken(string TokenName, string TokenValue) { }
+        public string TokenName { get; init; }
+        public string TokenValue { get; init; }
+    }
+}
+namespace Hardened.Requests.Abstract.QueryString
+{
+    public interface IQueryStringCollection
+    {
+        int Count { get; }
+        Microsoft.Extensions.Primitives.StringValues Get(string key);
+    }
+}
+namespace Hardened.Requests.Abstract.RequestFilter
+{
+    public static class FilterOrder
+    {
+        public const int BeforeSerialization = 4;
+        public const int DefaultValue = 1000;
+        public const int EndPointHandlers = 2000;
+        public const int EndPointInvoke = 2000;
+        public const int HandlerCreation = -1000;
+        public const int Serialization = 5;
+        public const int Validation = 6;
+    }
+    public interface IGlobalFilterRegistry
+    {
+        System.Collections.Generic.List<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo requestHandlerInfo);
+        void RegisterFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo, Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo?> filterFunc);
+        void RegisterFilter(Hardened.Requests.Abstract.Execution.IExecutionFilter filter, int order = 1000);
+    }
+    public interface IIOFilterProvider
+    {
+        Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest);
+        Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest);
+    }
+    public interface IInstanceFilterProvider
+    {
+        Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter<T>(System.IServiceProvider rootProvider);
+    }
+    public interface IRequestFilterProvider
+    {
+        System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo);
+    }
+    public class RequestFilterInfo
+    {
+        public RequestFilterInfo(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> filterFunc, int? order = default) { }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> FilterFunc { get; }
+        public int? Order { get; }
+    }
+}
+namespace Hardened.Requests.Abstract.Serializer
+{
+    public interface IContextSerializationService
+    {
+        System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IExceptionResponseSerializer
+    {
+        System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception exp);
+    }
+    public interface INullValueResponseHandler
+    {
+        System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IRequestDeserializer
+    {
+        bool IsDefaultSerializer { get; }
+        bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IResponseSerializer
+    {
+        bool IsDefaultSerializer { get; }
+        bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface ISerializationLocatorService
+    {
+        Hardened.Requests.Abstract.Serializer.IRequestDeserializer FindRequestDeserializer(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        Hardened.Requests.Abstract.Serializer.IResponseSerializer FindResponseSerializer(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IStringConverter
+    {
+        System.Type ConvertType { get; }
+        T Convert<T>(string value);
+    }
+    public interface IStringConverterService
+    {
+        T? ParseOptional<T>(string value, string valueName);
+        T ParseRequired<T>(string value, string valueName);
+        T ParseWithDefault<T>(string value, string valueName, T defaultValue);
+    }
+}
+namespace Hardened.Requests.Abstract.Utilities
+{
+    public static class StringExtensions
+    {
+        public static Microsoft.Extensions.Primitives.StringValues ToStringValues(this string value) { }
+    }
+}
+namespace Hardened.Requests.Abstract.Validation
+{
+    public interface ICustomRequestValidator<in TRequest>
+        where in TRequest :  class
+    {
+        System.Threading.Tasks.Task<Hardened.Requests.Abstract.Validation.ValidationResult> ValidateAsync(TRequest request);
+    }
+    public interface IValidationRule
+    {
+        void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result);
+    }
+    public class ValidationError : System.IEquatable<Hardened.Requests.Abstract.Validation.ValidationError>
+    {
+        public ValidationError(string Field, string Code, string Message) { }
+        public string Code { get; init; }
+        public string Field { get; init; }
+        public string Message { get; init; }
+    }
+    public class ValidationResult
+    {
+        public static readonly Hardened.Requests.Abstract.Validation.ValidationResult Success;
+        public ValidationResult() { }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Validation.ValidationError> Errors { get; }
+        public bool IsValid { get; }
+        public void AddError(string field, string code, string message) { }
+        public void Merge(Hardened.Requests.Abstract.Validation.ValidationResult other) { }
+    }
+}

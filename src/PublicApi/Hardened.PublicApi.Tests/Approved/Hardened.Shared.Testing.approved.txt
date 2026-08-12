@@ -1,0 +1,195 @@
+namespace Hardened.Shared.Testing.Attributes
+{
+    public class AttributeCollection : System.Collections.Generic.IEnumerable<object>, System.Collections.IEnumerable
+    {
+        public AttributeCollection(System.Collections.Generic.IReadOnlyList<object> methodAttributes, System.Collections.Generic.IReadOnlyList<object> classAttributes, System.Collections.Generic.IReadOnlyList<object> assemblyAttributes) { }
+        public System.Collections.Generic.IReadOnlyList<object> AssemblyAttributes { get; }
+        public System.Collections.Generic.IReadOnlyList<object> ClassAttributes { get; }
+        public System.Collections.Generic.IReadOnlyList<object> MethodAttributes { get; }
+        public T? GetAttribute<T>()
+            where T :  class { }
+        public System.Collections.Generic.IReadOnlyList<T> GetAttributes<T>()
+            where T :  class { }
+        public System.Collections.Generic.IEnumerator<object> GetEnumerator() { }
+        public static Hardened.Shared.Testing.Attributes.AttributeCollection FromMethodInfo(System.Reflection.MethodInfo method) { }
+    }
+    public class EnvironmentNameAttribute : System.Attribute
+    {
+        public EnvironmentNameAttribute(string name) { }
+        public string Name { get; }
+    }
+    public class EnvironmentValueAttribute : System.Attribute
+    {
+        public EnvironmentValueAttribute(string variable, string value) { }
+        public string Value { get; }
+        public string Variable { get; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false)]
+    [Xunit.v3.XunitTestCaseDiscoverer(typeof(DependencyModules.xUnit.Impl.ModuleTestDiscoverer))]
+    public class HardenedTestAttribute : Xunit.FactAttribute
+    {
+        public HardenedTestAttribute() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public class HardenedTestEntryPointAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute, DependencyModules.Testing.Attributes.Interfaces.ITestStartupAttribute
+    {
+        public HardenedTestEntryPointAttribute(System.Type entryPoint) { }
+        public System.Type EntryPoint { get; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+        public System.Threading.Tasks.Task StartupAsync(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, System.IServiceProvider serviceProvider) { }
+    }
+    public interface IHardenedOrderedAttribute
+    {
+        int Order { get; }
+    }
+    public interface IHardenedParameterProviderAttribute : Hardened.Shared.Testing.Attributes.IHardenedOrderedAttribute
+    {
+        object? ProvideParameterValue(System.Reflection.MethodInfo methodInfo, System.Reflection.ParameterInfo parameterInfo, Hardened.Shared.Runtime.Application.IApplicationRoot applicationRoot);
+        void RegisterDependencies(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, System.Reflection.ParameterInfo? parameterInfo, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection);
+    }
+    public interface IHardenedTestConfigurationAttribute : Hardened.Shared.Testing.Attributes.IHardenedOrderedAttribute
+    {
+        void Configure(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, Hardened.Shared.Runtime.Configuration.IAppConfig appConfig);
+    }
+    public interface IHardenedTestDependencyRegistrationAttribute : Hardened.Shared.Testing.Attributes.IHardenedOrderedAttribute
+    {
+        void RegisterDependencies(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection);
+    }
+    public interface IHardenedTestEnvironmentAttribute : Hardened.Shared.Testing.Attributes.IHardenedOrderedAttribute
+    {
+        void ConfigureEnvironment(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, string environmentName, System.Collections.Generic.IDictionary<string, object> environment);
+    }
+    public interface IHardenedTestStartupAttribute : Hardened.Shared.Testing.Attributes.IHardenedOrderedAttribute
+    {
+        System.Threading.Tasks.Task Startup(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.IServiceProvider serviceProvider);
+    }
+    [System.AttributeUsage(System.AttributeTargets.Parameter)]
+    public class MockAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestParameterValueProvider
+    {
+        public MockAttribute() { }
+        public System.Threading.Tasks.Task<object?> GetParameterValueAsync(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext context, System.IServiceProvider serviceProvider, System.Reflection.ParameterInfo parameter) { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testCaseContext, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection, System.Reflection.ParameterInfo parameter) { }
+    }
+}
+namespace Hardened.Shared.Testing
+{
+    public interface IRetryEngine
+    {
+        int Delay { get; set; }
+        System.Threading.Tasks.Task TillFalse(System.Func<System.Threading.Tasks.Task<bool>> testFunc, string description, params object[] parameters);
+        System.Threading.Tasks.Task TillTrue(System.Func<System.Threading.Tasks.Task<bool>> testFunc, string description, params object[] parameters);
+        System.Threading.Tasks.Task<T> TillValue<T>(System.Func<System.Threading.Tasks.Task<T>> value, string description, params object[] parameters);
+    }
+    public interface ITestContext
+    {
+        System.Threading.CancellationToken CancellationRequest { get; }
+        Microsoft.Extensions.Logging.ILogger Logger { get; }
+        Hardened.Shared.Testing.IRetryEngine Retry { get; }
+        void Step(System.Action step, string description, params object[] parameters);
+        System.Threading.Tasks.Task Step(System.Func<System.Threading.Tasks.Task> step, string description, params object[] parameters);
+        System.Threading.Tasks.Task<T> Step<T>(System.Func<System.Threading.Tasks.Task<T>> step, string description, params object[] parameters);
+        T Step<T>(System.Func<T> step, string description, params object[] parameters);
+    }
+}
+namespace Hardened.Shared.Testing.Impl
+{
+    public static class AttributeUtility
+    {
+        public static T? GetTestAttribute<T>(this System.Reflection.MethodInfo methodInfo)
+            where T :  class { }
+        public static T? GetTestAttribute<T>(this System.Reflection.ParameterInfo parameterInfo)
+            where T :  class { }
+        public static System.Collections.Generic.IEnumerable<T> GetTestAttributes<T>(this System.Reflection.MethodInfo methodInfo)
+            where T :  class { }
+        public static System.Collections.Generic.IEnumerable<T> GetTestAttributes<T>(this System.Reflection.ParameterInfo parameterInfo)
+            where T :  class { }
+    }
+    public class RetryEngine : Hardened.Shared.Testing.IRetryEngine
+    {
+        public RetryEngine(Hardened.Shared.Testing.ITestContext context) { }
+        public int Delay { get; set; }
+        public System.Threading.Tasks.Task TillFalse(System.Func<System.Threading.Tasks.Task<bool>> testFunc, string description, params object[] parameters) { }
+        public System.Threading.Tasks.Task TillTrue(System.Func<System.Threading.Tasks.Task<bool>> testFunc, string description, params object[] parameters) { }
+        public System.Threading.Tasks.Task<T> TillValue<T>(System.Func<System.Threading.Tasks.Task<T>> testFunc, string description, params object[] parameters) { }
+    }
+    public class ServiceProviderApplicationRoot : Hardened.Shared.Runtime.Application.IApplicationRoot, System.IAsyncDisposable
+    {
+        public ServiceProviderApplicationRoot(System.IServiceProvider sp) { }
+        public System.IServiceProvider Provider { get; }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+    }
+    public class TestApplication : Hardened.Shared.Runtime.Application.IApplicationRoot, System.IAsyncDisposable
+    {
+        public TestApplication(DependencyModules.Runtime.Interfaces.IDependencyModule testModule, string logNs, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? overrideDependencies) { }
+        public TestApplication(Hardened.Shared.Runtime.Application.IApplicationModule testModule, string logNs, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? overrideDependencies) { }
+        public System.IServiceProvider Provider { get; }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+    }
+    public class TestCancellationToken : System.IEquatable<Hardened.Shared.Testing.Impl.TestCancellationToken>
+    {
+        public TestCancellationToken(System.Threading.CancellationToken Token) { }
+        public System.Threading.CancellationToken Token { get; init; }
+    }
+    public class TestContext : Hardened.Shared.Testing.ITestContext
+    {
+        public TestContext(System.Threading.CancellationToken cancellationRequest, Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Threading.CancellationToken CancellationRequest { get; }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; }
+        public Hardened.Shared.Testing.IRetryEngine Retry { get; }
+        public void Step(System.Action step, string description, params object[] parameters) { }
+        public System.Threading.Tasks.Task Step(System.Func<System.Threading.Tasks.Task> step, string description, params object[] parameters) { }
+        public System.Threading.Tasks.Task<T> Step<T>(System.Func<System.Threading.Tasks.Task<T>> step, string description, params object[] parameters) { }
+        public T Step<T>(System.Func<T> step, string description, params object[] parameters) { }
+    }
+    public class TestEnvironment : DependencyModules.Runtime.Interfaces.IModuleEnvironment, Hardened.Shared.Runtime.Application.IHardenedEnvironment
+    {
+        public TestEnvironment(string name, System.Collections.Generic.IDictionary<string, object> values, System.Collections.Generic.IReadOnlyList<string>? arguments = null, System.Collections.Generic.IDictionary<string, object>? customData = null) { }
+        public System.Collections.Generic.IReadOnlyList<string> Arguments { get; }
+        public string Name { get; }
+        public T? CustomData<T>(string name, T? defaultValue = default) { }
+        public T? Value<T>(string name, T? defaultValue = default) { }
+    }
+}
+namespace Hardened.Shared.Testing.Logging
+{
+    public class XUnitLogger : Microsoft.Extensions.Logging.ILogger
+    {
+        public XUnitLogger(string loggerName) { }
+        public System.IDisposable? BeginScope<TState>(TState state)
+            where TState :  notnull { }
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) { }
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, System.Exception? exception, System.Func<TState, System.Exception?, string> formatter) { }
+        public class ExceptionRecord : System.IEquatable<Hardened.Shared.Testing.Logging.XUnitLogger.ExceptionRecord>
+        {
+            public ExceptionRecord(string Type, string Message, string StackTrace) { }
+            public string Message { get; init; }
+            public string StackTrace { get; init; }
+            public string Type { get; init; }
+        }
+        public class StructuredLogEntry<TState> : System.IEquatable<Hardened.Shared.Testing.Logging.XUnitLogger.StructuredLogEntry<TState>>
+        {
+            public StructuredLogEntry(System.DateTime Timestamp, string Logger, Microsoft.Extensions.Logging.LogLevel LogLevel, Microsoft.Extensions.Logging.EventId EventId, string Message, TState Data, Hardened.Shared.Testing.Logging.XUnitLogger.ExceptionRecord? Exception) { }
+            public TState Data { get; init; }
+            public Microsoft.Extensions.Logging.EventId EventId { get; init; }
+            public Hardened.Shared.Testing.Logging.XUnitLogger.ExceptionRecord? Exception { get; init; }
+            public Microsoft.Extensions.Logging.LogLevel LogLevel { get; init; }
+            public string Logger { get; init; }
+            public string Message { get; init; }
+            public System.DateTime Timestamp { get; init; }
+        }
+    }
+    public class XunitLoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider, System.IDisposable
+    {
+        public XunitLoggerProvider() { }
+        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) { }
+        public void Dispose() { }
+    }
+}
+namespace Hardened.Shared.Testing.Utilties
+{
+    public static class TypeExtensions
+    {
+        public static System.Reflection.MethodInfo? FindInstanceMethod(this System.Type type, string methodName) { }
+    }
+}

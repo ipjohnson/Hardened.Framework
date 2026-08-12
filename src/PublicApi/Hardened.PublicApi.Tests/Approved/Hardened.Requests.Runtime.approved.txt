@@ -1,0 +1,495 @@
+namespace Hardened.Requests.Runtime
+{
+    public class AotSerializerModule : DependencyModules.Runtime.Interfaces.IDependencyModule
+    {
+        public AotSerializerModule() { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void InternalApplyServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false)]
+    public class AotSerializerModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public AotSerializerModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Requests.Runtime.Configuration
+{
+    public interface IJsonSerializerConfiguration
+    {
+        System.Text.Json.JsonSerializerOptions? DeSerializerOptions { get; }
+        System.Text.Json.JsonSerializerOptions? SerializeOptions { get; }
+    }
+    public interface IResponseHeaderConfiguration
+    {
+        System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>> CommonHeaders { get; }
+        System.Collections.Generic.IReadOnlyList<System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>> HeaderActions { get; }
+    }
+    public class JsonSerializerConfiguration : Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration
+    {
+        public JsonSerializerConfiguration() { }
+        public System.Text.Json.JsonSerializerOptions? DeSerializerOptions { get; set; }
+        public System.Text.Json.JsonSerializerOptions? SerializeOptions { get; set; }
+    }
+    public class ResponseHeaderConfiguration : Hardened.Requests.Runtime.Configuration.IResponseHeaderConfiguration
+    {
+        public ResponseHeaderConfiguration() { }
+        public System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>> CommonHeaders { get; }
+        public System.Collections.Generic.List<System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>> HeaderActions { get; }
+        public void Add(System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext> action) { }
+        public void Add(string name, Microsoft.Extensions.Primitives.StringValues value) { }
+        public void Add(string name, string value) { }
+    }
+}
+namespace Hardened.Requests.Runtime.DependencyInjection
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Shared.Runtime.DependencyInjection.HardenedCoreModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class HardenedRequestModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public HardenedRequestModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class HardenedRequestModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public HardenedRequestModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Requests.Runtime.Errors
+{
+    public class BadContentEncodingException : Hardened.Requests.Runtime.Errors.BadRequestException
+    {
+        public BadContentEncodingException(string contentEncoding) { }
+    }
+    public class BadRequestException : System.Exception
+    {
+        public BadRequestException(string message) { }
+        public BadRequestException(string message, System.Exception inner) { }
+    }
+    public static class ControllerErrorHelper
+    {
+        public static System.Threading.Tasks.Task HandleException(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception exception) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ExceptionToModelConverter : Hardened.Requests.Abstract.Errors.IExceptionToModelConverter
+    {
+        public ExceptionToModelConverter() { }
+        public System.ValueTuple<int, object> ConvertExceptionToModel(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception exp) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ResourceNotFoundHandler : Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler
+    {
+        public ResourceNotFoundHandler(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Errors.ResourceNotFoundHandler> logger) { }
+        public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Execution
+{
+    public class AsyncInvokeWithParametersFilter<TController, TParameter> : Hardened.Requests.Abstract.Execution.IExecutionFilter
+        where TController :  class
+        where TParameter :  class
+    {
+        public AsyncInvokeWithParametersFilter(Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncInvokeWithParameters<TController, TParameter> invoke) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public abstract class BaseExecutionHandler<TController> : Hardened.Requests.Abstract.Execution.IExecutionRequestHandler
+    {
+        protected BaseExecutionHandler(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] filters, Hardened.Requests.Abstract.Execution.DefaultOutputFunc? outputFunc = null) { }
+        public abstract Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo HandlerInfo { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionChain GetExecutionChain(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public class EmptyParameters : Hardened.Requests.Abstract.Execution.IExecutionRequestParameters
+    {
+        public EmptyParameters() { }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Info { get; }
+        public object this[int index] { get; set; }
+        public int ParameterCount { get; }
+        public static Hardened.Requests.Abstract.Execution.IExecutionRequestParameters Instance { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters Clone() { }
+        public bool TryGetParameter(string parameterName, out object? parameterValue) { }
+        public bool TrySetParameter(string parameterName, object parameterValue) { }
+    }
+    public class ExecutionChain : Hardened.Requests.Abstract.Execution.IExecutionChain
+    {
+        public ExecutionChain(System.Collections.Generic.IReadOnlyList<System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>> filterChain, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionContext Context { get; }
+        public bool IsLastFilter { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionChain Fork(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task Next() { }
+    }
+    public static class ExecutionHelper
+    {
+        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] AsyncEnumerableFilterEmptyParameters<TController, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders) { }
+        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
+            where TController :  class { }
+        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] AsyncStandardFilterEmptyParameters<TController>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncInvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
+            where TController :  class { }
+        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] AsyncStandardFilterWithParameters<TController, TParameter>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncInvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
+            where TController :  class
+            where TParameter :  class { }
+        public static System.Threading.Tasks.ValueTask<T> CustomAttributeData<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, object attribute, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter) { }
+        public static System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> GetFilterInfo(params object[] attributes) { }
+        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] StandardFilterEmptyParameters<TController>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders) { }
+        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] StandardFilterWithParameters<TController, TParameter>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
+            where TController :  class { }
+        public delegate System.Threading.Tasks.Task AsyncInvokeNoParameters<TController>(Hardened.Requests.Abstract.Execution.IExecutionContext context, TController controller);
+        public delegate System.Threading.Tasks.Task AsyncInvokeWithParameters<TController, TParameter>(Hardened.Requests.Abstract.Execution.IExecutionContext context, TController controller, TParameter parameter);
+        public delegate void InvokeNoParameters<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, T controller);
+        public delegate void InvokeWithParameters<TController, TParameter>(Hardened.Requests.Abstract.Execution.IExecutionContext context, TController controller, TParameter parameter);
+    }
+    public class ExecutionRequestHandlerInfo : Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo
+    {
+        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null) { }
+        public System.Type HandlerType { get; }
+        public string InvokeMethod { get; }
+        public System.Collections.Generic.IReadOnlyList<object> Metadata { get; }
+        public string Method { get; }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
+        public string Path { get; }
+    }
+    public class ExecutionRequestParameter : Hardened.Requests.Abstract.Execution.IExecutionRequestParameter
+    {
+        public ExecutionRequestParameter(string name, int index, System.Type type) { }
+        public int Index { get; }
+        public string Name { get; }
+        public System.Type Type { get; }
+    }
+    public static class HeaderDictionaryExtensions
+    {
+        public static Microsoft.Extensions.Primitives.StringValues Get(this System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, string key) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class IOFilterProvider : Hardened.Requests.Abstract.RequestFilter.IIOFilterProvider
+    {
+        public IOFilterProvider(Hardened.Requests.Abstract.Serializer.IContextSerializationService contextSerializationService, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IResponseHeaderConfiguration> responseHeaderConfiguration) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest) { }
+    }
+    public class InvokeNoParametersFilter<TController> : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public InvokeNoParametersFilter(Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invoke) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public class InvokeWithParametersFilter<TController, TParameter> : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public InvokeWithParametersFilter(Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invoke) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class KnownServices : Hardened.Requests.Abstract.Execution.IKnownServices
+    {
+        public KnownServices(Hardened.Requests.Abstract.Serializer.IContextSerializationService contextSerializationService, Hardened.Requests.Abstract.Serializer.IStringConverterService stringConverterService) { }
+        public Hardened.Requests.Abstract.Serializer.IContextSerializationService ContextSerializationService { get; }
+        public Hardened.Requests.Abstract.Serializer.IStringConverterService StringConverterService { get; }
+    }
+}
+namespace Hardened.Requests.Runtime.Filters
+{
+    public class AsyncEnumerableIoFilter<TItem> : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public AsyncEnumerableIoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class GlobalFilterRegistry : Hardened.Requests.Abstract.RequestFilter.IGlobalFilterRegistry
+    {
+        public GlobalFilterRegistry(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders) { }
+        public System.Collections.Generic.List<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo requestHandlerInfo) { }
+        public void RegisterFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo, Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo?> filterFunc) { }
+        public void RegisterFilter(Hardened.Requests.Abstract.Execution.IExecutionFilter filter, int order = 1000) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class InstanceFilterProvider : Hardened.Requests.Abstract.RequestFilter.IInstanceFilterProvider
+    {
+        public InstanceFilterProvider() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter<T>(System.IServiceProvider rootProvider) { }
+    }
+    public class InstanceFilter<TController> : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public InstanceFilter() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public class IoFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public IoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public class RetryAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+    {
+        public RetryAttribute() { }
+        public int Retries { get; set; }
+        public int SleepTime { get; set; }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    public class RetryFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public RetryFilter(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, int retryCount, int retrySleepTime) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public class SingleFilterProvider : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+    {
+        public SingleFilterProvider(System.Func<Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo, Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo?> filterFunc) { }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Headers
+{
+    public class CookieSetCollectionImpl : Hardened.Requests.Abstract.Headers.ICookieSetCollection
+    {
+        public CookieSetCollectionImpl() { }
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Tuple<string, Hardened.Requests.Abstract.Headers.CookieSetOptions>> Cookies { get; }
+        public void Append(string cookieName, string cookieValue, Hardened.Requests.Abstract.Headers.CookieSetOptions? options = null) { }
+    }
+    public class HeaderCollectionStringValues : Hardened.Requests.Abstract.Headers.IHeaderCollection, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>>, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>>, System.Collections.IEnumerable
+    {
+        public HeaderCollectionStringValues() { }
+        public HeaderCollectionStringValues(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public HeaderCollectionStringValues(System.Collections.Generic.IDictionary<string, string>? values) { }
+        public int Count { get; }
+        public bool IsReadOnly { get; }
+        public Microsoft.Extensions.Primitives.StringValues this[string key] { get; set; }
+        public System.Collections.Generic.ICollection<string> Keys { get; }
+        public System.Collections.Generic.ICollection<Microsoft.Extensions.Primitives.StringValues> Values { get; }
+        public void Add(System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> item) { }
+        public void Add(string key, Microsoft.Extensions.Primitives.StringValues value) { }
+        public Microsoft.Extensions.Primitives.StringValues Append(string key, object value) { }
+        public void Clear() { }
+        public bool Contains(System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> item) { }
+        public bool ContainsKey(string key) { }
+        public void CopyTo(System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>[] array, int arrayIndex) { }
+        public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
+        public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>> GetEnumerator() { }
+        public bool Remove(System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> item) { }
+        public bool Remove(string key) { }
+        public Microsoft.Extensions.Primitives.StringValues Set(string key, Microsoft.Extensions.Primitives.StringValues value) { }
+        public Microsoft.Extensions.Primitives.StringValues Set(string key, object? value) { }
+        public System.Collections.Generic.IDictionary<string, string> ToStringDictionary() { }
+        public bool TryGet(string key, out Microsoft.Extensions.Primitives.StringValues value) { }
+        public bool TryGetValue(string key, out Microsoft.Extensions.Primitives.StringValues value) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Logging
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class RequestLogger : Hardened.Requests.Abstract.Logging.IRequestLogger
+    {
+        public RequestLogger(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Logging.RequestLogger> logger) { }
+        [Microsoft.Extensions.Logging.LoggerMessage(EventId=78002, Level=Microsoft.Extensions.Logging.LogLevel.Information, Message="{httpMethod} {path}  finished status code \'{statusCode}\'  duration {durationMs}")]
+        protected void LogRequestFinished(string httpMethod, string path, int? statusCode, System.TimeSpan durationMs) { }
+        [Microsoft.Extensions.Logging.LoggerMessage(EventId=78001, Level=Microsoft.Extensions.Logging.LogLevel.Information, Message="{httpMethod} {path} mapped to {typeName}.{methodName}")]
+        protected void LogRequestMapped(string httpMethod, string path, string typeName, string methodName) { }
+        [Microsoft.Extensions.Logging.LoggerMessage(EventId=78000, Level=Microsoft.Extensions.Logging.LogLevel.Information, Message="{httpMethod} {path} started")]
+        protected void LogRequestStarted(string httpMethod, string path) { }
+        [Microsoft.Extensions.Logging.LoggerMessage(EventId=78003, Level=Microsoft.Extensions.Logging.LogLevel.Information, Message="{httpMethod} {path} Resource Not Found")]
+        protected void LogResourceNotFound(string httpMethod, string path) { }
+        public void RequestBegin(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public void RequestEnd(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public void RequestFailed(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception exp) { }
+        public void RequestMapped(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public void RequestParameterBindFailed(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception? exp) { }
+        public void ResourceNotFound(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Middleware
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class MiddlewareService : Hardened.Requests.Abstract.Middleware.IMiddlewareService
+    {
+        public MiddlewareService() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionChain GetExecutionChain(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public void Use(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> middlewareFunc) { }
+    }
+}
+namespace Hardened.Requests.Runtime.PathTokens
+{
+    public class PathTokenCollection : Hardened.Requests.Abstract.PathTokens.IPathTokenCollection
+    {
+        public static readonly Hardened.Requests.Runtime.PathTokens.PathTokenCollection Empty;
+        public PathTokenCollection(int count, Hardened.Requests.Abstract.PathTokens.PathToken? lastToken = null) { }
+        public PathTokenCollection(int count, string[] names, string? lastValue = null) { }
+        public int Count { get; }
+        public Hardened.Requests.Abstract.PathTokens.PathToken Get(int index) { }
+        public Microsoft.Extensions.Primitives.StringValues Get(string id) { }
+        public void Set(int index, Hardened.Requests.Abstract.PathTokens.PathToken pathToken) { }
+        public void SetValue(int index, string value) { }
+    }
+}
+namespace Hardened.Requests.Runtime.QueryString
+{
+    public class EmptyQueryStringCollection : Hardened.Requests.Abstract.QueryString.IQueryStringCollection
+    {
+        public EmptyQueryStringCollection() { }
+        public int Count { get; }
+        public static Hardened.Requests.Abstract.QueryString.IQueryStringCollection Instance { get; }
+        public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
+    }
+    public class SimpleQueryStringCollection : Hardened.Requests.Abstract.QueryString.IQueryStringCollection
+    {
+        public SimpleQueryStringCollection(System.Collections.Generic.IDictionary<string, string>? queryParameters) { }
+        public int Count { get; }
+        public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Serializer
+{
+    public class AotJsonSerializer : Hardened.Shared.Runtime.Json.IJsonSerializer
+    {
+        public AotJsonSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Shared.Runtime.Json.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
+        public T Deserialize<T>(string json) { }
+        public System.Threading.Tasks.Task<T> DeserializeAsync<T>(System.IO.Stream jsonStream, System.Threading.CancellationToken cancellationToken = default) { }
+        public string Serialize(object obj, bool pretty) { }
+        public System.Threading.Tasks.Task SerializeAsync(System.IO.Stream jsonStream, object obj, bool pretty, System.Threading.CancellationToken cancellationToken) { }
+    }
+    public class AotRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
+    {
+        public AotRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.AotRequestDeserializer> logger, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
+        public bool IsDefaultSerializer { get; }
+        public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public class AotResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
+    {
+        public AotResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
+        public bool IsDefaultSerializer { get; }
+        public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ContextSerializationService : Hardened.Requests.Abstract.Serializer.IContextSerializationService
+    {
+        public ContextSerializationService(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.ContextSerializationService> logger, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService serializationLocatorService, Hardened.Requests.Abstract.Serializer.INullValueResponseHandler nullValueResponse, Hardened.Requests.Abstract.Serializer.IExceptionResponseSerializer exceptionResponseSerializer) { }
+        public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ExceptionResponseSerializer : Hardened.Requests.Abstract.Serializer.IExceptionResponseSerializer
+    {
+        public ExceptionResponseSerializer(Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService serializationLocatorService, Hardened.Requests.Abstract.Errors.IExceptionToModelConverter exceptionToModelConverter) { }
+        public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception exp) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class NullValueResponseHandler : Hardened.Requests.Abstract.Serializer.INullValueResponseHandler
+    {
+        public NullValueResponseHandler(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.NullValueResponseHandler> logger) { }
+        public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public static class RawOutputHelper
+    {
+        public static Hardened.Requests.Abstract.Execution.DefaultOutputFunc OutputFunc(string contentType) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class SerializationLocatorService : Hardened.Requests.Abstract.Serializer.ISerializationLocatorService
+    {
+        public SerializationLocatorService(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IRequestDeserializer> requestDeserializers, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IResponseSerializer> responseSerializers) { }
+        public Hardened.Requests.Abstract.Serializer.IRequestDeserializer FindRequestDeserializer(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public Hardened.Requests.Abstract.Serializer.IResponseSerializer FindResponseSerializer(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class StringConverterService : Hardened.Requests.Abstract.Serializer.IStringConverterService
+    {
+        public StringConverterService(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IStringConverter> converters) { }
+        protected virtual T InternalParseRequired<T>(string value) { }
+        public T? ParseOptional<T>(string value, string valueName) { }
+        public T ParseRequired<T>(string value, string valueName) { }
+        public T ParseWithDefault<T>(string value, string valueName, T defaultValue) { }
+        protected virtual T StandardConverter<T>(string value) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class SystemTextJsonRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
+    {
+        public SystemTextJsonRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.SystemTextJsonRequestDeserializer> logger) { }
+        public bool IsDefaultSerializer { get; }
+        public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class SystemTextJsonResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
+    {
+        public SystemTextJsonResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration) { }
+        public bool IsDefaultSerializer { get; }
+        public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Validation
+{
+    public class ParameterValidationInfo
+    {
+        public ParameterValidationInfo(string parameterName, Hardened.Requests.Abstract.Validation.IValidationRule[] rules) { }
+        public string ParameterName { get; }
+        public Hardened.Requests.Abstract.Validation.IValidationRule[] Rules { get; }
+    }
+    public class PropertyValidationInfo
+    {
+        public PropertyValidationInfo(string propertyName, Hardened.Requests.Abstract.Validation.IValidationRule[] rules, System.Func<object, object?> accessor) { }
+        public System.Func<object, object?> Accessor { get; }
+        public string PropertyName { get; }
+        public Hardened.Requests.Abstract.Validation.IValidationRule[] Rules { get; }
+    }
+    public class RequestValidationError
+    {
+        public RequestValidationError() { }
+        public System.Collections.Generic.List<Hardened.Requests.Runtime.Validation.RequestValidationFieldError> Errors { get; set; }
+        public string Message { get; set; }
+        public string Type { get; set; }
+    }
+    public class RequestValidationFieldError
+    {
+        public RequestValidationFieldError() { }
+        public string Code { get; set; }
+        public string Field { get; set; }
+        public string Message { get; set; }
+    }
+    public class ValidationException : Hardened.Requests.Runtime.Errors.BadRequestException
+    {
+        public ValidationException(Hardened.Requests.Abstract.Validation.ValidationResult validationResult) { }
+        public Hardened.Requests.Abstract.Validation.ValidationResult ValidationResult { get; }
+    }
+    public class ValidationFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public ValidationFilter(Hardened.Requests.Runtime.Validation.ParameterValidationInfo[] parameterRules, Hardened.Requests.Runtime.Validation.PropertyValidationInfo[]? bodyPropertyRules = null, string? bodyParameterName = null, System.Type? requestBodyType = null) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Validation.Rules
+{
+    public class ArrayBoundsRule : Hardened.Requests.Abstract.Validation.IValidationRule
+    {
+        public ArrayBoundsRule(int? minItems, int? maxItems) { }
+        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
+    }
+    public class EnumRule : Hardened.Requests.Abstract.Validation.IValidationRule
+    {
+        public EnumRule(System.Collections.Generic.IEnumerable<string> allowedValues) { }
+        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
+    }
+    public class PatternRule : Hardened.Requests.Abstract.Validation.IValidationRule
+    {
+        public PatternRule(string pattern) { }
+        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
+    }
+    public class RangeRule : Hardened.Requests.Abstract.Validation.IValidationRule
+    {
+        public RangeRule(decimal? minimum, decimal? maximum, bool exclusiveMinimum = false, bool exclusiveMaximum = false) { }
+        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
+    }
+    public class RequiredRule : Hardened.Requests.Abstract.Validation.IValidationRule
+    {
+        public static readonly Hardened.Requests.Runtime.Validation.Rules.RequiredRule Instance;
+        public RequiredRule() { }
+        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
+    }
+    public class StringLengthRule : Hardened.Requests.Abstract.Validation.IValidationRule
+    {
+        public StringLengthRule(int? minLength, int? maxLength) { }
+        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
+    }
+}
