@@ -216,6 +216,73 @@ public abstract class ExecutionRequestConformanceTests {
         Assert.Equal("conformance-body", reader.ReadToEnd());
     }
 
+    /// <summary>
+    /// A clone gets its own parameters.
+    ///
+    /// <para>
+    /// This is the whole point of <c>IExecutionRequestParameters.Clone</c>, and the reason
+    /// <c>IExecutionChain.Fork</c> is usable at all: a filter that forks to re-run a handler
+    /// hands the fork a cloned context, and anything the fork binds or overwrites must not
+    /// reach the original. Every implementation copied the reference instead, so the two
+    /// shared one parameter bag and wrote through each other. Fixed 2026-08-12; nothing in
+    /// production forked yet, which is the only reason it had not bitten.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void CloneGivesTheCloneItsOwnParameters() {
+        var request = Create();
+
+        request.Parameters = new ConformanceParameters { Value = "original" };
+
+        var clone = request.Clone(method: "POST");
+
+        Assert.NotNull(clone.Parameters);
+        Assert.NotSame(request.Parameters, clone.Parameters);
+
+        ((ConformanceParameters)clone.Parameters!).Value = "rebound";
+
+        Assert.Equal("original", ((ConformanceParameters)request.Parameters!).Value);
+    }
+
+    /// <summary>A clone of a request that never bound parameters still has none.</summary>
+    [Fact]
+    public void CloneLeavesNullParametersNull() {
+        var request = Create();
+
+        request.Parameters = null;
+
+        Assert.Null(request.Clone(method: "POST").Parameters);
+    }
+
+    /// <summary>A single mutable value, so the test can prove the copy is independent.</summary>
+    private class ConformanceParameters : IExecutionRequestParameters {
+        public string Value { get; set; } = "";
+
+        public object this[int index] {
+            get => Value;
+            set => Value = (string)value;
+        }
+
+        public int ParameterCount => 1;
+
+        public IReadOnlyList<IExecutionRequestParameter> Info { get; } =
+            Array.Empty<IExecutionRequestParameter>();
+
+        public bool TryGetParameter(string parameterName, out object? parameterValue) {
+            parameterValue = Value;
+
+            return true;
+        }
+
+        public bool TrySetParameter(string parameterName, object parameterValue) {
+            Value = (string)parameterValue;
+
+            return true;
+        }
+
+        public IExecutionRequestParameters Clone() => new ConformanceParameters { Value = Value };
+    }
+
     [Fact]
     public void CloneDoesNotMutateTheOriginal() {
         var request = Create(s => {

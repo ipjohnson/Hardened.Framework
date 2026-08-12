@@ -123,7 +123,9 @@ public class AspNetExecutionRequest : IExecutionRequest {
             headers ?? _headersOverride,
             queryString ?? _queryStringOverride,
             cookies ?? _cookiesOverride) {
-            Parameters = Parameters,
+            // Cloned, not shared: a forked chain must be able to rebind without writing
+            // through to the request it was forked from. See the conformance suite.
+            Parameters = Parameters?.Clone(),
             PathTokens = PathTokens,
         };
     }

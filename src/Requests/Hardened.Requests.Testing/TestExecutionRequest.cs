@@ -32,7 +32,9 @@ public class TestExecutionRequest : IExecutionRequest {
             path ?? Path,
             Accept,
             queryString ?? QueryString) {
-            Parameters = Parameters,
+            // Cloned, not shared: a forked chain must be able to rebind without writing
+            // through to the request it was forked from. See the conformance suite.
+            Parameters = Parameters?.Clone(),
             Body = Body,
             Headers = headers ?? Headers,
             PathTokens = PathTokens,
