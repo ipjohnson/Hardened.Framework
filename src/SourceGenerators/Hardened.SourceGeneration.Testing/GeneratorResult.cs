@@ -64,6 +64,21 @@ public class GeneratorResult(
             "The generator threw:" + Environment.NewLine +
             string.Join(Environment.NewLine, GeneratorExceptions.Select(exception => $"  {exception}")));
 
+        // A crash the generator caught itself. Hardened's generators wrap their emit in
+        // SourceGeneratorWrapper, which turns an exception into a diagnostic - so the exception
+        // never reaches GeneratorExceptions above, and the run looks orderly while having produced
+        // nothing. Called out separately from the generic error check below because "the generator
+        // crashed and emitted no code" and "the code it emitted does not compile" want very
+        // different messages.
+        var crashes = GeneratorDiagnostics
+            .Where(diagnostic => diagnostic.Id == "HardenedException")
+            .ToArray();
+
+        Assert.True(crashes.Length == 0,
+            "The generator caught an exception while emitting, so it produced " + Describe() + ":" +
+            Environment.NewLine +
+            string.Join(Environment.NewLine, crashes.Select(diagnostic => $"  {diagnostic.GetMessage()}")));
+
         Assert.True(DuplicateHintNames.Count == 0,
             "More than one generator emitted the same hint name, so one output overwrote another: " +
             string.Join(", ", DuplicateHintNames));

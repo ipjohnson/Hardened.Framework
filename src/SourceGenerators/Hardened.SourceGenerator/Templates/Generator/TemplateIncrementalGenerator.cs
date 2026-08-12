@@ -100,9 +100,27 @@ public static class TemplateIncrementalGenerator {
     private static void GenerateTemplateSource(SourceProductionContext sourceProductionContext,
         (TemplateModel templateModel, ImmutableArray<EntryPointSelector.Model> applicationModels) templateData) {
         var templateModel = templateData.templateModel;
-        var applicationModel = templateData.applicationModels.First();
+
+        // A template is named after the application it belongs to, so without an entry point there
+        // is nothing to emit against. This used to be .First() and threw on an empty collection,
+        // which the wrapper turned into a diagnostic and the whole template generator produced
+        // nothing - for every template in the project, not just this one.
+        if (templateData.applicationModels.Length == 0) {
+            return;
+        }
+
+        var applicationModel = templateData.applicationModels[0];
+
+        // An application in the global namespace has none to prefix, and concatenating anyway
+        // emitted "namespace .Generated" - CS1001, in a file the consumer never wrote.
+        var applicationNamespace = applicationModel.EntryPointType.Namespace;
+
+        var generatedNamespace = string.IsNullOrEmpty(applicationNamespace)
+            ? "Generated"
+            : applicationNamespace + ".Generated";
+
         templateModel.TemplateDefinitionType = TypeDefinition.Get(
-            applicationModel.EntryPointType.Namespace + ".Generated", "Template_" + templateModel.TemplateName);
+            generatedNamespace, "Template_" + templateModel.TemplateName);
 
         var templateSource = _generator.GenerateCSharpFile(templateModel.TemplateActionNodes,
             templateModel.TemplateName, templateModel.TemplateExtension,
