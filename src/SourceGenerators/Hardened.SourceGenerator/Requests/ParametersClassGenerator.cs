@@ -96,7 +96,11 @@ public static class ParametersClassGenerator {
             var caseBlock = switchStatement.AddCase(index++);
 
             caseBlock.Assign(StaticCast(parameterInformation.ParameterType, "value")).To(parameterInformation.Name);
-            caseBlock.Break();
+
+            // return, not break: break leaves the switch and falls into the throw below, so every
+            // set threw IndexOutOfRangeException including the valid ones. The getter always used
+            // return and was unaffected, which is why nothing caught this. Found 2026-08-12.
+            caseBlock.Return();
         }
 
         var throwMessage =

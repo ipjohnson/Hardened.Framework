@@ -443,6 +443,28 @@ public static class RoutingTableGenerator {
 
             var caseStatement = switchStatement.AddCase(QuoteString(leafNode.Method));
 
+            // A route with no tokens resolves to the same RequestHandlerInfo on every request:
+            // the handler is already cached, and the token collection is the shared empty one.
+            // Caching the record itself rather than rebuilding it drops an allocation per
+            // request and collapses the leaf to a single field read.
+            if (routeNode.WildCardDepth == 0) {
+                var infoField = routingClass.AddField(
+                    KnownTypes.Web.RequestHandlerInfo.MakeNullable(),
+                    "_info" + leafNode.Value.InvokeHandlerType.Name);
+
+                var cachedInfo = NullCoalesceEqual(infoField.Instance,
+                    New(
+                        KnownTypes.Web.RequestHandlerInfo,
+                        New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"),
+                        EmptyTokens));
+
+                cachedInfo.PrintParentheses = false;
+
+                caseStatement.Return(cachedInfo);
+
+                continue;
+            }
+
             var field =
                 routingClass.AddField(leafNode.Value.InvokeHandlerType.MakeNullable(),
                     "_field" + leafNode.Value.InvokeHandlerType.Name);
@@ -452,13 +474,10 @@ public static class RoutingTableGenerator {
 
             coalesceHandler.PrintParentheses = false;
 
-            IOutputComponent pathTokensCollection = EmptyTokens;
-
-            if (routeNode.WildCardDepth > 0) {
-                pathTokensCollection = New(KnownTypes.Requests.PathTokenCollection,
-                    routeNode.WildCardDepth,
-                    PathTokenNamesField(routingClass, leafNode));
-            }
+            // Token values are per request, so only the handler can be reused here.
+            var pathTokensCollection = New(KnownTypes.Requests.PathTokenCollection,
+                routeNode.WildCardDepth,
+                PathTokenNamesField(routingClass, leafNode));
 
             caseStatement.Return(
                 New(
