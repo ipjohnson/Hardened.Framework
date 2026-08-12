@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Execution;
 using Microsoft.Extensions.Primitives;
 using Xunit;
 
@@ -232,16 +233,22 @@ public abstract class ExecutionRequestConformanceTests {
     public void CloneGivesTheCloneItsOwnParameters() {
         var request = Create();
 
-        request.Parameters = new ConformanceParameters { Value = "original" };
+        request.Parameters = new ConformanceParameters();
+        request.Parameters.TrySetParameter("value", "original");
 
         var clone = request.Clone(method: "POST");
 
         Assert.NotNull(clone.Parameters);
         Assert.NotSame(request.Parameters, clone.Parameters);
 
-        ((ConformanceParameters)clone.Parameters!).Value = "rebound";
+        // Rebinding the fork, the way a filter that forked would.
+        clone.Parameters!.TrySetParameter("value", "rebound");
 
-        Assert.Equal("original", ((ConformanceParameters)request.Parameters!).Value);
+        Assert.True(request.Parameters!.TryGetParameter("value", out var original));
+        Assert.Equal("original", original);
+
+        Assert.True(clone.Parameters.TryGetParameter("value", out var rebound));
+        Assert.Equal("rebound", rebound);
     }
 
     /// <summary>A clone of a request that never bound parameters still has none.</summary>
@@ -254,33 +261,22 @@ public abstract class ExecutionRequestConformanceTests {
         Assert.Null(request.Clone(method: "POST").Parameters);
     }
 
-    /// <summary>A single mutable value, so the test can prove the copy is independent.</summary>
-    private class ConformanceParameters : IExecutionRequestParameters {
-        public string Value { get; set; } = "";
+    /// <summary>
+    /// A single mutable value, so the test can prove the copy is independent. Derives from
+    /// <see cref="ExecutionRequestParameters"/> exactly as a generated bag does, so it inherits
+    /// the same <c>Clone</c> the real ones use rather than a hand-written stand-in.
+    /// </summary>
+    private class ConformanceParameters : ExecutionRequestParameters {
+        private object? _value;
 
-        public object this[int index] {
-            get => Value;
-            set => Value = (string)value;
+        public override object this[int index] {
+            get => _value!;
+            set => _value = value;
         }
 
-        public int ParameterCount => 1;
-
-        public IReadOnlyList<IExecutionRequestParameter> Info { get; } =
-            Array.Empty<IExecutionRequestParameter>();
-
-        public bool TryGetParameter(string parameterName, out object? parameterValue) {
-            parameterValue = Value;
-
-            return true;
-        }
-
-        public bool TrySetParameter(string parameterName, object parameterValue) {
-            Value = (string)parameterValue;
-
-            return true;
-        }
-
-        public IExecutionRequestParameters Clone() => new ConformanceParameters { Value = Value };
+        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } = [
+            new ExecutionRequestParameter("value", 0, typeof(string))
+        ];
     }
 
     [Fact]

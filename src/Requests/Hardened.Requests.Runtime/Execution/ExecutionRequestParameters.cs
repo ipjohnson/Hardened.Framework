@@ -68,6 +68,16 @@ public abstract class ExecutionRequestParameters : IExecutionRequestParameters {
     /// filter that mutates a bound model still shares it. Deep-copying arbitrary handler
     /// arguments is not something this layer can do safely.
     /// </para>
+    ///
+    /// <para>
+    /// <strong>This only isolates a bag that stores its values in fields.</strong>
+    /// <see cref="object.MemberwiseClone"/> copies fields, so the generator's shape — one
+    /// property per parameter — comes apart cleanly. A derived type that keeps its values in an
+    /// array, list or dictionary has that container copied by reference, and the copy writes
+    /// straight through to the original: no isolation at all, silently. Such a type must
+    /// override this. Pinned by
+    /// <c>ExecutionRequestParametersTests.CloneDoesNotDetachAParametersBagThatStoresItsValuesInAContainer</c>.
+    /// </para>
     /// </summary>
     public virtual IExecutionRequestParameters Clone() =>
         (IExecutionRequestParameters)MemberwiseClone();
