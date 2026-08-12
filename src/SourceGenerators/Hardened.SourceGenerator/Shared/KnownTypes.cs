@@ -257,6 +257,10 @@ public static class KnownTypes {
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
                 "IExecutionRequestParameters");
 
+        /// <summary>Base class a generated Parameters bag derives from.</summary>
+        public static readonly ITypeDefinition ExecutionRequestParameters =
+            TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Execution, "ExecutionRequestParameters");
+
         public static readonly ITypeDefinition IContextSerializationService =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Serializer,
                 "IContextSerializationService");

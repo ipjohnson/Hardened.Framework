@@ -407,8 +407,12 @@ public class BindingSourceCompilesTests {
 
         // Every parameter keeps its own slot: index n in _parameterInfo is parameter n.
         Assert.Contains("new global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[8]", source);
-        Assert.Contains("public int ParameterCount => 8;", source);
         Assert.Contains("_parameterInfo[4]", source);
+
+        // ParameterCount is no longer emitted - it comes from ExecutionRequestParameters as
+        // Info.Count, which is this same array. Asserting the base type is what pins that the
+        // count, the by-name lookup and Clone are all still reachable.
+        Assert.Contains("ExecutionRequestParameters", source);
     }
 
     /// <summary>

@@ -162,6 +162,17 @@ namespace Hardened.Requests.Runtime.Execution
         public string Name { get; }
         public System.Type Type { get; }
     }
+    public abstract class ExecutionRequestParameters : Hardened.Requests.Abstract.Execution.IExecutionRequestParameters
+    {
+        protected ExecutionRequestParameters() { }
+        public abstract System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Info { get; }
+        public abstract object this[int index] { get; set; }
+        public int ParameterCount { get; }
+        public virtual Hardened.Requests.Abstract.Execution.IExecutionRequestParameters Clone() { }
+        protected virtual int IndexOf(string parameterName) { }
+        public bool TryGetParameter(string parameterName, out object? parameterValue) { }
+        public bool TrySetParameter(string parameterName, object parameterValue) { }
+    }
     public static class HeaderDictionaryExtensions
     {
         public static Microsoft.Extensions.Primitives.StringValues Get(this System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, string key) { }
