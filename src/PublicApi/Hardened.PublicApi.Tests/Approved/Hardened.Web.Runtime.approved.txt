@@ -15,11 +15,7 @@ namespace Hardened.Web.Runtime.Attributes
     public class DeleteAttribute : System.Attribute
     {
         public DeleteAttribute(string path = "") { }
-        public int ErrorStatus { get; set; }
-        public int NullReturnStatus { get; set; }
         public string Path { get; }
-        public int SuccessStatus { get; set; }
-        public int ValidationErrorStatus { get; set; }
     }
     public class FromHeaderAttribute : System.Attribute
     {
@@ -34,11 +30,7 @@ namespace Hardened.Web.Runtime.Attributes
     public class GetAttribute : System.Attribute
     {
         public GetAttribute(string path = "") { }
-        public int ErrorStatus { get; set; }
-        public int NullReturnStatus { get; set; }
         public string Path { get; }
-        public int SuccessStatus { get; set; }
-        public int ValidationErrorStatus { get; set; }
     }
     public class HttpMethodAttribute
     {
@@ -47,11 +39,7 @@ namespace Hardened.Web.Runtime.Attributes
     public class PatchAttribute : System.Attribute
     {
         public PatchAttribute(string path = "") { }
-        public int ErrorStatus { get; set; }
-        public int NullReturnStatus { get; set; }
         public string Path { get; }
-        public int SuccessStatus { get; set; }
-        public int ValidationErrorStatus { get; set; }
     }
     public class PostAttribute : System.Attribute
     {
@@ -61,11 +49,7 @@ namespace Hardened.Web.Runtime.Attributes
     public class PutAttribute : System.Attribute
     {
         public PutAttribute(string path = "") { }
-        public int ErrorStatus { get; set; }
-        public int NullReturnStatus { get; set; }
         public string Path { get; }
-        public int SuccessStatus { get; set; }
-        public int ValidationErrorStatus { get; set; }
     }
     public class WebLibraryAttribute : System.Attribute
     {
