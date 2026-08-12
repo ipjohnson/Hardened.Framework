@@ -26,9 +26,14 @@ internal static class ValidationFilterEmitter {
             sb.AppendLine("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
         }
         sb.AppendLine($"public class {className} : IRequestFilterProvider {{");
-        sb.AppendLine("    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {");
-        sb.AppendLine("        yield return new RequestFilterInfo(");
-        sb.AppendLine("            ctx => new ValidationFilter(");
+        sb.AppendLine();
+
+        // Built once, not per request. A filter provider's factory is invoked by the chain on
+        // every request, so constructing the filter there allocated the rule array, every rule
+        // inside it, and the filter itself, every time. All of it is immutable configuration,
+        // and ValidationFilter keeps no per-request state - Execute reads chain.Context and
+        // builds its ValidationResult locally - so one instance serves every request.
+        sb.AppendLine("    private static readonly ValidationFilter _filter = new ValidationFilter(");
 
         // Parameter rules
         EmitParameterRules(sb, operation);
@@ -36,8 +41,10 @@ internal static class ValidationFilterEmitter {
         // Body property rules
         EmitBodyPropertyRules(sb, operation, modelsNamespace);
 
-        sb.AppendLine("            ),");
-        sb.AppendLine("            FilterOrder.Validation);");
+        sb.AppendLine(");");
+        sb.AppendLine();
+        sb.AppendLine("    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {");
+        sb.AppendLine("        yield return new RequestFilterInfo(_ => _filter, FilterOrder.Validation);");
         sb.AppendLine("    }");
         sb.AppendLine("}");
 
