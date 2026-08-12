@@ -648,7 +648,7 @@ blocks the `aws-batch` integration deliverable in §6.
 | Workstream | Status |
 |---|---|
 | `core-generator` | Partial — caching, model comparison, filter-attribute detection, routing table |
-| `web-routing` | Partial — §2.3 decided and executed; handlers and serializers covered |
+| `web-routing` | **Complete** — see §12; own-area generator 98.3%, `Web.Runtime` 100% line |
 | `openapi` | Partial — generator output now compiled; SUT grown; validation gap found |
 | `pipeline` | **Complete** — 324 tests, ordering/fork/retry/serialization/errors |
 | `config-runtime` | Partial — environment, startup, pooling, generated config wiring |
@@ -660,3 +660,110 @@ blocks the `aws-batch` integration deliverable in §6.
 | `aws-clients-cdk` | Partial — CDK covered from zero; warnings cleared |
 
 Remaining per-workstream deliverables from §6 are unchanged and still apply.
+
+---
+
+## 12. `web-routing` completed — 2026-08-12
+
+The workstream's remaining §6 deliverables were finished in a second pass.
+
+| | Before | After |
+|---|---:|---:|
+| `Hardened.Web.SourceGenerator.Tests` | 58 | **150** |
+| `Hardened.Web.Runtime.Tests` | 60 | **128** |
+| `AssertNoErrors` call sites | 12 | **21** |
+| Generator test cases ending in a compilation assertion | 52 | **144** |
+| `Hardened.Web.SourceGenerator` — `SourceGenerator/Web/**` | 97.2% line | **98.3%** |
+| `Hardened.Web.SourceGenerator` — assembly headline | 49.1% / 40.8% | **50.5% / 42.0%** |
+| `Hardened.Web.Runtime` | 60.6% / 62.5% | **100% / 98.4%** |
+
+The compilation row is the one that matters. Of the twelve `AssertNoErrors` call sites that
+existed before, **not one declared a `[HardenedModule]` entry point** — so `RoutingTableGenerator`,
+where the route tree, the switch nodes, the wildcard matchers and the dependency-injection method
+are emitted, never ran in any of them. They compiled handler invoke classes only. Every case added
+here declares one.
+
+The two coverage rows are measured differently and are not comparable to each other. The
+`Hardened.Web.Runtime` figures are from that project's own run — the merged number will be at
+least as high. The generator headline moves barely at all on purpose: the assembly links
+`Hardened.SourceGenerator`'s `Templates/` (812 lines, 0%), `Configuration/` (165, 0%) and
+`DependencyInjection/` (61, 0%) as `Compile Include` items and carries the vendored CSharpAuthor
+emitter (1672 lines, 60%). None of that is web routing, and writing template tests here to move
+the percentage would only hide the `templates` workstream's real number.
+
+### 12.1 The assertion the plan rests on cannot see a generator that crashed
+
+`SourceGeneratorWrapper.Wrap` catches every exception thrown while emitting a file and reports it
+as a **`HardenedException` diagnostic at Warning severity**. `GeneratorResult.AssertNoErrors`
+filters on `DiagnosticSeverity.Error`, and `GeneratorExceptions` reads the driver's own
+`result.Exception`, which the wrapper has already swallowed. So a generator that blew up mid-emit
+produces no output, no error, a green `AssertNoErrors`, and a successful build.
+
+This is §2.1 again one level up: the assertion introduced to catch generators that emit
+uncompilable C# does not catch generators that emit nothing at all.
+
+`RouteCompilationTests` closes it locally — every case there also asserts that no
+`HardenedException` was reported and that the routing table file exists. Doing it properly means
+either `AssertNoErrors` failing on `HardenedException`, or the wrapper reporting at Error
+severity, and both live outside this workstream's directories.
+
+### 12.2 Contradictions found, reported not asserted
+
+Per `testing-conventions.md` §6, none of these has a test pinning the broken behaviour.
+
+**A single `[Get("")]` deletes the application's entire routing table.** `RouteTreeGenerator.
+GenerateTree` throws `All paths must start with '/'`, the wrapper above turns it into a warning,
+and the assembly builds with handler classes but no route table and no route. `[Get]` with no
+argument at all is fine — `GetPathFromAttribute` defaults to `"/"` only when the argument list is
+absent, not when it is present and empty. The same path is reached by `[Get(SomeStaticField)]`,
+where a non-constant expression falls back to `argument.Expression.ToString()` and produces a
+"path" that is an identifier.
+
+**One character after the last token in a route is dropped, turning the route into a catch-all.**
+`[Get("/s/{id}/")]` and `[Get("/s/{id}z")]` both match `/s/7`, `/s/7/`, `/s/7.json` and
+`/s/7/other`, binding the whole remainder as `id`. Two or more characters after the token
+(`/s/{id}/x`, `/s/{id}.json`) match correctly. `RouteTreeGenerator.ProcessWildCardNodes` consumes
+the character following `{TOKEN}` into the node's `Path`, and `RoutingTableGenerator.
+WriteWildCardMatchMethod` only ever compares that `Path` from `GenerateWildCardChildMatch`, which
+it skips when the node has no children — which is exactly the case when one character was all
+that remained.
+
+**A controller in the global namespace produces nothing, silently.**
+`WebRequestHandlerModelGenerator.GetInvokeHandlerType` calls `.First()` on the method's namespace
+ancestors. With no `namespace` declaration that throws `InvalidOperationException` inside the
+syntax-provider transform, and the generator emits no handlers, no routing table and no
+diagnostic.
+
+**A controller nested inside another class emits code that does not compile.** A handler on
+`TestApp.Outer.Inner` emits an invoke class referencing `TestApp.Inner`: CS0234 and CS0246. The
+invoke type is built from the innermost class identifier and the namespace, with no enclosing
+types between them.
+
+**`[GetAttribute("/x")]` — the full attribute spelling — routes under the method
+`"GETATTRIBUTE"`.** `GetRequestNameModel` does
+`attribute.Name.ToString().ToUpperInvariant().Replace("Attribute", "")`, upper-casing before
+stripping, so the suffix is `ATTRIBUTE` by the time `Replace` looks for `Attribute` and is never
+removed. The emitted route table carries `case "GETATTRIBUTE":`, it compiles cleanly, and no GET
+request can reach the handler. Both spellings of an attribute are legal C# and the generator's own
+allowlist accepts both.
+
+**`HttpMethodAttribute` is §2.2 again, still shipping.** `public class HttpMethodAttribute { }`
+does not derive from `Attribute`, so no project can apply it — the same shape as `[Delete]` and
+`[Patch]` before 2026-08-11. It is in the generator's verb allowlist and in the shipped public
+surface, and `GetRequestNameModel` throws `NotImplementedException("HttpMethodAttribute not
+supported yet.")` for it, so making it applicable without also implementing it would turn an
+unusable attribute into a crashing one.
+
+**A Brotli static asset is served labelled `gzip`.**
+`StaticContentHandler.RespondWithContentEncodedFile` writes
+`Headers[Content-Encoding] = KnownEncoding.GZipStringValues` unconditionally, so a client that
+offered `br` receives Brotli bytes under `Content-Encoding: gzip` and cannot decode them. The
+neighbouring path — decompressing on the way out for a client that offered no matching encoding —
+is correct for both `.gz` and `.br`, so shipping `.br` files only breaks for the clients that can
+actually use them.
+
+**`RawResponseAttribute` discards its content type.** `RawResponseAttribute(string contentType =
+"text/plain")` has an empty body and no property, so the value exists only in syntax. The web
+generator reads it from there and the behaviour is correct; a filter reading the attribute out of
+handler metadata would find nothing. `IsFilterAttribute` excludes it from metadata, so nothing
+does today.
