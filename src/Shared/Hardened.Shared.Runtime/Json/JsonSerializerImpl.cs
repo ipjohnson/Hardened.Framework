@@ -30,9 +30,22 @@ public class JsonSerializerImpl : IJsonSerializer {
         _prettyOptions = new JsonSerializerOptions(_serializerOptions) { WriteIndented = true };
     }
 
+    /// <summary>
+    /// Reads <paramref name="jsonStream"/> without taking ownership of it — the caller closes what
+    /// the caller opened.
+    ///
+    /// <para>
+    /// This used to open a <see cref="StreamReader"/> over the stream in a <c>using</c> and then
+    /// never read from it: deserialization goes to <paramref name="jsonStream"/> directly. The
+    /// reader's only effect was its disposal, and the default <see cref="StreamReader"/> constructor
+    /// is <c>leaveOpen: false</c>, so every call closed a stream it did not own. A caller that
+    /// pooled or reused the stream got an <see cref="ObjectDisposedException"/> afterwards —
+    /// <c>MemoryStreamPool</c> resets <c>Position</c> when a reservation is returned, which throws
+    /// on a closed stream. Found 2026-08-12 through the SQS integration harness, where the batch
+    /// filter deserializes the request body and the caller then returns that body to the pool.
+    /// </para>
+    /// </summary>
     public async Task<T> DeserializeAsync<T>(Stream jsonStream, CancellationToken cancellationToken = default) {
-        using var streamReader = new StreamReader(jsonStream);
-
         return await JsonSerializer.DeserializeAsync<T>(jsonStream, _serializerOptions, cancellationToken) ??
                throw new Exception("Deserialized to null instance");
     }
