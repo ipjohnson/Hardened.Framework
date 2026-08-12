@@ -181,3 +181,7 @@ tools/ddb_local_dist/
 # Code coverage output (dotnet test --collect + ReportGenerator)
 coverage/
 coverage-report/
+
+# Public API surface diffs, written beside the approved file when one does not match.
+# Read locally, then approve - never committed.
+*.received.txt

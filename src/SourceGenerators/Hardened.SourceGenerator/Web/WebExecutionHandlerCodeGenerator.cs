@@ -15,6 +15,13 @@ public class WebExecutionHandlerCodeGenerator {
         RequestHandlerModel requestHandlerModel, bool excludeFromCoverage) {
         sourceProductionContext.CancellationToken.ThrowIfCancellationRequested();
 
+        // A parameter whose type does not resolve cannot be bound, so this handler is skipped and
+        // the reason reported. Reported here rather than in the routing table because this stage
+        // runs once per handler; the routing table sees them all and would report each repeatedly.
+        if (requestHandlerModel.ReportIfUnresolved(sourceProductionContext)) {
+            return;
+        }
+
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 
         sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, sourceFile);

@@ -2,6 +2,7 @@
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
@@ -15,7 +16,15 @@ public static class RoutingTableGenerator {
 
     public static void GenerateRoute(SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models) {
-        var outputString = GenerateCSharpRouteFile(models.Left, models.Right, context.CancellationToken);
+        // Handlers that were not generated must not be routed to. Routing to one would emit a
+        // table referencing a handler class that does not exist - uncompilable output, which is
+        // worse than the missing route. Skipped silently: WebExecutionHandlerCodeGenerator has
+        // already reported each one, and it runs per handler rather than per table.
+        var routable = models.Right
+            .Where(handler => handler.UnresolvedParameter() == null)
+            .ToList();
+
+        var outputString = GenerateCSharpRouteFile(models.Left, routable, context.CancellationToken);
 
         var fileName = models.Left.EntryPointType.Name + ".Routing";
 
@@ -443,6 +452,28 @@ public static class RoutingTableGenerator {
 
             var caseStatement = switchStatement.AddCase(QuoteString(leafNode.Method));
 
+            // A route with no tokens resolves to the same RequestHandlerInfo on every request:
+            // the handler is already cached, and the token collection is the shared empty one.
+            // Caching the record itself rather than rebuilding it drops an allocation per
+            // request and collapses the leaf to a single field read.
+            if (routeNode.WildCardDepth == 0) {
+                var infoField = routingClass.AddField(
+                    KnownTypes.Web.RequestHandlerInfo.MakeNullable(),
+                    "_info" + leafNode.Value.InvokeHandlerType.Name);
+
+                var cachedInfo = NullCoalesceEqual(infoField.Instance,
+                    New(
+                        KnownTypes.Web.RequestHandlerInfo,
+                        New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"),
+                        EmptyTokens));
+
+                cachedInfo.PrintParentheses = false;
+
+                caseStatement.Return(cachedInfo);
+
+                continue;
+            }
+
             var field =
                 routingClass.AddField(leafNode.Value.InvokeHandlerType.MakeNullable(),
                     "_field" + leafNode.Value.InvokeHandlerType.Name);
@@ -452,13 +483,10 @@ public static class RoutingTableGenerator {
 
             coalesceHandler.PrintParentheses = false;
 
-            IOutputComponent pathTokensCollection = EmptyTokens;
-
-            if (routeNode.WildCardDepth > 0) {
-                pathTokensCollection = New(KnownTypes.Requests.PathTokenCollection,
-                    routeNode.WildCardDepth,
-                    PathTokenNamesField(routingClass, leafNode));
-            }
+            // Token values are per request, so only the handler can be reused here.
+            var pathTokensCollection = New(KnownTypes.Requests.PathTokenCollection,
+                routeNode.WildCardDepth,
+                PathTokenNamesField(routingClass, leafNode));
 
             caseStatement.Return(
                 New(

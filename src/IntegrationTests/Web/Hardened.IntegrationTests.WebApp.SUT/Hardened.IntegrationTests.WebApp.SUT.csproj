@@ -9,6 +9,11 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <DependencyModules_AutoGenerateModule>false</DependencyModules_AutoGenerateModule>
+
+        <!-- Writes what the generators emitted to obj/…/generated, so the routing table and the
+             per-handler classes can be read directly. This app exercises the widest set of
+             generator features in the repository, which makes it the useful one to inspect. -->
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
 
     <ItemGroup>

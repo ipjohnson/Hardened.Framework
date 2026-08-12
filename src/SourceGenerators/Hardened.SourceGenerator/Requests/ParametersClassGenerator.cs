@@ -12,59 +12,36 @@ public static class ParametersClassGenerator {
         var parametersClass = constructContainer.AddClass(parameterClassName);
 
         parametersClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
-        parametersClass.AddBaseType(KnownTypes.Requests.IExecutionRequestParameters);
+
+        // Derives from the runtime base rather than implementing the interface directly. Lookup
+        // by name, ParameterCount and Clone all follow from this[int] and Info, so they are
+        // implemented once there instead of emitted into every handler - about half the IL of
+        // this class. Only what the compiler knows and the base cannot is generated below.
+        parametersClass.AddBaseType(KnownTypes.Requests.ExecutionRequestParameters);
 
         WriteProperties(handlerModel, parametersClass);
 
-        WriteTryGetParameter(handlerModel, parametersClass);
-
-        WriteTrySetParameter(handlerModel, parametersClass);
-
         WriteItemProperty(handlerModel, parametersClass);
-
-        WriteParameterCount(handlerModel, parametersClass);
 
         WritePropertyInfo(handlerModel, parametersClass);
 
-        WriteCloneMethod(handlerModel, parametersClass);
-
         return parametersClass;
-    }
-
-    private static void WriteCloneMethod(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
-        var cloneMethod = parametersClass.AddMethod("Clone");
-        cloneMethod.SetReturnType(KnownTypes.Requests.IExecutionRequestParameters);
-
-        var newStatement = New(InvokeClassGenerator.GenericParameters);
-
-        foreach (var parameterInformation in handlerModel.RequestParameterInformationList) {
-            newStatement.AddInitValue($"{parameterInformation.Name} = {parameterInformation.Name}");
-        }
-
-        cloneMethod.Return(newStatement);
     }
 
     private static void WritePropertyInfo(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
         var parametersProperty =
             parametersClass.AddProperty(KnownTypes.Requests.IReadOnlyListExecutionRequestParameter, "Info");
 
+        parametersProperty.Modifiers |= ComponentModifier.Override;
         parametersProperty.Set = null;
         parametersProperty.Get.LambdaSyntax = true;
         parametersProperty.Get.AddCode("_parameterInfo;");
     }
 
-    private static void WriteParameterCount(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
-        var parameterCount = parametersClass.AddProperty(typeof(int), "ParameterCount");
-
-        parameterCount.Set = null;
-
-        parameterCount.Get.LambdaSyntax = true;
-        parameterCount.Get.AddCode(handlerModel.RequestParameterInformationList.Count + ";");
-    }
-
     private static void WriteItemProperty(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
         var indexProperty = parametersClass.AddProperty(typeof(object), "this");
 
+        indexProperty.Modifiers |= ComponentModifier.Override;
         indexProperty.IndexName = "index";
         indexProperty.IndexType = TypeDefinition.Get(typeof(int));
 
@@ -96,54 +73,17 @@ public static class ParametersClassGenerator {
             var caseBlock = switchStatement.AddCase(index++);
 
             caseBlock.Assign(StaticCast(parameterInformation.ParameterType, "value")).To(parameterInformation.Name);
-            caseBlock.Break();
+
+            // return, not break: break leaves the switch and falls into the throw below, so every
+            // set threw IndexOutOfRangeException including the valid ones. The getter always used
+            // return and was unaffected, which is why nothing caught this. Found 2026-08-12.
+            caseBlock.Return();
         }
 
         var throwMessage =
             $"\"Index out of range, parameters count {handlerModel.RequestParameterInformationList.Count}, index was \" + index";
 
         indexProperty.Set!.Throw(typeof(IndexOutOfRangeException), throwMessage);
-    }
-
-    private static void WriteTrySetParameter(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
-        var setMethodDefinition = parametersClass.AddMethod("TrySetParameter");
-
-        var parameterName = setMethodDefinition.AddParameter(typeof(string), "parameterName");
-        var valueVar = setMethodDefinition.AddParameter(typeof(object), "value");
-
-        setMethodDefinition.SetReturnType(typeof(bool));
-
-        var switchBlock = setMethodDefinition.Switch(parameterName);
-
-        foreach (var parameterInformation in handlerModel.RequestParameterInformationList) {
-            var caseBlock = switchBlock.AddCase(QuoteString(parameterInformation.Name));
-            caseBlock.Assign(StaticCast(parameterInformation.ParameterType, valueVar)).To(parameterInformation.Name);
-            caseBlock.Return("true");
-        }
-
-        setMethodDefinition.Return("false");
-    }
-
-    private static void WriteTryGetParameter(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
-        var getMethodDefinition = parametersClass.AddMethod("TryGetParameter");
-        var outType = TypeDefinition.Get(typeof(object)).MakeNullable();
-
-        var parameterName = getMethodDefinition.AddParameter(typeof(string), "parameterName");
-        var valueVar = getMethodDefinition.AddParameter(outType, "value");
-        valueVar.IsOut = true;
-
-        getMethodDefinition.SetReturnType(typeof(bool));
-
-        var switchBlock = getMethodDefinition.Switch(parameterName);
-
-        foreach (var parameterInformation in handlerModel.RequestParameterInformationList) {
-            var caseBlock = switchBlock.AddCase(QuoteString(parameterInformation.Name));
-            caseBlock.Assign(parameterInformation.Name).To(valueVar);
-            caseBlock.Return("true");
-        }
-
-        getMethodDefinition.Assign(Null()).To(valueVar);
-        getMethodDefinition.Return("false");
     }
 
     private static void WriteProperties(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {

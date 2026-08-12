@@ -105,7 +105,25 @@ public abstract class BaseRequestModelGenerator {
         RequestHandlerNameModel requestHandlerNameModel,
         ParameterSyntax parameter,
         int parameterIndex) {
-        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext);
+
+        // Resolution returns null for a name the compiler cannot bind, which happens constantly in
+        // an editor - a signature is briefly invalid on the way to being valid, mid-rename or
+        // before the model class is written. This used to carry a null forward behind a `!` and
+        // dereference a few lines down, which threw out of the syntax transform and cost the whole
+        // assembly its generated code, not just this handler. Now the parameter is recorded as
+        // unresolved and the handler is skipped at the output stage, where a diagnostic can
+        // actually be reported.
+        if (parameterType == null) {
+            return new RequestParameterInformation(
+                TypeDefinition.Get("", parameter.Type?.ToString() ?? "?"),
+                parameter.Identifier.Text,
+                false,
+                null,
+                ParameterBindType.Unresolved,
+                parameter.Identifier.Text,
+                parameterIndex);
+        }
 
         if (KnownTypes.Requests.IExecutionContext.Equals(parameterType)) {
             return CreateRequestParameterInformation(parameter, parameterType,

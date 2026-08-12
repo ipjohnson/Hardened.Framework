@@ -18,6 +18,8 @@ namespace Hardened.Requests.Testing.Conformance
         public void AcceptReflectsANonJsonValue() { }
         public void BodyIsReadable() { }
         public void CloneDoesNotMutateTheOriginal() { }
+        public void CloneGivesTheCloneItsOwnParameters() { }
+        public void CloneLeavesNullParametersNull() { }
         public void ClonePreservesBody() { }
         public void ClonePreservesMethodWhenMethodIsNull() { }
         public void ClonePreservesPathWhenPathIsNull() { }
