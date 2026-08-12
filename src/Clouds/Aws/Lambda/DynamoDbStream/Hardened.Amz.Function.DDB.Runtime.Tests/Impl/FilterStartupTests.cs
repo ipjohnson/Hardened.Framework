@@ -61,7 +61,7 @@ public class DynamoStreamLambdaTests {
     public void TheModuleSuppliesTheDefaultBatchExceptionHandler() {
         var services = new ServiceCollection();
 
-        new DynamoStreamLambda().RegisterDependencies(services);
+        new DynamoStreamLambda().ConfigureServices(services);
 
         using var provider = services.BuildServiceProvider();
 
@@ -73,7 +73,7 @@ public class DynamoStreamLambdaTests {
     public void TheBatchExceptionHandlerIsASingleton() {
         var services = new ServiceCollection();
 
-        new DynamoStreamLambda().RegisterDependencies(services);
+        new DynamoStreamLambda().ConfigureServices(services);
 
         var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IBatchProcessorExceptionHandler));
 

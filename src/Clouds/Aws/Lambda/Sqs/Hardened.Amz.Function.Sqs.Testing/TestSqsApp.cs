@@ -38,6 +38,14 @@ public class TestSqsApp : TestContext {
 
         responseStream.Position = 0;
 
+        // A batch where nothing failed writes no response body, which is how a real invocation
+        // tells SQS that every message succeeded. Deserializing that threw
+        // "The input does not contain any JSON tokens" - so this helper could only ever be used
+        // for batches that failed, and the all-succeeded case, which is the common one, crashed.
+        if (responseStream.Length == 0) {
+            return new SQSBatchResponse(new List<SQSBatchResponse.BatchItemFailure>());
+        }
+
         return await _jsonSerializer.DeserializeAsync<SQSBatchResponse>(responseStream);
     }
 

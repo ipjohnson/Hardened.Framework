@@ -5,10 +5,12 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" />
+      <PackageReference Include="Hardened.Function.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
       <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
     </ItemGroup>
 

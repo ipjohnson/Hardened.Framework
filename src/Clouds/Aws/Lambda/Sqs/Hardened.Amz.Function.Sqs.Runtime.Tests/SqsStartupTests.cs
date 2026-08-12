@@ -68,7 +68,7 @@ public class SqsLambdaTests {
     public void TheModuleSuppliesTheDefaultBatchExceptionHandler() {
         var services = new ServiceCollection();
 
-        new SqsLambda().RegisterDependencies(services);
+        new SqsLambda().ConfigureServices(services);
 
         using var provider = services.BuildServiceProvider();
 
@@ -83,7 +83,7 @@ public class SqsLambdaTests {
     public void TheBatchExceptionHandlerIsASingleton() {
         var services = new ServiceCollection();
 
-        new SqsLambda().RegisterDependencies(services);
+        new SqsLambda().ConfigureServices(services);
 
         var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IBatchProcessorExceptionHandler));
 
