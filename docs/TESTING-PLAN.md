@@ -558,3 +558,105 @@ reportgenerator -reports:"coverage/**/*.cobertura.xml" \
 
 Baseline for comparison, measured 2026-08-11: framework **11694/32060 lines (36.5%)**, branch
 **32.7%**; AWS **666/1126 (59.1%)** across the five assemblies that load, with eleven more absent.
+
+---
+
+## 11. Execution log — 2026-08-11
+
+The workstreams in §6 were run in parallel and stopped partway to bound cost. What landed was
+reviewed, completed and committed rather than discarded. Both repositories build clean and pass.
+
+| | Before | After |
+|---|---:|---:|
+| Framework tests passing | 588 | **1677** |
+| AWS tests passing | 120 | **445** |
+| Framework build warnings | 0 | 0 |
+| AWS build warnings | 10 | **1** |
+
+The one remaining AWS warning is a `CS8625` inside generator output, fixed at source in the
+framework (`ApplicationRootImplementation`) and reaching `Hardened.Amz` only when a package
+carrying that fix is published.
+
+`coverage-baseline.json` was deliberately **not** re-ratcheted. Eleven agents editing one file
+concurrently clobber each other, and a per-workstream run cannot see merged coverage. Baselines are
+floors and coverage only rose, so CI stays correct — but the ratchet in §8 of
+`testing-conventions.md` has not been turned for this round, and that is the one convention this
+run knowingly did not follow.
+
+### 11.1 §2.3 is resolved — the status properties were deleted
+
+`web-routing` deleted them. It also found the plan undercounted: **sixteen** properties across
+**four** attributes, not four across two. Only `NullReturnStatus` had an interface slot anything
+consumed. Wiring the rest meant designing new response-status behaviour across
+`Hardened.Requests.Abstract`, `Hardened.Requests.Runtime` and the serialization and error paths —
+not wiring. See the commit for the full reasoning.
+
+### 11.2 Contradictions found, reported not asserted
+
+Each of these is a gap between what the code claims and what it does — the §2 pattern. None has a
+test asserting the broken behaviour, per `testing-conventions.md` §6.
+
+**OpenAPI parameter schemas are not validated.** `petstore.yaml` declares `minimum: 1` and
+`maximum: 100` on the `limit` query parameter; `?limit=0` and `?limit=101` both return `200`. Body
+validation *does* work — a bad `tag` pattern and a missing required `name` each return `400` with a
+field-level error — so the gap is specific to parameter schemas, not to validation generally.
+
+**Incremental caching rests on instance reuse, not on the comparer.**
+`WebIncrementalGenerator.CombinedComparer` compares both halves by reference.
+`EntryPointSelector.Model` declares no `Equals` override, so `x.Item1.Equals(y.Item1)` binds to
+`object.Equals` — while `EntryPointSelector.Comparer`, in the same file, compares structurally and
+is never used. A rebuilt-but-identical entry point misses the cache and regenerates. Safe, since
+the output is identical, but weaker than the caching work implies.
+
+**`--help` is broken for an application with only a root command.**
+`CommandLineDefinitionService.GetRootCommand` selects the empty-named command, but `GenerateTree`
+still adds every parentless definition — including that root — to the top-level dictionary. The
+root becomes its own child, so `PrintHelp` takes the subcommand branch and prints
+`Usage: app  <subcommand> [options]` above an empty `Commands:` header instead of the options.
+`WriteCommandOptionsHelp` is therefore near-unreachable from `Help`, and throws on `Max()` over an
+empty option list if reached. It is covered through the `MissingOption` path, which does reach it.
+
+**`CommandLinePrinter` bypasses its own output seam.** Blank lines, "command not found" and
+"missing subcommand" go straight to `Console.WriteLine` rather than `IConsoleOutputService`, so
+they cannot be asserted without redirecting global process state.
+
+**Every generated application root carried a `CS8625`.** The emitted `DisposeAsync` assigned
+`RootServiceProvider = null` against a non-nullable field, failing any consumer that builds with
+`TreatWarningsAsErrors`. Fixed — it now emits `null!`, matching the `?? throw` in the `Provider`
+getter beside it.
+
+### 11.3 The recovered AWS harnesses need a composition story
+
+`IntegTests/DynamoDbStreamApp`, `IntegTests/DynamoDbStreamApp.Tests` and `SqsTest` were recovered
+from history (commit `75a3f6a` claimed to restore them and did not), brought onto current package
+versions and xunit.v3, and migrated off `[Expose]`/`[Singleton]` to `[SingletonService]`. They
+compile.
+
+They do **not** run, and are deliberately absent from `Hardened.Amz.sln` until they do. The
+generated application constructor resolves `ILambdaInvokeFilterProvider` and nothing registers it:
+dropping `[SqsLambda.Module]` also dropped the module composition it performed, and there is no
+current replacement. No project in either repository applies another module's registrations, and
+`Hardened.Amz.Function.Sqs.Runtime` produces no generated output at all, so `SqsLambda.Module`
+cannot be generated.
+
+**This is the one open design question from this round.** How a Hardened runtime module is composed
+into a consuming application needs deciding before any end-to-end Lambda harness works — which also
+blocks the `aws-batch` integration deliverable in §6.
+
+### 11.4 Workstream status
+
+| Workstream | Status |
+|---|---|
+| `core-generator` | Partial — caching, model comparison, filter-attribute detection, routing table |
+| `web-routing` | Partial — §2.3 decided and executed; handlers and serializers covered |
+| `openapi` | Partial — generator output now compiled; SUT grown; validation gap found |
+| `pipeline` | **Complete** — 324 tests, ordering/fork/retry/serialization/errors |
+| `config-runtime` | Partial — environment, startup, pooling, generated config wiring |
+| `templates` | Partial — generator suite at 168 tests from zero |
+| `console` | Partial — parser, definition tree, printer; two defects found |
+| `test-framework` | Partial — injection, mocks, entry points, retry engine; additive only |
+| `aws-batch` | Partial — runtime suites done; harnesses recovered but not runnable |
+| `aws-web` | Partial — harness ported into Amz; payload mapping and streaming covered |
+| `aws-clients-cdk` | Partial — CDK covered from zero; warnings cleared |
+
+Remaining per-workstream deliverables from §6 are unchanged and still apply.
