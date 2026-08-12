@@ -62,15 +62,37 @@ public class PublicApiSurfaceTests {
                 "System.Reflection.AssemblyMetadataAttribute",
                 "System.Diagnostics.DebuggableAttribute",
                 "System.Runtime.CompilerServices.CompilationRelaxationsAttribute",
-                "System.Runtime.CompilerServices.RuntimeCompatibilityAttribute"
+                "System.Runtime.CompilerServices.RuntimeCompatibilityAttribute",
+
+                // xunit.v3 records the source file and line of every [Fact] and [Theory], which
+                // Hardened.Requests.Testing ships on its conformance suite. Those arguments are
+                // absolute paths, so they differ between a developer machine and a deterministic
+                // CI build - and the line numbers churn whenever anyone edits the file, which
+                // would fail this test on edits that change no public surface at all. The method
+                // signatures themselves are still compared.
+                "Xunit.FactAttribute",
+                "Xunit.TheoryAttribute"
             ]
         }));
 
         var approvedPath = ApprovedPath(assemblyName);
 
         if (Approving) {
-            Directory.CreateDirectory(Path.GetDirectoryName(approvedPath)!);
-            File.WriteAllText(approvedPath, actual);
+            var directory = SourceDirectory();
+
+            if (directory == null) {
+                // Not a skip: CI fails on any skipped test, and this is a misused flag rather than
+                // an environment that cannot run the check.
+                Assert.Fail(
+                    "APPROVE_PUBLIC_API is set but the source directory is not reachable from " +
+                    "this build, so there is nowhere to write the approved file. Approve from a " +
+                    "developer machine, not from a deterministic build.");
+            }
+
+            var sourcePath = Path.Combine(directory, "Approved", assemblyName + ".approved.txt");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(sourcePath)!);
+            File.WriteAllText(sourcePath, actual);
 
             return;
         }
@@ -127,18 +149,40 @@ public class PublicApiSurfaceTests {
             "Add each to ShippedAssemblies and approve its surface.");
     }
 
+    /// <summary>
+    /// Read from the build output, which the csproj copies the approved files into. Reading them
+    /// through <see cref="SourceDirectory"/> instead is what broke CI: a deterministic build
+    /// rewrites the compile-time path to a placeholder, so the lookup pointed at <c>/_/src/...</c>.
+    /// </summary>
     private static string ApprovedPath(string assemblyName) =>
-        Path.Combine(SourceDirectory(), "Approved", assemblyName + ".approved.txt");
+        Path.Combine(AppContext.BaseDirectory, "Approved", assemblyName + ".approved.txt");
 
+    /// <summary>
+    /// Written beside the approved file in source control, so a diff can be eyeballed and then
+    /// approved. Only possible on a developer machine — see <see cref="SourceDirectory"/>. In CI
+    /// there is nowhere useful to put it and the failure message carries the diff instead.
+    /// </summary>
     private static void WriteReceived(string assemblyName, string actual) {
-        var path = Path.Combine(SourceDirectory(), "Approved", assemblyName + ".received.txt");
+        var directory = SourceDirectory();
+
+        if (directory == null) {
+            return;
+        }
+
+        var path = Path.Combine(directory, "Approved", assemblyName + ".received.txt");
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, actual);
     }
 
     private static void DeleteStaleReceived(string assemblyName) {
-        var path = Path.Combine(SourceDirectory(), "Approved", assemblyName + ".received.txt");
+        var directory = SourceDirectory();
+
+        if (directory == null) {
+            return;
+        }
+
+        var path = Path.Combine(directory, "Approved", assemblyName + ".received.txt");
 
         if (File.Exists(path)) {
             File.Delete(path);
@@ -146,11 +190,21 @@ public class PublicApiSurfaceTests {
     }
 
     /// <summary>
-    /// The directory this file lives in, so approved files sit beside the test in source control
-    /// rather than in the build output where they cannot be committed.
+    /// The directory this file lives in, so an approved file can be written back into source
+    /// control rather than into the build output where it cannot be committed.
+    ///
+    /// <para>
+    /// Null when the compile-time path does not exist on this machine, which is the case for any
+    /// deterministic build: <c>ContinuousIntegrationBuild=true</c> rewrites it to a placeholder
+    /// like <c>/_/src/...</c>. Callers must handle that rather than assuming a writable path —
+    /// assuming one failed every surface test in CI while passing locally.
+    /// </para>
     /// </summary>
-    private static string SourceDirectory([CallerFilePath] string path = "") =>
-        Path.GetDirectoryName(path)!;
+    private static string? SourceDirectory([CallerFilePath] string path = "") {
+        var directory = Path.GetDirectoryName(path);
+
+        return directory != null && Directory.Exists(directory) ? directory : null;
+    }
 
     private static string Normalise(string api) =>
         api.Replace("\r\n", "\n").TrimEnd() + "\n";

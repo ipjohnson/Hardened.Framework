@@ -14,59 +14,23 @@ namespace Hardened.Requests.Testing.Conformance
     {
         protected ExecutionRequestConformanceTests() { }
         protected abstract Hardened.Requests.Testing.Conformance.IExecutionRequestConformanceAdapter Adapter { get; }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 79)]
         public void AcceptComesFromTheAcceptHeader() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 87)]
         public void AcceptReflectsANonJsonValue() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 126)]
         public void BodyIsReadable() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 219)]
         public void CloneDoesNotMutateTheOriginal() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 206)]
         public void ClonePreservesBody() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 153)]
         public void ClonePreservesMethodWhenMethodIsNull() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 173)]
         public void ClonePreservesPathWhenPathIsNull() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 191)]
         public void CloneReplacesHeadersWhenHeadersAreProvided() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 163)]
         public void CloneReplacesMethodWhenMethodIsProvided() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 182)]
         public void CloneReplacesPathWhenPathIsProvided() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 67)]
         public void ContentTypeComesFromTheContentTypeHeader() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 118)]
         public void CookiesAreEmptyRatherThanNullWhenNoneWereSent() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 107)]
         public void CookiesAreSurfaced() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 58)]
         public void HeadersAreSurfaced() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 43)]
         public void MethodIsSurfaced() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 51)]
         public void PathIsSurfaced() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 141)]
         public void PathTokensAreEmptyRatherThanNullBeforeRouting() { }
-        [Xunit.Fact("/Users/ianjohnson/Hardened/Hardened.Framework/src/Requests/Hardened.Requests.Test" +
-            "ing/Conformance/ExecutionRequestConformanceTests.cs", 96)]
         public void QueryStringIsSurfaced() { }
     }
     public interface IExecutionRequestConformanceAdapter

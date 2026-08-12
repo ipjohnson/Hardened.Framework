@@ -7,6 +7,17 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
+    <!--
+      The approved files are read from the build output, not from the source tree.
+      ContinuousIntegrationBuild=true turns on deterministic source paths, so [CallerFilePath]
+      resolves to a placeholder like /_/src/... in CI - every one of these tests failed there with
+      UnauthorizedAccessException on /_ while passing on a developer machine. Copying them here
+      makes the comparison independent of where the source happened to be built.
+    -->
+    <ItemGroup>
+        <None Include="Approved\*.approved.txt" CopyToOutputDirectory="PreserveNewest" LinkBase="Approved"/>
+    </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="PublicApiGenerator" Version="11.4.6" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
