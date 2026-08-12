@@ -1,3 +1,5 @@
+using Hardened.SourceGeneration.Testing;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Tests.Infrastructure;
 using Microsoft.CodeAnalysis;
 using Xunit;
@@ -5,79 +7,139 @@ using Xunit;
 namespace Hardened.SourceGenerator.Tests.Requests;
 
 /// <summary>
-/// What happens when a handler signature names a type the compiler cannot resolve.
+/// A handler signature naming a type the compiler cannot resolve.
 ///
 /// <para>
-/// It crashes the generator, and the generator then contributes <em>nothing to the whole
-/// assembly</em> — not just the handler that named the type. Every route, every parameter bag and
-/// the dependency registration all disappear together.
+/// This used to throw out of the syntax transform. Roslyn reports that as <c>CS8785</c> at warning
+/// severity and the generator then contributes <em>nothing to the whole assembly</em> — every
+/// route, every parameter bag and the dependency registration, lost over one parameter in one
+/// method. A compiling project cannot reach it, but an editor does constantly: a signature is
+/// briefly invalid on the way to being valid, mid-rename or before the model class is written, and
+/// in that window every generated type in the project disappears.
 /// </para>
 ///
 /// <para>
-/// <c>BaseRequestModelGenerator.GetParameterInfo</c> resolves the parameter with
-/// <c>parameter.Type?.GetTypeDefinition(context)!</c>. The <c>?.</c> is honest — resolution does
-/// return null for a name that does not exist — and the <c>!</c> then suppresses the warning that
-/// says so. The null walks past the <c>Equals</c> checks, which tolerate it, and dereferences at
-/// the first <c>parameterType.TypeDefinitionEnum</c>.
-/// </para>
-///
-/// <para>
-/// This escapes <c>SourceGeneratorWrapper</c>, which catches emit-time exceptions: the crash is in
-/// the syntax-provider transform, upstream of it. Roslyn reports it as <c>CS8785</c> at
-/// <em>warning</em> severity, so a build without <c>TreatWarningsAsErrors</c> continues, produces
-/// no generated code, and reports a cascade of errors about types that should have been generated.
-/// </para>
-///
-/// <para>
-/// A compiling project cannot reach this — the unresolvable name is a compile error of the user's
-/// own. It bites in the editor, where a signature is briefly invalid on the way to being valid:
-/// mid-rename, or before the model class is written. Recorded 2026-08-12 as observed behaviour,
-/// not asserted as intended.
+/// The cause was <c>parameter.Type?.GetTypeDefinition(context)!</c> — the <c>?.</c> honest about
+/// resolution returning null, the <c>!</c> suppressing the warning that said so, and a dereference
+/// a few lines later. Fixed 2026-08-12: the parameter is recorded as
+/// <see cref="ParameterBindType.Unresolved"/>, the handler is skipped where source is written, and
+/// the reason is reported as <c>HOAG010</c>.
 /// </para>
 /// </summary>
 public class UnresolvableTypeTests {
 
-    private static GeneratorResultShape Run() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
+    /// <summary>One handler that cannot resolve its parameter, beside two that are fine.</summary>
+    private const string OneBrokenHandler = """
+        [Get("/orders")]
+        public string List() => "";
+
+        [Post("/orders")]
+        public string Save(NotDeclaredAnywhere model) => "";
+
+        [Get("/orders/{id}")]
+        public string Get(string id) => id;
+        """;
+
+    private static GeneratorResult Generate() =>
+        RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller(OneBrokenHandler));
+
+    [Fact]
+    public void TheGeneratorDoesNotThrow() {
+        Assert.Empty(Generate().GeneratorExceptions);
+    }
+
+    /// <summary>
+    /// The behaviour the whole change is for: one unbindable signature costs its own handler and
+    /// nothing else.
+    /// </summary>
+    [Fact]
+    public void EveryOtherHandlerInTheAssemblyStillGenerates() {
+        var result = Generate();
+
+        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("List"));
+        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("Get"));
+    }
+
+    [Fact]
+    public void TheHandlerThatCouldNotBindIsNotGenerated() {
+        Assert.DoesNotContain(Generate().GeneratedSources.Keys, key => key.Contains("Save"));
+    }
+
+    /// <summary>
+    /// The routing table has to agree. Routing to a handler class that was never emitted would
+    /// produce a table referencing a type that does not exist — uncompilable output, which is
+    /// worse than the missing route.
+    /// </summary>
+    [Fact]
+    public void TheRoutingTableDoesNotRouteToTheHandlerThatWasSkipped() {
+        // A routing table is only emitted for an application, so this case supplies its own
+        // rather than going through the single-controller helper.
+        var result = RequestGeneratorHarness.Generate("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class TestController {
+                [Get("/orders")]
+                public string List() => "";
+
                 [Post("/orders")]
                 public string Save(NotDeclaredAnywhere model) => "";
-            """));
+            }
+            """);
 
-        return new GeneratorResultShape(
-            result.GeneratorExceptions.Count,
-            result.GeneratedSources.Count,
-            result.GeneratorDiagnostics);
+        var routing = result.GeneratedSources
+            .Where(pair => pair.Value.Contains("class RoutingTable"))
+            .Select(pair => pair.Value)
+            .FirstOrDefault();
+
+        Assert.True(routing != null,
+            "No routing table was generated. Files: " + string.Join(", ", result.GeneratedSources.Keys));
+
+        Assert.DoesNotContain("Save", routing!);
+
+        // The one that did bind is still routed.
+        Assert.Contains("List", routing!);
     }
 
-    private record GeneratorResultShape(
-        int Exceptions,
-        int GeneratedFiles,
-        IReadOnlyList<Diagnostic> Diagnostics);
-
     [Fact]
-    public void AnUnresolvableParameterTypeCrashesTheGenerator() {
-        Assert.Equal(1, Run().Exceptions);
+    public void TheReasonIsReported() {
+        var diagnostic = Assert.Single(
+            Generate().GeneratorDiagnostics,
+            candidate => candidate.Id == UnresolvedHandler.DiagnosticId);
+
+        var message = diagnostic.GetMessage();
+
+        Assert.Contains("Save", message);
+        Assert.Contains("model", message);
     }
 
     /// <summary>
-    /// The part that costs: nothing is emitted for the assembly, including the handlers that were
-    /// perfectly well formed.
+    /// A warning, not an error. The compiler already reports <c>CS0246</c> for the name itself, so
+    /// this says only the part it cannot: that the handler was dropped as a result.
     /// </summary>
     [Fact]
-    public void TheCrashCostsTheWholeAssemblyItsGeneratedCode() {
-        Assert.Equal(0, Run().GeneratedFiles);
+    public void TheReasonIsAWarningRatherThanAnError() {
+        var diagnostic = Assert.Single(
+            Generate().GeneratorDiagnostics,
+            candidate => candidate.Id == UnresolvedHandler.DiagnosticId);
+
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
     }
 
     /// <summary>
-    /// Reported as a warning, not an error. Under <c>ContinuousIntegrationBuild=true</c> this
-    /// repository turns it into one; a consumer that does not will build on and see only the
-    /// downstream damage.
+    /// It is reported once, not once per handler in the assembly - the per-handler output stage
+    /// reports it, and the routing table skips silently.
     /// </summary>
     [Fact]
-    public void TheCrashIsReportedAsAWarningRatherThanAnError() {
-        var generatorFailed = Assert.Single(
-            Run().Diagnostics, diagnostic => diagnostic.Id == "CS8785");
+    public void TheReasonIsReportedOncePerBrokenHandler() {
+        var reported = Generate().GeneratorDiagnostics
+            .Count(candidate => candidate.Id == UnresolvedHandler.DiagnosticId);
 
-        Assert.Equal(DiagnosticSeverity.Warning, generatorFailed.Severity);
+        Assert.Equal(1, reported);
     }
 }

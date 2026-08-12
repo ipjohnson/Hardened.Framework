@@ -2,6 +2,7 @@
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
@@ -15,7 +16,15 @@ public static class RoutingTableGenerator {
 
     public static void GenerateRoute(SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models) {
-        var outputString = GenerateCSharpRouteFile(models.Left, models.Right, context.CancellationToken);
+        // Handlers that were not generated must not be routed to. Routing to one would emit a
+        // table referencing a handler class that does not exist - uncompilable output, which is
+        // worse than the missing route. Skipped silently: WebExecutionHandlerCodeGenerator has
+        // already reported each one, and it runs per handler rather than per table.
+        var routable = models.Right
+            .Where(handler => handler.UnresolvedParameter() == null)
+            .ToList();
+
+        var outputString = GenerateCSharpRouteFile(models.Left, routable, context.CancellationToken);
 
         var fileName = models.Left.EntryPointType.Name + ".Routing";
 

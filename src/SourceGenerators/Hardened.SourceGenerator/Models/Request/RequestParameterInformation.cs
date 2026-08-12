@@ -111,4 +111,16 @@ public enum ParameterBindType {
     ExecutionRequest,
     ExecutionResponse,
     CustomAttribute,
+
+    /// <summary>
+    /// The parameter's type could not be resolved, so there is nothing to bind it from.
+    ///
+    /// <para>
+    /// A handler carrying one of these is not generated — see
+    /// <c>RequestHandlerModelExtensions.UnresolvedParameter</c>. It exists so the model stays a
+    /// value the transform can always produce: a syntax provider cannot report a diagnostic, so
+    /// the problem has to be carried forward and reported when source is written.
+    /// </para>
+    /// </summary>
+    Unresolved,
 }
