@@ -28,6 +28,15 @@
         <PackageReference Include="NSubstitute" Version="5.1.0" />
     </ItemGroup>
 
+    <!--
+      The generated application resolves IWebExecutionHandlerService, which lives in
+      Hardened.Web.Runtime. Neither Amz web runtime references it — an API Gateway application gets
+      it from the consumer's own Hardened.Web.Runtime reference — so the tests anchor on it directly.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Hardened.Web.Runtime" Version="1.0.0-preview*" />
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\Web\Hardened.Amz.Web.Lambda.SourceGenerator.csproj"/>
         <!--
