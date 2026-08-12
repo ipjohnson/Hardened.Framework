@@ -576,4 +576,68 @@ public class RouteCompilationTests {
             }
             """);
     }
+
+    /// <summary>
+    /// A controller declaring four routes is registered once, not four times. The generator walks
+    /// the handler models to build the registration method, and every one of them names the same
+    /// controller — so without the distinct pass the container holds four identical descriptors,
+    /// and anything resolving the controller as a collection gets four instances.
+    /// </summary>
+    [Fact]
+    public void AControllerIsRegisteredOnceHoweverManyRoutesItDeclares() {
+        var result = CompileApplication("""
+            public class OrderController {
+                [Get("/orders")]
+                public string List() => "orders";
+
+                [Post("/orders")]
+                public string Create() => "created";
+
+                [Get("/orders/{id}")]
+                public string One(string id) => id;
+
+                [Delete("/orders/{id}")]
+                public string Remove(string id) => id;
+            }
+            """);
+
+        var routing = result.SourceContaining("TestApplication.Routing");
+
+        Assert.Equal(1, Occurrences(routing, "AddTransient<OrderController>"));
+    }
+
+    /// <summary>
+    /// The routing table registers itself as the provider interface the web handler service asks
+    /// for. Registering the concrete type instead leaves the service with no providers at all, and
+    /// every route 404s into static content.
+    /// </summary>
+    [Fact]
+    public void TheRoutingTableRegistersItselfAsTheHandlerProvider() {
+        var result = CompileApplication("""
+            public class OrderController {
+                [Get("/orders")]
+                public string List() => "orders";
+            }
+            """);
+
+        var routing = result.SourceContaining("TestApplication.Routing");
+
+        // The registration is emitted across several lines, so the two type arguments are asserted
+        // rather than the formatting between them.
+        Assert.Contains("AddSingleton<", routing);
+        Assert.Contains("IWebExecutionRequestHandlerProvider,", routing);
+        Assert.Contains("TestApplication.RoutingTable", routing);
+    }
+
+    private static int Occurrences(string source, string value) {
+        var count = 0;
+        var index = source.IndexOf(value, StringComparison.Ordinal);
+
+        while (index >= 0) {
+            count++;
+            index = source.IndexOf(value, index + value.Length, StringComparison.Ordinal);
+        }
+
+        return count;
+    }
 }
