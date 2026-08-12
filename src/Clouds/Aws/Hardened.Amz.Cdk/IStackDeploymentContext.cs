@@ -58,7 +58,14 @@ public class StackDeploymentContext<TConfig, TStage, TRegion> : IStackDeployment
 
     public ISupportedRegion SupportedRegion  => Value.Region;
 
-    public Stack Stack { get; set; }
+    /// <summary>
+    /// Assigned by the deploy command before each stack definition runs, so it is genuinely unset
+    /// until then. Declared non-nullable — and so initialised to null! rather than made nullable —
+    /// because every stack definition receives the context after it has been assigned, and making
+    /// the property nullable would put a null check in every consumer to guard against a state none
+    /// of them can observe. Same shape as <see cref="StackContextAccessor.Context"/>.
+    /// </summary>
+    public Stack Stack { get; set; } = null!;
 
     public StackDeploymentContext(string deploymentName, TConfig value, IServiceProvider serviceProvider) {
         DeploymentName = deploymentName;

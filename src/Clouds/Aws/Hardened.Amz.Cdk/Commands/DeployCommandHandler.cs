@@ -94,27 +94,46 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
     }
 
 
-    private void SortStackDefinitions(List<IStackDefinitionDeployer> deployers) {
+    /// <summary>
+    /// Orders the stacks so that a stack producing a resource deploys before the stacks consuming
+    /// it. <c>Order</c> is consulted first and wins outright — it is how a stack such as
+    /// <c>DeploymentGroupStack</c>, which depends on whatever happens to have been deployed rather
+    /// than on a named resource, places itself at the end.
+    ///
+    /// <para>
+    /// Fixed 2026-08-11: the two comparisons were the wrong way round, so a producer sorted
+    /// <em>after</em> every stack consuming what it produced. The consumer then ran first and its
+    /// <c>context.Get</c> threw, because nothing had called <c>context.Set</c> yet. Nothing caught
+    /// it because the assembly had no tests at all.
+    /// </para>
+    /// </summary>
+    /// <remarks>
+    /// Pairwise comparison, not a graph walk: it orders a producer against its direct consumer and
+    /// says nothing about a chain, since two stacks connected only through a third compare equal.
+    /// <c>Order</c> is the way to express a longer chain.
+    /// </remarks>
+    internal static void SortStackDefinitions(List<IStackDefinitionDeployer> deployers) {
         deployers.Sort((xDeployer, yDeployer) => {
             var x = xDeployer.Definition;
             var y = yDeployer.Definition;
-            
+
             if (x.Order != y.Order) {
                 return x.Order.CompareTo(y.Order);
             }
 
             foreach (var produced in x.Produces) {
                 if (y.Consumes.Contains(produced)) {
-                    return 1;
+                    // x makes something y needs, so x goes first.
+                    return -1;
                 }
             }
 
             foreach (var produced in y.Produces) {
                 if (x.Consumes.Contains(produced)) {
-                    return -1;
+                    return 1;
                 }
             }
-            
+
             return 0;
         });
     }

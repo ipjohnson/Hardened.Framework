@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" />
+        <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Lambda\DynamoDbStream\Hardened.Amz.Function.DDB.Runtime\Hardened.Amz.Function.DDB.Runtime.csproj" />
+      <ProjectReference Include="..\..\Lambda\Function\Hardened.Amz.Function.Lambda.Runtime\Hardened.Amz.Function.Lambda.Runtime.csproj" />
+      <ProjectReference Include="..\..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj" />
+      <ProjectReference Include="..\..\SourceGenerators\Lambda\Function\Hardened.Amz.Function.Lambda.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+    
+</Project>

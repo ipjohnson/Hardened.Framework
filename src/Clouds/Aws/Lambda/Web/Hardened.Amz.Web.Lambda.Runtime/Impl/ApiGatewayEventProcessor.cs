@@ -106,10 +106,13 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
 
     private void CopyHeadersAndCookies(IExecutionContext executionContext, APIGatewayHttpApiV2ProxyResponse response) {
         var headers = new Dictionary<string, string>();
-        
+
         if (executionContext.Response.Headers.Count > 0) {
             foreach (var kvp in executionContext.Response.Headers) {
-                headers[kvp.Key] = kvp.Value;
+                // ToString() rather than the implicit StringValues conversion, which is nullable
+                // (CS8601) and would put a JSON null in the response's header map. Multi-valued
+                // headers join on "," either way. Matches IHeaderCollection.ToStringDictionary.
+                headers[kvp.Key] = kvp.Value.ToString();
             }
         }
 
@@ -125,7 +128,11 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
             foreach (var cookiePair in cookies) {
                 stringBuilder.Append(cookiePair.Key);
                 stringBuilder.Append('=');
-                stringBuilder.Append(cookiePair.Value);
+                // Item1 — the value. Appending the Tuple itself, which is what this did until
+                // 2026-08-11, resolves to StringBuilder.Append(object) and emits the tuple's
+                // ToString(), so every Set-Cookie read
+                // "name=(value, CookieSetOptions { Expires = , ... })".
+                stringBuilder.Append(cookiePair.Value.Item1);
                 cookiePair.Value.Item2.AppendSettings(stringBuilder);
                 cookieArray[i] = stringBuilder.ToString();
                 i++;

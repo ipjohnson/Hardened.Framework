@@ -40,7 +40,6 @@ build/
 *.vssscc
 .builds
 *.pidb
-*.log
 *.scc
 *.lock.json
 
@@ -144,7 +143,6 @@ ModelManifest.xml
 
 # =========================
 # Windows detritus
-# =========================
 
 # Windows image file caches
 Thumbs.db

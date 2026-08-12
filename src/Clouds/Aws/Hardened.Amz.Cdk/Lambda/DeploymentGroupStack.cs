@@ -23,9 +23,16 @@ public class DeploymentGroupStack : IStackDefinition {
 
     public void Deploy(IStackDeploymentContext context) {
         
-        var aliases = 
-            context.Resources.Where(x => x.Item1 is Alias).
-                Select(x => new Tuple<Alias,string>((Alias)x.Item1, x.Item2)).ToList();
+        // Filter and cast in one step. Where(x => x.Item1 is Alias) followed by a separate
+        // (Alias)x.Item1 casts a value the compiler still sees as object?, which it cannot connect
+        // back to the test in the earlier clause.
+        var aliases = new List<Tuple<Alias, string>>();
+
+        foreach (var resource in context.Resources) {
+            if (resource.Item1 is Alias alias) {
+                aliases.Add(new Tuple<Alias, string>(alias, resource.Item2));
+            }
+        }
 
         var config = context.Stage.IsProduction ? 
             LambdaDeploymentConfig.LINEAR_10PERCENT_EVERY_10MINUTES : 

@@ -57,6 +57,15 @@ public class LambdaCdkUtil {
         var context = _stackContextAccessor.Context;
         var (lambdaFunction, alias) = LambdaFunctionCreate(request);
 
+        // An HTTP API integrates against the alias, not the function, so AliasName = null leaves
+        // nothing to route to. Said here rather than left to a NullReferenceException inside the
+        // integration construct, which names neither the request nor the setting that caused it.
+        if (alias == null) {
+            throw new InvalidOperationException(
+                $"'{request.Name}' asks for an HTTP API but sets AliasName to null. " +
+                "The API integrates against the alias, so one has to exist.");
+        }
+
         var apiProps = new HttpApiProps {
             ApiName = request.Name,
             CorsPreflight = new CorsPreflightOptions {

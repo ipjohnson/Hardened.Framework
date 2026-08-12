@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Hardened.Shared.Testing" Version="1.0.0-preview*" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="xunit.v3" Version="3.2.2" />
+      <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Lambda\DynamoDbStream\Hardened.Amz.Function.DDB.Testing\Hardened.Amz.Function.DDB.Testing.csproj" />
+      <ProjectReference Include="..\..\Lambda\Function\Hardened.Amz.Function.Lambda.Testing\Hardened.Amz.Function.Lambda.Testing.csproj" />
+      <ProjectReference Include="..\DynamoDbStreamApp\DynamoDbStreamApp.csproj" />
+    </ItemGroup>
+</Project>

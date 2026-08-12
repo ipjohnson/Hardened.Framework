@@ -40,7 +40,10 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
         IQueryStringCollection? queryString = null,
         IReadOnlyList<string>? cookies = null) {
         return new ApiGatewayV2ExecutionRequest(_proxyRequest) {
-            Parameters = Parameters,
+            // Cloned, not shared: a forked chain must be able to rebind without writing
+            // through to the request it was forked from. See the conformance suite in
+            // Hardened.Requests.Testing.
+            Parameters = Parameters?.Clone(),
             Body = Body,
             PathTokens = PathTokens,
         };

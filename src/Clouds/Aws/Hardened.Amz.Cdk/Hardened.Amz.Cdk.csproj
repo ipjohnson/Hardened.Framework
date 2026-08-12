@@ -18,4 +18,12 @@
     <ItemGroup>
       <ProjectReference Include="..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj" />
     </ItemGroup>
+    <ItemGroup>
+      <!--
+        Stack ordering is the one piece of logic here worth asserting directly. Driving it through
+        Handle() means a CDK App, a synth and a jsii process per case, which is a slow way to ask
+        which of two stacks sorts first.
+      -->
+      <InternalsVisibleTo Include="Hardened.Amz.Cdk.Tests" />
+    </ItemGroup>
 </Project>

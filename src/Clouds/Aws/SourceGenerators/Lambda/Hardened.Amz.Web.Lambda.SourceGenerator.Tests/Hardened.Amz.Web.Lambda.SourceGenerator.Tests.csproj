@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <!--
+      xunit.v3, not the xunit 2.9 two older projects here still use.
+
+      Not a style choice: Hardened.Shared.Testing depends on DependencyModules.xUnit, which brings
+      xunit.v3, and referencing it alongside xunit 2.9 makes every Fact and Assert ambiguous. Every
+      *.Testing package in this repository builds on Hardened.Shared.Testing, so new test projects
+      standardise on v3 rather than discovering the clash one at a time.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="3.2.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="NSubstitute" Version="5.1.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Web\Hardened.Amz.Web.Lambda.SourceGenerator.csproj"/>
+        <!--
+          The in-repo copy of the framework's Hardened.SourceGeneration.Testing. It is what makes
+          GeneratorTestHarness.Run(...).AssertNoErrors() available, which is the assertion that
+          proves the emitted C# compiles rather than merely reads correctly.
+        -->
+        <ProjectReference Include="..\..\Hardened.Amz.SourceGeneration.Testing\Hardened.Amz.SourceGeneration.Testing.csproj"/>
+    </ItemGroup>
+
+    <!--
+      The source under test binds against these, so the harness needs them on disk to build its
+      reference set. ReferenceOutputAssembly is left on: the tests anchor on real types from each.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Lambda\Web\Hardened.Amz.Web.Lambda.Runtime\Hardened.Amz.Web.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Lambda\Web\Hardened.Amz.Web.Lambda.Streaming\Hardened.Amz.Web.Lambda.Streaming.csproj"/>
+    </ItemGroup>
+
+</Project>

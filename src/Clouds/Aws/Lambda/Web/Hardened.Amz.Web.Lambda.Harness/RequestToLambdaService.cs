@@ -48,7 +48,10 @@ public class RequestToLambdaService<T> : IRequestToLambdaService where T : IApiG
 
     private void CopyHeadersFromRequest(IHeaderDictionary requestHeaders, IDictionary<string, string> headers) {
         foreach (var kvpHeader in requestHeaders) {
-            headers[kvpHeader.Key] = kvpHeader.Value;
+            // ToString() rather than the implicit StringValues conversion, which is nullable
+            // (CS8601). Repeated headers join on "," here, which is what API Gateway's payload
+            // format 2.0 does before a real invocation ever reaches the function.
+            headers[kvpHeader.Key] = kvpHeader.Value.ToString();
         }
     }
 

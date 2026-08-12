@@ -89,6 +89,75 @@ public class StreamingExecutionRequestTests {
         };
     }
 
+    /// <summary>
+    /// A cloned request gets its own parameter bag.
+    ///
+    /// <para>
+    /// <c>IExecutionChain.Fork</c> exists so a filter can re-run a handler against a cloned
+    /// context. Sharing the parameter bag means rebinding in the fork overwrites what the
+    /// original bound and the two corrupt each other. Every <c>IExecutionRequest.Clone</c> in
+    /// both repositories copied the reference until 2026-08-12.
+    /// </para>
+    ///
+    /// <para>
+    /// The framework holds every transport to this in
+    /// <c>ExecutionRequestConformanceTests</c>. This repository consumes that package from the
+    /// feed and the published version predates the case, so it is covered directly here until a
+    /// package carrying it ships.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void CloneGivesTheCloneItsOwnParameters() {
+        var request = new StreamingExecutionRequest(CreateProxyRequest()) {
+            Parameters = new RecordingParameters { Value = "original" }
+        };
+
+        var clone = request.Clone(method: "POST");
+
+        Assert.NotNull(clone.Parameters);
+        Assert.NotSame(request.Parameters, clone.Parameters);
+
+        ((RecordingParameters)clone.Parameters!).Value = "rebound";
+
+        Assert.Equal("original", ((RecordingParameters)request.Parameters!).Value);
+    }
+
+    [Fact]
+    public void CloneLeavesNullParametersNull() {
+        var request = new StreamingExecutionRequest(CreateProxyRequest()) { Parameters = null };
+
+        Assert.Null(request.Clone(method: "POST").Parameters);
+    }
+
+    /// <summary>One mutable value, so a test can prove the copy is independent.</summary>
+    private class RecordingParameters : IExecutionRequestParameters {
+        public string Value { get; set; } = "";
+
+        public object this[int index] {
+            get => Value;
+            set => Value = (string)value;
+        }
+
+        public int ParameterCount => 1;
+
+        public IReadOnlyList<IExecutionRequestParameter> Info { get; } =
+            Array.Empty<IExecutionRequestParameter>();
+
+        public bool TryGetParameter(string parameterName, out object? parameterValue) {
+            parameterValue = Value;
+
+            return true;
+        }
+
+        public bool TrySetParameter(string parameterName, object parameterValue) {
+            Value = (string)parameterValue;
+
+            return true;
+        }
+
+        public IExecutionRequestParameters Clone() => new RecordingParameters { Value = Value };
+    }
+
     [Fact]
     public void Method_ReturnsCorrectValue() {
         var request = new StreamingExecutionRequest(CreateProxyRequest(method: "POST"));

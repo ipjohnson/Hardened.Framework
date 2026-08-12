@@ -26,6 +26,9 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
             ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize,
+            // Carried, as LambdaExecutionResponse.Clone does. A fork whose Body did not come across
+            // would write into a buffer nobody reads, and the bytes would vanish silently.
+            Body = Body,
         };
     }
 
@@ -45,7 +48,18 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
 
     public bool ShouldCompress { get; set; }
 
-    public Stream? Body { get; set; }
+    /// <summary>
+    /// The buffer the response is written into.
+    /// </summary>
+    /// <remarks>
+    /// Declared <c>Stream?</c> until 2026-08-11, which did not match
+    /// <c>IExecutionResponse.Body</c>'s non-nullable <c>Stream</c> (CS8766). Every filter in the
+    /// pipeline holds the interface, so each of them was promised a stream and could be handed
+    /// null — <c>ApiGatewayEventProcessor</c> assigns a real one, but anything reaching the
+    /// response before that, or through <see cref="Clone(IHeaderCollection?)"/>, was not covered by
+    /// the promise. <see cref="Stream.Null"/> keeps the contract without inventing a buffer.
+    /// </remarks>
+    public Stream Body { get; set; } = Stream.Null;
 
     public IHeaderCollection Headers =>
         _headerCollection ??= new HeaderCollectionStringValues();
@@ -54,7 +68,7 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
 
     public Exception? ExceptionValue { get; set; }
 
-    public bool ResponseStarted => Body?.Position > 0;
+    public bool ResponseStarted => Body.Position > 0;
 
     public bool IsBinary { get; set; }
 

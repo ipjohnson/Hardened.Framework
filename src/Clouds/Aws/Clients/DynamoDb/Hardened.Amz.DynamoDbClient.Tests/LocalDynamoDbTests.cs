@@ -101,7 +101,22 @@ public sealed class LocalDynamoDbCollection : ICollectionFixture<LocalDynamoDbLi
 /// Stops the containers when the collection is finished with them. Testcontainers' Ryuk would reap
 /// them at the end of the run regardless; ending them here is what makes the lifetime something the
 /// suite states rather than something a sidecar decides.
+///
+/// <para>
+/// It also states the requirement up front. Without a daemon these tests fail either way — §10 of
+/// testing-conventions.md says they should — but failing here fails once, saying what is missing and
+/// how to exclude it, rather than once per test with a socket error that has to be read twice to
+/// find out it was never about the code.
+/// </para>
 /// </summary>
 public sealed class LocalDynamoDbLifetime : IDisposable {
+    public LocalDynamoDbLifetime() {
+        if (!DockerDaemon.IsAvailable) {
+            throw new InvalidOperationException(
+                "These tests run DynamoDB Local in a container and no Docker daemon answered. " +
+                $"Start one, or exclude them: dotnet test --filter \"Category!={RequiresDockerFactAttribute.Category}\".");
+        }
+    }
+
     public void Dispose() => LocalDynamoDb.StopAll();
 }
