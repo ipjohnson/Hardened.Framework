@@ -17,7 +17,7 @@
              rather than taken through Hardened.Shared.Testing, because they are this project's own
              public surface: LambdaFunctionTestingAttribute implements them by name.
         -->
-        <PackageReference Include="DependencyModules.Testing" Version="1.0.0-rc9220" />
+        <PackageReference Include="DependencyModules.Testing" Version="1.0.0-rc9230" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
     </ItemGroup>

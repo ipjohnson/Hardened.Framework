@@ -12,8 +12,8 @@
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.0" />
         <PackageReference Include="Amazon.Lambda.Core" Version="2.2.0" />
-        <PackageReference Include="DependencyModules.Runtime" Version="1.0.0-rc9220" />
-        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9220" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="DependencyModules.Runtime" Version="1.0.0-rc9230" />
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9230" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
         <PackageReference Include="Hardened.Requests.Abstract" Version="1.0.0-preview*" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
