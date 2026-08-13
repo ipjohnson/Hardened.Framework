@@ -1,4 +1,4 @@
-using System.Text;
+using CSharpAuthor;
 using Hardened.OpenApi.SourceGenerator.Models;
 
 namespace Hardened.OpenApi.SourceGenerator.Emitters;
@@ -8,35 +8,34 @@ namespace Hardened.OpenApi.SourceGenerator.Emitters;
 /// The developer provides the other partial with interface implementations.
 /// </summary>
 internal static class FilterTypeEmitter {
-    public static string Emit(FilterTypeModel filterType, bool excludeFromCoverage = false) {
-        var sb = new StringBuilder();
-        sb.AppendLine($"namespace {filterType.Namespace}");
-        sb.AppendLine("{");
 
-        if (excludeFromCoverage) {
-            sb.AppendLine("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        }
+    public static ClassDefinition Emit(IConstructContainer container, FilterTypeModel filterType) {
+        var attribute = container.AddClass(filterType.ClassName);
 
-        sb.AppendLine("[System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]");
-        sb.AppendLine($"public partial class {filterType.ClassName} : System.Attribute");
-        sb.AppendLine("{");
+        attribute.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
+        attribute.AddBaseType(TypeDefinition.Get(typeof(System.Attribute)));
 
-        foreach (var prop in filterType.Properties) {
-            var propType = prop.EnumType ?? prop.CSharpType;
-            var defaultLiteral = FormatDefault(prop);
-            sb.Append($"    public {propType} {prop.Name} {{ get; set; }}");
+        attribute.AddAttribute(
+            TypeDefinition.Get(typeof(System.AttributeUsageAttribute)),
+            new CodeOutputComponent(
+                "System.AttributeTargets.Class | System.AttributeTargets.Method") { Indented = false });
+
+        foreach (var property in filterType.Properties) {
+            var propertyType = property.EnumType ?? property.CSharpType;
+
+            var definition = attribute.AddProperty(
+                TypeMapper.GetTypeDefinition(filterType.Namespace, propertyType, false), property.Name);
+
+            definition.Modifiers |= ComponentModifier.Public;
+
+            var defaultLiteral = FormatDefault(property);
+
             if (defaultLiteral != null) {
-                sb.Append($" = {defaultLiteral};");
-            } else {
-                sb.Append(";");
+                definition.DefaultValue = new CodeOutputComponent(defaultLiteral) { Indented = false };
             }
-            sb.AppendLine();
         }
 
-        sb.AppendLine("}");
-        sb.AppendLine("}");
-
-        return sb.ToString();
+        return attribute;
     }
 
     private static string? FormatDefault(FilterTypePropertyModel prop) {

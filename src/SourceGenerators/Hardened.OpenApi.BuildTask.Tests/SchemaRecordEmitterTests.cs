@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
-public class RecordEmitterTests {
+public class SchemaRecordEmitterTests {
     [Fact]
     public void Emit_SimpleRecord_GeneratesCorrectOutput() {
         var schema = new SchemaModel {
@@ -18,7 +18,7 @@ public class RecordEmitterTests {
             }
         };
 
-        var result = RecordEmitter.Emit(schema, "Test.Api");
+        var result = EmitterHarness.Schema(schema);
 
         Assert.Contains("namespace Test.Api.Models\n{", result);
         Assert.Contains("public partial record Pet(", result);
@@ -35,7 +35,7 @@ public class RecordEmitterTests {
             Properties = new List<PropertyModel>()
         };
 
-        var result = RecordEmitter.Emit(schema, "Test.Api");
+        var result = EmitterHarness.Schema(schema);
 
         Assert.Contains("public partial record EmptyModel;", result);
     }
@@ -56,7 +56,7 @@ public class RecordEmitterTests {
             }
         };
 
-        var result = RecordEmitter.Emit(schema, "Test.Api");
+        var result = EmitterHarness.Schema(schema);
 
         Assert.Contains("List<Pet> Items)", result);
     }

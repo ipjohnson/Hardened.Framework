@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using CSharpAuthor;
 using Hardened.OpenApi.SourceGenerator.Models;
 
 namespace Hardened.OpenApi.SourceGenerator.Emitters;
@@ -18,47 +21,92 @@ internal static class JsonTypeInfoEmitter {
     public static string ResolverNameFor(string specFileName) =>
         NamingHelper.ToPascalCase(specFileName) + "JsonTypeInfoResolver";
 
-    public static string Emit(List<SchemaModel> schemas, string ns, string specFileName, bool excludeFromCoverage = false) {
+    public static ClassDefinition Emit(
+        IConstructContainer container, List<SchemaModel> schemas, string modelsNamespace, string specFileName) {
         var resolverName = ResolverNameFor(specFileName);
-        var sb = new StringBuilder();
-        sb.AppendLine($"namespace {ns}.Models");
-        sb.AppendLine("{");
-        sb.AppendLine("using System;");
-        sb.AppendLine("using System.Collections.Generic;");
-        sb.AppendLine("using System.Text.Json;");
-        sb.AppendLine("using System.Text.Json.Serialization;");
-        sb.AppendLine("using System.Text.Json.Serialization.Metadata;");
-        sb.AppendLine();
-        if (excludeFromCoverage) {
-            sb.AppendLine("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
-        }
-        sb.AppendLine($"public sealed class {resolverName} : IJsonTypeInfoResolver");
-        sb.AppendLine("{");
-        sb.AppendLine($"    public static readonly {resolverName} Instance = new();");
-        sb.AppendLine();
 
-        EmitGetTypeInfo(sb, schemas);
+        var resolver = container.AddClass(resolverName);
+
+        resolver.Modifiers |= ComponentModifier.Public | ComponentModifier.Sealed;
+        resolver.AddBaseType(
+            TypeDefinition.Get("System.Text.Json.Serialization.Metadata", "IJsonTypeInfoResolver"));
+
+        var instance = resolver.AddField(TypeDefinition.Get(modelsNamespace, resolverName), "Instance");
+        instance.Modifiers |= ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
+        instance.InitializeValue = new CodeOutputComponent("new()") { Indented = false };
+
+        // Declared rather than inferred. Usings are collected from the ITypeDefinitions a component
+        // names, and these bodies are statements - so JsonMetadataServices, List<> and JsonElement
+        // are invisible to that. They resolve today only because the records in the same file happen
+        // to import the same namespaces, which is a coincidence and not something to depend on.
+        resolver.AddUsingNamespace("System");
+        resolver.AddUsingNamespace("System.Collections.Generic");
+        resolver.AddUsingNamespace("System.Text.Json");
+        resolver.AddUsingNamespace("System.Text.Json.Serialization");
+        resolver.AddUsingNamespace("System.Text.Json.Serialization.Metadata");
+
+        AddGetTypeInfo(resolver, schemas);
 
         foreach (var schema in schemas) {
             switch (schema.Kind) {
                 case SchemaKind.Object:
-                    EmitObjectTypeInfo(sb, schema, schemas);
+                    AddObjectTypeInfo(resolver, schema, schemas);
                     break;
                 case SchemaKind.Enum:
-                    EmitEnumTypeInfo(sb, schema);
+                    AddEnumTypeInfo(resolver, schema);
                     break;
             }
         }
 
-        sb.AppendLine("}");
-        sb.AppendLine("}");
-
-        return sb.ToString();
+        return resolver;
     }
 
-    private static void EmitGetTypeInfo(StringBuilder sb, List<SchemaModel> schemas) {
-        sb.AppendLine("    public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)");
-        sb.AppendLine("    {");
+    /// <summary>
+    /// The method bodies here are object initialisers and lambdas - <c>JsonObjectInfoValues&lt;T&gt;
+    /// { ObjectWithParameterizedConstructorCreator = static args =&gt; ... }</c> - which CSharpAuthor
+    /// has no construct for. The type, its members and their signatures are built properly; the
+    /// bodies are statements, the same arrangement OpenApiRoutingTableGenerator uses.
+    /// </summary>
+    private static void AddStatements(MethodDefinition method, StringBuilder body) {
+        var lines = body.ToString().TrimEnd('\n').Split('\n');
+
+        // Dedent by the shallowest line rather than trimming each one: these bodies are nested
+        // object initialisers whose relative indentation is the only thing making them readable.
+        // CSharpAuthor owns the base indent, so only the depth beyond it is carried over.
+        var baseIndent = int.MaxValue;
+
+        foreach (var line in lines) {
+            if (line.Trim().Length == 0) {
+                continue;
+            }
+
+            baseIndent = System.Math.Min(baseIndent, line.Length - line.TrimStart(' ').Length);
+        }
+
+        if (baseIndent == int.MaxValue) {
+            baseIndent = 0;
+        }
+
+        foreach (var line in lines) {
+            var text = line.Trim().Length == 0 ? "" : line.Substring(baseIndent);
+
+            // Add rather than AddIndentedStatement: that appends a ";" per component, and these are
+            // lines of one expression - an object initialiser spanning twenty of them - not one
+            // statement each. The lines carry their own terminators.
+            method.Add(new CodeOutputComponent(text) { Indented = true });
+        }
+    }
+
+    private static void AddGetTypeInfo(ClassDefinition resolver, List<SchemaModel> schemas) {
+        var method = resolver.AddMethod("GetTypeInfo");
+
+        method.Modifiers |= ComponentModifier.Public;
+        method.SetReturnType(
+            TypeDefinition.Get("System.Text.Json.Serialization.Metadata", "JsonTypeInfo").MakeNullable());
+        method.AddParameter(TypeDefinition.Get(typeof(System.Type)), "type");
+        method.AddParameter(TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"), "options");
+
+        var sb = new StringBuilder();
 
         foreach (var schema in schemas) {
             if (schema.Kind != SchemaKind.Object && schema.Kind != SchemaKind.Enum) continue;
@@ -70,7 +118,8 @@ internal static class JsonTypeInfoEmitter {
         EmitCollectionTypeEntries(sb, schemas);
 
         sb.AppendLine("        return null;");
-        sb.AppendLine("    }");
+
+        AddStatements(method, sb);
     }
 
     private static void EmitPrimitiveTypeEntries(StringBuilder sb) {
@@ -100,12 +149,11 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        if (type == typeof(JsonElement?)) return JsonMetadataServices.CreateValueInfo<JsonElement?>(options, JsonMetadataServices.GetNullableConverter<JsonElement>(options));");
     }
 
-    private static void EmitObjectTypeInfo(StringBuilder sb, SchemaModel schema, List<SchemaModel> allSchemas) {
+    private static void AddObjectTypeInfo(
+        ClassDefinition resolver, SchemaModel schema, List<SchemaModel> allSchemas) {
         var typeName = NamingHelper.ToPascalCase(schema.Name);
-
-        sb.AppendLine();
-        sb.AppendLine($"    private static JsonTypeInfo<{typeName}> Create{typeName}TypeInfo(JsonSerializerOptions options)");
-        sb.AppendLine("    {");
+        var method = CreateTypeInfoMethod(resolver, typeName);
+        var sb = new StringBuilder();
 
         if (schema.Properties.Count == 0) {
             sb.AppendLine($"        return JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
@@ -148,7 +196,7 @@ internal static class JsonTypeInfoEmitter {
             sb.AppendLine("        });");
         }
 
-        sb.AppendLine("    }");
+        AddStatements(method, sb);
     }
 
     private static void EmitPropertyInfo(StringBuilder sb, PropertyModel prop, string declaringTypeName,
@@ -186,14 +234,32 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("                },");
     }
 
-    private static void EmitEnumTypeInfo(StringBuilder sb, SchemaModel schema) {
+    private static void AddEnumTypeInfo(ClassDefinition resolver, SchemaModel schema) {
         var typeName = NamingHelper.ToPascalCase(schema.Name);
+        var method = CreateTypeInfoMethod(resolver, typeName);
+        var sb = new StringBuilder();
 
-        sb.AppendLine();
-        sb.AppendLine($"    private static JsonTypeInfo<{typeName}> Create{typeName}TypeInfo(JsonSerializerOptions options)");
-        sb.AppendLine("    {");
         sb.AppendLine($"        return JsonMetadataServices.CreateValueInfo<{typeName}>(options, JsonMetadataServices.GetEnumConverter<{typeName}>(options));");
-        sb.AppendLine("    }");
+
+        AddStatements(method, sb);
+    }
+
+    /// <summary>
+    /// The <c>Create{Type}TypeInfo(JsonSerializerOptions options)</c> factory every schema gets, of
+    /// whichever kind.
+    /// </summary>
+    private static MethodDefinition CreateTypeInfoMethod(ClassDefinition resolver, string typeName) {
+        var method = resolver.AddMethod("Create" + typeName + "TypeInfo");
+
+        method.Modifiers |= ComponentModifier.Private | ComponentModifier.Static;
+        method.SetReturnType(new GenericTypeDefinition(
+            TypeDefinitionEnum.ClassDefinition,
+            "System.Text.Json.Serialization.Metadata",
+            "JsonTypeInfo",
+            new[] { TypeDefinition.Get("", typeName) }));
+        method.AddParameter(TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"), "options");
+
+        return method;
     }
 
     /// <summary>

@@ -39,7 +39,7 @@ public class ServiceInterfaceEmitterTests {
             }
         };
 
-        var result = ServiceInterfaceEmitter.Emit(service, "Test.Api");
+        var result = EmitterHarness.ServiceInterface(service);
 
         Assert.Contains("namespace Test.Api.Services\n{", result);
         Assert.Contains("public partial interface IPetService", result);
@@ -65,7 +65,7 @@ public class ServiceInterfaceEmitterTests {
             }
         };
 
-        var result = ServiceInterfaceEmitter.Emit(service, "Test.Api");
+        var result = EmitterHarness.ServiceInterface(service);
 
         Assert.Contains("Task DeletePet(string petId);", result);
     }
@@ -96,7 +96,7 @@ public class ServiceInterfaceEmitterTests {
             }
         };
 
-        var result = ServiceInterfaceEmitter.Emit(service, "Test.Api");
+        var result = EmitterHarness.ServiceInterface(service);
 
         Assert.Contains("Task<List<Pet>> ListPets(int? limit);", result);
     }
@@ -121,7 +121,7 @@ public class ServiceInterfaceEmitterTests {
             }
         };
 
-        var result = ServiceInterfaceEmitter.Emit(service, "Test.Api");
+        var result = EmitterHarness.ServiceInterface(service);
 
         Assert.Contains("Task<Profile> GetProfile(string userId);", result);
         Assert.DoesNotContain("Authorization", result.Split('\n')
@@ -145,8 +145,8 @@ public class ServiceInterfaceEmitterTests {
             }
         };
 
-        var result = ServiceInterfaceEmitter.Emit(service, "Test.Api");
+        var result = EmitterHarness.ServiceInterface(service);
 
-        Assert.Contains("/// <summary>GET /pets", result);
+        Assert.Contains("/// GET /pets", result);
     }
 }

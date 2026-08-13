@@ -45,7 +45,7 @@ public class GeneratedCodeCompilesTests {
 
         Assert.Contains("public partial record Widget(", record);
         Assert.Contains("List<Part>? Parts = default", record);
-        Assert.Contains("Dictionary<string, string>? Labels = default", record);
+        Assert.Contains("Dictionary<string,string>? Labels = default", record);
     }
 
     /// <summary>
@@ -251,7 +251,7 @@ public class GeneratedCodeCompilesTests {
 
         var attribute = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public partial class RateLimitAttribute : System.Attribute", attribute);
+        Assert.Contains("public partial class RateLimitAttribute : Attribute", attribute);
         Assert.Contains("public int MaxRequests { get; set; } = 100;", attribute);
         Assert.Contains("public string Window { get; set; } = \"minute\";", attribute);
         Assert.Contains("public bool Enabled { get; set; } = true;", attribute);

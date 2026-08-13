@@ -27,8 +27,11 @@ public class GeneratorConfigurationTests {
                 buildProperties: new Dictionary<string, string> { ["RootNamespace"] = "Contoso.Api" })
             .AssertNoErrors();
 
-        Assert.Contains("namespace Contoso.Api.Models\n{", result.SourceContaining("petstore.g.cs"));
-        Assert.Contains("namespace Contoso.Api.Services\n{", result.SourceContaining("petstore.g.cs"));
+        var generated = result.SourceContaining("petstore.g.cs");
+
+        Assert.Contains("namespace Contoso.Api\n{", generated);
+        Assert.Contains("    namespace Models\n", generated);
+        Assert.Contains("    namespace Services\n", generated);
         Assert.Contains("namespace Contoso.Api.Generated", result.SourceContaining("PetController_ListPets"));
     }
 
@@ -46,8 +49,8 @@ public class GeneratorConfigurationTests {
                 })
             .AssertNoErrors();
 
-        Assert.Contains("namespace Contoso.Petstore.Generated.Models\n{", result.SourceContaining("petstore.g.cs"));
-        Assert.Contains("namespace Contoso.Petstore.Generated.Services\n{", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("    namespace Models\n", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("    namespace Services\n", result.SourceContaining("petstore.g.cs"));
         Assert.DoesNotContain("Contoso.Api", result.SourceContaining("petstore.g.cs"));
     }
 
@@ -66,7 +69,7 @@ public class GeneratorConfigurationTests {
                 })
             .AssertNoErrors();
 
-        Assert.Contains("namespace Contoso.Api.Models\n{", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("    namespace Models\n", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -98,7 +101,7 @@ public class GeneratorConfigurationTests {
     public void GeneratedRecordsAreExcludedFromCoverageByDefault() {
         var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
 
-        Assert.Contains("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]",
+        Assert.Contains("[ExcludeFromCodeCoverage]",
             result.SourceContaining("petstore.g.cs"));
     }
 
@@ -114,7 +117,7 @@ public class GeneratorConfigurationTests {
     public void TheGeneratedJsonResolverIsExcludedFromCoverageByDefault() {
         var result = OpenApiGenerator.Run(Specs.Minimal).AssertNoErrors();
 
-        Assert.Contains("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]",
+        Assert.Contains("[ExcludeFromCodeCoverage]",
             result.SourceContaining("petstore.g.cs"));
     }
 
@@ -129,7 +132,7 @@ public class GeneratorConfigurationTests {
     public void GeneratedFilterAttributesAreExcludedFromCoverageByDefault() {
         var result = OpenApiGenerator.Run(Specs.FilterTypes).AssertNoErrors();
 
-        Assert.Contains("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]",
+        Assert.Contains("[ExcludeFromCodeCoverage]",
             result.SourceContaining("petstore.g.cs"));
     }
 
