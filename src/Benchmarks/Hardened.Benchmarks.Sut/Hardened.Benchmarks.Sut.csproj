@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The Hardened application under benchmark: controllers, models and services, compiled with
+      the same source generators a real Hardened app uses. Nothing here is benchmark-aware — the
+      harness drives it from the outside, so what gets measured is generated code identical to
+      what ships.
+
+      Kept separate from the ASP.NET SUT because MVC discovers controllers by the *Controller
+      naming convention, and these types follow that convention too. In one assembly, MVC's
+      ApplicationPartManager would try to route Hardened's controllers and the baseline would
+      stop being a baseline.
+    -->
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- The generated routing table and per-handler classes are worth reading when a
+             benchmark result is surprising. -->
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Benchmarks.Contracts\Hardened.Benchmarks.Contracts.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.AspNetCore.Runtime\Hardened.Web.AspNetCore.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Templates.SourceGenerator\Hardened.Templates.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>

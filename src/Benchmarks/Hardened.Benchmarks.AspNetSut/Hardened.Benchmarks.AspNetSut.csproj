@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The ASP.NET Core baseline: the same five scenarios written the way an ASP.NET developer
+      would write them, as MVC controllers and as minimal API endpoints.
+
+      It references the shared contracts and nothing else. If a Hardened reference ever appears
+      here, the baseline has stopped being independent and the comparison is compromised.
+
+      FrameworkReference rather than Sdk.Web on purpose: this pulls in MVC, routing and the HTTP
+      abstractions as libraries without bringing a server or a host. Nothing in the benchmark
+      ever starts Kestrel — the pipelines are invoked as RequestDelegates over a hand-built
+      HttpContext.
+    -->
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Benchmarks.Contracts\Hardened.Benchmarks.Contracts.csproj"/>
+    </ItemGroup>
+
+</Project>

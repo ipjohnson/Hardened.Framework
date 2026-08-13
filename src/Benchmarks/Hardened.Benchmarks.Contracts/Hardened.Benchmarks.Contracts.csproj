@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The request/response shapes shared by every implementation under benchmark.
+
+      This project exists so the Hardened SUT and the ASP.NET SUT can serialize byte-identical
+      payloads without either one referencing the other. If the models lived in the Hardened
+      SUT, the ASP.NET baseline would have to reference Hardened to compile, and it would stop
+      being a clean baseline.
+
+      It therefore has no dependencies, and must keep it that way.
+    -->
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+</Project>

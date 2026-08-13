@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The BenchmarkDotNet harness.
+
+      Not named *.Tests on purpose: src/Directory.Build.props injects coverlet.collector into
+      every project whose name ends in .Tests, and this would also then be swept up by
+      `dotnet test`. A benchmark run is not a test run and should not be either of those things.
+
+      FrameworkReference rather than Sdk.Web for the same reason as the ASP.NET SUT — MVC,
+      routing and the HTTP abstractions are used as libraries. No server is ever started.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- BenchmarkDotNet refuses to run a non-optimized build, and warns on a debugger being
+             attached. Both are what you want; this just makes Release explicit. -->
+        <Optimize Condition="'$(Configuration)' == 'Release'">true</Optimize>
+
+        <!-- BenchmarkDotNet emits its own generated runner per benchmark; the analyzer that
+             flags unused parameters fires on those signatures rather than on our code. -->
+        <NoWarn>$(NoWarn);CA1822</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="BenchmarkDotNet" Version="0.14.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Benchmarks.Contracts\Hardened.Benchmarks.Contracts.csproj"/>
+        <ProjectReference Include="..\Hardened.Benchmarks.Sut\Hardened.Benchmarks.Sut.csproj"/>
+        <ProjectReference Include="..\Hardened.Benchmarks.AspNetSut\Hardened.Benchmarks.AspNetSut.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.AspNetCore.Runtime\Hardened.Web.AspNetCore.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
+    </ItemGroup>
+
+</Project>
