@@ -59,6 +59,16 @@
                  Exclude="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\obj\**\*;$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\bin\**\*">
             <Link>ValidationModules\%(RecursiveDir)%(FileName)%(Extension)</Link>
         </Compile>
+
+        <!--
+            RuleText lives in ValidationModules.Runtime and is linked into Impl's own build rather
+            than duplicated, because a rules class's predicate has to render to the same string in
+            the generated validator and in DescribedValidator<T>. Compiling Impl in means inheriting
+            that link: the glob above reaches only files under the Impl project, so without this
+            RulesFrontEnd has no ValidationModules.Rules namespace to bind against.
+        -->
+        <Compile Include="$(ValidationModulesRoot)\src\ValidationModules.Runtime\Rules\RuleText.cs"
+                 Link="ValidationModules\FrontEnds\RuleText.cs"/>
     </ItemGroup>
 
     <!-- Shared entry point discovery, so registrations land in the module the app already has. -->
