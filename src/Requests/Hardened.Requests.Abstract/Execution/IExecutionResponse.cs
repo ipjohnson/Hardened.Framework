@@ -10,6 +10,8 @@ public interface IExecutionResponse {
 
     object? ResponseValue { get; set; }
 
+    string? TemplateName { get; set; }
+
     int? Status { get; set; }
 
     bool ShouldCompress { get; set; }

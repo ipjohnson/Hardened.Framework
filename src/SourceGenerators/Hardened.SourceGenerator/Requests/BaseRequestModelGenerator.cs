@@ -220,6 +220,13 @@ public abstract class BaseRequestModelGenerator {
     protected virtual ResponseInformationModel GetResponseInformation(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration) {
+        var templateAttribute = context.Node.GetAttribute("Template");
+        var template = "";
+
+        if (templateAttribute is { ArgumentList.Arguments.Count: > 0 }) {
+            template = templateAttribute.ArgumentList.Arguments[0].ToString().Trim('"');
+        }
+
         var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
 
         var isAsync = false;
@@ -251,6 +258,7 @@ public abstract class BaseRequestModelGenerator {
             IsAsync = isAsync,
             IsAsyncEnumerable = isAsyncEnumerable,
             AsyncEnumerableItemType = asyncEnumerableItemType,
+            TemplateName = template,
             ReturnType = returnType,
             RawResponseContentType = rawResponse
         };
