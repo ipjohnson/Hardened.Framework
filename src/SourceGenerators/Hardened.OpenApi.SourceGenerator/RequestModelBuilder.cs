@@ -50,10 +50,36 @@ internal static class RequestModelBuilder {
                 filters.AddRange(handlerInfo.ClassFilters);
 
                 // Find method-level filters matching this handler's method
+                var responseInformation = model.ResponseInformation;
+
                 foreach (var methodFilter in handlerInfo.MethodFilters) {
                     if (string.Equals(methodFilter.MethodName, model.HandlerMethod,
                             StringComparison.Ordinal)) {
-                        filters.AddRange(methodFilter.Filters);
+                        foreach (var attribute in methodFilter.Filters) {
+                            var templateName = TemplateNameFrom(attribute);
+
+                            if (templateName != null) {
+                                // RawResponseContentType is cleared for the same reason
+                                // RawContentTypeFor refuses to set it for a spec-declared template:
+                                // ContextSerializationService checks DefaultOutput before it reaches
+                                // any serializer, so a text/html operation that also carries a raw
+                                // content type has its model handed to RawOutputHelper, which throws
+                                // on anything that is not string, byte[] or Stream.
+                                //
+                                // It has to happen here as well as there because the name can arrive
+                                // from either side, and BuildResponseInfo runs before this does -
+                                // at that point a spec with no x-hardened-template looks like an
+                                // ordinary text/html response.
+                                responseInformation = responseInformation with {
+                                    TemplateName = templateName,
+                                    RawResponseContentType = null
+                                };
+                            }
+                            else {
+                                filters.Add(attribute);
+                            }
+                        }
+
                         break;
                     }
                 }
@@ -64,7 +90,7 @@ internal static class RequestModelBuilder {
                     model.HandlerMethod,
                     model.InvokeHandlerType,
                     model.RequestParameterInformationList,
-                    model.ResponseInformation,
+                    responseInformation,
                     filters) {
                     // Carried across: this rebuilds the model to add [Handler] filters, and dropping
                     // it here leaves Parameters not implementing the interface its validator is
@@ -78,6 +104,43 @@ internal static class RequestModelBuilder {
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// The view name if this attribute is <c>[Template]</c>, otherwise null - in which case the
+    /// attribute is an ordinary filter.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>[Template]</c> is response information, not a filter, which is what
+    /// <c>BaseRequestModelGenerator</c> has always done for hand-written handlers and what
+    /// <c>TemplateAttribute</c>'s own documentation describes. Left in the filter list it would be
+    /// emitted into the handler's metadata array as though it were an <c>IExecutionFilter</c>, and
+    /// the name would never reach <c>Response.TemplateName</c>.
+    /// </para>
+    /// <para>
+    /// Putting it on the implementation rather than in the spec is the point: which view renders a
+    /// model is how the operation is fulfilled, not part of the contract it publishes. The spec
+    /// still says the response is text/html, which stays true whichever engine renders it. A spec
+    /// that does declare <c>x-hardened-template</c> is treated as the default, and this overrides
+    /// it - the implementation is the more specific statement.
+    /// </para>
+    /// </remarks>
+    private static string? TemplateNameFrom(AttributeModel attribute) {
+        var name = attribute.TypeDefinition.Name;
+
+        if (name != "TemplateAttribute" && name != "Template") {
+            return null;
+        }
+
+        // Arguments is the argument list's source text, so a string literal arrives quoted.
+        var argument = attribute.Arguments.Trim();
+
+        if (argument.Length == 0) {
+            return null;
+        }
+
+        return argument.Trim('"');
     }
 
     private static HandlerInfo? FindHandlerInfo(

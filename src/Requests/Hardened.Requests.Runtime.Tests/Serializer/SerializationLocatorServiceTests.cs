@@ -14,11 +14,12 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// </summary>
 public class SerializationLocatorServiceTests {
 
-    private static IResponseSerializer Response(bool canProcess, bool isDefault) {
+    private static IResponseSerializer Response(bool canProcess, bool isDefault, int order = 0) {
         var serializer = Substitute.For<IResponseSerializer>();
 
         serializer.CanProcessContext(Arg.Any<IExecutionContext>()).Returns(canProcess);
         serializer.IsDefaultSerializer.Returns(isDefault);
+        serializer.Order.Returns(order);
 
         return serializer;
     }
@@ -51,6 +52,58 @@ public class SerializationLocatorServiceTests {
             .FindResponseSerializer(Pipeline.Context());
 
         Assert.Same(claims, chosen);
+    }
+
+    /// <summary>
+    /// Order beats registration order. A serializer that asked to go first does, wherever it was
+    /// registered.
+    /// </summary>
+    /// <remarks>
+    /// This is the guarantee registration order could not give. Within a module DependencyModules
+    /// sorts registrations by implementation type name, so before <c>Order</c> existed the winner
+    /// of a contested response was decided by how two class names sorted alphabetically - and
+    /// renaming a class changed which one served the request.
+    /// </remarks>
+    [Fact]
+    public void ALowerOrderIsTestedFirstWhateverTheRegistrationOrder() {
+        var normal = Response(canProcess: true, isDefault: true, order: 0);
+        var ahead = Response(canProcess: true, isDefault: false, order: -1000);
+
+        var chosen = Locator(serializers: new[] { ahead, normal })
+            .FindResponseSerializer(Pipeline.Context());
+
+        Assert.Same(ahead, chosen);
+    }
+
+    /// <summary>
+    /// Order decides who is asked first, not who answers when nobody claims the context. A
+    /// specialist sitting ahead of JSON must not cost JSON its role as the fallback, which is what
+    /// answers <c>Accept: */*</c> and a request with no Accept header at all.
+    /// </summary>
+    [Fact]
+    public void OrderDoesNotOverrideTheDefaultSerializerFallback() {
+        var ahead = Response(canProcess: false, isDefault: false, order: -1000);
+        var fallback = Response(canProcess: false, isDefault: true, order: 0);
+
+        var chosen = Locator(serializers: new[] { ahead, fallback })
+            .FindResponseSerializer(Pipeline.Context());
+
+        Assert.Same(fallback, chosen);
+    }
+
+    /// <summary>
+    /// Serializers sharing an order keep the reverse-registration relationship, so an application's
+    /// own still beats the framework's. The sort has to be stable for that to hold.
+    /// </summary>
+    [Fact]
+    public void WithinOneOrderTheLaterRegistrationIsStillTestedFirst() {
+        var framework = Response(canProcess: true, isDefault: true);
+        var application = Response(canProcess: true, isDefault: false);
+
+        var chosen = Locator(serializers: new[] { framework, application })
+            .FindResponseSerializer(Pipeline.Context());
+
+        Assert.Same(application, chosen);
     }
 
     /// <summary>

@@ -224,6 +224,93 @@ public class RequestModelBuilderTests {
         Assert.Equal("text/html", BuildTemplated(null, "text/html").ResponseInformation.RawResponseContentType);
     }
 
+    // ── [Template] on the implementation ───────────────────────────────
+
+    private static AttributeModel TemplateAttribute(string name) =>
+        new(TypeDefinition.Get("Hardened.Requests.Abstract.Attributes", "TemplateAttribute"),
+            $"\"{name}\"", "");
+
+    private static RequestHandlerModel EnrichRobots(
+        string? specTemplate, string? contentType, params AttributeModel[] methodAttributes) {
+        var spec = SpecReturning(contentType);
+        spec.Services[0].Operations[0].TemplateName = specTemplate;
+
+        var models = RequestModelBuilder.BuildModels(
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+
+        var handlerInfo = new HandlerInfo(
+            TypeDefinition.Get("Test", "MetaServiceImpl"),
+            TypeDefinition.Get("Test.Api.Services", "IMetaService"),
+            new List<AttributeModel>(),
+            new List<HandlerMethodFilterInfo> {
+                new("Robots", methodAttributes.ToList())
+            });
+
+        return RequestModelBuilder.EnrichWithHandlerFilters(models, new List<HandlerInfo> { handlerInfo })
+            .Single();
+    }
+
+    /// <summary>
+    /// The view can be named on the implementation instead of in the spec. Which template renders a
+    /// model is how the operation is fulfilled, not part of the contract it publishes.
+    /// </summary>
+    [Fact]
+    public void EnrichWithHandlerFilters_TemplateAttribute_SetsTheTemplateName() {
+        Assert.Equal("Fortunes",
+            EnrichRobots(null, "text/html", TemplateAttribute("Fortunes")).ResponseInformation.TemplateName);
+    }
+
+    /// <summary>
+    /// And it does not land in the filter list. Left there it would be emitted into the handler's
+    /// metadata array as though it were an IExecutionFilter, and the name would reach nothing.
+    /// </summary>
+    [Fact]
+    public void EnrichWithHandlerFilters_TemplateAttribute_IsNotTreatedAsAFilter() {
+        Assert.Empty(EnrichRobots(null, "text/html", TemplateAttribute("Fortunes")).Filters);
+    }
+
+    /// <summary>Other method attributes are still filters.</summary>
+    [Fact]
+    public void EnrichWithHandlerFilters_TemplateAttribute_LeavesOtherAttributesAsFilters() {
+        var other = new AttributeModel(TypeDefinition.Get("Test", "AuditAttribute"), "", "");
+
+        var model = EnrichRobots(null, "text/html", TemplateAttribute("Fortunes"), other);
+
+        Assert.Equal("Fortunes", model.ResponseInformation.TemplateName);
+        Assert.Equal(new[] { other }, model.Filters);
+    }
+
+    /// <summary>
+    /// A templated operation must not also carry a raw content type.
+    /// <c>ContextSerializationService</c> checks <c>DefaultOutput</c> before any serializer, so the
+    /// raw writer would take the response first and hand the template's model to
+    /// <c>RawOutputHelper</c>, which throws on anything that is not string, byte[] or Stream. The
+    /// spec here says text/html, which is exactly the case that produced that failure.
+    /// </summary>
+    [Fact]
+    public void EnrichWithHandlerFilters_TemplateAttribute_ClearsTheRawContentType() {
+        var model = EnrichRobots(null, "text/html", TemplateAttribute("Fortunes"));
+
+        Assert.True(string.IsNullOrEmpty(model.ResponseInformation.RawResponseContentType));
+    }
+
+    /// <summary>
+    /// The implementation overrides <c>x-hardened-template</c>. The spec's value is a default, and
+    /// the implementation is the more specific statement about how the response is produced.
+    /// </summary>
+    [Fact]
+    public void EnrichWithHandlerFilters_TemplateAttribute_OverridesTheSpecExtension() {
+        Assert.Equal("FromAttribute",
+            EnrichRobots("FromSpec", "text/html", TemplateAttribute("FromAttribute"))
+                .ResponseInformation.TemplateName);
+    }
+
+    /// <summary>A spec-declared template still applies when the implementation says nothing.</summary>
+    [Fact]
+    public void EnrichWithHandlerFilters_NoTemplateAttribute_KeepsTheSpecExtension() {
+        Assert.Equal("FromSpec", EnrichRobots("FromSpec", "text/html").ResponseInformation.TemplateName);
+    }
+
     private static OpenApiSpecModel SpecReturning(string? contentType) =>
         new() {
             FileName = "content",

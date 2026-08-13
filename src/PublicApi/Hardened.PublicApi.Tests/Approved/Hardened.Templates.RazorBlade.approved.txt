@@ -37,7 +37,7 @@ namespace Hardened.Templates.RazorBlade
 }
 namespace Hardened.Templates.RazorBlade.Impl
 {
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
     public class RazorBladeTemplateEngine : Hardened.Requests.Abstract.Templates.ITemplateEngine
     {
         public RazorBladeTemplateEngine(System.Collections.Generic.IEnumerable<Hardened.Templates.RazorBlade.IRazorBladeTemplateSource> sources) { }

@@ -14,13 +14,8 @@ namespace Hardened.IntegrationTests.Benchmark.SUT;
 /// this fixture exists to prove.
 /// </remarks>
 [Handler]
-public class BenchmarkServiceImpl : IBenchmarkService {
-    private readonly BenchmarkData _data;
-
-    public BenchmarkServiceImpl(BenchmarkData data) {
-        _data = data;
-    }
-
+public class BenchmarkServiceImpl(BenchmarkData data) : IBenchmarkService {
+    
     public Task<HelloMessage> JsonSerialization() =>
         Task.FromResult(new HelloMessage("Hello, World!"));
 
@@ -28,26 +23,32 @@ public class BenchmarkServiceImpl : IBenchmarkService {
         Task.FromResult("Hello, World!");
 
     public Task<World> SingleQuery() =>
-        Task.FromResult(_data.Random());
+        Task.FromResult(data.Random());
 
     public Task<List<World>> MultipleQueries(string? queries) {
         var count = BenchmarkData.QueryCount(queries);
 
-        return Task.FromResult(Enumerable.Range(0, count).Select(_ => _data.Random()).ToList());
+        return Task.FromResult(Enumerable.Range(0, count).Select(_ => data.Random()).ToList());
     }
 
     public Task<List<World>> DatabaseUpdates(string? queries) {
         var count = BenchmarkData.QueryCount(queries);
 
-        return Task.FromResult(Enumerable.Range(0, count).Select(_ => _data.UpdateRandom()).ToList());
+        return Task.FromResult(Enumerable.Range(0, count).Select(_ => data.UpdateRandom()).ToList());
     }
 
     /// <summary>
     /// The benchmark adds one fortune at request time and sorts the whole set by message text, so
     /// the added row lands in the middle rather than at the end.
     /// </summary>
+    /// <remarks>
+    /// The view is named here rather than in the spec. The spec says this operation answers with
+    /// text/html, which is the contract; which template produces that HTML is how this
+    /// implementation chooses to fulfil it, and swapping engines should not edit the API document.
+    /// </remarks>
+    [Template("Fortunes")]
     public Task<FortunePage> Fortunes() {
-        var fortunes = _data.Fortunes
+        var fortunes = data.Fortunes
             .Append(new Fortune(0, "Additional fortune added at request time."))
             .OrderBy(fortune => fortune.Message, StringComparer.Ordinal)
             .ToList();

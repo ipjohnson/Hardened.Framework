@@ -10,22 +10,22 @@ namespace Hardened.Requests.Runtime.Templates;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Shaped as an <see cref="IResponseSerializer"/> because that is what it does, but
-/// <b>not resolved through the locator</b>. <c>ContextSerializationService</c> holds one of these
-/// directly and asks it before it asks the locator anything.
+/// <b>Registered with <c>Add</c>, not <c>Try</c>.</b> <c>Try</c> emits <c>TryAddSingleton</c>, which
+/// is first-wins for a service type - so on an interface with several implementations it means "do
+/// not register if anyone else already did". Registered that way this class never entered the
+/// container at all: the JSON serializer got there first, the locator only ever saw one candidate,
+/// and <c>/fortunes</c> answered with a JSON-serialized model while the template never ran. Nothing
+/// reported it, because a no-op registration is not an error.
 /// </para>
 /// <para>
-/// That is not a stylistic choice. The locator returns the first registered serializer that claims
-/// the context, over a list it reverses, so a template response whose request also carries
-/// <c>Accept: application/json</c> resolves on registration order - and both candidates are
-/// registered by this assembly's own module, so there is no ordering an application could pick to
-/// make the template win. Registering it as one serializer among the others produced exactly that:
-/// <c>/fortunes</c> returned a JSON-serialized model with a content type of application/json, and
-/// the template never ran.
+/// Ordered at <see cref="ResponseSerializerOrder.Template"/> so it is asked before JSON. A browser
+/// sends <c>Accept: text/html, ... , */*</c>, which the JSON serializer does not claim, but an API
+/// client asking for JSON against a templated route would otherwise get the model serialized.
+/// Ordering states the intent instead of leaving it to how two class names happen to sort.
 /// </para>
 /// </remarks>
-[SingletonService(Using = RegistrationType.Try)]
-public class TemplateResponseSerializer : ITemplateResponseSerializer {
+[SingletonService(Using = RegistrationType.Add)]
+public class TemplateResponseSerializer : IResponseSerializer {
     private readonly ITemplateEngine[] _engines;
 
     public TemplateResponseSerializer(IEnumerable<ITemplateEngine> engines) {
@@ -33,6 +33,15 @@ public class TemplateResponseSerializer : ITemplateResponseSerializer {
         // by the application should be tested before one the framework registered.
         _engines = engines.Reverse().ToArray();
     }
+
+    /// <summary>
+    /// Never the fallback. A response with no template name is not this serializer's business, and
+    /// claiming otherwise would answer every unmatched request with an exception about a template
+    /// name that was never set.
+    /// </summary>
+    public bool IsDefaultSerializer => false;
+
+    public int Order => (int)ResponseSerializerOrder.Template;
 
     public bool CanProcessContext(IExecutionContext context) {
         var templateName = context.Response.TemplateName;

@@ -16,6 +16,12 @@ public Task<FortunePage> GetFortunes() => _repository.LoadAsync();
 `[Template]` puts the name on `IExecutionResponse.TemplateName` before the handler runs.
 `TemplateResponseSerializer` picks it up and hands it to whichever `ITemplateEngine` claims it.
 
+This works on a hand-written handler and on the implementation of a spec-generated service
+interface. In the spec-first case the document declares the contract — that the operation answers
+with `text/html` — and the attribute names the view that produces it, so changing engines or
+templates does not edit the API description. A spec may also declare `x-hardened-template` as a
+default; the attribute overrides it.
+
 Templates are registered by name, because a name is what arrives at run time:
 
 ```csharp
@@ -45,11 +51,11 @@ Apply the module alongside the rest:
 public partial class Application { }
 ```
 
-Order does not matter. A response carrying a template name is dispatched by
-`ContextSerializationService` before the serializer locator is consulted at all, so a request that
-also sends `Accept: application/json` still renders. Registering multiple engines is the one place
-order counts: they are tested in reverse registration order, so an application's engine is asked
-before one a library registered.
+Module order does not matter. `TemplateResponseSerializer` declares
+`ResponseSerializerOrder.Template`, so the locator asks it before the JSON serializers wherever it
+was registered — a request sending `Accept: application/json` against a route that names a view
+still renders. Registering multiple engines is the one place order counts: they are tested in
+reverse registration order, so an application's engine is asked before one a library registered.
 
 ## Content type
 

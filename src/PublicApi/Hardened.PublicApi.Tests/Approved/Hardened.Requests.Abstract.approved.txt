@@ -377,6 +377,7 @@ namespace Hardened.Requests.Abstract.Serializer
     public interface IResponseSerializer
     {
         bool IsDefaultSerializer { get; }
+        int Order { get; }
         bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
@@ -396,6 +397,12 @@ namespace Hardened.Requests.Abstract.Serializer
         T ParseRequired<T>(string value, string valueName);
         T ParseWithDefault<T>(string value, string valueName, T defaultValue);
     }
+    public enum ResponseSerializerOrder
+    {
+        Template = -1000,
+        Specialized = -100,
+        Normal = 0,
+    }
 }
 namespace Hardened.Requests.Abstract.Templates
 {
@@ -403,11 +410,6 @@ namespace Hardened.Requests.Abstract.Templates
     {
         bool CanRender(string templateName);
         System.Threading.Tasks.Task RenderAsync(string templateName, object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
-    }
-    public interface ITemplateResponseSerializer
-    {
-        bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context);
-        System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
 }
 namespace Hardened.Requests.Abstract.Utilities

@@ -133,14 +133,51 @@ public class TemplateResponseSerializerTests {
     }
 
     /// <summary>
-    /// It is not an <c>IResponseSerializer</c>, so the locator cannot reach it at all - which is
-    /// the point. Routing template responses through the locator made <c>/fortunes</c> return a
-    /// JSON-serialized model, because a request carrying <c>Accept: application/json</c> and a
-    /// template name satisfies both candidates and the locator answers with whichever was
-    /// registered later. Both are registered by one module, so nothing could reorder them.
+    /// Never the fallback. A default serializer answers when nothing claims the context, and a
+    /// template serializer volunteering there would meet every unmatched request with an exception
+    /// about a template name that was never set.
     /// </summary>
     [Fact]
-    public void ItIsNotAnIResponseSerializer_SoTheLocatorCannotChooseItByAccident() {
-        Assert.False(typeof(IResponseSerializer).IsAssignableFrom(typeof(TemplateResponseSerializer)));
+    public void IsDefaultSerializer_IsFalse() {
+        Assert.False(new TemplateResponseSerializer(Array.Empty<ITemplateEngine>()).IsDefaultSerializer);
+    }
+
+    /// <summary>
+    /// Ordered ahead of JSON, so a contested response goes to the template rather than to whichever
+    /// implementation type name happened to sort later.
+    /// </summary>
+    /// <remarks>
+    /// Read through the interface, because <c>Order</c> is a default interface member: a serializer
+    /// that does not implement it has no such member on the concrete type at all. That is what makes
+    /// adding it non-breaking for every serializer already out there.
+    /// </remarks>
+    [Fact]
+    public void Order_IsAheadOfTheJsonSerializers() {
+        IResponseSerializer template = new TemplateResponseSerializer(Array.Empty<ITemplateEngine>());
+        IResponseSerializer json = new SystemTextJsonResponseSerializer(
+            Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration()));
+
+        Assert.True(template.Order < json.Order);
+        Assert.Equal((int)ResponseSerializerOrder.Normal, json.Order);
+    }
+
+    /// <summary>
+    /// The locator honours that order, so a request that satisfies both - <c>Accept:
+    /// application/json</c> against a route that names a view - resolves to the template. Passed in
+    /// the order that previously lost, to show the outcome no longer depends on it.
+    /// </summary>
+    [Fact]
+    public void TheLocatorPicksTheTemplateSerializerOverJson() {
+        var json = new SystemTextJsonResponseSerializer(
+            Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration()));
+
+        var template = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
+
+        var chosen = new SerializationLocatorService(
+                Array.Empty<IRequestDeserializer>(),
+                new IResponseSerializer[] { template, json })
+            .FindResponseSerializer(ContextFor("Fortunes"));
+
+        Assert.Same(template, chosen);
     }
 }

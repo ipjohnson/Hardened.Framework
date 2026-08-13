@@ -14,7 +14,18 @@ public class SerializationLocatorService : ISerializationLocatorService {
         IEnumerable<IResponseSerializer> responseSerializers) {
         // reverse lists so user registered serializers are tested first
         _requestDeserializers = requestDeserializers.Reverse().ToArray();
-        _responseSerializers = responseSerializers.Reverse().ToArray();
+
+        // Ordered ahead of that, because reverse-registration order alone is not something an
+        // application can steer: within a module DependencyModules sorts by implementation type
+        // name, so which serializer won a contested response came down to how two class names
+        // sorted. OrderBy is a stable sort, so serializers sharing an order keep the
+        // reverse-registration relationship and an application's own still beats the framework's.
+        //
+        // Sorted here rather than per request - this service is a singleton, so it happens once.
+        _responseSerializers = responseSerializers
+            .Reverse()
+            .OrderBy(serializer => serializer.Order)
+            .ToArray();
     }
 
     public IRequestDeserializer FindRequestDeserializer(IExecutionContext context) {

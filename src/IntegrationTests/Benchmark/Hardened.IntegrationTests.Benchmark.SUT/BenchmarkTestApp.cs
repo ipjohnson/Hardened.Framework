@@ -15,5 +15,4 @@ namespace Hardened.IntegrationTests.Benchmark.SUT;
 [HardenedModule]
 [HardenedWebModule]
 [RazorBladeTemplateLibrary]
-public partial class BenchmarkTestApp {
-}
+public partial class BenchmarkTestApp;

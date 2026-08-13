@@ -13,7 +13,17 @@ namespace Hardened.Templates.RazorBlade.Impl;
 /// application's compilation, so by the time this runs a template is an ordinary class and this is
 /// a dictionary lookup and a call.
 /// </remarks>
-[SingletonService(Using = RegistrationType.Try)]
+/// <remarks>
+/// <para>
+/// <c>Add</c> rather than <c>Try</c>, because <c>ITemplateEngine</c> is resolved as a set.
+/// <c>Try</c> emits <c>TryAddSingleton</c>, which is first-wins per service type, so registering
+/// that way would mean an application adding a second engine silently got only one of them - and
+/// which one would depend on registration order. It also made <c>ITemplateEngine</c>'s own
+/// contract - engines tested in order, so an application can register one for a subset of its
+/// views - describe something that could not happen.
+/// </para>
+/// </remarks>
+[SingletonService(Using = RegistrationType.Add)]
 public class RazorBladeTemplateEngine : ITemplateEngine {
     /// <summary>
     /// StreamWriter's parameterless UTF8 encoding writes a byte order mark, which lands in the
