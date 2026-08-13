@@ -27,16 +27,20 @@
         not re-abstracted here: only the request-pipeline adapter belongs in Hardened, which is
         ValidationFilter, its provider and [Validate].
 
-        A ProjectReference while the two repos move together. When it settles this becomes a
-        PackageReference and $(ValidationModulesRoot) goes away - the point of referencing a project
-        rather than globbing its sources is that the switch is one line either way.
+        The package unless a sibling checkout is there, which is the arrangement CSharpAuthor
+        already uses in this repository. Editing the two together keeps working with no flag to
+        remember, and a machine without the checkout - every CI runner - builds against what was
+        published rather than failing on a path that does not exist.
     -->
     <PropertyGroup>
         <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\ValidationModules</ValidationModulesRoot>
+        <ValidationModulesRuntimeProject>$(ValidationModulesRoot)\src\ValidationModules.Runtime\ValidationModules.Runtime.csproj</ValidationModulesRuntimeProject>
+        <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesRuntimeProject)')">true</UseLocalValidationModules>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="$(ValidationModulesRoot)\src\ValidationModules.Runtime\ValidationModules.Runtime.csproj"/>
+        <ProjectReference Condition="'$(UseLocalValidationModules)' == 'true'" Include="$(ValidationModulesRuntimeProject)"/>
+        <PackageReference Condition="'$(UseLocalValidationModules)' != 'true'" Include="ValidationModules.Runtime" Version="$(ValidationModulesVersion)"/>
     </ItemGroup>
 
 </Project>

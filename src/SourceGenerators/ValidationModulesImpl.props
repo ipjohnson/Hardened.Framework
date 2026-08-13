@@ -11,13 +11,20 @@
 
         No generator importing this may also ship ValidationModules.SourceGenerator: two generators
         reading the same attributes emit the same validators twice.
+
+        The package unless a sibling checkout is there, which is the arrangement CSharpAuthor
+        already uses in this repository. Both routes compile the same files - the package is
+        source-only and its build/*.targets globs them in behind
+        PackageValidationModulesIncludeSource, which is the switch that exists for exactly this.
     -->
     <PropertyGroup>
         <!-- This file sits in src/SourceGenerators, so four levels up is the workspace root. -->
         <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\ValidationModules</ValidationModulesRoot>
+        <ValidationModulesImplProject>$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\ValidationModules.SourceGenerator.Impl.csproj</ValidationModulesImplProject>
+        <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesImplProject)')">true</UseLocalValidationModules>
     </PropertyGroup>
 
-    <ItemGroup>
+    <ItemGroup Condition="'$(UseLocalValidationModules)' == 'true'">
         <Compile Include="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\**\*.cs"
                  Exclude="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\obj\**\*;$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\bin\**\*">
             <Link>ValidationModules\%(RecursiveDir)%(FileName)%(Extension)</Link>
@@ -26,12 +33,24 @@
         <!--
             RuleText lives in ValidationModules.Runtime and is linked into Impl's own build rather
             than duplicated, because a rules class's predicate has to render to the same string in
-            the generated validator and in DescribedValidator<T>. Compiling Impl in means inheriting
-            that link: the glob above reaches only files under the Impl project, so without this
-            RulesFrontEnd has no ValidationModules.Rules namespace to bind against.
+            the generated validator and in DescribedValidator<T>. Compiling the sources in directly
+            means inheriting that link: the glob above reaches only files under the Impl project.
+            The package needs no equivalent - it packs RuleText.cs under FrontEnds/ alongside
+            everything else, so the glob in its targets already has it.
         -->
         <Compile Include="$(ValidationModulesRoot)\src\ValidationModules.Runtime\Rules\RuleText.cs"
                  Link="ValidationModules\FrontEnds\RuleText.cs"/>
+    </ItemGroup>
+
+    <PropertyGroup Condition="'$(UseLocalValidationModules)' != 'true'">
+        <PackageValidationModulesIncludeSource>true</PackageValidationModulesIncludeSource>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(UseLocalValidationModules)' != 'true'">
+        <PackageReference Include="ValidationModules.SourceGenerator.Impl" Version="$(ValidationModulesVersion)">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
     <!--

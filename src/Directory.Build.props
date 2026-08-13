@@ -23,6 +23,22 @@
     </PropertyGroup>
 
     <!--
+      The ValidationModules version, in one place, because two projects consume it in two
+      different shapes - Hardened.Requests.Runtime binds against the runtime assembly, and the
+      generators compile the source-only Impl package in. Those must be the same version: the
+      generators emit calls against contracts the runtime supplies, and a version skew between
+      them is a compile error in generated code, which reads as a generator defect.
+
+      Floating on the ci prerelease line, matching how Hardened.Amz consumes this repository's
+      own packages. The two move together and every ci build is packed from a green main, so
+      this tracks a published artifact rather than whatever a sibling working tree happens to
+      hold.
+    -->
+    <PropertyGroup>
+        <ValidationModulesVersion Condition="'$(ValidationModulesVersion)' == ''">0.1.0-ci.*</ValidationModulesVersion>
+    </PropertyGroup>
+
+    <!--
       The solution builds warning-free. Escalating warnings to errors is what keeps it that
       way; without it the count drifts back up one commit at a time.
 
