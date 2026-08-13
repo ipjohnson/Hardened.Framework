@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Linq;
-using System.Reflection;
 using Hardened.OpenApi.SourceGenerator.Emitters;
 using Hardened.OpenApi.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
@@ -11,36 +10,31 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.OpenApi.SourceGenerator;
 
+/// <summary>
+/// Turns normalised OpenAPI models into handlers and a routing table.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>This generator does not read yaml.</b> <c>Hardened.OpenApi.BuildTask</c> parses each spec
+/// before the compiler runs and writes a normalised model into <c>obj/</c>, which arrives here as an
+/// <c>AdditionalFile</c>. That is why there is no Microsoft.OpenApi, no SharpYaml, no embedded
+/// dependency assemblies, no <c>AssemblyResolve</c> hook and no RS1035 suppression - an analyzer is
+/// not allowed to touch the file system, and none of this needs to.
+/// </para>
+/// <para>
+/// What stays here is what needs the semantic model: handler classes, which are matched against
+/// <c>[Handler]</c> declarations, and the routing table, which is anchored on the entry point.
+/// Everything else is a pure spec-to-C# transformation and belongs in the task.
+/// </para>
+/// </remarks>
 [Generator]
 public class OpenApiSourceGenerator : IIncrementalGenerator {
-    private static readonly Dictionary<string, Assembly> _embeddedAssemblies = new();
-
-    static OpenApiSourceGenerator() {
-        // Some Roslyn hosts (Rider, older VS) don't resolve co-located analyzer
-        // dependencies. Pre-load all embedded dependencies so they share a single
-        // loading context and avoid type-identity mismatches.
-        var generatorAssembly = typeof(OpenApiSourceGenerator).Assembly;
-        foreach (var dllName in new[] { "Microsoft.OpenApi", "Microsoft.OpenApi.Readers", "SharpYaml" }) {
-            using var stream = generatorAssembly.GetManifestResourceStream(dllName + ".dll");
-            if (stream == null) continue;
-            var bytes = new byte[stream.Length];
-            stream.Read(bytes, 0, bytes.Length);
-#pragma warning disable RS1035 // Load embedded dependency DLLs for hosts that can't resolve co-located assemblies
-            _embeddedAssemblies[dllName] = Assembly.Load(bytes);
-#pragma warning restore RS1035
-        }
-
-        AppDomain.CurrentDomain.AssemblyResolve += (_, args) => {
-            var name = new AssemblyName(args.Name).Name;
-            return _embeddedAssemblies.TryGetValue(name!, out var asm) ? asm : null;
-        };
-    }
 
     public void Initialize(IncrementalGeneratorInitializationContext context) {
-        // Parse AdditionalTexts, keeping both successes and errors for diagnostics
+        // Read the models the build task wrote, keeping both successes and errors for diagnostics
         var parseResults = context.AdditionalTextsProvider
-            .Where(IsOpenApiFile)
-            .Select(ParseOpenApiFile);
+            .Where(IsSpecModelFile)
+            .Select(ReadSpecModel);
 
         var openApiFiles = parseResults
             .Where(r => r.Model != null)
@@ -168,24 +162,27 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
                 (ctx, pair) => OpenApiRoutingTableGenerator.GenerateRoute(ctx, pair.Left.Left, pair.Left.Right!, pair.Right)));
     }
 
-    private static bool IsOpenApiFile(AdditionalText text) {
-        var path = text.Path;
-        return path.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) ||
-               path.EndsWith(".yml", StringComparison.OrdinalIgnoreCase) ||
-               path.EndsWith(".json", StringComparison.OrdinalIgnoreCase);
-    }
+    /// <summary>
+    /// Matches only what the build task writes.
+    /// </summary>
+    /// <remarks>
+    /// This used to match <c>.yaml</c>, <c>.yml</c> and <c>.json</c>, which meant every unrelated
+    /// AdditionalFile in a project - an editorconfig fragment, a settings file - was handed to the
+    /// OpenAPI reader and reported as a parse failure. The suffix is ours, so nothing else claims it.
+    /// </remarks>
+    private static bool IsSpecModelFile(AdditionalText text) =>
+        text.Path.EndsWith(SpecModelSuffix, StringComparison.OrdinalIgnoreCase);
 
-    private static (OpenApiSpecModel? Model, string? Error) ParseOpenApiFile(AdditionalText text, CancellationToken cancellationToken) {
+    private const string SpecModelSuffix = ".openapi-model.txt";
+
+    private static (OpenApiSpecModel? Model, string? Error) ReadSpecModel(AdditionalText text, CancellationToken cancellationToken) {
         var content = text.GetText(cancellationToken)?.ToString();
         if (string.IsNullOrEmpty(content)) {
             return (null, $"Empty content for {text.Path}");
         }
 
-        var fileName = System.IO.Path.GetFileNameWithoutExtension(text.Path);
-
         try {
-            var model = OpenApiSpecParser.Parse(content!, fileName, cancellationToken);
-            return model != null ? (model, null) : (null, $"Parser returned null for {text.Path}");
+            return (SpecModelSerializer.Read(content!), null);
         } catch (Exception ex) {
             return (null, $"{text.Path}: {ex.GetType().Name}: {ex.Message}");
         }

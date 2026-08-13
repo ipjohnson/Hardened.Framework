@@ -92,8 +92,10 @@ public class MultipleSpecificationTests {
 
         Assert.Contains("Total AdditionalTexts: 2", diagnosticFile);
         Assert.Contains("OpenAPI files parsed: 2", diagnosticFile);
-        Assert.Contains("pets.yaml", diagnosticFile);
-        Assert.Contains("stores.yaml", diagnosticFile);
+
+        // The paths are the models the build task wrote, not the specs it read from.
+        Assert.Contains("pets.openapi-model.txt", diagnosticFile);
+        Assert.Contains("stores.openapi-model.txt", diagnosticFile);
     }
 
     /// <summary>
