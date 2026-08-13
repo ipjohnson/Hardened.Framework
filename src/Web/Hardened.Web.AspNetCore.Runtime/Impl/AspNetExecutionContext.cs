@@ -177,7 +177,6 @@ public class AspNetExecutionResponse : IExecutionResponse {
         return new AspNetExecutionResponse(_httpResponse) {
             _status = _status,
             ResponseValue = ResponseValue,
-            TemplateName = TemplateName,
             ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize,
@@ -190,8 +189,6 @@ public class AspNetExecutionResponse : IExecutionResponse {
     }
 
     public object? ResponseValue { get; set; }
-
-    public string? TemplateName { get; set; }
 
     /// <summary>
     /// Null while the status is still undecided; otherwise what will be, or has been, sent.

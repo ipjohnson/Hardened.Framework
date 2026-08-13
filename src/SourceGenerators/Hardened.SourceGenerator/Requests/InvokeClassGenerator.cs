@@ -51,15 +51,9 @@ public static class InvokeClassGenerator {
     }
 
     private static void CreateConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
-        var templateName = handlerModel.ResponseInformation.TemplateName;
-
         IOutputComponent defaultOutput = Null();
 
-        if (!string.IsNullOrEmpty(templateName)) {
-            defaultOutput = Invoke(KnownTypes.Templates.DefaultOutputFuncHelper, "GetTemplateOut",
-                "serviceProvider", QuoteString(templateName!));
-        }
-        else if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.RawResponseContentType)) {
+        if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.RawResponseContentType)) {
             var contentType = handlerModel.ResponseInformation.RawResponseContentType!;
 
             if (!contentType.StartsWith("\"")) {

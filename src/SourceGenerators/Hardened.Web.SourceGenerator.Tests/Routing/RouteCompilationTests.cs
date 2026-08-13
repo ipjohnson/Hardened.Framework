@@ -482,7 +482,6 @@ public class RouteCompilationTests {
     [InlineData("[CacheControl(Type = global::Hardened.Web.Runtime.CacheControl.CacheControlEnum.NoStore)]")]
     [InlineData("[RawResponse]")]
     [InlineData("[RawResponse(\"text/csv\")]")]
-    [InlineData("[Template(\"home\")]")]
     public void EveryHandlerOptionAttributeCompiles(string attribute) {
         CompileApplication($$"""
             public class OptionController {
@@ -493,22 +492,6 @@ public class RouteCompilationTests {
             """);
     }
 
-    /// <summary>
-    /// <c>[Template]</c> and <c>[CacheControl]</c> together. One replaces the default output
-    /// function and the other travels as metadata, so they are emitted into different constructor
-    /// arguments of the same handler.
-    /// </summary>
-    [Fact]
-    public void ATemplateHandlerCarryingCacheControlCompiles() {
-        CompileApplication("""
-            public class HomeController {
-                [Get("/home")]
-                [Template("home")]
-                [CacheControl(MaxAge = 3600)]
-                public string Home() => "home";
-            }
-            """);
-    }
 
     /// <summary>
     /// <c>[CacheControl]</c> declared on the controller rather than the handler. Class-level
@@ -530,8 +513,8 @@ public class RouteCompilationTests {
     }
 
     /// <summary>
-    /// An attribute the generator has never heard of. Anything that is not a verb,
-    /// <c>[Template]</c> or <c>[RawResponse]</c> is treated as a filter attribute and copied into
+    /// An attribute the generator has never heard of. Anything that is not a verb or
+    /// <c>[RawResponse]</c> is treated as a filter attribute and copied into
     /// the handler's metadata verbatim — which means an ordinary framework attribute on a handler
     /// has to survive the trip into a file carrying none of the consumer's usings.
     /// </summary>

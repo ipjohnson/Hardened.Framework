@@ -101,17 +101,6 @@ public static class KnownTypes {
                 }
             }
 
-            public static class Templates {
-                public const string Abstract = "Hardened.Templates.Abstract";
-
-                public static class Runtime {
-                    public const string DependencyInjection = "Hardened.Templates.Runtime.DependencyInjection";
-
-                    public const string Impl = "Hardened.Templates.Runtime.Impl";
-
-                    public const string Value = "Hardened.Templates.Runtime";
-                }
-            }
         }
     }
 
@@ -299,63 +288,6 @@ public static class KnownTypes {
 
         public static ITypeDefinition HardenedLoggingBuilder =
             TypeDefinition.Get(Namespace.Hardened.Shared.Runtime.Logging, "HardenedLoggingBuilder");
-    }
-
-    public static class Templates {
-        public static ITypeDefinition ITemplateExecutionService { get; } =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract,
-                "ITemplateExecutionService");
-
-        public static ITypeDefinition ITemplateOutputWriter { get; } =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract,
-                "ITemplateOutputWriter");
-
-        public static ITypeDefinition ITemplateExecutionHandler { get; } =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract,
-                "ITemplateExecutionHandler");
-
-        public static ITypeDefinition ITemplateExecutionContext { get; } =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract,
-                "ITemplateExecutionContext");
-
-        public static ITypeDefinition IInternalTemplateServices { get; } =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract,
-                "IInternalTemplateServices");
-
-        public static ITypeDefinition ITemplateExecutionHandlerProvider { get; } =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract,
-                "ITemplateExecutionHandlerProvider");
-
-        public static ITypeDefinition IStringEscapeService { get; } =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract,
-                "IStringEscapeService");
-
-        public static ITypeDefinition DefaultOutputFuncHelper { get; } =
-            TypeDefinition.Get(Namespace.Hardened.Templates.Runtime.Impl, "DefaultOutputFuncHelper");
-
-        public static ITypeDefinition ITemplateHelperProvider { get; } =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract,
-                "ITemplateHelperProvider");
-
-        public static ITypeDefinition TemplateExecutionContext { get; } =
-            TypeDefinition.Get(Namespace.Hardened.Templates.Runtime.Impl, "TemplateExecutionContext");
-
-        public static ITypeDefinition TemplateHelperFactory { get; } =
-            TypeDefinition.Get(Namespace.Hardened.Templates.Abstract, "TemplateHelperFactory");
-
-
-        public static ITypeDefinition TemplateExecutionService { get; } =
-            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Templates.Abstract,
-                "ITemplateExecutionService");
-
-        public static ITypeDefinition TemplateExecutionFunction { get; } =
-            TypeDefinition.Get(Namespace.Hardened.Templates.Abstract, "TemplateExecutionFunction");
-
-        public static ITypeDefinition TemplateHelperAttribute { get; } =
-            TypeDefinition.Get(Namespace.Hardened.Templates.Abstract, "TemplateHelperAttribute");
-
-        public static ITypeDefinition DefaultHelpers { get; } =
-            TypeDefinition.Get("Hardened.Templates.Runtime.Helpers", "DefaultHelpers");
     }
 
     public class Web {

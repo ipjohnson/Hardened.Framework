@@ -16,13 +16,10 @@ Hardened uses C# source generators to wire up dependency injection, request rout
 | `Hardened.Web.Runtime` | Web routing: `[Get]`, `[Post]`, `[Put]`, `[Delete]`, `[Patch]`, `[BasePath]` |
 | `Hardened.Web.AspNetCore.Runtime` | ASP.NET Core integration bridge |
 | `Hardened.Web.Testing` | `ITestWebApp`, `TestWebRequest`, `TestWebResponse` |
-| `Hardened.Templates.Abstract` | Template abstractions: `[TemplatePackage]`, `[TemplateHelper]` |
-| `Hardened.Templates.Runtime` | Mustache-style template engine |
 | `Hardened.SourceGenerator` | Shared generator source library (not referenced directly) |
 | `Hardened.DependencyModules.SourceGenerator` | Module wiring and DI source generator |
 | `Hardened.Web.SourceGenerator` | Web routing source generator |
 | `Hardened.Library.SourceGenerator` | Library/module source generator |
-| `Hardened.Templates.SourceGenerator` | Template compilation source generator |
 | `Hardened.Console.SourceGenerator` | Console application source generator |
 
 ## Quick Start

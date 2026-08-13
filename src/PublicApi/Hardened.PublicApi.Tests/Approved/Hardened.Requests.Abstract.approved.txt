@@ -31,11 +31,6 @@ namespace Hardened.Requests.Abstract.Attributes
     {
         public RawResponseAttribute(string contentType = "text/plain") { }
     }
-    public class TemplateAttribute : System.Attribute
-    {
-        public TemplateAttribute(string templateName) { }
-        public string TemplateName { get; }
-    }
 }
 namespace Hardened.Requests.Abstract.Authorization
 {
@@ -168,7 +163,6 @@ namespace Hardened.Requests.Abstract.Execution
         bool ShouldCompress { get; set; }
         bool ShouldSerialize { get; set; }
         int? Status { get; set; }
-        string? TemplateName { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null);
     }
     public interface IFunctionHandlerProvider

@@ -24,7 +24,6 @@
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
-        <ProjectReference Include="..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj"/>
         <ProjectReference Include="..\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
     </ItemGroup>
 

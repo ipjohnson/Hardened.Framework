@@ -4,8 +4,6 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.SourceGeneration.Testing;
-using Hardened.Templates.Abstract;
-using Hardened.Templates.Runtime.Impl;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.CodeAnalysis;
@@ -34,8 +32,7 @@ internal sealed class GeneratedRoutingTable {
     /// </summary>
     internal static readonly Type[] Anchors = [
         typeof(GetAttribute),               // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),          // Hardened.Requests.Abstract
-        typeof(DefaultOutputFuncHelper)     // Hardened.Templates.Runtime, for [Template]
+        typeof(FromBodyAttribute)           // Hardened.Requests.Abstract
     ];
 
     /// <summary>
@@ -51,22 +48,14 @@ internal sealed class GeneratedRoutingTable {
     private GeneratedRoutingTable(
         GeneratorResult result,
         object routingTable,
-        MethodInfo method,
-        ITemplateExecutionService templates) {
+        MethodInfo method) {
         Result = result;
         _routingTable = routingTable;
         _getExecutionRequestHandler = method;
-        Templates = templates;
     }
 
     /// <summary>Everything the generator emitted, for tests that also assert on the source.</summary>
     public GeneratorResult Result { get; }
-
-    /// <summary>
-    /// The template service the generated handlers were constructed against. A <c>[Template]</c>
-    /// handler looks its template up when it is built, so this records that it did.
-    /// </summary>
-    public ITemplateExecutionService Templates { get; }
 
     /// <summary>
     /// Generates, compiles, loads and constructs the routing table for <paramref name="source"/>.
@@ -111,16 +100,11 @@ internal sealed class GeneratedRoutingTable {
             "route table. That happens when the source has no [HardenedModule] entry point. " +
             $"Generated: {string.Join(", ", result.GeneratedSources.Keys)}");
 
-        var templates = Substitute.For<ITemplateExecutionService>();
-
-        templates.FindTemplateExecutionFunction(Arg.Any<string>())
-            .Returns(_ => (TemplateExecutionFunction)((_, _, _, _, _) => Task.CompletedTask));
-
         var instance = Activator.CreateInstance(
             routingTableType!,
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             binder: null,
-            args: [HandlerServiceProvider(templates)],
+            args: [HandlerServiceProvider()],
             culture: null);
 
         var method = routingTableType!.GetMethod(
@@ -129,7 +113,7 @@ internal sealed class GeneratedRoutingTable {
 
         Assert.True(method != null, "The generated RoutingTable has no GetExecutionRequestHandler method.");
 
-        return new GeneratedRoutingTable(result, instance!, method!, templates);
+        return new GeneratedRoutingTable(result, instance!, method!);
     }
 
     /// <summary>
@@ -176,10 +160,9 @@ internal sealed class GeneratedRoutingTable {
     /// <summary>
     /// The minimum a generated handler's constructor needs. Constructing one resolves the IO,
     /// instance and global filter services, so routing to a handler for the first time fails
-    /// without them even though nothing here executes a request. A <c>[Template]</c> handler also
-    /// resolves the template services and looks its template up.
+    /// without them even though nothing here executes a request.
     /// </summary>
-    private static IServiceProvider HandlerServiceProvider(ITemplateExecutionService templates) {
+    private static IServiceProvider HandlerServiceProvider() {
         var globalFilters = Substitute.For<IGlobalFilterRegistry>();
 
         // Returns a fresh mutable list per call: ExecutionHelper adds to what it is handed.
@@ -192,7 +175,6 @@ internal sealed class GeneratedRoutingTable {
         serviceProvider.GetService(typeof(IIOFilterProvider)).Returns(Substitute.For<IIOFilterProvider>());
         serviceProvider.GetService(typeof(IInstanceFilterProvider))
             .Returns(Substitute.For<IInstanceFilterProvider>());
-        serviceProvider.GetService(typeof(ITemplateExecutionService)).Returns(templates);
         serviceProvider.GetService(typeof(IStringBuilderPool)).Returns(Substitute.For<IStringBuilderPool>());
 
         return serviceProvider;
