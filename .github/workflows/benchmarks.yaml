@@ -1,0 +1,143 @@
+name: benchmarks
+
+# Deliberately separate from build-package. That workflow publishes packages on every push
+# to main, so benchmarking must not be bolted onto it, and results must not be committed to
+# main either -- a results commit would trigger a package publish.
+#
+# Nothing here gates anything. Hosted runners are shared vCPUs with no pinning and no
+# isolation from neighbours, and their run-to-run variance is larger than most of what this
+# suite measures, so a threshold on nanoseconds would flake constantly. These numbers are for
+# reading trends over weeks, not for failing a build. If a gate is wanted later, it should
+# compare BenchmarkDotNet's Ratio column -- computed within a single run against a declared
+# baseline, so machine speed cancels -- rather than absolute times.
+on:
+  schedule:
+    # Sundays, off-peak, deliberately not on the hour: scheduled jobs across GitHub pile up
+    # at round times and get delayed or dropped.
+    - cron: '37 6 * * 0'
+  workflow_dispatch:
+    inputs:
+      aspnet:
+        description: 'Include the ASP.NET Core comparison (MVC and minimal APIs)'
+        type: boolean
+        default: true
+      job:
+        description: 'BenchmarkDotNet job length - longer means tighter error bars'
+        type: choice
+        options: [short, medium, long]
+        default: short
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    # A short-job run over the whole suite is roughly 15 minutes locally and slower on a
+    # hosted runner. The ceiling is generous so a slow runner reports numbers rather than a
+    # timeout, while still bounding a run that has genuinely hung.
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          source-url: https://nuget.pkg.github.com/ipjohnson/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      # Recorded with the results because a benchmark number means nothing without the
+      # machine that produced it, and hosted runner hardware changes over time.
+      - name: Record runner specs
+        run: |
+          {
+            echo "## Runner"
+            echo
+            echo '```'
+            echo "image:  ${ImageOS:-unknown} / ${ImageVersion:-unknown}"
+            echo "cpu:    $(nproc) cores - $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | xargs)"
+            echo "memory: $(free -h | awk '/^Mem:/ {print $2}')"
+            echo "dotnet: $(dotnet --version)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - run: dotnet restore src/Hardened.Framework.sln
+
+      - run: dotnet build src/Benchmarks/Hardened.Benchmarks --no-restore --configuration Release
+
+      # Cheap, and the reason it runs before the benchmarks rather than as part of them: a
+      # route that fails to match still completes, faster than one that matches, so an
+      # unverified suite reports excellent numbers for doing nothing.
+      - name: Verify every pipeline agrees before measuring
+        run: |
+          dotnet run --project src/Benchmarks/Hardened.Benchmarks \
+            --configuration Release --no-build -- --verify --aspnet
+
+      # A schedule trigger supplies no inputs at all, so these are read as shell variables with
+      # shell defaults rather than through `inputs.x || 'y'`. An empty input is not the same as
+      # a false one, and treating it as false would quietly drop the comparison from every
+      # scheduled run while still looking like it had asked for it.
+      # --artifacts is pinned rather than left to default. BenchmarkDotNet writes relative to
+      # the working directory, not the project, so with `dotnet run --project` from the repo
+      # root the results land somewhere other than beside the benchmark project -- and the
+      # publish step would report "no results produced" while the run had in fact succeeded.
+      - name: Run benchmarks
+        env:
+          ASPNET_INPUT: ${{ inputs.aspnet }}
+          JOB_INPUT: ${{ inputs.job }}
+        run: |
+          ASPNET_FLAG="--aspnet"
+          if [ "$ASPNET_INPUT" = "false" ]; then
+            ASPNET_FLAG=""
+          fi
+
+          dotnet run --project src/Benchmarks/Hardened.Benchmarks \
+            --configuration Release --no-build -- \
+            $ASPNET_FLAG --no-verify --job "${JOB_INPUT:-short}" \
+            --artifacts BenchmarkDotNet.Artifacts
+
+      # BenchmarkDotNet emits a GitHub-flavoured markdown table per benchmark class, so the
+      # results render directly in the run summary with no reformatting.
+      - name: Publish results to the run summary
+        if: always()
+        env:
+          JOB_INPUT: ${{ inputs.job }}
+        run: |
+          ARTIFACTS=BenchmarkDotNet.Artifacts/results
+
+          if [ ! -d "$ARTIFACTS" ]; then
+            echo "No results produced." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          {
+            echo
+            echo "## Results"
+            echo
+            echo "\`--job ${JOB_INPUT:-short}\`. Hosted runners are noisy: read the Ratio"
+            echo "column, which is computed within each run against a declared baseline and so"
+            echo "is far more stable across machines than the absolute times."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for report in "$ARTIFACTS"/*-report-github.md; do
+            [ -e "$report" ] || continue
+            name=$(basename "$report" -report-github.md)
+            {
+              echo
+              echo "### ${name#Hardened.Benchmarks.}"
+              echo
+              cat "$report"
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      # The full CSV, JSON and HTML, for anything the summary tables do not answer.
+      - name: Upload full results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: BenchmarkDotNet.Artifacts
+          retention-days: 90
+          if-no-files-found: warn
