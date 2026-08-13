@@ -65,35 +65,57 @@ public class StringConverterService : IStringConverterService {
         return StandardConverter<T>(value);
     }
 
-    protected virtual T StandardConverter<T>(string value) {
-        if (typeof(T) == typeof(int)) {
-            return (T)(object)int.Parse(value);
+    /// <summary>
+    /// Converts a string to <typeparamref name="T"/>, which may be a nullable value type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An optional parameter arrives as <c>Nullable&lt;T&gt;</c>, because that is what the generated
+    /// binder declares - <c>ParseOptional&lt;int?&gt;</c> rather than <c>ParseOptional&lt;int&gt;</c>.
+    /// This used to compare <c>typeof(T)</c> against bare types only, so <c>Nullable&lt;int&gt;</c>
+    /// matched nothing, fell through to the throw, and <see cref="ParseOptional{T}"/> swallowed it
+    /// and returned null. Optional value-type path and query parameters were silently never bound.
+    /// </para>
+    /// <para>
+    /// Unwrapping once and keeping one table is what stops that recurring: a type added for the
+    /// non-nullable case is automatically there for the nullable one, rather than the two lists
+    /// drifting apart.
+    /// </para>
+    /// </remarks>
+    protected virtual T StandardConverter<T>(string value) =>
+        // Boxed and cast rather than converted per-branch: unboxing to Nullable<T> from a boxed
+        // underlying value is allowed, so one table serves both.
+        (T)Convert(Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T), value);
+
+    private static object Convert(Type type, string value) {
+        if (type == typeof(int)) {
+            return int.Parse(value);
         }
 
-        if (typeof(T) == typeof(Guid)) {
-            return (T)(object)Guid.Parse(value);
+        if (type == typeof(Guid)) {
+            return Guid.Parse(value);
         }
 
-        if (typeof(T) == typeof(long)) {
-            return (T)(object)long.Parse(value);
+        if (type == typeof(long)) {
+            return long.Parse(value);
         }
 
-        if (typeof(T) == typeof(uint)) {
-            return (T)(object)uint.Parse(value);
+        if (type == typeof(uint)) {
+            return uint.Parse(value);
         }
 
-        if (typeof(T) == typeof(ulong)) {
-            return (T)(object)ulong.Parse(value);
+        if (type == typeof(ulong)) {
+            return ulong.Parse(value);
         }
 
-        if (typeof(T) == typeof(DateTime)) {
-            return (T)(object)DateTime.Parse(value);
+        if (type == typeof(DateTime)) {
+            return DateTime.Parse(value);
         }
 
-        if (typeof(T) == typeof(string)) {
-            return (T)(object)value;
+        if (type == typeof(string)) {
+            return value;
         }
 
-        throw new Exception($"Type {typeof(T)} cannot be converted from string");
+        throw new Exception($"Type {type} cannot be converted from string");
     }
 }
