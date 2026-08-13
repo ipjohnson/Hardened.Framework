@@ -1,0 +1,4 @@
+@using Hardened.Templates.RazorBlade.Tests.Models
+@inherits global::RazorBlade.PlainTextTemplate<Hardened.Templates.RazorBlade.Tests.Models.FortunePage>
+@foreach (var fortune in Model.Fortunes) {<text>@fortune.Id: @fortune.Message
+</text>}

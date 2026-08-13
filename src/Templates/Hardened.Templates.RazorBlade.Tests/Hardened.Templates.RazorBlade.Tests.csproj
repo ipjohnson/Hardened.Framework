@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="3.2.2" />
+        <PackageReference Include="SimpleFixture.NSubstitute" Version="4.0.0-RC191" />
+        <PackageReference Include="SimpleFixture.xUnit" Version="4.0.0-RC191" />
+
+        <!--
+            Referenced directly rather than relied on transitively, which is the same thing every
+            consuming application has to do. RazorBlade ships no buildTransitive/ folder, so the
+            .props that globs **/*.cshtml into the RazorBlade item group does not flow through
+            Hardened.Templates.RazorBlade - without this line the .cshtml files below compile to
+            nothing and every test here fails on a missing type.
+        -->
+        <PackageReference Include="RazorBlade" Version="1.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj" />
+        <ProjectReference Include="..\Hardened.Templates.RazorBlade\Hardened.Templates.RazorBlade.csproj" />
+    </ItemGroup>
+
+</Project>

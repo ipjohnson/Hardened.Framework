@@ -397,6 +397,14 @@ namespace Hardened.Requests.Abstract.Serializer
         T ParseWithDefault<T>(string value, string valueName, T defaultValue);
     }
 }
+namespace Hardened.Requests.Abstract.Templates
+{
+    public interface ITemplateEngine
+    {
+        bool CanRender(string templateName);
+        System.Threading.Tasks.Task RenderAsync(string templateName, object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+}
 namespace Hardened.Requests.Abstract.Utilities
 {
     public static class StringExtensions
