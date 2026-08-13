@@ -7,6 +7,11 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\ValidationModules</ValidationModulesRoot>
+        <ValidationModulesImpl>$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl</ValidationModulesImpl>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
@@ -53,6 +58,15 @@
             tested in Hardened.OpenApi.BuildTask.Tests.
         -->
         <Compile Include="..\Hardened.OpenApi.BuildTask\Emitters\**\*.cs" Link="Emitters\%(FileName)%(Extension)" />
+
+        <!--
+            The spec front-end and the ValidationModules IR it builds, for the same reason: these
+            tests assert on what a project ends up compiling, and validators are half of that now.
+        -->
+        <Compile Include="..\Hardened.OpenApi.BuildTask\Validation\**\*.cs" Link="Validation\%(FileName)%(Extension)" />
+        <Compile Include="$(ValidationModulesImpl)\EquatableArray.cs" Link="ValidationModules\EquatableArray.cs" />
+        <Compile Include="$(ValidationModulesImpl)\Models\**\*.cs" Link="ValidationModules\Models\%(FileName)%(Extension)" />
+        <Compile Include="$(ValidationModulesImpl)\Emitters\**\*.cs" Link="ValidationModules\Emitters\%(FileName)%(Extension)" />
         <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj" />
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />

@@ -57,6 +57,14 @@ internal static class SpecModelSerializer {
             WriteFilterType(builder, filterType);
         }
 
+        foreach (var validated in model.ValidatedOperations) {
+            var record = new Record("validated");
+            record.Add("OperationId", validated.OperationId);
+            record.Add("InterfaceName", validated.InterfaceName);
+            record.Add("ValidatorName", validated.ValidatorName);
+            record.WriteTo(builder);
+        }
+
         return builder.ToString();
     }
 
@@ -147,6 +155,14 @@ internal static class SpecModelSerializer {
                         filterInstance.PropertyValues[record.String("Key") ?? ""] = record.String("Value") ?? "";
                     }
 
+                    break;
+
+                case "validated":
+                    model.ValidatedOperations.Add(new ValidatedOperationModel {
+                        OperationId = record.String("OperationId") ?? "",
+                        InterfaceName = record.String("InterfaceName") ?? "",
+                        ValidatorName = record.String("ValidatorName") ?? "",
+                    });
                     break;
 
                 case "filtertype":

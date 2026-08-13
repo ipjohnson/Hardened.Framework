@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Hardened.OpenApi.SourceGenerator.Emitters;
 using Hardened.OpenApi.SourceGenerator.Models;
 using Hardened.Requests.Abstract.Attributes;
@@ -91,6 +92,15 @@ internal static class OpenApiGenerator {
         // Splitting them would make every assertion depend on which side of the task/generator line
         // a given type happens to fall on today - and that line moves. Where the distinction is the
         // point, a test should be in Hardened.OpenApi.BuildTask.Tests instead.
+        // The [GeneratedRegex] partials are implemented by the .NET regex generator, which runs on
+        // the consumer's compilation in a real build but is not in this driver - so they arrive here
+        // unimplemented and the compiler says CS8795. That is the harness's scope rather than a
+        // defect: a spec with a pattern builds in Hardened.IntegrationTests.OpenApi.SUT, which is
+        // what proves the arrangement works. Every other diagnostic is still enforced.
+        var compilationDiagnostics = result.CompilationDiagnostics
+            .Where(diagnostic => !(diagnostic.Id == "CS8795" && diagnostic.GetMessage().Contains("Patterns.P_")))
+            .ToImmutableArray();
+
         var combined = new Dictionary<string, string>(taskEmitted, StringComparer.Ordinal);
 
         foreach (var generated in result.GeneratedSources) {
@@ -100,7 +110,7 @@ internal static class OpenApiGenerator {
         return new GeneratorResult(
             combined,
             result.GeneratorDiagnostics,
-            result.CompilationDiagnostics,
+            compilationDiagnostics,
             result.Compilation,
             result.GeneratorExceptions,
             result.DuplicateHintNames);

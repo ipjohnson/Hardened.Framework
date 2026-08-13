@@ -15,6 +15,11 @@ internal class OpenApiSpecModel : IEquatable<OpenApiSpecModel> {
     /// </remarks>
     public string JsonTypeInfoResolverName { get; set; } = "";
 
+    /// <summary>
+    /// What the build task emitted for validation, per operation. Empty when nothing is constrained.
+    /// </summary>
+    public List<ValidatedOperationModel> ValidatedOperations { get; set; } = new();
+
     public bool Equals(OpenApiSpecModel? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -23,6 +28,11 @@ internal class OpenApiSpecModel : IEquatable<OpenApiSpecModel> {
         if (Schemas.Count != other.Schemas.Count) return false;
         if (Services.Count != other.Services.Count) return false;
         if (FilterTypes.Count != other.FilterTypes.Count) return false;
+        if (ValidatedOperations.Count != other.ValidatedOperations.Count) return false;
+
+        for (var i = 0; i < ValidatedOperations.Count; i++) {
+            if (!ValidatedOperations[i].Equals(other.ValidatedOperations[i])) return false;
+        }
 
         for (var i = 0; i < Schemas.Count; i++) {
             if (!Schemas[i].Equals(other.Schemas[i])) return false;
