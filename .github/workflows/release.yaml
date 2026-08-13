@@ -1,0 +1,186 @@
+name: release
+
+# Cutting a release:
+#   git tag v1.0.0 && git push origin v1.0.0
+#
+# The tag is the single source of truth for the published version. Requires a NUGET_API_KEY
+# repository secret with push rights for the Hardened.* package IDs on nuget.org.
+#
+# This is separate from build-package.yaml, which keeps publishing 1.0.0-preview{10000+run} to
+# GitHub Packages on every merge to main. That remains the continuous feed; this is the
+# deliberate one, and a version pushed to nuget.org can be unlisted but never removed.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (without the leading v), e.g. 1.0.0'
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          source-url: https://nuget.pkg.github.com/ipjohnson/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Resolve version
+        id: version
+        run: |
+          # A manual dispatch runs against whatever ref was selected, and that selector remembers
+          # the last branch used. Without this, an unreviewed branch could be published to
+          # nuget.org, where a version can be unlisted but never removed.
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::Releases may only be dispatched from main. This run is on '${GITHUB_REF_NAME}'."
+            exit 1
+          fi
+
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+
+          # Guard against a mistyped tag producing a bad package version.
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::'$VERSION' is not a valid semantic version"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION"
+
+      - run: dotnet restore src/Hardened.Framework.sln
+
+      # Same warnings-as-errors treatment the branch build gets. A release is the last place to
+      # relax it.
+      - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
+
+      - name: Test with coverage
+        run: |
+          set -o pipefail
+          dotnet test src/Hardened.Framework.sln \
+            --no-build --configuration Release \
+            --settings coverlet.runsettings \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage \
+            | tee test-output.log
+
+      - name: Fail if any test was silently skipped
+        run: |
+          if grep -q "duplicate ID" test-output.log; then
+            echo "::error::Test cases were silently skipped due to duplicate test-case IDs."
+            grep "duplicate ID" test-output.log
+            exit 1
+          fi
+          if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log; then
+            echo "::error::Tests skipped in CI. A skipped test is one the suite is not running."
+            grep -E "Skipped:[[:space:]]*[1-9]" test-output.log
+            exit 1
+          fi
+
+      - name: Coverage gate
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator \
+            -reports:"coverage/**/*.cobertura.xml" \
+            -targetdir:coverage-report \
+            -reporttypes:"TextSummary;MarkdownSummaryGithub;JsonSummary"
+          cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
+
+      # An explicit list rather than packing the solution. Packing the solution sweeps in whatever
+      # is not marked IsPackable=false, which is how Hardened.IntegrationTests.Console.SUT and
+      # .OpenApi.SUT ended up on the GitHub feed as packages. On nuget.org a mistake like that
+      # claims a public ID permanently.
+      - name: Pack
+        run: |
+          for project in \
+            src/Commands/Hardened.Commands/Hardened.Commands.csproj \
+            src/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj \
+            src/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj \
+            src/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj \
+            src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj \
+            src/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj \
+            src/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj \
+            src/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj \
+            src/SourceGenerators/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.DependencyModules.SourceGenerator/Hardened.DependencyModules.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.OpenApi.SourceGenerator/Hardened.OpenApi.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj \
+            src/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj \
+            src/Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj \
+            src/Web/Hardened.Web.Kestrel.Runtime/Hardened.Web.Kestrel.Runtime.csproj \
+            src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj; do
+            dotnet pack "$project" --configuration Release --no-build --output ./artifacts \
+              "/p:PackageVersion=${{ steps.version.outputs.version }}"
+          done
+          ls -la ./artifacts
+
+      # Checked rather than assumed: a project silently dropped from the list above would
+      # otherwise ship a partial release, and the missing package would only surface when a
+      # consumer failed to restore it.
+      - name: Verify every expected package was produced
+        run: |
+          EXPECTED=19
+          ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
+
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Packed $ACTUAL packages, expected $EXPECTED. Update the list in this workflow if a package was added or removed."
+            ls -1 ./artifacts/*.nupkg || true
+            exit 1
+          fi
+          echo "All $EXPECTED packages present."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: ./artifacts/*
+
+      - name: Push to nuget.org
+        run: |
+          dotnet nuget push "./artifacts/*.nupkg" \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Push to GitHub Packages
+        run: |
+          dotnet nuget push "./artifacts/*.nupkg" \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --source "https://nuget.pkg.github.com/ipjohnson/index.json" \
+            --skip-duplicate --no-symbols
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # A version carrying a prerelease label must not appear as a stable release.
+          case "${{ steps.version.outputs.version }}" in
+            *-*) prerelease="--prerelease" ;;
+            *)   prerelease="" ;;
+          esac
+
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            ${prerelease} \
+            ./artifacts/*.nupkg
