@@ -84,7 +84,7 @@ public class GeneratorConfigurationTests {
             .AssertNoErrors();
 
         Assert.Contains(
-            "global::Contoso.Petstore.Generated.Models.OpenApiJsonTypeInfoResolver.Instance",
+            "global::Contoso.Petstore.Generated.Models.PetstoreJsonTypeInfoResolver.Instance",
             result.SourceContaining("OpenApiRouting"));
     }
 
@@ -115,7 +115,7 @@ public class GeneratorConfigurationTests {
         var result = OpenApiGenerator.Run(Specs.Minimal).AssertNoErrors();
 
         Assert.Contains("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]",
-            result.SourceContaining("OpenApiJsonTypeInfoResolver"));
+            result.SourceContaining("JsonTypeInfoResolver"));
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class GeneratorConfigurationTests {
     [Theory]
     [InlineData("Order.g.cs")]
     [InlineData("CreateOrder_ValidationFilterProvider")]
-    [InlineData("OpenApiJsonTypeInfoResolver")]
+    [InlineData("JsonTypeInfoResolver")]
     [InlineData("OrderController_CreateOrder")]
     public void ExcludeGeneratedCodeFromCoverageFalseRemovesTheAttribute(string hintNameFragment) {
         var result = OpenApiGenerator.Run(

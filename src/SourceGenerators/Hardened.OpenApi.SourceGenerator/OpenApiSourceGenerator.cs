@@ -104,11 +104,24 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             HandlerSelector.Transform
         ).Where(info => info != null).Collect();
 
-        // Emit records, enums, and interfaces
+        // Emit validation filter providers. Records, enums, service interfaces, the JSON type info
+        // resolver and the filter attributes are all written by the build task now - none of them
+        // looks at the compilation, so none of them needs a generator.
         // Combined with handlerInfoProvider (SyntaxProvider) so Rider's design-time host triggers evaluation
         context.RegisterSourceOutput(specWithConfig.Combine(handlerInfoProvider),
             SourceGeneratorWrapper.Wrap<((OpenApiSpecModel? Left, (string Namespace, bool ExcludeFromCoverage) Right) Left, ImmutableArray<HandlerInfo?> Right)>(
                 (ctx, pair) => EmitTypes(ctx, pair.Left)));
+
+        // The resolver names the task emitted, fully qualified. Collected across every spec, because
+        // each spec now produces its own resolver - one flat OpenApiJsonTypeInfoResolver per project
+        // is what made two spec files in one project fail to compile.
+        var resolverNames = specWithNamespace
+            .Select((pair, _) => pair.Left is { JsonTypeInfoResolverName.Length: > 0 } spec
+                ? $"{pair.Right}.Models.{spec.JsonTypeInfoResolverName}"
+                : null)
+            .Where(name => name is not null)
+            .Select((name, _) => name!)
+            .Collect();
 
         // Collect all handler models across all spec files
         var allHandlerModels = handlerModels.Collect().Select((arrays, _) => {
@@ -154,12 +167,17 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             EntryPointSelector.TransformModel(false)
         ).WithComparer(new EntryPointSelector.Comparer());
 
-        // Combine entry point with enriched handler models, handler infos, and config for routing table
-        var routeProvider = entryPointProvider.Combine(enrichedModels).Combine(handlerInfoProvider).Combine(excludeFromCoverageProvider);
+        // Combine entry point with enriched handler models, handler infos, resolvers and config
+        var routeProvider = entryPointProvider
+            .Combine(enrichedModels)
+            .Combine(handlerInfoProvider)
+            .Combine(resolverNames)
+            .Combine(excludeFromCoverageProvider);
 
         context.RegisterSourceOutput(routeProvider,
-            SourceGeneratorWrapper.Wrap<(((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, bool Right)>(
-                (ctx, pair) => OpenApiRoutingTableGenerator.GenerateRoute(ctx, pair.Left.Left, pair.Left.Right!, pair.Right)));
+            SourceGeneratorWrapper.Wrap<((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<string> Right) Left, bool Right)>(
+                (ctx, pair) => OpenApiRoutingTableGenerator.GenerateRoute(
+                    ctx, pair.Left.Left.Left, pair.Left.Left.Right!, pair.Left.Right, pair.Right)));
     }
 
     /// <summary>
@@ -196,45 +214,10 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
 
         if (spec == null) return;
 
-        foreach (var schema in spec.Schemas) {
-            context.CancellationToken.ThrowIfCancellationRequested();
-
-            switch (schema.Kind) {
-                case SchemaKind.Object:
-                    var recordSource = RecordEmitter.Emit(schema, ns, excludeFromCoverage);
-                    context.AddSource($"{spec.FileName}.{schema.Name}.g.cs", recordSource);
-                    break;
-
-                case SchemaKind.Enum:
-                    var enumSource = EnumEmitter.Emit(schema, ns);
-                    context.AddSource($"{spec.FileName}.{schema.Name}.g.cs", enumSource);
-                    break;
-            }
-        }
-
-        foreach (var service in spec.Services) {
-            context.CancellationToken.ThrowIfCancellationRequested();
-
-            var interfaceSource = ServiceInterfaceEmitter.Emit(service, ns);
-            var interfaceName = NamingHelper.ToInterfaceName(service.Tag);
-            context.AddSource($"{spec.FileName}.{interfaceName}.g.cs", interfaceSource);
-        }
-
-        // Emit JsonTypeInfoResolver for AOT serialization
-        var resolverSource = JsonTypeInfoEmitter.Emit(spec.Schemas, ns, excludeFromCoverage);
-        context.AddSource($"{spec.FileName}.OpenApiJsonTypeInfoResolver.g.cs", resolverSource);
-
-        // Emit partial attribute classes from x-filter-types (skip externally-defined types)
-        foreach (var filterType in spec.FilterTypes) {
-            if (!filterType.Generate) continue;
-
-            context.CancellationToken.ThrowIfCancellationRequested();
-
-            var filterSource = FilterTypeEmitter.Emit(filterType, excludeFromCoverage);
-            context.AddSource(
-                $"{spec.FileName}.{filterType.ClassName}.g.cs",
-                filterSource);
-        }
+        // Records, enums, service interfaces, the JSON type info resolver and the filter attributes
+        // used to be emitted here. They are pure spec-to-C# and are written by the build task now,
+        // straight into @(Compile) - which is what puts them in the same compilation as the regex
+        // generator, and so within reach of [GeneratedRegex].
 
         // Emit validation filter providers for operations with validation constraints
         foreach (var service in spec.Services) {

@@ -25,6 +25,10 @@ internal sealed class TaskHarness : IDisposable {
 
     public string OutputDirectory => Path.Combine(_root, "obj");
 
+    public string GeneratedSourceDirectory => Path.Combine(OutputDirectory, "generated");
+
+    public string StampFile => Path.Combine(OutputDirectory, "openapi.stamp");
+
     public string WriteSpec(string fileName, string content) {
         var path = Path.Combine(SpecDirectory, fileName);
         File.WriteAllText(path, content);
@@ -38,11 +42,18 @@ internal sealed class TaskHarness : IDisposable {
             BuildEngine = engine,
             Specs = specPaths.Select(path => (ITaskItem)new Microsoft.Build.Utilities.TaskItem(path)).ToArray(),
             OutputDirectory = OutputDirectory,
+            GeneratedSourceDirectory = GeneratedSourceDirectory,
+            StampFile = StampFile,
+            Namespace = "Test.Api",
         };
 
         var succeeded = task.Execute();
 
-        return new Result(succeeded, engine.Errors, task.ModelFiles.Select(item => item.ItemSpec).ToArray());
+        return new Result(
+            succeeded,
+            engine.Errors,
+            task.ModelFiles.Select(item => item.ItemSpec).ToArray(),
+            task.GeneratedSources.Select(item => item.ItemSpec).ToArray());
     }
 
     public string ModelPathFor(string specFileName) =>
@@ -56,7 +67,11 @@ internal sealed class TaskHarness : IDisposable {
         }
     }
 
-    internal sealed record Result(bool Succeeded, IReadOnlyList<BuildErrorEventArgs> Errors, IReadOnlyList<string> ModelFiles) {
+    internal sealed record Result(
+        bool Succeeded,
+        IReadOnlyList<BuildErrorEventArgs> Errors,
+        IReadOnlyList<string> ModelFiles,
+        IReadOnlyList<string> GeneratedSources) {
         public bool HasError(string code) => Errors.Any(error => error.Code == code);
 
         public string ErrorText => string.Join("\n", Errors.Select(error => $"{error.Code}: {error.Message}"));

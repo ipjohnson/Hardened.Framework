@@ -6,10 +6,20 @@ internal class OpenApiSpecModel : IEquatable<OpenApiSpecModel> {
     public List<ServiceModel> Services { get; set; } = new();
     public List<FilterTypeModel> FilterTypes { get; set; } = new();
 
+    /// <summary>
+    /// What the build task called this spec's <c>IJsonTypeInfoResolver</c>.
+    /// </summary>
+    /// <remarks>
+    /// Carried across rather than recomputed, so the routing table registers the name that was
+    /// actually emitted. Deriving it independently on both sides is how the two would drift.
+    /// </remarks>
+    public string JsonTypeInfoResolverName { get; set; } = "";
+
     public bool Equals(OpenApiSpecModel? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         if (FileName != other.FileName) return false;
+        if (JsonTypeInfoResolverName != other.JsonTypeInfoResolverName) return false;
         if (Schemas.Count != other.Schemas.Count) return false;
         if (Services.Count != other.Services.Count) return false;
         if (FilterTypes.Count != other.FilterTypes.Count) return false;

@@ -1,3 +1,5 @@
+using Hardened.OpenApi.SourceGenerator.Emitters;
+using Hardened.OpenApi.SourceGenerator.Models;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.SourceGeneration.Testing;
@@ -44,19 +46,110 @@ internal static class OpenApiGenerator {
             buildProperties);
 
     /// <summary>Runs the generator over several specifications at once.</summary>
+    /// <remarks>
+    /// Both halves of the pipeline, because that is what a project compiles. The task's emitted
+    /// types arrive as ordinary source files - which is exactly what they are once MSBuild has put
+    /// them in <c>@(Compile)</c> - and the models arrive as additional files.
+    /// </remarks>
     internal static GeneratorResult Run(
         IReadOnlyDictionary<string, string> specs,
         string source,
-        IReadOnlyDictionary<string, string>? buildProperties = null) =>
-        GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
-                ["GlobalUsings.cs"] = ImplicitUsings,
-                ["Test.cs"] = source
-            },
-            [new OpenApiSourceGenerator()],
-            Anchors,
-            specs.ToDictionary(pair => ModelFileNameFor(pair.Key), pair => ToSpecModel(pair.Key, pair.Value)),
-            buildProperties);
+        IReadOnlyDictionary<string, string>? buildProperties = null) {
+        // Must resolve exactly as the generator does, and against the same defaults the harness
+        // supplies. The two halves emit into one namespace and bind across it, so a harness that
+        // resolves differently produces a handler referencing a service interface that was emitted
+        // somewhere else entirely. Keys carry no build_property. prefix here - the harness adds it.
+        var excludeFromCoverage =
+            !string.Equals(Property(buildProperties, "ExcludeGeneratedCodeFromCoverage"), "false", StringComparison.OrdinalIgnoreCase);
+
+        var ns = FirstNonEmpty(
+            Property(buildProperties, "HardenedOpenApiNamespace"),
+            Property(buildProperties, "RootNamespace"),
+            // The default TestAnalyzerConfigOptions supplies for RootNamespace when a test sets none.
+            "TestNamespace");
+
+        var sources = new Dictionary<string, string> {
+            ["GlobalUsings.cs"] = ImplicitUsings,
+            ["Test.cs"] = source
+        };
+
+        var models = new Dictionary<string, string>();
+        var taskEmitted = new Dictionary<string, string>();
+
+        foreach (var spec in specs) {
+            var model = ToSpecModel(spec.Key, spec.Value);
+            models[ModelFileNameFor(spec.Key)] = model;
+
+            foreach (var emitted in TaskEmittedSources(model, ns, excludeFromCoverage)) {
+                sources[emitted.Key] = emitted.Value;
+                taskEmitted[emitted.Key] = emitted.Value;
+            }
+        }
+
+        var result = GeneratorTestHarness.Run(sources, [new OpenApiSourceGenerator()], Anchors, models, buildProperties);
+
+        // GeneratedSources carries both halves, because that is what the project ends up compiling.
+        // Splitting them would make every assertion depend on which side of the task/generator line
+        // a given type happens to fall on today - and that line moves. Where the distinction is the
+        // point, a test should be in Hardened.OpenApi.BuildTask.Tests instead.
+        var combined = new Dictionary<string, string>(taskEmitted, StringComparer.Ordinal);
+
+        foreach (var generated in result.GeneratedSources) {
+            combined[generated.Key] = generated.Value;
+        }
+
+        return new GeneratorResult(
+            combined,
+            result.GeneratorDiagnostics,
+            result.CompilationDiagnostics,
+            result.Compilation,
+            result.GeneratorExceptions,
+            result.DuplicateHintNames);
+    }
+
+    private static string? Property(IReadOnlyDictionary<string, string>? properties, string key) =>
+        properties is not null && properties.TryGetValue(key, out var value) ? value : null;
+
+    private static string FirstNonEmpty(params string?[] candidates) =>
+        candidates.FirstOrDefault(candidate => !string.IsNullOrEmpty(candidate)) ?? "Generated";
+
+    /// <summary>
+    /// What <c>ExtractOpenApiSpec</c> writes into <c>@(Compile)</c>, reproduced from the emitters it
+    /// calls. Kept in step with the task by compiling the same emitters in, not by copying their
+    /// output.
+    /// </summary>
+    internal static IEnumerable<KeyValuePair<string, string>> TaskEmittedSources(
+        string specModel, string ns, bool excludeFromCoverage) {
+        var model = SpecModelSerializer.Read(specModel);
+
+        foreach (var schema in model.Schemas) {
+            var emitted = schema.Kind switch {
+                SchemaKind.Object => RecordEmitter.Emit(schema, ns, excludeFromCoverage),
+                SchemaKind.Enum => EnumEmitter.Emit(schema, ns),
+                _ => null
+            };
+
+            if (emitted is not null) {
+                yield return new KeyValuePair<string, string>($"{model.FileName}.{schema.Name}.g.cs", emitted);
+            }
+        }
+
+        foreach (var service in model.Services) {
+            yield return new KeyValuePair<string, string>(
+                $"{model.FileName}.{NamingHelper.ToInterfaceName(service.Tag)}.g.cs",
+                ServiceInterfaceEmitter.Emit(service, ns));
+        }
+
+        yield return new KeyValuePair<string, string>(
+            $"{model.FileName}.{model.JsonTypeInfoResolverName}.g.cs",
+            JsonTypeInfoEmitter.Emit(model.Schemas, ns, model.FileName, excludeFromCoverage));
+
+        foreach (var filterType in model.FilterTypes.Where(filterType => filterType.Generate)) {
+            yield return new KeyValuePair<string, string>(
+                $"{model.FileName}.{filterType.ClassName}.g.cs",
+                FilterTypeEmitter.Emit(filterType, excludeFromCoverage));
+        }
+    }
 
     /// <summary>
     /// Runs the generator over additional files exactly as given, with no parse step.
@@ -87,8 +180,15 @@ internal static class OpenApiGenerator {
     /// which is the same trade the task makes.
     /// </summary>
     private static string ToSpecModel(string specFileName, string yaml) {
-        var model = OpenApiSpecParser.Parse(yaml, Path.GetFileNameWithoutExtension(specFileName), CancellationToken.None)
+        var fileName = Path.GetFileNameWithoutExtension(specFileName);
+
+        var model = OpenApiSpecParser.Parse(yaml, fileName, CancellationToken.None)
             ?? throw new InvalidOperationException($"'{specFileName}' did not parse; the generator would see nothing.");
+
+        // The task names the resolver and records it in the model; the generator is told rather than
+        // deriving it, so the harness has to do the naming too or the routing table registers a type
+        // nothing emitted.
+        model.JsonTypeInfoResolverName = JsonTypeInfoEmitter.ResolverNameFor(fileName);
 
         return SpecModelSerializer.Write(model);
     }

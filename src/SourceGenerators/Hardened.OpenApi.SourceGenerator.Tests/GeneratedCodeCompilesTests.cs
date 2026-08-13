@@ -186,9 +186,9 @@ public class GeneratedCodeCompilesTests {
     public void TheJsonTypeInfoResolverCompiles() {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
-        var resolver = result.SourceContaining("OpenApiJsonTypeInfoResolver");
+        var resolver = result.SourceContaining("JsonTypeInfoResolver");
 
-        Assert.Contains("public sealed class OpenApiJsonTypeInfoResolver : IJsonTypeInfoResolver", resolver);
+        Assert.Contains("public sealed class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", resolver);
         Assert.Contains("if (type == typeof(Widget)) return CreateWidgetTypeInfo(options);", resolver);
         Assert.Contains("if (type == typeof(WidgetStatus)) return CreateWidgetStatusTypeInfo(options);", resolver);
         Assert.Contains("CreateListInfo<List<Part>, Part>", resolver);
@@ -214,7 +214,7 @@ public class GeneratedCodeCompilesTests {
                 public static class RoundTrip {
                     public static Widget Run(string json) {
                         var options = new JsonSerializerOptions {
-                            TypeInfoResolver = OpenApiJsonTypeInfoResolver.Instance
+                            TypeInfoResolver = PetstoreJsonTypeInfoResolver.Instance
                         };
 
                         return JsonSerializer.Deserialize<Widget>(json, options)!;

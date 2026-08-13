@@ -1,6 +1,7 @@
+using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 
-namespace Hardened.OpenApi.SourceGenerator.Tests;
+namespace Hardened.OpenApi.BuildTask.Tests;
 
 public class TypeMapperTests {
     [Theory]

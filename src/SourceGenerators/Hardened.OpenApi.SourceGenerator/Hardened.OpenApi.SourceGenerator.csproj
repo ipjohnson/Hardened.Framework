@@ -122,4 +122,14 @@
     </ItemGroup>
 
 
+    <!--
+        CSharpAuthor ships as source and is compiled in, so its files are analysed as if they were
+        ours - and it predates nullable reference types. Under ContinuousIntegrationBuild every
+        warning is an error, so its eight would fail the build. Scoped to the exact IDs rather than
+        disabling nullable analysis, which would take our own code with it.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
+    </PropertyGroup>
+
 </Project>

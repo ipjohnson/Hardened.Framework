@@ -143,19 +143,23 @@ public class MalformedSpecDiagnosticsTests {
     /// <summary>
     /// One unreadable model does not take a good one with it.
     /// </summary>
+    /// <remarks>
+    /// Driven raw, so the task's half of the output is absent and the generated handler has no
+    /// record to bind against - hence no compile assertion. What is under test is that an unreadable
+    /// model does not stop the generator processing a readable one, and the handler it emits for the
+    /// good model is enough to show that.
+    /// </remarks>
     [Fact]
     public void AGoodModelStillGeneratesAlongsideABadOne() {
         var goodModel = SpecModelSerializer.Write(
             OpenApiSpecParser.Parse(Specs.Minimal, "petstore", CancellationToken.None)!);
 
-        var result = OpenApiGenerator
-            .RunRaw(new Dictionary<string, string> {
-                ["petstore.openapi-model.txt"] = goodModel,
-                ["broken.openapi-model.txt"] = "garbage"
-            })
-            .AssertNoErrors();
+        var result = OpenApiGenerator.RunRaw(new Dictionary<string, string> {
+            ["petstore.openapi-model.txt"] = goodModel,
+            ["broken.openapi-model.txt"] = "garbage"
+        });
 
-        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("petstore.Pet.g.cs"));
+        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("PetController_ListPets"));
         Assert.Contains(result.GeneratorDiagnostics,
             diagnostic => diagnostic.Id == "HOAG002" && diagnostic.GetMessage().Contains("broken.openapi-model.txt"));
     }

@@ -2,7 +2,7 @@ using Hardened.OpenApi.SourceGenerator.Emitters;
 using Hardened.OpenApi.SourceGenerator.Models;
 using Xunit;
 
-namespace Hardened.OpenApi.SourceGenerator.Tests;
+namespace Hardened.OpenApi.BuildTask.Tests;
 
 public class JsonTypeInfoEmitterTests {
     [Fact]
@@ -20,11 +20,11 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("namespace Test.Api.Models;", result);
-        Assert.Contains("class OpenApiJsonTypeInfoResolver : IJsonTypeInfoResolver", result);
-        Assert.Contains("public static readonly OpenApiJsonTypeInfoResolver Instance = new();", result);
+        Assert.Contains("class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", result);
+        Assert.Contains("public static readonly PetstoreJsonTypeInfoResolver Instance = new();", result);
         Assert.Contains("if (type == typeof(Pet)) return CreatePetTypeInfo(options);", result);
         Assert.Contains("ObjectWithParameterizedConstructorCreator", result);
         Assert.Contains("(string)args[0]", result);
@@ -47,7 +47,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<string>(options", result);
         Assert.Contains("DeclaringType = typeof(Pet)", result);
@@ -75,7 +75,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("ConstructorParameterMetadataInitializer", result);
         Assert.Contains("Name = \"id\"", result);
@@ -104,7 +104,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<string>(options", result);
         Assert.Contains("CreatePropertyInfo<int>(options", result);
@@ -136,7 +136,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<DateTime>(options", result);
         Assert.Contains("CreatePropertyInfo<DateOnly>(options", result);
@@ -167,7 +167,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<Owner>(options", result);
         Assert.Contains("((Pet)obj).Owner", result);
@@ -192,7 +192,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<List<string>>(options", result);
         Assert.Contains("(List<string>)args[0]", result);
@@ -223,7 +223,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<List<Pet>>(options", result);
         Assert.Contains("(List<Pet>)args[0]", result);
@@ -246,7 +246,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<Dictionary<string, string>>(options", result);
         Assert.Contains("(Dictionary<string, string>)args[0]", result);
@@ -276,7 +276,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<Dictionary<string, Pet>>(options", result);
     }
@@ -291,7 +291,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("if (type == typeof(PetStatus)) return CreatePetStatusTypeInfo(options);", result);
         Assert.Contains("CreateValueInfo<PetStatus>(options", result);
@@ -319,7 +319,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Optional enum should be nullable (value type)
         Assert.Contains("CreatePropertyInfo<PetStatus?>(options", result);
@@ -342,7 +342,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Required int: non-nullable
         Assert.Contains("CreatePropertyInfo<int>(options", result);
@@ -374,7 +374,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Both required and optional string properties use CreatePropertyInfo<string>
         // (reference types don't change generic parameter for nullability)
@@ -399,7 +399,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Required comes first in sorted order
         Assert.Contains("Position = 0,\n                    HasDefaultValue = false,", result);
@@ -416,7 +416,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("ObjectCreator = static () => new EmptyModel()", result);
         Assert.DoesNotContain("ObjectWithParameterizedConstructorCreator", result);
@@ -460,7 +460,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // All three types are in the resolver
         Assert.Contains("typeof(Tag)", result);
@@ -494,7 +494,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Enum dispatch
         Assert.Contains("if (type == typeof(Color)) return CreateColorTypeInfo(options);", result);
@@ -521,7 +521,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // C# type and property names are PascalCase
         Assert.Contains("typeof(UserProfile)", result);
@@ -537,9 +537,9 @@ public class JsonTypeInfoEmitterTests {
     public void Emit_NoSchemas_GeneratesEmptyResolver() {
         var schemas = new List<SchemaModel>();
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
-        Assert.Contains("class OpenApiJsonTypeInfoResolver : IJsonTypeInfoResolver", result);
+        Assert.Contains("class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", result);
         Assert.Contains("return null;", result);
         Assert.DoesNotContain("CreateObjectInfo", result);
     }
@@ -559,7 +559,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Neither array nor primitive schemas produce type dispatch
         Assert.DoesNotContain("typeof(StringArray)", result);
@@ -578,7 +578,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("// <auto-generated/>", result);
         Assert.Contains("#nullable enable", result);
@@ -612,7 +612,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Optional object ref is a reference type — no change to generic param
         Assert.Contains("CreatePropertyInfo<Address>(options", result);
@@ -632,7 +632,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Primitive types
         Assert.Contains("if (type == typeof(string)) return JsonMetadataServices.CreateValueInfo<string>(options, JsonMetadataServices.StringConverter);", result);
@@ -715,7 +715,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // List dispatch entries
         Assert.Contains("if (type == typeof(List<Pet>)) return JsonMetadataServices.CreateListInfo<List<Pet>, Pet>(", result);
@@ -743,7 +743,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Untyped property maps to JsonElement (value type), optional => nullable
         Assert.Contains("CreatePropertyInfo<JsonElement?>(options", result);
@@ -767,7 +767,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<Dictionary<string, JsonElement>>(options", result);
         Assert.Contains("(Dictionary<string, JsonElement>)args[0]", result);
@@ -790,7 +790,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<List<JsonElement>>(options", result);
         Assert.Contains("(List<JsonElement>)args[0]", result);
@@ -809,7 +809,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("if (type == typeof(JsonElement)) return JsonMetadataServices.CreateValueInfo<JsonElement>(options, JsonMetadataServices.JsonElementConverter);", result);
         Assert.Contains("if (type == typeof(JsonElement?)) return JsonMetadataServices.CreateValueInfo<JsonElement?>(options, JsonMetadataServices.GetNullableConverter<JsonElement>(options));", result);
@@ -839,7 +839,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         // Required value type (long) must use default(long), not null
         Assert.Contains("DefaultValue = default(long)", result);
@@ -863,7 +863,7 @@ public class JsonTypeInfoEmitterTests {
             }
         };
 
-        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api");
+        var result = JsonTypeInfoEmitter.Emit(schemas, "Test.Api", "petstore");
 
         Assert.Contains("CreatePropertyInfo<DateOnly?>(options", result);
         Assert.Contains("(DateOnly?)args[1]", result);

@@ -2,7 +2,7 @@ using Hardened.OpenApi.SourceGenerator.Emitters;
 using Hardened.OpenApi.SourceGenerator.Models;
 using Xunit;
 
-namespace Hardened.OpenApi.SourceGenerator.Tests;
+namespace Hardened.OpenApi.BuildTask.Tests;
 
 public class EnumEmitterTests {
     [Fact]

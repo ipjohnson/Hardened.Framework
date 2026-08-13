@@ -61,7 +61,7 @@ public class OpenApiRoutingTableGeneratorTests {
         var handlers = CreatePetstoreHandlers();
 
         var result = OpenApiRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, CancellationToken.None);
+            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
 
         Assert.Contains("partial class TestApp", result);
         Assert.Contains("OpenApiRoutingTable", result);
@@ -75,7 +75,7 @@ public class OpenApiRoutingTableGeneratorTests {
         var handlers = CreatePetstoreHandlers();
 
         var result = OpenApiRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, CancellationToken.None);
+            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
 
         // Without [Handler] implementations, there should be no standalone AddTransient for interfaces
         Assert.DoesNotMatch(@"AddTransient<\s*IPetService\s*>\s*\(\s*\)", result);
@@ -96,7 +96,7 @@ public class OpenApiRoutingTableGeneratorTests {
         var handlerInfos = ImmutableArray.Create<HandlerInfo?>(handlerInfo);
 
         var result = OpenApiRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, handlerInfos, CancellationToken.None);
+            appModel, handlers, handlerInfos, ImmutableArray<string>.Empty, CancellationToken.None);
 
         Assert.Matches(@"AddTransient<[^>]*IPetService[^>]*,[^>]*PetServiceImpl[^>]*>", result);
     }
@@ -107,7 +107,7 @@ public class OpenApiRoutingTableGeneratorTests {
         var handlers = CreatePetstoreHandlers();
 
         var result = OpenApiRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, CancellationToken.None);
+            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
 
         // Routing should reference handler fields for each endpoint
         Assert.Contains("PetController_ListPets", result);
@@ -123,7 +123,7 @@ public class OpenApiRoutingTableGeneratorTests {
         var handlers = CreatePetstoreHandlers();
 
         var result = OpenApiRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, CancellationToken.None);
+            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
 
         Assert.Contains("DependencyRegistry<TestApp>", result);
         Assert.Contains("OpenApiRoutingTableDI", result);

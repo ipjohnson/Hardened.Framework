@@ -54,6 +54,18 @@
         <PackageReference Include="SharpYaml" Version="2.1.1"/>
     </ItemGroup>
 
+    <!-- TypeMapper, which the emitters use, returns CSharpAuthor type definitions. -->
+    <PropertyGroup>
+        <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CSharpAuthor" Version="1.1.1007">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
     <!-- Shared with the generator. See Hardened.OpenApi.Shared for why this is source and not a reference. -->
     <ItemGroup>
         <Compile Include="../Hardened.OpenApi.Shared/**/*.cs"
@@ -61,5 +73,15 @@
             <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
         </Compile>
     </ItemGroup>
+
+    <!--
+        CSharpAuthor ships as source and is compiled in, so its files are analysed as if they were
+        ours - and it predates nullable reference types. Under ContinuousIntegrationBuild every
+        warning is an error, so its eight would fail the build. Scoped to the exact IDs rather than
+        disabling nullable analysis, which would take our own code with it.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
+    </PropertyGroup>
 
 </Project>

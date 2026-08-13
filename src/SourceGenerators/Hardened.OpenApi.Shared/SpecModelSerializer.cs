@@ -42,6 +42,7 @@ internal static class SpecModelSerializer {
 
         var spec = new Record("spec");
         spec.Add("FileName", model.FileName);
+        spec.Add("JsonTypeInfoResolverName", model.JsonTypeInfoResolverName);
         spec.WriteTo(builder);
 
         foreach (var schema in model.Schemas) {
@@ -92,6 +93,7 @@ internal static class SpecModelSerializer {
             switch (record.Tag) {
                 case "spec":
                     model.FileName = record.String("FileName") ?? "";
+                    model.JsonTypeInfoResolverName = record.String("JsonTypeInfoResolverName") ?? "";
                     break;
 
                 case "schema":
