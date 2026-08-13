@@ -45,6 +45,7 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
         return new FeatureExecutionResponse(
             _feature, _bodyFeature, _bodyOverride, _status, Cookies) {
             ResponseValue = ResponseValue,
+            TemplateName = TemplateName,
             ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize
@@ -57,6 +58,8 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
     }
 
     public object? ResponseValue { get; set; }
+
+    public string? TemplateName { get; set; }
 
     /// <summary>
     /// Null while the status is still undecided; otherwise what will be, or has been, sent.

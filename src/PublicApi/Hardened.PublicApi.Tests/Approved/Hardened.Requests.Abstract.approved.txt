@@ -31,6 +31,7 @@ namespace Hardened.Requests.Abstract.Attributes
     {
         public RawResponseAttribute(string contentType = "text/plain") { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Method)]
     public class TemplateAttribute : System.Attribute
     {
         public TemplateAttribute(string templateName) { }

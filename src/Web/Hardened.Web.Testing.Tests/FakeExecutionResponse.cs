@@ -25,6 +25,8 @@ internal class FakeExecutionResponse : IExecutionResponse {
 
     public object? ResponseValue { get; set; }
 
+    public string? TemplateName { get; set; }
+
     public bool ShouldCompress { get; set; }
 
     public Exception? ExceptionValue { get; set; }
