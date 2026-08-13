@@ -459,14 +459,33 @@ namespace Hardened.Requests.Runtime.Validation
         public string Field { get; set; }
         public string Message { get; set; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public sealed class ValidateAttribute<TValidated> : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+        where TValidated :  class
+    {
+        public ValidateAttribute() { }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
     public class ValidationException : Hardened.Requests.Runtime.Errors.BadRequestException
     {
-        public ValidationException(Hardened.Requests.Abstract.Validation.ValidationResult validationResult) { }
-        public Hardened.Requests.Abstract.Validation.ValidationResult ValidationResult { get; }
+        public ValidationException(ValidationModules.ValidationResult validationResult) { }
+        public ValidationModules.ValidationResult ValidationResult { get; }
     }
     public class ValidationFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
         public ValidationFilter(Hardened.Requests.Runtime.Validation.ParameterValidationInfo[] parameterRules, Hardened.Requests.Runtime.Validation.PropertyValidationInfo[]? bodyPropertyRules = null, string? bodyParameterName = null, System.Type? requestBodyType = null) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public sealed class ValidationFilterProvider<TValidated> : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+        where TValidated :  class
+    {
+        public ValidationFilterProvider(ValidationModules.IValidatorFor<TValidated> validator) { }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    public sealed class ValidationFilter<TValidated> : Hardened.Requests.Abstract.Execution.IExecutionFilter
+        where TValidated :  class
+    {
+        public ValidationFilter(ValidationModules.IValidatorFor<TValidated> validator) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }

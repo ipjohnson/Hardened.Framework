@@ -22,4 +22,21 @@
         <ProjectReference Include="..\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
     </ItemGroup>
 
+    <!--
+        ValidationModules supplies the validation contracts, the error model and the context. It is
+        not re-abstracted here: only the request-pipeline adapter belongs in Hardened, which is
+        ValidationFilter, its provider and [Validate].
+
+        A ProjectReference while the two repos move together. When it settles this becomes a
+        PackageReference and $(ValidationModulesRoot) goes away - the point of referencing a project
+        rather than globbing its sources is that the switch is one line either way.
+    -->
+    <PropertyGroup>
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\ValidationModules</ValidationModulesRoot>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="$(ValidationModulesRoot)\src\ValidationModules.Runtime\ValidationModules.Runtime.csproj"/>
+    </ItemGroup>
+
 </Project>

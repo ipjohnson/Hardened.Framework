@@ -20,9 +20,10 @@ public class ExceptionToModelConverterTests {
 
     [Fact]
     public void ValidationExceptionMapsTo400WithFieldErrors() {
-        var result = new ValidationResult();
-        result.AddError("email", "Required", "email is required");
-        result.AddError("age", "Range", "age must be between 0 and 120");
+        var result = ValidationModules.ValidationResult.FromErrors(new[] {
+            new ValidationModules.ValidationError("email", "Required", "email is required"),
+            new ValidationModules.ValidationError("age", "Range", "age must be between 0 and 120"),
+        });
 
         var (status, model) = Converter.ConvertExceptionToModel(Context(), new ValidationException(result));
 
@@ -43,10 +44,33 @@ public class ExceptionToModelConverterTests {
     [Fact]
     public void ValidationExceptionWithNoErrorsStillMapsTo400() {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new ValidationException(new ValidationResult()));
+            Context(), new ValidationException(ValidationModules.ValidationResult.Valid));
 
         Assert.Equal(400, status);
         Assert.Empty(Assert.IsType<RequestValidationError>(model).Errors);
+    }
+
+    /// <summary>
+    /// A handler that validates by hand throws ValidationModules' exception rather than Hardened's,
+    /// and has to reach the same response - one mapper, not two shapes agreeing by duplication.
+    /// </summary>
+    [Fact]
+    public void ValidationModulesValidationExceptionMapsTo400WithFieldErrors() {
+        var result = ValidationModules.ValidationResult.FromErrors(new[] {
+            new ValidationModules.ValidationError("sku", "pattern", "sku is malformed"),
+        });
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(), new ValidationModules.ValidationException(result));
+
+        Assert.Equal(400, status);
+
+        var validationError = Assert.IsType<RequestValidationError>(model);
+        Assert.Equal("ValidationError", validationError.Type);
+
+        var fieldError = Assert.Single(validationError.Errors);
+        Assert.Equal("sku", fieldError.Field);
+        Assert.Equal("pattern", fieldError.Code);
     }
 
     [Fact]
