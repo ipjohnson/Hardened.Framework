@@ -44,6 +44,7 @@
         <ProjectReference Include="..\..\Templates\Hardened.Templates.Abstract\Hardened.Templates.Abstract.csproj"/>
         <ProjectReference Include="..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.AspNetCore.Runtime\Hardened.Web.AspNetCore.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
     </ItemGroup>

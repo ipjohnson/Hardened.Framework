@@ -13,6 +13,8 @@ public static class KnownHeaders {
 
     public const string ContentLength = "Content-Length";
 
+    public const string Cookie = "Cookie";
+
     public const string IfMatch = "If-Match";
 
     public const string IfNoneMatch = "If-None-Match";

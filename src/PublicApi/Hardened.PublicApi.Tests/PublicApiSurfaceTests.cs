@@ -44,6 +44,7 @@ public class PublicApiSurfaceTests {
         "Hardened.Templates.Abstract",
         "Hardened.Templates.Runtime",
         "Hardened.Web.AspNetCore.Runtime",
+        "Hardened.Web.Kestrel.Runtime",
         "Hardened.Web.Runtime",
         "Hardened.Web.Testing"
     ];
