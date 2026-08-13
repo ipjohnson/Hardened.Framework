@@ -64,7 +64,11 @@ internal static class SchemaEmitter {
             // property:, because a positional record's parameter and the property it declares are
             // one syntactic position. Without the target the attribute stays on the parameter, where
             // a generator reading properties never sees it - which is what VM0051 warns about.
-            foreach (var constraint in ConstraintAttributes.ForProperty(property, property.IsRequired, patterns)) {
+            // Required, except where the type already guarantees it - see
+            // TypeMapper.IsNonNullableValueType.
+            var emitRequired = property.IsRequired && !TypeMapper.IsNonNullableValueType(csType);
+
+            foreach (var constraint in ConstraintAttributes.ForProperty(property, emitRequired, patterns)) {
                 ValidationEmitter.Apply(parameter, constraint).Target = "property";
             }
         }

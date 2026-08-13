@@ -284,6 +284,7 @@ internal static class RequestModelBuilder {
         return new ResponseInformationModel {
             IsAsync = true,
             ReturnType = returnType,
+            TemplateName = operation.TemplateName,
             RawResponseContentType = RawContentTypeFor(operation)
         };
     }
@@ -307,6 +308,16 @@ internal static class RequestModelBuilder {
     /// </para>
     /// </remarks>
     private static string? RawContentTypeFor(OperationModel operation) {
+        // A templated operation renders rather than writes. Giving it a raw content type as well
+        // would be actively wrong, not merely redundant: ContextSerializationService checks
+        // DefaultOutput before it reaches the serializer locator, so the raw writer would take the
+        // response first and hand the template's model - a record, not a string - to
+        // RawOutputHelper, which throws on anything that is not string, byte[] or Stream. The
+        // engine sets the content type from the template's own base type.
+        if (!string.IsNullOrEmpty(operation.TemplateName)) {
+            return null;
+        }
+
         var contentType = operation.ResponseContentType;
 
         if (string.IsNullOrEmpty(contentType) || contentType!.Contains("json")) {

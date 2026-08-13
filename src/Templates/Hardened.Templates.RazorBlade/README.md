@@ -35,7 +35,7 @@ Registration lives in the application because RazorBlade generates template clas
 by default — nothing outside that assembly can name them. Set `RazorBladeDefaultAccessibility` to
 `public` if a library needs to ship views.
 
-Apply the module alongside the rest, listed after the web module:
+Apply the module alongside the rest:
 
 ```csharp
 [HardenedModule]
@@ -45,10 +45,11 @@ Apply the module alongside the rest, listed after the web module:
 public partial class Application { }
 ```
 
-Order is worth knowing about. `SerializationLocatorService` tests later registrations first, so a
-request carrying both `Accept: application/json` and a template name resolves to whichever
-serializer was registered second. If a handler you expected to render a view returns JSON instead,
-that ordering is the first thing to check.
+Order does not matter. A response carrying a template name is dispatched by
+`ContextSerializationService` before the serializer locator is consulted at all, so a request that
+also sends `Accept: application/json` still renders. Registering multiple engines is the one place
+order counts: they are tested in reverse registration order, so an application's engine is asked
+before one a library registered.
 
 ## Content type
 

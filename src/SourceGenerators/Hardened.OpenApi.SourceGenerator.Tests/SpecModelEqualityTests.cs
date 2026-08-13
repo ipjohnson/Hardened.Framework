@@ -804,6 +804,33 @@ public class SpecModelEqualityTests {
         Assert.NotEqual(Parse(RequestBodyOf("application/json")), Parse(RequestBodyOf("text/plain")));
     }
 
+    /// <summary>
+    /// Changing the view an operation renders through changes what the handler assigns to
+    /// <c>Response.TemplateName</c>.
+    /// </summary>
+    [Fact]
+    public void ChangingAnOperationsTemplateMakesTheModelUnequal() {
+        Assert.NotEqual(Parse(TemplatedWith("Fortunes")), Parse(TemplatedWith("FortunesCompact")));
+    }
+
+    private static string TemplatedWith(string template) =>
+        $$"""
+        openapi: "3.0.0"
+        info: { title: T, version: "1.0" }
+        paths:
+          /fortunes:
+            get:
+              tags: [Fortune]
+              operationId: fortunes
+              x-hardened-template: {{template}}
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    text/html:
+                      schema: { type: string }
+        """;
+
     private static string ResponseOf(string mediaType, string schema) =>
         $$"""
         openapi: "3.0.0"

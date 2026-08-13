@@ -315,6 +315,7 @@ public class SpecModelSerializerTests {
             ResponseIsArray = true,
             ResponseArrayItemsRef = "#/components/schemas/Pet",
             SuccessStatusCode = 201,
+            TemplateName = "Fortunes",
             FilterInstances = { filterInstance },
             RequestBodyProperties = { property },
             RequestBodyRequired = { "name", "tag" },

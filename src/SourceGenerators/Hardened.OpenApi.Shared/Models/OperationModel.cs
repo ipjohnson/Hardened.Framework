@@ -23,6 +23,12 @@ internal class OperationModel : IEquatable<OperationModel> {
     public string? ResponseArrayItemsRef { get; set; }
     public int SuccessStatusCode { get; set; } = 200;
 
+    /// <summary>
+    /// The view this operation's model is rendered through, from <c>x-hardened-template</c>. Null
+    /// for an operation that serializes rather than renders.
+    /// </summary>
+    public string? TemplateName { get; set; }
+
     // x-filters: typed filter attribute instances applied to this operation
     public List<FilterInstanceModel> FilterInstances { get; set; } = new();
 
@@ -68,6 +74,7 @@ internal class OperationModel : IEquatable<OperationModel> {
                ResponseFormat == other.ResponseFormat &&
                ResponseIsArray == other.ResponseIsArray &&
                ResponseArrayItemsRef == other.ResponseArrayItemsRef &&
+               TemplateName == other.TemplateName &&
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&
                RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&

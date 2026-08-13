@@ -183,6 +183,47 @@ public class RequestModelBuilderTests {
         Assert.True(deletePet.ResponseInformation.IsAsync);
     }
 
+    private static RequestHandlerModel BuildTemplated(string? templateName, string? contentType) {
+        var spec = SpecReturning(contentType);
+        spec.Services[0].Operations[0].TemplateName = templateName;
+
+        return RequestModelBuilder.BuildModels(
+                spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation")
+            .Single();
+    }
+
+    /// <summary>
+    /// <c>x-hardened-template</c> reaches the response model, which is what
+    /// <c>InvokeMethodCodeGenerator</c> turns into an assignment to
+    /// <c>Response.TemplateName</c> for the engine to pick up.
+    /// </summary>
+    [Fact]
+    public void BuildModels_TemplatedOperation_CarriesTheTemplateName() {
+        Assert.Equal("Fortunes", BuildTemplated("Fortunes", "text/html").ResponseInformation.TemplateName);
+    }
+
+    /// <summary>
+    /// A templated operation must not also take the raw path.
+    /// <c>ContextSerializationService</c> checks <c>DefaultOutput</c> before the serializer locator,
+    /// so a raw content type here would take the response first and hand the template's model to
+    /// <c>RawOutputHelper</c>, which throws on anything that is not string, byte[] or Stream. The
+    /// template would never render.
+    /// </summary>
+    [Fact]
+    public void BuildModels_TemplatedOperation_DoesNotAlsoGetARawContentType() {
+        Assert.True(string.IsNullOrEmpty(
+            BuildTemplated("Fortunes", "text/html").ResponseInformation.RawResponseContentType));
+    }
+
+    /// <summary>
+    /// The same media type without a template still takes the raw path - text/html is a perfectly
+    /// good raw response for a handler that returns a string it built itself.
+    /// </summary>
+    [Fact]
+    public void BuildModels_UntemplatedHtml_StillTakesTheRawPath() {
+        Assert.Equal("text/html", BuildTemplated(null, "text/html").ResponseInformation.RawResponseContentType);
+    }
+
     private static OpenApiSpecModel SpecReturning(string? contentType) =>
         new() {
             FileName = "content",

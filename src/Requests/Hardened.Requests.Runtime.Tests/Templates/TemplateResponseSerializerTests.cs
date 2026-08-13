@@ -133,33 +133,14 @@ public class TemplateResponseSerializerTests {
     }
 
     /// <summary>
-    /// Never the fallback. A default serializer is chosen when nothing claims the context, and a
-    /// template serializer that volunteered there would answer every unmatched request with an
-    /// exception about a template name that was never set.
+    /// It is not an <c>IResponseSerializer</c>, so the locator cannot reach it at all - which is
+    /// the point. Routing template responses through the locator made <c>/fortunes</c> return a
+    /// JSON-serialized model, because a request carrying <c>Accept: application/json</c> and a
+    /// template name satisfies both candidates and the locator answers with whichever was
+    /// registered later. Both are registered by one module, so nothing could reorder them.
     /// </summary>
     [Fact]
-    public void IsDefaultSerializer_IsFalse() {
-        Assert.False(new TemplateResponseSerializer(Array.Empty<ITemplateEngine>()).IsDefaultSerializer);
-    }
-
-    /// <summary>
-    /// The ordering this serializer depends on is owned by SerializationLocatorService, not by
-    /// this class, so it is pinned here against the real locator: a request that would satisfy
-    /// both JSON and a template resolves to the template when the template module was registered
-    /// second, which is what applying it after the core module produces.
-    /// </summary>
-    [Fact]
-    public void RegisteredAfterJson_TheTemplateSerializerIsChosenForATemplateResponse() {
-        var json = new SystemTextJsonResponseSerializer(
-            Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration()));
-
-        var template = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
-
-        var chosen = new SerializationLocatorService(
-                Array.Empty<IRequestDeserializer>(),
-                new IResponseSerializer[] { json, template })
-            .FindResponseSerializer(ContextFor("Fortunes"));
-
-        Assert.Same(template, chosen);
+    public void ItIsNotAnIResponseSerializer_SoTheLocatorCannotChooseItByAccident() {
+        Assert.False(typeof(IResponseSerializer).IsAssignableFrom(typeof(TemplateResponseSerializer)));
     }
 }

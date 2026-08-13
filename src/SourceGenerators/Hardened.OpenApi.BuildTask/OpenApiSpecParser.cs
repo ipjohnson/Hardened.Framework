@@ -393,6 +393,16 @@ internal static class OpenApiSpecParser {
                 opModel.FilterInstances = ParseFilterInstances(filtersObj);
             }
 
+            // x-hardened-template names the view the operation's model is rendered through. The
+            // spec's own content map cannot carry this: it says the response is text/html, which is
+            // true and says nothing about which view produced it.
+            if (operation.Extensions != null &&
+                operation.Extensions.TryGetValue("x-hardened-template", out var templateExt) &&
+                templateExt is OpenApiString templateName &&
+                !string.IsNullOrWhiteSpace(templateName.Value)) {
+                opModel.TemplateName = templateName.Value;
+            }
+
             if (!operationsByTag.TryGetValue(tag, out var list)) {
                 list = new List<OperationModel>();
                 operationsByTag[tag] = list;

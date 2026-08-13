@@ -116,6 +116,22 @@ internal static class TypeMapper {
         };
     }
 
+    /// <summary>
+    /// Whether a required property of this type is non-nullable by virtue of being a value type.
+    /// </summary>
+    /// <remarks>
+    /// Emitting <c>[Required]</c> on one is what ValidationModules reports as VM0004 - a rule that
+    /// can never fail, because an <c>int</c> parameter cannot be absent. The warning is correct and
+    /// the attribute is noise, so it is not emitted. It matters beyond tidiness: this repository
+    /// escalates warnings to errors under ContinuousIntegrationBuild, so a spec with a required
+    /// integer property would fail CI while building clean locally.
+    /// </remarks>
+    public static bool IsNonNullableValueType(string csType) =>
+        csType switch {
+            "int" or "uint" or "long" or "float" or "double" or "bool" or "DateTime" or "DateOnly" => true,
+            _ => false
+        };
+
     public static string GetRefName(string refPath) {
         var lastSlash = refPath.LastIndexOf('/');
         return lastSlash >= 0 ? refPath.Substring(lastSlash + 1) : refPath;

@@ -10,21 +10,22 @@ namespace Hardened.Requests.Runtime.Templates;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A serializer rather than a branch in <c>ContextSerializationService</c>, because the locator
-/// already performs exactly this dispatch: ask each candidate whether it can handle the context and
-/// take the first that says yes. Adding a fourth arm to that method would have duplicated it.
+/// Shaped as an <see cref="IResponseSerializer"/> because that is what it does, but
+/// <b>not resolved through the locator</b>. <c>ContextSerializationService</c> holds one of these
+/// directly and asks it before it asks the locator anything.
 /// </para>
 /// <para>
-/// <b>Ordering matters and is not free.</b> <c>SerializationLocatorService</c> returns the first
-/// serializer whose <c>CanProcessContext</c> is true, over a list it reverses so that later
-/// registrations are tested first. A request with both <c>Accept: application/json</c> and a
-/// template name therefore goes to whichever of the two was registered last. Registering a template
-/// module after the core module gives the intended order, which
-/// <c>TemplateResponseSerializerTests</c> pins rather than trusting.
+/// That is not a stylistic choice. The locator returns the first registered serializer that claims
+/// the context, over a list it reverses, so a template response whose request also carries
+/// <c>Accept: application/json</c> resolves on registration order - and both candidates are
+/// registered by this assembly's own module, so there is no ordering an application could pick to
+/// make the template win. Registering it as one serializer among the others produced exactly that:
+/// <c>/fortunes</c> returned a JSON-serialized model with a content type of application/json, and
+/// the template never ran.
 /// </para>
 /// </remarks>
 [SingletonService(Using = RegistrationType.Try)]
-public class TemplateResponseSerializer : IResponseSerializer {
+public class TemplateResponseSerializer : ITemplateResponseSerializer {
     private readonly ITemplateEngine[] _engines;
 
     public TemplateResponseSerializer(IEnumerable<ITemplateEngine> engines) {
@@ -32,12 +33,6 @@ public class TemplateResponseSerializer : IResponseSerializer {
         // by the application should be tested before one the framework registered.
         _engines = engines.Reverse().ToArray();
     }
-
-    /// <summary>
-    /// Never the fallback. A response with no template name is not this serializer's business, and
-    /// claiming otherwise would put it ahead of JSON for every unmatched request.
-    /// </summary>
-    public bool IsDefaultSerializer => false;
 
     public bool CanProcessContext(IExecutionContext context) {
         var templateName = context.Response.TemplateName;

@@ -376,7 +376,7 @@ namespace Hardened.Requests.Runtime.Serializer
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class ContextSerializationService : Hardened.Requests.Abstract.Serializer.IContextSerializationService
     {
-        public ContextSerializationService(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.ContextSerializationService> logger, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService serializationLocatorService, Hardened.Requests.Abstract.Serializer.INullValueResponseHandler nullValueResponse, Hardened.Requests.Abstract.Serializer.IExceptionResponseSerializer exceptionResponseSerializer) { }
+        public ContextSerializationService(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.ContextSerializationService> logger, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService serializationLocatorService, Hardened.Requests.Abstract.Serializer.INullValueResponseHandler nullValueResponse, Hardened.Requests.Abstract.Serializer.IExceptionResponseSerializer exceptionResponseSerializer, Hardened.Requests.Abstract.Templates.ITemplateResponseSerializer templateResponseSerializer) { }
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
@@ -433,10 +433,9 @@ namespace Hardened.Requests.Runtime.Serializer
 namespace Hardened.Requests.Runtime.Templates
 {
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
-    public class TemplateResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
+    public class TemplateResponseSerializer : Hardened.Requests.Abstract.Templates.ITemplateResponseSerializer
     {
         public TemplateResponseSerializer(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Templates.ITemplateEngine> engines) { }
-        public bool IsDefaultSerializer { get; }
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }

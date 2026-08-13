@@ -783,6 +783,42 @@ public class SpecParsingTests {
     }
 
     /// <summary>
+    /// <c>x-hardened-template</c> names the view an operation renders through. The content map
+    /// cannot carry this - it says the response is text/html, which is true and says nothing about
+    /// which view produced it.
+    /// </summary>
+    [Fact]
+    public void AnOperationWithATemplateExtensionRecordsTheTemplateName() {
+        var model = Parse(
+            """
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /fortunes:
+                get:
+                  tags: [Fortune]
+                  operationId: fortunes
+                  x-hardened-template: Fortunes
+                  responses:
+                    '200':
+                      description: ok
+                      content:
+                        text/html:
+                          schema: { type: string }
+            """);
+
+        Assert.Equal("Fortunes", model.Services.Single().Operations.Single().TemplateName);
+    }
+
+    /// <summary>An operation without the extension records no template.</summary>
+    [Fact]
+    public void AnOperationWithoutATemplateExtensionRecordsNoTemplateName() {
+        var model = Parse(Specs.Minimal);
+
+        Assert.Null(model.Services.Single().Operations.Single().TemplateName);
+    }
+
+    /// <summary>
     /// JSON is preferred when an operation offers both, because that is what the pipeline
     /// serializes by default - taking the document's first entry instead would change what
     /// already-generated code returns for every operation that lists a non-JSON type first.

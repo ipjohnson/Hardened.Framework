@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- A test fixture, not a shipped package. -->
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.Benchmark.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Templates\Hardened.Templates.RazorBlade\Hardened.Templates.RazorBlade.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Hardened.OpenApi.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+        Referenced directly rather than through Hardened.Templates.RazorBlade, because RazorBlade
+        ships no buildTransitive/ and its .cshtml globbing therefore does not flow transitively.
+    -->
+    <ItemGroup>
+        <PackageReference Include="RazorBlade" Version="1.0.0"/>
+    </ItemGroup>
+
+    <!--
+        In-repo wiring for the build task, matching the OpenApi SUT. The ProjectReference exists
+        only to order the build; HardenedOpenApiTaskAssembly points UsingTask at its output.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\Hardened.OpenApi.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          SetTargetFramework="TargetFramework=net8.0"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <HardenedOpenApiTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\bin\$(Configuration)\net8.0\Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
+    </PropertyGroup>
+
+    <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
+
+    <ItemGroup>
+        <HardenedOpenApiSpec Include="Specs\benchmark.yaml"/>
+    </ItemGroup>
+
+</Project>

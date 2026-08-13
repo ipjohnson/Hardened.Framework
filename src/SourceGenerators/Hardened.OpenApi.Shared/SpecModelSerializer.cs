@@ -314,6 +314,7 @@ internal static class SpecModelSerializer {
         record.Add("ResponseIsArray", operation.ResponseIsArray);
         record.Add("ResponseArrayItemsRef", operation.ResponseArrayItemsRef);
         record.Add("SuccessStatusCode", operation.SuccessStatusCode);
+        record.Add("TemplateName", operation.TemplateName);
         record.WriteTo(builder);
 
         foreach (var parameter in operation.Parameters) {
@@ -361,6 +362,7 @@ internal static class SpecModelSerializer {
         ResponseIsArray = record.Bool("ResponseIsArray"),
         ResponseArrayItemsRef = record.String("ResponseArrayItemsRef"),
         SuccessStatusCode = record.Int("SuccessStatusCode") ?? 200,
+        TemplateName = record.String("TemplateName"),
     };
 
     private static void WriteParameter(StringBuilder builder, ParameterModel parameter) {

@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Abstract.Templates;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Tests.Support;
 using NSubstitute;
@@ -26,16 +27,20 @@ public class ContextSerializationServiceTests {
 
         public IRequestDeserializer RequestDeserializer { get; } = Substitute.For<IRequestDeserializer>();
 
+        public ITemplateResponseSerializer Templates { get; } = Substitute.For<ITemplateResponseSerializer>();
+
         public Fixture() {
             Locator.FindResponseSerializer(Arg.Any<IExecutionContext>()).Returns(ResponseSerializer);
             Locator.FindRequestDeserializer(Arg.Any<IExecutionContext>()).Returns(RequestDeserializer);
             NullValues.Handle(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
             Exceptions.Handle(Arg.Any<IExecutionContext>(), Arg.Any<Exception>()).Returns(Task.CompletedTask);
             ResponseSerializer.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
+            Templates.CanProcessContext(Arg.Any<IExecutionContext>()).Returns(false);
+            Templates.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
         }
 
         public ContextSerializationService Service => new(
-            Pipeline.Logger<ContextSerializationService>(), Locator, NullValues, Exceptions);
+            Pipeline.Logger<ContextSerializationService>(), Locator, NullValues, Exceptions, Templates);
     }
 
     [Fact]
@@ -141,5 +146,71 @@ public class ContextSerializationServiceTests {
 
         Assert.Equal("body", result);
         fixture.Locator.Received(1).FindRequestDeserializer(context);
+    }
+
+    /// <summary>
+    /// A template response is written by the template serializer and the locator is never consulted.
+    /// </summary>
+    /// <remarks>
+    /// The ordering here is the whole reason the template serializer is not resolved through the
+    /// locator. The locator returns the first registered serializer that claims the context, and a
+    /// request carrying <c>Accept: application/json</c> alongside a template name satisfies both the
+    /// JSON serializer and the template one - so the answer came down to which was registered later,
+    /// and both are registered by one module. Routing templates through it made <c>/fortunes</c>
+    /// return a JSON-serialized model with a content type of application/json.
+    /// </remarks>
+    [Fact]
+    public async Task ATemplateResponseIsWrittenByTheTemplateSerializerAheadOfTheLocator() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+
+        context.Response.ResponseValue = new { Fortunes = 3 };
+        fixture.Templates.CanProcessContext(context).Returns(true);
+
+        await fixture.Service.SerializeResponse(context);
+
+        await fixture.Templates.Received(1).SerializeResponse(context);
+        fixture.Locator.DidNotReceive().FindResponseSerializer(Arg.Any<IExecutionContext>());
+    }
+
+    /// <summary>
+    /// A response the template serializer does not claim still reaches the locator, so asking first
+    /// costs nothing for the ordinary case.
+    /// </summary>
+    [Fact]
+    public async Task AResponseTheTemplateSerializerDeclinesFallsThroughToTheLocator() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+
+        context.Response.ResponseValue = "value";
+        fixture.Templates.CanProcessContext(context).Returns(false);
+
+        await fixture.Service.SerializeResponse(context);
+
+        await fixture.ResponseSerializer.Received(1).SerializeResponse(context);
+        await fixture.Templates.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+    }
+
+    /// <summary>
+    /// DefaultOutput still wins, so a raw or attribute-driven response is unaffected by any of this.
+    /// </summary>
+    [Fact]
+    public async Task DefaultOutputStillTakesPrecedenceOverATemplate() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var ranDefaultOutput = false;
+
+        context.Response.ResponseValue = "value";
+        context.DefaultOutput = _ => {
+            ranDefaultOutput = true;
+
+            return Task.CompletedTask;
+        };
+        fixture.Templates.CanProcessContext(context).Returns(true);
+
+        await fixture.Service.SerializeResponse(context);
+
+        Assert.True(ranDefaultOutput);
+        await fixture.Templates.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
     }
 }
