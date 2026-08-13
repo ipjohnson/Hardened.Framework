@@ -57,4 +57,12 @@ public class PetServiceImpl : IPetService {
     public Task DeletePet(string petId) {
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Declared as <c>text/plain</c> in the spec, which is what makes the generated handler write
+    /// this string straight to the body instead of handing it to the JSON serializer.
+    /// </summary>
+    public Task<string> PetsAsPlainText() {
+        return Task.FromResult(string.Join("\n", Pets.Select(pet => $"{pet.Id}: {pet.Name}")));
+    }
 }

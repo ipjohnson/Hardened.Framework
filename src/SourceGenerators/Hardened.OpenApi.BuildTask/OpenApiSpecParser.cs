@@ -338,11 +338,11 @@ internal static class OpenApiSpecParser {
             }
 
             if (operation.RequestBody?.Content != null) {
-                var jsonContent = operation.RequestBody.Content
-                    .FirstOrDefault(c => c.Key.Contains("json"));
+                var bodyContent = SelectMediaType(operation.RequestBody.Content);
 
-                if (jsonContent.Value?.Schema != null) {
-                    var bodySchema = jsonContent.Value.Schema;
+                if (bodyContent.Value?.Schema != null) {
+                    var bodySchema = bodyContent.Value.Schema;
+                    opModel.RequestBodyContentType = bodyContent.Key;
                     opModel.RequestBodyRef = bodySchema.Reference?.ReferenceV3;
                     opModel.RequestBodyType = bodySchema.Type;
 
@@ -369,11 +369,11 @@ internal static class OpenApiSpecParser {
                     }
 
                     if (response.Content != null) {
-                        var jsonResponse = response.Content
-                            .FirstOrDefault(c => c.Key.Contains("json"));
+                        var responseContent = SelectMediaType(response.Content);
 
-                        if (jsonResponse.Value?.Schema != null) {
-                            var responseSchema = jsonResponse.Value.Schema;
+                        if (responseContent.Value?.Schema != null) {
+                            var responseSchema = responseContent.Value.Schema;
+                            opModel.ResponseContentType = responseContent.Key;
                             opModel.ResponseRef = responseSchema.Reference?.ReferenceV3;
                             opModel.ResponseType = responseSchema.Type;
                             opModel.ResponseFormat = responseSchema.Format;
@@ -400,6 +400,43 @@ internal static class OpenApiSpecParser {
 
             list.Add(opModel);
         }
+    }
+
+    /// <summary>
+    /// Which entry of an OpenAPI content map the generated signature is built from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// JSON wins when the operation offers it, because that is the shape the pipeline serializes by
+    /// default and choosing anything else for a JSON-and-something operation would change what
+    /// already-generated code returns.
+    /// </para>
+    /// <para>
+    /// Otherwise the first entry, which is the change. This previously read
+    /// <c>FirstOrDefault(c =&gt; c.Key.Contains("json"))</c> and discarded everything else, so a
+    /// <c>text/plain</c> operation parsed to no schema at all: <c>ResponseType</c> stayed null, the
+    /// generated interface method came back as bare <c>Task</c>, and nothing ever reached
+    /// <c>RawResponseContentType</c>. A spec could describe a plain-text endpoint and the generator
+    /// would silently emit one that returned nothing.
+    /// </para>
+    /// <para>
+    /// Ordering is the document's. OpenAPI content maps are unordered in principle, but the reader
+    /// preserves document order and a spec listing one media type first means it.
+    /// </para>
+    /// </remarks>
+    private static KeyValuePair<string, OpenApiMediaType> SelectMediaType(
+        IDictionary<string, OpenApiMediaType> content) {
+        foreach (var entry in content) {
+            if (entry.Key.Contains("json")) {
+                return entry;
+            }
+        }
+
+        foreach (var entry in content) {
+            return entry;
+        }
+
+        return default;
     }
 
     private static string GenerateOperationId(string method, string path) {

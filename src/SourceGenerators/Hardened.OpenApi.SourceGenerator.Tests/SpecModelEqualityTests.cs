@@ -742,4 +742,112 @@ public class SpecModelEqualityTests {
               MaxRequests: { type: integer, default: 100 }
         paths: {}
         """;
+
+    // ── responses ──────────────────────────────────────────────────────
+    //
+    // OperationModel.Equals compared the operation's identity and its parameters and nothing else,
+    // so every edit below produced a model that compared equal to the one before it. In the
+    // incremental pipeline that means the downstream emit does not rerun and the build keeps
+    // serving generated code the spec no longer describes. None of these were covered.
+
+    /// <summary>
+    /// Changing the media type a response is declared under changes what the handler writes -
+    /// it is what decides between the JSON serializer and the raw writer.
+    /// </summary>
+    [Fact]
+    public void ChangingAResponsesMediaTypeMakesTheModelUnequal() {
+        Assert.NotEqual(
+            Parse(ResponseOf("application/json", "{ type: string }")),
+            Parse(ResponseOf("text/plain", "{ type: string }")));
+    }
+
+    /// <summary>Changing the response schema's type changes the generated return type.</summary>
+    [Fact]
+    public void ChangingAResponseSchemaTypeMakesTheModelUnequal() {
+        Assert.NotEqual(
+            Parse(ResponseOf("application/json", "{ type: string }")),
+            Parse(ResponseOf("application/json", "{ type: integer }")));
+    }
+
+    /// <summary>
+    /// Changing the response schema's format changes the mapped C# type - integer/int64 is long
+    /// where integer alone is int.
+    /// </summary>
+    [Fact]
+    public void ChangingAResponseSchemaFormatMakesTheModelUnequal() {
+        Assert.NotEqual(
+            Parse(ResponseOf("application/json", "{ type: integer }")),
+            Parse(ResponseOf("application/json", "{ type: integer, format: int64 }")));
+    }
+
+    /// <summary>
+    /// Turning a response into an array of the same thing changes the return type to a List.
+    /// </summary>
+    [Fact]
+    public void MakingAResponseAnArrayMakesTheModelUnequal() {
+        Assert.NotEqual(
+            Parse(ResponseOf("application/json", "{ type: string }")),
+            Parse(ResponseOf("application/json", "{ type: array, items: { type: string } }")));
+    }
+
+    /// <summary>The success status code is emitted onto the handler.</summary>
+    [Fact]
+    public void ChangingTheSuccessStatusCodeMakesTheModelUnequal() {
+        Assert.NotEqual(Parse(SuccessStatus("200")), Parse(SuccessStatus("201")));
+    }
+
+    /// <summary>
+    /// A request body's media type moves with the same reasoning as a response's.
+    /// </summary>
+    [Fact]
+    public void ChangingARequestBodysMediaTypeMakesTheModelUnequal() {
+        Assert.NotEqual(Parse(RequestBodyOf("application/json")), Parse(RequestBodyOf("text/plain")));
+    }
+
+    private static string ResponseOf(string mediaType, string schema) =>
+        $$"""
+        openapi: "3.0.0"
+        info: { title: T, version: "1.0" }
+        paths:
+          /things:
+            get:
+              tags: [Thing]
+              operationId: listThings
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    {{mediaType}}:
+                      schema: {{schema}}
+        """;
+
+    private static string SuccessStatus(string status) =>
+        $$"""
+        openapi: "3.0.0"
+        info: { title: T, version: "1.0" }
+        paths:
+          /things:
+            post:
+              tags: [Thing]
+              operationId: createThing
+              responses:
+                '{{status}}': { description: ok }
+        """;
+
+    private static string RequestBodyOf(string mediaType) =>
+        $$"""
+        openapi: "3.0.0"
+        info: { title: T, version: "1.0" }
+        paths:
+          /things:
+            post:
+              tags: [Thing]
+              operationId: createThing
+              requestBody:
+                content:
+                  {{mediaType}}:
+                    schema: { type: string }
+              responses:
+                '200': { description: ok }
+        """;
 }

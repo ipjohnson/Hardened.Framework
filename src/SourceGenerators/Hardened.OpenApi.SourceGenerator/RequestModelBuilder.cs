@@ -283,7 +283,36 @@ internal static class RequestModelBuilder {
 
         return new ResponseInformationModel {
             IsAsync = true,
-            ReturnType = returnType
+            ReturnType = returnType,
+            RawResponseContentType = RawContentTypeFor(operation)
         };
+    }
+
+    /// <summary>
+    /// The content type a spec-first operation should write its response as, or null to let the
+    /// pipeline serialize it as JSON.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the whole of the spec-first side of raw responses. <c>InvokeClassGenerator</c>
+    /// already turns a non-null value into <c>RawOutputHelper.OutputFunc(contentType)</c>, and
+    /// <c>RawOutputHelper</c> already handles string, byte[] and Stream - the attribute-driven path
+    /// has worked that way for as long as <c>[RawResponse]</c> has existed. The OpenAPI path simply
+    /// never populated the field, so a <c>text/plain</c> operation fell through to the JSON
+    /// serializer and came back quoted.
+    /// </para>
+    /// <para>
+    /// JSON stays null rather than being passed through as "application/json": the raw path writes
+    /// the response value directly, which is correct for a string and wrong for a model.
+    /// </para>
+    /// </remarks>
+    private static string? RawContentTypeFor(OperationModel operation) {
+        var contentType = operation.ResponseContentType;
+
+        if (string.IsNullOrEmpty(contentType) || contentType!.Contains("json")) {
+            return null;
+        }
+
+        return contentType;
     }
 }

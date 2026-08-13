@@ -746,11 +746,19 @@ public class SpecParsingTests {
     }
 
     /// <summary>
-    /// A response body only counts when it is JSON. A route that answers <c>text/plain</c> has no
-    /// model to deserialise into, so no response type is recorded.
+    /// A non-JSON response contributes its schema and its media type.
     /// </summary>
+    /// <remarks>
+    /// This test previously asserted the opposite - that <c>text/plain</c> recorded no response type
+    /// at all - and described that as a response body only counting when it is JSON. It was
+    /// describing a defect rather than a decision. The parser filtered the content map down to
+    /// entries whose key contained "json" and dropped the rest, so a spec could declare a plain-text
+    /// endpoint and get a generated interface method returning bare <c>Task</c>, with the content
+    /// type never reaching <c>RawResponseContentType</c> and the pipeline JSON-encoding the string
+    /// it returned.
+    /// </remarks>
     [Fact]
-    public void ANonJsonResponseContributesNoResponseType() {
+    public void ANonJsonResponseRecordsItsSchemaAndMediaType() {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -770,8 +778,86 @@ public class SpecParsingTests {
 
         var operation = model.Services.Single().Operations.Single();
 
-        Assert.Null(operation.ResponseType);
-        Assert.Null(operation.ResponseRef);
+        Assert.Equal("string", operation.ResponseType);
+        Assert.Equal("text/plain", operation.ResponseContentType);
+    }
+
+    /// <summary>
+    /// JSON is preferred when an operation offers both, because that is what the pipeline
+    /// serializes by default - taking the document's first entry instead would change what
+    /// already-generated code returns for every operation that lists a non-JSON type first.
+    /// </summary>
+    [Fact]
+    public void AnOperationOfferingJsonAndSomethingElseRecordsJson() {
+        var model = Parse(
+            """
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /pets:
+                get:
+                  tags: [Pet]
+                  operationId: listPets
+                  responses:
+                    '200':
+                      description: ok
+                      content:
+                        text/csv:
+                          schema: { type: string }
+                        application/json:
+                          schema: { type: string }
+            """);
+
+        Assert.Equal("application/json",
+            model.Services.Single().Operations.Single().ResponseContentType);
+    }
+
+    /// <summary>
+    /// The request body's media type is recorded on the same basis as the response's.
+    /// </summary>
+    [Fact]
+    public void ANonJsonRequestBodyRecordsItsMediaType() {
+        var model = Parse(
+            """
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /upload:
+                post:
+                  tags: [Upload]
+                  operationId: upload
+                  requestBody:
+                    content:
+                      text/plain:
+                        schema: { type: string }
+                  responses:
+                    '200': { description: ok }
+            """);
+
+        Assert.Equal("text/plain",
+            model.Services.Single().Operations.Single().RequestBodyContentType);
+    }
+
+    /// <summary>
+    /// An operation that declares no response content records no media type, which is what keeps
+    /// it on the JSON path rather than sending it through the raw writer with a null content type.
+    /// </summary>
+    [Fact]
+    public void AnOperationWithNoResponseContentRecordsNoMediaType() {
+        var model = Parse(
+            """
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /ping:
+                get:
+                  tags: [Meta]
+                  operationId: ping
+                  responses:
+                    '204': { description: no content }
+            """);
+
+        Assert.Null(model.Services.Single().Operations.Single().ResponseContentType);
     }
 
     /// <summary>An array response records the item reference rather than the array's own.</summary>

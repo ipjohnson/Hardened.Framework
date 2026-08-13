@@ -6,8 +6,16 @@ internal class OperationModel : IEquatable<OperationModel> {
     public string HttpMethod { get; set; } = "";
     public string? Tag { get; set; }
     public List<ParameterModel> Parameters { get; set; } = new();
+    public string? RequestBodyContentType { get; set; }
     public string? RequestBodyRef { get; set; }
     public string? RequestBodyType { get; set; }
+
+    /// <summary>
+    /// The media type the response schema was read from - "application/json", "text/plain",
+    /// "text/html". Null when the operation declares no response content.
+    /// </summary>
+    public string? ResponseContentType { get; set; }
+
     public string? ResponseRef { get; set; }
     public string? ResponseType { get; set; }
     public string? ResponseFormat { get; set; }
@@ -34,11 +42,32 @@ internal class OperationModel : IEquatable<OperationModel> {
         }
     }
 
+    /// <summary>
+    /// Compares every field the generator reads.
+    /// </summary>
+    /// <remarks>
+    /// This model is an incremental-pipeline cache key: Roslyn compares a freshly parsed value
+    /// against the cached one to decide whether the downstream emit runs. Until this covered the
+    /// response and request-body fields it compared only the operation's identity and its
+    /// parameters, so editing a response schema, its media type or its status code produced a model
+    /// that compared equal to the previous one and the generator served the code it had already
+    /// emitted. The spec said one thing and the build kept shipping another.
+    /// </remarks>
     public bool Equals(OperationModel? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return OperationId == other.OperationId && Path == other.Path &&
                HttpMethod == other.HttpMethod && Tag == other.Tag &&
+               SuccessStatusCode == other.SuccessStatusCode &&
+               RequestBodyContentType == other.RequestBodyContentType &&
+               RequestBodyRef == other.RequestBodyRef &&
+               RequestBodyType == other.RequestBodyType &&
+               ResponseContentType == other.ResponseContentType &&
+               ResponseRef == other.ResponseRef &&
+               ResponseType == other.ResponseType &&
+               ResponseFormat == other.ResponseFormat &&
+               ResponseIsArray == other.ResponseIsArray &&
+               ResponseArrayItemsRef == other.ResponseArrayItemsRef &&
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&
                RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&
@@ -47,6 +76,11 @@ internal class OperationModel : IEquatable<OperationModel> {
 
     public override bool Equals(object? obj) => Equals(obj as OperationModel);
 
+    /// <summary>
+    /// Deliberately narrower than <see cref="Equals(OperationModel?)"/> - identity only, over three
+    /// fields that never change for a given operation. Roslyn buckets by hash and then compares, so
+    /// a hash must agree with equality but need not distinguish everything equality does.
+    /// </summary>
     public override int GetHashCode() {
         unchecked {
             var hash = OperationId.GetHashCode();

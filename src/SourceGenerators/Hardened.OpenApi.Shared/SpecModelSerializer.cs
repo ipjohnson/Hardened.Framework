@@ -304,8 +304,10 @@ internal static class SpecModelSerializer {
         record.Add("Path", operation.Path);
         record.Add("HttpMethod", operation.HttpMethod);
         record.Add("Tag", operation.Tag);
+        record.Add("RequestBodyContentType", operation.RequestBodyContentType);
         record.Add("RequestBodyRef", operation.RequestBodyRef);
         record.Add("RequestBodyType", operation.RequestBodyType);
+        record.Add("ResponseContentType", operation.ResponseContentType);
         record.Add("ResponseRef", operation.ResponseRef);
         record.Add("ResponseType", operation.ResponseType);
         record.Add("ResponseFormat", operation.ResponseFormat);
@@ -349,8 +351,10 @@ internal static class SpecModelSerializer {
         Path = record.String("Path") ?? "",
         HttpMethod = record.String("HttpMethod") ?? "",
         Tag = record.String("Tag"),
+        RequestBodyContentType = record.String("RequestBodyContentType"),
         RequestBodyRef = record.String("RequestBodyRef"),
         RequestBodyType = record.String("RequestBodyType"),
+        ResponseContentType = record.String("ResponseContentType"),
         ResponseRef = record.String("ResponseRef"),
         ResponseType = record.String("ResponseType"),
         ResponseFormat = record.String("ResponseFormat"),

@@ -149,6 +149,18 @@ paths:
       responses:
         '204':
           description: Pet deleted
+  /pets/plain:
+    get:
+      tags:
+        - Pet
+      operationId: petsAsPlainText
+      responses:
+        '200':
+          description: The pets, one per line
+          content:
+            text/plain:
+              schema:
+                type: string
   /stores:
     get:
       tags:

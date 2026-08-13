@@ -183,6 +183,68 @@ public class RequestModelBuilderTests {
         Assert.True(deletePet.ResponseInformation.IsAsync);
     }
 
+    private static OpenApiSpecModel SpecReturning(string? contentType) =>
+        new() {
+            FileName = "content",
+            Services = new List<ServiceModel> {
+                new() {
+                    Tag = "Meta",
+                    Operations = new List<OperationModel> {
+                        new() {
+                            OperationId = "robots",
+                            Path = "/robots.txt",
+                            HttpMethod = "GET",
+                            ResponseContentType = contentType,
+                            ResponseType = "string"
+                        }
+                    }
+                }
+            }
+        };
+
+    private static RequestHandlerModel BuildRobots(string? contentType) =>
+        RequestModelBuilder.BuildModels(
+                SpecReturning(contentType),
+                "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation")
+            .Single();
+
+    /// <summary>
+    /// A non-JSON response reaches <c>RawResponseContentType</c>, which is what
+    /// <c>InvokeClassGenerator</c> turns into a <c>RawOutputHelper.OutputFunc</c> default output.
+    /// Without it a <c>text/plain</c> operation returning a string had the string JSON-encoded, so
+    /// the body came back wrapped in quotes with a content type of application/json.
+    /// </summary>
+    [Fact]
+    public void BuildModels_NonJsonResponse_SetsRawResponseContentType() {
+        Assert.Equal("text/plain", BuildRobots("text/plain").ResponseInformation.RawResponseContentType);
+    }
+
+    /// <summary>
+    /// JSON does not take the raw path. The raw writer writes the response value straight to the
+    /// body, which is right for a string and wrong for a model.
+    /// </summary>
+    [Fact]
+    public void BuildModels_JsonResponse_LeavesRawResponseContentTypeUnset() {
+        Assert.True(string.IsNullOrEmpty(
+            BuildRobots("application/json").ResponseInformation.RawResponseContentType));
+    }
+
+    /// <summary>An operation declaring no response content stays on the JSON path.</summary>
+    [Fact]
+    public void BuildModels_NoResponseContentType_LeavesRawResponseContentTypeUnset() {
+        Assert.True(string.IsNullOrEmpty(BuildRobots(null).ResponseInformation.RawResponseContentType));
+    }
+
+    /// <summary>
+    /// A vendor JSON media type is still JSON. Matching on the substring rather than on equality is
+    /// what keeps application/problem+json and application/vnd.api+json off the raw path.
+    /// </summary>
+    [Fact]
+    public void BuildModels_VendorJsonResponse_LeavesRawResponseContentTypeUnset() {
+        Assert.True(string.IsNullOrEmpty(
+            BuildRobots("application/problem+json").ResponseInformation.RawResponseContentType));
+    }
+
     [Theory]
     [InlineData("IPetService", "PetController")]
     [InlineData("IService", "Controller")]
