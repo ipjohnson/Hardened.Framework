@@ -17,16 +17,16 @@ namespace Hardened.Requests.Runtime.Validation;
 /// every handler, and allow exactly one validated type per handler.
 /// </para>
 /// <para>
-/// The structural validator is handed in rather than resolved. Generated validators are stateless
-/// singletons, so in the ordinary case this filter does no container work at all - see
-/// <see cref="ValidationFilterProvider{T}"/> for why there is none per request either.
+/// The validators are resolved once and handed in - see <see cref="ValidateAttribute{T}"/>. They are
+/// registered as singletons, so the set is stable for the life of the process and there is no
+/// container work per request.
 /// </para>
 /// </remarks>
 public sealed class ValidationFilter<TValidated> : IExecutionFilter where TValidated : class {
-    private readonly IValidatorFor<TValidated> _validator;
+    private readonly IReadOnlyList<IValidatorFor<TValidated>> _validators;
 
-    public ValidationFilter(IValidatorFor<TValidated> validator) {
-        _validator = validator ?? throw new ArgumentNullException(nameof(validator));
+    public ValidationFilter(IReadOnlyList<IValidatorFor<TValidated>> validators) {
+        _validators = validators ?? throw new ArgumentNullException(nameof(validators));
     }
 
     public async Task Execute(IExecutionChain chain) {
@@ -39,7 +39,12 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter where TValid
 
         var collector = new ValidationErrorCollector();
 
-        _validator.ValidateInto(collector, target);
+        // Every validator for the type runs into one collector, so results merge rather than one
+        // replacing another - plan §8. A hand-written validator adds to the structural checks; it
+        // cannot suppress them.
+        foreach (var validator in _validators) {
+            validator.ValidateInto(collector, target);
+        }
 
         // Structural first, and async only if it passed: an async rule is there to ask a question of
         // something outside the process - is this SKU taken - and asking it about a field that is

@@ -1,0 +1,92 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Description>Source generator that turns constraint attributes - ValidationModules' own and System.ComponentModel.DataAnnotations - into straight-line validators, and registers them into the Hardened entry point.</Description>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Validation.SourceGenerator</PackageId>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <DevelopmentDependency>true</DevelopmentDependency>
+
+        <!--
+            RS2008 for the VM#### rules: they are declared in ValidationModules' AnalyzerReleases
+            files, which is where they are tracked. Listing them here would claim them as this
+            package's.
+        -->
+        <NoWarn>$(NoWarn);RS2008</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Validation.SourceGenerator.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="Package\Hardened.Validation.SourceGenerator.*">
+            <Pack>true</Pack>
+            <PackagePath>build/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+    </ItemGroup>
+
+    <!--
+        ValidationModules' generator internals, compiled in whole - front-ends included. This is a
+        Roslyn generator, so the half that reads symbols is exactly the half it needs. The build task
+        takes only the Roslyn-free subset because MSBuild has no compilation to read.
+
+        Hardened must not also ship ValidationModules.SourceGenerator: two generators reading the
+        same attributes would emit the same validators twice.
+    -->
+    <PropertyGroup>
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\ValidationModules</ValidationModulesRoot>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\**\*.cs"
+                 Exclude="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\obj\**\*;$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\bin\**\*">
+            <Link>ValidationModules\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <!-- Shared entry point discovery, so registrations land in the module the app already has. -->
+    <ItemGroup>
+        <Compile Include="../Hardened.SourceGenerator/Shared/**/*">
+            <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
+        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)"/>
+    </ItemGroup>
+
+    <!--
+        CSharpAuthor and DependencyModules ship as source and predate nullable reference types, so
+        their files are analysed as if they were ours. Scoped to the exact IDs rather than disabling
+        nullable analysis, which would take our own code with it.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
+    </PropertyGroup>
+
+</Project>

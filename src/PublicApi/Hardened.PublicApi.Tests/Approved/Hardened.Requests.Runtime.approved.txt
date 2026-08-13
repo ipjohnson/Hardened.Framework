@@ -458,16 +458,10 @@ namespace Hardened.Requests.Runtime.Validation
         public ValidationException(ValidationModules.ValidationResult validationResult) { }
         public ValidationModules.ValidationResult ValidationResult { get; }
     }
-    public sealed class ValidationFilterProvider<TValidated> : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
-        where TValidated :  class
-    {
-        public ValidationFilterProvider(ValidationModules.IValidatorFor<TValidated> validator) { }
-        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
-    }
     public sealed class ValidationFilter<TValidated> : Hardened.Requests.Abstract.Execution.IExecutionFilter
         where TValidated :  class
     {
-        public ValidationFilter(ValidationModules.IValidatorFor<TValidated> validator) { }
+        public ValidationFilter(System.Collections.Generic.IReadOnlyList<ValidationModules.IValidatorFor<TValidated>> validators) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }

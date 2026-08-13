@@ -40,21 +40,30 @@ internal sealed class PatternRegistry {
     public bool IsEmpty => _members.Count == 0;
 
     /// <summary>
-    /// Returns the expression that yields the compiled <see cref="System.Text.RegularExpressions.Regex"/>
-    /// for <paramref name="pattern"/>, declaring a member for it if this is the first sighting.
+    /// The arguments for a <c>[Pattern]</c> in its reference form, declaring a
+    /// <c>[GeneratedRegex]</c> member for <paramref name="pattern"/> on first sighting.
     /// </summary>
     /// <remarks>
-    /// This is what a <c>ConstraintModel</c> carries as its <c>RegexAccessor</c>. A null accessor
-    /// there means the inline form, where the emitter declares the Regex itself - which is what
-    /// this exists to avoid.
+    /// <c>[Pattern(typeof(X), nameof(X.Y))]</c> rather than <c>[Pattern("...")]</c>. The inline form
+    /// makes the generator declare a <c>Regex</c> itself, which roots the parser and the interpreter
+    /// - 448 KB on an AOT publish - and is what VM0017 rejects in an AOT-facing project. The
+    /// referenced member is resolved at generation time, so a typo is VM0018 rather than something
+    /// found later.
     /// </remarks>
-    public string Accessor(string pattern) {
+    public System.Collections.Generic.IReadOnlyList<string> AttributeArguments(string pattern) {
+        var member = Member(pattern);
+        var qualified = $"global::{_namespace}.{ClassName}";
+
+        return new[] { $"typeof({qualified})", $"nameof({qualified}.{member})" };
+    }
+
+    private string Member(string pattern) {
         if (!_members.TryGetValue(pattern, out var member)) {
             member = "P_" + Hash(pattern);
             _members.Add(pattern, member);
         }
 
-        return $"global::{_namespace}.{ClassName}.{member}()";
+        return member;
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
+using Hardened.OpenApi.BuildTask.Validation;
 using Hardened.OpenApi.SourceGenerator.Models;
 
 namespace Hardened.OpenApi.SourceGenerator.Emitters;
@@ -19,9 +20,10 @@ internal static class SchemaEmitter {
     /// Adds the schema's type to <paramref name="container"/> and returns it, so the caller can
     /// decide anything that is not the type's own business - see <see cref="Coverage"/>.
     /// </summary>
-    public static IOutputComponent? Emit(IConstructContainer container, SchemaModel schema, string modelsNamespace) =>
+    public static IOutputComponent? Emit(
+        IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns) =>
         schema.Kind switch {
-            SchemaKind.Object => EmitRecord(container, schema, modelsNamespace),
+            SchemaKind.Object => EmitRecord(container, schema, modelsNamespace, patterns),
             SchemaKind.Enum => EmitEnum(container, schema),
             _ => null,
         };
@@ -30,7 +32,7 @@ internal static class SchemaEmitter {
     /// A positional record, or a declaration-only one when the schema carries no properties.
     /// </summary>
     private static ClassDefinition EmitRecord(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace) {
+        IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns) {
         var record = container.AddClass(NamingHelper.ToPascalCase(schema.Name));
 
         record.TypeKeyword = ClassKeyword.Record;
@@ -57,6 +59,13 @@ internal static class SchemaEmitter {
 
             if (!property.IsRequired) {
                 parameter.DefaultValue = new CodeOutputComponent("default") { Indented = false };
+            }
+
+            // property:, because a positional record's parameter and the property it declares are
+            // one syntactic position. Without the target the attribute stays on the parameter, where
+            // a generator reading properties never sees it - which is what VM0051 warns about.
+            foreach (var constraint in ConstraintAttributes.ForProperty(property, property.IsRequired, patterns)) {
+                ValidationEmitter.Apply(parameter, constraint).Target = "property";
             }
         }
 

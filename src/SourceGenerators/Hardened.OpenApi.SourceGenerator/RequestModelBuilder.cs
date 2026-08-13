@@ -141,17 +141,17 @@ internal static class RequestModelBuilder {
         if (validated != null) {
             parametersInterface = TypeDefinition.Get(validationNamespace, validated.InterfaceName);
 
-            // An ordinary object in the metadata array rather than an attribute: the provider is
-            // handed the validator's singleton, and an attribute argument has to be a compile-time
-            // constant. ExecutionHelper.GetFilterInfo only filters that array for
-            // IRequestFilterProvider, so an object with a constructor works.
+            // No validator argument: the attribute resolves every IValidatorFor<T> registered for
+            // the interface, which is what lets a hand-written one run alongside the generated one.
+            // Registration is emitted by Hardened.Validation.SourceGenerator into this application's
+            // entry point, so nothing has to be wired by hand.
             filters.Add(new AttributeModel(
                 new GenericTypeDefinition(
                     TypeDefinitionEnum.ClassDefinition,
                     "Hardened.Requests.Runtime.Validation",
-                    "ValidationFilterProvider",
+                    "ValidateAttribute",
                     new[] { parametersInterface }),
-                $"global::{validationNamespace}.{validated.ValidatorName}.Instance",
+                "",
                 ""));
         }
 

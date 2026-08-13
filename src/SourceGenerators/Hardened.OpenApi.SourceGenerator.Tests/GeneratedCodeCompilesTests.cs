@@ -154,13 +154,13 @@ public class GeneratedCodeCompilesTests {
     }
 
     /// <summary>
-    /// The validation wiring, which spans both halves: the task emits an interface and a validator,
-    /// the generator makes <c>Parameters</c> implement the one and hands the other to a filter.
+    /// The validation wiring, which spans both halves: the task emits an attributed interface, the
+    /// generator makes <c>Parameters</c> implement it and attaches a filter typed on it.
     /// </summary>
     /// <remarks>
     /// Worth asserting on the emitted text rather than only on compilation, because the failure mode
     /// is silent. If <c>Parameters</c> does not implement the interface, the filter's type test does
-    /// not match, validation never runs, and the build is green.
+    /// not match and validation never runs on a build that is green.
     /// </remarks>
     [Fact]
     public void ValidationIsWiredThroughTheInterfaceOntoTheHandler() {
@@ -168,30 +168,37 @@ public class GeneratedCodeCompilesTests {
 
         var handler = result.SourceContaining("OrderController_CreateOrder");
 
-        Assert.Contains("ValidationFilterProvider<", handler);
-        Assert.Contains("CreateOrderParametersValidator.Instance", handler);
+        Assert.Contains("ValidateAttribute<", handler);
         Assert.Contains("ICreateOrderParameters", handler);
+        Assert.Contains("class Parameters :", handler);
     }
 
     /// <summary>
-    /// The constraints a spec declares, as the checks the validator runs. These come from
-    /// ValidationModules' emitter - the same one its attribute front-end drives - so what is being
-    /// pinned here is that the spec front-end fed it the right model.
+    /// The constraints a spec declares, as attributes on what the task emits.
     /// </summary>
+    /// <remarks>
+    /// The task writes attributes and nothing else - no validator, no ValidationModules IR. The
+    /// validator comes from Hardened.Validation.SourceGenerator reading these out of the
+    /// compilation, which is the same scan that picks up [Required] on a hand-written class. That
+    /// generator is not in this harness, so what is asserted here is the input it will read.
+    /// </remarks>
     [Fact]
-    public void SpecConstraintsBecomeValidatorChecks() {
+    public void SpecConstraintsBecomeAttributes() {
         var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
 
-        var validators = result.SourceContaining("petstore.g.cs");
+        var emitted = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("ctx.AddRequired(", validators);
-        Assert.Contains("ctx.AddStringLength(", validators);
-        Assert.Contains("ctx.AddRange(", validators);
+        // property:, or the attribute lands on a positional record's parameter and the generator
+        // reading properties never sees it.
+        Assert.Contains("[property: Required]", emitted);
+        Assert.Contains("[property: StringLength(", emitted);
+        Assert.Contains("[property: Range(", emitted);
 
-        // The pattern goes through a [GeneratedRegex] member rather than a constructed Regex, which
-        // is the whole reason spec reading moved to a build task.
-        Assert.Contains("PetstorePatterns.P_", validators);
-        Assert.DoesNotContain("new Regex(", validators);
+        // The reference form, pointing at a [GeneratedRegex] member the task also emits. The inline
+        // form would root the regex engine at 448 KB on an AOT publish.
+        Assert.Contains("[property: Pattern(typeof(", emitted);
+        Assert.Contains("GeneratedRegex(", emitted);
+        Assert.DoesNotContain("new Regex(", emitted);
     }
 
     /// <summary>

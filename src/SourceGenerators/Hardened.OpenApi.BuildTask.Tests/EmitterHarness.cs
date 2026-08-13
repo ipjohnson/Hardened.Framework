@@ -1,6 +1,7 @@
 using System;
 using CSharpAuthor;
 using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.OpenApi.BuildTask.Validation;
 using Hardened.OpenApi.SourceGenerator.Emitters;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
@@ -38,7 +39,8 @@ internal static class EmitterHarness {
     }
 
     internal static string Schema(SchemaModel schema) =>
-        Write(ns => SchemaEmitter.Emit(ns, schema, ModelsNamespace));
+        Write(ns => SchemaEmitter.Emit(
+            ns, schema, ModelsNamespace, new PatternRegistry(RootNamespace + ".Validation", "petstore")));
 
     internal static string ServiceInterface(ServiceModel service) =>
         Write(ns => ServiceInterfaceEmitter.Emit(ns, service, ModelsNamespace),

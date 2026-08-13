@@ -16,25 +16,17 @@ internal class ValidatedOperationModel : IEquatable<ValidatedOperationModel> {
     /// <summary>The interface the generated <c>Parameters</c> class implements.</summary>
     public string InterfaceName { get; set; } = "";
 
-    /// <summary>The validator over that interface.</summary>
-    public string ValidatorName { get; set; } = "";
-
     public bool Equals(ValidatedOperationModel? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return OperationId == other.OperationId &&
-               InterfaceName == other.InterfaceName &&
-               ValidatorName == other.ValidatorName;
+        return OperationId == other.OperationId && InterfaceName == other.InterfaceName;
     }
 
     public override bool Equals(object? obj) => Equals(obj as ValidatedOperationModel);
 
     public override int GetHashCode() {
         unchecked {
-            var hash = OperationId.GetHashCode();
-            hash = (hash * 397) ^ InterfaceName.GetHashCode();
-            hash = (hash * 397) ^ ValidatorName.GetHashCode();
-            return hash;
+            return (OperationId.GetHashCode() * 397) ^ InterfaceName.GetHashCode();
         }
     }
 }

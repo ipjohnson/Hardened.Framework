@@ -61,7 +61,6 @@ internal static class SpecModelSerializer {
             var record = new Record("validated");
             record.Add("OperationId", validated.OperationId);
             record.Add("InterfaceName", validated.InterfaceName);
-            record.Add("ValidatorName", validated.ValidatorName);
             record.WriteTo(builder);
         }
 
@@ -161,7 +160,6 @@ internal static class SpecModelSerializer {
                     model.ValidatedOperations.Add(new ValidatedOperationModel {
                         OperationId = record.String("OperationId") ?? "",
                         InterfaceName = record.String("InterfaceName") ?? "",
-                        ValidatorName = record.String("ValidatorName") ?? "",
                     });
                     break;
 

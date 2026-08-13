@@ -60,39 +60,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1008">
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
         <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
     </ItemGroup>
 
-    <!--
-        ValidationModules' IR and emitters, compiled in.
-
-        Only the Roslyn-free half: the models, EquatableArray and the emitters. FrontEnds/ and
-        ValidationDiagnostics read symbols and would drag Microsoft.CodeAnalysis into an MSBuild
-        task, which has no compilation to read. The spec front-end lives here instead - it builds the
-        same IR from a spec, so a spec-declared constraint and an attribute-declared one reach one
-        emitter and cannot produce different code, paths or messages.
-
-        Globbed rather than taken through the package's PackageValidationModulesIncludeSource switch,
-        because that switch includes everything and there is no way to ask it for the subset.
-    -->
-    <PropertyGroup>
-        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\ValidationModules</ValidationModulesRoot>
-        <ValidationModulesImpl>$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl</ValidationModulesImpl>
-    </PropertyGroup>
-
     <ItemGroup>
         <Compile Remove="IsExternalInit.cs"/>
         <Compile Include="IsExternalInit.cs" Condition="'$(TargetFramework)' == 'net472'"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Compile Include="$(ValidationModulesImpl)\EquatableArray.cs" Link="ValidationModules\EquatableArray.cs"/>
-        <Compile Include="$(ValidationModulesImpl)\Models\**\*.cs" Link="ValidationModules\Models\%(FileName)%(Extension)"/>
-        <Compile Include="$(ValidationModulesImpl)\Emitters\**\*.cs" Link="ValidationModules\Emitters\%(FileName)%(Extension)"/>
     </ItemGroup>
 
     <!-- Shared with the generator. See Hardened.OpenApi.Shared for why this is source and not a reference. -->

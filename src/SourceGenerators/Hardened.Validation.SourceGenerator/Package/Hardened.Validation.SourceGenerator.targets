@@ -1,0 +1,14 @@
+<Project>
+    <!--
+      Every property the generator reads has to be listed here, or it is invisible to the compiler
+      and silently takes its default.
+    -->
+    <ItemGroup>
+        <CompilerVisibleProperty Include="ValidationModules_FieldNaming"/>
+        <CompilerVisibleProperty Include="ValidationModules_DataAnnotations"/>
+        <CompilerVisibleProperty Include="ValidationModules_PatternPolicy"/>
+        <!-- Not ours, but the pattern policy gates on the project's AOT posture. -->
+        <CompilerVisibleProperty Include="PublishAot"/>
+        <CompilerVisibleProperty Include="IsAotCompatible"/>
+    </ItemGroup>
+</Project>
