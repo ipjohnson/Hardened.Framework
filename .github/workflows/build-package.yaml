@@ -16,14 +16,24 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # setup-dotnet writes a nuget.config whose credential is the literal string
+    # %NUGET_AUTH_TOKEN%, which NuGet expands from the environment when it restores - not when the
+    # config is written. Scoped to the setup step, as it was, the variable is gone by the time
+    # restore runs and the GitHub Packages source answers 401.
+    #
+    # That went unnoticed while every dependency also existed on nuget.org: a source that fails is
+    # tolerated as long as some other source can serve the package. ValidationModules is published
+    # only here, so the 401 became the whole restore failing.
+    env:
+      NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
           source-url: https://nuget.pkg.github.com/ipjohnson/index.json
-        env:
-          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - run: dotnet restore src/Hardened.Framework.sln
 
