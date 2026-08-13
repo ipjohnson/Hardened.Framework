@@ -84,6 +84,43 @@ public class ValidationTests {
         Assert.Contains(error!.Errors, e => e.Field == "limit" && e.Code == "range");
     }
 
+    /// <summary>
+    /// A value that will not parse is a failure, not an absent value.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This used to return 200. <c>ParseOptional</c> caught the parse failure and returned null, so
+    /// <c>?limit=abc</c> and no <c>limit</c> at all were the same request - the handler ran with the
+    /// parameter unset, and the <c>maximum</c> the spec puts on it was never evaluated because there
+    /// was no longer a number to evaluate it against.
+    /// </para>
+    /// <para>
+    /// It reports through the same field-level shape a constraint failure does. A caller who sent
+    /// <c>limit=abc</c> and one who sent <c>limit=500</c> made the same kind of mistake, and only the
+    /// code distinguishes them.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task ListPets_LimitNotANumber_Returns400(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets?limit=abc");
+
+        response.Assert.BadRequest();
+
+        var error = response.Deserialize<RequestValidationError>();
+
+        Assert.Equal("ValidationError", error!.Type);
+        Assert.Contains(error.Errors, e => e.Field == "limit" && e.Code == "invalid");
+    }
+
+    /// <summary>
+    /// Omitting an optional parameter is still fine - the point above is about malformed values, not
+    /// about making everything mandatory.
+    /// </summary>
+    [HardenedTest]
+    public async Task ListPets_WithoutLimit_StillSucceeds(ITestWebApp testWebApp) {
+        (await testWebApp.Get("/pets")).Assert.Ok();
+    }
+
     [HardenedTest]
     public async Task SearchPets_QueryTooShort_Returns400(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/pets/search?q=a");

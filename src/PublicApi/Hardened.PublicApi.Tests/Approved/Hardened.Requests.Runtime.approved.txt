@@ -456,6 +456,7 @@ namespace Hardened.Requests.Runtime.Validation
     public class ValidationException : Hardened.Requests.Runtime.Errors.BadRequestException
     {
         public ValidationException(ValidationModules.ValidationResult validationResult) { }
+        public ValidationException(ValidationModules.ValidationResult validationResult, System.Exception inner) { }
         public ValidationModules.ValidationResult ValidationResult { get; }
     }
     public sealed class ValidationFilter<TValidated> : Hardened.Requests.Abstract.Execution.IExecutionFilter

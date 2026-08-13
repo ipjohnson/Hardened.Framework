@@ -24,5 +24,20 @@ public class ValidationException : BadRequestException {
         ValidationResult = validationResult;
     }
 
+    /// <summary>
+    /// For a failure that had an underlying cause - a value that would not convert to the type it
+    /// was declared as.
+    /// </summary>
+    /// <remarks>
+    /// The response body is the field errors either way; the caller is told <c>limit</c> is not a
+    /// valid <c>Int32</c> and has no use for a stack trace. The inner exception is for the log,
+    /// where "abc is not in a correct format" is the difference between a diagnosable failure and a
+    /// bare assertion that something was wrong.
+    /// </remarks>
+    public ValidationException(ValidationModules.ValidationResult validationResult, Exception inner)
+        : base("One or more validation errors occurred.", inner) {
+        ValidationResult = validationResult;
+    }
+
     public ValidationModules.ValidationResult ValidationResult { get; }
 }
