@@ -21,14 +21,15 @@
 
     <!-- TypeMapper returns CSharpAuthor type definitions, so both consumers compile it in. -->
     <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
+        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CSharpAuthor" Version="1.1.1007">
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1008">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
+        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
     </ItemGroup>
 
     <!--

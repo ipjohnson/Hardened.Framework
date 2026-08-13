@@ -56,14 +56,15 @@
 
     <!-- TypeMapper, which the emitters use, returns CSharpAuthor type definitions. -->
     <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
+        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CSharpAuthor" Version="1.1.1007">
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1008">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
+        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
     </ItemGroup>
 
     <!-- Shared with the generator. See Hardened.OpenApi.Shared for why this is source and not a reference. -->

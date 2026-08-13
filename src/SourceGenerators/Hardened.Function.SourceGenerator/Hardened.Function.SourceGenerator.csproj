@@ -33,7 +33,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1007">
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1008">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
