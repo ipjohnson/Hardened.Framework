@@ -26,7 +26,7 @@ namespace Hardened.Web.AspNetCore.Runtime.Impl
     [DependencyModules.Runtime.Attributes.TransientService]
     public class AspNetCoreRequestHandler : Hardened.Web.AspNetCore.Runtime.Impl.IAspNetCoreRequestHandler
     {
-        public AspNetCoreRequestHandler(Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService) { }
+        public AspNetCoreRequestHandler(Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger) { }
         public System.Threading.Tasks.Task HandleRequest(Microsoft.AspNetCore.Http.HttpContext context, Microsoft.AspNetCore.Http.RequestDelegate requestDelegate) { }
     }
     public class AspNetExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext

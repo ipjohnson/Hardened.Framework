@@ -167,6 +167,7 @@ public class AspNetExecutionRequest : IExecutionRequest {
 
 public class AspNetExecutionResponse : IExecutionResponse {
     private HttpResponse _httpResponse;
+    private int? _status;
 
     public AspNetExecutionResponse(HttpResponse httpResponse) {
         _httpResponse = httpResponse;
@@ -174,6 +175,7 @@ public class AspNetExecutionResponse : IExecutionResponse {
 
     public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
         return new AspNetExecutionResponse(_httpResponse) {
+            _status = _status,
             ResponseValue = ResponseValue,
             TemplateName = TemplateName,
             ShouldCompress = ShouldCompress,
@@ -191,9 +193,29 @@ public class AspNetExecutionResponse : IExecutionResponse {
 
     public string? TemplateName { get; set; }
 
+    /// <summary>
+    /// Null while the status is still undecided; otherwise what will be, or has been, sent.
+    ///
+    /// This used to read straight back off <see cref="HttpResponse.StatusCode"/>, which looks
+    /// equivalent and is not: ASP.NET initialises that to 200, so the getter never returned null.
+    /// <c>ResourceNotFoundHandler</c> only supplies a 404 when it finds the status still unset, so
+    /// it never fired on this host — unmatched routes came back as 404 only because
+    /// <c>AspNetCoreRequestHandler</c> falls through to the terminal delegate, which sets one.
+    /// The Lambda runtime, which normalises a null status to 200 before responding, documents the
+    /// intended contract; <c>TestExecutionResponse</c> implements it the same way.
+    ///
+    /// The <c>HasStarted</c> fallback covers the other end of the request. Nothing sets a status
+    /// on an ordinary success path, so a plain nullable field would still read null at
+    /// <c>RequestEnd</c> and log a blank status for every successful request. Once the response
+    /// has started the status is settled, so reporting it is accurate rather than a guess — and
+    /// every filter that tests for null runs earlier than that, before anything is written.
+    /// </summary>
     public int? Status {
-        get => _httpResponse.StatusCode;
-        set => _httpResponse.StatusCode = value ?? 200;
+        get => _status ?? (_httpResponse.HasStarted ? _httpResponse.StatusCode : null);
+        set {
+            _status = value;
+            _httpResponse.StatusCode = value ?? 200;
+        }
     }
 
     public bool ShouldCompress { get; set; }

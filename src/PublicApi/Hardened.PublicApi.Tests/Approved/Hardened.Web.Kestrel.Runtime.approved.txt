@@ -1,0 +1,124 @@
+namespace Hardened.Web.Kestrel.Runtime
+{
+    public sealed class HardenedKestrelApplication : System.IAsyncDisposable
+    {
+        public System.Collections.Generic.IReadOnlyCollection<string> Addresses { get; }
+        public bool IsStarted { get; }
+        public System.IServiceProvider Services { get; }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+        public System.Threading.Tasks.Task RunAsync(System.Threading.CancellationToken cancellationToken = default) { }
+        public System.Threading.Tasks.Task StartAsync(System.Threading.CancellationToken cancellationToken = default) { }
+        public System.Threading.Tasks.Task StopAsync(System.Threading.CancellationToken cancellationToken = default) { }
+        public static Hardened.Web.Kestrel.Runtime.HardenedKestrelApplication Create(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>? configureKestrel = null, System.Action<Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions>? configureTransport = null) { }
+    }
+    public sealed class HardenedKestrelHostedService : Microsoft.Extensions.Hosting.IHostedService, System.IAsyncDisposable
+    {
+        public HardenedKestrelHostedService(System.IServiceProvider provider, Hardened.Web.Kestrel.Runtime.HardenedKestrelOptions options) { }
+        public System.Collections.Generic.IReadOnlyCollection<string> Addresses { get; }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+        public System.Threading.Tasks.Task StartAsync(System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task StopAsync(System.Threading.CancellationToken cancellationToken) { }
+    }
+    public sealed class HardenedKestrelOptions
+    {
+        public HardenedKestrelOptions() { }
+        public System.Action<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>? ConfigureKestrel { get; set; }
+        public System.Action<Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions>? ConfigureTransport { get; set; }
+    }
+    public static class HardenedKestrelServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddHardenedKestrel(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>? configureKestrel = null, System.Action<Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions>? configureTransport = null) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class KestrelRuntime : DependencyModules.Runtime.Interfaces.IDependencyModule
+    {
+        public KestrelRuntime() { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class KestrelRuntimeAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public KestrelRuntimeAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Web.Kestrel.Runtime.Impl
+{
+    public sealed class FeatureExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
+    {
+        public FeatureExecutionContext(System.IServiceProvider rootServiceProvider, System.IServiceProvider requestServices, Microsoft.AspNetCore.Http.Features.IFeatureCollection features, Hardened.Shared.Runtime.Metrics.IMetricLogger metricLogger) { }
+        public System.Threading.CancellationToken CancellationToken { get; }
+        public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
+        public object? HandlerInstance { get; set; }
+        public Hardened.Requests.Abstract.Execution.IKnownServices KnownServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Request { get; }
+        public Hardened.Shared.Runtime.Metrics.IMetricLogger RequestMetrics { get; }
+        public System.IServiceProvider RequestServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Response { get; }
+        public System.IServiceProvider RootServiceProvider { get; }
+        public Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request, Hardened.Requests.Abstract.Execution.IExecutionResponse? response, System.IServiceProvider? serviceProvider, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger) { }
+        public System.Threading.Tasks.ValueTask CompleteAsync() { }
+    }
+    public sealed class FeatureExecutionRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public FeatureExecutionRequest(Microsoft.AspNetCore.Http.Features.IHttpRequestFeature feature) { }
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+    public sealed class FeatureExecutionResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    {
+        public FeatureExecutionResponse(Microsoft.AspNetCore.Http.Features.IHttpResponseFeature feature, Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature bodyFeature) { }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; set; }
+        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        public System.Exception? ExceptionValue { get; set; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public bool IsBinary { get; set; }
+        public bool ResponseStarted { get; }
+        public object? ResponseValue { get; set; }
+        public bool ShouldCompress { get; set; }
+        public bool ShouldSerialize { get; set; }
+        public int? Status { get; set; }
+        public string? TemplateName { get; set; }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null) { }
+        public System.Threading.Tasks.ValueTask CompleteAsync() { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class HardenedHttpApplication : Microsoft.AspNetCore.Hosting.Server.IHttpApplication<Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication.RequestContext>
+    {
+        public HardenedHttpApplication(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger) { }
+        public Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication.RequestContext CreateContext(Microsoft.AspNetCore.Http.Features.IFeatureCollection contextFeatures) { }
+        public void DisposeContext(Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication.RequestContext context, System.Exception? exception) { }
+        public System.Threading.Tasks.Task ProcessRequestAsync(Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication.RequestContext context) { }
+        public sealed class RequestContext
+        {
+            public RequestContext() { }
+            public required Hardened.Web.Kestrel.Runtime.Impl.FeatureExecutionContext Execution { get; init; }
+            public required Microsoft.Extensions.DependencyInjection.IServiceScope Scope { get; init; }
+        }
+    }
+    public sealed class KestrelServerRunner : System.IAsyncDisposable
+    {
+        public const int DefaultPort = 5000;
+        public KestrelServerRunner(System.IServiceProvider provider, System.Action<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>? configureKestrel = null, System.Action<Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions>? configureTransport = null) { }
+        public System.Collections.Generic.IReadOnlyCollection<string> Addresses { get; }
+        public bool IsStarted { get; }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+        public System.Threading.Tasks.Task StartAsync(System.Threading.CancellationToken cancellationToken = default) { }
+        public System.Threading.Tasks.Task StopAsync(System.Threading.CancellationToken cancellationToken = default) { }
+    }
+}
