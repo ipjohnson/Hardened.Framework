@@ -15,7 +15,6 @@ public class TestExecutionResponse : IExecutionResponse {
     public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
         return new TestExecutionResponse(Body) {
             ResponseValue = ResponseValue,
-            TemplateName = TemplateName,
             Status = Status,
             ShouldCompress = ShouldCompress,
             Headers = headerCollection as IDictionary<string, StringValues> ?? Headers,
@@ -30,8 +29,6 @@ public class TestExecutionResponse : IExecutionResponse {
     }
 
     public object? ResponseValue { get; set; }
-
-    public string? TemplateName { get; set; }
 
     public int? Status { get; set; }
 

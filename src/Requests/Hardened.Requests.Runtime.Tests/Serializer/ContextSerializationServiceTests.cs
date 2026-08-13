@@ -82,7 +82,7 @@ public class ContextSerializationServiceTests {
     }
 
     /// <summary>
-    /// A default output function - what <c>[Template]</c> and <c>[RawResponse]</c> install -
+    /// A default output function - what <c>[RawResponse]</c> installs -
     /// takes precedence over everything, including an exception. A templated route that throws
     /// renders through its template rather than emitting a JSON error document.
     /// </summary>

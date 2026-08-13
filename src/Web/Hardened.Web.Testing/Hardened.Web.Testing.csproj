@@ -27,7 +27,6 @@
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
-        <ProjectReference Include="..\..\Templates\Hardened.Templates.Runtime\Hardened.Templates.Runtime.csproj"/>
         <ProjectReference Include="..\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
     </ItemGroup>
 

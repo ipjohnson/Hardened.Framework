@@ -238,7 +238,7 @@ public class HandlerShapeCompilesTests {
     }
 
     /// <summary>
-    /// <c>[RawResponse]</c> and <c>[Template]</c> change the handler's default output function,
+    /// <c>[RawResponse]</c> changes the handler's default output function,
     /// which is a third constructor argument rather than a parameter or a filter. Compiled here
     /// because both branches live in InvokeClassGenerator; their runtime behaviour belongs to the
     /// web-routing workstream.
@@ -265,30 +265,16 @@ public class HandlerShapeCompilesTests {
         Assert.Contains("RawOutputHelper.OutputFunc(\"text/plain\")", result.SourceContaining("Raw"));
     }
 
-    [Fact]
-    public void ATemplateHandlerEmitsATemplateOutputFunction() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/page")]
-                [Template("Index")]
-                public string Page() => "x";
-            """)).AssertNoErrors();
-
-        var source = result.SourceContaining("Page");
-
-        Assert.Contains("DefaultOutputFuncHelper.GetTemplateOut(", source);
-        Assert.Contains("\"Index\"", source);
-    }
 
     /// <summary>
-    /// <c>[Template]</c> and <c>[RawResponse]</c> are read as response information, not as filters,
-    /// so neither reaches the metadata array. A handler carrying only one of them has no metadata
-    /// at all — which is also the shape that broke the parameters slot.
+    /// <c>[RawResponse]</c> is read as response information rather than as a filter, so it never
+    /// reaches the metadata array. A handler carrying only it has no metadata at all — which is
+    /// also the shape that broke the parameters slot.
     /// </summary>
     [Fact]
-    public void TemplateAndRawResponseAreNotTreatedAsFilters() {
+    public void RawResponseIsNotTreatedAsAFilter() {
         var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
                 [Get("/page")]
-                [Template("Index")]
                 [RawResponse("text/html")]
                 public string Page() => "x";
             """)).AssertNoErrors();

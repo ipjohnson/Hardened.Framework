@@ -9,7 +9,7 @@ namespace Hardened.SourceGenerator.Tests.Function;
 ///
 /// <para>
 /// <c>FunctionModelGenerator.IsFilterAttribute</c> makes this call, and it is a denylist: everything
-/// is a filter except <c>[Template]</c>, <c>[RawResponse]</c> and <c>[HardenedFunction]</c> itself.
+/// is a filter except <c>[RawResponse]</c> and <c>[HardenedFunction]</c> itself.
 /// Getting it wrong in either direction is quiet — a filter mistaken for response information never
 /// runs, and <c>[HardenedFunction]</c> mistaken for a filter is instantiated as one at startup.
 /// </para>
@@ -71,17 +71,6 @@ public class FunctionFilterTests {
         Assert.DoesNotContain("_metadata", source);
     }
 
-    /// <summary>
-    /// <c>[Template]</c> is read the same way — the template output function, not a filter.
-    /// </summary>
-    [Fact]
-    public void ATemplateAttributeBecomesTheOutputFunctionRatherThanAFilter() {
-        var source = Handler("[Template(\"Index\")]", "public string Process() => \"x\";");
-
-        Assert.Contains("DefaultOutputFuncHelper.GetTemplateOut(", source);
-        Assert.Contains("\"Index\"", source);
-        Assert.DoesNotContain("_metadata", source);
-    }
 
     /// <summary>
     /// A filter beside response information. The two are decided independently, so this is the
