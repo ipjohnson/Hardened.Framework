@@ -2,6 +2,7 @@
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Validation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Buffers.Text;
@@ -101,6 +102,14 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         int parameterIndex) {
         foreach (var attributeList in parameter.AttributeLists) {
             foreach (var attribute in attributeList.Attributes) {
+                // A constraint says something about the value, not about where it comes from.
+                // Without this it falls to the default branch below and is emitted as a custom
+                // binder, so [StringLength(3)] on a route parameter stops the parameter binding at
+                // all rather than merely failing to be validated.
+                if (ConstraintAttributeFacts.IsConstraint(generatorSyntaxContext, attribute)) {
+                    continue;
+                }
+
                 var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
                 switch (attributeName) {

@@ -42,39 +42,22 @@
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
 
-    <!--
-        ValidationModules' generator internals, compiled in whole - front-ends included. This is a
-        Roslyn generator, so the half that reads symbols is exactly the half it needs. The build task
-        takes only the Roslyn-free subset because MSBuild has no compilation to read.
-
-        Hardened must not also ship ValidationModules.SourceGenerator: two generators reading the
-        same attributes would emit the same validators twice.
-    -->
-    <PropertyGroup>
-        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\ValidationModules</ValidationModulesRoot>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <Compile Include="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\**\*.cs"
-                 Exclude="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\obj\**\*;$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\bin\**\*">
-            <Link>ValidationModules\%(RecursiveDir)%(FileName)%(Extension)</Link>
-        </Compile>
-
-        <!--
-            RuleText lives in ValidationModules.Runtime and is linked into Impl's own build rather
-            than duplicated, because a rules class's predicate has to render to the same string in
-            the generated validator and in DescribedValidator<T>. Compiling Impl in means inheriting
-            that link: the glob above reaches only files under the Impl project, so without this
-            RulesFrontEnd has no ValidationModules.Rules namespace to bind against.
-        -->
-        <Compile Include="$(ValidationModulesRoot)\src\ValidationModules.Runtime\Rules\RuleText.cs"
-                 Link="ValidationModules\FrontEnds\RuleText.cs"/>
-    </ItemGroup>
+    <Import Project="../ValidationModulesImpl.props"/>
 
     <!-- Shared entry point discovery, so registrations land in the module the app already has. -->
     <ItemGroup>
         <Compile Include="../Hardened.SourceGenerator/Shared/**/*">
             <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+
+        <!--
+            One file, not the folder. The handler generators ask this type whether a model gets a
+            validator and what it is called; this generator answers by emitting it. Both have to
+            read the same build properties the same way, and the rest of that folder depends on the
+            request models, which are not compiled here.
+        -->
+        <Compile Include="../Hardened.SourceGenerator/Validation/ValidationGeneratorOptions.cs">
+            <Link>Validation\ValidationGeneratorOptions.cs</Link>
         </Compile>
     </ItemGroup>
 

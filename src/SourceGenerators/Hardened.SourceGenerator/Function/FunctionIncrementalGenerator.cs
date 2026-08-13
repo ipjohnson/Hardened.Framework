@@ -4,6 +4,7 @@ using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Validation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -17,10 +18,11 @@ public static class FunctionIncrementalGenerator {
             new SyntaxSelector<MethodDeclarationSyntax>(KnownTypes.Requests.HardenedFunctionAttribute);
         var modelGenerator = new FunctionModelGenerator();
 
-        var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
-            methodSelector.Where,
-            modelGenerator.GenerateRequestModel
-        ).WithComparer(new RequestHandlerModelComparer());
+        // See WebIncrementalGenerator: validation builds the model and attaches its own filter, so
+        // a [HardenedFunction] whose payload type carries constraints validates without the author
+        // writing anything.
+        var modelProvider = HandlerValidationGenerator.Setup(
+            initializationContext, modelGenerator, methodSelector.Where);
 
         // Invoker stage - generate invoker classes (one per handler)
         initializationContext.RegisterSourceOutput(

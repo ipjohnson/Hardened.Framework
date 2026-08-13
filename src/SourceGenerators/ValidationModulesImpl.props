@@ -1,0 +1,45 @@
+<Project>
+
+    <!--
+        ValidationModules' generator internals, compiled into a Hardened generator.
+
+        Imported by every generator that has to build a ValidatedTypeModel or emit a validator, so
+        the include rules live in one file rather than in three that agree until one is edited. The
+        front-ends come too: these are Roslyn generators, so the half that reads symbols is exactly
+        the half they need. Hardened.OpenApi.BuildTask takes none of this - it writes plain
+        attributes and lets the validation generator read them back out of the compilation.
+
+        No generator importing this may also ship ValidationModules.SourceGenerator: two generators
+        reading the same attributes emit the same validators twice.
+    -->
+    <PropertyGroup>
+        <!-- This file sits in src/SourceGenerators, so four levels up is the workspace root. -->
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\ValidationModules</ValidationModulesRoot>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\**\*.cs"
+                 Exclude="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\obj\**\*;$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\bin\**\*">
+            <Link>ValidationModules\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+
+        <!--
+            RuleText lives in ValidationModules.Runtime and is linked into Impl's own build rather
+            than duplicated, because a rules class's predicate has to render to the same string in
+            the generated validator and in DescribedValidator<T>. Compiling Impl in means inheriting
+            that link: the glob above reaches only files under the Impl project, so without this
+            RulesFrontEnd has no ValidationModules.Rules namespace to bind against.
+        -->
+        <Compile Include="$(ValidationModulesRoot)\src\ValidationModules.Runtime\Rules\RuleText.cs"
+                 Link="ValidationModules\FrontEnds\RuleText.cs"/>
+    </ItemGroup>
+
+    <!--
+        RS2008 for the VM#### rules: they are declared in ValidationModules' AnalyzerReleases files,
+        which is where they are tracked. Listing them here would claim them as this package's.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);RS2008</NoWarn>
+    </PropertyGroup>
+
+</Project>

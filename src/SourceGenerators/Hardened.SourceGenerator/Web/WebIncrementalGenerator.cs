@@ -2,6 +2,7 @@
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Validation;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Web;
@@ -12,10 +13,14 @@ public static class WebIncrementalGenerator {
         IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider) {
         var requestModelGenerator = new WebRequestHandlerModelGenerator();
 
-        var modelProvider = initializationContext.SyntaxProvider.CreateSyntaxProvider(
-            requestModelGenerator.SelectWebRequestMethods,
-            requestModelGenerator.GenerateRequestModel
-        ).WithComparer(new RequestHandlerModelComparer());
+        // Validation runs the front half of this pipeline: it builds the handler model, emits the
+        // validator for its Parameters class when the types the handler binds carry constraints,
+        // and hands back the model with the filter that runs it attached. Everything below is
+        // unchanged and does not know whether that happened.
+        var modelProvider = HandlerValidationGenerator.Setup(
+            initializationContext,
+            requestModelGenerator,
+            requestModelGenerator.SelectWebRequestMethods);
 
         var invokeGenerator = new WebExecutionHandlerCodeGenerator();
 

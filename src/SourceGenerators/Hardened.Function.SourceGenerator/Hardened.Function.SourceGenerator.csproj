@@ -88,6 +88,12 @@
             <Link>Function\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Validation/**/*">
+            <Link>Validation\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
     </ItemGroup>
+
+    <Import Project="../ValidationModulesImpl.props"/>
 
 </Project>

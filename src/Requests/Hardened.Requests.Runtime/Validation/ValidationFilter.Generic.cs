@@ -32,9 +32,19 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter where TValid
     public async Task Execute(IExecutionChain chain) {
         var context = chain.Context;
 
+        // Not a guard - an assertion. This filter is in the chain because something declared
+        // constraints, so parameters that are absent or of another shape mean the value those
+        // constraints were written about is not being checked. Continuing would answer the request
+        // normally with nothing validated, which is the one failure this design refuses to have:
+        // silent, indistinguishable from a request that passed. Whoever attached the filter and
+        // whoever bound the parameters disagree, and that is a build-time defect wearing a
+        // runtime disguise.
         if (context.Request.Parameters is not TValidated target) {
-            await chain.Next();
-            return;
+            throw new InvalidOperationException(
+                $"The request's parameters are {Describe(context.Request.Parameters)}, but this " +
+                $"handler is attached to a validation filter for {typeof(TValidated).FullName}. " +
+                "Nothing would have been validated. A generator emits the filter and the parameters " +
+                "class together, so this means the two came from different builds.");
         }
 
         var collector = new ValidationErrorCollector();
@@ -61,6 +71,9 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter where TValid
 
         await chain.Next();
     }
+
+    private static string Describe(IExecutionRequestParameters? parameters) =>
+        parameters is null ? "null" : parameters.GetType().FullName ?? parameters.GetType().Name;
 
     /// <summary>
     /// Runs any <see cref="IAsyncValidatorFor{T}"/> the container has for this type.

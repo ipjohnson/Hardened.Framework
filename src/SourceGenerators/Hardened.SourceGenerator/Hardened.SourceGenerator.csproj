@@ -60,5 +60,12 @@
             <PackageCopyToOutput>true</PackageCopyToOutput>
         </Content>
     </ItemGroup>
-    
+
+    <!--
+        Validation/ builds a ValidationModules model and drives its emitter, so this project needs
+        the same sources the generators that compile Validation/ in do - it compiles its own files
+        to prove they build, and it ships them as source.
+    -->
+    <Import Project="../ValidationModulesImpl.props"/>
+
 </Project>
