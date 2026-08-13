@@ -106,14 +106,6 @@ public class GeneratorConfigurationTests {
     }
 
     [Fact]
-    public void GeneratedValidationFilterProvidersAreExcludedFromCoverageByDefault() {
-        var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
-
-        Assert.Contains("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]",
-            result.SourceContaining("CreateOrder_ValidationFilterProvider"));
-    }
-
-    [Fact]
     public void TheGeneratedJsonResolverIsExcludedFromCoverageByDefault() {
         var result = OpenApiGenerator.Run(Specs.Minimal).AssertNoErrors();
 
@@ -142,7 +134,6 @@ public class GeneratorConfigurationTests {
     /// </summary>
     [Theory]
     [InlineData("petstore.g.cs")]
-    [InlineData("CreateOrder_ValidationFilterProvider")]
     [InlineData("OrderController_CreateOrder")]
     public void ExcludeGeneratedCodeFromCoverageFalseRemovesTheAttribute(string hintNameFragment) {
         var result = OpenApiGenerator.Run(

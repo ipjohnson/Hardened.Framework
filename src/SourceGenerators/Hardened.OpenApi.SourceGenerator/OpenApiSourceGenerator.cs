@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Linq;
-using Hardened.OpenApi.SourceGenerator.Emitters;
 using Hardened.OpenApi.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
@@ -94,7 +93,7 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
         var handlerModels = specWithNamespace.Select((pair, ct) => {
             if (pair.Left == null) return ImmutableArray<RequestHandlerModel>.Empty;
             var ns = pair.Right;
-            return RequestModelBuilder.BuildModels(pair.Left, ns + ".Models", ns + ".Services", ns + ".Generated")
+            return RequestModelBuilder.BuildModels(pair.Left, ns + ".Models", ns + ".Services", ns + ".Generated", ns + ".Validation")
                 .ToImmutableArray();
         });
 
@@ -103,14 +102,6 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             HandlerSelector.Predicate,
             HandlerSelector.Transform
         ).Where(info => info != null).Collect();
-
-        // Emit validation filter providers. Records, enums, service interfaces, the JSON type info
-        // resolver and the filter attributes are all written by the build task now - none of them
-        // looks at the compilation, so none of them needs a generator.
-        // Combined with handlerInfoProvider (SyntaxProvider) so Rider's design-time host triggers evaluation
-        context.RegisterSourceOutput(specWithConfig.Combine(handlerInfoProvider),
-            SourceGeneratorWrapper.Wrap<((OpenApiSpecModel? Left, (string Namespace, bool ExcludeFromCoverage) Right) Left, ImmutableArray<HandlerInfo?> Right)>(
-                (ctx, pair) => EmitTypes(ctx, pair.Left)));
 
         // The resolver names the task emitted, fully qualified. Collected across every spec, because
         // each spec now produces its own resolver - one flat OpenApiJsonTypeInfoResolver per project
@@ -203,36 +194,6 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             return (SpecModelSerializer.Read(content!), null);
         } catch (Exception ex) {
             return (null, $"{text.Path}: {ex.GetType().Name}: {ex.Message}");
-        }
-    }
-
-    private static void EmitTypes(SourceProductionContext context,
-        (OpenApiSpecModel? Left, (string Namespace, bool ExcludeFromCoverage) Right) pair) {
-        var spec = pair.Left;
-        var ns = pair.Right.Namespace;
-        var excludeFromCoverage = pair.Right.ExcludeFromCoverage;
-
-        if (spec == null) return;
-
-        // Records, enums, service interfaces, the JSON type info resolver and the filter attributes
-        // used to be emitted here. They are pure spec-to-C# and are written by the build task now,
-        // straight into @(Compile) - which is what puts them in the same compilation as the regex
-        // generator, and so within reach of [GeneratedRegex].
-
-        // Emit validation filter providers for operations with validation constraints
-        foreach (var service in spec.Services) {
-            foreach (var operation in service.Operations) {
-                context.CancellationToken.ThrowIfCancellationRequested();
-
-                var validationSource = ValidationFilterEmitter.Emit(
-                    operation, ns + ".Generated", ns + ".Models", excludeFromCoverage);
-                if (validationSource != null) {
-                    var filterName = NamingHelper.ToPascalCase(operation.OperationId);
-                    context.AddSource(
-                        $"{spec.FileName}.{filterName}_ValidationFilterProvider.g.cs",
-                        validationSource);
-                }
-            }
         }
     }
 

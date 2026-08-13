@@ -28,7 +28,7 @@ internal static class OpenApiGenerator {
     /// </summary>
     private static readonly Type[] Anchors = [
         typeof(HandlerAttribute),                        // Hardened.Requests.Abstract
-        typeof(ValidationFilter),                        // Hardened.Requests.Runtime
+        typeof(ValidationFilter<>),                      // Hardened.Requests.Runtime
         typeof(IWebExecutionRequestHandlerProvider)      // Hardened.Web.Runtime
     ];
 
@@ -78,12 +78,20 @@ internal static class OpenApiGenerator {
         var taskEmitted = new Dictionary<string, string>();
 
         foreach (var spec in specs) {
-            var model = ToSpecModel(spec.Key, spec.Value);
-            models[ModelFileNameFor(spec.Key)] = model;
+            var model = ParseSpec(spec.Key, spec.Value);
 
-            var emitted = TaskEmittedSource(model, ns, excludeFromCoverage);
+            // Emit before serialising, in that order, because emitting records what it named -
+            // the parameter interface and validator per operation - onto the model, and the
+            // generator reads those out of the serialised copy. ExtractOpenApiSpec does the same;
+            // doing it the other way round hands the generator a model with no validation in it and
+            // nothing wired to any handler, on a build that still compiles.
+            var emitted = new KeyValuePair<string, string>(
+                $"{model.FileName}.g.cs", SpecFileEmitter.Emit(model, ns, excludeFromCoverage));
+
             sources[emitted.Key] = emitted.Value;
             taskEmitted[emitted.Key] = emitted.Value;
+
+            models[ModelFileNameFor(spec.Key)] = SpecModelSerializer.Write(model);
         }
 
         var result = GeneratorTestHarness.Run(sources, [new OpenApiSourceGenerator()], Anchors, models, buildProperties);
@@ -126,13 +134,7 @@ internal static class OpenApiGenerator {
     /// The single file <c>ExtractOpenApiSpec</c> writes into <c>@(Compile)</c> for one spec, built
     /// by the same composer the task calls rather than by a copy of it.
     /// </summary>
-    internal static KeyValuePair<string, string> TaskEmittedSource(
-        string specModel, string ns, bool excludeFromCoverage) {
-        var model = SpecModelSerializer.Read(specModel);
 
-        return new KeyValuePair<string, string>(
-            $"{model.FileName}.g.cs", SpecFileEmitter.Emit(model, ns, excludeFromCoverage));
-    }
 
     /// <summary>
     /// Runs the generator over additional files exactly as given, with no parse step.
@@ -162,7 +164,7 @@ internal static class OpenApiGenerator {
     /// model. A spec that will not parse is surfaced here rather than as an empty generator run,
     /// which is the same trade the task makes.
     /// </summary>
-    private static string ToSpecModel(string specFileName, string yaml) {
+    private static OpenApiSpecModel ParseSpec(string specFileName, string yaml) {
         var fileName = Path.GetFileNameWithoutExtension(specFileName);
 
         var model = OpenApiSpecParser.Parse(yaml, fileName, CancellationToken.None)
@@ -173,7 +175,7 @@ internal static class OpenApiGenerator {
         // nothing emitted.
         model.JsonTypeInfoResolverName = JsonTypeInfoEmitter.ResolverNameFor(fileName);
 
-        return SpecModelSerializer.Write(model);
+        return model;
     }
 
     private static string ModelFileNameFor(string specFileName) =>
@@ -184,7 +186,7 @@ internal static class OpenApiGenerator {
     ///
     /// <para>
     /// Not optional decoration. <c>ServiceInterfaceEmitter</c> writes <c>Task&lt;List&lt;Pet&gt;&gt;</c>
-    /// and <c>ValidationFilterEmitter</c> writes <c>IEnumerable&lt;RequestFilterInfo&gt;</c> without
+    /// and the routing table writes <c>IEnumerable&lt;RequestFilterInfo&gt;</c> without
     /// emitting <c>using System.Threading.Tasks;</c> or <c>using System.Collections.Generic;</c>, so
     /// the generated code only compiles in a project with implicit usings on. Every project in this
     /// repository enables them, which is why nothing has noticed. A raw

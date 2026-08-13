@@ -154,27 +154,44 @@ public class GeneratedCodeCompilesTests {
     }
 
     /// <summary>
-    /// The validation filter provider. It is the only emitted file that binds against
-    /// <c>Hardened.Requests.Runtime</c>, so a rule constructor whose signature drifted shows up here
-    /// and nowhere else.
+    /// The validation wiring, which spans both halves: the task emits an interface and a validator,
+    /// the generator makes <c>Parameters</c> implement the one and hands the other to a filter.
     /// </summary>
+    /// <remarks>
+    /// Worth asserting on the emitted text rather than only on compilation, because the failure mode
+    /// is silent. If <c>Parameters</c> does not implement the interface, the filter's type test does
+    /// not match, validation never runs, and the build is green.
+    /// </remarks>
     [Fact]
-    public void ValidationFilterProvidersCompileAgainstTheRealRuleTypes() {
+    public void ValidationIsWiredThroughTheInterfaceOntoTheHandler() {
         var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
 
-        var body = result.SourceContaining("CreateOrder_ValidationFilterProvider");
+        var handler = result.SourceContaining("OrderController_CreateOrder");
 
-        Assert.Contains("RequiredRule.Instance", body);
-        Assert.Contains("new StringLengthRule(3, 12)", body);
-        Assert.Contains("new PatternRule(\"^[A-Z0-9-]+$\")", body);
-        Assert.Contains("new RangeRule(1m, 999m, false, false)", body);
-        Assert.Contains("new RangeRule(0m, 1m, true, true)", body);
+        Assert.Contains("ValidationFilterProvider<", handler);
+        Assert.Contains("CreateOrderParametersValidator.Instance", handler);
+        Assert.Contains("ICreateOrderParameters", handler);
+    }
 
-        var parameters = result.SourceContaining("ListOrders_ValidationFilterProvider");
+    /// <summary>
+    /// The constraints a spec declares, as the checks the validator runs. These come from
+    /// ValidationModules' emitter - the same one its attribute front-end drives - so what is being
+    /// pinned here is that the spec front-end fed it the right model.
+    /// </summary>
+    [Fact]
+    public void SpecConstraintsBecomeValidatorChecks() {
+        var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
 
-        Assert.Contains("new RangeRule(1m, 100m, false, false)", parameters);
-        Assert.Contains("new EnumRule(new string[] { \"asc\", \"desc\" })", parameters);
-        Assert.Contains("new ArrayBoundsRule(1, 10)", parameters);
+        var validators = result.SourceContaining("petstore.g.cs");
+
+        Assert.Contains("ctx.AddRequired(", validators);
+        Assert.Contains("ctx.AddStringLength(", validators);
+        Assert.Contains("ctx.AddRange(", validators);
+
+        // The pattern goes through a [GeneratedRegex] member rather than a constructed Regex, which
+        // is the whole reason spec reading moved to a build task.
+        Assert.Contains("PetstorePatterns.P_", validators);
+        Assert.DoesNotContain("new Regex(", validators);
     }
 
     /// <summary>

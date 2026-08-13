@@ -36,6 +36,23 @@ public class RequestHandlerModel {
 
     public IReadOnlyList<AttributeModel> Filters { get; }
 
+    /// <summary>
+    /// An interface the generated <c>Parameters</c> class implements, or null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Set by the OpenAPI generator, which is told the name by the build task. That task emits the
+    /// interface and a validator over it, but cannot name <c>Parameters</c> itself - it is nested
+    /// inside a handler type whose name carries a computed suffix, which only the generator knows.
+    /// So the interface is the seam: the task names it, the generator implements it.
+    /// </para>
+    /// <para>
+    /// A property rather than a constructor parameter because this model is shared with the web and
+    /// function generators, which have no spec and nothing to put here.
+    /// </para>
+    /// </remarks>
+    public ITypeDefinition? ParametersInterface { get; set; }
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;

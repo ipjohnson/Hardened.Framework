@@ -77,7 +77,7 @@ public class RequestModelBuilderTests {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         Assert.Equal(5, models.Count);
 
@@ -95,7 +95,7 @@ public class RequestModelBuilderTests {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         Assert.Contains(models, m => m.HandlerMethod == "ListPets" && m.Name.Path == "/pets" && m.Name.Method == "GET");
         Assert.Contains(models, m => m.HandlerMethod == "CreatePet" && m.Name.Path == "/pets" && m.Name.Method == "POST");
@@ -109,7 +109,7 @@ public class RequestModelBuilderTests {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         var getPet = models.First(m => m.HandlerMethod == "GetPet");
         var petIdParam = getPet.RequestParameterInformationList.First(p => p.Name == "petId");
@@ -124,7 +124,7 @@ public class RequestModelBuilderTests {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         var listPets = models.First(m => m.HandlerMethod == "ListPets");
         var limitParam = listPets.RequestParameterInformationList.First(p => p.Name == "limit");
@@ -138,7 +138,7 @@ public class RequestModelBuilderTests {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         var createPet = models.First(m => m.HandlerMethod == "CreatePet");
         var bodyParam = createPet.RequestParameterInformationList.First(p => p.Name == "body");
@@ -152,7 +152,7 @@ public class RequestModelBuilderTests {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         var getPet = models.First(m => m.HandlerMethod == "GetPet");
         Assert.NotNull(getPet.ResponseInformation.ReturnType);
@@ -164,7 +164,7 @@ public class RequestModelBuilderTests {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         var listPets = models.First(m => m.HandlerMethod == "ListPets");
         Assert.NotNull(listPets.ResponseInformation.ReturnType);
@@ -176,7 +176,7 @@ public class RequestModelBuilderTests {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         var deletePet = models.First(m => m.HandlerMethod == "DeletePet");
         Assert.Null(deletePet.ResponseInformation.ReturnType);
@@ -199,7 +199,7 @@ public class RequestModelBuilderTests {
     public void EnrichWithHandlerFilters_NoHandlerInfos_ReturnsModelsUnchanged() {
         var spec = CreatePetstoreSpec();
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         var result = RequestModelBuilder.EnrichWithHandlerFilters(
             models, Array.Empty<HandlerInfo>());
@@ -211,7 +211,7 @@ public class RequestModelBuilderTests {
     public void EnrichWithHandlerFilters_ClassFilter_AppliedToAllMatchedHandlers() {
         var spec = CreatePetstoreSpec();
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         var classFilter = new AttributeModel(
             TypeDefinition.Get("Test", "MyFilterAttribute"), "", "");
@@ -238,7 +238,7 @@ public class RequestModelBuilderTests {
     public void EnrichWithHandlerFilters_MethodFilter_AppliedOnlyToMatchingMethod() {
         var spec = CreatePetstoreSpec();
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated");
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
 
         var methodFilter = new AttributeModel(
             TypeDefinition.Get("Test", "AuthorizeAttribute"), "", "");
@@ -283,7 +283,7 @@ public class RequestModelBuilderTests {
         };
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Models", "Test.Services", "Test.Generated");
+            spec, "Test.Models", "Test.Services", "Test.Generated", "Test.Api.Validation");
 
         var getProfile = models.First(m => m.HandlerMethod == "GetProfile");
         var authParam = getProfile.RequestParameterInformationList.First(p => p.BindingName == "Authorization");

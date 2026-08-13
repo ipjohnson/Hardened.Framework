@@ -10,7 +10,8 @@ internal static class RequestModelBuilder {
         OpenApiSpecModel spec,
         string modelsNamespace,
         string servicesNamespace,
-        string generatedNamespace) {
+        string generatedNamespace,
+        string validationNamespace) {
         var models = new List<RequestHandlerModel>();
 
         // Build lookup for x-filter-types by short name
@@ -26,7 +27,8 @@ internal static class RequestModelBuilder {
 
             foreach (var operation in service.Operations) {
                 var model = BuildHandlerModel(operation, serviceType, handlerClassPrefix,
-                    modelsNamespace, generatedNamespace, filterTypeLookup);
+                    modelsNamespace, generatedNamespace, validationNamespace,
+                    spec.ValidatedOperations, filterTypeLookup);
                 models.Add(model);
             }
         }
@@ -63,7 +65,13 @@ internal static class RequestModelBuilder {
                     model.InvokeHandlerType,
                     model.RequestParameterInformationList,
                     model.ResponseInformation,
-                    filters));
+                    filters) {
+                    // Carried across: this rebuilds the model to add [Handler] filters, and dropping
+                    // it here leaves Parameters not implementing the interface its validator is
+                    // typed on - so the filter's type test fails and validation silently does not
+                    // run, on a build that is otherwise green.
+                    ParametersInterface = model.ParametersInterface,
+                });
             } else {
                 result.Add(model);
             }
@@ -110,6 +118,8 @@ internal static class RequestModelBuilder {
         string handlerClassPrefix,
         string modelsNamespace,
         string generatedNamespace,
+        string validationNamespace,
+        IReadOnlyList<ValidatedOperationModel> validatedOperations,
         Dictionary<string, FilterTypeModel> filterTypeLookup) {
         var methodName = NamingHelper.ToMethodName(operation.OperationId);
         var handlerTypeName = $"{handlerClassPrefix}_{methodName}";
@@ -122,11 +132,27 @@ internal static class RequestModelBuilder {
 
         var filters = new List<AttributeModel>();
 
-        // Wire in validation filter provider if operation has constraints
-        if (operation.HasValidationConstraints) {
-            var filterProviderName = NamingHelper.ToPascalCase(operation.OperationId) + "_ValidationFilterProvider";
-            var filterProviderType = TypeDefinition.Get(generatedNamespace, filterProviderName);
-            filters.Add(new AttributeModel(filterProviderType, "", ""));
+        // The validation the build task emitted for this operation, if any. The names come from the
+        // model rather than being derived here: the task named them, and deriving them a second time
+        // is how the two drift.
+        var validated = validatedOperations.FirstOrDefault(v => v.OperationId == operation.OperationId);
+        ITypeDefinition? parametersInterface = null;
+
+        if (validated != null) {
+            parametersInterface = TypeDefinition.Get(validationNamespace, validated.InterfaceName);
+
+            // An ordinary object in the metadata array rather than an attribute: the provider is
+            // handed the validator's singleton, and an attribute argument has to be a compile-time
+            // constant. ExecutionHelper.GetFilterInfo only filters that array for
+            // IRequestFilterProvider, so an object with a constructor works.
+            filters.Add(new AttributeModel(
+                new GenericTypeDefinition(
+                    TypeDefinitionEnum.ClassDefinition,
+                    "Hardened.Requests.Runtime.Validation",
+                    "ValidationFilterProvider",
+                    new[] { parametersInterface }),
+                $"global::{validationNamespace}.{validated.ValidatorName}.Instance",
+                ""));
         }
 
         // Wire in x-filters as typed attribute instances
@@ -150,7 +176,9 @@ internal static class RequestModelBuilder {
             invokeHandlerType,
             parameters,
             responseInfo,
-            filters);
+            filters) {
+            ParametersInterface = parametersInterface,
+        };
     }
 
     /// <summary>

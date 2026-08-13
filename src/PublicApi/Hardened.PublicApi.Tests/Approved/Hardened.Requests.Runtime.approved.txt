@@ -432,19 +432,6 @@ namespace Hardened.Requests.Runtime.Serializer
 }
 namespace Hardened.Requests.Runtime.Validation
 {
-    public class ParameterValidationInfo
-    {
-        public ParameterValidationInfo(string parameterName, Hardened.Requests.Abstract.Validation.IValidationRule[] rules) { }
-        public string ParameterName { get; }
-        public Hardened.Requests.Abstract.Validation.IValidationRule[] Rules { get; }
-    }
-    public class PropertyValidationInfo
-    {
-        public PropertyValidationInfo(string propertyName, Hardened.Requests.Abstract.Validation.IValidationRule[] rules, System.Func<object, object?> accessor) { }
-        public System.Func<object, object?> Accessor { get; }
-        public string PropertyName { get; }
-        public Hardened.Requests.Abstract.Validation.IValidationRule[] Rules { get; }
-    }
     public class RequestValidationError
     {
         public RequestValidationError() { }
@@ -471,11 +458,6 @@ namespace Hardened.Requests.Runtime.Validation
         public ValidationException(ValidationModules.ValidationResult validationResult) { }
         public ValidationModules.ValidationResult ValidationResult { get; }
     }
-    public class ValidationFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
-    {
-        public ValidationFilter(Hardened.Requests.Runtime.Validation.ParameterValidationInfo[] parameterRules, Hardened.Requests.Runtime.Validation.PropertyValidationInfo[]? bodyPropertyRules = null, string? bodyParameterName = null, System.Type? requestBodyType = null) { }
-        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
-    }
     public sealed class ValidationFilterProvider<TValidated> : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
         where TValidated :  class
     {
@@ -487,39 +469,5 @@ namespace Hardened.Requests.Runtime.Validation
     {
         public ValidationFilter(ValidationModules.IValidatorFor<TValidated> validator) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
-    }
-}
-namespace Hardened.Requests.Runtime.Validation.Rules
-{
-    public class ArrayBoundsRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public ArrayBoundsRule(int? minItems, int? maxItems) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class EnumRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public EnumRule(System.Collections.Generic.IEnumerable<string> allowedValues) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class PatternRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public PatternRule(string pattern) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class RangeRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public RangeRule(decimal? minimum, decimal? maximum, bool exclusiveMinimum = false, bool exclusiveMaximum = false) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class RequiredRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public static readonly Hardened.Requests.Runtime.Validation.Rules.RequiredRule Instance;
-        public RequiredRule() { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class StringLengthRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public StringLengthRule(int? minLength, int? maxLength) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
     }
 }

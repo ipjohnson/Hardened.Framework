@@ -31,6 +31,11 @@ namespace Hardened.Requests.Abstract.Attributes
     {
         public RawResponseAttribute(string contentType = "text/plain") { }
     }
+    public class TemplateAttribute : System.Attribute
+    {
+        public TemplateAttribute(string templateName) { }
+        public string TemplateName { get; }
+    }
 }
 namespace Hardened.Requests.Abstract.Authorization
 {
@@ -163,6 +168,7 @@ namespace Hardened.Requests.Abstract.Execution
         bool ShouldCompress { get; set; }
         bool ShouldSerialize { get; set; }
         int? Status { get; set; }
+        string? TemplateName { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null);
     }
     public interface IFunctionHandlerProvider
@@ -395,33 +401,5 @@ namespace Hardened.Requests.Abstract.Utilities
     public static class StringExtensions
     {
         public static Microsoft.Extensions.Primitives.StringValues ToStringValues(this string value) { }
-    }
-}
-namespace Hardened.Requests.Abstract.Validation
-{
-    public interface ICustomRequestValidator<in TRequest>
-        where in TRequest :  class
-    {
-        System.Threading.Tasks.Task<Hardened.Requests.Abstract.Validation.ValidationResult> ValidateAsync(TRequest request);
-    }
-    public interface IValidationRule
-    {
-        void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result);
-    }
-    public class ValidationError : System.IEquatable<Hardened.Requests.Abstract.Validation.ValidationError>
-    {
-        public ValidationError(string Field, string Code, string Message) { }
-        public string Code { get; init; }
-        public string Field { get; init; }
-        public string Message { get; init; }
-    }
-    public class ValidationResult
-    {
-        public static readonly Hardened.Requests.Abstract.Validation.ValidationResult Success;
-        public ValidationResult() { }
-        public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Validation.ValidationError> Errors { get; }
-        public bool IsValid { get; }
-        public void AddError(string field, string code, string message) { }
-        public void Merge(Hardened.Requests.Abstract.Validation.ValidationResult other) { }
     }
 }
