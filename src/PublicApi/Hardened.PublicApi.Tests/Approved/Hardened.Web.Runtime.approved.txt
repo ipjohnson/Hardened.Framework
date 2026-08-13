@@ -125,6 +125,7 @@ namespace Hardened.Web.Runtime.DependencyInjection
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule]
+    [Hardened.Templates.Runtime.DependencyInjection.HardenedTemplateModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class HardenedWebModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
