@@ -35,10 +35,15 @@ public class MultipleSpecificationTests {
     public void EachSpecificationsFilesCarryItsOwnNameAsAPrefix() {
         var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
 
-        Assert.Contains("pets.Pet.g.cs", result.GeneratedSources.Keys);
-        Assert.Contains("pets.IPetService.g.cs", result.GeneratedSources.Keys);
-        Assert.Contains("stores.Store.g.cs", result.GeneratedSources.Keys);
-        Assert.Contains("stores.IStoreService.g.cs", result.GeneratedSources.Keys);
+        Assert.Contains("pets.g.cs", result.GeneratedSources.Keys);
+        Assert.Contains("stores.g.cs", result.GeneratedSources.Keys);
+
+        // Each document's types land in its own file, so two documents declaring a Pet do not
+        // overwrite one another.
+        Assert.Contains("record Pet", result.GeneratedSources["pets.g.cs"]);
+        Assert.Contains("IPetService", result.GeneratedSources["pets.g.cs"]);
+        Assert.Contains("record Store", result.GeneratedSources["stores.g.cs"]);
+        Assert.Contains("IStoreService", result.GeneratedSources["stores.g.cs"]);
     }
 
     /// <summary>
@@ -112,6 +117,6 @@ public class MultipleSpecificationTests {
 
         Assert.Contains("OpenAPI files parsed: 2",
             result.GeneratedSources[OpenApiGenerator.DiagnosticHintName]);
-        Assert.Contains("pets.IPetService.g.cs", result.GeneratedSources.Keys);
+        Assert.Contains("IPetService", result.GeneratedSources["pets.g.cs"]);
     }
 }

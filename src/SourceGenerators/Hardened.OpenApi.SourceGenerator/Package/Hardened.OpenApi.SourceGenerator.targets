@@ -38,14 +38,6 @@
         <PropertyGroup>
             <HardenedOpenApiModelDir Condition="'$(HardenedOpenApiModelDir)' == ''">$(IntermediateOutputPath)openapi/</HardenedOpenApiModelDir>
             <HardenedOpenApiGeneratedDir Condition="'$(HardenedOpenApiGeneratedDir)' == ''">$(HardenedOpenApiModelDir)generated/</HardenedOpenApiGeneratedDir>
-
-            <!--
-                Versioned, so that upgrading the package re-runs the task against an obj/ left by the
-                previous version. Without that, an existing model looks up to date, the task is
-                skipped, and whatever the new version would have emitted is simply absent - which is
-                a compile error in the consumer's project with nothing pointing at the cause.
-            -->
-            <HardenedOpenApiStampFile Condition="'$(HardenedOpenApiStampFile)' == ''">$(HardenedOpenApiModelDir)openapi.v2.stamp</HardenedOpenApiStampFile>
             <HardenedOpenApiNamespace Condition="'$(HardenedOpenApiNamespace)' == ''">$(RootNamespace)</HardenedOpenApiNamespace>
             <HardenedOpenApiNamespace Condition="'$(HardenedOpenApiNamespace)' == ''">Generated</HardenedOpenApiNamespace>
         </PropertyGroup>
@@ -55,21 +47,20 @@
         The task both emits C# and writes the normalised model, because it has the parsed spec in
         hand either way and parsing it twice is the one thing this design exists to avoid.
 
-        Inputs/Outputs so an untouched spec does not re-run. The stamp is the only output, because
-        the set of emitted sources depends on the contents of each spec and cannot be predicted from
-        the item list - and a check that covers only part of what a target produces will report it up
-        to date while the rest is missing.
+        Inputs/Outputs so an untouched spec does not re-run. Each spec produces exactly two files
+        whose names follow from its own, so both can be declared here - MSBuild has to be able to
+        list a target's outputs without running it, which is the whole reason the task emits one file
+        per spec rather than one per type.
     -->
     <Target Name="HardenedOpenApiExtractSpecs"
             DependsOnTargets="HardenedOpenApiResolveModelDir"
             Condition="'@(HardenedOpenApiSpec)' != ''"
             Inputs="@(HardenedOpenApiSpec)"
-            Outputs="$(HardenedOpenApiStampFile)">
+            Outputs="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename).openapi-model.txt');@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename).g.cs')">
 
         <ExtractOpenApiSpec Specs="@(HardenedOpenApiSpec)"
                             OutputDirectory="$(HardenedOpenApiModelDir)"
                             GeneratedSourceDirectory="$(HardenedOpenApiGeneratedDir)"
-                            StampFile="$(HardenedOpenApiStampFile)"
                             Namespace="$(HardenedOpenApiNamespace)"
                             ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)">
             <Output TaskParameter="ModelFiles" ItemName="_HardenedOpenApiModelWritten"/>
@@ -80,9 +71,9 @@
     <!--
         Always runs, even when the target above is skipped as up to date: a skipped target
         contributes nothing to @(Compile) or @(AdditionalFiles), and the compiler would then see
-        neither the emitted types nor the models. The emitted sources are globbed rather than taken
-        from the task's output for the same reason - on an up-to-date build the task did not run and
-        produced no output items.
+        neither the emitted types nor the models. Both come from the same transform as the target's
+        Outputs rather than from a directory glob, so removing a spec removes its generated code from
+        the compilation instead of leaving whatever an earlier build wrote to be picked up.
     -->
     <Target Name="HardenedOpenApiAddModels"
             DependsOnTargets="HardenedOpenApiExtractSpecs"
@@ -91,7 +82,7 @@
 
         <ItemGroup>
             <AdditionalFiles Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename).openapi-model.txt')"/>
-            <Compile Include="$(HardenedOpenApiGeneratedDir)*.g.cs" Visible="false"/>
+            <Compile Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename).g.cs')" Visible="false"/>
         </ItemGroup>
 
         <!--

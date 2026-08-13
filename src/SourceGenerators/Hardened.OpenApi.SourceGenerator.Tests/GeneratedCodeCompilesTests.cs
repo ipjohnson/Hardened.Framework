@@ -41,7 +41,7 @@ public class GeneratedCodeCompilesTests {
     public void RecordsForEverySchemaShapeCompile() {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
-        var record = result.SourceContaining("Widget.g.cs");
+        var record = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial record Widget(", record);
         Assert.Contains("List<Part>? Parts = default", record);
@@ -57,7 +57,7 @@ public class GeneratedCodeCompilesTests {
     public void GeneratedEnumsCompile() {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
-        var generated = result.SourceContaining("WidgetStatus.g.cs");
+        var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public enum WidgetStatus", generated);
         Assert.Contains("JsonStringEnumConverter", generated);
@@ -71,7 +71,7 @@ public class GeneratedCodeCompilesTests {
     public void GeneratedServiceInterfacesCompile() {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
-        var generated = result.SourceContaining("IWidgetService");
+        var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial interface IWidgetService", generated);
         Assert.Contains("Task<List<Widget>> ListWidgets(", generated);
@@ -186,7 +186,7 @@ public class GeneratedCodeCompilesTests {
     public void TheJsonTypeInfoResolverCompiles() {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
-        var resolver = result.SourceContaining("JsonTypeInfoResolver");
+        var resolver = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public sealed class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", resolver);
         Assert.Contains("if (type == typeof(Widget)) return CreateWidgetTypeInfo(options);", resolver);
@@ -233,7 +233,7 @@ public class GeneratedCodeCompilesTests {
     public void AllOfCompositionCompiles() {
         var result = OpenApiGenerator.Run(Specs.AllOfComposition).AssertNoErrors();
 
-        var record = result.SourceContaining("Dog.g.cs");
+        var record = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("string Id,", record);
         Assert.Contains("string Breed,", record);
@@ -249,7 +249,7 @@ public class GeneratedCodeCompilesTests {
     public void FilterAttributesFromTheSpecCompile() {
         var result = OpenApiGenerator.Run(Specs.FilterTypes).AssertNoErrors();
 
-        var attribute = result.SourceContaining("RateLimitAttribute");
+        var attribute = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial class RateLimitAttribute : System.Attribute", attribute);
         Assert.Contains("public int MaxRequests { get; set; } = 100;", attribute);
@@ -283,7 +283,7 @@ public class GeneratedCodeCompilesTests {
     public void AParameterMarkedCodegenExcludeIsNotGenerated() {
         var result = OpenApiGenerator.Run(Specs.CodegenExcludedParameter).AssertNoErrors();
 
-        var generated = result.SourceContaining("IThingService");
+        var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("ListThings(int? page)", generated);
         Assert.DoesNotContain("traceId", generated);
@@ -309,7 +309,7 @@ public class GeneratedCodeCompilesTests {
                     id: { type: string }
             """).AssertNoErrors();
 
-        Assert.Contains("public partial record Orphan(", result.SourceContaining("Orphan.g.cs"));
+        Assert.Contains("public partial record Orphan(", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -330,7 +330,7 @@ public class GeneratedCodeCompilesTests {
                   type: object
             """).AssertNoErrors();
 
-        Assert.Contains("public partial record Empty;", result.SourceContaining("Empty.g.cs"));
+        Assert.Contains("public partial record Empty;", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -354,7 +354,7 @@ public class GeneratedCodeCompilesTests {
                     event: { type: string }
             """).AssertNoErrors();
 
-        var record = result.SourceContaining("Booking.g.cs");
+        var record = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("string Class,", record);
         Assert.Contains("string Event)", record);
@@ -386,9 +386,9 @@ public class GeneratedCodeCompilesTests {
                     tracking_number: { type: string }
             """).AssertNoErrors();
 
-        Assert.Contains("public partial record ShippingLabel(", result.SourceContaining("shipping-label.g.cs"));
-        Assert.Contains("public partial interface IShippingLabelService", result.SourceContaining("IShippingLabelService"));
-        Assert.Contains("ListShippingLabels(", result.SourceContaining("IShippingLabelService"));
+        Assert.Contains("public partial record ShippingLabel(", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("public partial interface IShippingLabelService", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("ListShippingLabels(", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -456,7 +456,7 @@ public class GeneratedCodeCompilesTests {
                     '200': { description: ok }
             """).AssertNoErrors();
 
-        Assert.Contains("GetShippingLabelsHistory(", result.SourceContaining("ILabelService"));
+        Assert.Contains("GetShippingLabelsHistory(", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -477,7 +477,7 @@ public class GeneratedCodeCompilesTests {
                     '200': { description: ok }
             """).AssertNoErrors();
 
-        Assert.Contains("public partial interface IDefaultService", result.SourceContaining("IDefaultService"));
+        Assert.Contains("public partial interface IDefaultService", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -515,7 +515,7 @@ public class GeneratedCodeCompilesTests {
                 "namespace TestNamespace; public class NotAModule { }")
             .AssertNoErrors();
 
-        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("Pet.g.cs"));
+        Assert.Contains("public partial record Pet", result.GeneratedSources["petstore.g.cs"]);
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("OpenApiRouting"));
     }
 
@@ -598,6 +598,6 @@ public class GeneratedCodeCompilesTests {
                             format: int64
             """).AssertNoErrors();
 
-        Assert.Contains("Task<long> GetCount(", result.SourceContaining("IStatService"));
+        Assert.Contains("Task<long> GetCount(", result.SourceContaining("petstore.g.cs"));
     }
 }

@@ -15,7 +15,7 @@ public class EnumEmitterTests {
 
         var result = EnumEmitter.Emit(schema, "Test.Api");
 
-        Assert.Contains("namespace Test.Api.Models;", result);
+        Assert.Contains("namespace Test.Api.Models\n{", result);
         Assert.Contains("[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]", result);
         Assert.Contains("public enum PetStatus", result);
         Assert.Contains("Available,", result);

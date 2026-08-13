@@ -47,19 +47,6 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     [Required]
     public string GeneratedSourceDirectory { get; set; } = "";
 
-    /// <summary>
-    /// File written last, once everything else has succeeded, and the target's only declared output.
-    /// </summary>
-    /// <remarks>
-    /// The set of emitted sources depends on the contents of each spec, so it cannot be predicted
-    /// from the item list the way the model paths can - and a target whose Inputs/Outputs check
-    /// covers only some of what it produces reports itself up to date while the rest is missing.
-    /// One stamp covers all of it. Its contents are the files that were written, so a diff explains
-    /// what changed.
-    /// </remarks>
-    [Required]
-    public string StampFile { get; set; } = "";
-
     /// <summary>Root namespace for the emitted types.</summary>
     public string Namespace { get; set; } = "Generated";
 
@@ -77,7 +64,6 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     public override bool Execute() {
         var models = new List<ITaskItem>();
         var sources = new List<ITaskItem>();
-        var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         Directory.CreateDirectory(OutputDirectory);
         Directory.CreateDirectory(GeneratedSourceDirectory);
@@ -116,12 +102,9 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             // what the resolver is called, the same way it is told everything else.
             model.JsonTypeInfoResolverName = JsonTypeInfoEmitter.ResolverNameFor(fileName);
 
-            foreach (var source in Emit(model)) {
-                var sourcePath = Path.Combine(GeneratedSourceDirectory, source.Key);
-                WriteIfChanged(sourcePath, source.Value);
-                written.Add(sourcePath);
-                sources.Add(new TaskItem(sourcePath));
-            }
+            var sourcePath = Path.Combine(GeneratedSourceDirectory, fileName + SourceSuffix);
+            WriteIfChanged(sourcePath, Emit(model));
+            sources.Add(new TaskItem(sourcePath));
 
             var modelPath = Path.Combine(OutputDirectory, fileName + ModelSuffix);
             WriteIfChanged(modelPath, SpecModelSerializer.Write(model));
@@ -134,30 +117,39 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
         ModelFiles = models.ToArray();
         GeneratedSources = sources.ToArray();
 
-        if (Log.HasLoggedErrors) {
-            // The stamp is deliberately not written, so the next build re-runs rather than
-            // reporting itself up to date against a half-emitted directory.
-            return false;
-        }
-
-        RemoveStaleSources(written);
-
-        var stampDirectory = Path.GetDirectoryName(StampFile);
-
-        if (!string.IsNullOrEmpty(stampDirectory)) {
-            Directory.CreateDirectory(stampDirectory);
-        }
-
-        File.WriteAllText(StampFile, string.Join("\n", models.Concat(sources).Select(item => item.ItemSpec).OrderBy(path => path, StringComparer.Ordinal)));
-
-        return true;
+        return !Log.HasLoggedErrors;
     }
 
     /// <summary>
-    /// Everything that follows from the spec alone: one file per schema, one per service interface,
-    /// one resolver, one per generated filter attribute.
+    /// Everything that follows from the spec alone, as one file: the records and enums, the service
+    /// interfaces, the JSON type info resolver and the generated filter attributes.
     /// </summary>
-    private IEnumerable<KeyValuePair<string, string>> Emit(OpenApiSpecModel model) {
+    /// <remarks>
+    /// <para>
+    /// One file per spec rather than one per type, which is what a Roslyn generator would have to do
+    /// - it addresses its output by hint name and every name must be unique. On disk there is no
+    /// such rule, and a single file per spec is what keeps this target's incrementality honest: its
+    /// outputs are then <c>%(Filename).g.cs</c> and <c>%(Filename).openapi-model.txt</c>, both
+    /// derivable from the item list without reading a spec. One file per type is not - you would
+    /// have to parse the yaml to know the names, which is the work the target is deciding whether to
+    /// do.
+    /// </para>
+    /// <para>
+    /// It also means removing a spec from the project removes its output from <c>@(Compile)</c>,
+    /// because the compile items are the same transform. Per-type files needed a directory glob, and
+    /// a glob picks up whatever an earlier build left behind.
+    /// </para>
+    /// <para>
+    /// The namespaces are block-scoped for the same reason: file-scoped namespaces permit exactly
+    /// one per file, so nothing could be composed.
+    /// </para>
+    /// </remarks>
+    private string Emit(OpenApiSpecModel model) {
+        var builder = new System.Text.StringBuilder();
+        builder.AppendLine("// <auto-generated/>");
+        builder.AppendLine("#nullable enable");
+        builder.AppendLine();
+
         foreach (var schema in model.Schemas) {
             var source = schema.Kind switch {
                 SchemaKind.Object => RecordEmitter.Emit(schema, Namespace, ExcludeFromCoverage),
@@ -166,54 +158,23 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             };
 
             if (source is not null) {
-                yield return new KeyValuePair<string, string>($"{model.FileName}.{schema.Name}{SourceSuffix}", source);
+                builder.AppendLine(source);
             }
         }
 
         foreach (var service in model.Services) {
-            yield return new KeyValuePair<string, string>(
-                $"{model.FileName}.{NamingHelper.ToInterfaceName(service.Tag)}{SourceSuffix}",
-                ServiceInterfaceEmitter.Emit(service, Namespace));
+            builder.AppendLine(ServiceInterfaceEmitter.Emit(service, Namespace));
         }
 
-        yield return new KeyValuePair<string, string>(
-            $"{model.FileName}.{model.JsonTypeInfoResolverName}{SourceSuffix}",
-            JsonTypeInfoEmitter.Emit(model.Schemas, Namespace, model.FileName, ExcludeFromCoverage));
+        builder.AppendLine(JsonTypeInfoEmitter.Emit(model.Schemas, Namespace, model.FileName, ExcludeFromCoverage));
 
         foreach (var filterType in model.FilterTypes) {
-            if (!filterType.Generate) {
-                continue;
-            }
-
-            yield return new KeyValuePair<string, string>(
-                $"{model.FileName}.{filterType.ClassName}{SourceSuffix}",
-                FilterTypeEmitter.Emit(filterType, ExcludeFromCoverage));
-        }
-    }
-
-    /// <summary>
-    /// Deletes generated files this run did not produce.
-    /// </summary>
-    /// <remarks>
-    /// A Roslyn generator's output vanishes when it stops emitting it. Files on disk do not: rename
-    /// a schema and the old record keeps compiling, so the build stays green against a type the spec
-    /// no longer declares. Only ever removes the suffix this task writes, and only when the run
-    /// succeeded - clearing the directory after a parse failure would turn one bad spec into a
-    /// project-wide cascade of missing types.
-    /// </remarks>
-    private void RemoveStaleSources(HashSet<string> written) {
-        foreach (var existing in Directory.GetFiles(GeneratedSourceDirectory, "*" + SourceSuffix)) {
-            if (written.Contains(existing)) {
-                continue;
-            }
-
-            try {
-                File.Delete(existing);
-            } catch (IOException) {
-                // Losing the race with an editor holding the file open is not worth failing over;
-                // the compiler will report the duplicate if it actually matters.
+            if (filterType.Generate) {
+                builder.AppendLine(FilterTypeEmitter.Emit(filterType, ExcludeFromCoverage));
             }
         }
+
+        return builder.ToString();
     }
 
     /// <summary>

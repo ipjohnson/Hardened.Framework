@@ -27,8 +27,6 @@ internal sealed class TaskHarness : IDisposable {
 
     public string GeneratedSourceDirectory => Path.Combine(OutputDirectory, "generated");
 
-    public string StampFile => Path.Combine(OutputDirectory, "openapi.stamp");
-
     public string WriteSpec(string fileName, string content) {
         var path = Path.Combine(SpecDirectory, fileName);
         File.WriteAllText(path, content);
@@ -43,7 +41,6 @@ internal sealed class TaskHarness : IDisposable {
             Specs = specPaths.Select(path => (ITaskItem)new Microsoft.Build.Utilities.TaskItem(path)).ToArray(),
             OutputDirectory = OutputDirectory,
             GeneratedSourceDirectory = GeneratedSourceDirectory,
-            StampFile = StampFile,
             Namespace = "Test.Api",
         };
 
@@ -58,6 +55,9 @@ internal sealed class TaskHarness : IDisposable {
 
     public string ModelPathFor(string specFileName) =>
         Path.Combine(OutputDirectory, Path.GetFileNameWithoutExtension(specFileName) + ".openapi-model.txt");
+
+    public string SourcePathFor(string specFileName) =>
+        Path.Combine(GeneratedSourceDirectory, Path.GetFileNameWithoutExtension(specFileName) + ".g.cs");
 
     public void Dispose() {
         try {

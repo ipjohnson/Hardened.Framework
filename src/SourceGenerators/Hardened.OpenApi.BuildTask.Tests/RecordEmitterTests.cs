@@ -20,7 +20,7 @@ public class RecordEmitterTests {
 
         var result = RecordEmitter.Emit(schema, "Test.Api");
 
-        Assert.Contains("namespace Test.Api.Models;", result);
+        Assert.Contains("namespace Test.Api.Models\n{", result);
         Assert.Contains("public partial record Pet(", result);
         Assert.Contains("string Id,", result);
         Assert.Contains("string Name,", result);
