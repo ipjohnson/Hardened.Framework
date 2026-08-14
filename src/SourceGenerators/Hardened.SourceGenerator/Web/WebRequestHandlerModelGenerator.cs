@@ -26,10 +26,6 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
         var methodName = attribute.Name.ToString().ToUpperInvariant().Replace("Attribute", "");
 
-        if (methodName == "HTTPMETHOD") {
-            throw new NotImplementedException("HttpMethodAttribute not supported yet.");
-        }
-
         var pathTemplate = GetPathFromAttribute(context, attribute, cancellation);
 
         return new RequestHandlerNameModel(pathTemplate, methodName);
@@ -119,6 +115,13 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
                             ParameterBindType.Header, headerName,parameterIndex);
+
+                    case "FromCookie":
+                        var cookieName =
+                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
+
+                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                            ParameterBindType.Cookie, cookieName,parameterIndex);
 
                     case "FromQueryString":
                         var queryName =
@@ -211,8 +214,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
             "Put",
             "Post",
             "Patch",
-            "Delete",
-            "HttpMethod"
+            "Delete"
         };
 
         foreach (var name in names) {

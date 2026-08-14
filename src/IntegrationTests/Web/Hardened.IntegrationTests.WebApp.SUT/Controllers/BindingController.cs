@@ -38,6 +38,12 @@ public class BindingController {
     [Get("/query-typed")]
     public int TypedQuery([FromQueryString] int page) => page + 1;
 
+    [Get("/cookie")]
+    public string FromCookie([FromCookie] string session) => session;
+
+    [Get("/cookie-named")]
+    public string FromNamedCookie([FromCookie("theme")] string preference) => preference;
+
     [Get("/header")]
     public string FromHeader([FromHeader("X-Tenant")] string tenant) => tenant;
 

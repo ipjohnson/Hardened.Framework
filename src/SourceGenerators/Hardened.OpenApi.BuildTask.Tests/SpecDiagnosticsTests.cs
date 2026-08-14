@@ -58,4 +58,41 @@ public class SpecDiagnosticsTests {
     public void EachCollidingPropertyIsReportedOnce() {
         Assert.Single(SpecDiagnostics.Find(SpecWith("Thing", "thing", "other")));
     }
+
+    /// <summary>
+    /// A name given to a schema written inline colliding with one the document declares.
+    /// </summary>
+    /// <remarks>
+    /// Reachable since inline objects are lifted: a <c>Pet</c> with an inline <c>address</c>
+    /// synthesizes <c>PetAddress</c>, which a document is free to have declared already. Renaming
+    /// one silently would give the author a public type they did not write.
+    /// </remarks>
+    [Fact]
+    public void TwoSchemasGeneratingOneTypeAreReported() {
+        var model = new OpenApiSpecModel {
+            Schemas = {
+                new SchemaModel { Name = "PetAddress", Kind = SchemaKind.Object },
+                new SchemaModel { Name = "petAddress", Kind = SchemaKind.Object },
+            }
+        };
+
+        var problem = Assert.Single(SpecDiagnostics.Find(model));
+
+        Assert.Equal("HOAT005", problem.Code);
+        Assert.Contains("PetAddress", problem.Message);
+    }
+
+    /// <summary>Distinct names are not reported, however similar.</summary>
+    [Fact]
+    public void DistinctSchemaNamesAreClean() {
+        var model = new OpenApiSpecModel {
+            Schemas = {
+                new SchemaModel { Name = "Pet", Kind = SchemaKind.Object },
+                new SchemaModel { Name = "PetAddress", Kind = SchemaKind.Object },
+            }
+        };
+
+        Assert.Empty(SpecDiagnostics.Find(model));
+    }
+
 }

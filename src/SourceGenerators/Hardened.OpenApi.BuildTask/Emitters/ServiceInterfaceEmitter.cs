@@ -18,8 +18,18 @@ internal static class ServiceInterfaceEmitter {
         foreach (var operation in service.Operations) {
             var method = interfaceDefinition.AddMethod(NamingHelper.ToMethodName(operation.OperationId));
 
+            // The route line first, so it stays where a reader and the existing tests expect it,
+            // and the spec's own prose below it after a blank line. A spec that says nothing reads
+            // as it always did.
+            var description = DocComment.Format(operation.Description);
+
             method.Comment =
-                $"{operation.HttpMethod} {operation.Path} &rarr; {operation.SuccessStatusCode}";
+                $"{operation.HttpMethod} {operation.Path} &rarr; {operation.SuccessStatusCode}" +
+                (description == null ? "" : "\n\n" + description);
+
+            if (operation.IsDeprecated) {
+                Deprecation.Apply(method);
+            }
 
             method.SetReturnType(GetReturnType(operation, modelsNamespace));
 
@@ -55,16 +65,13 @@ internal static class ServiceInterfaceEmitter {
     private static void AddParameters(
         MethodDefinition method, OperationModel operation, string modelsNamespace) {
         foreach (var parameter in operation.Parameters) {
-            // Header parameters are not surfaced on the interface - see finding 3.6.
-            if (parameter.In != "path" && parameter.In != "query") {
-                continue;
-            }
-
             var csType = TypeMapper.MapParameterToCSharpType(parameter);
 
-            method.AddParameter(
-                TypeMapper.GetTypeDefinition(modelsNamespace, csType, !parameter.IsRequired),
+            var emitted = method.AddParameter(
+                TypeMapper.GetTypeDefinition(modelsNamespace, csType, parameter.IsCSharpNullable),
                 NamingHelper.ToParameterName(parameter.Name));
+
+            emitted.Comment = DocComment.Format(parameter.Description);
         }
 
         if (operation.RequestBodyRef != null) {

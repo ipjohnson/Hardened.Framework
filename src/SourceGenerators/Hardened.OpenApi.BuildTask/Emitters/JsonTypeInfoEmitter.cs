@@ -156,14 +156,14 @@ internal static class JsonTypeInfoEmitter {
         var sb = new StringBuilder();
 
         if (schema.Properties.Count == 0) {
-            sb.AppendLine($"        return JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
+            sb.AppendLine($"        var typeInfo = JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
             sb.AppendLine("        {");
             sb.AppendLine($"            ObjectCreator = static () => new {typeName}(),");
             sb.AppendLine("        });");
         } else {
             var sorted = schema.Properties.OrderByDescending(p => p.IsRequired).ToList();
 
-            sb.AppendLine($"        return JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
+            sb.AppendLine($"        var typeInfo = JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
             sb.AppendLine("        {");
 
             // ObjectWithParameterizedConstructorCreator
@@ -196,7 +196,58 @@ internal static class JsonTypeInfoEmitter {
             sb.AppendLine("        });");
         }
 
+        EmitPolymorphism(sb, schema, allSchemas);
+
+        sb.AppendLine("        return typeInfo;");
+
         AddStatements(method, sb);
+    }
+
+    /// <summary>
+    /// The polymorphism metadata for the base of a hierarchy.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Set on the <c>JsonTypeInfo</c> after it is created rather than declared with it, because
+    /// <c>JsonObjectInfoValues&lt;T&gt;</c> has no member for it - the property is on
+    /// <c>JsonTypeInfo</c> itself and is settable from net7.0.
+    /// </para>
+    /// <para>
+    /// Deliberately not <c>[JsonPolymorphic]</c> and <c>[JsonDerivedType]</c> on the records. Those
+    /// are read by <c>DefaultJsonTypeInfoResolver</c>'s reflection path, which this resolver exists
+    /// to avoid entirely - they would emit as documentation and change nothing.
+    /// </para>
+    /// <para>
+    /// <c>FailSerialization</c> for an unrecognised runtime type: silently writing a base-shaped
+    /// object for a derived one the spec never declared loses data at the point it is hardest to
+    /// notice.
+    /// </para>
+    /// </remarks>
+    private static void EmitPolymorphism(
+        StringBuilder sb, SchemaModel schema, List<SchemaModel> allSchemas) {
+        if (!schema.IsPolymorphicBase || schema.DiscriminatorMapping.Count == 0) {
+            return;
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("        typeInfo.PolymorphismOptions = new JsonPolymorphismOptions");
+        sb.AppendLine("        {");
+        sb.AppendLine(
+            $"            TypeDiscriminatorPropertyName = \"{schema.DiscriminatorPropertyName}\",");
+        sb.AppendLine(
+            "            UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,");
+        sb.AppendLine("            DerivedTypes =");
+        sb.AppendLine("            {");
+
+        foreach (var mapping in schema.DiscriminatorMapping) {
+            var derivedName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(mapping.Ref));
+
+            sb.AppendLine(
+                $"                new JsonDerivedType(typeof({derivedName}), \"{mapping.Value}\"),");
+        }
+
+        sb.AppendLine("            },");
+        sb.AppendLine("        };");
     }
 
     private static void EmitPropertyInfo(StringBuilder sb, PropertyModel prop, string declaringTypeName,
@@ -222,14 +273,14 @@ internal static class JsonTypeInfoEmitter {
 
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
         var isValueType = IsValueType(baseType, prop, allSchemas);
-        var defaultValue = isValueType && prop.IsRequired ? $"default({paramType})" : "null";
+        var defaultValue = isValueType && !prop.HasDefault ? $"default({paramType})" : "null";
 
         sb.AppendLine("                new()");
         sb.AppendLine("                {");
         sb.AppendLine($"                    Name = \"{prop.Name}\",");
         sb.AppendLine($"                    ParameterType = typeof({paramType}),");
         sb.AppendLine($"                    Position = {position},");
-        sb.AppendLine($"                    HasDefaultValue = {(prop.IsRequired ? "false" : "true")},");
+        sb.AppendLine($"                    HasDefaultValue = {(prop.HasDefault ? "true" : "false")},");
         sb.AppendLine($"                    DefaultValue = {defaultValue},");
         sb.AppendLine("                },");
     }
@@ -268,7 +319,7 @@ internal static class JsonTypeInfoEmitter {
     /// </summary>
     private static string GetFullCSharpType(PropertyModel prop, List<SchemaModel> allSchemas) {
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
-        if (!prop.IsRequired) {
+        if (prop.IsCSharpNullable) {
             return baseType + "?";
         }
         return baseType;
@@ -281,7 +332,7 @@ internal static class JsonTypeInfoEmitter {
     /// </summary>
     private static string GetPropertyInfoGenericType(PropertyModel prop, List<SchemaModel> allSchemas) {
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
-        if (!prop.IsRequired && IsValueType(baseType, prop, allSchemas)) {
+        if (prop.IsCSharpNullable && IsValueType(baseType, prop, allSchemas)) {
             return baseType + "?";
         }
         return baseType;

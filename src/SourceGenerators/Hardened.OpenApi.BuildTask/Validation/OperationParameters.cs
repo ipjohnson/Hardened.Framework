@@ -39,12 +39,6 @@ internal static class OperationParameters {
         var constrained = false;
 
         foreach (var parameter in operation.Parameters) {
-            // Header parameters are not bound onto the parameters class, so there is nothing to
-            // constrain - see finding 3.6.
-            if (parameter.In != "path" && parameter.In != "query") {
-                continue;
-            }
-
             var csType = TypeMapper.MapParameterToCSharpType(parameter);
             var attributes = ConstraintAttributes.ForParameter(parameter, patterns);
 
@@ -52,7 +46,7 @@ internal static class OperationParameters {
 
             members.Add(new Member(
                 NamingHelper.ToParameterName(parameter.Name),
-                TypeMapper.GetTypeDefinition(modelsNamespace, csType, !parameter.IsRequired),
+                TypeMapper.GetTypeDefinition(modelsNamespace, csType, parameter.IsCSharpNullable),
                 attributes));
         }
 

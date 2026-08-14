@@ -6,16 +6,22 @@ namespace Hardened.Web.Runtime.Attributes
         public BasePathAttribute(string path) { }
         public string Path { get; }
     }
-    public class CacheControlAttribute : System.Attribute
+    public class CacheControlAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {
         public CacheControlAttribute() { }
         public int MaxAge { get; set; }
         public Hardened.Web.Runtime.CacheControl.CacheControlEnum Type { get; set; }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
     public class DeleteAttribute : System.Attribute
     {
         public DeleteAttribute(string path = "") { }
         public string Path { get; }
+    }
+    public class FromCookieAttribute : System.Attribute
+    {
+        public FromCookieAttribute(string? name = null) { }
+        public string? Name { get; }
     }
     public class FromHeaderAttribute : System.Attribute
     {
@@ -31,10 +37,6 @@ namespace Hardened.Web.Runtime.Attributes
     {
         public GetAttribute(string path = "") { }
         public string Path { get; }
-    }
-    public class HttpMethodAttribute
-    {
-        public HttpMethodAttribute() { }
     }
     public class PatchAttribute : System.Attribute
     {
@@ -67,6 +69,15 @@ namespace Hardened.Web.Runtime.CacheControl
         NoTransform = 8,
         Public = 32,
         Private = 64,
+    }
+    public class CacheControlFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public CacheControlFilter(string headerValue) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public static class CacheControlHeader
+    {
+        public static string? Format(Hardened.Web.Runtime.CacheControl.CacheControlEnum type, int maxAge, bool immutable = false) { }
     }
 }
 namespace Hardened.Web.Runtime.Configuration
@@ -159,6 +170,14 @@ namespace Hardened.Web.Runtime.Handlers
     {
         public WebExecutionHandlerService(System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider> handlers, Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler resourceNotFoundHandler, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Hardened.Web.Runtime.StaticContent.IStaticContentHandler staticContentHandler) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+}
+namespace Hardened.Web.Runtime.OpenApi
+{
+    public class OpenApiDocumentProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
+    {
+        public OpenApiDocumentProvider(string document, string path = "/openapi.json") { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
 }
 namespace Hardened.Web.Runtime.StaticContent

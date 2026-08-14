@@ -1,10 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <_CSharpAuthorRoot>$(MSBuildThisFileDirectory)../../../CSharpAuthor</_CSharpAuthorRoot>
-        <CSharpAuthorProject>$(_CSharpAuthorRoot)/CSharpAuthor/CSharpAuthor.csproj</CSharpAuthorProject>
-        <UseLocalCSharpAuthor Condition="Exists('$(CSharpAuthorProject)')">true</UseLocalCSharpAuthor>
+    <Import Project="../CSharpAuthor.props"/>
 
+    <PropertyGroup>
         <_DependencyModulesRoot>$(MSBuildThisFileDirectory)../../../../DependencyModules</_DependencyModulesRoot>
         <_DependencyModulesImplProject>$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator.Impl/DependencyModules.SourceGenerator.Impl.csproj</_DependencyModulesImplProject>
         <UseLocalDependencyModules Condition="Exists('$(_DependencyModulesImplProject)')">true</UseLocalDependencyModules>
@@ -39,7 +37,6 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
         <PackageDependencyModuleIncludeSource Condition="'$(UseLocalDependencyModules)' != 'true'">true</PackageDependencyModuleIncludeSource>
     </PropertyGroup>
 
@@ -51,14 +48,6 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>build</IncludeAssets>
-        </PackageReference>
-        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
     </ItemGroup>
 
     <!-- DependencyModules source: NuGet package or local linked files -->

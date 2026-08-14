@@ -72,4 +72,32 @@ public class ErrorHandlingTests {
         Assert.Equal(nameof(InvalidOperationException), error.Type);
         Assert.Equal("the widget was not ready", error.Message);
     }
+
+    /// <summary>
+    /// A status the pipeline had no way to produce. Every thrown exception was classified as 400 or
+    /// 500, so a specification declaring a 404 with its own payload could not be honoured whatever
+    /// the handler did.
+    /// </summary>
+    [HardenedTest]
+    public async Task AStatusCodeExceptionCarriesItsOwnStatus(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/errors/declared-status");
+
+        Assert.Equal(404, response.StatusCode);
+    }
+
+    /// <summary>And the body the specification declared for it, rather than the generic model.</summary>
+    [HardenedTest]
+    public async Task AStatusCodeExceptionCarriesItsDeclaredBody(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/errors/declared-body");
+
+        Assert.Equal(409, response.StatusCode);
+
+        var body = response.Deserialize<ConflictShape>();
+
+        Assert.Equal("locked", body!.Code);
+        Assert.Equal("held by another writer", body.Message);
+    }
+
+    private record ConflictShape(string Code, string Message);
+
 }

@@ -6,7 +6,9 @@ using Hardened.OpenApi.SourceGenerator.Models;
 namespace Hardened.OpenApi.SourceGenerator;
 
 internal static class OpenApiSpecParser {
-    public static OpenApiSpecModel? Parse(string text, string fileName, CancellationToken cancellationToken) {
+    public static OpenApiSpecModel? Parse(
+        string text, string fileName, CancellationToken cancellationToken,
+        bool applyServerBasePath = false) {
         cancellationToken.ThrowIfCancellationRequested();
 
         OpenApiDocument? document;
@@ -23,10 +25,15 @@ internal static class OpenApiSpecParser {
 
         var model = new OpenApiSpecModel { FileName = fileName };
 
+        // Schemas the document does not name, lifted out of the places they were written inline.
+        // Collected separately and appended, so a synthesized name colliding with a declared one is
+        // visible to SpecDiagnostics as a duplicate rather than quietly overwriting it.
+        var synthesized = new List<SchemaModel>();
+
         if (document.Components?.Schemas != null) {
             foreach (var kvp in document.Components.Schemas) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var schema = ParseSchema(kvp.Key, kvp.Value);
+                var schema = ParseSchema(kvp.Key, kvp.Value, synthesized);
                 if (schema != null) {
                     model.Schemas.Add(schema);
                 }
@@ -48,11 +55,17 @@ internal static class OpenApiSpecParser {
 
         var operationsByTag = new Dictionary<string, List<OperationModel>>();
 
+        var basePath = applyServerBasePath ? ServerBasePath(document) : "";
+
         if (document.Paths != null) {
             foreach (var pathKvp in document.Paths) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ParsePath(pathKvp.Key, pathKvp.Value, operationsByTag);
+                ParsePath(basePath + pathKvp.Key, pathKvp.Value, operationsByTag, synthesized);
             }
+        }
+
+        foreach (var schema in synthesized) {
+            model.Schemas.Add(schema);
         }
 
         foreach (var kvp in operationsByTag) {
@@ -65,7 +78,134 @@ internal static class OpenApiSpecParser {
         return model;
     }
 
-    private static SchemaModel? ParseSchema(string name, OpenApiSchema schema) {
+    /// <summary>
+    /// The path component of the first <c>servers</c> entry, or the empty string.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Opt-in, and off by default. A specification's paths are relative to its server URL, so a
+    /// <c>/v1</c> there means every route is under <c>/v1</c> - but plenty of deployments strip that
+    /// prefix at the gateway, and applying it unasked would silently double it. Being wrong in that
+    /// direction is the same class of failure this work exists to remove, so the caller says.
+    /// </para>
+    /// <para>
+    /// An unresolved <c>{variable}</c> is dropped rather than emitted: the route tree compiles a
+    /// path into character comparisons and cannot match a brace it was never told about. Variables
+    /// with declared defaults are substituted first.
+    /// </para>
+    /// </remarks>
+    private static string ServerBasePath(OpenApiDocument document) {
+        var server = document.Servers?.FirstOrDefault();
+
+        if (server == null || string.IsNullOrWhiteSpace(server.Url)) {
+            return "";
+        }
+
+        var url = server.Url;
+
+        if (server.Variables != null) {
+            foreach (var variable in server.Variables) {
+                var value = variable.Value?.Default;
+
+                if (!string.IsNullOrEmpty(value)) {
+                    url = url.Replace("{" + variable.Key + "}", value);
+                }
+            }
+        }
+
+        // An absolute URL contributes only its path.
+        var schemeEnd = url.IndexOf("://", StringComparison.Ordinal);
+
+        if (schemeEnd >= 0) {
+            var afterAuthority = url.IndexOf('/', schemeEnd + 3);
+
+            url = afterAuthority < 0 ? "" : url.Substring(afterAuthority);
+        }
+
+        url = url.TrimEnd('/');
+
+        // A server that is only a host contributes nothing, and prefixing "/" would produce "//".
+        // A variable nobody gave a default to would reach the route tree as a literal brace.
+        if (url.Length == 0 || url.IndexOf('{') >= 0) {
+            return "";
+        }
+
+        return url.StartsWith("/") ? url : "/" + url;
+    }
+
+    private static SchemaModel? ParseSchema(
+        string name, OpenApiSchema schema, List<SchemaModel> collector) {
+        var model = ParseSchemaKind(name, schema, collector);
+
+        if (model != null) {
+            model.Description = FirstNonEmpty(schema.Description);
+            model.IsDeprecated = schema.Deprecated;
+
+            ParsePolymorphism(schema, model);
+        }
+
+        return model;
+    }
+
+    /// <summary>
+    /// The discriminator, and the base an <c>allOf</c> points at.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// OpenAPI writes inheritance two ways and this reads both. A schema carrying a
+    /// <c>discriminator</c> is the base of a hierarchy: its <c>oneOf</c> branches, or its
+    /// <c>mapping</c>, name the types that belong to it. A schema whose <c>allOf</c> references such
+    /// a base is one of those types.
+    /// </para>
+    /// <para>
+    /// Both were dropped entirely before this. A <c>oneOf</c> schema matched none of the parser's
+    /// shapes, so it became a <c>Primitive</c> with a null type and every property referencing it
+    /// mapped to <c>JsonElement</c> - the spec described a closed set of shapes and the generated
+    /// code took an untyped blob.
+    /// </para>
+    /// </remarks>
+    private static void ParsePolymorphism(OpenApiSchema schema, SchemaModel model) {
+        if (schema.Discriminator != null &&
+            !string.IsNullOrEmpty(schema.Discriminator.PropertyName)) {
+            model.DiscriminatorPropertyName = schema.Discriminator.PropertyName;
+
+            if (schema.Discriminator.Mapping != null) {
+                foreach (var mapping in schema.Discriminator.Mapping) {
+                    model.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
+                        Value = mapping.Key,
+                        Ref = mapping.Value
+                    });
+                }
+            }
+
+            // No explicit mapping means the branches are the derived types, keyed by their own
+            // names - which is what the specification says a bare discriminator implies.
+            if (model.DiscriminatorMapping.Count == 0 && schema.OneOf is { Count: > 0 }) {
+                foreach (var branch in schema.OneOf) {
+                    var reference = branch.Reference?.ReferenceV3;
+
+                    if (reference != null) {
+                        model.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
+                            Value = TypeMapper.GetRefName(reference),
+                            Ref = reference
+                        });
+                    }
+                }
+            }
+        }
+
+        if (schema.AllOf is { Count: > 0 }) {
+            foreach (var branch in schema.AllOf) {
+                if (branch.Reference?.ReferenceV3 != null && branch.Discriminator != null) {
+                    model.BaseRef = branch.Reference.ReferenceV3;
+                    break;
+                }
+            }
+        }
+    }
+
+    private static SchemaModel? ParseSchemaKind(
+        string name, OpenApiSchema schema, List<SchemaModel> collector) {
         if (schema.Enum is { Count: > 0 }) {
             return new SchemaModel {
                 Name = name,
@@ -78,14 +218,21 @@ internal static class OpenApiSpecParser {
         }
 
         if (schema.AllOf is { Count: > 0 }) {
-            return ParseAllOf(name, schema);
+            return ParseAllOf(name, schema, collector);
+        }
+
+        // A oneOf naming its branches, with a discriminator to choose between them, is the base of
+        // a hierarchy. It matched none of the shapes below and fell through to Primitive with a
+        // null type, which is what made every property referencing it a JsonElement.
+        if (schema.OneOf is { Count: > 0 } && schema.Discriminator != null) {
+            return ParseObjectSchema(name, schema, collector);
         }
 
         if (schema.Type == "object" || schema.Properties is { Count: > 0 }) {
             if (schema.AdditionalProperties != null && (schema.Properties == null || schema.Properties.Count == 0)) {
                 return ParseDictionarySchema(name, schema);
             }
-            return ParseObjectSchema(name, schema);
+            return ParseObjectSchema(name, schema, collector);
         }
 
         if (schema.Type == "array") {
@@ -100,7 +247,8 @@ internal static class OpenApiSpecParser {
         };
     }
 
-    private static SchemaModel ParseObjectSchema(string name, OpenApiSchema schema) {
+    private static SchemaModel ParseObjectSchema(
+        string name, OpenApiSchema schema, List<SchemaModel> collector) {
         var model = new SchemaModel {
             Name = name,
             Kind = SchemaKind.Object,
@@ -110,14 +258,15 @@ internal static class OpenApiSpecParser {
         if (schema.Properties != null) {
             foreach (var propKvp in schema.Properties) {
                 model.Properties.Add(ParseProperty(propKvp.Key, propKvp.Value,
-                    model.Required.Contains(propKvp.Key)));
+                    model.Required.Contains(propKvp.Key), name, collector));
             }
         }
 
         return model;
     }
 
-    private static SchemaModel ParseAllOf(string name, OpenApiSchema schema) {
+    private static SchemaModel ParseAllOf(
+        string name, OpenApiSchema schema, List<SchemaModel> collector) {
         var model = new SchemaModel {
             Name = name,
             Kind = SchemaKind.Object,
@@ -137,7 +286,8 @@ internal static class OpenApiSpecParser {
                 foreach (var propKvp in allOfSchema.Properties) {
                     var isRequired = model.Required.Contains(propKvp.Key) ||
                                      (allOfSchema.Required?.Contains(propKvp.Key) ?? false);
-                    model.Properties.Add(ParseProperty(propKvp.Key, propKvp.Value, isRequired));
+                    model.Properties.Add(
+                        ParseProperty(propKvp.Key, propKvp.Value, isRequired, name, collector));
                 }
             }
         }
@@ -165,10 +315,44 @@ internal static class OpenApiSpecParser {
         };
     }
 
-    private static PropertyModel ParseProperty(string name, OpenApiSchema prop, bool isRequired) {
+    /// <summary>
+    /// A schema declared inline, given a name so it can have a type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An object written inline on a property was discarded before any emitter saw it: the property
+    /// mapped to <c>JsonElement</c> and every constraint on the nested properties went with it. It
+    /// has no name of its own, so one is made from where it sits - <c>Pet</c> plus <c>address</c>
+    /// gives <c>PetAddress</c>.
+    /// </para>
+    /// <para>
+    /// A synthesized name colliding with one the document declares is reported rather than renamed.
+    /// Silently picking a different name would give the author a public type they did not write and
+    /// cannot find in their specification.
+    /// </para>
+    /// </remarks>
+    private static string SynthesizeSchema(
+        string parentName, string propertyName, OpenApiSchema schema, List<SchemaModel> collector) {
+        var name = NamingHelper.ToPascalCase(parentName) + NamingHelper.ToPascalCase(propertyName);
+
+        var model = ParseObjectSchema(name, schema, collector);
+
+        model.Description = FirstNonEmpty(schema.Description);
+        model.IsDeprecated = schema.Deprecated;
+
+        collector.Add(model);
+
+        return "#/components/schemas/" + name;
+    }
+
+    private static PropertyModel ParseProperty(
+        string name, OpenApiSchema prop, bool isRequired, string parentName, List<SchemaModel> collector) {
         var model = new PropertyModel {
             Name = name,
-            IsRequired = isRequired
+            IsRequired = isRequired,
+            IsNullable = prop.Nullable,
+            Default = GetOpenApiPrimitiveValue(prop.Default),
+            Description = FirstNonEmpty(prop.Description)
         };
 
         // Extract validation constraints
@@ -206,6 +390,13 @@ internal static class OpenApiSpecParser {
             return model;
         }
 
+        // An object with properties but no name of its own. Lifted into one rather than left to
+        // fall through to JsonElement, which discarded the nested shape entirely.
+        if (prop.Properties is { Count: > 0 }) {
+            model.Ref = SynthesizeSchema(parentName, name, prop, collector);
+            return model;
+        }
+
         model.Type = prop.Type;
         model.Format = prop.Format;
         return model;
@@ -236,6 +427,9 @@ internal static class OpenApiSpecParser {
         if (schema.Type == "object" || schema.Properties is { Count: > 0 }) return schema.Reference.ReferenceV3;
         if (schema.Type == "array") return schema.Reference.ReferenceV3;
         if (schema.AllOf is { Count: > 0 }) return schema.Reference.ReferenceV3;
+
+        // The base of a polymorphic hierarchy gets a generated type like any other object.
+        if (schema.OneOf is { Count: > 0 } && schema.Discriminator != null) return schema.Reference.ReferenceV3;
 
         // Primitive types (string, integer, number, boolean) — inline them.
         return null;
@@ -277,8 +471,128 @@ internal static class OpenApiSpecParser {
         return schema;
     }
 
+    /// <summary>
+    /// A path item's own parameters, overlaid with the operation's.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// OpenAPI lets a path item declare parameters shared by every operation on it - the
+    /// <c>{petId}</c> of <c>/pets/{petId}</c>, written once rather than on each of GET, PUT, PATCH
+    /// and DELETE - and an operation may override one by redeclaring the same name and location.
+    /// Only <c>operation.Parameters</c> was read, so a spec written the shared way generated
+    /// handlers that never received the value: the route still matched on its wildcard node, and
+    /// what it captured went nowhere.
+    /// </para>
+    /// <para>
+    /// An override keeps the position of the parameter it replaces rather than moving to the end.
+    /// This order is the generated method's signature order, so it is a source-breaking change
+    /// whenever it shifts.
+    /// </para>
+    /// </remarks>
+    private static IEnumerable<OpenApiParameter> MergeParameters(
+        IList<OpenApiParameter>? pathItemParameters, IList<OpenApiParameter>? operationParameters) {
+        if (pathItemParameters == null || pathItemParameters.Count == 0) {
+            return operationParameters ?? (IList<OpenApiParameter>)new List<OpenApiParameter>();
+        }
+
+        if (operationParameters == null || operationParameters.Count == 0) {
+            return pathItemParameters;
+        }
+
+        var merged = new List<OpenApiParameter>();
+        var overridden = new List<OpenApiParameter>();
+
+        foreach (var shared in pathItemParameters) {
+            var operationVersion = operationParameters.FirstOrDefault(candidate => SameParameter(candidate, shared));
+
+            if (operationVersion != null) {
+                overridden.Add(operationVersion);
+            }
+
+            merged.Add(operationVersion ?? shared);
+        }
+
+        foreach (var own in operationParameters) {
+            if (!overridden.Contains(own)) {
+                merged.Add(own);
+            }
+        }
+
+        return merged;
+    }
+
+    /// <summary>
+    /// The first candidate that carries text, or null.
+    /// </summary>
+    /// <remarks>
+    /// An omitted key and an empty one are different things to this model - see
+    /// <c>SpecModelSerializer</c> - so a description present but blank has to arrive as null rather
+    /// than as "", or it round-trips into a doc comment with nothing in it.
+    /// </remarks>
+    private static string? FirstNonEmpty(params string?[] candidates) {
+        foreach (var candidate in candidates) {
+            if (!string.IsNullOrWhiteSpace(candidate)) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Whether two declarations name the same parameter. Identity is name plus location, so a
+    /// <c>limit</c> in the query and a <c>limit</c> in a header are two parameters, not one.
+    /// </summary>
+    private static bool SameParameter(OpenApiParameter left, OpenApiParameter right) =>
+        string.Equals(left.Name, right.Name, StringComparison.Ordinal) && left.In == right.In;
+
+    private static ParameterModel? ParseParameter(OpenApiParameter param) {
+        // Skip parameters marked with x-codegen-exclude
+        if (param.Extensions != null &&
+            param.Extensions.TryGetValue("x-codegen-exclude", out var excludeExt) &&
+            excludeExt is OpenApiBoolean excludeBool && excludeBool.Value) {
+            return null;
+        }
+
+        var paramModel = new ParameterModel {
+            Name = param.Name,
+            In = param.In?.ToString()?.ToLowerInvariant() ?? "query",
+            IsNullable = param.Schema?.Nullable ?? false,
+            Default = GetOpenApiPrimitiveValue(param.Schema?.Default),
+            Description = FirstNonEmpty(param.Description),
+            IsRequired = param.Required,
+            Type = param.Schema?.Type,
+            Format = param.Schema?.Format,
+            Ref = GetNonPrimitiveRef(param.Schema),
+            IsArray = param.Schema?.Type == "array",
+            ArrayItemsType = param.Schema?.Items?.Type,
+            ArrayItemsRef = GetNonPrimitiveRef(param.Schema?.Items)
+        };
+
+        // Extract validation constraints from parameter schema
+        if (param.Schema != null) {
+            if (param.Schema.MinLength.HasValue) paramModel.MinLength = param.Schema.MinLength;
+            if (param.Schema.MaxLength.HasValue) paramModel.MaxLength = param.Schema.MaxLength;
+            if (param.Schema.Minimum.HasValue) paramModel.Minimum = param.Schema.Minimum.Value;
+            if (param.Schema.Maximum.HasValue) paramModel.Maximum = param.Schema.Maximum.Value;
+            if (param.Schema.ExclusiveMinimum == true) paramModel.ExclusiveMinimum = true;
+            if (param.Schema.ExclusiveMaximum == true) paramModel.ExclusiveMaximum = true;
+            if (!string.IsNullOrEmpty(param.Schema.Pattern)) paramModel.Pattern = param.Schema.Pattern;
+            if (param.Schema.MinItems.HasValue) paramModel.MinItems = param.Schema.MinItems;
+            if (param.Schema.MaxItems.HasValue) paramModel.MaxItems = param.Schema.MaxItems;
+            if (param.Schema.Enum is { Count: > 0 }) {
+                paramModel.EnumValues = param.Schema.Enum
+                    .OfType<Microsoft.OpenApi.Any.OpenApiString>()
+                    .Select(e => e.Value)
+                    .ToList();
+            }
+        }
+
+        return paramModel;
+    }
+
     private static void ParsePath(string path, OpenApiPathItem pathItem,
-        Dictionary<string, List<OperationModel>> operationsByTag) {
+        Dictionary<string, List<OperationModel>> operationsByTag, List<SchemaModel> collector) {
         foreach (var opKvp in pathItem.Operations) {
             var operation = opKvp.Value;
             var httpMethod = opKvp.Key.ToString().ToUpperInvariant();
@@ -290,49 +604,16 @@ internal static class OpenApiSpecParser {
                 OperationId = operationId,
                 Path = path,
                 HttpMethod = httpMethod,
-                Tag = tag
+                Tag = tag,
+                // Summary first: it is the one-line form, and a doc comment is one line.
+                Description = FirstNonEmpty(operation.Summary, operation.Description),
+                IsDeprecated = operation.Deprecated
             };
 
-            if (operation.Parameters != null) {
-                foreach (var param in operation.Parameters) {
-                    // Skip parameters marked with x-codegen-exclude
-                    if (param.Extensions != null &&
-                        param.Extensions.TryGetValue("x-codegen-exclude", out var excludeExt) &&
-                        excludeExt is OpenApiBoolean excludeBool && excludeBool.Value) {
-                        continue;
-                    }
+            foreach (var param in MergeParameters(pathItem.Parameters, operation.Parameters)) {
+                var paramModel = ParseParameter(param);
 
-                    var paramModel = new ParameterModel {
-                        Name = param.Name,
-                        In = param.In?.ToString()?.ToLowerInvariant() ?? "query",
-                        IsRequired = param.Required,
-                        Type = param.Schema?.Type,
-                        Format = param.Schema?.Format,
-                        Ref = GetNonPrimitiveRef(param.Schema),
-                        IsArray = param.Schema?.Type == "array",
-                        ArrayItemsType = param.Schema?.Items?.Type,
-                        ArrayItemsRef = GetNonPrimitiveRef(param.Schema?.Items)
-                    };
-
-                    // Extract validation constraints from parameter schema
-                    if (param.Schema != null) {
-                        if (param.Schema.MinLength.HasValue) paramModel.MinLength = param.Schema.MinLength;
-                        if (param.Schema.MaxLength.HasValue) paramModel.MaxLength = param.Schema.MaxLength;
-                        if (param.Schema.Minimum.HasValue) paramModel.Minimum = param.Schema.Minimum.Value;
-                        if (param.Schema.Maximum.HasValue) paramModel.Maximum = param.Schema.Maximum.Value;
-                        if (param.Schema.ExclusiveMinimum == true) paramModel.ExclusiveMinimum = true;
-                        if (param.Schema.ExclusiveMaximum == true) paramModel.ExclusiveMaximum = true;
-                        if (!string.IsNullOrEmpty(param.Schema.Pattern)) paramModel.Pattern = param.Schema.Pattern;
-                        if (param.Schema.MinItems.HasValue) paramModel.MinItems = param.Schema.MinItems;
-                        if (param.Schema.MaxItems.HasValue) paramModel.MaxItems = param.Schema.MaxItems;
-                        if (param.Schema.Enum is { Count: > 0 }) {
-                            paramModel.EnumValues = param.Schema.Enum
-                                .OfType<Microsoft.OpenApi.Any.OpenApiString>()
-                                .Select(e => e.Value)
-                                .ToList();
-                        }
-                    }
-
+                if (paramModel != null) {
                     opModel.Parameters.Add(paramModel);
                 }
             }
@@ -354,7 +635,8 @@ internal static class OpenApiSpecParser {
                             foreach (var propKvp in resolvedSchema.Properties) {
                                 var isRequired = opModel.RequestBodyRequired.Contains(propKvp.Key);
                                 opModel.RequestBodyProperties.Add(
-                                    ParseProperty(propKvp.Key, propKvp.Value, isRequired));
+                                    ParseProperty(propKvp.Key, propKvp.Value, isRequired,
+                                        opModel.OperationId, collector));
                             }
                         }
                     }
@@ -362,6 +644,27 @@ internal static class OpenApiSpecParser {
             }
 
             if (operation.Responses != null) {
+                // Everything the specification says the operation can answer with, other than the
+                // success case. All of it used to be discarded, so a document could describe a 404
+                // and its payload in detail and generate no trace of either.
+                foreach (var respKvp in operation.Responses
+                             .Where(r => !r.Key.StartsWith("2") && r.Key != "default")
+                             .OrderBy(r => r.Key, StringComparer.Ordinal)) {
+                    if (!int.TryParse(respKvp.Key, out var errorStatus)) {
+                        continue;
+                    }
+
+                    var errorContent = respKvp.Value?.Content != null
+                        ? SelectMediaType(respKvp.Value.Content)
+                        : default;
+
+                    opModel.ErrorResponses.Add(new ErrorResponseModel {
+                        StatusCode = errorStatus,
+                        Ref = errorContent.Value?.Schema?.Reference?.ReferenceV3,
+                        Description = FirstNonEmpty(respKvp.Value?.Description)
+                    });
+                }
+
                 foreach (var respKvp in operation.Responses.Where(r => r.Key.StartsWith("2")).OrderBy(r => r.Key)) {
                     var response = respKvp.Value;
                     if (int.TryParse(respKvp.Key, out var statusCode)) {
@@ -549,7 +852,7 @@ internal static class OpenApiSpecParser {
     /// Extracts a string representation of a primitive OpenAPI value
     /// suitable for emitting as a C# literal.
     /// </summary>
-    private static string? GetOpenApiPrimitiveValue(IOpenApiAny value) {
+    private static string? GetOpenApiPrimitiveValue(IOpenApiAny? value) {
         return value switch {
             OpenApiString s => s.Value,
             OpenApiInteger i => i.Value.ToString(),

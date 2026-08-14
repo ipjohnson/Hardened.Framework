@@ -106,16 +106,50 @@ jobs:
           name: coverage-report
           path: coverage-report
 
-      # GitHub Actions expressions have no arithmetic operators, so the 10000 offset
-      # is applied in the shell. The offset keeps the build number at five digits:
-      # NuGet compares alphanumeric prerelease labels lexically, so preview9999 would
-      # sort above preview10000.
+      # The continuous feed's version has to sort BELOW the released one, or a consumer
+      # configured with both feeds silently gets a preview instead of the release.
+      #
+      # It did. nuget.org carried 0.1.0-rc1 while this pushed 1.0.0-preview10193, and 1.0.0
+      # is the higher version whatever the label says - so adding the GitHub feed to a project
+      # quietly downgraded it onto an unreleased build.
+      #
+      # Two rules keep that from recurring:
+      #
+      #   1. The prefix tracks the release line, not 1.0.0. Under the same prefix, "preview"
+      #      sorts below "rc" and below a stable release, so previews stay underneath.
+      #      RELEASE_LINE must be bumped when a release line opens - which release.yaml's
+      #      package-count check is the precedent for: a number someone has to change is what
+      #      makes it a deliberate edit rather than a silent one.
+      #
+      #   2. Zero-padded to a fixed width. NuGet compares alphanumeric prerelease labels
+      #      lexically, so preview9999 sorts above preview10000. The old scheme dodged this by
+      #      starting the counter above 9999; padding fixes it rather than deferring it to
+      #      run 100000.
       - name: Pack
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          RELEASE_LINE: 0.1.0
         run: |
-          BUILD=$(( 10000 + GITHUB_RUN_NUMBER ))
-          echo "Packing 1.0.0-preview$BUILD"
-          dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=1.0.0-preview$BUILD
+          BUILD=$(printf '%06d' "$GITHUB_RUN_NUMBER")
+          echo "Packing $RELEASE_LINE-preview$BUILD"
+          dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=$RELEASE_LINE-preview$BUILD
+
+      # Packing the solution takes whatever is not marked IsPackable=false, which is how
+      # Hardened.IntegrationTests.Console.SUT and .OpenApi.SUT reached the feed as packages -
+      # a public ID claimed by a test fixture, and on nuget.org that would be permanent.
+      # IsPackable=false was added to those projects; this is what notices the next one.
+      - name: Verify no test fixture was packed
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          LEAKED=$(ls -1 src/**/bin/Release/*.nupkg 2>/dev/null \
+            | xargs -n1 basename \
+            | grep -Ei '^(Hardened\.IntegrationTests|.*\.Tests\.)' || true)
+
+          if [ -n "$LEAKED" ]; then
+            echo "::error::Test fixtures were packed. Mark them IsPackable=false."
+            echo "$LEAKED"
+            exit 1
+          fi
 
       - name: Push
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

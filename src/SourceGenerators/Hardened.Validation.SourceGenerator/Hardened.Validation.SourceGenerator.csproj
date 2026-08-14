@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <Import Project="../CSharpAuthor.props"/>
+
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Source generator that turns constraint attributes - ValidationModules' own and System.ComponentModel.DataAnnotations - into straight-line validators, and registers them into the Hardened entry point.</Description>
@@ -61,17 +63,6 @@
         </Compile>
     </ItemGroup>
 
-    <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>build</IncludeAssets>
-        </PackageReference>
-        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)"/>
-    </ItemGroup>
 
     <!--
         CSharpAuthor and DependencyModules ship as source and predate nullable reference types, so

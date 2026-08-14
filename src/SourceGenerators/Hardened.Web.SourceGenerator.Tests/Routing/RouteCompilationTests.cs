@@ -35,6 +35,7 @@ public class RouteCompilationTests {
         using Hardened.Requests.Runtime.Filters;
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Attributes;
+        using Hardened.Web.Runtime.CacheControl;
 
         namespace TestApp;
 
@@ -479,7 +480,8 @@ public class RouteCompilationTests {
 
     [Theory]
     [InlineData("[CacheControl(MaxAge = 86400)]")]
-    [InlineData("[CacheControl(Type = global::Hardened.Web.Runtime.CacheControl.CacheControlEnum.NoStore)]")]
+    [InlineData("[CacheControl(Type = CacheControlEnum.NoStore)]")]
+    [InlineData("[CacheControl(Type = CacheControlEnum.MaxAge | CacheControlEnum.Public)]")]
     [InlineData("[RawResponse]")]
     [InlineData("[RawResponse(\"text/csv\")]")]
     [InlineData("[Template(\"home\")]")]

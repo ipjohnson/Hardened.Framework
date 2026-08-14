@@ -2,6 +2,7 @@
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
@@ -29,6 +30,10 @@ public static class RoutingTableGenerator {
         var fileName = models.Left.EntryPointType.Name + ".Routing";
 
         context.AddSource(fileName, outputString);
+
+        context.AddSource(
+            models.Left.EntryPointType.Name + ".OpenApiDocument",
+            OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left)));
     }
     
     public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,

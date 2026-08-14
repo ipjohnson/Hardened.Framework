@@ -28,6 +28,8 @@ internal static class SpecDiagnostics {
     public static IReadOnlyList<Problem> Find(OpenApiSpecModel model) {
         var problems = new List<Problem>();
 
+        FindDuplicateSchemaNames(model, problems);
+
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
 
@@ -54,5 +56,40 @@ internal static class SpecDiagnostics {
         }
 
         return problems;
+    }
+
+    /// <summary>
+    /// Two schemas that would generate one C# type.
+    /// </summary>
+    /// <remarks>
+    /// Reachable now that objects written inline are lifted into named schemas: <c>Pet</c> with an
+    /// inline <c>address</c> synthesizes <c>PetAddress</c>, which a document is free to have
+    /// declared already. Renaming one of them silently would give the author a public type they did
+    /// not write and cannot find in their specification, so they are told instead.
+    ///
+    /// <para>
+    /// Also catches two declared schemas whose names differ only in a way PascalCasing removes -
+    /// <c>pet_address</c> and <c>petAddress</c> - which produced a duplicate type declaration that
+    /// only surfaced as CS0101 in generated code.
+    /// </para>
+    /// </remarks>
+    private static void FindDuplicateSchemaNames(OpenApiSpecModel model, List<Problem> problems) {
+        var seen = new Dictionary<string, string>();
+
+        foreach (var schema in model.Schemas) {
+            var typeName = NamingHelper.ToPascalCase(schema.Name);
+
+            if (seen.TryGetValue(typeName, out var first)) {
+                problems.Add(new Problem(
+                    "HOAT005",
+                    $"Schemas '{first}' and '{schema.Name}' both generate a type named " +
+                    $"'{typeName}'. One of them is a name given to a schema written inline; rename " +
+                    "the declared schema or the property it collides with."));
+
+                continue;
+            }
+
+            seen.Add(typeName, schema.Name);
+        }
     }
 }

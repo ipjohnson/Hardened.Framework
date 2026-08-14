@@ -82,6 +82,29 @@ public class ParameterBindingTests {
     /// Path token, query string, header and an injected service in one handler - the case
     /// most likely to break if binding order or parameter indexing regresses.
     /// </summary>
+    /// <summary>
+    /// A cookie, which had no binding attribute at all before <c>[FromCookie]</c> — the only way
+    /// to read one was to take <c>IExecutionRequest</c> and parse the raw strings by hand.
+    /// </summary>
+    [HardenedTest]
+    public async Task CookieBinds(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/cookie",
+            request => request.Headers["Cookie"] = "session=abc123");
+
+        response.Assert.Ok();
+        Assert.Equal("abc123", response.Deserialize<string>());
+    }
+
+    /// <summary>The attribute's name wins over the parameter's, as it does for header and query.</summary>
+    [HardenedTest]
+    public async Task CookieBindsByAttributeName(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/cookie-named",
+            request => request.Headers["Cookie"] = "session=abc123; theme=dark");
+
+        response.Assert.Ok();
+        Assert.Equal("dark", response.Deserialize<string>());
+    }
+
     [HardenedTest]
     public async Task AllBindingSourcesCombineInASingleHandler(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/binding/mixed/id-9?filter=active",

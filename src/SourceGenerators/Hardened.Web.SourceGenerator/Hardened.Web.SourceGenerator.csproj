@@ -1,10 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <_CSharpAuthorRoot>$(MSBuildThisFileDirectory)../../../CSharpAuthor</_CSharpAuthorRoot>
-        <CSharpAuthorProject>$(_CSharpAuthorRoot)/CSharpAuthor/CSharpAuthor.csproj</CSharpAuthorProject>
-        <UseLocalCSharpAuthor Condition="Exists('$(CSharpAuthorProject)')">true</UseLocalCSharpAuthor>
-    </PropertyGroup>
+    <Import Project="../CSharpAuthor.props"/>
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
@@ -25,18 +21,6 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
-    </ItemGroup>
-
-    <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>build</IncludeAssets>
-        </PackageReference>
-        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
     </ItemGroup>
 
     <ItemGroup>
@@ -70,6 +54,10 @@
 
         <Compile Include="../Hardened.SourceGenerator/Module/**/*">
             <Link>Module\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/OpenApiDocument/**/*">
+            <Link>OpenApiDocument\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
         <Compile Include="../Hardened.SourceGenerator/Requests/**/*">

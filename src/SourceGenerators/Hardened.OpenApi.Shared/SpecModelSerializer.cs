@@ -120,6 +120,13 @@ internal static class SpecModelSerializer {
                     schema?.Properties.Add(ReadProperty(record));
                     break;
 
+                case "discriminator":
+                    schema?.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
+                        Value = record.String("Value") ?? "",
+                        Ref = record.String("Ref") ?? ""
+                    });
+                    break;
+
                 case "service":
                     service = new ServiceModel { Tag = record.String("Tag") ?? "" };
                     model.Services.Add(service);
@@ -132,6 +139,14 @@ internal static class SpecModelSerializer {
 
                 case "param":
                     operation?.Parameters.Add(ReadParameter(record));
+                    break;
+
+                case "errorresponse":
+                    operation?.ErrorResponses.Add(new ErrorResponseModel {
+                        StatusCode = record.Int("StatusCode") ?? 0,
+                        Ref = record.String("Ref"),
+                        Description = record.String("Description"),
+                    });
                     break;
 
                 case "bodyprop":
@@ -198,6 +213,10 @@ internal static class SpecModelSerializer {
         var record = new Record("schema");
         record.Add("Name", schema.Name);
         record.Add("Kind", schema.Kind.ToString());
+        record.Add("Description", schema.Description);
+        record.Add("IsDeprecated", schema.IsDeprecated);
+        record.Add("DiscriminatorPropertyName", schema.DiscriminatorPropertyName);
+        record.Add("BaseRef", schema.BaseRef);
         record.Add("Type", schema.Type);
         record.Add("Format", schema.Format);
         record.Add("ArrayItemsRef", schema.ArrayItemsRef);
@@ -219,14 +238,45 @@ internal static class SpecModelSerializer {
             required.WriteTo(builder);
         }
 
+        foreach (var mapping in schema.DiscriminatorMapping) {
+            var record2 = new Record("discriminator");
+            record2.Add("Value", mapping.Value);
+            record2.Add("Ref", mapping.Ref);
+            record2.WriteTo(builder);
+        }
+
         foreach (var property in schema.Properties) {
             WriteProperty(builder, "prop", property);
         }
     }
 
+    /// <summary>
+    /// The kind as written, rather than "Enum or else Object".
+    /// </summary>
+    /// <remarks>
+    /// Every kind but <see cref="SchemaKind.Enum"/> used to read back as
+    /// <see cref="SchemaKind.Object"/>, so Primitive, Array and Dictionary were destroyed crossing
+    /// the seam between the task and the generator. Mostly invisible, because the generator half
+    /// barely switches on it - and a trap for any kind added later, which would have been silently
+    /// collapsed the same way.
+    /// </remarks>
+    private static SchemaKind ReadSchemaKind(string? value) {
+        switch (value) {
+            case nameof(SchemaKind.Enum): return SchemaKind.Enum;
+            case nameof(SchemaKind.Array): return SchemaKind.Array;
+            case nameof(SchemaKind.Primitive): return SchemaKind.Primitive;
+            case nameof(SchemaKind.Dictionary): return SchemaKind.Dictionary;
+            default: return SchemaKind.Object;
+        }
+    }
+
     private static SchemaModel ReadSchema(Record record) => new() {
         Name = record.String("Name") ?? "",
-        Kind = record.String("Kind") == nameof(SchemaKind.Enum) ? SchemaKind.Enum : SchemaKind.Object,
+        Kind = ReadSchemaKind(record.String("Kind")),
+        Description = record.String("Description"),
+        IsDeprecated = record.Bool("IsDeprecated"),
+        DiscriminatorPropertyName = record.String("DiscriminatorPropertyName"),
+        BaseRef = record.String("BaseRef"),
         Type = record.String("Type"),
         Format = record.String("Format"),
         ArrayItemsRef = record.String("ArrayItemsRef"),
@@ -239,6 +289,7 @@ internal static class SpecModelSerializer {
     private static void WriteProperty(StringBuilder builder, string tag, PropertyModel property) {
         var record = new Record(tag);
         record.Add("Name", property.Name);
+        record.Add("Description", property.Description);
         record.Add("Type", property.Type);
         record.Add("Format", property.Format);
         record.Add("Ref", property.Ref);
@@ -247,6 +298,8 @@ internal static class SpecModelSerializer {
         record.Add("ArrayItemsType", property.ArrayItemsType);
         record.Add("ArrayItemsFormat", property.ArrayItemsFormat);
         record.Add("IsRequired", property.IsRequired);
+        record.Add("IsNullable", property.IsNullable);
+        record.Add("Default", property.Default);
         record.Add("IsDictionary", property.IsDictionary);
         record.Add("DictionaryValueType", property.DictionaryValueType);
         record.Add("DictionaryValueRef", property.DictionaryValueRef);
@@ -265,6 +318,7 @@ internal static class SpecModelSerializer {
 
     private static PropertyModel ReadProperty(Record record) => new() {
         Name = record.String("Name") ?? "",
+        Description = record.String("Description"),
         Type = record.String("Type"),
         Format = record.String("Format"),
         Ref = record.String("Ref"),
@@ -273,6 +327,8 @@ internal static class SpecModelSerializer {
         ArrayItemsType = record.String("ArrayItemsType"),
         ArrayItemsFormat = record.String("ArrayItemsFormat"),
         IsRequired = record.Bool("IsRequired"),
+        IsNullable = record.Bool("IsNullable"),
+        Default = record.String("Default"),
         IsDictionary = record.Bool("IsDictionary"),
         DictionaryValueType = record.String("DictionaryValueType"),
         DictionaryValueRef = record.String("DictionaryValueRef"),
@@ -304,6 +360,8 @@ internal static class SpecModelSerializer {
         record.Add("Path", operation.Path);
         record.Add("HttpMethod", operation.HttpMethod);
         record.Add("Tag", operation.Tag);
+        record.Add("Description", operation.Description);
+        record.Add("IsDeprecated", operation.IsDeprecated);
         record.Add("RequestBodyContentType", operation.RequestBodyContentType);
         record.Add("RequestBodyRef", operation.RequestBodyRef);
         record.Add("RequestBodyType", operation.RequestBodyType);
@@ -316,6 +374,14 @@ internal static class SpecModelSerializer {
         record.Add("SuccessStatusCode", operation.SuccessStatusCode);
         record.Add("TemplateName", operation.TemplateName);
         record.WriteTo(builder);
+
+        foreach (var errorResponse in operation.ErrorResponses) {
+            var record2 = new Record("errorresponse");
+            record2.AddAlways("StatusCode", errorResponse.StatusCode.ToString(CultureInfo.InvariantCulture));
+            record2.Add("Ref", errorResponse.Ref);
+            record2.Add("Description", errorResponse.Description);
+            record2.WriteTo(builder);
+        }
 
         foreach (var parameter in operation.Parameters) {
             WriteParameter(builder, parameter);
@@ -352,6 +418,8 @@ internal static class SpecModelSerializer {
         Path = record.String("Path") ?? "",
         HttpMethod = record.String("HttpMethod") ?? "",
         Tag = record.String("Tag"),
+        Description = record.String("Description"),
+        IsDeprecated = record.Bool("IsDeprecated"),
         RequestBodyContentType = record.String("RequestBodyContentType"),
         RequestBodyRef = record.String("RequestBodyRef"),
         RequestBodyType = record.String("RequestBodyType"),
@@ -369,7 +437,10 @@ internal static class SpecModelSerializer {
         var record = new Record("param");
         record.Add("Name", parameter.Name);
         record.Add("In", parameter.In);
+        record.Add("Description", parameter.Description);
         record.Add("IsRequired", parameter.IsRequired);
+        record.Add("IsNullable", parameter.IsNullable);
+        record.Add("Default", parameter.Default);
         record.Add("Type", parameter.Type);
         record.Add("Format", parameter.Format);
         record.Add("Ref", parameter.Ref);
@@ -392,7 +463,10 @@ internal static class SpecModelSerializer {
     private static ParameterModel ReadParameter(Record record) => new() {
         Name = record.String("Name") ?? "",
         In = record.String("In") ?? "",
+        Description = record.String("Description"),
         IsRequired = record.Bool("IsRequired"),
+        IsNullable = record.Bool("IsNullable"),
+        Default = record.String("Default"),
         Type = record.String("Type"),
         Format = record.String("Format"),
         Ref = record.String("Ref"),

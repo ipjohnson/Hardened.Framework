@@ -7,7 +7,6 @@
     <ItemGroup>
         <CompilerVisibleProperty Include="ExcludeGeneratedCodeFromCoverage"/>
         <CompilerVisibleProperty Include="HardenedOpenApiNamespace"/>
-        <CompilerVisibleProperty Include="HardenedOpenApiGenerateJsonSerializers"/>
     </ItemGroup>
 
     <!--
@@ -62,7 +61,8 @@
                             OutputDirectory="$(HardenedOpenApiModelDir)"
                             GeneratedSourceDirectory="$(HardenedOpenApiGeneratedDir)"
                             Namespace="$(HardenedOpenApiNamespace)"
-                            ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)">
+                            ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)"
+                            ApplyServerBasePath="$(HardenedOpenApiApplyServerBasePath)">
             <Output TaskParameter="ModelFiles" ItemName="_HardenedOpenApiModelWritten"/>
             <Output TaskParameter="GeneratedSources" ItemName="_HardenedOpenApiSourceWritten"/>
         </ExtractOpenApiSpec>

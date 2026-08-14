@@ -26,10 +26,11 @@ Hardened uses C# source generators to wire up dependency injection, request rout
 
 ```csharp
 using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.AspNetCore.Runtime;
 using Hardened.Web.Runtime.Attributes;
 
 [HardenedModule]
-[AspNetCoreRuntime.Module]
+[AspNetCoreRuntime]
 public partial class Application { }
 
 public class HelloController {
@@ -42,9 +43,21 @@ public class HelloController {
 
 ```csharp
 // Program.cs
-var builder = Application.CreateBuilder(args);
+using Hardened.Shared.Runtime.Application;
+using Hardened.Web.AspNetCore.Runtime;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Registered by the application, not by the framework: startup fails on the first service
+// that asks for one.
+builder.Services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+
+new Application().PopulateServiceCollection(builder.Services);
+
 var app = builder.Build();
+
 app.UseHardened();
+
 app.Run();
 ```
 
@@ -52,12 +65,12 @@ app.Run();
 
 Full documentation is available at **[ipjohnson.github.io/Hardened.Docs](https://ipjohnson.github.io/Hardened.Docs)**.
 
-- [Getting Started](https://ipjohnson.github.io/Hardened.Docs/getting-started/installation/)
-- [Architecture Overview](https://ipjohnson.github.io/Hardened.Docs/architecture/overview/)
-- [Dependency Injection](https://ipjohnson.github.io/Hardened.Docs/framework/shared/dependency-injection/)
-- [Web Routing](https://ipjohnson.github.io/Hardened.Docs/framework/web/routing/)
-- [Testing](https://ipjohnson.github.io/Hardened.Docs/framework/testing/hardened-test/)
-- [Recipes](https://ipjohnson.github.io/Hardened.Docs/recipes/web-api-crud/)
+- [Getting Started](https://ipjohnson.github.io/Hardened.Docs/guide/getting-started)
+- [Modules](https://ipjohnson.github.io/Hardened.Docs/guide/modules)
+- [Dependency Injection](https://ipjohnson.github.io/Hardened.Docs/guide/services)
+- [Web Routing](https://ipjohnson.github.io/Hardened.Docs/guide/routing)
+- [Testing](https://ipjohnson.github.io/Hardened.Docs/guide/testing)
+- [OpenAPI](https://ipjohnson.github.io/Hardened.Docs/guide/openapi)
 
 ## Related Repositories
 

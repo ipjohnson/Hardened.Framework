@@ -51,7 +51,8 @@ internal static class SpecFileEmitter {
 
         foreach (var schema in model.Schemas) {
             Coverage.Apply(
-                SchemaEmitter.Emit(models, schema, modelsNamespace, patterns), excludeFromCoverage);
+                SchemaEmitter.Emit(models, schema, modelsNamespace, patterns, model.Schemas),
+                excludeFromCoverage);
         }
 
         if (model.Services.Count > 0) {
@@ -61,6 +62,13 @@ internal static class SpecFileEmitter {
                 Coverage.Apply(
                     ServiceInterfaceEmitter.Emit(services, service, modelsNamespace),
                     excludeFromCoverage);
+
+                // In the models namespace, beside the payloads they carry, rather than beside the
+                // interfaces - an exception is a type an implementation constructs, not part of the
+                // contract it implements.
+                foreach (var exception in ErrorResponseEmitter.Emit(models, service, modelsNamespace)) {
+                    Coverage.Apply(exception, excludeFromCoverage);
+                }
             }
         }
 

@@ -21,23 +21,43 @@ internal static class SchemaEmitter {
     /// decide anything that is not the type's own business - see <see cref="Coverage"/>.
     /// </summary>
     public static IOutputComponent? Emit(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns) =>
+        IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns,
+        IReadOnlyList<SchemaModel>? allSchemas = null) =>
         schema.Kind switch {
-            SchemaKind.Object => EmitRecord(container, schema, modelsNamespace, patterns),
+            SchemaKind.Object => EmitRecord(container, schema, modelsNamespace, patterns, allSchemas),
             SchemaKind.Enum => EmitEnum(container, schema),
             _ => null,
         };
 
     /// <summary>
+    /// A schema's properties in the order its record declares them.
+    /// </summary>
+    /// <remarks>
+    /// Required first, because C# will not take an optional parameter before a required one. A
+    /// derived record has to pass its base's arguments in this same order, which is why it is
+    /// computed once here rather than at each call site.
+    /// </remarks>
+    private static IEnumerable<PropertyModel> InDeclarationOrder(SchemaModel schema) =>
+        schema.Properties.OrderByDescending(property => property.IsRequired);
+
+    /// <summary>
     /// A positional record, or a declaration-only one when the schema carries no properties.
     /// </summary>
     private static ClassDefinition EmitRecord(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns) {
+        IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns,
+        IReadOnlyList<SchemaModel>? allSchemas) {
         var record = container.AddClass(NamingHelper.ToPascalCase(schema.Name));
 
         record.TypeKeyword = ClassKeyword.Record;
         record.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
         record.TerminateWithSemicolon = true;
+        record.Comment = DocComment.Format(schema.Description);
+
+        if (schema.IsDeprecated) {
+            Deprecation.Apply(record);
+        }
+
+        EmitBaseType(record, schema, modelsNamespace, allSchemas);
 
         // No properties means no parameter list at all - "record Empty;" rather than "record
         // Empty();". The two are different declarations, and the second gives the type a constructor
@@ -50,15 +70,20 @@ internal static class SchemaEmitter {
         constructor.IsPrimary = true;
 
         // Required parameters must precede optional ones in a C# parameter list.
-        foreach (var property in schema.Properties.OrderByDescending(property => property.IsRequired)) {
+        foreach (var property in InDeclarationOrder(schema)) {
             var csType = TypeMapper.MapPropertyToCSharpType(property);
-            var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, !property.IsRequired);
+            var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
 
             var parameter = constructor.AddParameter(
                 typeDefinition, NamingHelper.ToPascalCase(property.Name));
 
-            if (!property.IsRequired) {
-                parameter.DefaultValue = new CodeOutputComponent("default") { Indented = false };
+            parameter.Comment = DocComment.Format(property.Description);
+
+            if (property.HasDefault) {
+                // The spec's own default where it has a constant form, and the type's otherwise.
+                var literal = DefaultLiteral.Format(property.Default, csType) ?? "default";
+
+                parameter.DefaultValue = new CodeOutputComponent(literal) { Indented = false };
             }
 
             EmitJsonPropertyName(parameter, property);
@@ -68,7 +93,7 @@ internal static class SchemaEmitter {
             // a generator reading properties never sees it - which is what VM0051 warns about.
             // Required, except where the type already guarantees it - see
             // TypeMapper.IsNonNullableValueType.
-            var emitRequired = property.IsRequired && !TypeMapper.IsNonNullableValueType(csType);
+            var emitRequired = property.ConstrainedAsRequired && !TypeMapper.IsNonNullableValueType(csType);
 
             foreach (var constraint in ConstraintAttributes.ForProperty(property, emitRequired, patterns)) {
                 ValidationEmitter.Apply(parameter, constraint).Target = "property";
@@ -76,6 +101,52 @@ internal static class SchemaEmitter {
         }
 
         return record;
+    }
+
+    /// <summary>
+    /// The base a derived record inherits, and the arguments it passes to it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A derived schema carries its base's properties as well as its own - <c>allOf</c> merges them
+    /// - so the record declares all of them positionally and forwards the base's share. That is the
+    /// standard shape for record inheritance: <c>record Dog(string PetType, string Name, string
+    /// Breed) : Pet(PetType, Name)</c> declares <c>Breed</c> and inherits the other two rather than
+    /// redeclaring them.
+    /// </para>
+    /// <para>
+    /// The arguments are ordered by the base's declaration order, not this schema's. The two agree
+    /// on membership but not necessarily on order, since each sorts its own required properties
+    /// first.
+    /// </para>
+    /// </remarks>
+    private static void EmitBaseType(
+        ClassDefinition record, SchemaModel schema, string modelsNamespace,
+        IReadOnlyList<SchemaModel>? allSchemas) {
+        if (schema.BaseRef == null) {
+            return;
+        }
+
+        var baseName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(schema.BaseRef));
+        var baseType = TypeDefinition.Get(modelsNamespace, baseName);
+
+        var baseSchema = allSchemas?.FirstOrDefault(
+            candidate => NamingHelper.ToPascalCase(candidate.Name) == baseName);
+
+        if (baseSchema == null || baseSchema.Properties.Count == 0) {
+            record.AddBaseType(baseType);
+
+            return;
+        }
+
+        var arguments = new List<IOutputComponent>();
+
+        foreach (var property in InDeclarationOrder(baseSchema)) {
+            arguments.Add(
+                new CodeOutputComponent(NamingHelper.ToPascalCase(property.Name)) { Indented = false });
+        }
+
+        record.AddBaseType(baseType, arguments.ToArray());
     }
 
     /// <summary>
@@ -109,6 +180,11 @@ internal static class SchemaEmitter {
         var enumDefinition = container.AddEnum(NamingHelper.ToPascalCase(schema.Name));
 
         enumDefinition.Modifiers |= ComponentModifier.Public;
+        enumDefinition.Comment = DocComment.Format(schema.Description);
+
+        if (schema.IsDeprecated) {
+            Deprecation.Apply(enumDefinition);
+        }
 
         // The wire values are the spec's; the member names are C#. The converter is what keeps the
         // two in step, so it is not optional decoration.

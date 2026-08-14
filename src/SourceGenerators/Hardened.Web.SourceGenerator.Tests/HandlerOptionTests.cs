@@ -56,17 +56,15 @@ public class HandlerOptionTests {
     }
 
     /// <summary>
-    /// The <c>Type</c> flags survive the trip too.
+    /// The <c>Type</c> flags survive the trip too, written the way an author would write them.
     ///
     /// <para>
-    /// The enum is written fully qualified here on purpose. A property assignment on a handler
-    /// attribute is copied verbatim from the consumer's source into the generated file, which
-    /// carries none of the consumer's <c>using</c> directives — so the natural spelling,
-    /// <c>Type = CacheControlEnum.MaxAge | CacheControlEnum.Public</c> under
-    /// <c>using Hardened.Web.Runtime.CacheControl;</c>, emits an unqualified name and fails with
-    /// CS0103. Found 2026-08-11 by this suite; the defect is in the shared
-    /// <c>HandlerInfoCodeGenerator</c> metadata emit, not in the web generator, so it is reported
-    /// rather than worked around here.
+    /// The enum used to have to be spelled <c>global::Hardened.Web.Runtime.CacheControl
+    /// .CacheControlEnum.NoStore</c> here. A property assignment was copied verbatim from the
+    /// consumer's source into the generated file, which carries none of the consumer's
+    /// <c>using</c> directives, so the natural spelling emitted an unqualified name and failed with
+    /// CS0103. The shared metadata emit now resolves argument names through the semantic model and
+    /// writes them qualified, which is what lets this read as the source under test does.
     /// </para>
     /// </summary>
     [Fact]
@@ -74,6 +72,7 @@ public class HandlerOptionTests {
         var routing = GeneratedRoutingTable.For("""
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
+            using Hardened.Web.Runtime.CacheControl;
 
             namespace TestApp;
 
@@ -82,7 +81,7 @@ public class HandlerOptionTests {
 
             public class AssetController {
                 [Get("/assets/{name}")]
-                [CacheControl(Type = global::Hardened.Web.Runtime.CacheControl.CacheControlEnum.NoStore)]
+                [CacheControl(Type = CacheControlEnum.NoStore)]
                 public string Asset(string name) => name;
             }
             """);
@@ -92,6 +91,37 @@ public class HandlerOptionTests {
         var cacheControl = Assert.IsType<CacheControlAttribute>(Assert.Single(metadata));
 
         Assert.Equal(CacheControlEnum.NoStore, cacheControl.Type);
+    }
+
+    /// <summary>
+    /// A combination of flags, unqualified, with the two halves of the <c>|</c> resolved
+    /// independently.
+    /// </summary>
+    [Fact]
+    public void CombinedCacheControlFlagsAreQualifiedOnBothSidesOfTheOperator() {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+            using Hardened.Web.Runtime.CacheControl;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class AssetController {
+                [Get("/assets/{name}")]
+                [CacheControl(MaxAge = 3600, Type = CacheControlEnum.MaxAge | CacheControlEnum.Public)]
+                public string Asset(string name) => name;
+            }
+            """);
+
+        var metadata = routing.Handler("GET", "/assets/logo.png").Metadata;
+
+        var cacheControl = Assert.IsType<CacheControlAttribute>(Assert.Single(metadata));
+
+        Assert.Equal(3600, cacheControl.MaxAge);
+        Assert.Equal(CacheControlEnum.MaxAge | CacheControlEnum.Public, cacheControl.Type);
     }
 
     /// <summary>

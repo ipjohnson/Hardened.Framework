@@ -33,7 +33,7 @@ internal static class ConstraintAttributes {
 
     public static IReadOnlyList<Model> ForParameter(ParameterModel parameter, PatternRegistry patterns) =>
         Build(
-            required: parameter.IsRequired,
+            required: parameter.ConstrainedAsRequired,
             minLength: parameter.MinLength,
             maxLength: parameter.MaxLength,
             minimum: parameter.Minimum,

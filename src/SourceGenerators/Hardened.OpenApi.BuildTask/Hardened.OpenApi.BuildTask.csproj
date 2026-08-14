@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <Import Project="../CSharpAuthor.props"/>
+
     <PropertyGroup>
         <!--
             Two TFMs because MSBuild has two hosts: Visual Studio runs on .NET Framework, the dotnet
@@ -55,18 +57,6 @@
     </ItemGroup>
 
     <!-- TypeMapper, which the emitters use, returns CSharpAuthor type definitions. -->
-    <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>build</IncludeAssets>
-        </PackageReference>
-        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
-    </ItemGroup>
-
     <ItemGroup>
         <Compile Remove="IsExternalInit.cs"/>
         <Compile Include="IsExternalInit.cs" Condition="'$(TargetFramework)' == 'net472'"/>

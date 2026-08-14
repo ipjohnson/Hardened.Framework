@@ -1,10 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <_CSharpAuthorRoot>$(MSBuildThisFileDirectory)../../../CSharpAuthor</_CSharpAuthorRoot>
-        <CSharpAuthorProject>$(_CSharpAuthorRoot)/CSharpAuthor/CSharpAuthor.csproj</CSharpAuthorProject>
-        <UseLocalCSharpAuthor Condition="Exists('$(CSharpAuthorProject)')">true</UseLocalCSharpAuthor>
-    </PropertyGroup>
+    <Import Project="../CSharpAuthor.props"/>
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
@@ -41,18 +37,6 @@
         -->
         <DevelopmentDependency>true</DevelopmentDependency>
     </PropertyGroup>
-
-    <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>build</IncludeAssets>
-        </PackageReference>
-        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
-    </ItemGroup>
 
     <ItemGroup>
         <Compile Include="../Hardened.SourceGenerator/Configuration/**/*">

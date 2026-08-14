@@ -257,15 +257,17 @@ internal static class RequestModelBuilder {
         var index = 0;
 
         foreach (var param in operation.Parameters) {
-            if (param.In != "path" && param.In != "query" && param.In != "header") continue;
-
             var csType = TypeMapper.MapParameterToCSharpType(param);
-            var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, !param.IsRequired);
+            var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, param.IsCSharpNullable);
 
+            // Every location the specification allows is bound. The interface emitter and the
+            // validation parameters interface take the same set - widen one without the others and
+            // the generated Parameters class stops implementing its own interface.
             var bindType = param.In switch {
                 "path" => ParameterBindType.Path,
                 "query" => ParameterBindType.QueryString,
                 "header" => ParameterBindType.Header,
+                "cookie" => ParameterBindType.Cookie,
                 _ => ParameterBindType.QueryString
             };
 
@@ -273,7 +275,9 @@ internal static class RequestModelBuilder {
                 typeDefinition,
                 NamingHelper.ToParameterName(param.Name),
                 param.IsRequired,
-                null,
+                // Drives ParseWithDefault in the binder, so an absent value arrives as the
+                // specification's default rather than as null.
+                DefaultLiteral.Format(param.Default, csType),
                 bindType,
                 param.Name,
                 index++));

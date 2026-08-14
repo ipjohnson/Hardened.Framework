@@ -53,6 +53,20 @@ public class RequestHandlerModel {
     /// </remarks>
     public ITypeDefinition? ParametersInterface { get; set; }
 
+    /// <summary>
+    /// The response body's JSON Schema, captured while the Roslyn symbol still existed.
+    /// </summary>
+    /// <remarks>
+    /// This model records types as <c>ITypeDefinition</c> - a namespace and a name - so by the time
+    /// a document is written the members are gone. Converting during the transform and carrying the
+    /// text forward is what lets the reverse direction describe a body at all. Null for a generator
+    /// that emits no document.
+    /// </remarks>
+    public HandlerSchema? ResponseSchema { get; set; }
+
+    /// <summary>The request body's JSON Schema, on the same terms.</summary>
+    public HandlerSchema? RequestSchema { get; set; }
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;

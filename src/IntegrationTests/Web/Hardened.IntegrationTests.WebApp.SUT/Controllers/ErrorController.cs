@@ -44,6 +44,22 @@ public class ErrorController {
     public string BadEncoding() =>
         throw new BadContentEncodingException("deflate");
 
+    /// <summary>
+    /// A status the pipeline could not produce at all before <c>StatusCodeException</c>: every
+    /// exception was either a 400 or a 500.
+    /// </summary>
+    [Get("/declared-status")]
+    public string DeclaredStatus() =>
+        throw new Hardened.Requests.Abstract.Errors.StatusCodeException(404);
+
+    /// <summary>The same, carrying the body a specification declared for it.</summary>
+    [Get("/declared-body")]
+    public string DeclaredBody() =>
+        throw new Hardened.Requests.Abstract.Errors.StatusCodeException(
+            409, new ConflictBody("locked", "held by another writer"));
+
+    public record ConflictBody(string Code, string Message);
+
     public class TenantMismatchException : BadRequestException {
         public TenantMismatchException() : base("tenant does not match") { }
     }
