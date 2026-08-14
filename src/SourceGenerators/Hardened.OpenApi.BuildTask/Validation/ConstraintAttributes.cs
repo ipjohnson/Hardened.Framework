@@ -32,49 +32,29 @@ internal static class ConstraintAttributes {
     internal sealed record Model(ITypeDefinition Type, IReadOnlyList<string> Arguments);
 
     public static IReadOnlyList<Model> ForParameter(ParameterModel parameter, PatternRegistry patterns) =>
-        Build(
-            required: parameter.ConstrainedAsRequired,
-            minLength: parameter.MinLength,
-            maxLength: parameter.MaxLength,
-            minimum: parameter.Minimum,
-            maximum: parameter.Maximum,
-            exclusiveMinimum: parameter.ExclusiveMinimum,
-            exclusiveMaximum: parameter.ExclusiveMaximum,
-            pattern: parameter.Pattern,
-            minItems: parameter.MinItems,
-            maxItems: parameter.MaxItems,
-            enumValues: parameter.EnumValues,
-            patterns: patterns);
+        Build(parameter, parameter.ConstrainedAsRequired, patterns);
 
+    /// <param name="required">
+    /// From the caller rather than the model: it also knows whether the C# type makes
+    /// <c>[Required]</c> unfailable - see <c>TypeMapper.IsNonNullableValueType</c>.
+    /// </param>
     public static IReadOnlyList<Model> ForProperty(
         PropertyModel property, bool required, PatternRegistry patterns) =>
-        Build(
-            required: required,
-            minLength: property.MinLength,
-            maxLength: property.MaxLength,
-            minimum: property.Minimum,
-            maximum: property.Maximum,
-            exclusiveMinimum: property.ExclusiveMinimum,
-            exclusiveMaximum: property.ExclusiveMaximum,
-            pattern: property.Pattern,
-            minItems: property.MinItems,
-            maxItems: property.MaxItems,
-            enumValues: property.EnumValues,
-            patterns: patterns);
+        Build(property, required, patterns);
 
     private static IReadOnlyList<Model> Build(
-        bool required,
-        int? minLength,
-        int? maxLength,
-        decimal? minimum,
-        decimal? maximum,
-        bool exclusiveMinimum,
-        bool exclusiveMaximum,
-        string? pattern,
-        int? minItems,
-        int? maxItems,
-        List<string>? enumValues,
-        PatternRegistry patterns) {
+        IConstraintFacets facets, bool required, PatternRegistry patterns) {
+        var minLength = facets.MinLength;
+        var maxLength = facets.MaxLength;
+        var minimum = facets.Minimum;
+        var maximum = facets.Maximum;
+        var exclusiveMinimum = facets.ExclusiveMinimum;
+        var exclusiveMaximum = facets.ExclusiveMaximum;
+        var pattern = facets.Pattern;
+        var minItems = facets.MinItems;
+        var maxItems = facets.MaxItems;
+        var enumValues = facets.EnumValues;
+
         var attributes = new List<Model>();
 
         if (required) {

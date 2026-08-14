@@ -1,6 +1,6 @@
 namespace Hardened.OpenApi.SourceGenerator.Models;
 
-internal class ParameterModel : IEquatable<ParameterModel> {
+internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     public string Name { get; set; } = "";
     public string In { get; set; } = "";
     public bool IsRequired { get; set; }

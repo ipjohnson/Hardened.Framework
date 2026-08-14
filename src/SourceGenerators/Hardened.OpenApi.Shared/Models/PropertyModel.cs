@@ -1,6 +1,6 @@
 namespace Hardened.OpenApi.SourceGenerator.Models;
 
-internal class PropertyModel : IEquatable<PropertyModel> {
+internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public string Name { get; set; } = "";
 
     /// <summary>The property's <c>description</c>, as its <c>&lt;param&gt;</c> doc comment.</summary>

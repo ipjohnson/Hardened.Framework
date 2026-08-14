@@ -756,6 +756,43 @@ internal static class Specs {
                 message: { type: string }
         """;
 
+    /// <summary>
+    /// <c>minProperties</c> and <c>maxProperties</c> on a schema that becomes a dictionary.
+    /// </summary>
+    internal const string PropertyCountBounds =
+        """
+        openapi: "3.0.0"
+        info: { title: Things, version: "1.0" }
+        paths:
+          /things:
+            post:
+              tags: [Thing]
+              operationId: createThing
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Thing'
+              responses:
+                '200': { description: ok }
+        components:
+          schemas:
+            Thing:
+              type: object
+              required: [labels]
+              properties:
+                labels:
+                  type: object
+                  minProperties: 1
+                  maxProperties: 10
+                  additionalProperties: { type: string }
+                tags:
+                  type: array
+                  minItems: 2
+                  maxItems: 5
+                  items: { type: string }
+        """;
+
     /// <summary>A store-tagged spec, for the multiple-specification cases.</summary>
     internal const string SecondSpecWithADifferentTag =
         """

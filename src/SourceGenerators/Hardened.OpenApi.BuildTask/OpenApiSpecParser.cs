@@ -412,6 +412,14 @@ internal static class OpenApiSpecParser {
         if (!string.IsNullOrEmpty(schema.Pattern)) model.Pattern = schema.Pattern;
         if (schema.MinItems.HasValue) model.MinItems = schema.MinItems;
         if (schema.MaxItems.HasValue) model.MaxItems = schema.MaxItems;
+
+        // minProperties and maxProperties bound an object's entry count, which for a schema that
+        // becomes a Dictionary<string, T> is the same thing MinItems bounds for a List<T> - and
+        // [ItemCount] emits `.Count` either way. Collapsed onto the same fields rather than carried
+        // separately because a schema is an object or an array, never both, so the two pairs cannot
+        // both apply to one property.
+        if (schema.MinProperties.HasValue) model.MinItems = (int?)schema.MinProperties;
+        if (schema.MaxProperties.HasValue) model.MaxItems = (int?)schema.MaxProperties;
     }
 
     /// <summary>
