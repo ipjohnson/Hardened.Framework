@@ -40,12 +40,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # No authenticated feed - src/nuget.config is nuget.org alone since ValidationModules was
+      # published there. This had the same %NUGET_AUTH_TOKEN% arrangement build-package.yaml did,
+      # and the same hazard: the credential is expanded at restore time, but the env was scoped to
+      # this step, so it was already gone. It went unnoticed here because a scheduled benchmark run
+      # failing is quieter than a build failing.
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-          source-url: https://nuget.pkg.github.com/ipjohnson/index.json
-        env:
-          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       # Recorded with the results because a benchmark number means nothing without the
       # machine that produced it, and hosted runner hardware changes over time.
