@@ -155,54 +155,135 @@ internal static class JsonTypeInfoEmitter {
         var method = CreateTypeInfoMethod(resolver, typeName);
         var sb = new StringBuilder();
 
-        if (schema.Properties.Count == 0) {
-            sb.AppendLine($"        return JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
-            sb.AppendLine("        {");
+        // The same split SchemaEmitter writes the record from. The constructor list drives both the
+        // positional argument casts and the parameter positions, so it must be the constructor the
+        // record actually has - a disagreement lands arguments in the wrong parameters at run time
+        // rather than failing the build.
+        var parameters = SchemaShape.Constructor(schema);
+
+        sb.AppendLine($"        var typeInfo = JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
+        sb.AppendLine("        {");
+
+        if (parameters.Count == 0) {
             sb.AppendLine($"            ObjectCreator = static () => new {typeName}(),");
-            sb.AppendLine("        });");
         } else {
-            var sorted = schema.Properties.OrderByDescending(p => p.IsRequired).ToList();
-
-            sb.AppendLine($"        return JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
-            sb.AppendLine("        {");
-
             // ObjectWithParameterizedConstructorCreator
             sb.AppendLine($"            ObjectWithParameterizedConstructorCreator = static args => new {typeName}(");
-            for (var i = 0; i < sorted.Count; i++) {
-                var prop = sorted[i];
+            for (var i = 0; i < parameters.Count; i++) {
+                var prop = parameters[i];
                 var castType = GetFullCSharpType(prop, allSchemas);
-                var comma = i < sorted.Count - 1 ? "," : "),";
+                var comma = i < parameters.Count - 1 ? "," : "),";
                 sb.AppendLine($"                ({castType})args[{i}]{comma}");
             }
+        }
 
-            // PropertyMetadataInitializer — captures options (non-static)
+        if (schema.Properties.Count > 0) {
+            // Every property, including the readOnly ones the constructor does not take: they are
+            // serialized, and the property list is what carries a getter for them.
             sb.AppendLine("            PropertyMetadataInitializer = _ => new JsonPropertyInfo[]");
             sb.AppendLine("            {");
-            for (var i = 0; i < sorted.Count; i++) {
-                var prop = sorted[i];
+            foreach (var prop in schema.Properties.OrderByDescending(p => p.IsRequired)) {
                 EmitPropertyInfo(sb, prop, typeName, allSchemas);
             }
             sb.AppendLine("            },");
+        }
 
+        if (parameters.Count > 0) {
             // ConstructorParameterMetadataInitializer
             sb.AppendLine("            ConstructorParameterMetadataInitializer = static () => new JsonParameterInfoValues[]");
             sb.AppendLine("            {");
-            for (var i = 0; i < sorted.Count; i++) {
-                var prop = sorted[i];
-                EmitParameterInfo(sb, prop, i, allSchemas);
+            for (var i = 0; i < parameters.Count; i++) {
+                EmitParameterInfo(sb, parameters[i], i, allSchemas);
             }
             sb.AppendLine("            },");
-
-            sb.AppendLine("        });");
         }
+
+        sb.AppendLine("        });");
+
+        EmitPolymorphism(sb, schema, allSchemas);
+
+        sb.AppendLine("        return typeInfo;");
 
         AddStatements(method, sb);
     }
 
+    /// <summary>
+    /// The polymorphism metadata for the base of a hierarchy.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Set on the <c>JsonTypeInfo</c> after it is created rather than declared with it, because
+    /// <c>JsonObjectInfoValues&lt;T&gt;</c> has no member for it - the property is on
+    /// <c>JsonTypeInfo</c> itself and is settable from net7.0.
+    /// </para>
+    /// <para>
+    /// Deliberately not <c>[JsonPolymorphic]</c> and <c>[JsonDerivedType]</c> on the records. Those
+    /// are read by <c>DefaultJsonTypeInfoResolver</c>'s reflection path, which this resolver exists
+    /// to avoid entirely - they would emit as documentation and change nothing.
+    /// </para>
+    /// <para>
+    /// <c>FailSerialization</c> for an unrecognised runtime type: silently writing a base-shaped
+    /// object for a derived one the spec never declared loses data at the point it is hardest to
+    /// notice.
+    /// </para>
+    /// </remarks>
+    private static void EmitPolymorphism(
+        StringBuilder sb, SchemaModel schema, List<SchemaModel> allSchemas) {
+        if (!schema.IsPolymorphicBase || schema.DiscriminatorMapping.Count == 0) {
+            return;
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("        typeInfo.PolymorphismOptions = new JsonPolymorphismOptions");
+        sb.AppendLine("        {");
+        sb.AppendLine(
+            $"            TypeDiscriminatorPropertyName = \"{schema.DiscriminatorPropertyName}\",");
+        sb.AppendLine(
+            "            UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,");
+        sb.AppendLine("            DerivedTypes =");
+        sb.AppendLine("            {");
+
+        foreach (var mapping in schema.DiscriminatorMapping) {
+            var derivedName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(mapping.Ref));
+
+            sb.AppendLine(
+                $"                new JsonDerivedType(typeof({derivedName}), \"{mapping.Value}\"),");
+        }
+
+        sb.AppendLine("            },");
+        sb.AppendLine("        };");
+    }
+
+    /// <summary>
+    /// One property's metadata.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The two accessors are what enforce <c>readOnly</c> and <c>writeOnly</c>, because
+    /// <c>System.Text.Json</c> skips a property with a null accessor in the corresponding direction:
+    /// no getter means it is never serialized, no setter means it is never deserialized.
+    /// </para>
+    /// <para>
+    /// <c>Setter</c> is null for every property, not only the <c>readOnly</c> ones - these records
+    /// are immutable and populated through their constructor, so the constructor parameter list is
+    /// what admits a value. Leaving a <c>readOnly</c> property out of that list is therefore already
+    /// enough to make it undeserializable; the null setter is what stops it being written to
+    /// afterwards.
+    /// </para>
+    /// <para>
+    /// <c>writeOnly</c> is the mirror image and needs the explicit null: the property is a normal
+    /// constructor parameter, so it deserializes, and dropping the getter is the only thing keeping
+    /// it out of responses.
+    /// </para>
+    /// </remarks>
     private static void EmitPropertyInfo(StringBuilder sb, PropertyModel prop, string declaringTypeName,
         List<SchemaModel> allSchemas) {
         var genericType = GetPropertyInfoGenericType(prop, allSchemas);
         var propName = NamingHelper.ToPascalCase(prop.Name);
+
+        var getter = prop.IsWriteOnly
+            ? "null"
+            : $"static obj => (({declaringTypeName})obj).{propName}";
 
         sb.AppendLine($"                JsonMetadataServices.CreatePropertyInfo<{genericType}>(options, new JsonPropertyInfoValues<{genericType}>");
         sb.AppendLine("                {");
@@ -210,7 +291,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("                    IsPublic = true,");
         sb.AppendLine($"                    DeclaringType = typeof({declaringTypeName}),");
         sb.AppendLine($"                    PropertyName = \"{prop.Name}\",");
-        sb.AppendLine($"                    Getter = static obj => (({declaringTypeName})obj).{propName},");
+        sb.AppendLine($"                    Getter = {getter},");
         sb.AppendLine("                    Setter = null,");
         sb.AppendLine("                }),");
     }
@@ -222,14 +303,14 @@ internal static class JsonTypeInfoEmitter {
 
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
         var isValueType = IsValueType(baseType, prop, allSchemas);
-        var defaultValue = isValueType && prop.IsRequired ? $"default({paramType})" : "null";
+        var defaultValue = isValueType && !prop.HasDefault ? $"default({paramType})" : "null";
 
         sb.AppendLine("                new()");
         sb.AppendLine("                {");
         sb.AppendLine($"                    Name = \"{prop.Name}\",");
         sb.AppendLine($"                    ParameterType = typeof({paramType}),");
         sb.AppendLine($"                    Position = {position},");
-        sb.AppendLine($"                    HasDefaultValue = {(prop.IsRequired ? "false" : "true")},");
+        sb.AppendLine($"                    HasDefaultValue = {(prop.HasDefault ? "true" : "false")},");
         sb.AppendLine($"                    DefaultValue = {defaultValue},");
         sb.AppendLine("                },");
     }
@@ -268,7 +349,7 @@ internal static class JsonTypeInfoEmitter {
     /// </summary>
     private static string GetFullCSharpType(PropertyModel prop, List<SchemaModel> allSchemas) {
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
-        if (!prop.IsRequired) {
+        if (prop.IsCSharpNullable) {
             return baseType + "?";
         }
         return baseType;
@@ -281,7 +362,7 @@ internal static class JsonTypeInfoEmitter {
     /// </summary>
     private static string GetPropertyInfoGenericType(PropertyModel prop, List<SchemaModel> allSchemas) {
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
-        if (!prop.IsRequired && IsValueType(baseType, prop, allSchemas)) {
+        if (prop.IsCSharpNullable && IsValueType(baseType, prop, allSchemas)) {
             return baseType + "?";
         }
         return baseType;

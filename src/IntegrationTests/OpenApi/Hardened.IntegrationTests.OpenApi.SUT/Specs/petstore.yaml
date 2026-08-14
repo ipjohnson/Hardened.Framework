@@ -42,6 +42,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
+  /accounts:
+    post:
+      tags:
+        - Account
+      operationId: createAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        '200':
+          description: The account as stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
   /pets/search:
     get:
       tags:
@@ -177,6 +195,24 @@ paths:
                   $ref: '#/components/schemas/Store'
 components:
   schemas:
+    # readOnly and writeOnly, which make one schema describe two directions: the server assigns
+    # the id and never accepts one, and the password is accepted and never returned.
+    Account:
+      type: object
+      required:
+        - id
+        - email
+      properties:
+        id:
+          type: string
+          readOnly: true
+          description: Assigned by the server.
+        email:
+          type: string
+          maxLength: 100
+        password:
+          type: string
+          writeOnly: true
     Pet:
       type: object
       required:

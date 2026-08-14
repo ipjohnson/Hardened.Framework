@@ -161,6 +161,9 @@ public static class FunctionIncrementalGenerator {
             diMethod.AddIndentedStatement(
                 serviceCollection.InvokeGeneric("AddTransient", new[] { handlerType }));
         }
+
+        Validation.ParameterValidatorRegistration.Write(
+            diMethod, serviceCollection, requestHandlers, cancellationToken);
     }
 
     public class CombinedComparer : IEqualityComparer<(EntryPointSelector.Model Left,

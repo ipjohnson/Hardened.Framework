@@ -240,10 +240,15 @@ public class SpecParsingTests {
     }
 
     /// <summary>
-    /// <c>oneOf</c> has no single set of properties to model, so the schema is not one of the kinds
-    /// the emitters produce a type for. A property that references it falls back to the untyped
-    /// <c>JsonElement</c> the mapper uses for anything it cannot name.
+    /// A <c>oneOf</c> with no <c>discriminator</c> still degrades to <c>JsonElement</c>.
     /// </summary>
+    /// <remarks>
+    /// The discriminator is what says which branch a payload is, so without one there is nothing to
+    /// switch on at run time and no way to write the polymorphism metadata the serializer needs.
+    /// A discriminated <c>oneOf</c> becomes a real hierarchy - see
+    /// <see cref="ADiscriminatedOneOfBecomesAPolymorphicBase"/>. This is the boundary between them,
+    /// not a statement that <c>oneOf</c> is unsupported.
+    /// </remarks>
     [Fact]
     public void AOneOfSchemaProducesNoGeneratedType() {
         var model = Parse(
@@ -336,11 +341,11 @@ public class SpecParsingTests {
     }
 
     /// <summary>
-    /// An object nested inline inside a property is not lifted into a schema of its own. It has no
-    /// name to generate a type under, so it maps to <c>JsonElement</c>.
+    /// An object nested inline inside a property is lifted into a schema of its own, named for
+    /// where it sits. It used to map to <c>JsonElement</c> for want of a name.
     /// </summary>
     [Fact]
-    public void AnInlineNestedObjectMapsToJsonElement() {
+    public void AnInlineNestedObjectIsLiftedIntoASchema() {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -359,7 +364,8 @@ public class SpecParsingTests {
 
         var shipping = model.Schemas.First(s => s.Name == "Order").Properties.First(p => p.Name == "shipping");
 
-        Assert.Equal("JsonElement", TypeMapper.MapPropertyToCSharpType(shipping));
+        Assert.Equal("OrderShipping", TypeMapper.MapPropertyToCSharpType(shipping));
+        Assert.Contains(model.Schemas, schema => schema.Name == "OrderShipping");
     }
 
     /// <summary>
@@ -587,6 +593,146 @@ public class SpecParsingTests {
         var parameters = model.Services.First(s => s.Tag == "Thing").Operations.Single().Parameters;
 
         Assert.Equal("page", Assert.Single(parameters).Name);
+    }
+
+    /// <summary>
+    /// A parameter declared once on the path item reaches every operation on that path.
+    /// </summary>
+    /// <remarks>
+    /// Writing <c>{petId}</c> once rather than on each of GET, PUT, PATCH and DELETE is the shape
+    /// OpenAPI offers for exactly this, and it used to be discarded: the parser read only
+    /// <c>operation.Parameters</c>, so the generated handlers had no <c>petId</c> to receive while
+    /// the route still matched on its wildcard node.
+    /// </remarks>
+    [Fact]
+    public void APathItemParameterReachesEveryOperationOnThatPath() {
+        var model = Parse(Specs.PathItemLevelParameters);
+
+        var operations = model.Services.First(s => s.Tag == "Pet").Operations;
+
+        Assert.Equal(3, operations.Count);
+
+        foreach (var operation in operations) {
+            var petId = Assert.Single(operation.Parameters, p => p.Name == "petId" && p.In == "path");
+
+            Assert.True(petId.IsRequired);
+            Assert.Equal("string", petId.Type);
+        }
+    }
+
+    /// <summary>
+    /// A path-item parameter comes before the operation's own, and an operation's own is still
+    /// its own. Order here is the generated method's signature order.
+    /// </summary>
+    [Fact]
+    public void APathItemParameterPrecedesTheOperationsOwn() {
+        var model = Parse(Specs.PathItemLevelParameters);
+
+        var list = model.Services.First(s => s.Tag == "Pet")
+            .Operations.First(o => o.OperationId == "listPetToys").Parameters;
+
+        Assert.Equal(new[] { "petId", "limit" }, list.Select(p => p.Name).ToArray());
+    }
+
+    /// <summary>
+    /// An operation redeclaring a path-item parameter replaces it, and does so in place rather
+    /// than appending — so overriding a parameter does not reorder the signature.
+    /// </summary>
+    [Fact]
+    public void AnOperationOverridesAPathItemParameterInPlace() {
+        var model = Parse(Specs.PathItemLevelParameters);
+
+        var replace = model.Services.First(s => s.Tag == "Pet")
+            .Operations.First(o => o.OperationId == "replacePet").Parameters;
+
+        Assert.Equal(new[] { "petId" }, replace.Select(p => p.Name).ToArray());
+
+        // The operation's own declaration constrains what the shared one did not.
+        Assert.Equal(36, Assert.Single(replace).MaxLength);
+    }
+
+    /// <summary>
+    /// Name and location together identify a parameter, so the same name in two locations is two
+    /// parameters and neither overrides the other.
+    /// </summary>
+    /// <remarks>
+    /// Asserted at the parser only. The generated <c>Parameters</c> class names its members after
+    /// the parameter alone, so a spec like this does not compile — but that collision is a naming
+    /// question downstream of here, and it happens just the same when one operation declares both
+    /// itself. Merging the two into one parameter would be the wrong answer to it.
+    /// </remarks>
+    [Fact]
+    public void AParameterIsIdentifiedByNameAndLocationTogether() {
+        var model = Parse(Specs.ParametersSharingANameAcrossLocations);
+
+        var deletePet = model.Services.First(s => s.Tag == "Pet")
+            .Operations.First(o => o.OperationId == "deletePet").Parameters;
+
+        Assert.Equal(new[] { "petId", "petId" }, deletePet.Select(p => p.Name).ToArray());
+        Assert.Equal(new[] { "path", "header" }, deletePet.Select(p => p.In).ToArray());
+    }
+
+    // ── polymorphism ──────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A <c>oneOf</c> carrying a <c>discriminator</c> is the base of a hierarchy, so it becomes an
+    /// object rather than falling through to the untyped primitive case.
+    /// </summary>
+    [Fact]
+    public void ADiscriminatedOneOfBecomesAPolymorphicBase() {
+        var model = Parse(Specs.DiscriminatedHierarchy);
+
+        var pet = model.Schemas.First(s => s.Name == "Pet");
+
+        Assert.Equal(SchemaKind.Object, pet.Kind);
+        Assert.True(pet.IsPolymorphicBase);
+        Assert.Equal("petType", pet.DiscriminatorPropertyName);
+    }
+
+    /// <summary>The mapping is read in document order, value to reference.</summary>
+    [Fact]
+    public void TheDiscriminatorMappingIsRead() {
+        var model = Parse(Specs.DiscriminatedHierarchy);
+
+        var pet = model.Schemas.First(s => s.Name == "Pet");
+
+        Assert.Equal(new[] { "dog", "cat" }, pet.DiscriminatorMapping.Select(m => m.Value).ToArray());
+        Assert.Equal(
+            new[] { "#/components/schemas/Dog", "#/components/schemas/Cat" },
+            pet.DiscriminatorMapping.Select(m => m.Ref).ToArray());
+    }
+
+    /// <summary>
+    /// A schema composing a discriminated base with <c>allOf</c> records which base it derives
+    /// from, and still carries the merged property set its record declares.
+    /// </summary>
+    [Fact]
+    public void AnAllOfBranchPointingAtADiscriminatedBaseSetsTheBaseRef() {
+        var model = Parse(Specs.DiscriminatedHierarchy);
+
+        var dog = model.Schemas.First(s => s.Name == "Dog");
+
+        Assert.Equal("#/components/schemas/Pet", dog.BaseRef);
+        Assert.False(dog.IsPolymorphicBase);
+
+        // The base's properties are merged in, which is what lets the record forward them.
+        Assert.Contains(dog.Properties, p => p.Name == "petType");
+        Assert.Contains(dog.Properties, p => p.Name == "breed");
+    }
+
+    /// <summary>
+    /// An ordinary <c>allOf</c> composition, with no discriminator anywhere, is still flattened
+    /// rather than turned into inheritance.
+    /// </summary>
+    [Fact]
+    public void AnAllOfWithoutADiscriminatedBaseIsStillFlattened() {
+        var model = Parse(Specs.AllOfComposition);
+
+        var dog = model.Schemas.First(s => s.Name == "Dog");
+
+        Assert.Null(dog.BaseRef);
+        Assert.Contains(dog.Properties, p => p.Name == "id");
+        Assert.Contains(dog.Properties, p => p.Name == "breed");
     }
 
     /// <summary>Every constraint the validation emitter reads survives parsing.</summary>

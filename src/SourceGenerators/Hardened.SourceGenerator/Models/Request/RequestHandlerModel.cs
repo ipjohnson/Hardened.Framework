@@ -53,6 +53,32 @@ public class RequestHandlerModel {
     /// </remarks>
     public ITypeDefinition? ParametersInterface { get; set; }
 
+    /// <summary>
+    /// The generated validator for this handler's <c>Parameters</c> class, or null when it declares
+    /// no constraints.
+    /// </summary>
+    /// <remarks>
+    /// Carried so the entry point can register it. Nothing else can: the validator is emitted by
+    /// <c>HandlerValidationGenerator</c> one handler at a time, and registration has to be written
+    /// once per entry point, so the name has to travel with the handler to reach the generator that
+    /// writes the dependency-injection method.
+    /// </remarks>
+    public ITypeDefinition? ParametersValidator { get; set; }
+
+    /// <summary>
+    /// The response body's JSON Schema, captured while the Roslyn symbol still existed.
+    /// </summary>
+    /// <remarks>
+    /// This model records types as <c>ITypeDefinition</c> - a namespace and a name - so by the time
+    /// a document is written the members are gone. Converting during the transform and carrying the
+    /// text forward is what lets the reverse direction describe a body at all. Null for a generator
+    /// that emits no document.
+    /// </remarks>
+    public HandlerSchema? ResponseSchema { get; set; }
+
+    /// <summary>The request body's JSON Schema, on the same terms.</summary>
+    public HandlerSchema? RequestSchema { get; set; }
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;
@@ -103,6 +129,14 @@ public class RequestHandlerModel {
             if (!x.Equals(y)) {
                 return false;
             }
+        }
+
+        if (!Equals(ParametersInterface, requestHandlerModel.ParametersInterface)) {
+            return false;
+        }
+
+        if (!Equals(ParametersValidator, requestHandlerModel.ParametersValidator)) {
+            return false;
         }
 
         return true;

@@ -1,0 +1,67 @@
+<Project>
+
+    <!--
+        How every generator and build task in this repository consumes CSharpAuthor.
+
+        CSharpAuthor ships as source: the package's build/CSharpAuthor.targets compiles
+        src/**/*.cs straight into whichever assembly references it, which is what keeps a Roslyn
+        analyzer self-contained. An analyzer is loaded by the compiler with no probing path of its
+        own, so a CSharpAuthor.dll sitting next to it is a FileNotFoundException at initialization
+        rather than a reference.
+
+        That is exactly what the local-checkout path used to do. It was a ProjectReference, which
+        produces the sibling DLL the package arrangement exists to avoid, so every generator built
+        against a local checkout failed with
+
+            Generator 'LibrarySourceGenerator' failed to initialize ...
+            Could not load file or assembly 'CSharpAuthor, Version=1.0.0.0'
+
+        and the build carried on, emitting nothing, until the missing generated types surfaced as
+        unrelated-looking CS0246s and CS1061s elsewhere. Compiling the same source the package
+        compiles makes the two paths produce the same assembly, so working against a checkout is
+        something that can be trusted before a version is released.
+
+        Four projects also tested UseLocalCSharpAuthor without ever defining it, so local mode was
+        silently off for them regardless of what was checked out. Defining it in one place is what
+        stops that recurring.
+    -->
+
+    <PropertyGroup>
+        <!--
+            Set CSharpAuthorRoot to point at a checkout anywhere. Otherwise a sibling of this
+            repository is used, which is the arrangement ValidationModules already uses, and a
+            checkout nested inside it is honoured second for the layout this looked for before.
+        -->
+        <_CSharpAuthorSibling>$(MSBuildThisFileDirectory)../../../CSharpAuthor</_CSharpAuthorSibling>
+        <_CSharpAuthorNested>$(MSBuildThisFileDirectory)../../CSharpAuthor</_CSharpAuthorNested>
+
+        <CSharpAuthorRoot Condition="'$(CSharpAuthorRoot)' == '' And Exists('$(_CSharpAuthorSibling)/CSharpAuthor/CSharpAuthor.csproj')">$(_CSharpAuthorSibling)</CSharpAuthorRoot>
+        <CSharpAuthorRoot Condition="'$(CSharpAuthorRoot)' == '' And Exists('$(_CSharpAuthorNested)/CSharpAuthor/CSharpAuthor.csproj')">$(_CSharpAuthorNested)</CSharpAuthorRoot>
+
+        <CSharpAuthorProject Condition="'$(CSharpAuthorRoot)' != ''">$(CSharpAuthorRoot)/CSharpAuthor/CSharpAuthor.csproj</CSharpAuthorProject>
+
+        <UseLocalCSharpAuthor Condition="'$(UseLocalCSharpAuthor)' == '' And Exists('$(CSharpAuthorProject)')">true</UseLocalCSharpAuthor>
+        <UseLocalCSharpAuthor Condition="'$(UseLocalCSharpAuthor)' == ''">false</UseLocalCSharpAuthor>
+
+        <!-- The package's own switch for compiling its source in. -->
+        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1010">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
+
+        <!--
+            The same glob build/CSharpAuthor.targets applies to the package's src/ folder, against
+            the checkout instead. bin and obj are excluded because this points at a working tree
+            rather than at package content.
+        -->
+        <Compile Condition="'$(UseLocalCSharpAuthor)' == 'true'"
+                 Include="$(CSharpAuthorRoot)/CSharpAuthor/**/*.cs"
+                 Exclude="$(CSharpAuthorRoot)/CSharpAuthor/obj/**/*.cs;$(CSharpAuthorRoot)/CSharpAuthor/bin/**/*.cs"
+                 Visible="false"/>
+    </ItemGroup>
+
+</Project>

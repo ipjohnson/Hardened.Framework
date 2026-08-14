@@ -21,14 +21,41 @@ public abstract class BaseRequestModelGenerator {
 
         var nameModel = GetRequestNameModel(context, methodDeclaration, cancellationToken);
 
+        var parameters = GetParameters(context, methodDeclaration, nameModel, cancellationToken);
+
         return new RequestHandlerModel(
             nameModel,
             controllerType,
             methodName,
             GetInvokeHandlerType(context, methodDeclaration, cancellationToken),
-            GetParameters(context, methodDeclaration, nameModel, cancellationToken),
+            parameters,
             response,
-            filters);
+            filters) {
+            ResponseSchema = OpenApiDocument.JsonSchemaWriter.Write(
+                context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type),
+            RequestSchema = BodySchema(context, methodDeclaration, parameters)
+        };
+    }
+
+    /// <summary>
+    /// The schema of the parameter bound from the body, if the handler takes one.
+    /// </summary>
+    private static HandlerSchema? BodySchema(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        IReadOnlyList<RequestParameterInformation> parameters) {
+        var body = parameters.FirstOrDefault(p => p.BindingType == ParameterBindType.Body);
+
+        if (body == null) {
+            return null;
+        }
+
+        var syntax = methodDeclaration.ParameterList.Parameters
+            .FirstOrDefault(p => p.Identifier.Text == body.Name);
+
+        return syntax?.Type == null
+            ? null
+            : OpenApiDocument.JsonSchemaWriter.Write(context.SemanticModel.GetTypeInfo(syntax.Type).Type);
     }
 
     protected abstract RequestHandlerNameModel GetRequestNameModel(

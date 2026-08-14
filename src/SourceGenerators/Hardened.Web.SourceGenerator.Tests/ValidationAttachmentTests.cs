@@ -104,7 +104,7 @@ public class ValidationAttachmentTests {
 
         var validator = result.SourceContaining("ParametersValidator");
 
-        Assert.Contains("global::TestApp.OrderValidator.Instance", validator);
+        Assert.Contains("new global::TestApp.OrderValidator()", validator);
         Assert.Contains("ctx.Push(\"order\")", validator);
     }
 

@@ -30,6 +30,18 @@
           use becomes ambiguous (CS0433).
         -->
         <ProjectReference Include="..\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj"/>
+
+        <!--
+            The same OpenAPI reader the build task parses specifications with, so the round trip can
+            check the emitted document against something other than the code that wrote it. Reading
+            it back with Hardened's own parser would let a misunderstanding shared by the writer and
+            the parser agree with itself and pass.
+
+            The reader is a package, not a generator - referencing a second generator assembly here
+            would put two copies of CSharpAuthor in scope, which is the CS0433 that
+            Hardened.OpenApi.SourceGenerator.Tests documents at length.
+        -->
+        <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.22"/>
         <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
 
         <!--

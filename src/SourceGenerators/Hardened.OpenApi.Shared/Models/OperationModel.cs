@@ -5,6 +5,15 @@ internal class OperationModel : IEquatable<OperationModel> {
     public string Path { get; set; } = "";
     public string HttpMethod { get; set; } = "";
     public string? Tag { get; set; }
+
+    /// <summary>The spec's <c>deprecated</c>, which becomes <c>[Obsolete]</c>.</summary>
+    public bool IsDeprecated { get; set; }
+
+    /// <summary>
+    /// The operation's <c>summary</c>, or its <c>description</c> where it has no summary, as the
+    /// generated method's doc comment.
+    /// </summary>
+    public string? Description { get; set; }
     public List<ParameterModel> Parameters { get; set; } = new();
     public string? RequestBodyContentType { get; set; }
     public string? RequestBodyRef { get; set; }
@@ -22,6 +31,16 @@ internal class OperationModel : IEquatable<OperationModel> {
     public bool ResponseIsArray { get; set; }
     public string? ResponseArrayItemsRef { get; set; }
     public int SuccessStatusCode { get; set; } = 200;
+
+    /// <summary>
+    /// The non-2xx responses the specification declares, in status order.
+    /// </summary>
+    /// <remarks>
+    /// The 2xx response keeps the flat fields above rather than joining this list. Every consumer
+    /// of the success response reads those individually, and moving them would rewrite all of them
+    /// for no gain - the success case is one response by construction, and these are the rest.
+    /// </remarks>
+    public List<ErrorResponseModel> ErrorResponses { get; set; } = new();
 
     /// <summary>
     /// The view this operation's model is rendered through, from <c>x-hardened-template</c>. Null
@@ -64,6 +83,7 @@ internal class OperationModel : IEquatable<OperationModel> {
         if (ReferenceEquals(this, other)) return true;
         return OperationId == other.OperationId && Path == other.Path &&
                HttpMethod == other.HttpMethod && Tag == other.Tag &&
+               Description == other.Description && IsDeprecated == other.IsDeprecated &&
                SuccessStatusCode == other.SuccessStatusCode &&
                RequestBodyContentType == other.RequestBodyContentType &&
                RequestBodyRef == other.RequestBodyRef &&
@@ -75,6 +95,7 @@ internal class OperationModel : IEquatable<OperationModel> {
                ResponseIsArray == other.ResponseIsArray &&
                ResponseArrayItemsRef == other.ResponseArrayItemsRef &&
                TemplateName == other.TemplateName &&
+               ErrorResponses.SequenceEqual(other.ErrorResponses) &&
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&
                RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&

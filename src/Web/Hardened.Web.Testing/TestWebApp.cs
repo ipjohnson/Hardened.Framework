@@ -146,10 +146,27 @@ public class TestWebApp : TestContext, ITestWebApp {
         // passed every integration test it had.
         header.TryGetValue(KnownHeaders.Accept, out var accept);
 
+        // The Cookie header, as the cookie collection - which is what a real transport hands over.
+        // Without this a test can set the header and the pipeline sees no cookies at all, so a
+        // cookie-bound parameter is untestable through this host: the same shape of gap that let a
+        // serializer ignoring Accept pass every integration test it had.
+        var cookies = new List<string>();
+
+        if (header.TryGetValue(KnownHeaders.Cookie, out var cookieHeader)) {
+            foreach (var pair in cookieHeader.ToString().Split(';')) {
+                var trimmed = pair.Trim();
+
+                if (trimmed.Length > 0) {
+                    cookies.Add(trimmed);
+                }
+            }
+        }
+
         var request =
             new TestExecutionRequest(
                 httpMethod, pathMinusQuery, accept.ToString(), ParseQueryStringFromPath(path)) {
-                Headers = header
+                Headers = header,
+                Cookies = cookies
             };
         var responseHeaders = new Dictionary<string, StringValues>();
         var response = new TestExecutionResponse(responseBody) { Headers = responseHeaders };

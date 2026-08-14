@@ -106,6 +106,10 @@ namespace Hardened.Requests.Runtime.Execution
         public abstract Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo HandlerInfo { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionChain GetExecutionChain(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
+    public static class CookieCollectionExtensions
+    {
+        public static Microsoft.Extensions.Primitives.StringValues Get(this System.Collections.Generic.IReadOnlyList<string> cookies, string name) { }
+    }
     public class EmptyParameters : Hardened.Requests.Abstract.Execution.IExecutionRequestParameters
     {
         public EmptyParameters() { }
@@ -485,7 +489,7 @@ namespace Hardened.Requests.Runtime.Validation
     public sealed class ValidationFilterProvider<TValidated> : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
         where TValidated :  class
     {
-        public ValidationFilterProvider(ValidationModules.IValidatorFor<TValidated> validator) { }
+        public ValidationFilterProvider() { }
         public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
     public sealed class ValidationFilter<TValidated> : Hardened.Requests.Abstract.Execution.IExecutionFilter

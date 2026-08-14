@@ -250,6 +250,7 @@ public class SpecModelSerializerTests {
     private static OpenApiSpecModel FullyPopulated() {
         var property = new PropertyModel {
             Name = "prop",
+            Description = "What the property means.",
             Type = "string",
             Format = "date-time",
             Ref = "#/components/schemas/Other",
@@ -258,6 +259,10 @@ public class SpecModelSerializerTests {
             ArrayItemsType = "integer",
             ArrayItemsFormat = "int64",
             IsRequired = true,
+            IsNullable = true,
+            IsReadOnly = true,
+            IsWriteOnly = true,
+            Default = "fallback",
             IsDictionary = true,
             DictionaryValueType = "string",
             DictionaryValueRef = "#/components/schemas/Value",
@@ -276,7 +281,10 @@ public class SpecModelSerializerTests {
         var parameter = new ParameterModel {
             Name = "petId",
             In = "path",
+            Description = "The pet's identifier.",
             IsRequired = true,
+            IsNullable = true,
+            Default = "10",
             Type = "string",
             Format = "uuid",
             Ref = "#/components/parameters/PetId",
@@ -304,6 +312,7 @@ public class SpecModelSerializerTests {
             Path = "/pets/{petId}",
             HttpMethod = "GET",
             Tag = "Pet",
+            Description = "Returns a single pet.",
             Parameters = { parameter },
             RequestBodyContentType = "application/json",
             RequestBodyRef = "#/components/schemas/CreatePetRequest",
@@ -315,6 +324,12 @@ public class SpecModelSerializerTests {
             ResponseIsArray = true,
             ResponseArrayItemsRef = "#/components/schemas/Pet",
             SuccessStatusCode = 201,
+            ErrorResponses = {
+                new ErrorResponseModel {
+                    StatusCode = 404, Ref = "#/components/schemas/ApiError", Description = "Gone."
+                },
+                new ErrorResponseModel { StatusCode = 503 },
+            },
             TemplateName = "Fortunes",
             FilterInstances = { filterInstance },
             RequestBodyProperties = { property },
@@ -327,6 +342,13 @@ public class SpecModelSerializerTests {
                 new SchemaModel {
                     Name = "Pet",
                     Kind = SchemaKind.Object,
+                    Description = "A pet in the store.",
+                    DiscriminatorPropertyName = "petType",
+                    BaseRef = "#/components/schemas/Animal",
+                    DiscriminatorMapping = {
+                        new DiscriminatorMappingModel { Value = "dog", Ref = "#/components/schemas/Dog" },
+                        new DiscriminatorMappingModel { Value = "cat", Ref = "#/components/schemas/Cat" },
+                    },
                     Properties = { property },
                     EnumValues = { "unused" },
                     Required = { "name" },

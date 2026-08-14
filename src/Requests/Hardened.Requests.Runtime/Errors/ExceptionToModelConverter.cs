@@ -31,6 +31,17 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
             return (400, errorModel);
         }
 
+        // An exception that names its own status, which is how a specification's declared error
+        // responses reach the wire. Checked before the type-based classification below, because a
+        // declared 404 is more specific than "not a BadRequestException, so 500".
+        if (exp is StatusCodeException statusCodeException) {
+            return (
+                statusCodeException.StatusCode,
+                statusCodeException.Value ?? new ErrorModel {
+                    Type = exp.GetType().Name, Message = exp.Message
+                });
+        }
+
         var model = new ErrorModel { Type = exp.GetType().Name, Message = exp.Message };
 
         // Client errors are identified by type, not by the shape of the type's name.

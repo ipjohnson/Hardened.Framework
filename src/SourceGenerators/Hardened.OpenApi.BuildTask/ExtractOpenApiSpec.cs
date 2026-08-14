@@ -53,6 +53,15 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     /// <summary>Whether emitted types carry <c>[ExcludeFromCodeCoverage]</c>.</summary>
     public bool ExcludeFromCoverage { get; set; } = true;
 
+    /// <summary>
+    /// Whether the path of the first <c>servers</c> entry prefixes every route.
+    /// </summary>
+    /// <remarks>
+    /// Off unless asked for. See <c>OpenApiSpecParser.ServerBasePath</c> for why applying it
+    /// unasked is the wrong default.
+    /// </remarks>
+    public bool ApplyServerBasePath { get; set; }
+
     /// <summary>The written models, for the caller to add to <c>@(AdditionalFiles)</c>.</summary>
     [Output]
     public ITaskItem[] ModelFiles { get; set; } = System.Array.Empty<ITaskItem>();
@@ -81,7 +90,8 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             OpenApiSpecModel model;
 
             try {
-                var parsed = OpenApiSpecParser.Parse(File.ReadAllText(path), fileName, CancellationToken.None);
+                var parsed = OpenApiSpecParser.Parse(
+                    File.ReadAllText(path), fileName, CancellationToken.None, ApplyServerBasePath);
 
                 if (parsed is null) {
                     Log.LogError(null, "HOAT002", null, path, 0, 0, 0, 0,

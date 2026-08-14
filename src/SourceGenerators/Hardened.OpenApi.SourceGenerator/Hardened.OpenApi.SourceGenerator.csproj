@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <Import Project="../CSharpAuthor.props"/>
+
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <Description>Source generator that produces OpenAPI documents from Hardened route definitions at build time.</Description>
+        <Description>Source generator that produces Hardened models, service interfaces, handlers and routing from an OpenAPI document at build time.</Description>
         <LangVersion>10</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -83,18 +85,6 @@
               Pack="true" PackagePath="tasks/net8.0" Visible="false"/>
     </ItemGroup>
 
-    <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>build</IncludeAssets>
-        </PackageReference>
-        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
-    </ItemGroup>
-
     <!-- Shared with the build task. See Hardened.OpenApi.Shared for why this is source and not a reference. -->
     <ItemGroup>
         <Compile Include="../Hardened.OpenApi.Shared/**/*.cs"
@@ -110,6 +100,10 @@
         </Compile>
         <Compile Include="../Hardened.SourceGenerator/Models/**/*">
             <Link>Models\Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/OpenApiDocument/**/*">
+            <Link>OpenApiDocument\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
         <Compile Include="../Hardened.SourceGenerator/Requests/**/*">
             <Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>

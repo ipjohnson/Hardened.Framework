@@ -68,6 +68,13 @@ namespace Hardened.Requests.Abstract.Errors
     {
         System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionChain chain);
     }
+    public class StatusCodeException : System.Exception
+    {
+        public StatusCodeException(int statusCode, object? value = null, string? message = null) { }
+        public StatusCodeException(int statusCode, object? value, string message, System.Exception inner) { }
+        public int StatusCode { get; }
+        public object? Value { get; }
+    }
 }
 namespace Hardened.Requests.Abstract.Execution
 {

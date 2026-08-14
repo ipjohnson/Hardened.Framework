@@ -1,3 +1,4 @@
+using Hardened.SourceGeneration.Testing;
 using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
@@ -314,6 +315,98 @@ public class GeneratedCodeCompilesTests {
     }
 
     /// <summary>
+    /// A parameter declared once on the path item reaches the signature of every operation on that
+    /// path, in front of the operation's own.
+    /// </summary>
+    [Fact]
+    public void APathItemParameterIsGeneratedOnEveryOperationSignature() {
+        var result = OpenApiGenerator.Run(Specs.PathItemLevelParameters).AssertNoErrors();
+
+        var generated = result.SourceContaining("petstore.g.cs");
+
+        Assert.Contains("GetPet(string petId)", generated);
+        Assert.Contains("ListPetToys(string petId, int? limit)", generated);
+        Assert.Contains("ReplacePet(string petId)", generated);
+    }
+
+    /// <summary>
+    /// An operation's prose reaches the generated interface, so what the spec says about an
+    /// endpoint is visible at the call site instead of only in the document.
+    /// </summary>
+    [Fact]
+    public void OperationProseBecomesADocComment() {
+        var generated = Undent(OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors());
+
+        // The route line keeps its place; the spec's prose follows it.
+        Assert.Contains("/// GET /pets &rarr; 200\n///\n/// Lists every pet.\n", generated);
+        Assert.Contains("""<param name="limit">How many to return.</param>""", generated);
+    }
+
+    /// <summary>
+    /// A description keeps its paragraphs, and its markup characters are escaped — unescaped they
+    /// would produce a doc comment that does not parse.
+    /// </summary>
+    [Fact]
+    public void ProseKeepsItsStructureAndIsEscaped() {
+        var generated = Undent(OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors());
+
+        Assert.Contains(
+            "/// Returns a single pet.\n"
+            + "///\n"
+            + "/// Wraps across lines, and mentions that 0 &lt; limit &lt;= 100 "
+            + "&amp; that ids are opaque.\n",
+            generated);
+
+        // Every line of the comment carries its own marker; a raw newline would leave one without.
+        foreach (var line in generated.Split('\n')) {
+            if (line.Contains("Wraps across lines")) {
+                Assert.StartsWith("///", line);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A schema's prose reaches its record, and each property's reaches the <c>&lt;param&gt;</c>
+    /// that documents it — which for a positional record is the only place it can go.
+    /// </summary>
+    [Fact]
+    public void SchemaProseBecomesRecordDocumentation() {
+        var generated = Undent(OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors());
+
+        Assert.Contains("/// A pet in the store.", generated);
+        Assert.Contains("/// Identified by an opaque id.", generated);
+        Assert.Contains("""<param name="Id">Opaque identifier.</param>""", generated);
+
+        // The undocumented property contributes no element.
+        Assert.DoesNotContain("""<param name="Nickname">""", generated);
+    }
+
+    /// <summary>
+    /// An enum and its members carry their own documentation.
+    /// </summary>
+    [Fact]
+    public void EnumProseBecomesEnumDocumentation() {
+        var result = OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors();
+
+        var generated = result.SourceContaining("petstore.g.cs");
+
+        Assert.Contains("/// How far along a pet is.", generated);
+        Assert.Contains("public enum Status", generated);
+    }
+
+    /// <summary>
+    /// An operation that says nothing reads exactly as it did before descriptions were carried.
+    /// </summary>
+    [Fact]
+    public void AnUndocumentedOperationKeepsItsRouteOnlyComment() {
+        var result = OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors();
+
+        var generated = result.SourceContaining("petstore.g.cs");
+
+        Assert.Contains("/// GET /pets/undocumented &rarr; 200\n", generated.Replace("\r\n", "\n"));
+    }
+
+    /// <summary>
     /// A schema no operation references still gets a record, so a project can share model types the
     /// spec declares but never returns.
     /// </summary>
@@ -624,4 +717,86 @@ public class GeneratedCodeCompilesTests {
 
         Assert.Contains("Task<long> GetCount(", result.SourceContaining("petstore.g.cs"));
     }
+
+    /// <summary>
+    /// A discriminated hierarchy becomes real C# inheritance, and — the point of the exercise — it
+    /// compiles.
+    /// </summary>
+    /// <remarks>
+    /// A <c>oneOf</c> used to parse as a primitive with no type, so every property referencing the
+    /// base mapped to <c>JsonElement</c> and the closed set of shapes the spec described was lost.
+    /// </remarks>
+    [Fact]
+    public void ADiscriminatedHierarchyBecomesRecordInheritance() {
+        var generated = Undent(OpenApiGenerator.Run(Specs.DiscriminatedHierarchy).AssertNoErrors());
+
+        // The base declares the shared properties; each derived record forwards them.
+        Assert.Contains("public partial record Pet(", generated);
+        Assert.Contains(") : Pet(PetType, Name, Nickname);", generated);
+        Assert.Contains("record Dog(", generated);
+        Assert.Contains("record Cat(", generated);
+
+        // The whole point: the branches are typed, not an untyped blob. Checked on the record
+        // declarations rather than the file, because the resolver always carries a JsonElement
+        // entry among its primitives whatever the spec says.
+        foreach (var line in generated.Split('\n')) {
+            if (line.StartsWith("public partial record ")) {
+                Assert.DoesNotContain("JsonElement", line);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The AOT resolver carries the polymorphism metadata, since nothing reflects over the records
+    /// at run time to find it.
+    /// </summary>
+    [Fact]
+    public void TheResolverCarriesPolymorphismMetadata() {
+        var generated = Undent(OpenApiGenerator.Run(Specs.DiscriminatedHierarchy).AssertNoErrors());
+
+        Assert.Contains("typeInfo.PolymorphismOptions = new JsonPolymorphismOptions", generated);
+        Assert.Contains("""TypeDiscriminatorPropertyName = "petType",""", generated);
+        Assert.Contains("""new JsonDerivedType(typeof(Dog), "dog"),""", generated);
+        Assert.Contains("""new JsonDerivedType(typeof(Cat), "cat"),""", generated);
+
+        // An unrecognised runtime type fails loudly rather than silently writing the base shape.
+        Assert.Contains("JsonUnknownDerivedTypeHandling.FailSerialization", generated);
+    }
+
+    /// <summary>
+    /// A handler returning the base type, implemented against the generated hierarchy — the shape a
+    /// consumer actually writes.
+    /// </summary>
+    [Fact]
+    public void AHandlerCanReturnDerivedTypesThroughTheBase() {
+        OpenApiGenerator.Run(
+                Specs.DiscriminatedHierarchy,
+                OpenApiGenerator.EntryPointWithHandler(
+                    """
+                    [Handler]
+                    public class PetServiceImpl : IPetService {
+                        public Task<List<Pet>> ListPets() =>
+                            Task.FromResult(new List<Pet> {
+                                new Dog("dog", "Rex", "collie"),
+                                new Cat("cat", "Tom"),
+                            });
+                    }
+                    """))
+            .AssertNoErrors();
+    }
+
+    /// <summary>
+    /// The generated file with every line left-trimmed, so an assertion about the shape of a doc
+    /// comment does not also depend on how deeply the member it documents happens to be nested.
+    /// </summary>
+    private static string Undent(GeneratorResult result) {
+        var lines = result.SourceContaining("petstore.g.cs").Replace("\r\n", "\n").Split('\n');
+
+        for (var i = 0; i < lines.Length; i++) {
+            lines[i] = lines[i].TrimStart();
+        }
+
+        return string.Join("\n", lines);
+    }
+
 }

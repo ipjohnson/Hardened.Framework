@@ -39,12 +39,6 @@ internal static class OperationParameters {
         var constrained = false;
 
         foreach (var parameter in operation.Parameters) {
-            // Header parameters are not bound onto the parameters class, so there is nothing to
-            // constrain - see finding 3.6.
-            if (parameter.In != "path" && parameter.In != "query") {
-                continue;
-            }
-
             var csType = TypeMapper.MapParameterToCSharpType(parameter);
             var attributes = ConstraintAttributes.ForParameter(parameter, patterns);
 
@@ -52,7 +46,7 @@ internal static class OperationParameters {
 
             members.Add(new Member(
                 NamingHelper.ToParameterName(parameter.Name),
-                TypeMapper.GetTypeDefinition(modelsNamespace, csType, !parameter.IsRequired),
+                TypeMapper.GetTypeDefinition(modelsNamespace, csType, parameter.IsCSharpNullable),
                 attributes));
         }
 
@@ -65,7 +59,10 @@ internal static class OperationParameters {
             // [ValidateNested] is what makes the generated validator descend, which is what gives
             // body errors their "body." prefix and distinguishes them from a path parameter of the
             // same name.
-            var attributes = bodySchema.Properties.Any(p => p.HasValidationConstraints || p.IsRequired)
+            // Constrained excludes readOnly properties, whose constraints are never emitted - a
+            // validator that descends into a body with nothing to check is dead code.
+            var attributes = bodySchema.Properties.Any(
+                p => p.Constrained && (p.HasValidationConstraints || p.IsRequired))
                 ? new[] { new ConstraintAttributes.Model(
                     ConstraintAttributes.ValidateNested(), System.Array.Empty<string>()) }
                 : System.Array.Empty<ConstraintAttributes.Model>();

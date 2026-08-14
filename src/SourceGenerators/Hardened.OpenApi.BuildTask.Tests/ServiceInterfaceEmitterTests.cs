@@ -101,8 +101,18 @@ public class ServiceInterfaceEmitterTests {
         Assert.Contains("Task<List<Pet>> ListPets(int? limit);", result);
     }
 
+    /// <summary>
+    /// A header parameter reaches the signature, so an implementation can read a value the
+    /// framework already extracted.
+    /// </summary>
+    /// <remarks>
+    /// It used to be excluded while the binder bound it, which left the value nowhere an
+    /// implementation could see it. The three places that decide this - here, the binder, and the
+    /// validation parameters interface - have to agree, or the generated <c>Parameters</c> class
+    /// stops implementing its own interface.
+    /// </remarks>
     [Fact]
-    public void Emit_HeaderParameters_ExcludedFromSignature() {
+    public void Emit_HeaderParameters_AppearInSignature() {
         var service = new ServiceModel {
             Tag = "Auth",
             Operations = new List<OperationModel> {
@@ -123,9 +133,37 @@ public class ServiceInterfaceEmitterTests {
 
         var result = EmitterHarness.ServiceInterface(service);
 
-        Assert.Contains("Task<Profile> GetProfile(string userId);", result);
-        Assert.DoesNotContain("Authorization", result.Split('\n')
-            .First(l => l.Contains("GetProfile")));
+        Assert.Contains("Task<Profile> GetProfile(string authorization, string userId);", result);
+    }
+
+    /// <summary>
+    /// A cookie parameter reaches the signature too. Every location the specification allows is
+    /// bound now, so the interface, the binder and the validation parameters interface take the
+    /// same set.
+    /// </summary>
+    [Fact]
+    public void Emit_CookieParameters_AppearInSignature() {
+        var service = new ServiceModel {
+            Tag = "Auth",
+            Operations = new List<OperationModel> {
+                new() {
+                    OperationId = "getProfile",
+                    Path = "/profile",
+                    HttpMethod = "GET",
+                    Tag = "Auth",
+                    SuccessStatusCode = 200,
+                    ResponseRef = "#/components/schemas/Profile",
+                    Parameters = new List<ParameterModel> {
+                        new() { Name = "session", In = "cookie", IsRequired = true, Type = "string" },
+                        new() { Name = "userId", In = "path", IsRequired = true, Type = "string" }
+                    }
+                }
+            }
+        };
+
+        var result = EmitterHarness.ServiceInterface(service);
+
+        Assert.Contains("Task<Profile> GetProfile(string session, string userId);", result);
     }
 
     [Fact]

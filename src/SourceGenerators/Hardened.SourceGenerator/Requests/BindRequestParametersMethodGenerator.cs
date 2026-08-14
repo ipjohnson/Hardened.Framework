@@ -45,6 +45,7 @@ public static class BindRequestParametersMethodGenerator {
                 case ParameterBindType.Header:
                 case ParameterBindType.QueryString:
                 case ParameterBindType.Path:
+                case ParameterBindType.Cookie:
                     BindRequestValueToParameter(parameterInformation, invokeMethod, context, parametersVar);
                     break;
 
@@ -164,6 +165,9 @@ public static class BindRequestParametersMethodGenerator {
                 break;
             case ParameterBindType.Header:
                 instance = "Headers";
+                break;
+            case ParameterBindType.Cookie:
+                instance = "Cookies";
                 break;
         }
 
