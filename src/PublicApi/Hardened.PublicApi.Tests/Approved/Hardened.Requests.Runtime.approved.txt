@@ -489,7 +489,7 @@ namespace Hardened.Requests.Runtime.Validation
     public sealed class ValidationFilterProvider<TValidated> : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
         where TValidated :  class
     {
-        public ValidationFilterProvider(ValidationModules.IValidatorFor<TValidated> validator) { }
+        public ValidationFilterProvider() { }
         public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
     public sealed class ValidationFilter<TValidated> : Hardened.Requests.Abstract.Execution.IExecutionFilter

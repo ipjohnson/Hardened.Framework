@@ -69,9 +69,13 @@ internal static class RegistrationWriter {
                 ? validator.ValidatorName
                 : validator.Namespace + "." + validator.ValidatorName;
 
+            // Registered as a type, not as an instance. A generated validator takes the validators
+            // for its nested types as constructor parameters, so the container has to build it -
+            // there is no instance to hand over, and a static one could not have been injected into
+            // anyway. Closed generics, so nothing resolves reflectively at run time.
             method.AddIndentedStatement(new CodeOutputComponent(
-                $"serviceCollection.AddSingleton<global::ValidationModules.IValidatorFor<{validator.QualifiedTypeName}>>(" +
-                $"global::{qualified}.Instance)") { Indented = false });
+                $"serviceCollection.AddSingleton<global::ValidationModules.IValidatorFor<{validator.QualifiedTypeName}>, " +
+                $"global::{qualified}>()") { Indented = false });
         }
 
         _ = services;

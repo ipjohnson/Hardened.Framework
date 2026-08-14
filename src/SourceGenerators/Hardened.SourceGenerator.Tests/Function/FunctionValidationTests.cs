@@ -18,7 +18,7 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// assembly this project cannot reference - it carries its own copy of these sources, and
 /// referencing both makes every shared type ambiguous. So the marker it declares and the validator
 /// it would emit are supplied as ordinary source. That makes this the sharpest available test of
-/// the convention: the generated code names <c>OrderValidator.Instance</c> without ever seeing it,
+/// the convention: the generated code names <c>OrderValidator</c> without ever seeing it,
 /// and if the name it derives were wrong, the case would not compile.
 /// </para>
 /// </remarks>
@@ -37,9 +37,7 @@ public class FunctionValidationTests {
 
         namespace TestApp {
             public sealed class OrderValidator : IValidatorFor<Order> {
-                public static readonly OrderValidator Instance = new();
-
-                private OrderValidator() { }
+                public OrderValidator() { }
 
                 public void Validate(ref ValidationContext ctx, Order value) { }
             }
@@ -96,7 +94,7 @@ public class FunctionValidationTests {
             .AssertNoErrors()
             .SourceContaining("ParametersValidator");
 
-        Assert.Contains("global::TestApp.OrderValidator.Instance", validator);
+        Assert.Contains("new global::TestApp.OrderValidator()", validator);
     }
 
     /// <summary>

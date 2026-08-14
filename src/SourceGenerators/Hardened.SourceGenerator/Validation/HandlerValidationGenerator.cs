@@ -126,17 +126,15 @@ public static class HandlerValidationGenerator {
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A <c>ValidationFilterProvider</c> rather than a <c>ValidateAttribute</c>, and the difference
-    /// is that this one hands the validator in by name instead of resolving it. The type being
-    /// validated is the handler's nested <c>Parameters</c> class, which nobody registers anything
-    /// against, and naming the validator in generated source means a handler cannot carry a
-    /// validation filter whose validator was never emitted - that does not compile.
+    /// A <c>ValidationFilterProvider</c> rather than a <c>ValidateAttribute</c>, because the type
+    /// being validated is the handler's nested <c>Parameters</c> class rather than anything a
+    /// consumer writes against. Both resolve their validators from the container; the validator for
+    /// this one is registered by the same generator run that emits the provider.
     /// </para>
     /// <para>
     /// It lands in the handler's metadata array, which is <c>object[]</c> filtered for
-    /// <c>IRequestFilterProvider</c>. That is what allows an ordinary object creation here: an
-    /// attribute argument would have to be a compile-time constant, and
-    /// <c>SomeValidator.Instance</c> is a static field read.
+    /// <c>IRequestFilterProvider</c>, so an ordinary object creation is what belongs here - an
+    /// attribute would need its arguments to be compile-time constants.
     /// </para>
     /// </remarks>
     private static RequestHandlerModel WithFilter(RequestHandlerModel handler, ValidatedTypeModel validator) {
@@ -147,7 +145,7 @@ public static class HandlerValidationGenerator {
                     "Hardened.Requests.Runtime.Validation",
                     "ValidationFilterProvider",
                     new[] { InvokeClassGenerator.GenericParameters }),
-                $"{validator.ValidatorName}.Instance",
+                "",
                 "")
         };
 
@@ -160,6 +158,7 @@ public static class HandlerValidationGenerator {
             handler.ResponseInformation,
             filters) {
             ParametersInterface = handler.ParametersInterface,
+            ParametersValidator = TypeDefinition.Get(validator.Namespace, validator.ValidatorName),
         };
     }
 

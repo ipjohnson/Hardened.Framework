@@ -116,6 +116,8 @@ public static class RoutingTableGenerator {
                 new[] { controllerType }));
         }
 
+        Validation.ParameterValidatorRegistration.Write(
+            diMethod, serviceCollection, webEndPointModels, cancellationToken);
     }
 
     private static void ImplementHandlerMethod(EntryPointSelector.Model appModel, ClassDefinition routingClass,
