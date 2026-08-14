@@ -100,8 +100,10 @@ paths:
 components:
   schemas:
     # Not named Message: a schema whose property matches its own name generates
-    # record Message(string Message), which is CS0542. The wire shape is unaffected -
-    # TechEmpower specifies the JSON body, and the property is still "message".
+    # record Message(string Message), which is CS0542. The build task reports that as HOAT003
+    # against this file rather than letting it surface as an error in generated code. The wire
+    # shape is unaffected either way - TechEmpower specifies the JSON body, and the property is
+    # still "message".
     HelloMessage:
       type: object
       required:

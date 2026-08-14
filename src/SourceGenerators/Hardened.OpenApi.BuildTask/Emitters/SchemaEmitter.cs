@@ -61,6 +61,8 @@ internal static class SchemaEmitter {
                 parameter.DefaultValue = new CodeOutputComponent("default") { Indented = false };
             }
 
+            EmitJsonPropertyName(parameter, property);
+
             // property:, because a positional record's parameter and the property it declares are
             // one syntactic position. Without the target the attribute stays on the parameter, where
             // a generator reading properties never sees it - which is what VM0051 warns about.
@@ -74,6 +76,33 @@ internal static class SchemaEmitter {
         }
 
         return record;
+    }
+
+    /// <summary>
+    /// Pins the wire name to what the spec said, rather than to whatever a naming policy makes of
+    /// the C# name.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Emitted for every property, not only where the two differ. The name in the document is the
+    /// contract; deriving it from the C# identifier means the contract depends on a
+    /// <c>JsonSerializerOptions</c> setting an application is free to change.
+    /// </para>
+    /// <para>
+    /// The two serialization paths disagreed without it. <c>JsonTypeInfoEmitter</c> writes
+    /// <c>PropertyName</c> straight from the spec, so the AOT resolver was always right, while
+    /// <c>SystemTextJsonResponseSerializer</c> runs reflection over <c>JsonSerializerDefaults.Web</c>
+    /// and camel-cases the C# name. A spec property <c>random_number</c> became <c>RandomNumber</c>,
+    /// which the resolver reported as <c>random_number</c> and reflection as <c>randomNumber</c> -
+    /// one spec, two wire formats, decided by which serializer an application happened to register.
+    /// Nothing caught it because every spec in this repository is already camelCase, where the round
+    /// trip is lossless.
+    /// </para>
+    /// </remarks>
+    private static void EmitJsonPropertyName(BaseOutputComponent parameter, PropertyModel property) {
+        parameter.AddAttribute(
+            TypeDefinition.Get("System.Text.Json.Serialization", "JsonPropertyNameAttribute"),
+            new CodeOutputComponent($"\"{property.Name}\"") { Indented = false }).Target = "property";
     }
 
     private static EnumDefinition EmitEnum(IConstructContainer container, SchemaModel schema) {

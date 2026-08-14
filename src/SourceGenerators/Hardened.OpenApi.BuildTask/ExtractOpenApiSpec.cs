@@ -98,6 +98,19 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
                 continue;
             }
 
+            // Checked before anything is written. These describe C# that will not compile, and
+            // emitting it anyway turns a fixable spec problem into a compiler error in a generated
+            // file the author cannot edit.
+            var problems = SpecDiagnostics.Find(model);
+
+            if (problems.Count > 0) {
+                foreach (var problem in problems) {
+                    Log.LogError(null, problem.Code, null, path, 0, 0, 0, 0, "{0}", problem.Message);
+                }
+
+                continue;
+            }
+
             // Named here rather than derived independently on both sides. The generator is told
             // what the resolver is called, the same way it is told everything else.
             model.JsonTypeInfoResolverName = JsonTypeInfoEmitter.ResolverNameFor(fileName);
