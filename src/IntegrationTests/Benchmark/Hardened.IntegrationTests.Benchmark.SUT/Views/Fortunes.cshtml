@@ -1,0 +1,18 @@
+@using Hardened.IntegrationTests.Benchmark.SUT.Models
+@inherits global::RazorBlade.HtmlTemplate<Hardened.IntegrationTests.Benchmark.SUT.Models.FortunePage>
+@*
+    The markup TechEmpower specifies for the Fortunes test type, exactly. @fortune.Message is
+    written through RazorBlade's HTML encoder, which is what turns the eleventh row's <script> tag
+    into text rather than a tag - the requirement the test type exists to check.
+*@
+<!DOCTYPE html>
+<html>
+<head><title>Fortunes</title></head>
+<body>
+<table>
+<tr><th>id</th><th>message</th></tr>
+@foreach (var fortune in Model.Fortunes)
+{<tr><td>@fortune.Id</td><td>@fortune.Message</td></tr>
+}</table>
+</body>
+</html>

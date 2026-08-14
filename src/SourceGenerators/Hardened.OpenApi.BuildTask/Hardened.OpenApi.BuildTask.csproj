@@ -1,0 +1,93 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!--
+            Two TFMs because MSBuild has two hosts: Visual Studio runs on .NET Framework, the dotnet
+            CLI and Rider run on .NET. The targets file picks between them on $(MSBuildRuntimeType).
+            A single netstandard2.0 assembly would load in both but would bind against whichever
+            Microsoft.Build.* the host supplies, which is the arrangement that produces
+            "could not load file or assembly" at task execution rather than at build.
+        -->
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+
+        <!-- Packed by Hardened.OpenApi.SourceGenerator into tasks/; this project ships nothing itself. -->
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+
+        <!--
+            The task assembly is loaded by MSBuild, which supplies Microsoft.Build.* itself. Copying
+            our own copies next to the task shadows the host's and produces type-identity failures
+            that look like a missing method on ITaskItem.
+        -->
+        <ExcludeAssets>runtime</ExcludeAssets>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.OpenApi.BuildTask.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+            Pinned to the 17.8 line, which is the MSBuild that ships with the .NET 8 SDK this repo
+            targets: the reference version is the minimum host the task can load into. The patch
+            level matters separately - 17.8.3 carries GHSA-w3q9-fxm7-j8fq, and NuGet audit fails the
+            CI build over it.
+
+            ExcludeAssets=runtime because MSBuild supplies these itself. Shipping our own copies
+            beside the task shadows the host's and produces type-identity failures that read as a
+            missing method on ITaskItem.
+        -->
+        <PackageReference Include="Microsoft.Build.Framework" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+
+        <!--
+            Referenced normally rather than embedded as resources. A task is an ordinary assembly
+            loaded by MSBuild, so its dependencies resolve the ordinary way - the whole reason the
+            spec read moves here.
+        -->
+        <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.22"/>
+        <PackageReference Include="Microsoft.OpenApi" Version="1.6.22"/>
+        <PackageReference Include="SharpYaml" Version="2.1.1"/>
+    </ItemGroup>
+
+    <!-- TypeMapper, which the emitters use, returns CSharpAuthor type definitions. -->
+    <PropertyGroup>
+        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
+        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="IsExternalInit.cs"/>
+        <Compile Include="IsExternalInit.cs" Condition="'$(TargetFramework)' == 'net472'"/>
+    </ItemGroup>
+
+    <!-- Shared with the generator. See Hardened.OpenApi.Shared for why this is source and not a reference. -->
+    <ItemGroup>
+        <Compile Include="../Hardened.OpenApi.Shared/**/*.cs"
+                 Exclude="../Hardened.OpenApi.Shared/obj/**/*;../Hardened.OpenApi.Shared/bin/**/*">
+            <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <!--
+        CSharpAuthor ships as source and is compiled in, so its files are analysed as if they were
+        ours - and it predates nullable reference types. Under ContinuousIntegrationBuild every
+        warning is an error, so its eight would fail the build. Scoped to the exact IDs rather than
+        disabling nullable analysis, which would take our own code with it.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
+    </PropertyGroup>
+
+</Project>

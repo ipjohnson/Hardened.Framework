@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Source shared by Hardened.OpenApi.BuildTask and Hardened.OpenApi.SourceGenerator, which
+        compile these files in via linked Compile items rather than referencing this assembly. The
+        task runs in MSBuild and the generator runs in Roslyn; neither can reference the other, and
+        an assembly reference from the generator would have to be shipped inside the analyzer -
+        which is the arrangement this whole move exists to delete.
+
+        Nothing references the output. The project exists so the shared files compile and analyse on
+        their own, which is what catches a Roslyn or CSharpAuthor dependency creeping in here: both
+        would build fine inside the generator and break the task.
+    -->
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <!-- TypeMapper returns CSharpAuthor type definitions, so both consumers compile it in. -->
+    <PropertyGroup>
+        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
+        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
+    </ItemGroup>
+
+    <!--
+        CSharpAuthor ships as source and is compiled in, so its files are analysed as if they were
+        ours - and it predates nullable reference types. Under ContinuousIntegrationBuild every
+        warning is an error, so its eight would fail the build. Scoped to the exact IDs rather than
+        disabling nullable analysis, which would take our own code with it.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
+    </PropertyGroup>
+
+</Project>

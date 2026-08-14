@@ -10,7 +10,8 @@ internal static class RequestModelBuilder {
         OpenApiSpecModel spec,
         string modelsNamespace,
         string servicesNamespace,
-        string generatedNamespace) {
+        string generatedNamespace,
+        string validationNamespace) {
         var models = new List<RequestHandlerModel>();
 
         // Build lookup for x-filter-types by short name
@@ -26,7 +27,8 @@ internal static class RequestModelBuilder {
 
             foreach (var operation in service.Operations) {
                 var model = BuildHandlerModel(operation, serviceType, handlerClassPrefix,
-                    modelsNamespace, generatedNamespace, filterTypeLookup);
+                    modelsNamespace, generatedNamespace, validationNamespace,
+                    spec.ValidatedOperations, filterTypeLookup);
                 models.Add(model);
             }
         }
@@ -48,10 +50,22 @@ internal static class RequestModelBuilder {
                 filters.AddRange(handlerInfo.ClassFilters);
 
                 // Find method-level filters matching this handler's method
+                var responseInformation = model.ResponseInformation;
+
                 foreach (var methodFilter in handlerInfo.MethodFilters) {
                     if (string.Equals(methodFilter.MethodName, model.HandlerMethod,
                             StringComparison.Ordinal)) {
-                        filters.AddRange(methodFilter.Filters);
+                        foreach (var attribute in methodFilter.Filters) {
+                            var templateName = TemplateNameFrom(attribute);
+
+                            if (templateName != null) {
+                                responseInformation = responseInformation with { TemplateName = templateName };
+                            }
+                            else {
+                                filters.Add(attribute);
+                            }
+                        }
+
                         break;
                     }
                 }
@@ -62,14 +76,57 @@ internal static class RequestModelBuilder {
                     model.HandlerMethod,
                     model.InvokeHandlerType,
                     model.RequestParameterInformationList,
-                    model.ResponseInformation,
-                    filters));
+                    responseInformation,
+                    filters) {
+                    // Carried across: this rebuilds the model to add [Handler] filters, and dropping
+                    // it here leaves Parameters not implementing the interface its validator is
+                    // typed on - so the filter's type test fails and validation silently does not
+                    // run, on a build that is otherwise green.
+                    ParametersInterface = model.ParametersInterface,
+                });
             } else {
                 result.Add(model);
             }
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// The view name if this attribute is <c>[Template]</c>, otherwise null - in which case the
+    /// attribute is an ordinary filter.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>[Template]</c> is response information, not a filter, which is what
+    /// <c>BaseRequestModelGenerator</c> has always done for hand-written handlers and what
+    /// <c>TemplateAttribute</c>'s own documentation describes. Left in the filter list it would be
+    /// emitted into the handler's metadata array as though it were an <c>IExecutionFilter</c>, and
+    /// the name would never reach <c>Response.TemplateName</c>.
+    /// </para>
+    /// <para>
+    /// Putting it on the implementation rather than in the spec is the point: which view renders a
+    /// model is how the operation is fulfilled, not part of the contract it publishes. The spec
+    /// still says the response is text/html, which stays true whichever engine renders it. A spec
+    /// that does declare <c>x-hardened-template</c> is treated as the default, and this overrides
+    /// it - the implementation is the more specific statement.
+    /// </para>
+    /// </remarks>
+    private static string? TemplateNameFrom(AttributeModel attribute) {
+        var name = attribute.TypeDefinition.Name;
+
+        if (name != "TemplateAttribute" && name != "Template") {
+            return null;
+        }
+
+        // Arguments is the argument list's source text, so a string literal arrives quoted.
+        var argument = attribute.Arguments.Trim();
+
+        if (argument.Length == 0) {
+            return null;
+        }
+
+        return argument.Trim('"');
     }
 
     private static HandlerInfo? FindHandlerInfo(
@@ -110,6 +167,8 @@ internal static class RequestModelBuilder {
         string handlerClassPrefix,
         string modelsNamespace,
         string generatedNamespace,
+        string validationNamespace,
+        IReadOnlyList<ValidatedOperationModel> validatedOperations,
         Dictionary<string, FilterTypeModel> filterTypeLookup) {
         var methodName = NamingHelper.ToMethodName(operation.OperationId);
         var handlerTypeName = $"{handlerClassPrefix}_{methodName}";
@@ -122,11 +181,27 @@ internal static class RequestModelBuilder {
 
         var filters = new List<AttributeModel>();
 
-        // Wire in validation filter provider if operation has constraints
-        if (operation.HasValidationConstraints) {
-            var filterProviderName = NamingHelper.ToPascalCase(operation.OperationId) + "_ValidationFilterProvider";
-            var filterProviderType = TypeDefinition.Get(generatedNamespace, filterProviderName);
-            filters.Add(new AttributeModel(filterProviderType, "", ""));
+        // The validation the build task emitted for this operation, if any. The names come from the
+        // model rather than being derived here: the task named them, and deriving them a second time
+        // is how the two drift.
+        var validated = validatedOperations.FirstOrDefault(v => v.OperationId == operation.OperationId);
+        ITypeDefinition? parametersInterface = null;
+
+        if (validated != null) {
+            parametersInterface = TypeDefinition.Get(validationNamespace, validated.InterfaceName);
+
+            // No validator argument: the attribute resolves every IValidatorFor<T> registered for
+            // the interface, which is what lets a hand-written one run alongside the generated one.
+            // Registration is emitted by Hardened.Validation.SourceGenerator into this application's
+            // entry point, so nothing has to be wired by hand.
+            filters.Add(new AttributeModel(
+                new GenericTypeDefinition(
+                    TypeDefinitionEnum.ClassDefinition,
+                    "Hardened.Requests.Runtime.Validation",
+                    "ValidateAttribute",
+                    new[] { parametersInterface }),
+                "",
+                ""));
         }
 
         // Wire in x-filters as typed attribute instances
@@ -150,7 +225,9 @@ internal static class RequestModelBuilder {
             invokeHandlerType,
             parameters,
             responseInfo,
-            filters);
+            filters) {
+            ParametersInterface = parametersInterface,
+        };
     }
 
     /// <summary>
@@ -255,7 +332,9 @@ internal static class RequestModelBuilder {
 
         return new ResponseInformationModel {
             IsAsync = true,
-            ReturnType = returnType
+            ReturnType = returnType,
+            TemplateName = operation.TemplateName
         };
     }
+
 }

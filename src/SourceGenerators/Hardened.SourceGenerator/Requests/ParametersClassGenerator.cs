@@ -19,6 +19,13 @@ public static class ParametersClassGenerator {
         // this class. Only what the compiler knows and the base cannot is generated below.
         parametersClass.AddBaseType(KnownTypes.Requests.ExecutionRequestParameters);
 
+        // The validated shape, when something produced one. Implementing it is what lets a filter
+        // hold IValidatorFor<TInterface> and hand this instance to it - no reflection, one type
+        // test. The properties below satisfy it by name; nothing extra is emitted for it.
+        if (handlerModel.ParametersInterface != null) {
+            parametersClass.AddBaseType(handlerModel.ParametersInterface);
+        }
+
         WriteProperties(handlerModel, parametersClass);
 
         WriteItemProperty(handlerModel, parametersClass);

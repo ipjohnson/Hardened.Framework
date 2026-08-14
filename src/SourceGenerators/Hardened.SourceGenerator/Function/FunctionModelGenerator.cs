@@ -2,6 +2,7 @@ using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Validation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -62,6 +63,13 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
         ParameterSyntax parameter, int parameterIndex) {
         foreach (var attributeList in parameter.AttributeLists) {
             foreach (var attribute in attributeList.Attributes) {
+                // See WebRequestHandlerModelGenerator: a constraint is not a binding attribute, and
+                // letting it reach the default branch below binds the parameter as a custom
+                // attribute instead of from the payload.
+                if (ConstraintAttributeFacts.IsConstraint(generatorSyntaxContext, attribute)) {
+                    continue;
+                }
+
                 var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
                 switch (attributeName) {

@@ -238,20 +238,27 @@ public class HandlerShapeCompilesTests {
     }
 
     /// <summary>
-    /// <c>[RawResponse]</c> changes the handler's default output function,
-    /// which is a third constructor argument rather than a parameter or a filter. Compiled here
-    /// because both branches live in InvokeClassGenerator; their runtime behaviour belongs to the
-    /// web-routing workstream.
+    /// <c>[RawResponse]</c> commits the response to a content type, which
+    /// <c>RawResponseSerializer</c> then claims through ordinary serializer selection.
     /// </summary>
+    /// <remarks>
+    /// It used to emit a <c>RawOutputHelper.OutputFunc</c> closure as the handler's default output,
+    /// which <c>ContextSerializationService</c> consulted ahead of every serializer - so the
+    /// attribute pre-empted selection rather than taking part in it. That is what collided with the
+    /// template path, and what two copies of a suppression special case existed to work around.
+    /// </remarks>
     [Fact]
-    public void ARawResponseHandlerEmitsARawOutputFunction() {
+    public void ARawResponseHandlerCommitsTheResponseContentType() {
         var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
                 [Get("/raw")]
                 [RawResponse("text/csv")]
                 public string Raw() => "a,b";
             """)).AssertNoErrors();
 
-        Assert.Contains("RawOutputHelper.OutputFunc(\"text/csv\")", result.SourceContaining("Raw"));
+        var source = result.SourceContaining("Raw");
+
+        Assert.Contains("Response.ContentType = \"text/csv\"", source);
+        Assert.DoesNotContain("RawOutputHelper", source);
     }
 
     [Fact]
@@ -262,23 +269,60 @@ public class HandlerShapeCompilesTests {
                 public string Raw() => "text";
             """)).AssertNoErrors();
 
-        Assert.Contains("RawOutputHelper.OutputFunc(\"text/plain\")", result.SourceContaining("Raw"));
+        Assert.Contains("Response.ContentType = \"text/plain\"", result.SourceContaining("Raw"));
     }
 
 
     /// <summary>
-    /// <c>[RawResponse]</c> is read as response information rather than as a filter, so it never
-    /// reaches the metadata array. A handler carrying only it has no metadata at all — which is
-    /// also the shape that broke the parameters slot.
+    /// <c>[Template]</c> and <c>[RawResponse]</c> are read as response information, not as filters,
+    /// so neither reaches the metadata array. A handler carrying only one of them has no metadata
+    /// at all — which is also the shape that broke the parameters slot.
     /// </summary>
     [Fact]
-    public void RawResponseIsNotTreatedAsAFilter() {
+    public void TemplateAndRawResponseAreNotTreatedAsFilters() {
         var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
                 [Get("/page")]
+                [Template("Index")]
                 [RawResponse("text/html")]
                 public string Page() => "x";
             """)).AssertNoErrors();
 
         Assert.DoesNotContain("_metadata", result.SourceContaining("Page"));
+    }
+
+    /// <summary>
+    /// The template name reaches the response, which is the only thing that makes the annotation
+    /// worth carrying.
+    /// </summary>
+    /// <remarks>
+    /// <c>[Template]</c> names a view at build time and whatever renders it runs per request, so
+    /// the generated handler is where the two meet. Without this the attribute is read, put on a
+    /// model, and dropped - which is the state <c>IExecutionResponse.TemplateName</c> was deleted in
+    /// (#101: "never assigned, never read"), and re-adding the property without assigning it would
+    /// have earned that verdict a second time.
+    /// </remarks>
+    [Fact]
+    public void ATemplateNameIsPutOnTheResponse() {
+        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
+                [Get("/page")]
+                [Template("Index")]
+                public string Page() => "x";
+            """)).AssertNoErrors();
+
+        Assert.Contains("context.Response.TemplateName = \"Index\"", result.SourceContaining("Page"));
+    }
+
+    /// <summary>
+    /// A handler without the attribute assigns nothing, so the property stays null for the
+    /// overwhelming majority of handlers rather than being set to an empty string.
+    /// </summary>
+    [Fact]
+    public void AHandlerWithoutATemplateAssignsNothing() {
+        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
+                [Get("/plain")]
+                public string Plain() => "x";
+            """)).AssertNoErrors();
+
+        Assert.DoesNotContain("TemplateName", result.SourceContaining("Plain"));
     }
 }

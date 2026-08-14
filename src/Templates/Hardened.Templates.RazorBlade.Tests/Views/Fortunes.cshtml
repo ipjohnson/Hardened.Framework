@@ -1,0 +1,8 @@
+@using Hardened.Templates.RazorBlade.Tests.Models
+@*
+    global:: because this assembly's own namespace ends in RazorBlade. The generated class lands in
+    Hardened.Templates.RazorBlade.Tests.Views, so an unqualified RazorBlade.HtmlTemplate binds to
+    Hardened.Templates.RazorBlade and fails to resolve.
+*@
+@inherits global::RazorBlade.HtmlTemplate<Hardened.Templates.RazorBlade.Tests.Models.FortunePage>
+<table>@foreach (var fortune in Model.Fortunes) {<tr><td>@fortune.Id</td><td>@fortune.Message</td></tr>}</table>

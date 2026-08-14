@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>RazorBlade template rendering for the Hardened execution pipeline. Compiles .cshtml at build time with no dependency on ASP.NET, so it runs on Lambda as well as Kestrel.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Templates.RazorBlade</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DependencyModules.Runtime" Version="1.0.0-rc9230" />
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9230" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+
+        <!--
+            Not PrivateAssets. RazorBlade's analyzer has to run in the application's own compilation
+            to turn its .cshtml files into classes, so the reference has to reach it.
+
+            That is only half of what the application needs, and the other half cannot be delivered
+            from here: RazorBlade ships build/ and buildMultiTargeting/ but no buildTransitive/, and
+            MSBuild props do not flow transitively. The .props that globs **/*.cshtml into the
+            RazorBlade item group therefore never reaches a project that only references this
+            package, and its templates are silently not compiled. Applications must reference
+            RazorBlade directly as well - see the package README.
+        -->
+        <PackageReference Include="RazorBlade" Version="1.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -27,9 +27,17 @@ namespace Hardened.Requests.Abstract.Attributes
     {
         System.Threading.Tasks.ValueTask<T> BindValue<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter);
     }
+    [System.AttributeUsage(System.AttributeTargets.Method)]
     public class RawResponseAttribute : System.Attribute
     {
         public RawResponseAttribute(string contentType = "text/plain") { }
+        public string ContentType { get; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public class TemplateAttribute : System.Attribute
+    {
+        public TemplateAttribute(string templateName) { }
+        public string TemplateName { get; }
     }
 }
 namespace Hardened.Requests.Abstract.Authorization
@@ -163,6 +171,7 @@ namespace Hardened.Requests.Abstract.Execution
         bool ShouldCompress { get; set; }
         bool ShouldSerialize { get; set; }
         int? Status { get; set; }
+        string? TemplateName { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null);
     }
     public interface IFunctionHandlerProvider
@@ -348,6 +357,12 @@ namespace Hardened.Requests.Abstract.RequestFilter
 }
 namespace Hardened.Requests.Abstract.Serializer
 {
+    public sealed class AcceptedContentTypes
+    {
+        public static readonly Hardened.Requests.Abstract.Serializer.AcceptedContentTypes Any;
+        public System.Collections.Generic.IReadOnlyList<string> MediaTypes { get; }
+        public static Hardened.Requests.Abstract.Serializer.AcceptedContentTypes Parse(string? acceptHeader) { }
+    }
     public interface IContextSerializationService
     {
         System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context);
@@ -370,7 +385,8 @@ namespace Hardened.Requests.Abstract.Serializer
     public interface IResponseSerializer
     {
         bool IsDefaultSerializer { get; }
-        bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        int Order { get; }
+        bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
     public interface ISerializationLocatorService
@@ -389,39 +405,32 @@ namespace Hardened.Requests.Abstract.Serializer
         T ParseRequired<T>(string value, string valueName);
         T ParseWithDefault<T>(string value, string valueName, T defaultValue);
     }
+    public static class MediaType
+    {
+        public const string Any = "*/*";
+        public static bool Matches(string? requested, string? produced) { }
+    }
+    public enum ResponseSerializerOrder
+    {
+        Template = -1000,
+        Specialized = -100,
+        Normal = 0,
+        Deferred = 1000,
+    }
+}
+namespace Hardened.Requests.Abstract.Templates
+{
+    public interface ITemplateEngine
+    {
+        bool CanRender(string templateName);
+        string? ContentTypeFor(string templateName);
+        System.Threading.Tasks.Task RenderAsync(string templateName, object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
 }
 namespace Hardened.Requests.Abstract.Utilities
 {
     public static class StringExtensions
     {
         public static Microsoft.Extensions.Primitives.StringValues ToStringValues(this string value) { }
-    }
-}
-namespace Hardened.Requests.Abstract.Validation
-{
-    public interface ICustomRequestValidator<in TRequest>
-        where in TRequest :  class
-    {
-        System.Threading.Tasks.Task<Hardened.Requests.Abstract.Validation.ValidationResult> ValidateAsync(TRequest request);
-    }
-    public interface IValidationRule
-    {
-        void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result);
-    }
-    public class ValidationError : System.IEquatable<Hardened.Requests.Abstract.Validation.ValidationError>
-    {
-        public ValidationError(string Field, string Code, string Message) { }
-        public string Code { get; init; }
-        public string Field { get; init; }
-        public string Message { get; init; }
-    }
-    public class ValidationResult
-    {
-        public static readonly Hardened.Requests.Abstract.Validation.ValidationResult Success;
-        public ValidationResult() { }
-        public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Validation.ValidationError> Errors { get; }
-        public bool IsValid { get; }
-        public void AddError(string field, string code, string message) { }
-        public void Merge(Hardened.Requests.Abstract.Validation.ValidationResult other) { }
     }
 }

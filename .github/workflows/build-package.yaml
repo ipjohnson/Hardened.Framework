@@ -16,14 +16,23 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
+      # No source-url, and no NUGET_AUTH_TOKEN. Restore reads src/nuget.config, which is nuget.org
+      # and nothing else since ValidationModules was published there at 0.1.0-alpha.1.
+      #
+      # It used to point setup-dotnet at GitHub Packages, which writes a nuget.config whose
+      # credential is the literal string %NUGET_AUTH_TOKEN% - expanded by NuGet when it restores,
+      # not when the config is written. The variable therefore had to still be set at restore time,
+      # and an authenticated source that answers 401 is fatal to the whole restore rather than to
+      # the packages it serves. Neither hazard is worth carrying for a feed nothing needs.
+      #
+      # The push step below is unaffected: it names its feed and key on the command line.
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-          source-url: https://nuget.pkg.github.com/ipjohnson/index.json
-        env:
-          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - run: dotnet restore src/Hardened.Framework.sln
 
@@ -89,7 +98,10 @@ jobs:
       - name: Coverage gate
         run: python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
 
+      # always(), because the report is most wanted exactly when the gate rejected the run - and
+      # the gate is the step before this one, so a failure used to mean no artifact to look at.
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: coverage-report
           path: coverage-report

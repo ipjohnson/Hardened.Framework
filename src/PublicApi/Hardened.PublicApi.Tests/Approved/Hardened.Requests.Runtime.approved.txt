@@ -370,7 +370,8 @@ namespace Hardened.Requests.Runtime.Serializer
     {
         public AotResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
         public bool IsDefaultSerializer { get; }
-        public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public int Order { get; }
+        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
@@ -395,6 +396,16 @@ namespace Hardened.Requests.Runtime.Serializer
     public static class RawOutputHelper
     {
         public static Hardened.Requests.Abstract.Execution.DefaultOutputFunc OutputFunc(string contentType) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
+    public class RawResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
+    {
+        public const string DefaultContentType = "text/plain";
+        public RawResponseSerializer() { }
+        public bool IsDefaultSerializer { get; }
+        public int Order { get; }
+        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class SerializationLocatorService : Hardened.Requests.Abstract.Serializer.ISerializationLocatorService
@@ -421,30 +432,29 @@ namespace Hardened.Requests.Runtime.Serializer
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
     public class SystemTextJsonResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
     {
         public SystemTextJsonResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration) { }
         public bool IsDefaultSerializer { get; }
-        public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Templates
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
+    public class TemplateResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
+    {
+        public TemplateResponseSerializer(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Templates.ITemplateEngine> engines) { }
+        public bool IsDefaultSerializer { get; }
+        public int Order { get; }
+        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
 }
 namespace Hardened.Requests.Runtime.Validation
 {
-    public class ParameterValidationInfo
-    {
-        public ParameterValidationInfo(string parameterName, Hardened.Requests.Abstract.Validation.IValidationRule[] rules) { }
-        public string ParameterName { get; }
-        public Hardened.Requests.Abstract.Validation.IValidationRule[] Rules { get; }
-    }
-    public class PropertyValidationInfo
-    {
-        public PropertyValidationInfo(string propertyName, Hardened.Requests.Abstract.Validation.IValidationRule[] rules, System.Func<object, object?> accessor) { }
-        public System.Func<object, object?> Accessor { get; }
-        public string PropertyName { get; }
-        public Hardened.Requests.Abstract.Validation.IValidationRule[] Rules { get; }
-    }
     public class RequestValidationError
     {
         public RequestValidationError() { }
@@ -459,48 +469,29 @@ namespace Hardened.Requests.Runtime.Validation
         public string Field { get; set; }
         public string Message { get; set; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public sealed class ValidateAttribute<TValidated> : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+        where TValidated :  class
+    {
+        public ValidateAttribute() { }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
     public class ValidationException : Hardened.Requests.Runtime.Errors.BadRequestException
     {
-        public ValidationException(Hardened.Requests.Abstract.Validation.ValidationResult validationResult) { }
-        public Hardened.Requests.Abstract.Validation.ValidationResult ValidationResult { get; }
+        public ValidationException(ValidationModules.ValidationResult validationResult) { }
+        public ValidationException(ValidationModules.ValidationResult validationResult, System.Exception inner) { }
+        public ValidationModules.ValidationResult ValidationResult { get; }
     }
-    public class ValidationFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    public sealed class ValidationFilterProvider<TValidated> : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+        where TValidated :  class
     {
-        public ValidationFilter(Hardened.Requests.Runtime.Validation.ParameterValidationInfo[] parameterRules, Hardened.Requests.Runtime.Validation.PropertyValidationInfo[]? bodyPropertyRules = null, string? bodyParameterName = null, System.Type? requestBodyType = null) { }
+        public ValidationFilterProvider(ValidationModules.IValidatorFor<TValidated> validator) { }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    public sealed class ValidationFilter<TValidated> : Hardened.Requests.Abstract.Execution.IExecutionFilter
+        where TValidated :  class
+    {
+        public ValidationFilter(System.Collections.Generic.IReadOnlyList<ValidationModules.IValidatorFor<TValidated>> validators) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
-    }
-}
-namespace Hardened.Requests.Runtime.Validation.Rules
-{
-    public class ArrayBoundsRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public ArrayBoundsRule(int? minItems, int? maxItems) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class EnumRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public EnumRule(System.Collections.Generic.IEnumerable<string> allowedValues) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class PatternRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public PatternRule(string pattern) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class RangeRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public RangeRule(decimal? minimum, decimal? maximum, bool exclusiveMinimum = false, bool exclusiveMaximum = false) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class RequiredRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public static readonly Hardened.Requests.Runtime.Validation.Rules.RequiredRule Instance;
-        public RequiredRule() { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
-    }
-    public class StringLengthRule : Hardened.Requests.Abstract.Validation.IValidationRule
-    {
-        public StringLengthRule(int? minLength, int? maxLength) { }
-        public void Validate(string parameterName, object? value, Hardened.Requests.Abstract.Validation.ValidationResult result) { }
     }
 }

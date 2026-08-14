@@ -1,0 +1,48 @@
+namespace Hardened.Templates.RazorBlade
+{
+    public interface IRazorBladeTemplateSource
+    {
+        System.Collections.Generic.IEnumerable<Hardened.Templates.RazorBlade.RazorBladeTemplateDescriptor> Templates { get; }
+    }
+    public static class RazorBladeTemplate
+    {
+        public const string HtmlContentType = "text/html; charset=utf-8";
+        public const string PlainTextContentType = "text/plain; charset=utf-8";
+        public static Hardened.Templates.RazorBlade.RazorBladeTemplateDescriptor Create<TModel>(string name, string contentType, System.Func<TModel, RazorBlade.RazorTemplate> factory) { }
+        public static Hardened.Templates.RazorBlade.RazorBladeTemplateDescriptor Html<TModel>(string name, System.Func<TModel, RazorBlade.HtmlTemplate> factory) { }
+        public static Hardened.Templates.RazorBlade.RazorBladeTemplateDescriptor PlainText<TModel>(string name, System.Func<TModel, RazorBlade.RazorTemplate> factory) { }
+    }
+    public sealed class RazorBladeTemplateDescriptor
+    {
+        public RazorBladeTemplateDescriptor(string name, string contentType, System.Func<object?, RazorBlade.RazorTemplate> factory) { }
+        public string ContentType { get; }
+        public string Name { get; }
+        public RazorBlade.RazorTemplate Create(object? model) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class RazorBladeTemplateLibrary : DependencyModules.Runtime.Interfaces.IDependencyModule
+    {
+        public RazorBladeTemplateLibrary() { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class RazorBladeTemplateLibraryAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public RazorBladeTemplateLibraryAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Templates.RazorBlade.Impl
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
+    public class RazorBladeTemplateEngine : Hardened.Requests.Abstract.Templates.ITemplateEngine
+    {
+        public RazorBladeTemplateEngine(System.Collections.Generic.IEnumerable<Hardened.Templates.RazorBlade.IRazorBladeTemplateSource> sources) { }
+        public bool CanRender(string templateName) { }
+        public string? ContentTypeFor(string templateName) { }
+        public System.Threading.Tasks.Task RenderAsync(string templateName, object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+}

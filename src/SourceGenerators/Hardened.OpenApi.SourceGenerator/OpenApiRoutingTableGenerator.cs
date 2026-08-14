@@ -17,8 +17,9 @@ internal static class OpenApiRoutingTableGenerator {
         SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
         ImmutableArray<HandlerInfo?> handlerInfos,
+        ImmutableArray<string> jsonTypeInfoResolvers,
         bool excludeFromCoverage = false) {
-        var outputString = GenerateCSharpRouteFile(models.Left, models.Right, handlerInfos, context.CancellationToken, excludeFromCoverage);
+        var outputString = GenerateCSharpRouteFile(models.Left, models.Right, handlerInfos, jsonTypeInfoResolvers, context.CancellationToken, excludeFromCoverage);
         var fileName = models.Left.EntryPointType.Name + ".OpenApiRouting";
         context.AddSource(fileName, outputString);
     }
@@ -27,11 +28,12 @@ internal static class OpenApiRoutingTableGenerator {
         EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers,
         ImmutableArray<HandlerInfo?> handlerInfos,
+        ImmutableArray<string> jsonTypeInfoResolvers,
         CancellationToken cancellationToken,
         bool excludeFromCoverage = false) {
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
-        CreateRoutingTable(appModel, handlers, handlerInfos, applicationFile, cancellationToken, excludeFromCoverage);
+        CreateRoutingTable(appModel, handlers, handlerInfos, jsonTypeInfoResolvers, applicationFile, cancellationToken, excludeFromCoverage);
 
         var outputContext = new OutputContext(
             new OutputContextOptions {
@@ -45,6 +47,7 @@ internal static class OpenApiRoutingTableGenerator {
         EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> endPointModels,
         ImmutableArray<HandlerInfo?> handlerInfos,
+        ImmutableArray<string> jsonTypeInfoResolvers,
         CSharpFileDefinition applicationFile,
         CancellationToken cancellationToken,
         bool excludeFromCoverage = false) {
@@ -69,7 +72,7 @@ internal static class OpenApiRoutingTableGenerator {
             appModel.EntryPointType.Namespace,
             appModel.EntryPointType.Name + ".OpenApiRoutingTable");
 
-        GenerateDependencyInjection(appClass, routingType, appModel, endPointModels, handlerInfos, cancellationToken);
+        GenerateDependencyInjection(appClass, routingType, appModel, endPointModels, handlerInfos, jsonTypeInfoResolvers, cancellationToken);
     }
 
     private static void CreateConstructor(ClassDefinition appClass) {
@@ -85,6 +88,7 @@ internal static class OpenApiRoutingTableGenerator {
         EntryPointSelector.Model applicationModel,
         IReadOnlyList<RequestHandlerModel> webEndPointModels,
         ImmutableArray<HandlerInfo?> handlerInfos,
+        ImmutableArray<string> jsonTypeInfoResolvers,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -102,16 +106,16 @@ internal static class OpenApiRoutingTableGenerator {
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
 
-        // Register the OpenAPI-generated JSON type info resolver for AOT serialization.
-        // The resolver lives in {RootNamespace}.Models; the service interfaces are in
-        // {RootNamespace}.Services, so strip the trailing segment and append Models.
-        if (webEndPointModels.Count > 0) {
-            var serviceNs = webEndPointModels[0].ControllerType.Namespace;
-            var rootNs = serviceNs.EndsWith(".Services")
-                ? serviceNs.Substring(0, serviceNs.Length - ".Services".Length)
-                : serviceNs;
+        // Register the OpenAPI-generated JSON type info resolvers for AOT serialization.
+        //
+        // One per spec file, by the name the build task emitted and recorded in the model. This used
+        // to derive a single "{RootNamespace}.Models.OpenApiJsonTypeInfoResolver" from the first
+        // handler's namespace, which meant two spec files in one project emitted two classes of that
+        // one name and the project did not compile - finding 3.1. Ordered so the emitted table does
+        // not reshuffle between builds.
+        foreach (var resolver in jsonTypeInfoResolvers.OrderBy(name => name, StringComparer.Ordinal)) {
             diMethod.AddIndentedStatement(new CodeOutputComponent(
-                $"serviceCollection.AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), global::{rootNs}.Models.OpenApiJsonTypeInfoResolver.Instance)"));
+                $"serviceCollection.AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), global::{resolver}.Instance)"));
         }
 
         // Register interface → implementation mappings from [Handler] classes

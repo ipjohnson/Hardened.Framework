@@ -32,49 +32,75 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
         <PackageReference Include="System.Memory" Version="4.5.5" />
-        <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.22" GeneratePathProperty="true" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.OpenApi" Version="1.6.22" GeneratePathProperty="true" PrivateAssets="all" />
-        <PackageReference Include="SharpYaml" Version="2.1.1" GeneratePathProperty="true" PrivateAssets="all" />
     </ItemGroup>
 
+    <!--
+        The build task is built before anything can consume it, and packed into tasks/ below.
+        ReferenceOutputAssembly is false because nothing here binds against it: the task runs in
+        MSBuild, this runs in Roslyn, and they share source rather than an assembly.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.OpenApi.BuildTask\Hardened.OpenApi.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all"
+                          SetTargetFramework="TargetFramework=net8.0"/>
+    </ItemGroup>
+
+    <!--
+        PackagePath must use a forward slash. A trailing backslash packs to "build//" on Linux and
+        macOS, and NuGet only auto-imports build/$(PackageId).targets - so at "build//" the file
+        shipped and was never imported. That was survivable when this targets file only declared
+        CompilerVisibleProperty entries; it is not now that it carries the build task that parses
+        every spec.
+    -->
     <ItemGroup>
         <Content Include="Package\Hardened.OpenApi.SourceGenerator.*">
             <Pack>true</Pack>
-            <PackagePath>build\</PackagePath>
+            <PackagePath>build/</PackagePath>
             <PackageCopyToOutput>true</PackageCopyToOutput>
         </Content>
     </ItemGroup>
 
-    <!-- Pack the analyzer DLL (now self-contained with embedded dependencies) into the NuGet folder -->
+    <!--
+        The analyzer DLL, which now carries no dependencies of its own. Microsoft.OpenApi,
+        Microsoft.OpenApi.Readers and SharpYaml used to be embedded here as resources and loaded
+        through an AppDomain.AssemblyResolve hook, because Roslyn hosts do not reliably resolve
+        co-located analyzer dependencies. All of that moved to the build task, where dependencies
+        resolve normally.
+    -->
     <ItemGroup>
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
 
-    <!-- Bundle OpenAPI dependencies with the analyzer so they're available at compile time -->
-    <Target Name="GetDependencyTargetPaths" AfterTargets="ResolvePackageDependenciesForBuild">
-        <ItemGroup>
-            <TargetPathWithTargetPlatformMoniker Include="$(PkgMicrosoft_OpenApi_Readers)\lib\netstandard2.0\Microsoft.OpenApi.Readers.dll" IncludeRuntimeDependency="false" />
-            <TargetPathWithTargetPlatformMoniker Include="$(PkgMicrosoft_OpenApi)\lib\netstandard2.0\Microsoft.OpenApi.dll" IncludeRuntimeDependency="false" />
-            <TargetPathWithTargetPlatformMoniker Include="$(PkgSharpYaml)\lib\netstandard2.0\SharpYaml.dll" IncludeRuntimeDependency="false" />
-        </ItemGroup>
-    </Target>
-
-    <!-- Embed dependency DLLs as resources so the AssemblyResolve hook can load them in any host -->
+    <!--
+        Pack both task flavours. The targets file selects between them on $(MSBuildRuntimeType), so
+        the same package serves Visual Studio's .NET Framework MSBuild and the CLI's .NET one.
+    -->
     <ItemGroup>
-        <EmbeddedResource Include="$(PkgMicrosoft_OpenApi_Readers)\lib\netstandard2.0\Microsoft.OpenApi.Readers.dll" LogicalName="Microsoft.OpenApi.Readers.dll" Visible="false" />
-        <EmbeddedResource Include="$(PkgMicrosoft_OpenApi)\lib\netstandard2.0\Microsoft.OpenApi.dll" LogicalName="Microsoft.OpenApi.dll" Visible="false" />
-        <EmbeddedResource Include="$(PkgSharpYaml)\lib\netstandard2.0\SharpYaml.dll" LogicalName="SharpYaml.dll" Visible="false" />
+        <None Include="..\Hardened.OpenApi.BuildTask\bin\$(Configuration)\net472\**\*.dll"
+              Pack="true" PackagePath="tasks/net472" Visible="false"/>
+        <None Include="..\Hardened.OpenApi.BuildTask\bin\$(Configuration)\net8.0\**\*.dll"
+              Pack="true" PackagePath="tasks/net8.0" Visible="false"/>
     </ItemGroup>
 
     <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
+        <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CSharpAuthor" Version="1.1.1007">
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.1.1009">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
+        <ProjectReference Condition="'$(UseLocalCSharpAuthor)' == 'true'" Include="$(CSharpAuthorProject)" />
+    </ItemGroup>
+
+    <!-- Shared with the build task. See Hardened.OpenApi.Shared for why this is source and not a reference. -->
+    <ItemGroup>
+        <Compile Include="../Hardened.OpenApi.Shared/**/*.cs"
+                 Exclude="../Hardened.OpenApi.Shared/obj/**/*;../Hardened.OpenApi.Shared/bin/**/*">
+            <Link>Shared\OpenApi\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
     </ItemGroup>
 
     <!-- Link shared code from Hardened.SourceGenerator -->
@@ -96,5 +122,15 @@
         </Compile>
     </ItemGroup>
 
+
+    <!--
+        CSharpAuthor ships as source and is compiled in, so its files are analysed as if they were
+        ours - and it predates nullable reference types. Under ContinuousIntegrationBuild every
+        warning is an error, so its eight would fail the build. Scoped to the exact IDs rather than
+        disabling nullable analysis, which would take our own code with it.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
+    </PropertyGroup>
 
 </Project>

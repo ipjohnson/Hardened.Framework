@@ -178,17 +178,43 @@ public class ModelComparisonTests {
         Assert.NotEqual(baseline, baseline with { IsAsync = true });
         Assert.NotEqual(baseline, baseline with { IsAsyncEnumerable = true });
         Assert.NotEqual(baseline, baseline with { AsyncEnumerableItemType = Type("String") });
+        Assert.NotEqual(baseline, baseline with { TemplateName = "Index" });
         Assert.NotEqual(baseline, baseline with { RawResponseContentType = "text/csv" });
         Assert.NotEqual(baseline, baseline with { DefaultStatusCode = 201 });
     }
 
+    /// <summary>
+    /// Both response annotations appear, not whichever one was added most recently.
+    /// </summary>
+    /// <remarks>
+    /// This string is what a caching failure gets read through, and it has silently dropped one of
+    /// the two twice - once each way - as a side effect of removing and re-adding the template
+    /// annotation. A model that reports the same text for two different responses is the thing that
+    /// makes such a failure unreadable.
+    /// </remarks>
     [Fact]
-    public void AResponseModelDescribesItsAsyncnessRawContentTypeAndReturnType() {
+    public void AResponseModelDescribesBothOfItsResponseAnnotations() {
         var model = new ResponseInformationModel {
-            IsAsync = true, RawResponseContentType = "text/csv", ReturnType = Type("String")
+            IsAsync = true,
+            TemplateName = "Index",
+            RawResponseContentType = "text/csv",
+            ReturnType = Type("String")
         };
 
-        Assert.Equal("True:text/csv:System.String", model.ToString());
+        Assert.Equal("True:Index:text/csv:System.String", model.ToString());
+    }
+
+    /// <summary>
+    /// And two responses differing only in the annotation the other one carries do not describe
+    /// themselves identically.
+    /// </summary>
+    [Fact]
+    public void TwoResponsesDifferingOnlyInWhichAnnotationTheyCarryDescribeThemselvesDifferently() {
+        var baseline = new ResponseInformationModel { ReturnType = Type("String") };
+
+        Assert.NotEqual(
+            (baseline with { TemplateName = "Index" }).ToString(),
+            (baseline with { RawResponseContentType = "Index" }).ToString());
     }
 
     /// <summary>

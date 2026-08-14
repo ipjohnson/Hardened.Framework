@@ -1,7 +1,5 @@
 using System.Collections.Immutable;
 using System.Linq;
-using System.Reflection;
-using Hardened.OpenApi.SourceGenerator.Emitters;
 using Hardened.OpenApi.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
@@ -11,36 +9,31 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.OpenApi.SourceGenerator;
 
+/// <summary>
+/// Turns normalised OpenAPI models into handlers and a routing table.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>This generator does not read yaml.</b> <c>Hardened.OpenApi.BuildTask</c> parses each spec
+/// before the compiler runs and writes a normalised model into <c>obj/</c>, which arrives here as an
+/// <c>AdditionalFile</c>. That is why there is no Microsoft.OpenApi, no SharpYaml, no embedded
+/// dependency assemblies, no <c>AssemblyResolve</c> hook and no RS1035 suppression - an analyzer is
+/// not allowed to touch the file system, and none of this needs to.
+/// </para>
+/// <para>
+/// What stays here is what needs the semantic model: handler classes, which are matched against
+/// <c>[Handler]</c> declarations, and the routing table, which is anchored on the entry point.
+/// Everything else is a pure spec-to-C# transformation and belongs in the task.
+/// </para>
+/// </remarks>
 [Generator]
 public class OpenApiSourceGenerator : IIncrementalGenerator {
-    private static readonly Dictionary<string, Assembly> _embeddedAssemblies = new();
-
-    static OpenApiSourceGenerator() {
-        // Some Roslyn hosts (Rider, older VS) don't resolve co-located analyzer
-        // dependencies. Pre-load all embedded dependencies so they share a single
-        // loading context and avoid type-identity mismatches.
-        var generatorAssembly = typeof(OpenApiSourceGenerator).Assembly;
-        foreach (var dllName in new[] { "Microsoft.OpenApi", "Microsoft.OpenApi.Readers", "SharpYaml" }) {
-            using var stream = generatorAssembly.GetManifestResourceStream(dllName + ".dll");
-            if (stream == null) continue;
-            var bytes = new byte[stream.Length];
-            stream.Read(bytes, 0, bytes.Length);
-#pragma warning disable RS1035 // Load embedded dependency DLLs for hosts that can't resolve co-located assemblies
-            _embeddedAssemblies[dllName] = Assembly.Load(bytes);
-#pragma warning restore RS1035
-        }
-
-        AppDomain.CurrentDomain.AssemblyResolve += (_, args) => {
-            var name = new AssemblyName(args.Name).Name;
-            return _embeddedAssemblies.TryGetValue(name!, out var asm) ? asm : null;
-        };
-    }
 
     public void Initialize(IncrementalGeneratorInitializationContext context) {
-        // Parse AdditionalTexts, keeping both successes and errors for diagnostics
+        // Read the models the build task wrote, keeping both successes and errors for diagnostics
         var parseResults = context.AdditionalTextsProvider
-            .Where(IsOpenApiFile)
-            .Select(ParseOpenApiFile);
+            .Where(IsSpecModelFile)
+            .Select(ReadSpecModel);
 
         var openApiFiles = parseResults
             .Where(r => r.Model != null)
@@ -100,7 +93,7 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
         var handlerModels = specWithNamespace.Select((pair, ct) => {
             if (pair.Left == null) return ImmutableArray<RequestHandlerModel>.Empty;
             var ns = pair.Right;
-            return RequestModelBuilder.BuildModels(pair.Left, ns + ".Models", ns + ".Services", ns + ".Generated")
+            return RequestModelBuilder.BuildModels(pair.Left, ns + ".Models", ns + ".Services", ns + ".Generated", ns + ".Validation")
                 .ToImmutableArray();
         });
 
@@ -110,11 +103,16 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             HandlerSelector.Transform
         ).Where(info => info != null).Collect();
 
-        // Emit records, enums, and interfaces
-        // Combined with handlerInfoProvider (SyntaxProvider) so Rider's design-time host triggers evaluation
-        context.RegisterSourceOutput(specWithConfig.Combine(handlerInfoProvider),
-            SourceGeneratorWrapper.Wrap<((OpenApiSpecModel? Left, (string Namespace, bool ExcludeFromCoverage) Right) Left, ImmutableArray<HandlerInfo?> Right)>(
-                (ctx, pair) => EmitTypes(ctx, pair.Left)));
+        // The resolver names the task emitted, fully qualified. Collected across every spec, because
+        // each spec now produces its own resolver - one flat OpenApiJsonTypeInfoResolver per project
+        // is what made two spec files in one project fail to compile.
+        var resolverNames = specWithNamespace
+            .Select((pair, _) => pair.Left is { JsonTypeInfoResolverName.Length: > 0 } spec
+                ? $"{pair.Right}.Models.{spec.JsonTypeInfoResolverName}"
+                : null)
+            .Where(name => name is not null)
+            .Select((name, _) => name!)
+            .Collect();
 
         // Collect all handler models across all spec files
         var allHandlerModels = handlerModels.Collect().Select((arrays, _) => {
@@ -160,99 +158,42 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             EntryPointSelector.TransformModel(false)
         ).WithComparer(new EntryPointSelector.Comparer());
 
-        // Combine entry point with enriched handler models, handler infos, and config for routing table
-        var routeProvider = entryPointProvider.Combine(enrichedModels).Combine(handlerInfoProvider).Combine(excludeFromCoverageProvider);
+        // Combine entry point with enriched handler models, handler infos, resolvers and config
+        var routeProvider = entryPointProvider
+            .Combine(enrichedModels)
+            .Combine(handlerInfoProvider)
+            .Combine(resolverNames)
+            .Combine(excludeFromCoverageProvider);
 
         context.RegisterSourceOutput(routeProvider,
-            SourceGeneratorWrapper.Wrap<(((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, bool Right)>(
-                (ctx, pair) => OpenApiRoutingTableGenerator.GenerateRoute(ctx, pair.Left.Left, pair.Left.Right!, pair.Right)));
+            SourceGeneratorWrapper.Wrap<((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<string> Right) Left, bool Right)>(
+                (ctx, pair) => OpenApiRoutingTableGenerator.GenerateRoute(
+                    ctx, pair.Left.Left.Left, pair.Left.Left.Right!, pair.Left.Right, pair.Right)));
     }
 
-    private static bool IsOpenApiFile(AdditionalText text) {
-        var path = text.Path;
-        return path.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) ||
-               path.EndsWith(".yml", StringComparison.OrdinalIgnoreCase) ||
-               path.EndsWith(".json", StringComparison.OrdinalIgnoreCase);
-    }
+    /// <summary>
+    /// Matches only what the build task writes.
+    /// </summary>
+    /// <remarks>
+    /// This used to match <c>.yaml</c>, <c>.yml</c> and <c>.json</c>, which meant every unrelated
+    /// AdditionalFile in a project - an editorconfig fragment, a settings file - was handed to the
+    /// OpenAPI reader and reported as a parse failure. The suffix is ours, so nothing else claims it.
+    /// </remarks>
+    private static bool IsSpecModelFile(AdditionalText text) =>
+        text.Path.EndsWith(SpecModelSuffix, StringComparison.OrdinalIgnoreCase);
 
-    private static (OpenApiSpecModel? Model, string? Error) ParseOpenApiFile(AdditionalText text, CancellationToken cancellationToken) {
+    private const string SpecModelSuffix = ".openapi-model.txt";
+
+    private static (OpenApiSpecModel? Model, string? Error) ReadSpecModel(AdditionalText text, CancellationToken cancellationToken) {
         var content = text.GetText(cancellationToken)?.ToString();
         if (string.IsNullOrEmpty(content)) {
             return (null, $"Empty content for {text.Path}");
         }
 
-        var fileName = System.IO.Path.GetFileNameWithoutExtension(text.Path);
-
         try {
-            var model = OpenApiSpecParser.Parse(content!, fileName, cancellationToken);
-            return model != null ? (model, null) : (null, $"Parser returned null for {text.Path}");
+            return (SpecModelSerializer.Read(content!), null);
         } catch (Exception ex) {
             return (null, $"{text.Path}: {ex.GetType().Name}: {ex.Message}");
-        }
-    }
-
-    private static void EmitTypes(SourceProductionContext context,
-        (OpenApiSpecModel? Left, (string Namespace, bool ExcludeFromCoverage) Right) pair) {
-        var spec = pair.Left;
-        var ns = pair.Right.Namespace;
-        var excludeFromCoverage = pair.Right.ExcludeFromCoverage;
-
-        if (spec == null) return;
-
-        foreach (var schema in spec.Schemas) {
-            context.CancellationToken.ThrowIfCancellationRequested();
-
-            switch (schema.Kind) {
-                case SchemaKind.Object:
-                    var recordSource = RecordEmitter.Emit(schema, ns, excludeFromCoverage);
-                    context.AddSource($"{spec.FileName}.{schema.Name}.g.cs", recordSource);
-                    break;
-
-                case SchemaKind.Enum:
-                    var enumSource = EnumEmitter.Emit(schema, ns);
-                    context.AddSource($"{spec.FileName}.{schema.Name}.g.cs", enumSource);
-                    break;
-            }
-        }
-
-        foreach (var service in spec.Services) {
-            context.CancellationToken.ThrowIfCancellationRequested();
-
-            var interfaceSource = ServiceInterfaceEmitter.Emit(service, ns);
-            var interfaceName = NamingHelper.ToInterfaceName(service.Tag);
-            context.AddSource($"{spec.FileName}.{interfaceName}.g.cs", interfaceSource);
-        }
-
-        // Emit JsonTypeInfoResolver for AOT serialization
-        var resolverSource = JsonTypeInfoEmitter.Emit(spec.Schemas, ns, excludeFromCoverage);
-        context.AddSource($"{spec.FileName}.OpenApiJsonTypeInfoResolver.g.cs", resolverSource);
-
-        // Emit partial attribute classes from x-filter-types (skip externally-defined types)
-        foreach (var filterType in spec.FilterTypes) {
-            if (!filterType.Generate) continue;
-
-            context.CancellationToken.ThrowIfCancellationRequested();
-
-            var filterSource = FilterTypeEmitter.Emit(filterType, excludeFromCoverage);
-            context.AddSource(
-                $"{spec.FileName}.{filterType.ClassName}.g.cs",
-                filterSource);
-        }
-
-        // Emit validation filter providers for operations with validation constraints
-        foreach (var service in spec.Services) {
-            foreach (var operation in service.Operations) {
-                context.CancellationToken.ThrowIfCancellationRequested();
-
-                var validationSource = ValidationFilterEmitter.Emit(
-                    operation, ns + ".Generated", ns + ".Models", excludeFromCoverage);
-                if (validationSource != null) {
-                    var filterName = NamingHelper.ToPascalCase(operation.OperationId);
-                    context.AddSource(
-                        $"{spec.FileName}.{filterName}_ValidationFilterProvider.g.cs",
-                        validationSource);
-                }
-            }
         }
     }
 

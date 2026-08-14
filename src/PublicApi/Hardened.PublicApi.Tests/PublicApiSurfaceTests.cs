@@ -41,6 +41,7 @@ public class PublicApiSurfaceTests {
         "Hardened.Shared.Runtime",
         "Hardened.Shared.Testing",
         "Hardened.SourceGeneration.Testing",
+        "Hardened.Templates.RazorBlade",
         "Hardened.Web.AspNetCore.Runtime",
         "Hardened.Web.Kestrel.Runtime",
         "Hardened.Web.Runtime",

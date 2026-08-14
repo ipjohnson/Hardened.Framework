@@ -9,4 +9,99 @@
         <CompilerVisibleProperty Include="HardenedOpenApiNamespace"/>
         <CompilerVisibleProperty Include="HardenedOpenApiGenerateJsonSerializers"/>
     </ItemGroup>
+
+    <!--
+        The spec is parsed by an MSBuild task, before the compiler runs, and the generator reads the
+        normalised model the task writes. MSBuild runs first, so a file it puts into @(Compile) or
+        @(AdditionalFiles) is indistinguishable from one a human wrote - which is also what will let
+        spec-driven patterns reach [GeneratedRegex], something a generator cannot emit for itself.
+    -->
+    <PropertyGroup>
+        <_HardenedOpenApiTasksDir Condition="'$(MSBuildRuntimeType)' == 'Core'">$(MSBuildThisFileDirectory)../tasks/net8.0/</_HardenedOpenApiTasksDir>
+        <_HardenedOpenApiTasksDir Condition="'$(MSBuildRuntimeType)' != 'Core'">$(MSBuildThisFileDirectory)../tasks/net472/</_HardenedOpenApiTasksDir>
+        <HardenedOpenApiTaskAssembly Condition="'$(HardenedOpenApiTaskAssembly)' == ''">$(_HardenedOpenApiTasksDir)Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
+    </PropertyGroup>
+
+    <UsingTask TaskName="Hardened.OpenApi.BuildTask.ExtractOpenApiSpec"
+               AssemblyFile="$(HardenedOpenApiTaskAssembly)"/>
+
+    <!--
+        The model directory is resolved inside a target, not in a PropertyGroup up here.
+        $(IntermediateOutputPath) is set by Microsoft.Common.CurrentVersion.targets, so at import
+        time it is defined for a package - build/*.targets is imported last - and empty for anyone
+        importing this file from the body of a csproj. Empty meant the models were written to
+        ./openapi/ beside the project instead of into obj/, and because that directory then survived
+        every clean, the Inputs/Outputs check reported the target up to date while the compiler saw
+        no models at all.
+    -->
+    <Target Name="HardenedOpenApiResolveModelDir">
+        <PropertyGroup>
+            <HardenedOpenApiModelDir Condition="'$(HardenedOpenApiModelDir)' == ''">$(IntermediateOutputPath)openapi/</HardenedOpenApiModelDir>
+            <HardenedOpenApiGeneratedDir Condition="'$(HardenedOpenApiGeneratedDir)' == ''">$(HardenedOpenApiModelDir)generated/</HardenedOpenApiGeneratedDir>
+            <HardenedOpenApiNamespace Condition="'$(HardenedOpenApiNamespace)' == ''">$(RootNamespace)</HardenedOpenApiNamespace>
+            <HardenedOpenApiNamespace Condition="'$(HardenedOpenApiNamespace)' == ''">Generated</HardenedOpenApiNamespace>
+        </PropertyGroup>
+    </Target>
+
+    <!--
+        The task both emits C# and writes the normalised model, because it has the parsed spec in
+        hand either way and parsing it twice is the one thing this design exists to avoid.
+
+        Inputs/Outputs so an untouched spec does not re-run. Each spec produces exactly two files
+        whose names follow from its own, so both can be declared here - MSBuild has to be able to
+        list a target's outputs without running it, which is the whole reason the task emits one file
+        per spec rather than one per type.
+    -->
+    <Target Name="HardenedOpenApiExtractSpecs"
+            DependsOnTargets="HardenedOpenApiResolveModelDir"
+            Condition="'@(HardenedOpenApiSpec)' != ''"
+            Inputs="@(HardenedOpenApiSpec)"
+            Outputs="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename).openapi-model.txt');@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename).g.cs')">
+
+        <ExtractOpenApiSpec Specs="@(HardenedOpenApiSpec)"
+                            OutputDirectory="$(HardenedOpenApiModelDir)"
+                            GeneratedSourceDirectory="$(HardenedOpenApiGeneratedDir)"
+                            Namespace="$(HardenedOpenApiNamespace)"
+                            ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)">
+            <Output TaskParameter="ModelFiles" ItemName="_HardenedOpenApiModelWritten"/>
+            <Output TaskParameter="GeneratedSources" ItemName="_HardenedOpenApiSourceWritten"/>
+        </ExtractOpenApiSpec>
+    </Target>
+
+    <!--
+        Always runs, even when the target above is skipped as up to date: a skipped target
+        contributes nothing to @(Compile) or @(AdditionalFiles), and the compiler would then see
+        neither the emitted types nor the models. Both come from the same transform as the target's
+        Outputs rather than from a directory glob, so removing a spec removes its generated code from
+        the compilation instead of leaving whatever an earlier build wrote to be picked up.
+    -->
+    <Target Name="HardenedOpenApiAddModels"
+            DependsOnTargets="HardenedOpenApiExtractSpecs"
+            BeforeTargets="CoreCompile"
+            Condition="'@(HardenedOpenApiSpec)' != ''">
+
+        <ItemGroup>
+            <AdditionalFiles Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename).openapi-model.txt')"/>
+            <Compile Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename).g.cs')" Visible="false"/>
+        </ItemGroup>
+
+        <!--
+            A model that is missing here means the target above was skipped as up to date against
+            files that are not there. Silence would surface as an empty generator run and a project
+            full of missing types.
+        -->
+        <Error Condition="!Exists('%(AdditionalFiles.FullPath)') And '%(AdditionalFiles.Extension)' == '.txt' And $([System.String]::Copy('%(AdditionalFiles.Filename)').EndsWith('.openapi-model'))"
+               Code="HOAT004"
+               Text="The OpenAPI model '%(AdditionalFiles.Identity)' was not written. Delete $(HardenedOpenApiModelDir) and rebuild."/>
+    </Target>
+
+    <!--
+        Specs used to be declared as AdditionalFiles and parsed inside the generator. That silently
+        generates nothing now, so say so rather than leaving the author to find an empty obj folder.
+    -->
+    <Target Name="HardenedOpenApiWarnOnLegacySpecItems" BeforeTargets="HardenedOpenApiExtractSpecs">
+        <Error Condition="'@(HardenedOpenApiSpec)' == '' And '@(AdditionalFiles)' != '' And '%(AdditionalFiles.Extension)' == '.yaml'"
+               Code="HOAT003"
+               Text="OpenAPI specs are declared with &lt;HardenedOpenApiSpec Include=&quot;%(AdditionalFiles.Identity)&quot; /&gt; rather than &lt;AdditionalFiles&gt;. The generator no longer reads yaml directly - a build task parses it first."/>
+    </Target>
 </Project>

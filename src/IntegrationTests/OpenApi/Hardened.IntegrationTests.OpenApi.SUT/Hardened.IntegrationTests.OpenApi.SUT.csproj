@@ -18,11 +18,29 @@
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Hardened.OpenApi.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
+    <!--
+        In-repo wiring for the build task, which the package does through build/*.targets. The
+        ProjectReference exists only to order the build - nothing here binds against the task
+        assembly - and HardenedOpenApiTaskAssembly points UsingTask at where that build puts it.
+    -->
     <ItemGroup>
-        <AdditionalFiles Include="Specs\petstore.yaml" />
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\Hardened.OpenApi.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          SetTargetFramework="TargetFramework=net8.0"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <HardenedOpenApiTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\bin\$(Configuration)\net8.0\Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
+    </PropertyGroup>
+
+    <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
+
+    <ItemGroup>
+        <HardenedOpenApiSpec Include="Specs\petstore.yaml" />
     </ItemGroup>
 
 </Project>

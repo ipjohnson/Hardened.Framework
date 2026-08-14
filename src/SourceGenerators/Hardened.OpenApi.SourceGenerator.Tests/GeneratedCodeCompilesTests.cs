@@ -41,11 +41,11 @@ public class GeneratedCodeCompilesTests {
     public void RecordsForEverySchemaShapeCompile() {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
-        var record = result.SourceContaining("Widget.g.cs");
+        var record = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial record Widget(", record);
         Assert.Contains("List<Part>? Parts = default", record);
-        Assert.Contains("Dictionary<string, string>? Labels = default", record);
+        Assert.Contains("Dictionary<string,string>? Labels = default", record);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public class GeneratedCodeCompilesTests {
     public void GeneratedEnumsCompile() {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
-        var generated = result.SourceContaining("WidgetStatus.g.cs");
+        var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public enum WidgetStatus", generated);
         Assert.Contains("JsonStringEnumConverter", generated);
@@ -71,7 +71,7 @@ public class GeneratedCodeCompilesTests {
     public void GeneratedServiceInterfacesCompile() {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
-        var generated = result.SourceContaining("IWidgetService");
+        var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial interface IWidgetService", generated);
         Assert.Contains("Task<List<Widget>> ListWidgets(", generated);
@@ -154,27 +154,51 @@ public class GeneratedCodeCompilesTests {
     }
 
     /// <summary>
-    /// The validation filter provider. It is the only emitted file that binds against
-    /// <c>Hardened.Requests.Runtime</c>, so a rule constructor whose signature drifted shows up here
-    /// and nowhere else.
+    /// The validation wiring, which spans both halves: the task emits an attributed interface, the
+    /// generator makes <c>Parameters</c> implement it and attaches a filter typed on it.
     /// </summary>
+    /// <remarks>
+    /// Worth asserting on the emitted text rather than only on compilation, because the failure mode
+    /// is silent. If <c>Parameters</c> does not implement the interface, the filter's type test does
+    /// not match and validation never runs on a build that is green.
+    /// </remarks>
     [Fact]
-    public void ValidationFilterProvidersCompileAgainstTheRealRuleTypes() {
+    public void ValidationIsWiredThroughTheInterfaceOntoTheHandler() {
         var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
 
-        var body = result.SourceContaining("CreateOrder_ValidationFilterProvider");
+        var handler = result.SourceContaining("OrderController_CreateOrder");
 
-        Assert.Contains("RequiredRule.Instance", body);
-        Assert.Contains("new StringLengthRule(3, 12)", body);
-        Assert.Contains("new PatternRule(\"^[A-Z0-9-]+$\")", body);
-        Assert.Contains("new RangeRule(1m, 999m, false, false)", body);
-        Assert.Contains("new RangeRule(0m, 1m, true, true)", body);
+        Assert.Contains("ValidateAttribute<", handler);
+        Assert.Contains("ICreateOrderParameters", handler);
+        Assert.Contains("class Parameters :", handler);
+    }
 
-        var parameters = result.SourceContaining("ListOrders_ValidationFilterProvider");
+    /// <summary>
+    /// The constraints a spec declares, as attributes on what the task emits.
+    /// </summary>
+    /// <remarks>
+    /// The task writes attributes and nothing else - no validator, no ValidationModules IR. The
+    /// validator comes from Hardened.Validation.SourceGenerator reading these out of the
+    /// compilation, which is the same scan that picks up [Required] on a hand-written class. That
+    /// generator is not in this harness, so what is asserted here is the input it will read.
+    /// </remarks>
+    [Fact]
+    public void SpecConstraintsBecomeAttributes() {
+        var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
 
-        Assert.Contains("new RangeRule(1m, 100m, false, false)", parameters);
-        Assert.Contains("new EnumRule(new string[] { \"asc\", \"desc\" })", parameters);
-        Assert.Contains("new ArrayBoundsRule(1, 10)", parameters);
+        var emitted = result.SourceContaining("petstore.g.cs");
+
+        // property:, or the attribute lands on a positional record's parameter and the generator
+        // reading properties never sees it.
+        Assert.Contains("[property: Required]", emitted);
+        Assert.Contains("[property: StringLength(", emitted);
+        Assert.Contains("[property: Range(", emitted);
+
+        // The reference form, pointing at a [GeneratedRegex] member the task also emits. The inline
+        // form would root the regex engine at 448 KB on an AOT publish.
+        Assert.Contains("[property: Pattern(typeof(", emitted);
+        Assert.Contains("GeneratedRegex(", emitted);
+        Assert.DoesNotContain("new Regex(", emitted);
     }
 
     /// <summary>
@@ -186,9 +210,9 @@ public class GeneratedCodeCompilesTests {
     public void TheJsonTypeInfoResolverCompiles() {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
-        var resolver = result.SourceContaining("OpenApiJsonTypeInfoResolver");
+        var resolver = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public sealed class OpenApiJsonTypeInfoResolver : IJsonTypeInfoResolver", resolver);
+        Assert.Contains("public sealed class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", resolver);
         Assert.Contains("if (type == typeof(Widget)) return CreateWidgetTypeInfo(options);", resolver);
         Assert.Contains("if (type == typeof(WidgetStatus)) return CreateWidgetStatusTypeInfo(options);", resolver);
         Assert.Contains("CreateListInfo<List<Part>, Part>", resolver);
@@ -214,7 +238,7 @@ public class GeneratedCodeCompilesTests {
                 public static class RoundTrip {
                     public static Widget Run(string json) {
                         var options = new JsonSerializerOptions {
-                            TypeInfoResolver = OpenApiJsonTypeInfoResolver.Instance
+                            TypeInfoResolver = PetstoreJsonTypeInfoResolver.Instance
                         };
 
                         return JsonSerializer.Deserialize<Widget>(json, options)!;
@@ -233,7 +257,7 @@ public class GeneratedCodeCompilesTests {
     public void AllOfCompositionCompiles() {
         var result = OpenApiGenerator.Run(Specs.AllOfComposition).AssertNoErrors();
 
-        var record = result.SourceContaining("Dog.g.cs");
+        var record = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("string Id,", record);
         Assert.Contains("string Breed,", record);
@@ -249,9 +273,9 @@ public class GeneratedCodeCompilesTests {
     public void FilterAttributesFromTheSpecCompile() {
         var result = OpenApiGenerator.Run(Specs.FilterTypes).AssertNoErrors();
 
-        var attribute = result.SourceContaining("RateLimitAttribute");
+        var attribute = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public partial class RateLimitAttribute : System.Attribute", attribute);
+        Assert.Contains("public partial class RateLimitAttribute : Attribute", attribute);
         Assert.Contains("public int MaxRequests { get; set; } = 100;", attribute);
         Assert.Contains("public string Window { get; set; } = \"minute\";", attribute);
         Assert.Contains("public bool Enabled { get; set; } = true;", attribute);
@@ -283,7 +307,7 @@ public class GeneratedCodeCompilesTests {
     public void AParameterMarkedCodegenExcludeIsNotGenerated() {
         var result = OpenApiGenerator.Run(Specs.CodegenExcludedParameter).AssertNoErrors();
 
-        var generated = result.SourceContaining("IThingService");
+        var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("ListThings(int? page)", generated);
         Assert.DoesNotContain("traceId", generated);
@@ -309,7 +333,7 @@ public class GeneratedCodeCompilesTests {
                     id: { type: string }
             """).AssertNoErrors();
 
-        Assert.Contains("public partial record Orphan(", result.SourceContaining("Orphan.g.cs"));
+        Assert.Contains("public partial record Orphan(", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -330,7 +354,7 @@ public class GeneratedCodeCompilesTests {
                   type: object
             """).AssertNoErrors();
 
-        Assert.Contains("public partial record Empty;", result.SourceContaining("Empty.g.cs"));
+        Assert.Contains("public partial record Empty;", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -354,7 +378,7 @@ public class GeneratedCodeCompilesTests {
                     event: { type: string }
             """).AssertNoErrors();
 
-        var record = result.SourceContaining("Booking.g.cs");
+        var record = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("string Class,", record);
         Assert.Contains("string Event)", record);
@@ -386,9 +410,9 @@ public class GeneratedCodeCompilesTests {
                     tracking_number: { type: string }
             """).AssertNoErrors();
 
-        Assert.Contains("public partial record ShippingLabel(", result.SourceContaining("shipping-label.g.cs"));
-        Assert.Contains("public partial interface IShippingLabelService", result.SourceContaining("IShippingLabelService"));
-        Assert.Contains("ListShippingLabels(", result.SourceContaining("IShippingLabelService"));
+        Assert.Contains("public partial record ShippingLabel(", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("public partial interface IShippingLabelService", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("ListShippingLabels(", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -456,7 +480,7 @@ public class GeneratedCodeCompilesTests {
                     '200': { description: ok }
             """).AssertNoErrors();
 
-        Assert.Contains("GetShippingLabelsHistory(", result.SourceContaining("ILabelService"));
+        Assert.Contains("GetShippingLabelsHistory(", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -477,7 +501,7 @@ public class GeneratedCodeCompilesTests {
                     '200': { description: ok }
             """).AssertNoErrors();
 
-        Assert.Contains("public partial interface IDefaultService", result.SourceContaining("IDefaultService"));
+        Assert.Contains("public partial interface IDefaultService", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -515,7 +539,7 @@ public class GeneratedCodeCompilesTests {
                 "namespace TestNamespace; public class NotAModule { }")
             .AssertNoErrors();
 
-        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("Pet.g.cs"));
+        Assert.Contains("public partial record Pet", result.GeneratedSources["petstore.g.cs"]);
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("OpenApiRouting"));
     }
 
@@ -598,6 +622,6 @@ public class GeneratedCodeCompilesTests {
                             format: int64
             """).AssertNoErrors();
 
-        Assert.Contains("Task<long> GetCount(", result.SourceContaining("IStatService"));
+        Assert.Contains("Task<long> GetCount(", result.SourceContaining("petstore.g.cs"));
     }
 }

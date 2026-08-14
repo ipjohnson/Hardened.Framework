@@ -23,6 +23,30 @@
     </PropertyGroup>
 
     <!--
+      The ValidationModules version, in one place, because two projects consume it in two
+      different shapes - Hardened.Requests.Runtime binds against the runtime assembly, and the
+      generators compile the source-only Impl package in. Those must be the same version: the
+      generators emit calls against contracts the runtime supplies, and a version skew between
+      them is a compile error in generated code, which reads as a generator defect.
+
+      On nuget.org since 0.1.0-alpha.1. It used to come from GitHub Packages, which is why this
+      repository configured that feed at all - and why a restore could fail with NU1301 when the
+      feed answered 401, since a source that cannot be reached is fatal once something is only
+      served there. Nothing here needs an authenticated feed any more.
+
+      Still pinned rather than floating. A floating range makes NuGet enumerate versions from every
+      configured source on every restore, which is slower and reintroduces a dependency on all of
+      them being reachable. Hardened.Amz floats on this repository's packages because they are all
+      on one feed; that is not the situation here.
+
+      Bumping it is a deliberate edit, which is also what makes a ValidationModules change arrive
+      in a reviewable commit rather than on whichever day CI happened to rerun.
+    -->
+    <PropertyGroup>
+        <ValidationModulesVersion Condition="'$(ValidationModulesVersion)' == ''">0.1.0-alpha.1</ValidationModulesVersion>
+    </PropertyGroup>
+
+    <!--
       The solution builds warning-free. Escalating warnings to errors is what keeps it that
       way; without it the count drifts back up one commit at a time.
 

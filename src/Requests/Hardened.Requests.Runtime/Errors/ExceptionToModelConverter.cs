@@ -8,11 +8,21 @@ namespace Hardened.Requests.Runtime.Errors;
 [SingletonService(Using = RegistrationType.Try)]
 public class ExceptionToModelConverter : IExceptionToModelConverter {
     public (int, object) ConvertExceptionToModel(IExecutionContext context, Exception exp) {
-        if (exp is ValidationException validationException) {
+        // Both routes to a validation failure land here. The filter throws Hardened's exception,
+        // which is a BadRequestException; a handler calling ValidateAndThrow itself throws
+        // ValidationModules'. One mapper, rather than two shapes that agree by duplication - which
+        // is what that type's own documentation asks a framework to do.
+        var validationResult = exp switch {
+            ValidationException hardened => hardened.ValidationResult,
+            ValidationModules.ValidationException validationModules => validationModules.Result,
+            _ => null
+        };
+
+        if (validationResult != null) {
             var errorModel = new RequestValidationError {
                 Type = "ValidationError",
-                Message = validationException.Message,
-                Errors = validationException.ValidationResult.Errors.Select(e => new RequestValidationFieldError {
+                Message = exp.Message,
+                Errors = validationResult.Errors.Select(e => new RequestValidationFieldError {
                     Field = e.Field,
                     Code = e.Code,
                     Message = e.Message

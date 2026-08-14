@@ -138,8 +138,17 @@ public class TestWebApp : TestContext, ITestWebApp {
             pathMinusQuery = path.Substring(0, questionMark);
         }
 
+        // Read from the headers the caller set rather than passed as "", which is what it used to
+        // be. TestExecutionRequest takes Accept as a constructor argument instead of parsing it, so
+        // hardcoding it here meant a test could set the header and the pipeline would never see it -
+        // silently, since an empty Accept is a legitimate request. Content negotiation was
+        // untestable through this host, which is how a serializer that ignored Accept entirely
+        // passed every integration test it had.
+        header.TryGetValue(KnownHeaders.Accept, out var accept);
+
         var request =
-            new TestExecutionRequest(httpMethod, pathMinusQuery, "", ParseQueryStringFromPath(path)) {
+            new TestExecutionRequest(
+                httpMethod, pathMinusQuery, accept.ToString(), ParseQueryStringFromPath(path)) {
                 Headers = header
             };
         var responseHeaders = new Dictionary<string, StringValues>();

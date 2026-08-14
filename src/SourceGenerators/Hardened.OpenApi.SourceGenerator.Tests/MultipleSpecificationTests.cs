@@ -3,21 +3,20 @@ using Xunit;
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
 /// <summary>
-/// A project with more than one OpenAPI document in <c>AdditionalFiles</c>.
+/// A project with more than one OpenAPI document.
 ///
 /// <para>
-/// The OpenAPI guide says the specification's file name becomes the prefix on generated file names
-/// "so a project can carry several specs without collision". The first half holds and is asserted
-/// below. The second does not: every specification emits its own <c>OpenApiJsonTypeInfoResolver</c>
-/// into <c>&lt;RootNamespace&gt;.Models</c> as a non-partial sealed class, so a second document makes
-/// the build fail with CS0101 whatever the documents contain.
+/// The specification's file name becomes the prefix on generated file names, so a project can carry
+/// several specs without collision. Both halves of that hold now. They did not: every specification
+/// emitted its own <c>OpenApiJsonTypeInfoResolver</c> into <c>&lt;RootNamespace&gt;.Models</c> as a
+/// non-partial sealed class, so a second document failed the build with CS0101 whatever the
+/// documents contained - finding 3.1 of OPENAPI-GENERATOR-FINDINGS.md.
 /// </para>
 ///
 /// <para>
-/// That is why nothing here ends in <c>AssertNoErrors</c>, and it is the one place in this suite
-/// where the rule is not followed. Writing the compile assertion would mean asserting the defect;
-/// see the workstream report. When the resolver is emitted once per project — or made
-/// <c>partial</c> — these tests should gain the assertion.
+/// The resolver is named after its spec now, and named in one place - the build task - which then
+/// tells the generator what to register. So these tests assert compilation rather than describing
+/// why they could not, which is what this file said until the task took over naming.
 /// </para>
 /// </summary>
 public class MultipleSpecificationTests {
@@ -34,12 +33,17 @@ public class MultipleSpecificationTests {
     /// </summary>
     [Fact]
     public void EachSpecificationsFilesCarryItsOwnNameAsAPrefix() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint);
+        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
 
-        Assert.Contains("pets.Pet.g.cs", result.GeneratedSources.Keys);
-        Assert.Contains("pets.IPetService.g.cs", result.GeneratedSources.Keys);
-        Assert.Contains("stores.Store.g.cs", result.GeneratedSources.Keys);
-        Assert.Contains("stores.IStoreService.g.cs", result.GeneratedSources.Keys);
+        Assert.Contains("pets.g.cs", result.GeneratedSources.Keys);
+        Assert.Contains("stores.g.cs", result.GeneratedSources.Keys);
+
+        // Each document's types land in its own file, so two documents declaring a Pet do not
+        // overwrite one another.
+        Assert.Contains("record Pet", result.GeneratedSources["pets.g.cs"]);
+        Assert.Contains("IPetService", result.GeneratedSources["pets.g.cs"]);
+        Assert.Contains("record Store", result.GeneratedSources["stores.g.cs"]);
+        Assert.Contains("IStoreService", result.GeneratedSources["stores.g.cs"]);
     }
 
     /// <summary>
@@ -48,7 +52,7 @@ public class MultipleSpecificationTests {
     /// </summary>
     [Fact]
     public void NoHintNameIsEmittedTwiceAcrossSpecifications() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint);
+        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
 
         Assert.Empty(result.DuplicateHintNames);
         Assert.Empty(result.GeneratorExceptions);
@@ -60,7 +64,7 @@ public class MultipleSpecificationTests {
     /// </summary>
     [Fact]
     public void EachSpecificationGetsItsOwnHandlersNamedFromItsTags() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint);
+        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
 
         Assert.Contains("PetController_ListPets.cs", result.GeneratedSources.Keys);
         Assert.Contains("StoreController_ListStores.cs", result.GeneratedSources.Keys);
@@ -72,7 +76,7 @@ public class MultipleSpecificationTests {
     /// </summary>
     [Fact]
     public void BothSpecificationsRoutesReachTheSameRoutingTable() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint);
+        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
 
         var routing = result.SourceContaining("OpenApiRouting");
 
@@ -86,14 +90,16 @@ public class MultipleSpecificationTests {
     /// </summary>
     [Fact]
     public void TheDiagnosticFileCountsEverySpecification() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint);
+        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
 
         var diagnosticFile = result.GeneratedSources[OpenApiGenerator.DiagnosticHintName];
 
         Assert.Contains("Total AdditionalTexts: 2", diagnosticFile);
         Assert.Contains("OpenAPI files parsed: 2", diagnosticFile);
-        Assert.Contains("pets.yaml", diagnosticFile);
-        Assert.Contains("stores.yaml", diagnosticFile);
+
+        // The paths are the models the build task wrote, not the specs it read from.
+        Assert.Contains("pets.openapi-model.txt", diagnosticFile);
+        Assert.Contains("stores.openapi-model.txt", diagnosticFile);
     }
 
     /// <summary>
@@ -111,6 +117,6 @@ public class MultipleSpecificationTests {
 
         Assert.Contains("OpenAPI files parsed: 2",
             result.GeneratedSources[OpenApiGenerator.DiagnosticHintName]);
-        Assert.Contains("pets.IPetService.g.cs", result.GeneratedSources.Keys);
+        Assert.Contains("IPetService", result.GeneratedSources["pets.g.cs"]);
     }
 }

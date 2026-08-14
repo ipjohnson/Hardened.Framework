@@ -4,71 +4,79 @@
     "branch": 92.8
   },
   "Hardened.Console.SourceGenerator": {
-    "line": 43.9,
-    "branch": 37.6
+    "line": 44.5,
+    "branch": 37.5
   },
   "Hardened.DependencyModules.SourceGenerator": {
-    "line": 23.7,
-    "branch": 13.5
+    "line": 23.8,
+    "branch": 13.8
   },
   "Hardened.Library.SourceGenerator": {
-    "line": 44.1,
-    "branch": 36.2
+    "line": 44.7,
+    "branch": 36.0
   },
   "Hardened.OpenApi.SourceGenerator": {
-    "line": 63.1,
-    "branch": 56.1
+    "line": 67.4,
+    "branch": 63.7
   },
   "Hardened.Requests.Abstract": {
-    "line": 71.9,
-    "branch": 78.2
+    "line": 80.7,
+    "branch": 89.3
   },
   "Hardened.Requests.Runtime": {
-    "line": 80.4,
-    "branch": 80.7
+    "line": 82.4,
+    "branch": 83.2
   },
   "Hardened.Requests.Serializers.Newtonsoft": {
     "line": 0.0,
     "branch": 0.0
   },
   "Hardened.Requests.Testing": {
-    "line": 92.8,
-    "branch": 90.9
+    "line": 93.8,
+    "branch": 91.6
   },
   "Hardened.Shared.Runtime": {
     "line": 90.4,
-    "branch": 84.5
+    "branch": 85.2
   },
   "Hardened.Shared.Testing": {
     "line": 75.9,
     "branch": 56.5
   },
   "Hardened.SourceGeneration.Testing": {
-    "line": 80.3,
-    "branch": 70.9
+    "line": 80.9,
+    "branch": 74.1
   },
   "Hardened.SourceGenerator": {
-    "line": 53.3,
-    "branch": 47.7
+    "line": 59.2,
+    "branch": 43.9
+  },
+  "Hardened.Templates.RazorBlade": {
+    "line": 100.0,
+    "branch": 90.0
+  },
+  "Hardened.Validation.SourceGenerator": {
+    "line": 8.7,
+    "branch": 9.5
   },
   "Hardened.Web.AspNetCore.Runtime": {
-    "line": 38.2,
-    "branch": 76.4
+    "line": 65.5,
+    "branch": 80.0
   },
   "Hardened.Web.Kestrel.Runtime": {
     "line": 96.5,
     "branch": 84.2
   },
   "Hardened.Web.Runtime": {
-    "line": 70.3,
-    "branch": 71.8
+    "line": 100.0,
+    "branch": 98.4
   },
   "Hardened.Web.SourceGenerator": {
-    "line": 49.0,
-    "branch": 40.8
+    "line": 50.8,
+    "branch": 37.1
   },
   "Hardened.Web.Testing": {
-    "line": 95.7,
+    "line": 95.8,
     "branch": 86.6
   }
 }
