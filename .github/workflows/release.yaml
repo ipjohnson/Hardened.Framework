@@ -31,12 +31,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      # No source-url, and no NUGET_AUTH_TOKEN. Restore reads src/nuget.config, which is nuget.org
+      # and nothing else since ValidationModules was published there at 0.1.0-alpha.1.
+      #
+      # Pointing setup-dotnet at GitHub Packages writes a nuget.config whose credential is the
+      # literal string %NUGET_AUTH_TOKEN%, expanded by NuGet when it restores rather than when the
+      # config is written - so the variable has to still be set several steps later, and here it was
+      # scoped to this step. An authenticated source that answers 401 is fatal to the whole restore
+      # rather than to the packages it serves, so the restore below would have failed on the first
+      # tag anyone pushed. build-package.yaml and benchmarks.yaml carried the same arrangement and
+      # were fixed the same way.
+      #
+      # Both push steps are unaffected: each names its feed and key on the command line.
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-          source-url: https://nuget.pkg.github.com/ipjohnson/index.json
-        env:
-          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - name: Resolve version
         id: version
