@@ -150,7 +150,14 @@ jobs:
       # consumer failed to restore it.
       - name: Verify every expected package was produced
         run: |
-          EXPECTED=19
+          # Deliberately a literal rather than derived from the list above. Counting the list
+          # would make this agree with itself and check nothing; a number someone has to change
+          # is what makes adding a package a two-line edit instead of a silent one.
+          #
+          # 19 when the list was written. #108 added Hardened.Templates.RazorBlade and
+          # Hardened.Validation.SourceGenerator to the pack list and did not update this, which is
+          # what this step is for - it failed the v0.1.0-rc1 release before anything was pushed.
+          EXPECTED=21
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
