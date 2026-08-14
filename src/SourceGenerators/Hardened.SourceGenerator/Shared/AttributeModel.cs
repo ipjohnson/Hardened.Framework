@@ -176,9 +176,25 @@ public static class AttributeModelHelper {
                     break;
             }
 
-            return qualified == null
-                ? null
-                : SyntaxFactory.ParseExpression(qualified).WithTriviaFrom(node);
+            if (qualified == null) {
+                return null;
+            }
+
+            // ParseTypeName for a type, ParseExpression for a member.
+            //
+            // They produce different syntax for the same text: "global::N.T" parses as a
+            // QualifiedNameSyntax one way and a MemberAccessExpressionSyntax the other, and both
+            // print identically, so the difference is invisible until something asks for the node's
+            // type. VisitTypeOfExpression does - it casts the rewritten operand back to TypeSyntax -
+            // and a MemberAccessExpressionSyntax there threw InvalidCastException out of the
+            // rewriter and failed the whole generator, so any filter attribute carrying a typeof
+            // argument took the build down with it. TypeSyntax derives from ExpressionSyntax, so a
+            // type is still valid everywhere an expression was.
+            ExpressionSyntax replacement = symbol is ITypeSymbol
+                ? SyntaxFactory.ParseTypeName(qualified)
+                : SyntaxFactory.ParseExpression(qualified);
+
+            return replacement.WithTriviaFrom(node);
         }
 
         private static string? FullyQualifiedMember(INamedTypeSymbol? containingType, string name) =>
