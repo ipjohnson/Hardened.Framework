@@ -59,7 +59,10 @@ internal static class OperationParameters {
             // [ValidateNested] is what makes the generated validator descend, which is what gives
             // body errors their "body." prefix and distinguishes them from a path parameter of the
             // same name.
-            var attributes = bodySchema.Properties.Any(p => p.HasValidationConstraints || p.IsRequired)
+            // Constrained excludes readOnly properties, whose constraints are never emitted - a
+            // validator that descends into a body with nothing to check is dead code.
+            var attributes = bodySchema.Properties.Any(
+                p => p.Constrained && (p.HasValidationConstraints || p.IsRequired))
                 ? new[] { new ConstraintAttributes.Model(
                     ConstraintAttributes.ValidateNested(), System.Array.Empty<string>()) }
                 : System.Array.Empty<ConstraintAttributes.Model>();

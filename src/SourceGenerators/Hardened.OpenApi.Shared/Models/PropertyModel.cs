@@ -39,6 +39,40 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public bool ConstrainedAsRequired => IsRequired && !IsNullable;
 
     /// <summary>
+    /// The schema's <c>readOnly</c>: the property appears in responses and must not be sent in a
+    /// request.
+    /// </summary>
+    public bool IsReadOnly { get; set; }
+
+    /// <summary>
+    /// The schema's <c>writeOnly</c>: the property is accepted in requests and must not appear in a
+    /// response.
+    /// </summary>
+    public bool IsWriteOnly { get; set; }
+
+    /// <summary>
+    /// Whether the generated record declares this positionally.
+    /// </summary>
+    /// <remarks>
+    /// A <c>readOnly</c> property is declared as an init-only member instead, which is what keeps it
+    /// out of deserialization: it is not a constructor parameter, and the resolver gives it no
+    /// setter, so a client sending it has the value discarded rather than honoured.
+    /// </remarks>
+    public bool IsConstructorParameter => !IsReadOnly;
+
+    /// <summary>
+    /// Whether validation constraints are emitted for this property at all.
+    /// </summary>
+    /// <remarks>
+    /// Validation runs on request binding, and a <c>readOnly</c> property is never client-supplied —
+    /// it arrives as its type default no matter what the client sent. So every constraint on it is
+    /// either dead or actively wrong: <c>required</c> + <c>readOnly</c> would reject the create
+    /// request of a client that correctly omitted the value. Requiredness in OpenAPI is scoped to a
+    /// direction, and this one says "always present in a response".
+    /// </remarks>
+    public bool Constrained => !IsReadOnly;
+
+    /// <summary>
     /// The spec's <c>default</c>, as written. Rendered into a C# literal at emit time, because what
     /// it renders as depends on the type the value lands in.
     /// </summary>
@@ -72,6 +106,7 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
         return Name == other.Name && Type == other.Type && Format == other.Format &&
                Description == other.Description &&
                Ref == other.Ref && IsArray == other.IsArray && IsRequired == other.IsRequired && IsNullable == other.IsNullable && Default == other.Default &&
+               IsReadOnly == other.IsReadOnly && IsWriteOnly == other.IsWriteOnly &&
                MinLength == other.MinLength && MaxLength == other.MaxLength &&
                Minimum == other.Minimum && Maximum == other.Maximum &&
                ExclusiveMinimum == other.ExclusiveMinimum && ExclusiveMaximum == other.ExclusiveMaximum &&

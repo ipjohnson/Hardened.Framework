@@ -819,6 +819,95 @@ internal static class Specs {
                 id: { type: string }
         """;
 
+    /// <summary>
+    /// <c>readOnly</c> and <c>writeOnly</c>, including the combinations that make them awkward.
+    /// </summary>
+    /// <remarks>
+    /// <c>id</c> is the interesting one: required <em>and</em> read-only, which means "always present
+    /// in a response" and says nothing a request can be checked against. <c>secret</c> is the mirror.
+    /// The <c>Dog</c> hierarchy is here because <c>allOf</c> merges a base's properties into the
+    /// derived schema, so a read-only property would otherwise be declared twice.
+    /// </remarks>
+    internal const string ReadOnlyAndWriteOnly =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets:
+            post:
+              tags: [Pet]
+              operationId: createPet
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Pet'
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+        components:
+          schemas:
+            Pet:
+              type: object
+              discriminator:
+                propertyName: petType
+                mapping:
+                  dog: '#/components/schemas/Dog'
+              oneOf:
+                - $ref: '#/components/schemas/Dog'
+              required: [id, petType, name]
+              properties:
+                id:
+                  type: string
+                  readOnly: true
+                  maxLength: 36
+                  description: Assigned by the server.
+                petType: { type: string }
+                name: { type: string, maxLength: 40 }
+                secret:
+                  type: string
+                  writeOnly: true
+                tag: { type: string }
+            Dog:
+              allOf:
+                - $ref: '#/components/schemas/Pet'
+                - type: object
+                  required: [breed]
+                  properties:
+                    breed: { type: string }
+        """;
+
+    /// <summary>A schema whose only property is read-only, so its record has no constructor.</summary>
+    internal const string ReadOnlyOnly =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /receipts:
+            get:
+              tags: [Receipt]
+              operationId: getReceipt
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Receipt'
+        components:
+          schemas:
+            Receipt:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string, readOnly: true }
+        """;
+
     /// <summary>Valid YAML that is not an OpenAPI document at all.</summary>
     internal const string NotOpenApiYaml =
         """

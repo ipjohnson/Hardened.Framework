@@ -299,6 +299,8 @@ internal static class SpecModelSerializer {
         record.Add("ArrayItemsFormat", property.ArrayItemsFormat);
         record.Add("IsRequired", property.IsRequired);
         record.Add("IsNullable", property.IsNullable);
+        record.Add("IsReadOnly", property.IsReadOnly);
+        record.Add("IsWriteOnly", property.IsWriteOnly);
         record.Add("Default", property.Default);
         record.Add("IsDictionary", property.IsDictionary);
         record.Add("DictionaryValueType", property.DictionaryValueType);
@@ -328,6 +330,8 @@ internal static class SpecModelSerializer {
         ArrayItemsFormat = record.String("ArrayItemsFormat"),
         IsRequired = record.Bool("IsRequired"),
         IsNullable = record.Bool("IsNullable"),
+        IsReadOnly = record.Bool("IsReadOnly"),
+        IsWriteOnly = record.Bool("IsWriteOnly"),
         Default = record.String("Default"),
         IsDictionary = record.Bool("IsDictionary"),
         DictionaryValueType = record.String("DictionaryValueType"),

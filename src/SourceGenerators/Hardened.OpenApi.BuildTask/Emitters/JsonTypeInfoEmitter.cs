@@ -155,46 +155,50 @@ internal static class JsonTypeInfoEmitter {
         var method = CreateTypeInfoMethod(resolver, typeName);
         var sb = new StringBuilder();
 
-        if (schema.Properties.Count == 0) {
-            sb.AppendLine($"        var typeInfo = JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
-            sb.AppendLine("        {");
+        // The same split SchemaEmitter writes the record from. The constructor list drives both the
+        // positional argument casts and the parameter positions, so it must be the constructor the
+        // record actually has - a disagreement lands arguments in the wrong parameters at run time
+        // rather than failing the build.
+        var parameters = SchemaShape.Constructor(schema);
+
+        sb.AppendLine($"        var typeInfo = JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
+        sb.AppendLine("        {");
+
+        if (parameters.Count == 0) {
             sb.AppendLine($"            ObjectCreator = static () => new {typeName}(),");
-            sb.AppendLine("        });");
         } else {
-            var sorted = schema.Properties.OrderByDescending(p => p.IsRequired).ToList();
-
-            sb.AppendLine($"        var typeInfo = JsonMetadataServices.CreateObjectInfo<{typeName}>(options, new JsonObjectInfoValues<{typeName}>");
-            sb.AppendLine("        {");
-
             // ObjectWithParameterizedConstructorCreator
             sb.AppendLine($"            ObjectWithParameterizedConstructorCreator = static args => new {typeName}(");
-            for (var i = 0; i < sorted.Count; i++) {
-                var prop = sorted[i];
+            for (var i = 0; i < parameters.Count; i++) {
+                var prop = parameters[i];
                 var castType = GetFullCSharpType(prop, allSchemas);
-                var comma = i < sorted.Count - 1 ? "," : "),";
+                var comma = i < parameters.Count - 1 ? "," : "),";
                 sb.AppendLine($"                ({castType})args[{i}]{comma}");
             }
+        }
 
-            // PropertyMetadataInitializer — captures options (non-static)
+        if (schema.Properties.Count > 0) {
+            // Every property, including the readOnly ones the constructor does not take: they are
+            // serialized, and the property list is what carries a getter for them.
             sb.AppendLine("            PropertyMetadataInitializer = _ => new JsonPropertyInfo[]");
             sb.AppendLine("            {");
-            for (var i = 0; i < sorted.Count; i++) {
-                var prop = sorted[i];
+            foreach (var prop in schema.Properties.OrderByDescending(p => p.IsRequired)) {
                 EmitPropertyInfo(sb, prop, typeName, allSchemas);
             }
             sb.AppendLine("            },");
+        }
 
+        if (parameters.Count > 0) {
             // ConstructorParameterMetadataInitializer
             sb.AppendLine("            ConstructorParameterMetadataInitializer = static () => new JsonParameterInfoValues[]");
             sb.AppendLine("            {");
-            for (var i = 0; i < sorted.Count; i++) {
-                var prop = sorted[i];
-                EmitParameterInfo(sb, prop, i, allSchemas);
+            for (var i = 0; i < parameters.Count; i++) {
+                EmitParameterInfo(sb, parameters[i], i, allSchemas);
             }
             sb.AppendLine("            },");
-
-            sb.AppendLine("        });");
         }
+
+        sb.AppendLine("        });");
 
         EmitPolymorphism(sb, schema, allSchemas);
 
@@ -250,10 +254,36 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        };");
     }
 
+    /// <summary>
+    /// One property's metadata.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The two accessors are what enforce <c>readOnly</c> and <c>writeOnly</c>, because
+    /// <c>System.Text.Json</c> skips a property with a null accessor in the corresponding direction:
+    /// no getter means it is never serialized, no setter means it is never deserialized.
+    /// </para>
+    /// <para>
+    /// <c>Setter</c> is null for every property, not only the <c>readOnly</c> ones - these records
+    /// are immutable and populated through their constructor, so the constructor parameter list is
+    /// what admits a value. Leaving a <c>readOnly</c> property out of that list is therefore already
+    /// enough to make it undeserializable; the null setter is what stops it being written to
+    /// afterwards.
+    /// </para>
+    /// <para>
+    /// <c>writeOnly</c> is the mirror image and needs the explicit null: the property is a normal
+    /// constructor parameter, so it deserializes, and dropping the getter is the only thing keeping
+    /// it out of responses.
+    /// </para>
+    /// </remarks>
     private static void EmitPropertyInfo(StringBuilder sb, PropertyModel prop, string declaringTypeName,
         List<SchemaModel> allSchemas) {
         var genericType = GetPropertyInfoGenericType(prop, allSchemas);
         var propName = NamingHelper.ToPascalCase(prop.Name);
+
+        var getter = prop.IsWriteOnly
+            ? "null"
+            : $"static obj => (({declaringTypeName})obj).{propName}";
 
         sb.AppendLine($"                JsonMetadataServices.CreatePropertyInfo<{genericType}>(options, new JsonPropertyInfoValues<{genericType}>");
         sb.AppendLine("                {");
@@ -261,7 +291,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("                    IsPublic = true,");
         sb.AppendLine($"                    DeclaringType = typeof({declaringTypeName}),");
         sb.AppendLine($"                    PropertyName = \"{prop.Name}\",");
-        sb.AppendLine($"                    Getter = static obj => (({declaringTypeName})obj).{propName},");
+        sb.AppendLine($"                    Getter = {getter},");
         sb.AppendLine("                    Setter = null,");
         sb.AppendLine("                }),");
     }

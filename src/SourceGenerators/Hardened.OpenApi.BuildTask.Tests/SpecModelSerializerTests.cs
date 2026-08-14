@@ -260,6 +260,8 @@ public class SpecModelSerializerTests {
             ArrayItemsFormat = "int64",
             IsRequired = true,
             IsNullable = true,
+            IsReadOnly = true,
+            IsWriteOnly = true,
             Default = "fallback",
             IsDictionary = true,
             DictionaryValueType = "string",

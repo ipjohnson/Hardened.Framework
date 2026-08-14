@@ -403,6 +403,11 @@ internal static class OpenApiSpecParser {
     }
 
     private static void ExtractValidationConstraints(OpenApiSchema schema, PropertyModel model) {
+        // Not constraints, but read here because this is the one place a property's own schema is in
+        // hand. They shape the generated type rather than validating it - see PropertyModel.
+        model.IsReadOnly = schema.ReadOnly;
+        model.IsWriteOnly = schema.WriteOnly;
+
         if (schema.MinLength.HasValue) model.MinLength = schema.MinLength;
         if (schema.MaxLength.HasValue) model.MaxLength = schema.MaxLength;
         if (schema.Minimum.HasValue) model.Minimum = schema.Minimum.Value;
