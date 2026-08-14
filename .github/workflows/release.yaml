@@ -133,11 +133,13 @@ jobs:
             src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.OpenApi.SourceGenerator/Hardened.OpenApi.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.Validation.SourceGenerator/Hardened.Validation.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj \
             src/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj \
             src/Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj \
             src/Web/Hardened.Web.Kestrel.Runtime/Hardened.Web.Kestrel.Runtime.csproj \
-            src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj; do
+            src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
+            src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj; do
             dotnet pack "$project" --configuration Release --no-build --output ./artifacts \
               "/p:PackageVersion=${{ steps.version.outputs.version }}"
           done
