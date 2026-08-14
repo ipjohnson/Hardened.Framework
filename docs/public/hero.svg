@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320" role="img" aria-label="Attributed handlers on the left becoming a generated route table on the right">
+  <defs>
+    <linearGradient id="hdGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5b8def"/>
+      <stop offset="100%" stop-color="#2f4fb0"/>
+    </linearGradient>
+    <linearGradient id="hdEmit" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#35c8a6"/>
+      <stop offset="100%" stop-color="#1d8f78"/>
+    </linearGradient>
+    <!-- Sits behind the panels so the mark reads on both the light and dark theme without
+         needing two files. -->
+    <radialGradient id="hdHalo" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#5b8def" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="#5b8def" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="160" cy="150" r="150" fill="url(#hdHalo)"/>
+
+  <!-- Attributed handlers -->
+  <g>
+    <rect x="18" y="58" width="112" height="30" rx="9" fill="url(#hdGlow)" opacity="0.92"/>
+    <rect x="30" y="69" width="60" height="8" rx="4" fill="#fff" opacity="0.85"/>
+
+    <rect x="18" y="102" width="112" height="30" rx="9" fill="url(#hdGlow)" opacity="0.74"/>
+    <rect x="30" y="113" width="80" height="8" rx="4" fill="#fff" opacity="0.85"/>
+
+    <rect x="18" y="146" width="112" height="30" rx="9" fill="url(#hdGlow)" opacity="0.56"/>
+    <rect x="30" y="157" width="68" height="8" rx="4" fill="#fff" opacity="0.85"/>
+
+    <rect x="18" y="190" width="112" height="30" rx="9" fill="url(#hdGlow)" opacity="0.38"/>
+    <rect x="30" y="201" width="86" height="8" rx="4" fill="#fff" opacity="0.85"/>
+  </g>
+
+  <!-- The build step. Everything to the right of this line exists because of it. -->
+  <g>
+    <path d="M138 139h34" stroke="url(#hdGlow)" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+    <path d="M166 132l8 7-8 7" fill="none" stroke="url(#hdGlow)" stroke-width="3"
+          stroke-linecap="round" stroke-linejoin="round" opacity="0.75"/>
+  </g>
+
+  <!-- Generated route table -->
+  <g>
+    <rect x="182" y="58" width="120" height="162" rx="12" fill="url(#hdEmit)" opacity="0.14"/>
+    <rect x="182" y="58" width="120" height="162" rx="12" fill="none"
+          stroke="url(#hdEmit)" stroke-width="2" opacity="0.55"/>
+
+    <g fill="url(#hdEmit)">
+      <rect x="196" y="76" width="70" height="7" rx="3.5" opacity="0.95"/>
+      <rect x="196" y="94" width="92" height="7" rx="3.5" opacity="0.8"/>
+      <rect x="196" y="112" width="58" height="7" rx="3.5" opacity="0.8"/>
+      <rect x="196" y="130" width="84" height="7" rx="3.5" opacity="0.65"/>
+      <rect x="196" y="148" width="72" height="7" rx="3.5" opacity="0.65"/>
+      <rect x="196" y="166" width="90" height="7" rx="3.5" opacity="0.5"/>
+      <rect x="196" y="184" width="52" height="7" rx="3.5" opacity="0.5"/>
+      <rect x="196" y="202" width="78" height="7" rx="3.5" opacity="0.35"/>
+    </g>
+  </g>
+
+  <!-- The shield, over the seam, because what the build emits is what ships. -->
+  <g transform="translate(160 244)">
+    <path d="M0-26 22-18v16C22 9 13 18 0 23-13 18-22 9-22-2v-16z"
+          fill="url(#hdGlow)" opacity="0.95"/>
+    <path d="M-9 -1l6 6 12-13" fill="none" stroke="#fff" stroke-width="4"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -1,0 +1,178 @@
+# Testing AWS handlers
+
+Every AWS runtime has a test harness that invokes the real pipeline in-process. There is no
+`sam local`, no emulator for Lambda itself, and no deployment in the loop.
+
+The general shape is the same as [any Hardened test](/guide/testing): an assembly attribute
+installs the harness, another names the application, and the test method takes what it needs.
+
+**Source:** [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
+
+## Setup
+
+```csharp
+// Bootstrap.cs
+using Hardened.Amz.Function.Lambda.Testing;
+using Hardened.Shared.Testing.Attributes;
+
+[assembly: LambdaFunctionTesting]
+[assembly: HardenedTestEntryPoint(typeof(Application))]
+```
+
+`[LambdaFunctionTesting]` registers the test app and swaps in a filter provider that runs the
+function pipeline without the Lambda bootstrap. It is what the function, SQS and stream harnesses all
+sit on.
+
+## Functions
+
+`LambdaTestApp.Invoke` serialises the payload, invokes by function name, and deserialises the
+response:
+
+```csharp
+[HardenedTest]
+public async Task ProcessesAnOrder(LambdaTestApp app) {
+    var response = await app.Invoke<OrderResponse>(
+        "process-order", new OrderRequest { Sku = "SKU-1" });
+
+    Assert.NotNull(response.OrderId);
+}
+```
+
+The context is configurable, which is how a test drives timeout-sensitive behaviour:
+
+```csharp
+var response = await app.Invoke<OrderResponse>(
+    "process-order",
+    new OrderRequest { Sku = "SKU-1" },
+    context => context.RemainingTime = TimeSpan.FromSeconds(2));
+```
+
+### Raw JSON
+
+`InvokeRaw` takes the payload as a string, bypassing .NET serialisation on the way in:
+
+```csharp
+[HardenedTest]
+public async Task AcceptsTheWireFormat(LambdaTestApp app) {
+    var response = await app.InvokeRaw<OrderResponse>(
+        "process-order", """{"sku":"SKU-1","quantity":2}""");
+
+    Assert.NotNull(response.OrderId);
+}
+```
+
+This exercises the exact deserialisation path production uses. `Invoke` serialises your object with
+the same serialiser that will read it back, so the two agree by construction and a gap in an AOT
+serialiser context stays hidden. `InvokeRaw` starts from the bytes the caller will actually send,
+which is the only way to catch that.
+
+Both have `Stream`-returning overloads for responses you would rather inspect than deserialise.
+
+## SQS batches
+
+```csharp
+[HardenedTest]
+public async Task ProcessesTheBatch(TestSqsApp sqs) {
+    var response = await sqs.SendMessage(
+        new OrderMessage { OrderId = "A" },
+        new OrderMessage { OrderId = "B" });
+
+    Assert.Empty(response.BatchItemFailures);
+}
+```
+
+Messages are identified by position — the first is `"0"`, the second `"1"` — so a failure can be
+traced back to the message that caused it. See [SQS](/aws/sqs#testing).
+
+## Stream records
+
+```csharp
+[HardenedTest]
+public async Task ProjectsAnInsert(TestDynamoDbStream stream) {
+    var response = await stream.ProcessUpdates(
+        new DynamoDBEvent.DynamodbStreamRecord {
+            EventName = "INSERT",
+            Dynamodb = new StreamRecord {
+                NewImage = new Dictionary<string, AttributeValue> {
+                    ["pk"] = new() { S = "ORDER#1" }
+                }
+            }
+        });
+
+    Assert.Empty(response.BatchItemFailures);
+}
+```
+
+## DynamoDB Local
+
+`[LocalDynamoDb]` points the application's `IDynamoDbClientProvider` at a real DynamoDB in a
+container, so data tests exercise the engine rather than a fake. Asserting an item shape against a
+mock only confirms the test agrees with itself; DynamoDB Local will reject a malformed key, enforce a
+key schema and fail a conditional write exactly as the service does.
+
+Derive from it and override `DdbSetup` to create the tables:
+
+```csharp
+using Hardened.Amz.DynamoDbClient;
+using Hardened.Amz.DynamoDbClient.Testing;
+
+public class OrdersDatabaseAttribute : LocalDynamoDbAttribute {
+    protected override async Task DdbSetup(
+        AttributeCollection attributes, MethodInfo method,
+        IHardenedEnvironment environment, IServiceProvider services) {
+
+        var client = services.GetRequiredService<IDynamoDbClientProvider>().GetClient();
+
+        await client.CreateTableAsync(new CreateTableRequest {
+            TableName = "orders",
+            KeySchema = [new KeySchemaElement("pk", KeyType.HASH)],
+            AttributeDefinitions = [new AttributeDefinition("pk", ScalarAttributeType.S)],
+            BillingMode = BillingMode.PAY_PER_REQUEST
+        });
+    }
+}
+```
+
+```csharp
+[HardenedTest]
+[OrdersDatabase]
+public async Task StoresAnOrder(IOrderRepository repository) {
+    await repository.Save(new Order("ORDER#1", 42));
+
+    Assert.Equal(42, (await repository.Get("ORDER#1")).Total);
+}
+```
+
+`DdbSetup` runs before every test carrying the attribute.
+
+### Pinning the image
+
+```csharp
+[LocalDynamoDb(Image = "amazon/dynamodb-local:3.3.1")]
+```
+
+The default is `amazon/dynamodb-local:latest`. Pinning is worth doing on anything that has to keep
+working next month.
+
+One container is started per image and shared by every test in the process that names it — starting
+one costs seconds, and tests that need isolation from one another should use distinct keys rather
+than distinct databases. Every client name resolves to that same container, because a test asserting
+behaviour across two accounts is asserting something DynamoDB Local cannot represent.
+
+### Without the rest of the package
+
+`LocalDynamoDb` is usable on its own by a project that wires its clients some other way:
+
+```csharp
+var endpoint = LocalDynamoDb.Endpoint;                          // starts the default image
+var endpoint = LocalDynamoDb.EndpointFor("amazon/dynamodb-local:3.3.1");
+var client   = LocalDynamoDb.CreateClient();                    // already pointed at it
+```
+
+Nothing there knows what a table or a key looks like.
+
+::: warning Docker has to be running
+Testcontainers needs a Docker daemon. On a machine without one, these tests fail at container
+startup rather than skipping — which is deliberate, since a silently skipped data test is worse than
+a failing one.
+:::
