@@ -31,6 +31,17 @@ public interface ITemplateEngine {
     bool CanRender(string templateName);
 
     /// <summary>
+    /// What the named template renders as, or null if this engine does not know the template.
+    /// </summary>
+    /// <remarks>
+    /// Asked before rendering, because the media type a template produces is what decides whether it
+    /// is what the client wanted. It varies per template rather than per engine - the same RazorBlade
+    /// engine serves <c>text/html</c> views and <c>text/plain</c> ones - which is why this is a
+    /// lookup rather than a property on the engine.
+    /// </remarks>
+    string? ContentTypeFor(string templateName);
+
+    /// <summary>
     /// Renders the template to <c>context.Response.Body</c> and sets the response content type.
     /// </summary>
     Task RenderAsync(string templateName, object? model, IExecutionContext context);

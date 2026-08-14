@@ -2,6 +2,7 @@
 using System.Text.Json;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Microsoft.Extensions.Options;
@@ -20,9 +21,8 @@ public class SystemTextJsonResponseSerializer : IResponseSerializer {
 
     public bool IsDefaultSerializer => true;
 
-    public bool CanProcessContext(IExecutionContext context) {
-        return context.Request.Accept?.Contains("application/json") ?? false;
-    }
+    public bool CanProduce(string mediaType, IExecutionContext context) =>
+        MediaType.Matches(mediaType, KnownContentType.Json);
 
     public async Task SerializeResponse(IExecutionContext context) {
         context.Response.ContentType = "application/json";

@@ -45,6 +45,9 @@ public class RazorBladeTemplateEngine : ITemplateEngine {
 
     public bool CanRender(string templateName) => _templates.ContainsKey(templateName);
 
+    public string? ContentTypeFor(string templateName) =>
+        _templates.TryGetValue(templateName, out var descriptor) ? descriptor.ContentType : null;
+
     public async Task RenderAsync(string templateName, object? model, IExecutionContext context) {
         if (!_templates.TryGetValue(templateName, out var descriptor)) {
             throw new InvalidOperationException(

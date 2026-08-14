@@ -1,4 +1,5 @@
 ﻿using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
@@ -17,9 +18,8 @@ public class NewtonsoftSerializer : IResponseSerializer {
 
     public bool IsDefaultSerializer => true;
 
-    public bool CanProcessContext(IExecutionContext context) {
-        return context.Request.Accept?.Contains("application/json") ?? false;
-    }
+    public bool CanProduce(string mediaType, IExecutionContext context) =>
+        MediaType.Matches(mediaType, KnownContentType.Json);
 
     public async Task SerializeResponse(IExecutionContext context) {
         using var outputBuffer = _memoryStreamPool.Get();

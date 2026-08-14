@@ -42,6 +42,7 @@ namespace Hardened.Templates.RazorBlade.Impl
     {
         public RazorBladeTemplateEngine(System.Collections.Generic.IEnumerable<Hardened.Templates.RazorBlade.IRazorBladeTemplateSource> sources) { }
         public bool CanRender(string templateName) { }
+        public string? ContentTypeFor(string templateName) { }
         public System.Threading.Tasks.Task RenderAsync(string templateName, object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
 }

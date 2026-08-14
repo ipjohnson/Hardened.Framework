@@ -130,18 +130,28 @@ public class ResponseSerializerCompressionTests {
         Assert.Empty(body.ToArray());
     }
 
+    /// <summary>
+    /// A JSON serializer produces JSON, and says so about the media type it is asked about rather
+    /// than by reading the request.
+    /// </summary>
+    /// <remarks>
+    /// The wildcard cases are the ones that used to be wrong. This asked
+    /// <c>Request.Accept?.Contains("application/json")</c>, which is false for <c>*/*</c> and for a
+    /// request with no Accept header - so the serializer declined the two most common request shapes
+    /// there are, and they were served only because it is also the default. The fallback meant for
+    /// genuine mismatches was carrying ordinary traffic.
+    /// </remarks>
     [Theory]
     [MemberData(nameof(SerializerNames))]
-    public void CanProcessContextRequiresJsonInAccept(string serializerName) {
+    public void CanProduceAnswersForTheMediaTypeItIsAskedAbout(string serializerName) {
         var serializer = SerializerNamed(serializerName);
+        var (context, _) = Context(new Payload("x", 1), false, accept: "application/json");
 
-        var (jsonContext, _) = Context(new Payload("x", 1), false, accept: "application/json");
-        var (htmlContext, _) = Context(new Payload("x", 1), false, accept: "text/html");
-        var (nullContext, _) = Context(new Payload("x", 1), false, accept: null);
-
-        Assert.True(serializer.CanProcessContext(jsonContext));
-        Assert.False(serializer.CanProcessContext(htmlContext));
-        Assert.False(serializer.CanProcessContext(nullContext));
+        Assert.True(serializer.CanProduce("application/json", context));
+        Assert.True(serializer.CanProduce("*/*", context));
+        Assert.True(serializer.CanProduce("application/*", context));
+        Assert.False(serializer.CanProduce("text/html", context));
+        Assert.False(serializer.CanProduce("text/*", context));
     }
 
     [Theory]

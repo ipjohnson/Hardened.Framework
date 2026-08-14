@@ -16,11 +16,13 @@ namespace Hardened.Requests.Runtime.Tests.Templates;
 /// </summary>
 public class TemplateResponseSerializerTests {
 
-    private static ITemplateEngine Engine(string? renders = null) {
+    private static ITemplateEngine Engine(string? renders = null, string contentType = "text/html") {
         var engine = Substitute.For<ITemplateEngine>();
 
         engine.CanRender(Arg.Any<string>())
             .Returns(call => renders != null && (string)call[0] == renders);
+        engine.ContentTypeFor(Arg.Any<string>())
+            .Returns(call => renders != null && (string)call[0] == renders ? contentType : null);
 
         return engine;
     }
@@ -39,10 +41,10 @@ public class TemplateResponseSerializerTests {
     /// serializer that would otherwise have handled it.
     /// </summary>
     [Fact]
-    public void CanProcessContext_FalseWithoutATemplateName() {
+    public void CanProduce_FalseWithoutATemplateName() {
         var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
 
-        Assert.False(serializer.CanProcessContext(ContextFor(null)));
+        Assert.False(serializer.CanProduce("text/html", ContextFor(null)));
     }
 
     /// <summary>
@@ -50,17 +52,17 @@ public class TemplateResponseSerializerTests {
     /// turn a missing template into an exception in place of the JSON the request asked for.
     /// </summary>
     [Fact]
-    public void CanProcessContext_FalseWhenNoEngineKnowsTheName() {
+    public void CanProduce_FalseWhenNoEngineKnowsTheName() {
         var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
 
-        Assert.False(serializer.CanProcessContext(ContextFor("Missing")));
+        Assert.False(serializer.CanProduce("text/html", ContextFor("Missing")));
     }
 
     [Fact]
-    public void CanProcessContext_TrueWhenAnEngineKnowsTheName() {
+    public void CanProduce_TrueWhenTheEngineRendersThatMediaType() {
         var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
 
-        Assert.True(serializer.CanProcessContext(ContextFor("Fortunes")));
+        Assert.True(serializer.CanProduce("text/html", ContextFor("Fortunes")));
     }
 
     /// <summary>
@@ -112,7 +114,7 @@ public class TemplateResponseSerializerTests {
     }
 
     /// <summary>
-    /// Reachable when a filter assigns a template name after CanProcessContext has already run.
+    /// Reachable when a filter assigns a template name after selection has already run.
     /// </summary>
     [Fact]
     public async Task SerializeResponse_ThrowsWhenNoEngineClaimsTheName() {
@@ -162,22 +164,73 @@ public class TemplateResponseSerializerTests {
     }
 
     /// <summary>
-    /// The locator honours that order, so a request that satisfies both - <c>Accept:
-    /// application/json</c> against a route that names a view - resolves to the template. Passed in
-    /// the order that previously lost, to show the outcome no longer depends on it.
+    /// The template serializer declines a media type its template does not render, so a client
+    /// asking for JSON against a route that names a view gets JSON.
+    /// </summary>
+    /// <remarks>
+    /// It used to claim any response carrying a template name, whatever the client asked for, and
+    /// ordering it ahead of JSON made that stick. TechEmpower's json, db, query and update tests all
+    /// send an Accept containing <c>text/html;q=0.9</c>, so "does this response name a view" was
+    /// never a safe question to answer on its own.
+    /// </remarks>
+    [Fact]
+    public void CanProduce_FalseForAMediaTypeTheTemplateDoesNotRender() {
+        var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
+
+        Assert.False(serializer.CanProduce("application/json", ContextFor("Fortunes")));
+    }
+
+    /// <summary>
+    /// The media type comes from the template, not from the serializer - the same engine renders
+    /// html views and plain-text ones.
     /// </summary>
     [Fact]
-    public void TheLocatorPicksTheTemplateSerializerOverJson() {
+    public void CanProduce_UsesTheContentTypeTheEngineReportsForThatTemplate() {
+        var serializer = new TemplateResponseSerializer(
+            new[] { Engine("Receipt", contentType: "text/plain") });
+
+        Assert.True(serializer.CanProduce("text/plain", ContextFor("Receipt")));
+        Assert.False(serializer.CanProduce("text/html", ContextFor("Receipt")));
+    }
+
+    /// <summary>
+    /// A client that will take anything gets the rendered view, because the template serializer is
+    /// ordered ahead of JSON and <c>*/*</c> leaves nothing else to decide on.
+    /// </summary>
+    [Fact]
+    public void TheLocatorPicksTheTemplateForAClientThatAcceptsAnything() {
         var json = new SystemTextJsonResponseSerializer(
             Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration()));
 
         var template = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
 
+        var context = Pipeline.Context(accept: "*/*");
+        context.Response.TemplateName = "Fortunes";
+
         var chosen = new SerializationLocatorService(
                 Array.Empty<IRequestDeserializer>(),
                 new IResponseSerializer[] { template, json })
-            .FindResponseSerializer(ContextFor("Fortunes"));
+            .FindResponseSerializer(context);
 
         Assert.Same(template, chosen);
+    }
+
+    /// <summary>And the same pair resolves to JSON when the client asks for JSON.</summary>
+    [Fact]
+    public void TheLocatorPicksJsonWhenTheClientAsksForIt() {
+        var json = new SystemTextJsonResponseSerializer(
+            Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration()));
+
+        var template = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
+
+        var context = Pipeline.Context(accept: "application/json,text/html;q=0.9");
+        context.Response.TemplateName = "Fortunes";
+
+        var chosen = new SerializationLocatorService(
+                Array.Empty<IRequestDeserializer>(),
+                new IResponseSerializer[] { template, json })
+            .FindResponseSerializer(context);
+
+        Assert.Same(json, chosen);
     }
 }

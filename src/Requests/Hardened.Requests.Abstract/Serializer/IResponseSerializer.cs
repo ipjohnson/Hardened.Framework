@@ -47,7 +47,31 @@ public interface IResponseSerializer {
     /// </remarks>
     int Order => (int)ResponseSerializerOrder.Normal;
 
-    bool CanProcessContext(IExecutionContext context);
+    /// <summary>
+    /// Whether this serializer can write <paramref name="context"/>'s response as
+    /// <paramref name="mediaType"/>.
+    /// </summary>
+    /// <param name="mediaType">
+    /// One entry from the client's <c>Accept</c> header, or a content type the response has already
+    /// committed to. May be a wildcard - use <see cref="MediaType.Matches"/> rather than comparing
+    /// it directly.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// Two questions in one, and both belong here: does this serializer emit that media type, and
+    /// can it handle this particular response value. A template serializer answers no for a response
+    /// that names no view however well the media type matches.
+    /// </para>
+    /// <para>
+    /// This replaced <c>CanProcessContext(context)</c>, which asked a serializer to decide its own
+    /// capability by reading <c>Request.Accept</c> - so a serializer's answer depended on what the
+    /// client asked for, which is backwards, and every implementation had to rank itself against
+    /// serializers it could not see. The framework now walks the client's preferences in order and
+    /// asks about one media type at a time, so ranking lives in one place and this method only has
+    /// to answer about itself.
+    /// </para>
+    /// </remarks>
+    bool CanProduce(string mediaType, IExecutionContext context);
 
     Task SerializeResponse(IExecutionContext context);
 }

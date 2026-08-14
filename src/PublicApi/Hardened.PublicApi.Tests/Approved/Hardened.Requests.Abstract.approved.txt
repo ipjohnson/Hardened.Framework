@@ -355,6 +355,12 @@ namespace Hardened.Requests.Abstract.RequestFilter
 }
 namespace Hardened.Requests.Abstract.Serializer
 {
+    public sealed class AcceptedContentTypes
+    {
+        public static readonly Hardened.Requests.Abstract.Serializer.AcceptedContentTypes Any;
+        public System.Collections.Generic.IReadOnlyList<string> MediaTypes { get; }
+        public static Hardened.Requests.Abstract.Serializer.AcceptedContentTypes Parse(string? acceptHeader) { }
+    }
     public interface IContextSerializationService
     {
         System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context);
@@ -378,7 +384,7 @@ namespace Hardened.Requests.Abstract.Serializer
     {
         bool IsDefaultSerializer { get; }
         int Order { get; }
-        bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
     public interface ISerializationLocatorService
@@ -397,6 +403,11 @@ namespace Hardened.Requests.Abstract.Serializer
         T ParseRequired<T>(string value, string valueName);
         T ParseWithDefault<T>(string value, string valueName, T defaultValue);
     }
+    public static class MediaType
+    {
+        public const string Any = "*/*";
+        public static bool Matches(string? requested, string? produced) { }
+    }
     public enum ResponseSerializerOrder
     {
         Template = -1000,
@@ -409,6 +420,7 @@ namespace Hardened.Requests.Abstract.Templates
     public interface ITemplateEngine
     {
         bool CanRender(string templateName);
+        string? ContentTypeFor(string templateName);
         System.Threading.Tasks.Task RenderAsync(string templateName, object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
 }

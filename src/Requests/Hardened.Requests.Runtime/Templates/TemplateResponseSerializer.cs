@@ -43,10 +43,16 @@ public class TemplateResponseSerializer : IResponseSerializer {
 
     public int Order => (int)ResponseSerializerOrder.Template;
 
-    public bool CanProcessContext(IExecutionContext context) {
+    public bool CanProduce(string mediaType, IExecutionContext context) {
         var templateName = context.Response.TemplateName;
 
-        return templateName != null && FindEngine(templateName) != null;
+        if (templateName == null) {
+            return false;
+        }
+
+        // The media type comes from the template rather than from this class: an HtmlTemplate view
+        // and a PlainTextTemplate view are both rendered by the same engine and answer differently.
+        return MediaType.Matches(mediaType, FindEngine(templateName)?.ContentTypeFor(templateName));
     }
 
     public Task SerializeResponse(IExecutionContext context) {
@@ -60,7 +66,7 @@ public class TemplateResponseSerializer : IResponseSerializer {
         var engine = FindEngine(templateName);
 
         if (engine == null) {
-            // Reachable when a handler assigns TemplateName after CanProcessContext ran.
+            // Reachable when a handler assigns TemplateName after selection ran.
             throw new InvalidOperationException(
                 $"No template engine can render '{templateName}'.");
         }

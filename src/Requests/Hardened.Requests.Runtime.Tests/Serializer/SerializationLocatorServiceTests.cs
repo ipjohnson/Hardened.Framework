@@ -8,16 +8,20 @@ using Xunit;
 namespace Hardened.Requests.Runtime.Tests.Serializer;
 
 /// <summary>
-/// Which serializer handles a response. An application that registers its own serializer
-/// expects it to win over the framework's, and a request that nothing claims still has to
-/// produce something.
+/// Which serializer writes a response: what the response committed to, then what the client asked
+/// for, then the default.
 /// </summary>
 public class SerializationLocatorServiceTests {
 
-    private static IResponseSerializer Response(bool canProcess, bool isDefault, int order = 0) {
+    /// <summary>
+    /// A serializer that emits <paramref name="produces"/>, or nothing at all when it is null.
+    /// </summary>
+    private static IResponseSerializer Response(
+        bool isDefault, string? produces = null, int order = 0) {
         var serializer = Substitute.For<IResponseSerializer>();
 
-        serializer.CanProcessContext(Arg.Any<IExecutionContext>()).Returns(canProcess);
+        serializer.CanProduce(Arg.Any<string>(), Arg.Any<IExecutionContext>())
+            .Returns(call => produces != null && MediaType.Matches((string)call[0], produces));
         serializer.IsDefaultSerializer.Returns(isDefault);
         serializer.Order.Returns(order);
 
@@ -39,119 +43,198 @@ public class SerializationLocatorServiceTests {
         new(deserializers ?? Array.Empty<IRequestDeserializer>(),
             serializers ?? Array.Empty<IResponseSerializer>());
 
-    /// <summary>
-    /// A serializer that says it can handle the context is chosen over one that cannot,
-    /// however they were registered.
-    /// </summary>
+    // ── negotiation ────────────────────────────────────────────────────
+
     [Fact]
-    public void TheSerializerThatClaimsTheContextIsChosen() {
-        var declines = Response(canProcess: false, isDefault: false);
-        var claims = Response(canProcess: true, isDefault: false);
+    public void TheSerializerThatProducesTheRequestedTypeIsChosen() {
+        var declines = Response(isDefault: false, produces: "text/csv");
+        var claims = Response(isDefault: false, produces: "application/json");
 
         var chosen = Locator(serializers: new[] { declines, claims })
-            .FindResponseSerializer(Pipeline.Context());
+            .FindResponseSerializer(Pipeline.Context(accept: "application/json"));
 
         Assert.Same(claims, chosen);
     }
 
     /// <summary>
-    /// Order beats registration order. A serializer that asked to go first does, wherever it was
-    /// registered.
+    /// The client's first preference wins over the server's ordering.
     /// </summary>
     /// <remarks>
-    /// This is the guarantee registration order could not give. Within a module DependencyModules
-    /// sorts registrations by implementation type name, so before <c>Order</c> existed the winner
-    /// of a contested response was decided by how two class names sorted alphabetically - and
-    /// renaming a class changed which one served the request.
+    /// <para>
+    /// The case this whole design exists for, and it is not hypothetical: TechEmpower's json, db,
+    /// query and update tests all send
+    /// <c>application/json,text/html;q=0.9,application/xhtml+xml;q=0.9,application/xml;q=0.8,*/*;q=0.7</c>.
+    /// That header contains <c>text/html</c>. A template serializer ordered ahead of JSON, asked in
+    /// isolation whether it can handle the context, would answer yes and hijack four of the six
+    /// benchmark routes.
+    /// </para>
+    /// <para>
+    /// The accept list is the outer loop, so <c>application/json</c> is asked about before
+    /// <c>text/html</c> is, and the html serializer's order never comes into it.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void ALowerOrderIsTestedFirstWhateverTheRegistrationOrder() {
-        var normal = Response(canProcess: true, isDefault: true, order: 0);
-        var ahead = Response(canProcess: true, isDefault: false, order: -1000);
+    public void TheClientsFirstPreferenceWinsOverServerOrder() {
+        var html = Response(isDefault: false, produces: "text/html", order: -1000);
+        var json = Response(isDefault: true, produces: "application/json");
 
-        var chosen = Locator(serializers: new[] { ahead, normal })
-            .FindResponseSerializer(Pipeline.Context());
+        var chosen = Locator(serializers: new[] { html, json })
+            .FindResponseSerializer(Pipeline.Context(
+                accept: "application/json,text/html;q=0.9,application/xml;q=0.8,*/*;q=0.7"));
+
+        Assert.Same(json, chosen);
+    }
+
+    /// <summary>And the same two serializers resolve the other way for a browser.</summary>
+    [Fact]
+    public void AClientPreferringHtmlGetsTheHtmlSerializer() {
+        var html = Response(isDefault: false, produces: "text/html", order: -1000);
+        var json = Response(isDefault: true, produces: "application/json");
+
+        var chosen = Locator(serializers: new[] { html, json })
+            .FindResponseSerializer(Pipeline.Context(
+                accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
+
+        Assert.Same(html, chosen);
+    }
+
+    /// <summary>
+    /// Order decides among serializers that satisfy the same preference - which is the whole of what
+    /// it decides. A client sending <c>*/*</c> has expressed no preference, so the server's ranking
+    /// is the only thing left to go on.
+    /// </summary>
+    [Fact]
+    public void ServerOrderDecidesWithinOneAcceptPosition() {
+        var normal = Response(isDefault: true, produces: "application/json");
+        var ahead = Response(isDefault: false, produces: "text/html", order: -1000);
+
+        var chosen = Locator(serializers: new[] { normal, ahead })
+            .FindResponseSerializer(Pipeline.Context(accept: "*/*"));
 
         Assert.Same(ahead, chosen);
     }
 
     /// <summary>
-    /// Order decides who is asked first, not who answers when nobody claims the context. A
-    /// specialist sitting ahead of JSON must not cost JSON its role as the fallback, which is what
-    /// answers <c>Accept: */*</c> and a request with no Accept header at all.
+    /// A request with no Accept header accepts anything, exactly as <c>*/*</c> does. It used to be
+    /// declined by every serializer and rescued by the default.
     /// </summary>
     [Fact]
-    public void OrderDoesNotOverrideTheDefaultSerializerFallback() {
-        var ahead = Response(canProcess: false, isDefault: false, order: -1000);
-        var fallback = Response(canProcess: false, isDefault: true, order: 0);
+    public void NoAcceptHeaderIsTreatedAsAnything() {
+        var json = Response(isDefault: false, produces: "application/json");
 
-        var chosen = Locator(serializers: new[] { ahead, fallback })
-            .FindResponseSerializer(Pipeline.Context());
+        var chosen = Locator(serializers: new[] { json })
+            .FindResponseSerializer(Pipeline.Context(accept: null));
 
-        Assert.Same(fallback, chosen);
+        Assert.Same(json, chosen);
+    }
+
+    /// <summary>A subtype wildcard matches within its type and not outside it.</summary>
+    [Fact]
+    public void ASubtypeWildcardMatchesWithinItsType() {
+        var json = Response(isDefault: false, produces: "application/json");
+        var html = Response(isDefault: false, produces: "text/html");
+
+        Assert.Same(html, Locator(serializers: new[] { json, html })
+            .FindResponseSerializer(Pipeline.Context(accept: "text/*")));
     }
 
     /// <summary>
-    /// Serializers sharing an order keep the reverse-registration relationship, so an application's
-    /// own still beats the framework's. The sort has to be stable for that to hold.
+    /// Serializers sharing a preference position and an order keep the reverse-registration
+    /// relationship, so an application's own still beats the framework's. The sort has to be stable.
     /// </summary>
     [Fact]
-    public void WithinOneOrderTheLaterRegistrationIsStillTestedFirst() {
-        var framework = Response(canProcess: true, isDefault: true);
-        var application = Response(canProcess: true, isDefault: false);
+    public void WithinOneOrderTheLaterRegistrationIsTestedFirst() {
+        var framework = Response(isDefault: true, produces: "application/json");
+        var application = Response(isDefault: false, produces: "application/json");
 
         var chosen = Locator(serializers: new[] { framework, application })
-            .FindResponseSerializer(Pipeline.Context());
+            .FindResponseSerializer(Pipeline.Context(accept: "application/json"));
 
         Assert.Same(application, chosen);
     }
 
-    /// <summary>
-    /// Registration order is reversed on the way in, so an application's own serializer -
-    /// registered after the framework's - is asked first. Two serializers that both claim the
-    /// context resolve to the later registration.
-    /// </summary>
-    [Fact]
-    public void TheLastRegisteredClaimantWinsSoApplicationSerializersBeatTheFrameworks() {
-        var framework = Response(canProcess: true, isDefault: true);
-        var application = Response(canProcess: true, isDefault: false);
-
-        var chosen = Locator(serializers: new[] { framework, application })
-            .FindResponseSerializer(Pipeline.Context());
-
-        Assert.Same(application, chosen);
-    }
+    // ── the default ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Nothing claiming the context falls back to a default serializer rather than failing -
-    /// a request with an unfamiliar <c>Accept</c> still gets JSON back.
+    /// Nothing producing what was asked for falls back rather than failing, so a request with an
+    /// unfamiliar Accept still gets an answer.
     /// </summary>
     [Fact]
-    public void ADefaultSerializerIsTheFallbackWhenNothingClaimsTheContext() {
-        var specialist = Response(canProcess: false, isDefault: false);
-        var fallback = Response(canProcess: false, isDefault: true);
+    public void ADefaultSerializerIsTheFallbackWhenNothingProducesWhatWasAsked() {
+        var specialist = Response(isDefault: false, produces: "text/csv");
+        var fallback = Response(isDefault: true, produces: "application/json");
 
         var chosen = Locator(serializers: new[] { specialist, fallback })
-            .FindResponseSerializer(Pipeline.Context());
+            .FindResponseSerializer(Pipeline.Context(accept: "application/pdf"));
 
         Assert.Same(fallback, chosen);
     }
 
     /// <summary>
-    /// No claimant and no default is a configuration error, and it says so rather than
-    /// returning null for the caller to dereference.
+    /// A default does not shadow a serializer that actually produces what was asked for, however
+    /// they were registered.
     /// </summary>
     [Fact]
-    public void NoSerializerAtAllIsAnError() {
-        var locator = Locator(serializers: new[] { Response(canProcess: false, isDefault: false) });
+    public void ADefaultDoesNotShadowASerializerThatProducesTheRequestedType() {
+        var specialist = Response(isDefault: false, produces: "text/csv");
+        var alwaysDefault = Response(isDefault: true, produces: "application/json");
 
-        Assert.Throws<Exception>(() => locator.FindResponseSerializer(Pipeline.Context()));
+        var chosen = Locator(serializers: new[] { specialist, alwaysDefault })
+            .FindResponseSerializer(Pipeline.Context(accept: "text/csv"));
+
+        Assert.Same(specialist, chosen);
+    }
+
+    [Fact]
+    public void NoProducerAndNoDefaultIsAnError() {
+        var locator = Locator(serializers: new[] { Response(isDefault: false, produces: "text/csv") });
+
+        Assert.Throws<Exception>(
+            () => locator.FindResponseSerializer(Pipeline.Context(accept: "application/pdf")));
     }
 
     [Fact]
     public void NoSerializerRegisteredAtAllIsAnError() {
         Assert.Throws<Exception>(() => Locator().FindResponseSerializer(Pipeline.Context()));
     }
+
+    // ── a committed content type ───────────────────────────────────────
+
+    /// <summary>
+    /// A response that already carries a content type has committed to it, and the client does not
+    /// get to overrule it. This is what <c>[RawResponse]</c> means: a handler returning a PDF
+    /// returns a PDF whatever the request asked for.
+    /// </summary>
+    [Fact]
+    public void ACommittedContentTypeSkipsNegotiation() {
+        var csv = Response(isDefault: false, produces: "text/csv");
+        var json = Response(isDefault: true, produces: "application/json");
+
+        var context = Pipeline.Context(accept: "application/json");
+        context.Response.ContentType = "text/csv";
+
+        Assert.Same(csv, Locator(serializers: new[] { csv, json }).FindResponseSerializer(context));
+    }
+
+    /// <summary>
+    /// Committing to something nothing can write is a configuration problem, and quietly answering
+    /// with JSON instead would hide it.
+    /// </summary>
+    [Fact]
+    public void ACommittedContentTypeNothingCanProduceIsAnError() {
+        var json = Response(isDefault: true, produces: "application/json");
+
+        var context = Pipeline.Context(accept: "application/json");
+        context.Response.ContentType = "application/pdf";
+
+        var locator = Locator(serializers: new[] { json });
+
+        var exception = Assert.Throws<Exception>(() => locator.FindResponseSerializer(context));
+
+        Assert.Contains("application/pdf", exception.Message);
+    }
+
+    // ── request side, unchanged ────────────────────────────────────────
 
     [Fact]
     public void TheDeserializerThatClaimsTheContextIsChosen() {
@@ -183,9 +266,10 @@ public class SerializationLocatorServiceTests {
     }
 
     /// <summary>
-    /// The deserializer fallback keeps the first default it meets - the last registered, since
-    /// the list is reversed - while the response side keeps the last. The two differ, and this
-    /// pins each so the difference is visible if either is changed.
+    /// The request side keeps the first default it meets, which is the last registered since the
+    /// list is reversed. The response side now agrees, where it used to keep the first-registered
+    /// one - the asymmetry went when the fallback became its own pass rather than a variable
+    /// overwritten while walking.
     /// </summary>
     [Fact]
     public void TheDefaultDeserializerFallbackIsTheLastRegisteredOne() {
@@ -198,36 +282,14 @@ public class SerializationLocatorServiceTests {
         Assert.Same(second, chosen);
     }
 
-    /// <summary>
-    /// The response side keeps overwriting its remembered default as it walks the reversed
-    /// list, so the fallback is the first-registered default rather than the last. That is the
-    /// opposite of the request side, and of the "later registration wins" rule that applies
-    /// when a serializer actually claims the context.
-    /// </summary>
     [Fact]
-    public void TheDefaultResponseSerializerFallbackIsTheFirstRegisteredOne() {
-        var first = Response(canProcess: false, isDefault: true);
-        var second = Response(canProcess: false, isDefault: true);
+    public void TheDefaultResponseSerializerFallbackIsAlsoTheLastRegisteredOne() {
+        var first = Response(isDefault: true, produces: "application/json");
+        var second = Response(isDefault: true, produces: "application/json");
 
         var chosen = Locator(serializers: new[] { first, second })
-            .FindResponseSerializer(Pipeline.Context());
+            .FindResponseSerializer(Pipeline.Context(accept: "application/pdf"));
 
-        Assert.Same(first, chosen);
-    }
-
-    /// <summary>
-    /// A claimant later in the search order is reached even when an earlier one has already
-    /// been remembered as the default, so registering a default first does not shadow a
-    /// specialist registered after it.
-    /// </summary>
-    [Fact]
-    public void ADefaultDoesNotShadowASpecialistThatClaimsTheContext() {
-        var specialist = Response(canProcess: true, isDefault: false);
-        var alwaysDefault = Response(canProcess: false, isDefault: true);
-
-        var chosen = Locator(serializers: new[] { specialist, alwaysDefault })
-            .FindResponseSerializer(Pipeline.Context());
-
-        Assert.Same(specialist, chosen);
+        Assert.Same(second, chosen);
     }
 }
