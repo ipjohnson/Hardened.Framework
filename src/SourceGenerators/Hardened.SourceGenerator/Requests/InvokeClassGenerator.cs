@@ -50,21 +50,17 @@ public static class InvokeClassGenerator {
                 }));
     }
 
+    /// <remarks>
+    /// <c>defaultOutput</c> is always null now. <c>[RawResponse]</c> used to install a
+    /// <c>RawOutputHelper.OutputFunc</c> closure here, which <c>ContextSerializationService</c>
+    /// checked before any serializer - a second mechanism racing the locator for the same job.
+    /// The content type is assigned onto the response instead (see
+    /// <c>InvokeMethodCodeGenerator.AssignRawContentType</c>) and <c>RawResponseSerializer</c>
+    /// claims it through ordinary selection. The parameter stays because
+    /// <c>IExecutionContext.DefaultOutput</c> is public and an application may still set one.
+    /// </remarks>
     private static void CreateConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
         IOutputComponent defaultOutput = Null();
-
-        if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.RawResponseContentType)) {
-            var contentType = handlerModel.ResponseInformation.RawResponseContentType!;
-
-            if (!contentType.StartsWith("\"")) {
-                contentType = '"' + contentType + '"';
-            }
-
-            defaultOutput = Invoke(
-                KnownTypes.Requests.RawOutputHelper,
-                "OutputFunc",
-                contentType);
-        }
 
         if (handlerModel.ResponseInformation.IsAsyncEnumerable) {
             if (handlerModel.RequestParameterInformationList.Count == 0) {

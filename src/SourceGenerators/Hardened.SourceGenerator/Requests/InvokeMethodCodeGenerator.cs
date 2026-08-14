@@ -30,6 +30,7 @@ public static class InvokeMethodCodeGenerator {
         }
 
         AssignTemplateName(requestHandlerModel, invokeMethod, context);
+        AssignRawContentType(requestHandlerModel, invokeMethod, context);
 
         if (requestHandlerModel.ResponseInformation.ReturnType != null && 
             requestHandlerModel.ResponseInformation.ReturnType.Name != typeof(void).Name) {
@@ -70,6 +71,33 @@ public static class InvokeMethodCodeGenerator {
         }
 
         invokeMethod.Assign(QuoteString(templateName!)).To(context.Property("Response.TemplateName"));
+    }
+
+    /// <summary>
+    /// Commits the response to the content type a handler's <c>[RawResponse]</c> declares.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A plain assignment, in the same place and for the same reason as the template name. This
+    /// used to be a <c>DefaultOutput</c> closure built in the constructor, which
+    /// <c>ContextSerializationService</c> consulted ahead of every serializer - so the attribute did
+    /// not participate in selection, it pre-empted it. <c>RawResponseSerializer</c> now claims a
+    /// response that has committed to a content type, through the same locator as everything else.
+    /// </para>
+    /// <para>
+    /// Assigned before the handler runs, so a handler can overwrite it to choose a content type per
+    /// request - which also makes forcing available without the attribute at all.
+    /// </para>
+    /// </remarks>
+    private static void AssignRawContentType(
+        RequestHandlerModel requestHandlerModel, MethodDefinition invokeMethod, ParameterDefinition context) {
+        var contentType = requestHandlerModel.ResponseInformation.RawResponseContentType;
+
+        if (string.IsNullOrEmpty(contentType)) {
+            return;
+        }
+
+        invokeMethod.Assign(QuoteString(contentType!)).To(context.Property("Response.ContentType"));
     }
 
     private static void ProcessArguments(RequestHandlerModel requestHandlerModel, InvokeDefinition invoke,

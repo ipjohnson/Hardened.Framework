@@ -29,7 +29,20 @@ public enum ResponseSerializerOrder {
     Specialized = -100,
 
     /// <summary>The default, and where the JSON serializers sit.</summary>
-    Normal = 0
+    Normal = 0,
+
+    /// <summary>
+    /// Behind the general-purpose serializers. A serializer here answers only when a client asked
+    /// for its media type specifically, and never for one that expressed no preference.
+    /// </summary>
+    /// <remarks>
+    /// Where <c>RawResponseSerializer</c> sits. Ahead of JSON it would have made every handler
+    /// returning a bare string answer <c>text/plain</c> to a client sending no <c>Accept</c> - which
+    /// is most of them, and is what half of this repository's own routing and binding tests do. That
+    /// is the ASP.NET Core convention, but it is not this framework's existing behaviour and the
+    /// change would reach every application returning a string from anything.
+    /// </remarks>
+    Deferred = 1000
 }
 
 public interface IResponseSerializer {

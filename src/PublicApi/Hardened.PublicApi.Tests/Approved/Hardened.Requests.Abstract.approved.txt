@@ -27,9 +27,11 @@ namespace Hardened.Requests.Abstract.Attributes
     {
         System.Threading.Tasks.ValueTask<T> BindValue<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter);
     }
+    [System.AttributeUsage(System.AttributeTargets.Method)]
     public class RawResponseAttribute : System.Attribute
     {
         public RawResponseAttribute(string contentType = "text/plain") { }
+        public string ContentType { get; }
     }
     [System.AttributeUsage(System.AttributeTargets.Method)]
     public class TemplateAttribute : System.Attribute
@@ -413,6 +415,7 @@ namespace Hardened.Requests.Abstract.Serializer
         Template = -1000,
         Specialized = -100,
         Normal = 0,
+        Deferred = 1000,
     }
 }
 namespace Hardened.Requests.Abstract.Templates

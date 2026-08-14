@@ -9,7 +9,23 @@ using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
-[SingletonService(Using = RegistrationType.Try)]
+/// <remarks>
+/// <c>Add</c>, not <c>Try</c>. <c>Try</c> was doing double duty here: registering the serializer,
+/// and acting as the switch that lets <c>AotSerializerModule</c> replace it - TryAddSingleton is a
+/// no-op once anything has registered <c>IResponseSerializer</c>, so an AOT application that
+/// registered its serializer first got only that one.
+///
+/// That switch keys on the service type rather than on this class, so it fired for any registration
+/// at all. Adding RawResponseSerializer - which sorts before this one, because DependencyModules
+/// orders a module's registrations by implementation type name - silently unregistered JSON
+/// everywhere, and every route in the benchmark fixture failed with "could not locate response
+/// serializer". Nothing about that is specific to the raw serializer; the next serializer added
+/// would have done the same.
+///
+/// AOT precedence is now stated as an order instead - see <c>AotResponseSerializer.Order</c> - which
+/// does not depend on registration timing or on how two class names happen to sort.
+/// </remarks>
+[SingletonService(Using = RegistrationType.Add)]
 public class SystemTextJsonResponseSerializer : IResponseSerializer {
     private readonly JsonSerializerOptions _serializerOptions;
 

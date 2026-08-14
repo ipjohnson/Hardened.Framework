@@ -216,12 +216,14 @@ public class RequestModelBuilderTests {
     }
 
     /// <summary>
-    /// The same media type without a template still takes the raw path - text/html is a perfectly
-    /// good raw response for a handler that returns a string it built itself.
+    /// Nor does a text/html declaration, templated or not. There is no longer a raw path for a spec
+    /// to opt an operation into, which is why the clear-it-when-templated workaround that used to
+    /// exist in two places is gone.
     /// </summary>
     [Fact]
-    public void BuildModels_UntemplatedHtml_StillTakesTheRawPath() {
-        Assert.Equal("text/html", BuildTemplated(null, "text/html").ResponseInformation.RawResponseContentType);
+    public void BuildModels_UntemplatedHtml_DoesNotForceTheContentTypeEither() {
+        Assert.True(string.IsNullOrEmpty(
+            BuildTemplated(null, "text/html").ResponseInformation.RawResponseContentType));
     }
 
     // ── [Template] on the implementation ───────────────────────────────
@@ -337,14 +339,23 @@ public class RequestModelBuilderTests {
             .Single();
 
     /// <summary>
-    /// A non-JSON response reaches <c>RawResponseContentType</c>, which is what
-    /// <c>InvokeClassGenerator</c> turns into a <c>RawOutputHelper.OutputFunc</c> default output.
-    /// Without it a <c>text/plain</c> operation returning a string had the string JSON-encoded, so
-    /// the body came back wrapped in quotes with a content type of application/json.
+    /// A spec-declared media type does not force the response's content type.
     /// </summary>
+    /// <remarks>
+    /// It used to: the media type became <c>RawResponseContentType</c>, which the generator emitted
+    /// as a <c>DefaultOutput</c> closure, so a <c>text/plain</c> operation answered text/plain
+    /// whatever the client asked for. That is the producer overruling the client, which is not what
+    /// a content map means - it describes the representation available, and the client says which
+    /// it wants. <c>/plaintext</c> still answers text/plain because the client asks for it, and a
+    /// handler that genuinely must force one says so with <c>[RawResponse]</c>.
+    ///
+    /// What the spec's media type still decides is the return type: reading the text/plain schema is
+    /// what makes the generated method <c>Task&lt;string&gt;</c> rather than bare <c>Task</c>, and
+    /// without a return value there is nothing to negotiate over at all.
+    /// </remarks>
     [Fact]
-    public void BuildModels_NonJsonResponse_SetsRawResponseContentType() {
-        Assert.Equal("text/plain", BuildRobots("text/plain").ResponseInformation.RawResponseContentType);
+    public void BuildModels_ANonJsonResponse_DoesNotForceTheContentType() {
+        Assert.True(string.IsNullOrEmpty(BuildRobots("text/plain").ResponseInformation.RawResponseContentType));
     }
 
     /// <summary>

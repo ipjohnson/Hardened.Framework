@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Primitives;
+
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -20,7 +22,8 @@ public class PlainTextResponseTests {
 
     [HardenedTest]
     public async Task PlainTextOperation_SetsTheDeclaredContentType(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/pets/plain");
+        var response = await testWebApp.Get("/pets/plain",
+            request => request.Headers["Accept"] = new StringValues("text/plain"));
 
         response.Assert.Ok();
 
@@ -29,7 +32,8 @@ public class PlainTextResponseTests {
 
     [HardenedTest]
     public async Task PlainTextOperation_WritesTheStringRatherThanJsonEncodingIt(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/pets/plain");
+        var response = await testWebApp.Get("/pets/plain",
+            request => request.Headers["Accept"] = new StringValues("text/plain"));
 
         response.Assert.Ok();
 

@@ -60,14 +60,14 @@ public class FunctionFilterTests {
     }
 
     /// <summary>
-    /// <c>[RawResponse]</c> is response information: it becomes the handler's output function
-    /// rather than a filter, so it stays out of the metadata array.
+    /// <c>[RawResponse]</c> is response information: it commits the response's content type
+    /// rather than becoming a filter, so it stays out of the metadata array.
     /// </summary>
     [Fact]
-    public void ARawResponseAttributeBecomesTheOutputFunctionRatherThanAFilter() {
+    public void ARawResponseAttributeIsResponseInformationRatherThanAFilter() {
         var source = Handler("[RawResponse(\"text/csv\")]", "public string Process() => \"a,b\";");
 
-        Assert.Contains("RawOutputHelper.OutputFunc(\"text/csv\")", source);
+        Assert.Contains("Response.ContentType = \"text/csv\"", source);
         Assert.DoesNotContain("_metadata", source);
     }
 
@@ -102,7 +102,7 @@ public class FunctionFilterTests {
             "public string Process() => \"a,b\";");
 
         Assert.Contains("RetryAttribute(){ Retries = 3 }", source);
-        Assert.Contains("RawOutputHelper.OutputFunc(\"text/csv\")", source);
+        Assert.Contains("Response.ContentType = \"text/csv\"", source);
     }
 
     /// <summary>

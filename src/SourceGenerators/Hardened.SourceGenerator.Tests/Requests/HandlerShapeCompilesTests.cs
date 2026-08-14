@@ -238,20 +238,27 @@ public class HandlerShapeCompilesTests {
     }
 
     /// <summary>
-    /// <c>[RawResponse]</c> changes the handler's default output function,
-    /// which is a third constructor argument rather than a parameter or a filter. Compiled here
-    /// because both branches live in InvokeClassGenerator; their runtime behaviour belongs to the
-    /// web-routing workstream.
+    /// <c>[RawResponse]</c> commits the response to a content type, which
+    /// <c>RawResponseSerializer</c> then claims through ordinary serializer selection.
     /// </summary>
+    /// <remarks>
+    /// It used to emit a <c>RawOutputHelper.OutputFunc</c> closure as the handler's default output,
+    /// which <c>ContextSerializationService</c> consulted ahead of every serializer - so the
+    /// attribute pre-empted selection rather than taking part in it. That is what collided with the
+    /// template path, and what two copies of a suppression special case existed to work around.
+    /// </remarks>
     [Fact]
-    public void ARawResponseHandlerEmitsARawOutputFunction() {
+    public void ARawResponseHandlerCommitsTheResponseContentType() {
         var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
                 [Get("/raw")]
                 [RawResponse("text/csv")]
                 public string Raw() => "a,b";
             """)).AssertNoErrors();
 
-        Assert.Contains("RawOutputHelper.OutputFunc(\"text/csv\")", result.SourceContaining("Raw"));
+        var source = result.SourceContaining("Raw");
+
+        Assert.Contains("Response.ContentType = \"text/csv\"", source);
+        Assert.DoesNotContain("RawOutputHelper", source);
     }
 
     [Fact]
@@ -262,7 +269,7 @@ public class HandlerShapeCompilesTests {
                 public string Raw() => "text";
             """)).AssertNoErrors();
 
-        Assert.Contains("RawOutputHelper.OutputFunc(\"text/plain\")", result.SourceContaining("Raw"));
+        Assert.Contains("Response.ContentType = \"text/plain\"", result.SourceContaining("Raw"));
     }
 
 

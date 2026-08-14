@@ -51,11 +51,17 @@ Apply the module alongside the rest:
 public partial class Application { }
 ```
 
-Module order does not matter. `TemplateResponseSerializer` declares
-`ResponseSerializerOrder.Template`, so the locator asks it before the JSON serializers wherever it
-was registered — a request sending `Accept: application/json` against a route that names a view
-still renders. Registering multiple engines is the one place order counts: they are tested in
-reverse registration order, so an application's engine is asked before one a library registered.
+Module order does not matter, and neither does serializer order in the normal case — the client's
+`Accept` decides. A browser sending `text/html` gets the rendered view; a client sending
+`application/json` gets the model serialised, from the same handler and the same return value. The
+handler knows about neither.
+
+`TemplateResponseSerializer` declares `ResponseSerializerOrder.Template`, which decides only the case
+where the client expressed no preference: `Accept: */*` or no header at all renders the view rather
+than serialising the model.
+
+Registering multiple engines is the one place registration order counts: they are tested in reverse
+registration order, so an application's engine is asked before one a library registered.
 
 ## Content type
 

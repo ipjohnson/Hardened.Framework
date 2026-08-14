@@ -25,6 +25,19 @@ public class AotResponseSerializer : IResponseSerializer {
 
     public bool IsDefaultSerializer => true;
 
+    /// <summary>
+    /// Ahead of <see cref="SystemTextJsonResponseSerializer"/>, which is how an AOT application ends
+    /// up using its own serializer rather than the reflection-based one.
+    /// </summary>
+    /// <remarks>
+    /// This used to be arranged by registration order and TryAddSingleton: AotSerializerModule
+    /// registered first and the reflection serializer's Try became a no-op. That worked only while
+    /// nothing else registered an IResponseSerializer first, which stopped being true the moment one
+    /// was added. Both are registered now and this one wins by order, which no third serializer can
+    /// disturb.
+    /// </remarks>
+    public int Order => (int)ResponseSerializerOrder.Specialized;
+
     public bool CanProduce(string mediaType, IExecutionContext context) =>
         MediaType.Matches(mediaType, KnownContentType.Json);
 

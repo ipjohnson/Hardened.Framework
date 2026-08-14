@@ -59,21 +59,7 @@ internal static class RequestModelBuilder {
                             var templateName = TemplateNameFrom(attribute);
 
                             if (templateName != null) {
-                                // RawResponseContentType is cleared for the same reason
-                                // RawContentTypeFor refuses to set it for a spec-declared template:
-                                // ContextSerializationService checks DefaultOutput before it reaches
-                                // any serializer, so a text/html operation that also carries a raw
-                                // content type has its model handed to RawOutputHelper, which throws
-                                // on anything that is not string, byte[] or Stream.
-                                //
-                                // It has to happen here as well as there because the name can arrive
-                                // from either side, and BuildResponseInfo runs before this does -
-                                // at that point a spec with no x-hardened-template looks like an
-                                // ordinary text/html response.
-                                responseInformation = responseInformation with {
-                                    TemplateName = templateName,
-                                    RawResponseContentType = null
-                                };
+                                responseInformation = responseInformation with { TemplateName = templateName };
                             }
                             else {
                                 filters.Add(attribute);
@@ -347,46 +333,8 @@ internal static class RequestModelBuilder {
         return new ResponseInformationModel {
             IsAsync = true,
             ReturnType = returnType,
-            TemplateName = operation.TemplateName,
-            RawResponseContentType = RawContentTypeFor(operation)
+            TemplateName = operation.TemplateName
         };
     }
 
-    /// <summary>
-    /// The content type a spec-first operation should write its response as, or null to let the
-    /// pipeline serialize it as JSON.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This is the whole of the spec-first side of raw responses. <c>InvokeClassGenerator</c>
-    /// already turns a non-null value into <c>RawOutputHelper.OutputFunc(contentType)</c>, and
-    /// <c>RawOutputHelper</c> already handles string, byte[] and Stream - the attribute-driven path
-    /// has worked that way for as long as <c>[RawResponse]</c> has existed. The OpenAPI path simply
-    /// never populated the field, so a <c>text/plain</c> operation fell through to the JSON
-    /// serializer and came back quoted.
-    /// </para>
-    /// <para>
-    /// JSON stays null rather than being passed through as "application/json": the raw path writes
-    /// the response value directly, which is correct for a string and wrong for a model.
-    /// </para>
-    /// </remarks>
-    private static string? RawContentTypeFor(OperationModel operation) {
-        // A templated operation renders rather than writes. Giving it a raw content type as well
-        // would be actively wrong, not merely redundant: ContextSerializationService checks
-        // DefaultOutput before it reaches the serializer locator, so the raw writer would take the
-        // response first and hand the template's model - a record, not a string - to
-        // RawOutputHelper, which throws on anything that is not string, byte[] or Stream. The
-        // engine sets the content type from the template's own base type.
-        if (!string.IsNullOrEmpty(operation.TemplateName)) {
-            return null;
-        }
-
-        var contentType = operation.ResponseContentType;
-
-        if (string.IsNullOrEmpty(contentType) || contentType!.Contains("json")) {
-            return null;
-        }
-
-        return contentType;
-    }
 }
