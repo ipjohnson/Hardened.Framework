@@ -116,6 +116,15 @@ jobs:
       # is not marked IsPackable=false, which is how Hardened.IntegrationTests.Console.SUT and
       # .OpenApi.SUT ended up on the GitHub feed as packages. On nuget.org a mistake like that
       # claims a public ID permanently.
+      #
+      # Hardened.DependencyModules.SourceGenerator is deliberately absent. Its generator ships
+      # embedded in Hardened.Library.SourceGenerator's analyzers/dotnet/cs, because both projects
+      # compile CSharpAuthor in from source and an assembly reference between them collides on
+      # CSharpAuthor.TypeExtensions - so a nuspec dependency is not available and embedding is the
+      # only mechanism that works. Publishing it standalone as well, as v0.1.0-rc1 did, put the
+      # same generator in two packages: a consumer referencing both loaded it twice and both
+      # copies emitted the module onto the same partial class, failing with CS0111/CS8646. One
+      # publishable supplier is what keeps that impossible.
       - name: Pack
         run: |
           for project in \
@@ -129,7 +138,6 @@ jobs:
             src/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj \
             src/SourceGenerators/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.csproj \
-            src/SourceGenerators/Hardened.DependencyModules.SourceGenerator/Hardened.DependencyModules.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.OpenApi.SourceGenerator/Hardened.OpenApi.SourceGenerator.csproj \
@@ -157,7 +165,9 @@ jobs:
           # 19 when the list was written. #108 added Hardened.Templates.RazorBlade and
           # Hardened.Validation.SourceGenerator to the pack list and did not update this, which is
           # what this step is for - it failed the v0.1.0-rc1 release before anything was pushed.
-          EXPECTED=21
+          # 20 after Hardened.DependencyModules.SourceGenerator was removed from the list; see the
+          # note above the pack step for why it is not published on its own.
+          EXPECTED=20
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
