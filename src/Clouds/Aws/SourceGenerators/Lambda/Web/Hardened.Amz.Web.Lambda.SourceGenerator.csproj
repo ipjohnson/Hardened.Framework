@@ -24,6 +24,15 @@
     <PropertyGroup>
         <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
         <PackageHardenedIncludeSource>true</PackageHardenedIncludeSource>
+
+        <!--
+            Hardened.SourceGenerator ships source-only and is compiled in above. Its validation
+            files build ValidatedTypeModel and emit validators, so they reference ValidationModules'
+            generator internals - which have to be compiled in here too, or those files do not
+            resolve. Hardened.Framework does the same thing through
+            src/SourceGenerators/ValidationModulesImpl.props.
+        -->
+        <PackageValidationModulesIncludeSource>true</PackageValidationModulesIncludeSource>
     </PropertyGroup>
 
     <ItemGroup>
@@ -33,6 +42,11 @@
         </PackageReference>
 
         <PackageReference Include="Hardened.SourceGenerator" Version="1.0.0-preview*">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
+
+        <PackageReference Include="ValidationModules.SourceGenerator.Impl" Version="0.1.0-alpha.1">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>

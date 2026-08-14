@@ -181,3 +181,6 @@ obj/
 # Code coverage output (dotnet test --collect + ReportGenerator)
 coverage/
 coverage-report/
+
+# Release packages, produced by .github/workflows/release.yaml.
+artifacts/

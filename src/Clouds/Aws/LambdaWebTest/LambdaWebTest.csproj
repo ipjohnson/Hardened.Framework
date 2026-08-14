@@ -13,7 +13,6 @@
         <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
         <PackageReference Include="Hardened.Shared.Runtime" Version="1.0.0-preview*" />
         <PackageReference Include="Hardened.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
-        <PackageReference Include="Hardened.Templates.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
         <PackageReference Include="Hardened.Web.Runtime" Version="1.0.0-preview*" />
         <PackageReference Include="Hardened.Web.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
     </ItemGroup>
