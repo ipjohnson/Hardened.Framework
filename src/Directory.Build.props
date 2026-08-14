@@ -43,7 +43,7 @@
       in a reviewable commit rather than on whichever day CI happened to rerun.
     -->
     <PropertyGroup>
-        <ValidationModulesVersion Condition="'$(ValidationModulesVersion)' == ''">1.0.0-rc1002</ValidationModulesVersion>
+        <ValidationModulesVersion Condition="'$(ValidationModulesVersion)' == ''">1.0.0-rc1003</ValidationModulesVersion>
     </PropertyGroup>
 
     <!--
