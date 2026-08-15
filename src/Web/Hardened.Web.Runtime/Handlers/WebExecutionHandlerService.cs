@@ -41,6 +41,13 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
 
                 var handlerChain = handler.Handler.GetExecutionChain(chain.Context);
 
+                // A HEAD reaches the GET handler - the routing table sends it there - and must run
+                // it in full to produce the same headers, so the body is dropped on the way out
+                // rather than never asked for.
+                if (HeadRequest.IsHead(context)) {
+                    return HeadRequest.ExecuteWithoutBody(handlerChain, context);
+                }
+
                 return handlerChain.Next();
             }
         }
