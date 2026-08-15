@@ -11,8 +11,20 @@ Usage:
     python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
     python3 scripts/coverage-gate.py --summary coverage-report/Summary.json --update
 
---update rewrites the baseline from the current run. Run it locally when coverage goes up, and
-commit the result. Never run it in CI: a workflow that re-baselines cannot detect a regression.
+--update rewrites the baseline from the current run. Never run it in CI: a workflow that
+re-baselines cannot detect a regression.
+
+Take the summary from a CI run rather than a local one. The generator assemblies compile their
+dependencies from source, and which source depends on what is checked out beside this repository:
+CSharpAuthor.props and ValidationModulesImpl.props switch to a sibling checkout when one exists,
+so a developer with ~/CSharpAuthor or ~/ValidationModules builds assemblies whose contents differ
+from the ones CI builds. A baseline written from that machine records percentages CI cannot
+reproduce, and an assembly - ValidationModules.Runtime - that only exists as a project locally.
+
+The coverage-report artifact is uploaded on every run, including a failed one:
+
+    gh run download <run-id> -n coverage-report -D /tmp/cicov
+    python3 scripts/coverage-gate.py --summary /tmp/cicov/Summary.json --update
 """
 
 from __future__ import annotations

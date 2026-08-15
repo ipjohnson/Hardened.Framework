@@ -16,8 +16,8 @@
     "branch": 19.8
   },
   "Hardened.OpenApi.BuildTask": {
-    "line": 63.1,
-    "branch": 44.5
+    "line": 10.7,
+    "branch": 10.7
   },
   "Hardened.OpenApi.SourceGenerator": {
     "line": 59.0,
@@ -41,7 +41,7 @@
   },
   "Hardened.Shared.Runtime": {
     "line": 90.4,
-    "branch": 85.2
+    "branch": 85.8
   },
   "Hardened.Shared.Testing": {
     "line": 75.9,
@@ -82,9 +82,5 @@
   "Hardened.Web.Testing": {
     "line": 98.0,
     "branch": 88.8
-  },
-  "ValidationModules.Runtime": {
-    "line": 15.6,
-    "branch": 12.4
   }
 }
