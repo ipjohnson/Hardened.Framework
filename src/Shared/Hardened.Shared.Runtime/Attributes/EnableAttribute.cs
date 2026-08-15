@@ -34,6 +34,16 @@ namespace Hardened.Shared.Runtime.Attributes;
 /// (<c>Application.Routing</c>), and generated template bases and link types need the same scoping.
 /// Without a signal, a generator facing an assembly with two entry points has to guess or collide.
 /// </para>
+///
+/// <para>
+/// <b>A marker may also be a DependencyModules module.</b> The constraint is <c>new()</c>, which is
+/// what a module needs anyway, and a marker carrying <c>[DependencyModule]</c> has its registrations
+/// applied to this entry point as well - so a feature that ships services and a generated type is
+/// one attribute rather than two. Ordering differs slightly from writing the module's own
+/// attribute: the registrations arrive with the other generated ones rather than in the position
+/// the attribute was written in, which matters only for a module deliberately overriding a
+/// registration from another.
+/// </para>
 /// </summary>
 /// <typeparam name="TFeature">
 /// The feature marker. A marker carries what the generator needs to emit as attributes on itself -
@@ -41,4 +51,4 @@ namespace Hardened.Shared.Runtime.Attributes;
 /// engine needs no generator change at all.
 /// </typeparam>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = true, Inherited = false)]
-public class EnableAttribute<TFeature> : Attribute { }
+public class EnableAttribute<TFeature> : Attribute where TFeature : new() { }

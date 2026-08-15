@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Abstract.Templates;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Attributes;
@@ -34,27 +35,28 @@ public class TemplateBaseGeneratorTests {
         using System.Threading;
         using System.Threading.Tasks;
         using Hardened.Requests.Abstract.Execution;
+        using Hardened.Requests.Abstract.Outputs;
         using Hardened.Requests.Abstract.Templates;
 
         namespace Other.Engine;
 
-        public abstract class FluidBase<TModel> : IHardenedTemplate<TModel> {
+        public abstract class FluidBase<TModel> : IHardenedResponseOutput<TModel> {
             public TModel Model { get; private set; } = default!;
 
-            public IExecutionContext Context { get; private set; } = default!;
+            // Part of the contract [TemplateBase] declares, not of IHardenedResponseOutput: the
+            // generated base puts a Links property on every view and resolves it from here.
+            protected IExecutionContext Context { get; private set; } = default!;
 
             public virtual string ContentType => "text/plain";
 
-            public void Attach(TModel model, IExecutionContext context) {
-                Model = model;
+            public bool SupportsContentType(string? accept, IExecutionContext context) => true;
+
+            public Task WriteOutput(IExecutionContext context) {
+                Model = (TModel)context.Response.ResponseValue!;
                 Context = context;
+
+                return Task.CompletedTask;
             }
-
-            void IHardenedTemplate.Attach(object? model, IExecutionContext context) =>
-                Attach((TModel)model!, context);
-
-            public Task RenderAsync(TextWriter writer, CancellationToken cancellationToken = default) =>
-                Task.CompletedTask;
         }
 
         [TemplateBase(typeof(FluidBase<>))]
@@ -68,7 +70,7 @@ public class TemplateBaseGeneratorTests {
         public sealed class SomeOtherFeature { }
         """;
 
-    private static GeneratorResult Generate(string application) =>
+        private static GeneratorResult Generate(string application) =>
         GeneratorTestHarness.Run(
             new Dictionary<string, string> {
                 ["Engine.cs"] = Engine,
@@ -77,8 +79,8 @@ public class TemplateBaseGeneratorTests {
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
             Anchors).AssertNoErrors();
 
-    /// <summary>An entry point named <paramref name="name"/> enabling the named markers.</summary>
-    private static string Application(string name, params string[] markers) =>
+        /// <summary>An entry point named <paramref name="name"/> enabling the named markers.</summary>
+        private static string Application(string name, params string[] markers) =>
         $$"""
         using Hardened.Shared.Runtime.Attributes;
         using Other.Engine;
@@ -90,86 +92,86 @@ public class TemplateBaseGeneratorTests {
         public partial class {{name}} { }
         """;
 
-    /// <summary>
-    /// The generated base derives from what the marker's <c>[TemplateBase]</c> names, closed over
-    /// the generated class's own type parameter - so a view writing
-    /// <c>@inherits ApplicationFluidTemplate&lt;FortunePage&gt;</c> gets a typed <c>Model</c>.
-    /// </summary>
-    [Fact]
-    public void TheBaseDerivesFromWhatTheMarkerNames() {
+        /// <summary>
+        /// The generated base derives from what the marker's <c>[TemplateBase]</c> names, closed over
+        /// the generated class's own type parameter - so a view writing
+        /// <c>@inherits ApplicationFluidTemplate&lt;FortunePage&gt;</c> gets a typed <c>Model</c>.
+        /// </summary>
+        [Fact]
+        public void TheBaseDerivesFromWhatTheMarkerNames() {
         var source = Generate(Application("Application", "FluidTemplate")).SourceContaining("FluidTemplate");
 
         Assert.Contains("class ApplicationFluidTemplate<TModel>", source);
         Assert.Contains("FluidBase<TModel>", source);
-    }
+        }
 
-    /// <summary>
-    /// The name is scoped to the entry point. An assembly with two modules would otherwise have two
-    /// generator runs racing for one type name, which is the same reason the routing table is
-    /// <c>Application.RoutingTable</c>.
-    /// </summary>
-    [Fact]
-    public void TheNameIsScopedToTheEntryPoint() {
+        /// <summary>
+        /// The name is scoped to the entry point. An assembly with two modules would otherwise have two
+        /// generator runs racing for one type name, which is the same reason the routing table is
+        /// <c>Application.RoutingTable</c>.
+        /// </summary>
+        [Fact]
+        public void TheNameIsScopedToTheEntryPoint() {
         var source = Generate(Application("Storefront", "FluidTemplate")).SourceContaining("FluidTemplate");
 
         Assert.Contains("class StorefrontFluidTemplate<TModel>", source);
-    }
+        }
 
-    /// <summary>
-    /// The content type comes off the marker, not out of the generator. It is what decides whether
-    /// a template response is what the client asked for.
-    /// </summary>
-    [Fact]
-    public void TheContentTypeComesFromTheMarker() {
+        /// <summary>
+        /// The content type comes off the marker, not out of the generator. It is what decides whether
+        /// a template response is what the client asked for.
+        /// </summary>
+        [Fact]
+        public void TheContentTypeComesFromTheMarker() {
         var source = Generate(Application("Application", "FluidTemplate")).SourceContaining("FluidTemplate");
 
         Assert.Contains("\"text/html; charset=utf-8\"", source);
-    }
+        }
 
-    /// <summary>
-    /// Nothing is emitted without the attribute. The feature is off until a module asks for it,
-    /// which is the whole point of naming the marker rather than probing for the package.
-    /// </summary>
-    [Fact]
-    public void NothingIsEmittedForAModuleThatDidNotEnableIt() {
+        /// <summary>
+        /// Nothing is emitted without the attribute. The feature is off until a module asks for it,
+        /// which is the whole point of naming the marker rather than probing for the package.
+        /// </summary>
+        [Fact]
+        public void NothingIsEmittedForAModuleThatDidNotEnableIt() {
         var result = Generate(Application("Application"));
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("Fluid"));
-    }
+        }
 
-    /// <summary>
-    /// Two markers on one module produce two bases. Multi-engine falls out of deriving the name
-    /// from the marker rather than being retrofitted onto a single generated type.
-    /// </summary>
-    [Fact]
-    public void TwoMarkersProduceTwoBases() {
+        /// <summary>
+        /// Two markers on one module produce two bases. Multi-engine falls out of deriving the name
+        /// from the marker rather than being retrofitted onto a single generated type.
+        /// </summary>
+        [Fact]
+        public void TwoMarkersProduceTwoBases() {
         var result = Generate(Application("Application", "FluidTemplate", "CsvTemplate"));
 
         Assert.Contains("class ApplicationFluidTemplate<TModel>", result.SourceContaining("FluidTemplate"));
         Assert.Contains("class ApplicationCsvTemplate<TModel>", result.SourceContaining("CsvTemplate"));
         Assert.Contains("\"text/csv\"", result.SourceContaining("CsvTemplate"));
-    }
+        }
 
-    /// <summary>
-    /// A marker declaring no template base is some other kind of feature, and is skipped rather
-    /// than reported. One attribute name serves every optional feature - that is what makes
-    /// <c>[Enable&lt;</c> a single thing to remember - so the template generator seeing one it has
-    /// no interest in is ordinary.
-    /// </summary>
-    [Fact]
-    public void AMarkerWithNoTemplateBaseIsIgnored() {
+        /// <summary>
+        /// A marker declaring no template base is some other kind of feature, and is skipped rather
+        /// than reported. One attribute name serves every optional feature - that is what makes
+        /// <c>[Enable&lt;</c> a single thing to remember - so the template generator seeing one it has
+        /// no interest in is ordinary.
+        /// </summary>
+        [Fact]
+        public void AMarkerWithNoTemplateBaseIsIgnored() {
         var result = Generate(Application("Application", "SomeOtherFeature"));
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("SomeOtherFeature"));
-    }
+        }
 
-    /// <summary>
-    /// The qualified spelling is the same attribute. A generator recognising only the short form
-    /// would silently do nothing for a project that wrote the other, which is the worst shape a
-    /// feature switch can fail in.
-    /// </summary>
-    [Fact]
-    public void TheQualifiedSpellingIsRecognised() {
+        /// <summary>
+        /// The qualified spelling is the same attribute. A generator recognising only the short form
+        /// would silently do nothing for a project that wrote the other, which is the worst shape a
+        /// feature switch can fail in.
+        /// </summary>
+        [Fact]
+        public void TheQualifiedSpellingIsRecognised() {
         var result = Generate("""
             namespace TestApp;
 
@@ -179,5 +181,5 @@ public class TemplateBaseGeneratorTests {
             """);
 
         Assert.Contains("class ApplicationFluidTemplate<TModel>", result.SourceContaining("FluidTemplate"));
-    }
-}
+        }
+        }

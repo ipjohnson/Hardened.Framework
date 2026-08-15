@@ -60,9 +60,9 @@ internal static class RequestModelBuilder {
                         // Which view renders a response is how the operation is fulfilled, not part
                         // of the contract it publishes - so it is read from the implementation and
                         // there is nothing in the document to override or be overridden by.
-                        if (methodFilter.TemplateType != null) {
+                        if (methodFilter.OutputType != null) {
                             responseInformation =
-                                responseInformation with { TemplateType = methodFilter.TemplateType };
+                                responseInformation with { OutputType = methodFilter.OutputType };
                         }
 
                         break;

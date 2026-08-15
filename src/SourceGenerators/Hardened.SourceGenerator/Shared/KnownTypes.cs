@@ -75,6 +75,8 @@ public static class KnownTypes {
 
                     public const string Templates = "Hardened.Requests.Abstract.Templates";
 
+                    public const string Outputs = "Hardened.Requests.Abstract.Outputs";
+
                     public const string Links = "Hardened.Requests.Abstract.Links";
                 }
 
@@ -202,9 +204,9 @@ public static class KnownTypes {
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition,
                 Namespace.Hardened.Requests.Abstract.Links, "ILinkContext");
 
-        public static readonly ITypeDefinition IHardenedTemplate =
+        public static readonly ITypeDefinition IHardenedResponseOutput =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition,
-                Namespace.Hardened.Requests.Abstract.Templates, "IHardenedTemplate");
+                Namespace.Hardened.Requests.Abstract.Outputs, "IHardenedResponseOutput");
 
         public static readonly ITypeDefinition IExecutionFilter =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,

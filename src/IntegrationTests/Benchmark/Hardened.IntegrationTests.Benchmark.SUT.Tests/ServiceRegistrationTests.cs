@@ -1,5 +1,4 @@
 using Hardened.Requests.Abstract.Serializer;
-using Hardened.Requests.Runtime.Templates;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
@@ -22,9 +21,10 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// resolved as a set that someone registers with <c>Try</c>.
 /// </para>
 /// <para>
-/// There is nothing template-specific left to register. A view renders itself now - the generated
-/// handler carries a factory and the serializer builds it - so the engine, the template source and
-/// the name-keyed registry they existed to serve are all gone.
+/// There is nothing template-specific left to register, and no template serializer either. An
+/// output writes the response itself, and a handler declaring one takes it out of negotiation
+/// entirely - so the engine, the template source, the name-keyed registry and the serializer that
+/// ordered them against JSON are all gone.
 /// </para>
 /// </remarks>
 public class ServiceRegistrationTests {
@@ -40,19 +40,14 @@ public class ServiceRegistrationTests {
             .ToList();
     }
 
-    [Fact]
-    public void TheTemplateSerializerIsRegisteredAlongsideTheJsonOne() {
-        var serializers = RegistrationsFor(typeof(IResponseSerializer));
-
-        Assert.Contains(nameof(TemplateResponseSerializer), serializers);
-        Assert.Contains("SystemTextJsonResponseSerializer", serializers);
-    }
-
     /// <summary>
     /// The set has more than one member, which is the property <c>Try</c> silently destroys.
     /// </summary>
     [Fact]
     public void ResponseSerializersResolveAsASetRatherThanASingleWinner() {
-        Assert.True(RegistrationsFor(typeof(IResponseSerializer)).Count > 1);
+        var serializers = RegistrationsFor(typeof(IResponseSerializer));
+
+        Assert.Contains("SystemTextJsonResponseSerializer", serializers);
+        Assert.True(serializers.Count > 1);
     }
 }

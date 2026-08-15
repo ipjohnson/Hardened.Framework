@@ -35,7 +35,7 @@ public static class MissingTemplateDiagnostics {
         id: DiagnosticId,
         title: "Operation declares markup but names no view",
         messageFormat:
-        "'{0}.{1}' answers '{2}' with a model, and declares no [Template<T>]. Nothing serializes " +
+        "'{0}.{1}' answers '{2}' with a model, and declares no [Output<T>]. Nothing serializes " +
         "an object as markup, so this would fail at run time. Name the view on the implementation.",
         category: "Hardened.OpenApi",
         defaultSeverity: DiagnosticSeverity.Error,
@@ -45,7 +45,7 @@ public static class MissingTemplateDiagnostics {
         this RequestHandlerModel model, SourceProductionContext context) {
         var response = model.ResponseInformation;
 
-        if (response.TemplateType != null ||
+        if (response.OutputType != null ||
             !response.RendersAModel ||
             response.DeclaredContentType == null ||
             !response.DeclaredContentType.StartsWith(Markup, System.StringComparison.OrdinalIgnoreCase)) {

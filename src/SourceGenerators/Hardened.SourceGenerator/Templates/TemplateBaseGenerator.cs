@@ -138,9 +138,10 @@ public static class TemplateBaseGenerator {
     /// page.
     /// </para>
     /// <para>
-    /// Reached through <c>IHardenedTemplate.Context</c> rather than a member of whichever base the
-    /// marker names, so this works for a template engine the generator has never seen. Resolved on
-    /// first use, because most views do not link.
+    /// Reached through the <c>Context</c> a template base exposes - part of the contract
+    /// <c>[TemplateBase]</c> declares rather than of <c>IHardenedResponseOutput</c>, which is down
+    /// to two methods and has no business carrying request state. Resolved on first use, because
+    /// most views do not link.
     /// </para>
     /// </remarks>
     private static void WriteLinks(EntryPointSelector.Model appModel, ClassDefinition definition) {
@@ -158,8 +159,6 @@ public static class TemplateBaseGenerator {
         property.Get.LambdaSyntax = true;
         property.Get.AddCode(
             "_links ??= global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions" +
-            ".GetRequiredService<" + qualified + ">(" +
-            "((global::" + KnownTypes.Requests.IHardenedTemplate.Namespace + "." +
-            KnownTypes.Requests.IHardenedTemplate.Name + ")this).Context.RequestServices);");
+            ".GetRequiredService<" + qualified + ">(Context.RequestServices);");
     }
 }

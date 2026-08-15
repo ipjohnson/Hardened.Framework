@@ -7,13 +7,13 @@ namespace Hardened.Templates.RazorBlade;
 ///
 /// <code>
 /// [HardenedModule]
-/// [Enable&lt;HardenedRazorTemplate&gt;]
+/// [Enable&lt;HardenedRazorTemplates&gt;]
 /// public partial class Application { }
 /// </code>
 ///
 /// <para>
 /// Naming it is what references the package, so there is nothing for a generator to detect. What
-/// it produces is an abstract base per module - <c>ApplicationRazorTemplate&lt;TModel&gt;</c> - for
+/// it produces is an abstract base per module - <c>ApplicationRazorTemplates&lt;TModel&gt;</c> - for
 /// a view to declare with <c>@inherits</c>.
 /// </para>
 ///
@@ -32,6 +32,4 @@ namespace Hardened.Templates.RazorBlade;
 /// </summary>
 [TemplateBase(typeof(HardenedHtmlTemplate<>))]
 [TemplateContentType("text/html; charset=utf-8")]
-public sealed class HardenedRazorTemplate {
-    private HardenedRazorTemplate() { }
-}
+public sealed class HardenedRazorTemplates { }

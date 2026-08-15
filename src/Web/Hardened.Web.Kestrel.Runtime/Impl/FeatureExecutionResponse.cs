@@ -1,6 +1,6 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
-using Hardened.Requests.Abstract.Templates;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Runtime.Headers;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
@@ -51,8 +51,8 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
         return new FeatureExecutionResponse(
             _feature, _bodyFeature, _bodyOverride, _status, Cookies) {
             ResponseValue = ResponseValue,
-            TemplateFactory = TemplateFactory,
-            Template = Template,
+            OutputFactory = OutputFactory,
+            Output = Output,
             ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize
@@ -66,9 +66,9 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
 
     public object? ResponseValue { get; set; }
 
-    public Func<IExecutionContext, IHardenedTemplate>? TemplateFactory { get; set; }
+    public Func<IExecutionContext, IHardenedResponseOutput>? OutputFactory { get; set; }
 
-    public IHardenedTemplate? Template { get; set; }
+    public IHardenedResponseOutput? Output { get; set; }
 
     /// <summary>
     /// Null while the status is still undecided; otherwise what will be, or has been, sent.

@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Templates;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Templates.RazorBlade.Tests.Models;
 using Hardened.Templates.RazorBlade.Tests.Support;
 using Xunit;
@@ -30,22 +30,20 @@ public class HardenedHtmlTemplateTests {
 
     private static readonly FortunePage Page = new([new Fortune(1, "hello"), new Fortune(2, "again")]);
 
-    private static IHardenedTemplate Template() => new Views.AttachedFortunes();
+    private static IHardenedResponseOutput Template() => new Views.AttachedFortunes();
 
     /// <summary>
-    /// Parameterless construction, then the model. That is the whole shape: a view is created by a
-    /// generated factory that cannot know the model type, so the model arrives afterwards.
+    /// Parameterless construction, then the model off the response. That is the whole shape: a view
+    /// is created by a generated factory that cannot know the model type, so the model is read from
+    /// where the handler left it.
     /// </summary>
     [Fact]
-    public async Task AModelAttachedAfterConstructionRenders() {
+    public async Task TheModelIsReadFromTheResponseAndRendered() {
         var context = Pipeline.Context(out var body);
-        var template = Template();
 
-        template.Attach(Page, context);
+        context.Response.ResponseValue = Page;
 
-        await using var writer = new StreamWriter(body, leaveOpen: true);
-        await template.RenderAsync(writer, TestContext.Current.CancellationToken);
-        await writer.FlushAsync(TestContext.Current.CancellationToken);
+        await Template().WriteOutput(context);
 
         var rendered = Pipeline.Rendered(body);
 
@@ -54,22 +52,64 @@ public class HardenedHtmlTemplateTests {
     }
 
     /// <summary>
-    /// RazorBlade's inherited <c>RenderAsync</c> satisfies the interface implicitly, with no
-    /// adapter written anywhere. Worth pinning, because nothing in the declarations says it should.
+    /// RazorBlade's inherited <c>RenderAsync</c> is what <c>WriteOutput</c> calls, with no adapter
+    /// written anywhere.
     /// </summary>
     [Fact]
-    public void ARazorBladeTemplateSatisfiesTheInterfaceWithNoAdapter() {
-        Assert.IsAssignableFrom<IHardenedTemplate>(new Views.AttachedFortunes());
-        Assert.IsAssignableFrom<IHardenedTemplate<FortunePage>>(new Views.AttachedFortunes());
+    public void ARazorBladeTemplateIsAnOutput() {
+        Assert.IsAssignableFrom<IHardenedResponseOutput>(new Views.AttachedFortunes());
+        Assert.IsAssignableFrom<IHardenedResponseOutput<FortunePage>>(new Views.AttachedFortunes());
     }
 
     /// <summary>
     /// The content type follows from the base class rather than from a file extension or a
-    /// registry, which is what lets the engine ask the template rather than look it up.
+    /// registry, and it is what the view answers <c>SupportsContentType</c> with.
     /// </summary>
     [Fact]
-    public void TheContentTypeComesFromTheBase() {
-        Assert.Equal("text/html; charset=utf-8", Template().ContentType);
+    public async Task TheContentTypeComesFromTheBase() {
+        var context = Pipeline.Context(out _);
+
+        context.Response.ResponseValue = Page;
+
+        await Template().WriteOutput(context);
+
+        Assert.Equal("text/html; charset=utf-8", context.Response.ContentType);
+    }
+
+    /// <summary>
+    /// A view answers for what it produces, for a wildcard, and for a client that sent no
+    /// preference at all.
+    /// </summary>
+    [Theory]
+    [InlineData("text/html")]
+    [InlineData("text/html; charset=utf-8")]
+    [InlineData("text/*")]
+    [InlineData("*/*")]
+    [InlineData(null)]
+    [InlineData("")]
+    public void AViewAnswersWhatItProduces(string? accept) {
+        Assert.True(Template().SupportsContentType(accept, Pipeline.Context(out _)));
+    }
+
+    /// <summary>
+    /// And declines what it does not, which is what turns into a 406 rather than into the model
+    /// serialized as JSON.
+    /// </summary>
+    [Theory]
+    [InlineData("application/json")]
+    [InlineData("application/xml, text/csv")]
+    public void AViewDeclinesWhatItDoesNotProduce(string accept) {
+        Assert.False(Template().SupportsContentType(accept, Pipeline.Context(out _)));
+    }
+
+    /// <summary>
+    /// It answers a header that lists several types when one of them is its own - a browser sends
+    /// <c>text/html, application/xhtml+xml, ..., */*</c> and every part of that has to work.
+    /// </summary>
+    [Fact]
+    public void AViewAnswersAHeaderListingSeveralTypes() {
+        Assert.True(Template().SupportsContentType(
+            "application/json, text/html;q=0.9", Pipeline.Context(out _)));
     }
 
     /// <summary>
@@ -78,12 +118,13 @@ public class HardenedHtmlTemplateTests {
     /// an error path is ordinary, so this is the likely failure rather than an exotic one.
     /// </summary>
     [Fact]
-    public void ANullModelForAValueTypeNamesTheTemplate() {
+    public async Task ANullModelForAValueTypeNamesTheTemplate() {
         var context = Pipeline.Context(out _);
 
-        IHardenedTemplate template = new ValueModelTemplate();
+        IHardenedResponseOutput template = new ValueModelTemplate();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => template.Attach(null, context));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => template.WriteOutput(context));
 
         Assert.Contains(nameof(ValueModelTemplate), exception.Message);
         Assert.Contains(nameof(Int32), exception.Message);
@@ -91,11 +132,13 @@ public class HardenedHtmlTemplateTests {
 
     /// <summary>And a model of the wrong type says which type it got.</summary>
     [Fact]
-    public void AMismatchedModelNamesBothTypes() {
+    public async Task AMismatchedModelNamesBothTypes() {
         var context = Pipeline.Context(out _);
 
-        var exception = Assert.Throws<InvalidOperationException>(
-            () => Template().Attach("not a fortune page", context));
+        context.Response.ResponseValue = "not a fortune page";
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Template().WriteOutput(context));
 
         Assert.Contains(nameof(FortunePage), exception.Message);
         Assert.Contains(nameof(String), exception.Message);

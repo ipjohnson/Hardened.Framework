@@ -8,12 +8,12 @@ namespace Hardened.IntegrationTests.Benchmark.SUT;
 /// The TechEmpower routes as one Hardened application.
 /// </summary>
 /// <remarks>
-/// <c>[Enable&lt;HardenedRazorTemplate&gt;]</c> generates
-/// <c>BenchmarkTestAppRazorTemplate&lt;TModel&gt;</c>, which Views/Fortunes.cshtml inherits.
+/// <c>[Enable&lt;HardenedRazorTemplates&gt;]</c> generates
+/// <c>BenchmarkTestAppRazorTemplates&lt;TModel&gt;</c>, which Views/Fortunes.cshtml inherits.
 /// Naming the marker is what references the package, so there is nothing to detect and nothing to
 /// register - the view renders itself.
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
-[Enable<HardenedRazorTemplate>]
+[Enable<HardenedRazorTemplates>]
 public partial class BenchmarkTestApp;

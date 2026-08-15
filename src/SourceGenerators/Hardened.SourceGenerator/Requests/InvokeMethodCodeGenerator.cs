@@ -29,7 +29,7 @@ public static class InvokeMethodCodeGenerator {
             invokeStatement = Await(invokeStatement);
         }
 
-        AssignTemplateFactory(requestHandlerModel, invokeMethod, context);
+        AssignOutputFactory(requestHandlerModel, invokeMethod, context);
         AssignRawContentType(requestHandlerModel, invokeMethod, context);
 
         if (requestHandlerModel.ResponseInformation.ReturnType != null && 
@@ -42,11 +42,11 @@ public static class InvokeMethodCodeGenerator {
     }
 
     /// <summary>
-    /// Puts the handler's <c>[Template&lt;T&gt;]</c> factory on the response, when it declares one.
+    /// Puts the handler's <c>[Output&lt;T&gt;]</c> factory on the response, when it declares one.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The build-time and run-time halves of a template meet here and nowhere else: the view type
+    /// The build-time and run-time halves of an output meet here and nowhere else: the type
     /// is known when the handler is generated, and the thing that renders it runs per request.
     /// </para>
     /// <para>
@@ -56,15 +56,15 @@ public static class InvokeMethodCodeGenerator {
     /// typed.
     /// </para>
     /// </remarks>
-    private static void AssignTemplateFactory(
+    private static void AssignOutputFactory(
         RequestHandlerModel requestHandlerModel, MethodDefinition invokeMethod, ParameterDefinition context) {
-        if (requestHandlerModel.ResponseInformation.TemplateType == null) {
+        if (requestHandlerModel.ResponseInformation.OutputType == null) {
             return;
         }
 
         invokeMethod
-            .Assign(CodeOutputComponent.Get(TemplateFactoryGenerator.FactoryField))
-            .To(context.Property("Response.TemplateFactory"));
+            .Assign(CodeOutputComponent.Get(OutputFactoryGenerator.FactoryField))
+            .To(context.Property("Response.OutputFactory"));
     }
 
     /// <summary>

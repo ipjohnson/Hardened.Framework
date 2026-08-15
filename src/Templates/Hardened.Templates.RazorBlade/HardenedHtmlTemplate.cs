@@ -1,5 +1,7 @@
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Abstract.Templates;
+using Hardened.Requests.Abstract.Outputs;
+using Hardened.Requests.Abstract.Serializer;
+using System.Text;
 
 namespace Hardened.Templates.RazorBlade;
 
@@ -29,49 +31,76 @@ namespace Hardened.Templates.RazorBlade;
 /// parameterless construction is correct, and there is no constructor for anyone to generate.
 /// Verified end to end - <c>@inherits</c>, <c>@Model</c> and a generated links property all render.
 /// </para>
-/// <para>
-/// <c>RenderAsync</c> is not implemented here. RazorBlade's own inherited member satisfies
-/// <see cref="IHardenedTemplate.RenderAsync"/> implicitly, with no adapter. Also verified, because
-/// it does not look like it should from the declarations alone.
-/// </para>
 /// </remarks>
-public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemplate, IHardenedTemplate<TModel> {
+public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemplate,
+    IHardenedResponseOutput<TModel> {
+
+    /// <summary>
+    /// StreamWriter's parameterless UTF8 encoding writes a byte order mark, which lands in the
+    /// response body ahead of the markup and is visible in the rendered page.
+    /// </summary>
+    private static readonly UTF8Encoding Utf8NoBom = new(false);
 
     /// <summary>The value the handler returned.</summary>
     public TModel Model { get; private set; } = default!;
 
     /// <summary>
-    /// The request being rendered. Protected rather than public: a view needs it to reach services
-    /// - a generated links type resolves from it - but it is plumbing rather than something a
-    /// template should be reading request state out of.
+    /// The request being rendered.
     /// </summary>
+    /// <remarks>
+    /// Protected: a view needs it to reach services - a generated links property resolves from it -
+    /// but it is plumbing rather than something a template should be reading request state out of.
+    /// It is part of the contract a <c>[TemplateBase]</c> declares rather than of
+    /// <see cref="IHardenedResponseOutput"/>, because only a generated template base needs it.
+    /// </remarks>
     protected IExecutionContext Context { get; private set; } = default!;
 
-    /// <summary>
-    /// Explicit, so a template author sees the protected member above rather than a public one on
-    /// every view. Generated code reaches it through the interface.
-    /// </summary>
-    IExecutionContext IHardenedTemplate.Context => Context;
-
-    /// <inheritdoc />
+    /// <summary>What this view produces. Overridden by the generated base, from its marker.</summary>
     public virtual string ContentType => "text/html; charset=utf-8";
 
-    public void Attach(TModel model, IExecutionContext context) {
-        Model = model;
-        Context = context;
+    /// <inheritdoc />
+    public bool SupportsContentType(string? accept, IExecutionContext context) {
+        var accepted = AcceptedContentTypes.Parse(accept).MediaTypes;
+
+        for (var i = 0; i < accepted.Count; i++) {
+            if (MediaType.Matches(accepted[i], ContentType)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc />
+    public async Task WriteOutput(IExecutionContext context) {
+        Attach(context.Response.ResponseValue, context);
+
+        // Only when the handler has not already chosen one. Checked for empty as well as null
+        // because the ASP.NET Core host coerces a null assignment to "", so a response that has
+        // been touched and left unset reads back as empty rather than null.
+        if (string.IsNullOrEmpty(context.Response.ContentType)) {
+            context.Response.ContentType = ContentType;
+        }
+
+        // leaveOpen: the response body outlives this render - headers, trailers and the host's own
+        // completion all still need it.
+        await using var writer = new StreamWriter(context.Response.Body, Utf8NoBom, -1, true);
+
+        await RenderAsync(writer, context.CancellationToken);
+
+        await writer.FlushAsync();
     }
 
     /// <summary>
-    /// Explicit, so the only <c>Attach</c> a template author sees is the typed one.
+    /// Takes the model, with the cast written once here rather than emitted per handler.
     /// </summary>
     /// <remarks>
-    /// The guard moved here from <c>RazorBladeTemplateDescriptor</c>, which is being deleted, and
-    /// it must not die with it. Without it a null or mismatched model surfaces as a bare
-    /// <c>InvalidCastException</c> from inside this method, naming no template at all - and the
-    /// null case is the likely one, because a handler returning nothing on an error path is
-    /// ordinary.
+    /// The guard moved here from <c>RazorBladeTemplateDescriptor</c>, which was deleted, and it must
+    /// not die with it. Without it a null or mismatched model surfaces as a bare
+    /// <c>InvalidCastException</c> from inside this method, naming no template at all - and the null
+    /// case is the likely one, because a handler returning nothing on an error path is ordinary.
     /// </remarks>
-    void IHardenedTemplate.Attach(object? model, IExecutionContext context) {
+    private void Attach(object? model, IExecutionContext context) {
         if (model is null && default(TModel) is not null) {
             throw new InvalidOperationException(
                 $"Template '{GetType().Name}' needs a {typeof(TModel).Name} model but the response " +
@@ -84,6 +113,7 @@ public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemp
                 $"value was {model.GetType().Name}.");
         }
 
-        Attach((TModel)model!, context);
+        Model = (TModel)model!;
+        Context = context;
     }
 }

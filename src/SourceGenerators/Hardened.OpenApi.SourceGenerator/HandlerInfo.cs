@@ -55,10 +55,10 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
     public HandlerMethodFilterInfo(
         string methodName,
         IReadOnlyList<AttributeModel> filters,
-        ITypeDefinition? templateType = null) {
+        ITypeDefinition? outputType = null) {
         MethodName = methodName;
         Filters = filters;
-        TemplateType = templateType;
+        OutputType = outputType;
     }
 
     public string MethodName { get; }
@@ -66,7 +66,7 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
     public IReadOnlyList<AttributeModel> Filters { get; }
 
     /// <summary>
-    /// The view named by <c>[Template&lt;T&gt;]</c> on this method, or null.
+    /// What writes this operation's response, named by <c>[Output&lt;T&gt;]</c>, or null.
     /// </summary>
     /// <remarks>
     /// Carried separately from the filter list because a generic attribute's type argument is what
@@ -75,13 +75,13 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
     /// method - a document generates the handler's signature, so the implementation is the only
     /// place a view can be named.
     /// </remarks>
-    public ITypeDefinition? TemplateType { get; }
+    public ITypeDefinition? OutputType { get; }
 
     public bool Equals(HandlerMethodFilterInfo? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return MethodName == other.MethodName &&
-               Equals(TemplateType, other.TemplateType) &&
+               Equals(OutputType, other.OutputType) &&
                Filters.DeepEquals(other.Filters);
     }
 
@@ -92,7 +92,7 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
             var hash = MethodName.GetHashCode();
 
             hash = (hash * 397) ^ Filters.GetHashCodeAggregation();
-            hash = (hash * 397) ^ (TemplateType?.GetHashCode() ?? 0);
+            hash = (hash * 397) ^ (OutputType?.GetHashCode() ?? 0);
 
             return hash;
         }

@@ -55,13 +55,13 @@ internal static class HandlerSelector {
                 methodDeclaration.AttributeLists,
                 cancellationToken).ToList();
 
-            var templateType = TemplateAttributeSelector.Read(context, methodDeclaration);
+            var outputType = OutputAttributeSelector.Read(context, methodDeclaration);
 
-            if (methodAttrs.Count > 0 || templateType != null) {
+            if (methodAttrs.Count > 0 || outputType != null) {
                 methodFilters.Add(new HandlerMethodFilterInfo(
                     methodDeclaration.Identifier.Text,
                     methodAttrs,
-                    templateType));
+                    outputType));
             }
         }
 

@@ -6,21 +6,21 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Hardened.SourceGenerator.Requests;
 
 /// <summary>
-/// Reads <c>[Template&lt;T&gt;]</c> off a handler.
+/// Reads <c>[Output&lt;T&gt;]</c> off a handler.
 /// </summary>
 /// <remarks>
 /// A generic attribute cannot be found with <c>SyntaxNodeExtensions.GetAttribute</c>, which
-/// compares the whole name text - <c>[Template&lt;Views.Fortunes&gt;]</c> spells its name as
-/// <c>Template&lt;Views.Fortunes&gt;</c> and matches nothing. The type argument is what is wanted
+/// compares the whole name text - <c>[Output&lt;Views.Fortunes&gt;]</c> spells its name as
+/// <c>Output&lt;Views.Fortunes&gt;</c> and matches nothing. The type argument is what is wanted
 /// anyway, so this walks the attribute lists itself.
 /// </remarks>
-public static class TemplateAttributeSelector {
-    private const string AttributeName = "Template";
+public static class OutputAttributeSelector {
+    private const string AttributeName = "Output";
 
     private const string AttributeSuffix = "Attribute";
 
     /// <summary>
-    /// The view type, or null when the handler declares none.
+    /// The output type, or null when the handler declares none.
     /// </summary>
     /// <remarks>
     /// <para>

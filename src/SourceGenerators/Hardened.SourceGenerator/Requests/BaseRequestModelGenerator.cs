@@ -247,7 +247,7 @@ public abstract class BaseRequestModelGenerator {
     protected virtual ResponseInformationModel GetResponseInformation(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration) {
-        var template = TemplateAttributeSelector.Read(context, methodDeclaration);
+        var output = OutputAttributeSelector.Read(context, methodDeclaration);
 
         var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
 
@@ -280,7 +280,7 @@ public abstract class BaseRequestModelGenerator {
             IsAsync = isAsync,
             IsAsyncEnumerable = isAsyncEnumerable,
             AsyncEnumerableItemType = asyncEnumerableItemType,
-            TemplateType = template,
+            OutputType = output,
             ReturnType = returnType,
             RawResponseContentType = rawResponse
         };

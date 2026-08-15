@@ -21,13 +21,35 @@ namespace Hardened.SourceGenerator.Shared;
 /// </para>
 /// </remarks>
 public class EnabledFeatureModel : IEquatable<EnabledFeatureModel> {
-    public EnabledFeatureModel(ITypeDefinition markerType, IReadOnlyList<FeatureFacet> facets) {
+    public EnabledFeatureModel(
+        ITypeDefinition markerType, IReadOnlyList<FeatureFacet> facets, bool isDependencyModule) {
         MarkerType = markerType;
         Facets = facets;
+        IsDependencyModule = isDependencyModule;
     }
 
     /// <summary>The type named in <c>[Enable&lt;T&gt;]</c>.</summary>
     public ITypeDefinition MarkerType { get; }
+
+    /// <summary>
+    /// Whether the marker is also a DependencyModules module, so enabling it should bring its
+    /// registrations.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A feature that ships services and a generated type is then one attribute rather than two.
+    /// <c>[Enable&lt;T&gt;]</c> constrains <c>T</c> to <c>new()</c>, which is what a module needs
+    /// anyway, so this costs nothing to allow.
+    /// </para>
+    /// <para>
+    /// Detected two ways because there are two situations. A marker from a referenced package is
+    /// already compiled, so it implements <c>IDependencyModule</c> in metadata and the semantic
+    /// model can see it. A marker declared in this compilation gets that interface from
+    /// DependencyModules' own generator, which this one cannot see - but its
+    /// <c>[DependencyModule]</c> attribute is in source, and that is enough.
+    /// </para>
+    /// </remarks>
+    public bool IsDependencyModule { get; }
 
     /// <summary>What the marker declares about itself, one entry per attribute on it.</summary>
     public IReadOnlyList<FeatureFacet> Facets { get; }
@@ -46,6 +68,7 @@ public class EnabledFeatureModel : IEquatable<EnabledFeatureModel> {
     public bool Equals(EnabledFeatureModel? other) =>
         other != null &&
         MarkerType.Equals(other.MarkerType) &&
+        IsDependencyModule == other.IsDependencyModule &&
         Facets.Count == other.Facets.Count &&
         !Facets.Where((facet, index) => !facet.Equals(other.Facets[index])).Any();
 
@@ -54,6 +77,8 @@ public class EnabledFeatureModel : IEquatable<EnabledFeatureModel> {
     public override int GetHashCode() {
         unchecked {
             var hashCode = MarkerType.GetHashCode();
+
+            hashCode = (hashCode * 397) ^ IsDependencyModule.GetHashCode();
 
             foreach (var facet in Facets) {
                 hashCode = (hashCode * 397) ^ facet.GetHashCode();

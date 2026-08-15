@@ -199,13 +199,13 @@ public class RequestModelBuilderTests {
         Assert.True(string.IsNullOrEmpty(BuildFor("text/html").ResponseInformation.RawResponseContentType));
     }
 
-    // ── [Template<T>] on the implementation ───────────────────────
+    // ── [Output<T>] on the implementation ─────────────────────────
 
     private static readonly ITypeDefinition FortunesView =
         TypeDefinition.Get("Test.Views", "Fortunes");
 
     private static RequestHandlerModel EnrichRobots(
-        ITypeDefinition? templateType, params AttributeModel[] methodAttributes) {
+        ITypeDefinition? outputType, params AttributeModel[] methodAttributes) {
         var models = RequestModelBuilder.BuildModels(
             SpecReturning("text/html"), "Test.Api.Models", "Test.Api.Services",
             "Test.Api.Generated", "Test.Api.Validation");
@@ -215,7 +215,7 @@ public class RequestModelBuilderTests {
             TypeDefinition.Get("Test.Api.Services", "IMetaService"),
             new List<AttributeModel>(),
             new List<HandlerMethodFilterInfo> {
-                new("Robots", methodAttributes.ToList(), templateType)
+                new("Robots", methodAttributes.ToList(), outputType)
             });
 
         return RequestModelBuilder.EnrichWithHandlerFilters(models, new List<HandlerInfo> { handlerInfo })
@@ -228,25 +228,25 @@ public class RequestModelBuilderTests {
     /// name a type in the assembly that will implement it.
     /// </summary>
     [Fact]
-    public void EnrichWithHandlerFilters_TemplateAttribute_SetsTheTemplateType() {
-        Assert.Equal(FortunesView, EnrichRobots(FortunesView).ResponseInformation.TemplateType);
+    public void EnrichWithHandlerFilters_OutputAttribute_SetsTheOutputType() {
+        Assert.Equal(FortunesView, EnrichRobots(FortunesView).ResponseInformation.OutputType);
     }
 
     /// <summary>Other method attributes are still filters.</summary>
     [Fact]
-    public void EnrichWithHandlerFilters_TemplateAttribute_LeavesOtherAttributesAsFilters() {
+    public void EnrichWithHandlerFilters_OutputAttribute_LeavesOtherAttributesAsFilters() {
         var other = new AttributeModel(TypeDefinition.Get("Test", "AuditAttribute"), "", "");
 
         var model = EnrichRobots(FortunesView, other);
 
-        Assert.Equal(FortunesView, model.ResponseInformation.TemplateType);
+        Assert.Equal(FortunesView, model.ResponseInformation.OutputType);
         Assert.Equal(new[] { other }, model.Filters);
     }
 
     /// <summary>An implementation that names no view leaves the response untemplated.</summary>
     [Fact]
-    public void EnrichWithHandlerFilters_NoTemplateAttribute_LeavesNoTemplate() {
-        Assert.Null(EnrichRobots(null).ResponseInformation.TemplateType);
+    public void EnrichWithHandlerFilters_NoOutputAttribute_LeavesNoOutput() {
+        Assert.Null(EnrichRobots(null).ResponseInformation.OutputType);
     }
 
     private static OpenApiSpecModel SpecReturning(string? contentType) =>

@@ -66,6 +66,7 @@ namespace Hardened.Shared.Runtime.Attributes
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class, AllowMultiple=true, Inherited=false)]
     public class EnableAttribute<TFeature> : System.Attribute
+        where TFeature : new()
     {
         public EnableAttribute() { }
     }

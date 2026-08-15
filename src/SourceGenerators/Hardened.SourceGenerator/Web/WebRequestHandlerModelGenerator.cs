@@ -235,10 +235,10 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     }
 
     /// <remarks>
-    /// <c>Template</c> is no longer excluded. It used to be, because the attribute was an
+    /// <c>Output</c> is no longer excluded. It used to be, as <c>Template</c>, because the attribute was an
     /// annotation read as response information and putting it in the metadata array as well would
     /// have been a second copy of the same fact. <c>[Template&lt;T&gt;]</c> is a generic attribute,
-    /// so its name here spells as <c>Template&lt;Views.Fortunes&gt;</c> and never matched the case
+    /// so its name here spells as <c>Output&lt;Views.Fortunes&gt;</c> and never matched the case
     /// anyway - and a template a filter can see is useful rather than duplicated.
     /// </remarks>
     protected override bool IsFilterAttribute(AttributeSyntax attribute) {

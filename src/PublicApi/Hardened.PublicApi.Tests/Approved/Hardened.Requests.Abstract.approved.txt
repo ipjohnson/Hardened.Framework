@@ -27,17 +27,17 @@ namespace Hardened.Requests.Abstract.Attributes
     {
         System.Threading.Tasks.ValueTask<T> BindValue<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter);
     }
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false, Inherited=false)]
+    public sealed class OutputAttribute<TOutput> : System.Attribute
+        where TOutput : Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput, new ()
+    {
+        public OutputAttribute() { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Method)]
     public class RawResponseAttribute : System.Attribute
     {
         public RawResponseAttribute(string contentType = "text/plain") { }
         public string ContentType { get; }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false, Inherited=false)]
-    public sealed class TemplateAttribute<TTemplate> : System.Attribute
-        where TTemplate : Hardened.Requests.Abstract.Templates.IHardenedTemplate, new ()
-    {
-        public TemplateAttribute() { }
     }
 }
 namespace Hardened.Requests.Abstract.Authorization
@@ -173,13 +173,13 @@ namespace Hardened.Requests.Abstract.Execution
         System.Exception? ExceptionValue { get; set; }
         System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
         bool IsBinary { get; set; }
+        Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
         bool ResponseStarted { get; }
         object? ResponseValue { get; set; }
         bool ShouldCompress { get; set; }
         bool ShouldSerialize { get; set; }
         int? Status { get; set; }
-        Hardened.Requests.Abstract.Templates.IHardenedTemplate? Template { get; set; }
-        System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Templates.IHardenedTemplate>? TemplateFactory { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null);
     }
     public interface IFunctionHandlerProvider
@@ -315,6 +315,15 @@ namespace Hardened.Requests.Abstract.Middleware
         void Use(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> middlewareFunc);
     }
 }
+namespace Hardened.Requests.Abstract.Outputs
+{
+    public interface IHardenedResponseOutput
+    {
+        bool SupportsContentType(string? accept, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.Task WriteOutput(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IHardenedResponseOutput<in TModel> : Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput { }
+}
 namespace Hardened.Requests.Abstract.PathTokens
 {
     public interface IPathTokenCollection
@@ -441,17 +450,6 @@ namespace Hardened.Requests.Abstract.Serializer
 }
 namespace Hardened.Requests.Abstract.Templates
 {
-    public interface IHardenedTemplate
-    {
-        string ContentType { get; }
-        Hardened.Requests.Abstract.Execution.IExecutionContext Context { get; }
-        void Attach(object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
-        System.Threading.Tasks.Task RenderAsync(System.IO.TextWriter writer, System.Threading.CancellationToken cancellationToken = default);
-    }
-    public interface IHardenedTemplate<in TModel> : Hardened.Requests.Abstract.Templates.IHardenedTemplate
-    {
-        void Attach(TModel model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
-    }
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
     public class TemplateBaseAttribute : System.Attribute
     {

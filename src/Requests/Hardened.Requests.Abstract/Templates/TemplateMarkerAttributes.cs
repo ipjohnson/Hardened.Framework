@@ -13,6 +13,14 @@ namespace Hardened.Requests.Abstract.Templates;
 /// extension point and a switch statement with a plausible name.
 /// </para>
 /// <para>
+/// <b>The base has to expose <c>protected IExecutionContext Context</c>.</b> That is the whole of
+/// the contract beyond <c>IHardenedResponseOutput</c>: the generated base puts a <c>Links</c>
+/// property on every view, and resolving the module's links type means reaching the request's
+/// services. It is stated here rather than on the output interface because only a template base
+/// needs it, and an output that writes a file or a stream should not have to carry request state to
+/// satisfy an interface.
+/// </para>
+/// <para>
 /// The argument is an <em>unbound</em> generic - <c>typeof(HardenedHtmlTemplate&lt;&gt;)</c> - and
 /// that is why the marker is a separate non-generic type pointing at the base rather than being the
 /// base. <c>typeof(X&lt;&gt;)</c> is legal in an attribute argument; an unbound generic as a type

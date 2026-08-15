@@ -477,18 +477,6 @@ namespace Hardened.Requests.Runtime.Serializer
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
 }
-namespace Hardened.Requests.Runtime.Templates
-{
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
-    public class TemplateResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
-    {
-        public TemplateResponseSerializer() { }
-        public bool IsDefaultSerializer { get; }
-        public int Order { get; }
-        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
-        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
-    }
-}
 namespace Hardened.Requests.Runtime.Validation
 {
     public class RequestValidationError

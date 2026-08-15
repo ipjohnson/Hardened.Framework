@@ -2,7 +2,7 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
-using Hardened.Requests.Abstract.Templates;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Headers;
 using Hardened.Requests.Runtime.PathTokens;
@@ -178,8 +178,8 @@ public class AspNetExecutionResponse : IExecutionResponse {
         return new AspNetExecutionResponse(_httpResponse) {
             _status = _status,
             ResponseValue = ResponseValue,
-            TemplateFactory = TemplateFactory,
-            Template = Template,
+            OutputFactory = OutputFactory,
+            Output = Output,
             ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize,
@@ -193,9 +193,9 @@ public class AspNetExecutionResponse : IExecutionResponse {
 
     public object? ResponseValue { get; set; }
 
-    public Func<IExecutionContext, IHardenedTemplate>? TemplateFactory { get; set; }
+    public Func<IExecutionContext, IHardenedResponseOutput>? OutputFactory { get; set; }
 
-    public IHardenedTemplate? Template { get; set; }
+    public IHardenedResponseOutput? Output { get; set; }
 
     /// <summary>
     /// Null while the status is still undecided; otherwise what will be, or has been, sent.

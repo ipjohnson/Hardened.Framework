@@ -165,6 +165,8 @@ public static class RoutingTableGenerator {
 
         RegisterLinks(diMethod, serviceCollection, applicationModel, webEndPointModels);
 
+        RegisterEnabledModules(diMethod, serviceCollection, applicationModel);
+
         Validation.ParameterValidatorRegistration.Write(
             diMethod, serviceCollection, webEndPointModels, cancellationToken);
     }
@@ -185,6 +187,42 @@ public static class RoutingTableGenerator {
         IReadOnlyList<RequestHandlerModel> webEndPointModels) {
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
             new[] { LinkGenerator.LinksType(applicationModel) }));
+    }
+
+    /// <summary>
+    /// The registrations of any <c>[Enable&lt;T&gt;]</c> marker that is also a DependencyModules
+    /// module.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// So a feature that ships services and a generated type is one attribute rather than two.
+    /// <c>AddModule</c> is DependencyModules' own entry point and goes through the module's
+    /// <c>PopulateServiceCollection</c>, which composes its nested modules, decorators and features
+    /// exactly as applying its attribute would.
+    /// </para>
+    /// <para>
+    /// What differs is position: these arrive with the other generated registrations rather than
+    /// where the attribute was written, which matters only for a module deliberately overriding a
+    /// registration made by another.
+    /// </para>
+    /// </remarks>
+    private static void RegisterEnabledModules(
+        MethodDefinition diMethod,
+        ParameterDefinition serviceCollection,
+        EntryPointSelector.Model applicationModel) {
+        foreach (var feature in applicationModel.EnabledFeatures) {
+            if (!feature.IsDependencyModule) {
+                continue;
+            }
+
+            // The extension called statically, because generated code carries none of the
+            // consumer's using directives and DependencyModules.Runtime is not one of the few this
+            // file imports.
+            diMethod.AddIndentedStatement(CodeOutputComponent.Get(
+                "global::DependencyModules.Runtime.ServiceCollectionExtensions.AddModule(" +
+                serviceCollection.Name + ", new global::" +
+                feature.MarkerType.Namespace + "." + feature.MarkerType.Name + "())"));
+        }
     }
 
     private static void ImplementHandlerMethod(EntryPointSelector.Model appModel, ClassDefinition routingClass,

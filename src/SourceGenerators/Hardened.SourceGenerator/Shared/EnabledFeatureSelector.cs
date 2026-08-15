@@ -42,7 +42,8 @@ public static class EnabledFeatureSelector {
 
                 features ??= new List<EnabledFeatureModel>();
 
-                features.Add(new EnabledFeatureModel(marker.GetTypeDefinition(), Facets(marker)));
+                features.Add(new EnabledFeatureModel(
+                    marker.GetTypeDefinition(), Facets(marker), IsDependencyModule(marker)));
             }
         }
 
@@ -76,6 +77,34 @@ public static class EnabledFeatureSelector {
 
         return context.SemanticModel.GetSymbolInfo(generic.TypeArgumentList.Arguments[0]).Symbol
             as INamedTypeSymbol;
+    }
+
+    /// <summary>
+    /// Whether the marker is also a DependencyModules module.
+    /// </summary>
+    /// <remarks>
+    /// Two tests because there are two situations. A marker from a referenced package is already
+    /// compiled, so the interface is in metadata. One declared in this compilation gets that
+    /// interface from DependencyModules' own generator, which this generator cannot see - so its
+    /// <c>[DependencyModule]</c> attribute is read instead, which is in source either way.
+    /// </remarks>
+    private static bool IsDependencyModule(INamedTypeSymbol marker) {
+        foreach (var contract in marker.AllInterfaces) {
+            if (contract.Name == "IDependencyModule" &&
+                contract.ContainingNamespace?.ToDisplayString() == "DependencyModules.Runtime.Interfaces") {
+                return true;
+            }
+        }
+
+        foreach (var attribute in marker.GetAttributes()) {
+            var name = attribute.AttributeClass?.Name;
+
+            if (name == "DependencyModuleAttribute" || name == "DependencyModule") {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static IReadOnlyList<FeatureFacet> Facets(INamedTypeSymbol marker) {
