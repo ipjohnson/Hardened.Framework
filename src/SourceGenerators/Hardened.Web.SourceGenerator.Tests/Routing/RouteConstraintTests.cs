@@ -1,0 +1,190 @@
+using Hardened.Requests.Abstract.Attributes;
+using Hardened.SourceGeneration.Testing;
+using Hardened.Web.Runtime.Attributes;
+using Microsoft.CodeAnalysis;
+using Xunit;
+
+namespace Hardened.Web.SourceGenerator.Tests.Routing;
+
+/// <summary>
+/// <c>{id:int}</c> and the rest of the constraint vocabulary, driven through the compiled table.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A constraint is a guarantee, not a selector. <c>/users/{id}</c> with an <c>int id</c> answers
+/// <c>/users/abc</c> with 400 - the route matched and the binder failed. <c>{id:int}</c> makes it a
+/// 404, which is the truthful answer: there is no resource at that URL, and 400 implies you
+/// addressed a real endpoint incorrectly.
+/// </para>
+/// <para>
+/// Before this, <c>{id:int}</c> was not merely ignored: the whole brace body became the token name,
+/// so it matched <c>/constrained/abc</c> and bound nothing to <c>id</c>.
+/// </para>
+/// </remarks>
+public class RouteConstraintTests {
+
+    private static GeneratedRoutingTable Routing(string route) =>
+        GeneratedRoutingTable.For($$"""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class ItemController {
+                [Get("{{route}}")]
+                public string Item(string id) => id;
+            }
+            """);
+
+    [Theory]
+    [InlineData("int", "42", "abc")]
+    [InlineData("int", "-7", "4.5")]
+    [InlineData("long", "9007199254740993", "abc")]
+    [InlineData("guid", "3f2504e0-4f89-11d3-9a0c-0305e82c3301", "not-a-guid")]
+    [InlineData("bool", "true", "yes")]
+    public void AConstrainedTokenMatchesOnlyWhatPasses(string constraint, string passes, string fails) {
+        var routing = Routing("/items/{id:" + constraint + "}");
+
+        Assert.Equal("Item", routing.Handler("GET", "/items/" + passes).InvokeMethod);
+        Assert.Null(routing.Route("GET", "/items/" + fails));
+    }
+
+    /// <summary>
+    /// A 404, not a 405. There is no resource at that URL, so reporting which verbs the path
+    /// answers would be describing a resource that does not exist.
+    /// </summary>
+    [Fact]
+    public void AValueThatFailsTheConstraintIsNoMatchAtAll() {
+        Assert.Null(Routing("/items/{id:int}").Route("GET", "/items/abc"));
+    }
+
+    /// <summary>
+    /// The constraint is stripped from the name, so the handler's parameter still binds. Leaving it
+    /// on is what <c>{id:int}</c> used to do - a token called <c>id:int</c> that bound to nothing.
+    /// </summary>
+    [Fact]
+    public void TheTokenStillBindsUnderItsOwnName() {
+        var tokens = Routing("/items/{id:int}").PathTokens("GET", "/items/42");
+
+        Assert.Equal("42", Assert.Contains("id", tokens));
+    }
+
+    /// <summary>
+    /// A constraint in the middle of a route gates the scan rather than being checked after it, so
+    /// a value that fails leaves the scan free to try the next boundary.
+    /// </summary>
+    [Fact]
+    public void AConstraintOnATokenFollowedByMoreRouteAlsoApplies() {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class OrderController {
+                [Get("/orders/{id:int}/lines")]
+                public string Lines(string id) => id;
+            }
+            """);
+
+        Assert.Equal("Lines", routing.Handler("GET", "/orders/42/lines").InvokeMethod);
+        Assert.Equal("42", Assert.Contains("id", routing.PathTokens("GET", "/orders/42/lines")));
+        Assert.Null(routing.Route("GET", "/orders/abc/lines"));
+    }
+
+    /// <summary>
+    /// Culture-independent. A route is part of a URL, which is the same string in every locale -
+    /// parsing under an ambient culture would make the same request match on one machine and not
+    /// another.
+    /// </summary>
+    [Fact]
+    public void AConstraintDoesNotDependOnTheAmbientCulture() {
+        var routing = Routing("/items/{id:int}");
+
+        // Group separators and a comma decimal point are what a culture-sensitive parse would let
+        // through.
+        Assert.Null(routing.Route("GET", "/items/1,000"));
+        Assert.Null(routing.Route("GET", "/items/1.5"));
+    }
+
+    private const string DiagnosticId = "HRDR002";
+
+    private static readonly Type[] Anchors = [
+        typeof(GetAttribute),
+        typeof(FromBodyAttribute)
+    ];
+
+    private static GeneratorResult Generate(string route) =>
+        GeneratorTestHarness.Run(
+            new Dictionary<string, string> {
+                ["Test.cs"] = $$"""
+                    using Hardened.Shared.Runtime.Attributes;
+                    using Hardened.Web.Runtime.Attributes;
+
+                    namespace TestApp;
+
+                    [HardenedModule]
+                    public partial class TestApplication { }
+
+                    public class ItemController {
+                        [Get("{{route}}")]
+                        public string Item(string id) => id;
+                    }
+                    """
+            },
+            new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
+            Anchors);
+
+    /// <summary>
+    /// A constraint nothing declares is a build error. Ignoring it would put the route back where
+    /// <c>{id:int}</c> started: written, compiled, and constraining nothing.
+    /// </summary>
+    [Fact]
+    public void AnUnknownConstraintIsAnError() {
+        var reported = Generate("/items/{id:isbn}").GeneratorDiagnostics
+            .SingleOrDefault(diagnostic => diagnostic.Id == DiagnosticId);
+
+        Assert.NotNull(reported);
+        Assert.Equal(DiagnosticSeverity.Error, reported!.Severity);
+        Assert.Contains("isbn", reported.GetMessage());
+    }
+
+    /// <summary>And the message lists what is built in, so the fix does not need the docs.</summary>
+    [Fact]
+    public void TheMessageListsTheBuiltInConstraints() {
+        var message = Generate("/items/{id:isbn}").GeneratorDiagnostics
+            .Single(diagnostic => diagnostic.Id == DiagnosticId).GetMessage();
+
+        Assert.Contains("int", message);
+        Assert.Contains("guid", message);
+        Assert.Contains("RouteConstraint", message);
+    }
+
+    [Theory]
+    [InlineData("/items/{id:int}")]
+    [InlineData("/items/{id:guid}")]
+    [InlineData("/items/{id}")]
+    public void ASupportedTokenIsNotReported(string route) {
+        Assert.DoesNotContain(
+            Generate(route).GeneratorDiagnostics,
+            diagnostic => diagnostic.Id == DiagnosticId);
+    }
+
+    /// <summary>
+    /// The other two forms are still errors, and 1.6 landing does not quietly re-admit them.
+    /// </summary>
+    [Theory]
+    [InlineData("/items/{id?}")]
+    [InlineData("/items/{id=5}")]
+    public void OptionalAndDefaultAreStillErrors(string route) {
+        Assert.Contains(
+            Generate(route).GeneratorDiagnostics,
+            diagnostic => diagnostic.Id == DiagnosticId);
+    }
+}

@@ -185,7 +185,7 @@ public abstract class BaseRequestModelGenerator {
 
         var id = parameter.Identifier.Text;
 
-        if (requestHandlerNameModel.Path.Contains($"{{{id}}}")) {
+        if (RouteTokens.BindsParameter(requestHandlerNameModel.Path, id)) {
             return CreateRequestParameterInformation(parameter, parameterType,
                 ParameterBindType.Path,parameterIndex);
         }

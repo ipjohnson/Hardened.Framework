@@ -11,10 +11,14 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 ///
 /// <para>
 /// They were not merely ignored — the whole brace body became the token <em>name</em>, so
-/// <c>{id:int}</c> matched <c>/constrained/abc</c> and bound nothing to <c>id</c>, and
-/// <c>{id?}</c> made a segment mandatory under a strange name rather than optional. Both routed,
-/// both compiled, and neither did what it was written to do. A route is a contract with every
-/// client of the application, so this fails the build.
+/// <c>{id?}</c> made a segment mandatory under a strange name rather than optional. It routed, it
+/// compiled, and it did not do what it was written to do. A route is a contract with every client
+/// of the application, so this fails the build.
+/// </para>
+///
+/// <para>
+/// <c>{id:int}</c> was here too until constraints landed. What is left of the colon form is a name
+/// nothing declares, which <c>RouteConstraintTests</c> covers.
 /// </para>
 /// </summary>
 public class RouteTokenSyntaxTests {
@@ -60,7 +64,6 @@ public class RouteTokenSyntaxTests {
     }
 
     [Theory]
-    [InlineData("/items/{id:int}")]
     [InlineData("/items/{id?}")]
     [InlineData("/items/{id=5}")]
     public void AnUnsupportedTokenFormIsAnError(string route) {
@@ -72,7 +75,6 @@ public class RouteTokenSyntaxTests {
     /// against a route with four tokens is a search, not a fix.
     /// </summary>
     [Theory]
-    [InlineData("/items/{id:int}", "{id:int}")]
     [InlineData("/items/{id?}", "{id?}")]
     [InlineData("/items/{id=5}", "{id=5}")]
     public void TheMessageNamesTheTokenAsWritten(string route, string token) {
@@ -86,9 +88,9 @@ public class RouteTokenSyntaxTests {
     /// </summary>
     [Fact]
     public void TheMessageNamesTheRouteAndHandler() {
-        var message = Reported("/items/{id:int}").GetMessage();
+        var message = Reported("/items/{id?}").GetMessage();
 
-        Assert.Contains("/items/{id:int}", message);
+        Assert.Contains("/items/{id?}", message);
         Assert.Contains("ItemController", message);
         Assert.Contains("ItemById", message);
     }
@@ -96,6 +98,7 @@ public class RouteTokenSyntaxTests {
     [Theory]
     [InlineData("/items/{id}")]
     [InlineData("/items/{*id}")]
+    [InlineData("/items/{id:int}")]
     [InlineData("/items/{id}/parts/{partId}")]
     [InlineData("/items")]
     public void SupportedFormsAreNotReported(string route) {
@@ -110,7 +113,7 @@ public class RouteTokenSyntaxTests {
     /// </summary>
     [Fact]
     public void EveryUnsupportedTokenInARouteIsReported() {
-        var reported = Generate("/items/{id:int}/parts/{partId?}").GeneratorDiagnostics
+        var reported = Generate("/items/{id?}/parts/{partId=5}").GeneratorDiagnostics
             .Where(diagnostic => diagnostic.Id == DiagnosticId)
             .ToArray();
 
@@ -125,7 +128,7 @@ public class RouteTokenSyntaxTests {
     /// </summary>
     [Fact]
     public void TheHandlerIsStillEmitted() {
-        var result = Generate("/items/{id:int}");
+        var result = Generate("/items/{id?}");
 
         Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("ItemController_ItemById"));
     }

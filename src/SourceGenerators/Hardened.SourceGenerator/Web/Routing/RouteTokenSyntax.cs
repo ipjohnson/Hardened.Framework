@@ -1,4 +1,5 @@
 using System.Text;
+using Hardened.SourceGenerator.Models.Request;
 
 namespace Hardened.SourceGenerator.Web.Routing;
 
@@ -18,11 +19,11 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// </code>
 ///
 /// <para>
-/// So <c>{id:int}</c> neither constrains the match nor binds a parameter called <c>id</c>, and
-/// <c>{id?}</c> is not optional — it is a mandatory segment with a strange name. Both compile,
-/// both route, and both silently fail to do the thing they were written to do. A route is a
-/// contract with every client of the application, so a declaration that does not mean what it
-/// says has to stop the build rather than reach production.
+/// <c>{id:int}</c> is compiled now — see <see cref="RouteConstraintFacts"/> — so what is left here
+/// is a constraint nobody declared, an optional token, and a default. Each compiles, routes, and
+/// silently fails to do the thing it was written to do. A route is a contract with every client of
+/// the application, so a declaration that does not mean what it says has to stop the build rather
+/// than reach production.
 /// </para>
 /// </summary>
 public static class RouteTokenSyntax {
@@ -31,8 +32,8 @@ public static class RouteTokenSyntax {
     public enum Form {
         Supported,
 
-        /// <summary><c>{id:int}</c> — a type constraint.</summary>
-        TypeConstraint,
+        /// <summary><c>{id:isbn}</c> — a constraint name nothing declares.</summary>
+        UnknownConstraint,
 
         /// <summary><c>{id?}</c> — an optional segment.</summary>
         Optional,
@@ -42,27 +43,39 @@ public static class RouteTokenSyntax {
     }
 
     public readonly struct Finding {
-        public Finding(string token, Form form, string name) {
+        public Finding(string token, Form form, string name, string? constraint) {
             Token = token;
             Form = form;
             Name = name;
+            Constraint = constraint;
         }
 
-        /// <summary>The token as written, braces included — <c>{id:int}</c>.</summary>
+        /// <summary>The token as written, braces included — <c>{id:isbn}</c>.</summary>
         public string Token { get; }
 
         public Form Form { get; }
 
-        /// <summary>The part before the unsupported punctuation — <c>id</c> for <c>{id:int}</c>.</summary>
+        /// <summary>The part before the marker — <c>id</c> for <c>{id:isbn}</c>.</summary>
         public string Name { get; }
+
+        /// <summary>The constraint name, when the finding is about one.</summary>
+        public string? Constraint { get; }
     }
 
     /// <summary>
     /// Every unsupported token in <paramref name="pathTemplate"/>, in the order they appear.
-    /// Returns an empty list for the overwhelmingly common case, so the caller allocates nothing
-    /// on a route that is fine.
     /// </summary>
-    public static IReadOnlyList<Finding> Scan(string pathTemplate) {
+    /// <param name="declaredConstraints">
+    /// Constraint names the application declares with <c>[RouteConstraint]</c>, beyond the built-in
+    /// ones. A generator that has not collected them passes none, and every custom constraint then
+    /// reads as unknown - so the caller has to pass what it found.
+    /// </param>
+    /// <remarks>
+    /// Returns an empty list for the overwhelmingly common case, so a route that is fine allocates
+    /// nothing.
+    /// </remarks>
+    public static IReadOnlyList<Finding> Scan(
+        string pathTemplate, IReadOnlyCollection<string>? declaredConstraints = null) {
         List<Finding>? findings = null;
 
         var open = pathTemplate.IndexOf('{');
@@ -75,7 +88,7 @@ public static class RouteTokenSyntax {
             }
 
             var body = pathTemplate.Substring(open + 1, close - open - 1);
-            var form = Classify(body);
+            var form = Classify(body, declaredConstraints);
 
             if (form != Form.Supported) {
                 findings ??= new List<Finding>();
@@ -83,7 +96,8 @@ public static class RouteTokenSyntax {
                 findings.Add(new Finding(
                     pathTemplate.Substring(open, close - open + 1),
                     form,
-                    Name(body)));
+                    Name(body),
+                    RouteTokens.Constraint(body)));
             }
 
             open = pathTemplate.IndexOf('{', close + 1);
@@ -100,11 +114,13 @@ public static class RouteTokenSyntax {
         var name = finding.Name.Length > 0 ? finding.Name : "name";
 
         switch (finding.Form) {
-            case Form.TypeConstraint:
+            case Form.UnknownConstraint:
                 return
-                    $"A type constraint is not compiled - the whole brace body becomes the token " +
-                    $"name, so this matches any segment and binds nothing to '{name}'. " +
-                    $"Write '{{{name}}}' and let the handler's parameter type reject a bad value.";
+                    $"Nothing declares a route constraint called '{finding.Constraint}'. Built in: " +
+                    $"{string.Join(", ", RouteConstraintFacts.Names)}. Declare your own with " +
+                    $"[RouteConstraint(\"{finding.Constraint}\")] on a static " +
+                    $"bool(ReadOnlySpan<char>) method, or write '{{{name}}}' and let the handler's " +
+                    $"parameter type reject a bad value with a 400.";
 
             case Form.Optional:
                 return
@@ -126,14 +142,12 @@ public static class RouteTokenSyntax {
 
     /// <summary>
     /// A catch-all marker is not punctuation to reject: <c>{*path}</c> is supported syntax, and
-    /// the asterisk is stripped before the name is read.
+    /// the asterisk is stripped before the name is read. A colon is supported too, as long as
+    /// something declares what follows it.
     /// </summary>
-    private static Form Classify(string body) {
+    private static Form Classify(string body, IReadOnlyCollection<string>? declaredConstraints) {
         foreach (var character in body) {
             switch (character) {
-                case ':':
-                    return Form.TypeConstraint;
-
                 case '?':
                     return Form.Optional;
 
@@ -142,14 +156,26 @@ public static class RouteTokenSyntax {
             }
         }
 
-        return Form.Supported;
+        var constraint = RouteTokens.Constraint(body);
+
+        if (constraint == null) {
+            return Form.Supported;
+        }
+
+        if (RouteConstraintFacts.Test(constraint) != null) {
+            return Form.Supported;
+        }
+
+        return declaredConstraints != null && declaredConstraints.Contains(constraint)
+            ? Form.Supported
+            : Form.UnknownConstraint;
     }
 
     private static string Name(string body) {
         var builder = new StringBuilder(body.Length);
 
         foreach (var character in body) {
-            if (character == ':' || character == '?' || character == '=') {
+            if (character == RouteTokens.ConstraintMarker || character == '?' || character == '=') {
                 break;
             }
 

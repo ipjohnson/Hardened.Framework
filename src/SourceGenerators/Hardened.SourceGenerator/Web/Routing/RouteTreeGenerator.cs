@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Hardened.SourceGenerator.Models.Request;
 
 namespace Hardened.SourceGenerator.Web.Routing;
 
@@ -122,13 +123,19 @@ public class RouteTreeGenerator<T> {
         foreach (var group in grouping) {
             _cancellationToken.ThrowIfCancellationRequested();
 
-            returnList.Add(ProcessEntries(group.Key.ToString(), group.Value, stringIndex + 1, wildCardDepth));
-        }
+            var node = ProcessEntries(group.Key.ToString(), group.Value, stringIndex + 1, wildCardDepth);
 
-        returnList.ForEach(n => {
-            n.WildCardToken = token;
-            n.WildCardIsCatchAll = catchAll;
-        });
+            node.WildCardToken = token;
+            node.WildCardIsCatchAll = catchAll;
+
+            // Per continuation rather than across the whole position: /users/{id:int} and
+            // /users/{id}/posts become two nodes here - grouped by what follows the token - and only
+            // routes sharing a continuation have to agree. Two that do and disagree is HRDR001,
+            // reported before this runs.
+            node.WildCardConstraint = RouteTokens.Constraint(group.Value[0].WildCardTokens, wildCardDepth);
+
+            returnList.Add(node);
+        }
 
         return returnList;
     }

@@ -29,6 +29,40 @@ public class BindingController {
     [Get("/path-typed/{count}")]
     public int TypedPathToken(int count) => count * 2;
 
+    /// <summary>
+    /// The same shape with the constraint written into the route. <c>/path-typed/abc</c> reaches
+    /// the handler above and answers 400 - the route matched and the binder failed. Here it is a
+    /// 404, which is the truthful answer: there is no resource at that URL.
+    /// </summary>
+    [Get("/path-constrained/{count:int}")]
+    public int ConstrainedPathToken(int count) => count * 2;
+
+    /// <summary>
+    /// A catch-all token, which binds the same way a constrained one does - by the name the token
+    /// declares rather than by the text between the braces.
+    /// </summary>
+    [Get("/files/{*path}")]
+    public string CatchAllToken(string path) => path;
+
+    /// <summary>A constraint this application declares itself, compiled to a direct call.</summary>
+    [Get("/path-code/{code:code}")]
+    public string CustomConstrainedToken(string code) => code;
+
+    [RouteConstraint("code")]
+    public static bool IsCode(ReadOnlySpan<char> value) {
+        if (value.Length != 3) {
+            return false;
+        }
+
+        foreach (var character in value) {
+            if (character < 'A' || character > 'Z') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     [Get("/query")]
     public string FromQuery([FromQueryString] string name) => name;
 

@@ -13,7 +13,14 @@ public class WebExecutionHandlerCodeGenerator {
     }
 
     public void GenerateSource(SourceProductionContext sourceProductionContext,
-        RequestHandlerModel requestHandlerModel, bool excludeFromCoverage) {
+        RequestHandlerModel requestHandlerModel,
+        IReadOnlyList<RouteConstraintModel> constraints) {
+        GenerateSource(sourceProductionContext, requestHandlerModel, false, constraints);
+    }
+
+    public void GenerateSource(SourceProductionContext sourceProductionContext,
+        RequestHandlerModel requestHandlerModel, bool excludeFromCoverage,
+        IReadOnlyList<RouteConstraintModel>? constraints = null) {
         sourceProductionContext.CancellationToken.ThrowIfCancellationRequested();
 
         // A parameter whose type does not resolve cannot be bound, so this handler is skipped and
@@ -28,7 +35,7 @@ public class WebExecutionHandlerCodeGenerator {
         // parameters, not on token syntax, so skipping here would leave it routing to a handler
         // class that no longer exists: a pile of CS0246s on top of the one diagnostic that says
         // what is actually wrong. The build fails either way; this way it fails legibly.
-        requestHandlerModel.ReportUnsupportedTokens(sourceProductionContext);
+        requestHandlerModel.ReportUnsupportedTokens(sourceProductionContext, constraints);
 
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 

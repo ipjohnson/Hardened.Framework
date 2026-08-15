@@ -46,8 +46,14 @@ public static class RouteTokenDiagnostics {
     /// True when the route declared a token Hardened does not compile, having reported each one.
     /// </summary>
     public static bool ReportUnsupportedTokens(
-        this RequestHandlerModel model, SourceProductionContext context) {
-        var findings = RouteTokenSyntax.Scan(model.Name.Path);
+        this RequestHandlerModel model,
+        SourceProductionContext context,
+        IReadOnlyList<RouteConstraintModel>? constraints = null) {
+        var declared = constraints == null
+            ? null
+            : new HashSet<string>(constraints.Select(constraint => constraint.Name), StringComparer.Ordinal);
+
+        var findings = RouteTokenSyntax.Scan(model.Name.Path, declared);
 
         foreach (var finding in findings) {
             // Location.None, as everywhere else models are reported from: a syntax location would

@@ -35,8 +35,19 @@ public static class RoutingTableGenerator {
     [ThreadStatic]
     private static bool _caseInsensitive;
 
+    /// <summary>
+    /// The <c>[RouteConstraint]</c> methods the application declared, on the same terms as
+    /// <see cref="_caseInsensitive"/>.
+    /// </summary>
+    [ThreadStatic]
+    private static IReadOnlyList<RouteConstraintModel>? _constraints;
+
     public static void GenerateRoute(SourceProductionContext context,
-        (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models) {
+        (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
+        string? ambiguousRoutes = null,
+        IReadOnlyList<RouteConstraintModel>? constraints = null) {
+        _constraints = constraints;
+
         // Handlers that were not generated must not be routed to. Routing to one would emit a
         // table referencing a handler class that does not exist - uncompilable output, which is
         // worse than the missing route. Skipped silently: WebExecutionHandlerCodeGenerator has
@@ -44,6 +55,15 @@ public static class RoutingTableGenerator {
         var routable = models.Right
             .Where(handler => handler.UnresolvedParameter() == null)
             .ToList();
+
+        // Before anything is emitted. An ambiguous pair still produces a table - one of the two
+        // routes simply becomes unreachable for some values - so reporting is the only thing that
+        // makes it visible, and the build fails on it by default.
+        AmbiguousRouteDiagnostics.ReportAmbiguousRoutes(
+            context,
+            routable,
+            GetBasePath(models.Left),
+            AmbiguousRouteDiagnostics.Severity(ambiguousRoutes));
 
         var outputString = GenerateCSharpRouteFile(models.Left, routable, context.CancellationToken);
 
@@ -439,6 +459,17 @@ public static class RoutingTableGenerator {
         var pathCheck = CreatePathIfStatement(
             span, wildCardNode.Path, cancellationToken, currentIndex.Name);
 
+        // The constraint is part of whether the token matched, not something checked afterwards:
+        // failing it has to leave the scan free to try the next boundary, exactly as a literal
+        // mismatch does.
+        var constraintCheck = ConstraintTest(
+            wildCardNode,
+            $"{span.Name}.Slice({index.Name}, {currentIndex.Name} - {index.Name})");
+
+        if (constraintCheck != null) {
+            pathCheck = pathCheck.Concat(new[] { constraintCheck }).ToList();
+        }
+
         var ifStatement = whileBlock.If(And(pathCheck));
 
         var currentPlusOne = Add(currentIndex, 1);
@@ -508,6 +539,15 @@ public static class RoutingTableGenerator {
 
             if (!catchAll) {
                 wildCardMethod.If($"{span.Name}.Slice({index.Name}).IndexOf('/') >= 0").Return(Null());
+            }
+
+            // A value that fails the constraint is not a match at all, so the answer is null rather
+            // than a 405: there is no resource at that URL, which is the whole point of writing
+            // {id:int} instead of letting the binder answer 400.
+            var constraintTest = ConstraintTest(wildCardNode, $"{span.Name}.Slice({index.Name})", negate: true);
+
+            if (constraintTest != null) {
+                wildCardMethod.If(constraintTest).Return(Null());
             }
 
             var switchBlock = wildCardMethod.Switch(methodString);
@@ -640,6 +680,50 @@ public static class RoutingTableGenerator {
             "global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed(\"" + allow + "\")");
 
         return newField.Instance;
+    }
+
+    /// <summary>
+    /// The call that tests this node's constraint against <paramref name="value"/>, or null when
+    /// the token declares none.
+    /// </summary>
+    private static IOutputComponent? ConstraintTest<T>(
+        RouteTreeNode<T> node, string value, bool negate = false) {
+        var constraint = node.WildCardConstraint;
+
+        if (string.IsNullOrEmpty(constraint)) {
+            return null;
+        }
+
+        var test = RouteConstraintFacts.Test(constraint!) ?? Custom(constraint!);
+
+        // Null only for a name no built-in and no [RouteConstraint] declares, which
+        // RouteTokenDiagnostics has already reported as a build error. Emitting a call to nothing
+        // would bury that under a CS0103.
+        return test == null
+            ? null
+            : CodeOutputComponent.Get((negate ? "!" : "") + test + "(" + value + ")");
+    }
+
+    /// <summary>
+    /// The call a <c>[RouteConstraint]</c> declares for this name, or null.
+    /// </summary>
+    /// <remarks>
+    /// A declaration with the wrong signature is skipped rather than called: emitting a call to a
+    /// method that is not a <c>static bool(ReadOnlySpan&lt;char&gt;)</c> would bury the diagnostic
+    /// that says so under a compiler error in generated code.
+    /// </remarks>
+    private static string? Custom(string constraint) {
+        if (_constraints == null) {
+            return null;
+        }
+
+        foreach (var declared in _constraints) {
+            if (declared.SignatureIsValid && string.Equals(declared.Name, constraint, StringComparison.Ordinal)) {
+                return declared.Call;
+            }
+        }
+
+        return null;
     }
 
     private static IReadOnlyList<IOutputComponent> CreatePathIfStatement(

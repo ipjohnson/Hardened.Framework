@@ -58,6 +58,12 @@ namespace Hardened.Web.Runtime.Attributes
         public PutAttribute(string path = "") { }
         public string Path { get; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=true, Inherited=false)]
+    public class RouteConstraintAttribute : System.Attribute
+    {
+        public RouteConstraintAttribute(string name) { }
+        public string Name { get; }
+    }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class, AllowMultiple=true, Inherited=false)]
     public class ServerAttribute : System.Attribute
     {
@@ -223,6 +229,20 @@ namespace Hardened.Web.Runtime.OpenApi
     {
         public OpenApiDocumentProvider(string document, string path = "/openapi.json", string contentType = "application/json") { }
         public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+}
+namespace Hardened.Web.Runtime.Routing
+{
+    public static class RouteConstraints
+    {
+        public const string Bool = "bool";
+        public const string Guid = "guid";
+        public const string Int = "int";
+        public const string Long = "long";
+        public static bool IsBool(System.ReadOnlySpan<char> value) { }
+        public static bool IsGuid(System.ReadOnlySpan<char> value) { }
+        public static bool IsInt(System.ReadOnlySpan<char> value) { }
+        public static bool IsLong(System.ReadOnlySpan<char> value) { }
     }
 }
 namespace Hardened.Web.Runtime.StaticContent

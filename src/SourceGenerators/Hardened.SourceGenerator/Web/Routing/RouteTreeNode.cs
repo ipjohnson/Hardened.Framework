@@ -35,6 +35,17 @@ public class RouteTreeNode<T> {
     /// </summary>
     public bool WildCardIsCatchAll { get; set; }
 
+    /// <summary>
+    /// The constraint the token at this position declares - <c>int</c>, <c>guid</c>, a custom name
+    /// - or null when it declares none.
+    /// </summary>
+    /// <remarks>
+    /// On the node for the same reason the catch-all flag is: the test runs while the match is
+    /// being made, before it is known which route won. Two routes reaching this node with different
+    /// constraints is HRDR001, so by the time this is read they agree.
+    /// </remarks>
+    public string? WildCardConstraint { get; set; }
+
     public IReadOnlyList<RouteTreeNode<T>> ChildNodes { get; }
 
     public IReadOnlyList<RouteTreeNode<T>> WildCardNodes { get; }
