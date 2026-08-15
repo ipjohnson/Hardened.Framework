@@ -60,7 +60,6 @@ matching `ExecutionFilterOrder`.
 
 | Value | Used by |
 |---|---|
-| `Template` (-1000) | Rendered views |
 | `Specialized` (-100) | A serializer for one specific media type |
 | `Normal` (0) | The JSON serializers |
 | `Deferred` (1000) | Raw string, byte and stream output |
@@ -151,8 +150,19 @@ a no-op registration raises nothing.
 
 `CanProduce` answers two questions at once: does this serializer emit that media type, and can it
 handle this particular response value. Answering `false` for a value it cannot write is how a
-serializer stays out of the way — a template serializer declines a response that names no view,
-however well the media type matches.
+serializer stays out of the way, however well the media type matches.
+
+## Handlers that declare an output
+
+None of this applies to a handler carrying [`[Output<T>]`](/guide/templates). That handler has said
+what its response *is*: the output either answers what the client asked for, or the request gets
+`406 Not Acceptable`. No serializer is consulted and there is no fallback.
+
+The reason is disclosure rather than tidiness. A view usually renders a subset of what its model
+holds, so falling back to JSON because the client asked for it would put the rest of the model on
+the wire — from a route whose author wrote nothing but a view. Negotiation is for a handler that
+returns a value and lets the framework choose how to write it; declaring an output is the other
+decision.
 
 ## Request bodies
 

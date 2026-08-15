@@ -7,8 +7,8 @@ that never touches AWS never carries the SDK.
 
 **Source:** [github.com/ipjohnson/Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz)
 
-Lambda runtimes for functions, API Gateway, DynamoDB Streams and SQS; DynamoDB and SQS client
-libraries; CDK constructs; and the test harnesses for all of them.
+Lambda runtimes for functions, API Gateway, DynamoDB Streams and SQS; a DynamoDB client library;
+CDK constructs; and the test harnesses for all of them.
 
 </div>
 

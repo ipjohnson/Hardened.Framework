@@ -50,6 +50,22 @@ public class ItemController {
 Two routes may share a path under different verbs — `GET /verbs/item/{id}` and
 `DELETE /verbs/item/{id}` reach different handlers.
 
+### HEAD, and the verb that has no route
+
+`HEAD` is `GET` without a body, so every `[Get]` route answers it. The handler, its filters and its
+serializer all run exactly as they would for the `GET` — which is the point, because RFC 9110
+requires a `HEAD` response to carry the header fields the `GET` would have carried. The bytes are
+counted and dropped rather than written, so `Content-Length` is the real number.
+
+A request whose path matches a route but whose verb has none gets `405 Method Not Allowed` with an
+`Allow` header listing the verbs that path does answer, `HEAD` included. A path nobody declared is
+still `404`. The distinction matters beyond tidiness: API Gateway and CloudFront cache the two
+differently, and a generated client reads them differently.
+
+**Changed 2026-08-15.** Both are new. `HEAD` used to match nothing, so every endpoint answered
+`curl -I` with a 404, and a wrong verb on a real resource was indistinguishable from a URL that did
+not exist.
+
 ## Path tokens
 
 Braces mark a token, and the token binds to the parameter of the same name:
@@ -69,9 +85,155 @@ Tokens arrive as strings and are converted to the parameter's declared type:
 public int Double(int count) => count * 2;
 ```
 
+A value the parameter's type cannot take — `/double/abc` — reaches the handler's binder and comes
+back `400`. That is honest when the value is input being validated. When it is an identifier, and a
+wrong value means "no such URL", say so with a constraint.
+
+### Constraining what a token matches
+
+`{name:int}` matches only a segment that passes the test:
+
+```csharp
+[Get("/users/{id:int}")]
+public User ById(int id) => _users.Find(id);
+```
+
+`/users/abc` is now a `404` rather than a `400`. Both are defensible answers to a bad value, and
+they say different things: `400` means you addressed a real endpoint incorrectly, `404` means there
+is no resource at that URL. The constraint also rejects the value before any filter or binder runs.
+
+| Constraint | Matches |
+|---|---|
+| `int` | a 32-bit integer |
+| `long` | a 64-bit integer |
+| `guid` | a GUID in any of the forms `Guid.TryParse` accepts |
+| `bool` | `true` or `false` |
+
+Parsing is invariant, so the same request matches on every machine.
+
+The list is short on purpose. The rule is not "what can we convert" but "what can be tested on a
+`ReadOnlySpan<char>` without allocating" — a constraint runs on every request that reaches the
+position it guards, including the ones it rejects.
+
+**Use `:int` when the segment is an identifier and a wrong value means "no such URL". Leave it off
+when the value is input being validated and `400` is the honest answer.**
+
+### Declaring your own constraint
+
+```csharp
+[RouteConstraint("isbn")]
+public static bool IsIsbn(ReadOnlySpan<char> value) => …
+```
+
+and then `[Get("/books/{code:isbn}")]`. The generator emits a direct static call — no allocation, no
+reflection, no registry, nothing to look up per request.
+
+The signature is the rule rather than a preference, for the same reason the built-in list is short.
+A method that is not a `static bool(ReadOnlySpan<char>)` is a build error, and so is a constraint
+name nothing declares — a route that silently constrains nothing is the failure all of this exists
+to prevent.
+
+### Two routes that differ only by constraint
+
+```csharp
+[Get("/users/{id:int}")]   // and
+[Get("/users/{name}")]     // -> HRDR001, a build error
+```
+
+Overloading by type makes which handler you reach depend on the *content* of a value. A user named
+`12345` becomes unreachable, a client cannot reason about which endpoint it hit, caches cannot tell
+the two apart, and the pair is unrepresentable in OpenAPI. The same applies to `{name}` beside
+`{*name}`. A literal beside a token — `/users/me` and `/users/{id}` — is untouched.
+
+The opinion can be overridden where it has to be:
+
+```ini
+# .editorconfig
+dotnet_diagnostic.HRDR001.severity = warning
+```
+
+which is per file, so one legacy pair can be allowed in one controller without opening the gate
+project-wide. `<HardenedAmbiguousRoutes>warning</HardenedAmbiguousRoutes>` sets the default for a
+project. Prefer `warning` over `none`: silencing leaves no record that the codebase drifted, and CI
+runs `TreatWarningsAsErrors`, so an opt-in still forces a deliberate decision.
+
+### Brace forms that are not supported
+
+`{id?}` and `{id=5}` are build errors. Neither was ever honoured — the whole brace body became the
+token *name*, so `{id?}` was a mandatory segment called `id?` and bound nothing to `id`.
+
+For a default, give the C# parameter one: the template controls matching, and C# supplies the value.
+For an optional segment, declare the two paths as two routes.
+
 Token names belong to the route, not to the position, so two routes may share a prefix and still
 name their tokens differently — `/users/{id}` alongside `/users/{userId}/posts/{postId}` binds
 correctly in both.
+
+The name is what binds, whatever else the token carries: `{*path}` and `{id:int}` bind to parameters
+called `path` and `id`.
+
+### How much a token matches
+
+**A token matches exactly one segment.** `/users/{id}` answers `/users/42` and not `/users/42/posts`
+— a path deeper than the route declares is not a match, and returns 404.
+
+That is what makes a route's shape mean something: an API serves the paths it declares and nothing
+else, so a client can tell a real endpoint from a typo, and a generated OpenAPI document describes
+the same set of paths the router accepts.
+
+### Matching the rest of the path
+
+Prefix a token with `*` to take everything that remains, separators included. It has to be the last
+token in the route:
+
+```csharp
+[Get("/assets/{*path}")]
+public Stream Asset(string path) => _files.Open(path);   // /assets/img/logo.png -> "img/logo.png"
+```
+
+The asterisk says how much to match, not what to call it: `{*path}` binds to a parameter named
+`path`. A literal in the same position still wins, so `/assets/index` reaches an `[Get("/assets/index")]`
+handler if one exists.
+
+A catch-all cannot be written in an OpenAPI document — a path template expression is a parameter
+name and nothing more — so a route generated from a specification is always single-segment, and a
+document generated from a `{*path}` route describes it as `{path}`.
+
+**Changed 2026-08-15.** Every token used to match the rest of the path whether or not it was marked,
+so `/users/{id}` accepted `/users/42/anything/at/all` and no route could describe a single segment.
+A route that was relying on it needs the `*`.
+
+## Case and trailing slashes
+
+**A path is matched as written.** `/Orders` and `/orders` are different URLs, which is what
+RFC 3986 says a path is and what an OpenAPI document describes — the format has no notion of a
+case-insensitive path. It also removes the duplicate-URL problem that comes of one resource
+answering at every spelling, and halves the matcher's work.
+
+```csharp
+[HardenedModule]
+[CaseInsensitiveRoutes]          // the old behaviour, for URLs being tidied up rather than rewritten
+public partial class Application { }
+```
+
+**Changed 2026-08-15.** Matching used to accept either case for every letter.
+
+`/orders` and `/orders/` are also different URLs, and strict is the default. One knob changes that
+for a module:
+
+```csharp
+services.Configure<WebRoutingConfiguration>(config =>
+    config.TrailingSlash = TrailingSlash.Redirect);
+```
+
+| Setting | A request for the other spelling gets |
+|---|---|
+| `Strict` | whatever it would have got: usually a 404 |
+| `Normalise` | the route, with no difference visible to the client |
+| `Redirect` | `308 Permanent Redirect` to the declared path |
+
+`308` rather than `301` because a redirect must not change the method, and most clients rewrite a
+`301` on a `POST` to `GET`, silently dropping the body.
 
 ## Prefixing with `[BasePath]`
 
@@ -147,14 +309,18 @@ payload:
 public string Robots() => "User-agent: *\nDisallow:";
 ```
 
-`[Template]` renders the return value through a named template instead — see
-[Templates](/guide/templates):
+`[Output<T>]` hands the response to something that writes it — a view, most often — instead of
+serialising it. See [Templates](/guide/templates):
 
 ```csharp
 [Get("/orders/{id}")]
-[Template("order-detail")]
+[Output<Views.OrderDetail>]
 public OrderModel Order(string id) => _repository.Get(id);
 ```
+
+Declaring one takes the response out of negotiation: the output either answers what the client
+asked for or the request gets `406`. It never falls back to JSON, because a view usually renders a
+subset of what its model holds.
 
 ## Caching
 
@@ -187,6 +353,37 @@ app.Run();
 `[AspNetCoreRuntime]` brings `[HardenedWebModule]` with it. A library that carries routes but is not
 itself the host imports `[HardenedWebModule]` directly, which is also what the
 [Lambda web runtime](/aws/lambda-web) sits on.
+
+## Links to your own routes
+
+Every module gets two generated types built from the routes it declares:
+
+```csharp
+ApplicationRoutes.Orders.Order("42")        // "/orders/42" — the path, from anywhere
+_links.Orders.Order("42")                   // what a client should call
+_links.Orders.OrderAbsolute("42")           // with a scheme and host, for a Location header
+```
+
+The names come from the controller and the method rather than from route names you declare, so a
+rename is a compile error at every call site. In a view, where RazorBlade compiles `@` expressions
+at build time with exact line and column information, that means a route change breaks the template
+rather than the page:
+
+```razor
+<a href="@Links.Orders.Order(Model.Id)">@Model.Reference</a>
+```
+
+`ApplicationLinks` is in the container, so a handler can take it as a constructor parameter. It goes
+through an `ILinkContext`, which is what makes a link correct on a host that strips a prefix before
+the application sees the path — API Gateway's stage. Configure one with `LinkConfiguration`:
+
+```csharp
+services.Configure<LinkConfiguration>(config => {
+    config.BasePath = "/prod";
+    config.Scheme = "https";
+    config.Host = "api.example.com";
+});
+```
 
 ## Next
 

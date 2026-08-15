@@ -48,7 +48,7 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[Handler]` | Class | Marks an implementation of a [generated OpenAPI service interface](/guide/openapi) |
 | `[FromBody]` | Parameter | Binds from the request body |
 | `[FromServices]` | Parameter | Binds from the container |
-| `[Template(name)]` | Method | Makes a [named view](/guide/templates) available for the return value. The client's `Accept` decides whether it is used |
+| `[Output<T>]` | Method | Hands the response to a [view or other output](/guide/templates) instead of serialising it. Takes the response out of negotiation: unsupported `Accept` is a `406` |
 | `[RawResponse(contentType?)]` | Method | [Commits](/guide/content-negotiation#forcing-a-content-type) the response to a content type and writes the value unstructured. Defaults to `text/plain` |
 | `[AuthorizeActivities]` | Method, class | Names the activities a caller must be authorised for |
 
@@ -77,6 +77,10 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[FromHeader(name?)]` | Parameter | Binds from a request header |
 | `[CacheControl]` | Method | Sets cache headers. `MaxAge`, `Type` |
 | `[WebLibrary]` | Class | Marks a web library entry point |
+| `[Tag(name)]` | Class | The [OpenAPI tag](/guide/openapi) this controller's operations group under. Defaults to the class name minus `Controller` |
+| `[Server(url, description?)]` | Class, assembly | A base URL the generated document lists under `servers` |
+| `[CaseInsensitiveRoutes]` | Class | Matches this module's routes [without regard to case](/guide/routing#case-and-trailing-slashes) |
+| `[RouteConstraint(name)]` | Method | Declares a [route constraint](/guide/routing#declaring-your-own-constraint). `static bool(ReadOnlySpan<char>)` |
 
 `[Get]`, `[Put]`, `[Delete]` and `[Patch]` also declare `SuccessStatus`, `NullReturnStatus`,
 `ValidationErrorStatus` and `ErrorStatus`, but the web generator does not read them — see
@@ -88,10 +92,14 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[RazorBladeTemplateLibrary]` | Class | Registers the RazorBlade engine and its serializer on a module |
+| `[Enable<HardenedRazorTemplates>]` | Class | Generates a RazorBlade template base for a module |
+| `[TemplateBase(typeof(T<>))]` | Class | On an engine's marker: the class a generated base derives from |
+| `[TemplateContentType(type)]` | Class | On an engine's marker: what views on that base produce |
 
-Views are registered by name through `IRazorBladeTemplateSource` rather than by an attribute — see
-[Templates](/guide/templates#registering-views-by-name).
+`[Enable<T>]` itself lives in `Hardened.Shared.Runtime.Attributes` — it is the framework's one name
+for every optional generated feature. It requires `new()`, and a marker that is also a
+DependencyModules module has its registrations applied too. A view is named on a handler with
+`[Output<T>]`; there is nothing to register.
 
 ## Console
 

@@ -42,10 +42,12 @@ Source generator packages are referenced as analysers:
 
 | Package | Contents |
 |---|---|
-| `Hardened.Templates.RazorBlade` | `[RazorBladeTemplateLibrary]`, `IRazorBladeTemplateSource`, `RazorBladeTemplate`. Renders `.cshtml` with no ASP.NET Core dependency |
+| `Hardened.Templates.RazorBlade` | `HardenedRazorTemplates`, `HardenedHtmlTemplate<T>`. Renders `.cshtml` with no ASP.NET Core dependency |
 
-`ITemplateEngine` — the seam a rendering engine implements — lives in `Hardened.Requests.Abstract`,
-so nothing depends on RazorBlade to name a view.
+`IHardenedResponseOutput<T>` — what a view implements — and the `[TemplateBase]` /
+`[TemplateContentType]` vocabulary a rendering engine's marker declares both live in
+`Hardened.Requests.Abstract`, so nothing depends on RazorBlade to name a view or to ship another
+engine.
 
 ### Console
 
@@ -110,10 +112,19 @@ so nothing depends on RazorBlade to name a view.
 
 The two repositories version independently:
 
-| Repository | Scheme |
-|---|---|
-| Hardened.Framework | `0.2.0-Alpha{build}` |
-| Hardened.Amz | `1.0.{build}` |
+| Repository | Released | Continuous feed |
+|---|---|---|
+| Hardened.Framework | `{line}-rc1000`, from a `v*` tag | `{line}-preview{build}` on every push to main |
+| Hardened.Amz | `1.0.{build}` | `1.0.{build}` |
+
+Releases go to nuget.org; the continuous feed is
+[GitHub Packages](https://nuget.pkg.github.com/ipjohnson/index.json). Under one line, `preview`
+sorts below `rc`, so a preview never shadows the release it precedes.
 
 Pin exact versions across a solution. Mixing framework builds within one application is not a
 supported combination — the generated code and the runtime it targets ship together.
+
+A floating pin is the exception worth avoiding. `{line}` names a release line rather than being
+open-ended, so `1.0.0-preview*` stopped matching anything the day the line moved — and a float that
+matches nothing new does not fail, it silently keeps resolving whatever it last found. Hardened.Amz
+tracked a framework three release lines old that way, with a green build throughout.

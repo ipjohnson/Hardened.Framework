@@ -27,7 +27,7 @@ Reference both packages:
 ```xml
 <ItemGroup>
     <PackageReference Include="RazorBlade" Version="1.0.0" />
-    <PackageReference Include="Hardened.Templates.RazorBlade" Version="1.0.0-preview*" />
+    <PackageReference Include="Hardened.Templates.RazorBlade" Version="0.4.0-rc1000" />
 </ItemGroup>
 ```
 
@@ -35,15 +35,23 @@ Both, not just the Hardened one. RazorBlade ships no `buildTransitive/` folder, 
 not flow transitively — so referencing only `Hardened.Templates.RazorBlade` means the `.props` that
 globs `**/*.cshtml` never reaches your project. Your views compile to nothing, with no error.
 
-Then apply the module:
+Then turn it on for a module:
 
 ```csharp
 [HardenedModule]
 [HardenedWebModule]
 [KestrelRuntime]
-[RazorBladeTemplateLibrary]
+[Enable<HardenedRazorTemplates>]
 public partial class Application { }
 ```
+
+`[Enable<T>]` is the framework's one name for every optional generated feature — type `[Enable<` and
+let completion list what the project has referenced. Naming the marker is also what references the
+package, so there is nothing to detect: a generator that probed for a type would be guessing, and
+the compiler is not.
+
+That generates `ApplicationRazorTemplates<TModel>` — the entry point's name plus the marker's — which
+is what your views inherit.
 
 ::: warning ASP.NET Core hosts
 RazorBlade warns with `RB0006` when a project also uses the Razor SDK, because both generators would
@@ -56,7 +64,7 @@ explicitly, or keep them out of the Razor SDK's default globs.
 ```razor
 @* Views/Orders.cshtml *@
 @using Contoso.Orders.Models
-@inherits RazorBlade.HtmlTemplate<OrderListModel>
+@inherits Contoso.Orders.ApplicationRazorTemplates<OrderListModel>
 
 <table>
     <tr><th>Reference</th><th>Total</th><th>Placed</th></tr>
@@ -74,63 +82,48 @@ explicitly, or keep them out of the Razor SDK's default globs.
 It is Razor, so `@foreach`, `@if` and `@(...)` all work, and `@order.Reference` is HTML-encoded.
 `@Html.Raw(value)` opts out when you mean to emit markup.
 
-Two base classes decide what the view produces:
+The generated base decides what the view produces:
 
-| Base class | Content type | Encoding |
-|---|---|---|
-| `RazorBlade.HtmlTemplate<T>` | `text/html; charset=utf-8` | HTML-encoded |
-| `RazorBlade.PlainTextTemplate<T>` | `text/plain; charset=utf-8` | none |
+| Marker | Base | Content type | Encoding |
+|---|---|---|---|
+| `HardenedRazorTemplates` | `HardenedHtmlTemplate<T>` | `text/html; charset=utf-8` | HTML-encoded |
 
-The content type comes from the base class rather than the file extension, so a `.cshtml` file can
-legitimately produce plain text.
+The content type comes from the marker rather than the file extension, so a `.cshtml` file can
+legitimately produce something other than HTML — with a marker whose base escapes accordingly.
 
-## Registering views by name
+Two markers on one module produce two bases, `ApplicationRazorTemplates<T>` and
+`ApplicationFluidTemplates<T>`, so multi-engine is the same mechanism rather than a retrofit.
 
-A handler names a view as a string, so something has to map that name to the compiled class:
+### Why the base looks the way it does
 
-```csharp
-using DependencyModules.Runtime.Attributes;
-using Hardened.Templates.RazorBlade;
+`HardenedHtmlTemplate<TModel>` inherits RazorBlade's **non-generic** `HtmlTemplate` and declares its
+own `Model`. Both of the natural alternatives were tried and neither works:
 
-[SingletonService]
-public class AppTemplates : IRazorBladeTemplateSource {
-    public IEnumerable<RazorBladeTemplateDescriptor> Templates => [
-        RazorBladeTemplate.Html<OrderListModel>("Orders", model => new Views.Orders(model)),
-        RazorBladeTemplate.PlainText<Receipt>("Receipt", model => new Views.Receipt(model))
-    ];
-}
-```
+- `RazorBlade.HtmlTemplate<TModel>.Model` is read-only (`CS0200`), so a model cannot be attached
+  after construction — and attaching after construction is the whole shape of this design.
+- RazorBlade emits the `(TModel model) : base(model)` constructor **only for its own base types**, so
+  a custom generic base gets parameterless construction and fails with `CS7036`.
 
-The lambda is where the untyped model the engine holds becomes the typed one the view needs. The cast
-is written by the compiler, not by reflection, so this stays AOT-clean.
-
-Registration lives in your application because RazorBlade generates view classes as `internal` by
-default — `Views.Orders` is not nameable from the Hardened package. Set
-`RazorBladeDefaultAccessibility` to `public` if a library needs to ship views.
-
-Every registered source is merged, so a library can ship views alongside your own. Where two sources
-use the same name, the later registration wins.
-
-`RazorBladeTemplate.Create` takes an arbitrary content type for anything that is neither HTML nor
-plain text:
-
-```csharp
-RazorBladeTemplate.Create<Report>("Export", "text/csv", model => new Views.Export(model))
-```
+Worth knowing before writing a base of your own.
 
 ## Naming a view from a handler
 
-`[Template]` says which view renders the return value:
+`[Output<T>]` says which view writes the response:
 
 ```csharp
 using Hardened.Requests.Abstract.Attributes;
 
 public class OrderController {
     [Get("/orders")]
-    [Template("Orders")]
+    [Output<Views.Orders>]
     public OrderListModel List() => _orders.Recent();
 }
 ```
+
+A type, not a name. Because the attribute is applied in your own assembly, RazorBlade's `internal`
+generated view classes are nameable there — which is the exact problem a registry of named
+descriptors existed to work around. There is nothing to register: the generated handler puts a
+factory on the response and the view renders itself.
 
 It works the same way on the implementation of a
 [generated OpenAPI service interface](/guide/openapi):
@@ -138,33 +131,88 @@ It works the same way on the implementation of a
 ```csharp
 [Handler]
 public class OrderServiceImpl : IOrderService {
-    [Template("Orders")]
+    [Output<Views.Orders>]
     public Task<OrderListModel> ListOrders() => _orders.RecentAsync();
 }
 ```
 
-That is usually where it belongs for a spec-first application. The document declares that the
-operation answers `text/html`; which view produces that HTML is how your implementation fulfils it,
-so changing views or engines does not edit your API description. A spec can still declare
-`x-hardened-template` as a default, and the attribute overrides it.
+That is where it belongs for a spec-first application. The document declares that the operation
+answers `text/html`; which view produces that HTML is how your implementation fulfils it, so changing
+views or engines does not edit your API description. There is no spec extension for it — which
+server-side view renders a response is not part of an HTTP contract, and a second implementation of
+the same specification in another language has nothing to do with the value. A document that
+promises `text/html` for a model and an implementation that names no view is a build error.
+
+## What the compiler checks, and where
+
+The boundary is not where you would guess.
+
+**On the attribute.** `OutputAttribute<T>` constrains `T` to `IHardenedResponseOutput, new()`, and
+it binds in the final compilation where RazorBlade's output exists. A type that is not an output, or
+has no parameterless constructor, is an error on the attribute — naming the type.
+
+**In generated code.** That the view's model matches the handler's return type cannot be expressed on
+the attribute, which does not know the return type, and the generator cannot check it, because the
+view is another generator's output and invisible to it. So the generator emits an assignment the
+compiler has to bind:
+
+```csharp
+private static readonly IHardenedResponseOutput<OrderListModel> _outputCheck_List = new Views.Orders();
+```
+
+A mismatch reads `cannot convert Views.Orders to IHardenedResponseOutput<OrderListModel>`, naming both
+types. That is the one mechanism that works across a generator boundary — another generator's output
+cannot be inspected, but code can be emitted that the compiler binds against it. It is the same
+property that makes a route change break a `.cshtml` at build time.
+
+## Choosing a view per request
+
+The response carries a factory, assigned before the handler runs, so a handler or a filter can
+replace it — a different view for mobile than for desktop, an A/B test, an error view:
+
+```csharp
+context.Response.OutputFactory = static _ => new Views.OrdersMobile();
+```
+
+One construction shape only. C# has `where T : new()` but no constraint for "has a constructor taking
+`TModel`", so a second shape could not be compile-checked and would not deliver the guarantee that
+makes this worth having. The model is attached afterwards.
+
+## Links in a view
+
+A view built on a generated base has a `Links` property, which is where
+[generated links](/guide/routing#links-to-your-own-routes) pay off:
+
+```razor
+<a href="@Links.Orders.Order(order.Id)">@order.Reference</a>
+```
+
+RazorBlade copies `@` expressions verbatim and emits `#line` directives with exact spans, so renaming
+the route or its handler breaks the template at build time, reported at its own line and column.
+Rails' `product_path` and Flask's `url_for` are runtime lookups: the same mistake fails when someone
+loads the page.
 
 ## What actually gets rendered
 
-Naming a view does not force HTML. `[Template]` makes a view *available*; the client's `Accept`
-header decides whether it is used:
+**Declaring an output takes the response out of negotiation.** The view either answers what the
+client asked for, or the request gets `406 Not Acceptable`:
 
 | Request | Response |
 |---|---|
 | `Accept: text/html` | The rendered view |
-| `Accept: application/json` | The model, serialised |
-| `Accept: */*`, or no header | The rendered view — the template serializer is ordered ahead of JSON |
+| `Accept: */*`, or no header | The rendered view |
+| `Accept: application/json` | `406`, with no body |
 
-One handler, one return value, two representations. See
-[Content negotiation](/guide/content-negotiation) for how that choice is made and how to influence
-it.
+That is a data-leak rule rather than a status-code preference. A view usually renders a subset of
+what its model holds — a page showing a customer's name, from a model carrying their address, their
+billing details and every internal identifier attached to them. Serializing the model because the
+client asked for JSON would put all of it on the wire, from a route whose author wrote nothing but a
+view. So there is no fallback, and adding `[Output<T>]` to a handler can never widen what it
+discloses.
 
-To render a view regardless of what the caller asked for, commit the response to a content type with
-`[RawResponse]` or by setting `Response.ContentType` — a committed content type skips negotiation.
+To serve both representations from one handler, do not declare an output: return the model, and let
+[content negotiation](/guide/content-negotiation) choose a serializer. A route that must answer both
+HTML and JSON is two routes or a filter that chooses, not one route quietly doing both.
 
 ## Layouts, sections and partials
 
@@ -176,19 +224,36 @@ relationship between two classes, not a filename convention.
 
 ## Writing another engine
 
-`ITemplateEngine` is the seam, and RazorBlade is one implementation of it:
+There is no engine interface to implement. An output writes the response itself, so what another
+engine ships is a marker and a base:
 
 ```csharp
-public interface ITemplateEngine {
-    bool CanRender(string templateName);
-    string? ContentTypeFor(string templateName);
-    Task RenderAsync(string templateName, object? model, IExecutionContext context);
-}
+[TemplateBase(typeof(FluidTemplate<>))]
+[TemplateContentType("text/html; charset=utf-8")]
+public sealed class HardenedFluidTemplate { }
 ```
 
-`ContentTypeFor` is asked before rendering, because the media type a view produces is what decides
-whether it is what the client wanted. It is a lookup rather than a property because it varies per
-view — one engine serves both HTML and plain-text templates.
+The generator resolves whichever marker `[Enable<T>]` names, reads those two attributes and emits a
+base deriving from what the first points at. It never learns what a marker *means* — a generator that
+switched on the marker's name would need a change for every new engine, and the extensibility would
+be fictional.
 
-Register an implementation with `RegistrationType.Add`. Engines are resolved as a set and tested in
-reverse registration order, so an application's engine is asked before one a library registered.
+The base implements `IHardenedResponseOutput<TModel>`, which is two methods:
+
+```csharp
+bool SupportsContentType(string? accept, IExecutionContext context);
+Task WriteOutput(IExecutionContext context);
+```
+
+The model is on `context.Response.ResponseValue`; the base reads it, casts once, and renders. A
+template base also exposes `protected IExecutionContext Context`, which is what the generated
+`Links` property resolves from — part of what `[TemplateBase]` declares rather than of the output
+interface, since an output writing a file has no business carrying request state.
+
+`typeof(X<>)` is legal in an attribute argument and an unbound generic as a type argument is not,
+which is why the marker is a separate non-generic type pointing at the base rather than being the
+base.
+
+A marker may also be a DependencyModules module. `[Enable<T>]` requires `new()`, which is what a
+module needs anyway, so a package shipping services alongside a generated type is one attribute
+rather than two.
