@@ -254,6 +254,7 @@ namespace Hardened.Requests.Abstract.Headers
         public const string Cookie = "Cookie";
         public const string IfMatch = "If-Match";
         public const string IfNoneMatch = "If-None-Match";
+        public const string Location = "Location";
         public static class Cors
         {
             public const string AccessControlAllowHeaders = "Access-Control-Allow-Headers";

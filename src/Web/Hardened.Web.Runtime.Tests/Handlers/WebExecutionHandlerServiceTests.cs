@@ -4,6 +4,11 @@ using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.StaticContent;
+using Hardened.Web.Runtime.Configuration;
+using Hardened.Requests.Abstract.QueryString;
+using Hardened.Shared.Runtime.Metrics;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
 
@@ -163,7 +168,8 @@ public class WebExecutionHandlerServiceTests {
         fixture.StaticContent.Handle(fixture.Context).Returns(true);
 
         var service = new WebExecutionHandlerService(
-            [], fixture.NotFound, fixture.MethodNotAllowed, fixture.RequestLogger, fixture.StaticContent);
+            [], fixture.NotFound, fixture.MethodNotAllowed, fixture.RequestLogger, fixture.StaticContent,
+            Options.Create<IWebRoutingConfiguration>(new WebRoutingConfiguration()));
 
         await service.Execute(fixture.Chain);
 
@@ -238,6 +244,106 @@ public class WebExecutionHandlerServiceTests {
             .Handle(Arg.Any<IExecutionContext>(), Arg.Any<string>());
     }
 
+    /// <summary>
+    /// Strict is the default and what every existing application already behaves as: /orders and
+    /// /orders/ are unrelated routes, which is also what an OpenAPI document says.
+    /// </summary>
+    [Fact]
+    public async Task StrictLeavesTheOtherSpellingUnmatched() {
+        var fixture = new Fixture();
+
+        fixture.Context.Request.Path.Returns("/orders/");
+        fixture.RouteMatchesPath("/orders");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await fixture.NotFound.Received(1).Handle(fixture.Chain);
+    }
+
+    /// <summary>
+    /// Normalise reaches the route, and the client sees no difference - which is what most
+    /// applications want from a link somebody typed.
+    /// </summary>
+    [Fact]
+    public async Task NormaliseReachesTheRouteWithoutTheSlash() {
+        var fixture = new Fixture();
+
+        fixture.Routing.TrailingSlash = TrailingSlash.Normalise;
+        fixture.Context.Request.Path.Returns("/orders/");
+
+        var chain = fixture.RouteMatchesPath("/orders");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await chain.Received(1).Next();
+        await fixture.NotFound.DidNotReceive().Handle(Arg.Any<IExecutionChain>());
+    }
+
+    /// <summary>And in the other direction, for a route declared with the slash.</summary>
+    [Fact]
+    public async Task NormaliseAlsoAddsAMissingSlash() {
+        var fixture = new Fixture();
+
+        fixture.Routing.TrailingSlash = TrailingSlash.Normalise;
+        fixture.Context.Request.Path.Returns("/orders");
+
+        var chain = fixture.RouteMatchesPath("/orders/");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await chain.Received(1).Next();
+    }
+
+    /// <summary>
+    /// Redirect answers 308 rather than 301: a redirect must not change the method, and most
+    /// clients rewrite a 301 on a POST to GET, which silently drops the body.
+    /// </summary>
+    [Fact]
+    public async Task RedirectAnswers308AtTheDeclaredPath() {
+        var fixture = new Fixture();
+
+        fixture.Routing.TrailingSlash = TrailingSlash.Redirect;
+        fixture.Context.Request.Path.Returns("/orders/");
+        fixture.RouteMatchesPath("/orders");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        fixture.Context.Response.Received().Status = 308;
+        Assert.Equal("/orders", fixture.Headers["Location"].ToString());
+    }
+
+    /// <summary>
+    /// And nothing is redirected to where nothing answers. A path no spelling matches is still a
+    /// 404, not a redirect to another 404.
+    /// </summary>
+    [Fact]
+    public async Task RedirectDoesNothingWhenNeitherSpellingMatches() {
+        var fixture = new Fixture();
+
+        fixture.Routing.TrailingSlash = TrailingSlash.Redirect;
+        fixture.Context.Request.Path.Returns("/nothing/");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await fixture.NotFound.Received(1).Handle(fixture.Chain);
+    }
+
+    /// <summary>
+    /// The root has no other spelling, so it is left alone rather than redirected to the empty
+    /// path.
+    /// </summary>
+    [Fact]
+    public async Task TheRootIsNotRewritten() {
+        var fixture = new Fixture();
+
+        fixture.Routing.TrailingSlash = TrailingSlash.Redirect;
+        fixture.Context.Request.Path.Returns("/");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await fixture.NotFound.Received(1).Handle(fixture.Chain);
+    }
+
     private sealed class Fixture {
         private readonly List<IWebExecutionRequestHandlerProvider> _providers = [];
 
@@ -245,6 +351,39 @@ public class WebExecutionHandlerServiceTests {
             Context = Substitute.For<IExecutionContext>();
             Context.Request.Returns(Substitute.For<IExecutionRequest>());
             Context.Response.Returns(Substitute.For<IExecutionResponse>());
+            Context.Response.Headers.Returns(Headers);
+
+            // The trailing-slash probe asks the tables about the other spelling, which it does by
+            // cloning the request onto a cloned context rather than mutating the one in flight.
+            // Both clones have to behave, or the probe reads the original path back and every
+            // policy looks like strict.
+            Context.Request.Clone(
+                    Arg.Any<string?>(),
+                    Arg.Any<string?>(),
+                    Arg.Any<IDictionary<string, StringValues>?>(),
+                    Arg.Any<IQueryStringCollection?>(),
+                    Arg.Any<IReadOnlyList<string>?>())
+                .Returns(call => {
+                    var request = Substitute.For<IExecutionRequest>();
+
+                    request.Path.Returns((string?)call[1]);
+
+                    return request;
+                });
+
+            Context.Clone(
+                    Arg.Any<IExecutionRequest?>(),
+                    Arg.Any<IExecutionResponse?>(),
+                    Arg.Any<IServiceProvider?>(),
+                    Arg.Any<IMetricLogger?>())
+                .Returns(call => {
+                    var cloned = Substitute.For<IExecutionContext>();
+
+                    cloned.Request.Returns((IExecutionRequest?)call[0]);
+                    cloned.Response.Returns(Context.Response);
+
+                    return cloned;
+                });
 
             Chain = Substitute.For<IExecutionChain>();
             Chain.Context.Returns(Context);
@@ -266,6 +405,37 @@ public class WebExecutionHandlerServiceTests {
         public IRequestLogger RequestLogger { get; }
 
         public IExecutionRequestHandlerInfo HandlerInfo { get; }
+
+        /// <summary>The response headers, so a test can read what was written to them.</summary>
+        public Dictionary<string, StringValues> Headers { get; } = new();
+
+        /// <summary>
+        /// A provider that answers only for one exact path, whichever context it is asked about.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="RouteMatches"/> answers for the context it was given, which is the wrong
+        /// shape for the trailing-slash probe: that asks about a clone, and a provider keyed on the
+        /// original would answer for both spellings and prove nothing.
+        /// </remarks>
+        public IExecutionChain RouteMatchesPath(string path) {
+            var handlerChain = Substitute.For<IExecutionChain>();
+            var handler = Substitute.For<IExecutionRequestHandler>();
+
+            handler.HandlerInfo.Returns(HandlerInfo);
+            handler.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(handlerChain);
+
+            var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
+
+            provider.GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+                .Returns(call =>
+                    ((IExecutionContext)call[0]).Request.Path == path
+                        ? new RequestHandlerInfo(handler, PathTokenCollection.Empty)
+                        : null);
+
+            _providers.Add(provider);
+
+            return handlerChain;
+        }
 
         /// <summary>Registers a provider that matches, and returns the chain its handler hands back.</summary>
         public IExecutionChain RouteMatches(string path, PathTokenCollection? tokens = null) {
@@ -326,11 +496,15 @@ public class WebExecutionHandlerServiceTests {
             return provider;
         }
 
+        /// <summary>How the pipeline treats a path no route matched exactly.</summary>
+        public WebRoutingConfiguration Routing { get; } = new();
+
         public WebExecutionHandlerService Service(params IWebExecutionRequestHandlerProvider[] providers) =>
             new(providers.Length > 0 ? providers : _providers,
                 NotFound,
                 MethodNotAllowed,
                 RequestLogger,
-                StaticContent);
+                StaticContent,
+                Options.Create<IWebRoutingConfiguration>(Routing));
     }
 }

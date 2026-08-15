@@ -14,6 +14,14 @@ internal static class OpenApiRoutingTableGenerator {
     private static readonly IOutputComponent EmptyTokens =
         Property(KnownTypes.Requests.PathTokenCollection, "Empty");
 
+    /// <summary>
+    /// Whether this table matches without regard to case, from <c>[CaseInsensitiveRoutes]</c> on
+    /// the entry point. Set at the top of each emit, for the reason the attribute-routed generator
+    /// does the same.
+    /// </summary>
+    [ThreadStatic]
+    private static bool _caseInsensitive;
+
     public static void GenerateRoute(
         SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
@@ -37,6 +45,11 @@ internal static class OpenApiRoutingTableGenerator {
         ImmutableArray<string> jsonTypeInfoResolvers,
         CancellationToken cancellationToken,
         bool excludeFromCoverage = false) {
+        _caseInsensitive = appModel.AttributeModels != null &&
+                           appModel.AttributeModels.Any(model =>
+                               model.TypeDefinition.Name.StartsWith(
+                                   "CaseInsensitiveRoutes", StringComparison.Ordinal));
+
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
         CreateRoutingTable(appModel, handlers, handlerInfos, jsonTypeInfoResolvers, applicationFile, cancellationToken, excludeFromCoverage);
@@ -257,14 +270,17 @@ internal static class OpenApiRoutingTableGenerator {
 
         foreach (var childNode in routeNode.ChildNodes) {
             cancellationToken.ThrowIfCancellationRequested();
-            var lowerChar = char.ToLowerInvariant(childNode.Path.First());
-            var upperChar = char.ToUpperInvariant(lowerChar);
+            var character = childNode.Path.First();
 
-            if (upperChar != lowerChar) {
-                switchStatement.AddCase($"'{upperChar}'");
+            if (_caseInsensitive) {
+                var upperChar = char.ToUpperInvariant(character);
+
+                if (upperChar != character) {
+                    switchStatement.AddCase($"'{upperChar}'");
+                }
             }
 
-            var caseStatement = switchStatement.AddCase($"'{lowerChar}'");
+            var caseStatement = switchStatement.AddCase($"'{character}'");
             var newMethodName = WriteRouteNode(routingClass, childNode, 1, cancellationToken);
             caseStatement.Return(Invoke(newMethodName, span, "index + 1", methodString));
         }
@@ -522,15 +538,28 @@ internal static class OpenApiRoutingTableGenerator {
         int idx = 0;
         foreach (var pathChar in routeNodePath) {
             cancellationToken.ThrowIfCancellationRequested();
-            var upperChar = char.ToUpper(pathChar);
-            var lowerEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {idx}]", "'" + pathChar + "'");
 
-            if (upperChar != pathChar) {
-                var upperEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {idx}]", "'" + upperChar + "'");
-                returnList.Add(Or(lowerEqualStatement, upperEqualStatement));
-            } else {
-                returnList.Add(lowerEqualStatement);
+            var equalStatement = EqualsStatement($"{span.Name}[{indexName} + {idx}]", "'" + pathChar + "'");
+
+            // One comparison per character unless the module asked otherwise. See
+            // CaseInsensitiveRoutesAttribute: paths are case-sensitive per RFC 3986, an OpenAPI
+            // document has no notion of a case-insensitive path, and the second comparison ran for
+            // every letter of every literal on every request.
+            if (_caseInsensitive) {
+                var upperChar = char.ToUpperInvariant(pathChar);
+
+                if (upperChar != pathChar) {
+                    returnList.Add(Or(
+                        equalStatement,
+                        EqualsStatement($"{span.Name}[{indexName} + {idx}]", "'" + upperChar + "'")));
+
+                    idx++;
+
+                    continue;
+                }
             }
+
+            returnList.Add(equalStatement);
 
             idx++;
         }
@@ -563,7 +592,8 @@ internal static class OpenApiRoutingTableGenerator {
             m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
                 m.Name.Path,
                 m.Name.Method,
-                m
+                m,
+                _caseInsensitive
             )).ToList());
     }
 }

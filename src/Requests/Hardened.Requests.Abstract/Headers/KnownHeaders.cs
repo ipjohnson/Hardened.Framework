@@ -21,6 +21,9 @@ public static class KnownHeaders {
 
     public const string Cookie = "Cookie";
 
+    /// <summary>Where a redirect points. Required on a 3xx that has one.</summary>
+    public const string Location = "Location";
+
     public const string IfMatch = "If-Match";
 
     public const string IfNoneMatch = "If-None-Match";

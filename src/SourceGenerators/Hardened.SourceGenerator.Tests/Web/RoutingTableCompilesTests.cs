@@ -242,17 +242,34 @@ public class RoutingTableCompilesTests {
     }
 
     /// <summary>
-    /// Path matching is case-insensitive: the generated comparison accepts either case for every
-    /// letter. Getting this wrong makes /Orders a 404 while /orders works.
+    /// One comparison per character. The second was emitted for every letter of every literal in
+    /// every route and ran on every request, which is half the matcher's work spent on a rule
+    /// RFC 3986 does not have.
     /// </summary>
     [Fact]
-    public void PathMatchingAcceptsEitherCase() {
+    public void PathMatchingComparesEachCharacterOnce() {
         var routing = RequestGeneratorHarness.Generate(Application("""
             public class OrderController {
                 [Get("/orders")]
                 public string All() => "x";
             }
             """)).AssertNoErrors().SourceContaining("Routing");
+
+        Assert.Contains("== 'o')", routing);
+        Assert.DoesNotContain("== 'O')", routing);
+    }
+
+    /// <summary>
+    /// Unless the module asks for the old behaviour, which emits both comparisons again.
+    /// </summary>
+    [Fact]
+    public void CaseInsensitiveRoutesComparesBothCases() {
+        var routing = RequestGeneratorHarness.Generate(Application("""
+            public class OrderController {
+                [Get("/orders")]
+                public string All() => "x";
+            }
+            """, "[CaseInsensitiveRoutes]")).AssertNoErrors().SourceContaining("Routing");
 
         Assert.Contains("== 'o')", routing);
         Assert.Contains("== 'O')", routing);

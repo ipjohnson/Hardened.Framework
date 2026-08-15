@@ -147,15 +147,29 @@ public class RouteTreeMatchingTests {
     }
 
     /// <summary>
-    /// Both spellings of a route declared in lower case reach it. The emitted comparison accepts
-    /// either case for each character, and the character-switch nodes emit a case for each.
+    /// A route is matched as written. Paths are case-sensitive per RFC 3986, an OpenAPI document
+    /// has no notion of a case-insensitive path, and one resource answering at many spellings is
+    /// the duplicate-URL problem every cache and analytics tool then has.
     /// </summary>
     [Theory]
-    [InlineData("/orders/summary")]
     [InlineData("/ORDERS/SUMMARY")]
     [InlineData("/Orders/Summary")]
     [InlineData("/oRdErS/sUmMaRy")]
-    public void ALowerCaseRouteMatchesARequestInAnyCase(string path) {
+    public void ARouteIsMatchedAsWritten(string path) {
+        var routing = GeneratedRoutingTable.For(CaseFixture(""));
+
+        Assert.Equal("Summary", routing.Handler("GET", "/orders/summary").InvokeMethod);
+        Assert.Null(routing.Route("GET", path));
+    }
+
+    /// <summary>
+    /// A route declared in mixed case matches in that case, which is the half of this that is easy
+    /// to get wrong: the tree builder used to lowercase the literal parts of a template, so
+    /// flipping the matcher without changing it would make <c>/Orders</c> match only
+    /// <c>/orders</c> - silently, for every mixed-case route in an application.
+    /// </summary>
+    [Fact]
+    public void AMixedCaseRouteMatchesItsOwnSpelling() {
         var routing = GeneratedRoutingTable.For("""
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
@@ -166,13 +180,73 @@ public class RouteTreeMatchingTests {
             public partial class TestApplication { }
 
             public class OrderController {
-                [Get("/orders/summary")]
+                [Get("/Orders/Summary")]
+                public string Summary() => "summary";
+            }
+            """);
+
+        Assert.Equal("Summary", routing.Handler("GET", "/Orders/Summary").InvokeMethod);
+        Assert.Null(routing.Route("GET", "/orders/summary"));
+    }
+
+    /// <summary>
+    /// And the old behaviour is still available, for an application whose URLs are being tidied up
+    /// rather than rewritten.
+    /// </summary>
+    [Theory]
+    [InlineData("/orders/summary")]
+    [InlineData("/ORDERS/SUMMARY")]
+    [InlineData("/Orders/Summary")]
+    [InlineData("/oRdErS/sUmMaRy")]
+    public void CaseInsensitiveRoutesMatchesEitherCase(string path) {
+        var routing = GeneratedRoutingTable.For(CaseFixture("[CaseInsensitiveRoutes]"));
+
+        Assert.Equal("Summary", routing.Handler("GET", path).InvokeMethod);
+    }
+
+    /// <summary>
+    /// Including a route declared in mixed case, which is the same trap from the other side: the
+    /// tree has to be lowercased for a matcher that compares both cases.
+    /// </summary>
+    [Theory]
+    [InlineData("/mixed/case")]
+    [InlineData("/MIXED/CASE")]
+    public void CaseInsensitiveRoutesMatchesAMixedCaseRouteEitherWay(string path) {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            [CaseInsensitiveRoutes]
+            public partial class TestApplication { }
+
+            public class OrderController {
+                [Get("/Mixed/Case")]
                 public string Summary() => "summary";
             }
             """);
 
         Assert.Equal("Summary", routing.Handler("GET", path).InvokeMethod);
     }
+
+    private static string CaseFixture(string moduleAttributes) =>
+        $$"""
+        using Hardened.Shared.Runtime.Attributes;
+        using Hardened.Web.Runtime.Attributes;
+
+        namespace TestApp;
+
+        [HardenedModule]
+        {{moduleAttributes}}
+        public partial class TestApplication { }
+
+        public class OrderController {
+            [Get("/orders/summary")]
+            public string Summary() => "summary";
+        }
+        """;
 
     /// <summary>
     /// Routes diverging after a shared prefix each keep their own tail. The generator emits one

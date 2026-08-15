@@ -10,8 +10,8 @@ public class RouteTreeGenerator<T> {
     }
 
     public class Entry {
-        public Entry(string pathTemplate, string method, T value) {
-            (PathTemplate, WildCardTokens) = StandardizeToken(pathTemplate);
+        public Entry(string pathTemplate, string method, T value, bool caseInsensitive = false) {
+            (PathTemplate, WildCardTokens) = StandardizeToken(pathTemplate, caseInsensitive);
             Method = method.ToUpperInvariant();
             Value = value;
         }
@@ -202,7 +202,24 @@ public class RouteTreeGenerator<T> {
         return returnValue;
     }
 
-    public static (string, IReadOnlyList<string>) StandardizeToken(string pathTemplate) {
+    /// <summary>
+    /// The path template with its tokens replaced by a fixed marker, and the token names in order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <paramref name="caseInsensitive"/> lowercases the literal parts, and is what a
+    /// case-insensitive matcher needs: it compares each character against both cases, and the tree
+    /// it walks has to be in the case it expects.
+    /// </para>
+    /// <para>
+    /// Off by default, because matching is case-sensitive by default - paths are case-sensitive per
+    /// RFC 3986. This is the trap in flipping the matcher: lowercasing here while comparing exactly
+    /// there makes <c>/Orders</c> match only <c>/orders</c>, silently, for every mixed-case route in
+    /// an application. The two have to move together.
+    /// </para>
+    /// </remarks>
+    public static (string, IReadOnlyList<string>) StandardizeToken(
+        string pathTemplate, bool caseInsensitive = false) {
         var tokenIndex = pathTemplate.IndexOf('{');
         var tokenList = new List<string>();
 
@@ -214,7 +231,7 @@ public class RouteTreeGenerator<T> {
 
                 if (tokenEnd > 0) {
                     var length = tokenIndex - currentIndex;
-                    stringBuilder.Append(pathTemplate.Substring(currentIndex, length).ToLower());
+                    stringBuilder.Append(Literal(pathTemplate.Substring(currentIndex, length), caseInsensitive));
                     stringBuilder.Append("{TOKEN}");
 
                     var startIndex = tokenIndex + 1;
@@ -227,12 +244,15 @@ public class RouteTreeGenerator<T> {
             }
 
             if (currentIndex < pathTemplate.Length) {
-                stringBuilder.Append(pathTemplate.Substring(currentIndex).ToLower());
+                stringBuilder.Append(Literal(pathTemplate.Substring(currentIndex), caseInsensitive));
             }
 
             return (stringBuilder.ToString(), tokenList);
         }
 
-        return (pathTemplate, Array.Empty<string>());
+        return (Literal(pathTemplate, caseInsensitive), Array.Empty<string>());
     }
+
+    private static string Literal(string value, bool caseInsensitive) =>
+        caseInsensitive ? value.ToLowerInvariant() : value;
 }

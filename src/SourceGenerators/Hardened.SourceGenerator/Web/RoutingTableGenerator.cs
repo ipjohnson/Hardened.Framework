@@ -16,6 +16,25 @@ public static class RoutingTableGenerator {
     private static readonly IOutputComponent EmptyTokens =
         Property(KnownTypes.Requests.PathTokenCollection, "Empty");
 
+    /// <summary>
+    /// Whether this table matches without regard to case, from <c>[CaseInsensitiveRoutes]</c> on
+    /// the entry point.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Static, and set at the top of each emit. Every method below would otherwise have to thread
+    /// it through, including several that recurse - and the value is fixed for the whole of one
+    /// table, since the attribute is on the entry point the table belongs to.
+    /// </para>
+    /// <para>
+    /// A generator's source output runs one entry point at a time on one thread, so this is not
+    /// shared state between concurrent emits in practice. It is a deliberate trade: the alternative
+    /// is a parameter on a dozen private methods carrying one bool that is constant per call tree.
+    /// </para>
+    /// </remarks>
+    [ThreadStatic]
+    private static bool _caseInsensitive;
+
     public static void GenerateRoute(SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models) {
         // Handlers that were not generated must not be routed to. Routing to one would emit a
@@ -44,6 +63,8 @@ public static class RoutingTableGenerator {
     
     public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken) {
+        _caseInsensitive = IsCaseInsensitive(appModel);
+
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
         CreateRoutingTable(appModel, handlers, applicationFile, cancellationToken);
@@ -262,14 +283,20 @@ public static class RoutingTableGenerator {
         foreach (var childNode in routeNode.ChildNodes) {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var lowerChar = char.ToLowerInvariant(childNode.Path.First());
-            var upperChar = char.ToUpperInvariant(lowerChar);
+            var character = childNode.Path.First();
 
-            if (upperChar != lowerChar) {
-                switchStatement.AddCase($"'{upperChar}'");
+            // A second label only where the module asked for case-insensitive matching. It used to
+            // be unconditional, which is half of what made every request compare each character
+            // twice.
+            if (_caseInsensitive) {
+                var upperChar = char.ToUpperInvariant(character);
+
+                if (upperChar != character) {
+                    switchStatement.AddCase($"'{upperChar}'");
+                }
             }
 
-            var caseStatement = switchStatement.AddCase($"'{lowerChar}'");
+            var caseStatement = switchStatement.AddCase($"'{character}'");
 
             var newMethodName = WriteRouteNode(routingClass, childNode, 1, cancellationToken);
 
@@ -628,18 +655,26 @@ public static class RoutingTableGenerator {
         foreach (var pathChar in routeNodePath) {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var upperChar = char.ToUpper(pathChar);
+            var equalStatement = EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + pathChar + "'");
 
-            var lowerEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + pathChar + "'");
+            // One comparison per character, unless the module asked for case-insensitive matching.
+            // The second was emitted for every letter of every literal in every route, and ran on
+            // every request.
+            if (_caseInsensitive) {
+                var upperChar = char.ToUpperInvariant(pathChar);
 
-            if (upperChar != pathChar) {
-                var upperEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + upperChar + "'");
+                if (upperChar != pathChar) {
+                    returnList.Add(Or(
+                        equalStatement,
+                        EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + upperChar + "'")));
 
-                returnList.Add(Or(lowerEqualStatement, upperEqualStatement));
+                    index++;
+
+                    continue;
+                }
             }
-            else {
-                returnList.Add(lowerEqualStatement);
-            }
+
+            returnList.Add(equalStatement);
 
             index++;
         }
@@ -674,9 +709,19 @@ public static class RoutingTableGenerator {
             m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
                 basePath + m.Name.Path,
                 m.Name.Method,
-                m
+                m,
+                _caseInsensitive
             )).ToList());
     }
+
+    /// <summary>
+    /// Whether the entry point asked for case-insensitive matching, which every application used to
+    /// get whether it wanted it or not.
+    /// </summary>
+    private static bool IsCaseInsensitive(EntryPointSelector.Model appModel) =>
+        appModel.AttributeModels != null &&
+        appModel.AttributeModels.Any(model =>
+            model.TypeDefinition.Name.StartsWith("CaseInsensitiveRoutes", StringComparison.Ordinal));
 
     private static string GetBasePath(EntryPointSelector.Model appModel) {
         if (appModel.AttributeModels != null) {

@@ -13,6 +13,11 @@ namespace Hardened.Web.Runtime.Attributes
         public Hardened.Web.Runtime.CacheControl.CacheControlEnum Type { get; set; }
         public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public class CaseInsensitiveRoutesAttribute : System.Attribute
+    {
+        public CaseInsensitiveRoutesAttribute() { }
+    }
     public class DeleteAttribute : System.Attribute
     {
         public DeleteAttribute(string path = "") { }
@@ -106,6 +111,10 @@ namespace Hardened.Web.Runtime.Configuration
         System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; }
         string Path { get; }
     }
+    public interface IWebRoutingConfiguration
+    {
+        Hardened.Web.Runtime.Configuration.TrailingSlash TrailingSlash { get; }
+    }
     public class StaticContentConfiguration : Hardened.Web.Runtime.Configuration.IStaticContentConfiguration
     {
         public StaticContentConfiguration() { }
@@ -117,6 +126,17 @@ namespace Hardened.Web.Runtime.Configuration
         public bool Immutable { get; set; }
         public System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; set; }
         public string Path { get; set; }
+    }
+    public enum TrailingSlash
+    {
+        Strict = 0,
+        Normalise = 1,
+        Redirect = 2,
+    }
+    public class WebRoutingConfiguration : Hardened.Web.Runtime.Configuration.IWebRoutingConfiguration
+    {
+        public WebRoutingConfiguration() { }
+        public Hardened.Web.Runtime.Configuration.TrailingSlash TrailingSlash { get; set; }
     }
 }
 namespace Hardened.Web.Runtime.Cors
@@ -193,7 +213,7 @@ namespace Hardened.Web.Runtime.Handlers
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class WebExecutionHandlerService : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService
     {
-        public WebExecutionHandlerService(System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider> handlers, Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler resourceNotFoundHandler, Hardened.Web.Runtime.Handlers.IMethodNotAllowedHandler methodNotAllowedHandler, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Hardened.Web.Runtime.StaticContent.IStaticContentHandler staticContentHandler) { }
+        public WebExecutionHandlerService(System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider> handlers, Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler resourceNotFoundHandler, Hardened.Web.Runtime.Handlers.IMethodNotAllowedHandler methodNotAllowedHandler, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Hardened.Web.Runtime.StaticContent.IStaticContentHandler staticContentHandler, Microsoft.Extensions.Options.IOptions<Hardened.Web.Runtime.Configuration.IWebRoutingConfiguration> routing) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }
