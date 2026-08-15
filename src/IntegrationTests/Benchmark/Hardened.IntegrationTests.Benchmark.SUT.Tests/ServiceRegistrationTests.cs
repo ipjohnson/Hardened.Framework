@@ -1,8 +1,4 @@
 using Hardened.Requests.Abstract.Serializer;
-using Hardened.Requests.Runtime.Templates;
-using Hardened.Requests.Abstract.Templates;
-using Hardened.Templates.RazorBlade;
-using Hardened.Templates.RazorBlade.Impl;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
@@ -24,6 +20,12 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// Route tests catch the symptom. These catch the cause, and would catch it again for any service
 /// resolved as a set that someone registers with <c>Try</c>.
 /// </para>
+/// <para>
+/// There is nothing template-specific left to register, and no template serializer either. An
+/// output writes the response itself, and a handler declaring one takes it out of negotiation
+/// entirely - so the engine, the template source, the name-keyed registry and the serializer that
+/// ordered them against JSON are all gone.
+/// </para>
 /// </remarks>
 public class ServiceRegistrationTests {
 
@@ -38,33 +40,14 @@ public class ServiceRegistrationTests {
             .ToList();
     }
 
-    [Fact]
-    public void TheTemplateSerializerIsRegisteredAlongsideTheJsonOne() {
-        var serializers = RegistrationsFor(typeof(IResponseSerializer));
-
-        Assert.Contains(nameof(TemplateResponseSerializer), serializers);
-        Assert.Contains("SystemTextJsonResponseSerializer", serializers);
-    }
-
     /// <summary>
     /// The set has more than one member, which is the property <c>Try</c> silently destroys.
     /// </summary>
     [Fact]
     public void ResponseSerializersResolveAsASetRatherThanASingleWinner() {
-        Assert.True(RegistrationsFor(typeof(IResponseSerializer)).Count > 1);
-    }
+        var serializers = RegistrationsFor(typeof(IResponseSerializer));
 
-    /// <summary>
-    /// Same shape, same reason: <c>ITemplateEngine</c> is resolved as a set so an application can
-    /// add an engine for a subset of its views, and <c>Try</c> would make a second one impossible.
-    /// </summary>
-    [Fact]
-    public void TheRazorBladeEngineIsRegistered() {
-        Assert.Contains(nameof(RazorBladeTemplateEngine), RegistrationsFor(typeof(ITemplateEngine)));
-    }
-
-    [Fact]
-    public void TheApplicationsTemplateSourceIsRegistered() {
-        Assert.Contains(nameof(BenchmarkTemplates), RegistrationsFor(typeof(IRazorBladeTemplateSource)));
+        Assert.Contains("SystemTextJsonResponseSerializer", serializers);
+        Assert.True(serializers.Count > 1);
     }
 }

@@ -83,12 +83,13 @@ namespace Hardened.Requests.Testing
         public System.Exception? ExceptionValue { get; set; }
         public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; set; }
         public bool IsBinary { get; set; }
+        public Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
         public bool ResponseStarted { get; }
         public object? ResponseValue { get; set; }
         public bool ShouldCompress { get; set; }
         public bool ShouldSerialize { get; set; }
         public int? Status { get; set; }
-        public string? TemplateName { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
     }
 }

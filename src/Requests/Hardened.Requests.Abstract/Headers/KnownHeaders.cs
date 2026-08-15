@@ -3,6 +3,12 @@
 public static class KnownHeaders {
     public const string Accept = "Accept";
 
+    /// <summary>
+    /// The verbs a resource does answer. Required on a 405 - it is what makes the response
+    /// actionable rather than merely correct.
+    /// </summary>
+    public const string Allow = "Allow";
+
     public const string AcceptEncoding = "Accept-Encoding";
 
     public const string CacheControl = "Cache-Control";
@@ -14,6 +20,9 @@ public static class KnownHeaders {
     public const string ContentLength = "Content-Length";
 
     public const string Cookie = "Cookie";
+
+    /// <summary>Where a redirect points. Required on a 3xx that has one.</summary>
+    public const string Location = "Location";
 
     public const string IfMatch = "If-Match";
 

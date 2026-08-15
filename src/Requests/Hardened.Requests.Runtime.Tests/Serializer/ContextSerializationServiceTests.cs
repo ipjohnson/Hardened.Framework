@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Tests.Support;
@@ -8,11 +9,138 @@ using Xunit;
 namespace Hardened.Requests.Runtime.Tests.Serializer;
 
 /// <summary>
-/// One decision, made once per response: template, error, nothing, or a value. Each arm sends
-/// the response somewhere different, and their precedence is what decides whether a handler
-/// that threw an exception on a templated route renders a template or an error.
+/// One decision, made once per response: error, output, nothing, or a value. Each arm sends the
+/// response somewhere different, and their precedence is what decides whether a handler that threw
+/// on a route with a view renders the view or an error.
 /// </summary>
 public class ContextSerializationServiceTests {
+
+    /// <summary>An output that records what it was asked and what it wrote.</summary>
+    private class RecordingOutput : IHardenedResponseOutput {
+        private readonly bool _supports;
+
+        public RecordingOutput(bool supports = true) {
+            _supports = supports;
+        }
+
+        public string? AskedAbout { get; private set; }
+
+        public int Writes { get; private set; }
+
+        public bool SupportsContentType(string? accept, IExecutionContext context) {
+            AskedAbout = accept;
+
+            return _supports;
+        }
+
+        public Task WriteOutput(IExecutionContext context) {
+            Writes++;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// A declared output writes the response, and the locator is never consulted.
+    /// </summary>
+    [Fact]
+    public async Task ADeclaredOutputWritesTheResponse() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var output = new RecordingOutput();
+
+        context.Response.ResponseValue = new { Secret = "value" };
+        context.Response.OutputFactory = _ => output;
+
+        await fixture.Service.SerializeResponse(context);
+
+        Assert.Equal(1, output.Writes);
+        await fixture.ResponseSerializer.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+    }
+
+    /// <summary>
+    /// An output the client will not take is a 406, never the model serialized instead.
+    /// </summary>
+    /// <remarks>
+    /// This is a data-leak fix rather than a status-code preference. A view usually renders a subset
+    /// of what its model holds - a page showing a customer's name, from a model carrying their
+    /// address and every internal identifier attached to them. Falling back to JSON because the
+    /// client asked for it would put all of it on the wire, from a route whose author wrote nothing
+    /// but a view.
+    /// </remarks>
+    [Fact]
+    public async Task AnOutputTheClientWillNotTakeIs406AndNothingElse() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context(accept: "application/json");
+        var output = new RecordingOutput(supports: false);
+
+        context.Response.ResponseValue = new { Secret = "value" };
+        context.Response.OutputFactory = _ => output;
+
+        await fixture.Service.SerializeResponse(context);
+
+        Assert.Equal(406, context.Response.Status);
+        Assert.Equal(0, output.Writes);
+        Assert.False(context.Response.ShouldSerialize);
+        await fixture.ResponseSerializer.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+    }
+
+    /// <summary>The output is asked about the request's own Accept header.</summary>
+    [Fact]
+    public async Task TheOutputIsAskedAboutTheRequestsAcceptHeader() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context(accept: "text/html, */*");
+        var output = new RecordingOutput();
+
+        context.Response.OutputFactory = _ => output;
+
+        await fixture.Service.SerializeResponse(context);
+
+        Assert.Equal("text/html, */*", output.AskedAbout);
+    }
+
+    /// <summary>
+    /// Built once and kept, so a filter that read it back gets the same instance the response was
+    /// written with.
+    /// </summary>
+    [Fact]
+    public async Task TheOutputIsBuiltOnce() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var built = 0;
+
+        context.Response.OutputFactory = _ => {
+            built++;
+
+            return new RecordingOutput();
+        };
+
+        await fixture.Service.SerializeResponse(context);
+        await fixture.Service.SerializeResponse(context);
+
+        Assert.Equal(1, built);
+        Assert.NotNull(context.Response.Output);
+    }
+
+    /// <summary>
+    /// An exception outranks the output. A handler that threw has no model to render, and handing
+    /// an exception to a view typed for something else would replace a legible error response with
+    /// a cast failure inside the render.
+    /// </summary>
+    [Fact]
+    public async Task AnExceptionOutranksTheOutput() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var output = new RecordingOutput();
+
+        context.Response.OutputFactory = _ => output;
+        context.Response.ExceptionValue = new InvalidOperationException("boom");
+
+        await fixture.Service.SerializeResponse(context);
+
+        Assert.Equal(0, output.Writes);
+        await fixture.Exceptions.Received(1).Handle(context, Arg.Any<Exception>());
+    }
 
     private class Fixture {
         public ISerializationLocatorService Locator { get; } = Substitute.For<ISerializationLocatorService>();

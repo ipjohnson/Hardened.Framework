@@ -131,13 +131,23 @@ internal sealed class GeneratedRoutingTable {
         return (RequestHandlerInfo?)_getExecutionRequestHandler.Invoke(_routingTable, [context]);
     }
 
-    /// <summary>Routes a request and fails the test if nothing matched.</summary>
+    /// <summary>
+    /// Routes a request and fails the test if nothing answered it.
+    /// </summary>
+    /// <remarks>
+    /// A match carrying no handler is a path the table recognised under other verbs - the 405
+    /// case - and is a failure here rather than a match, because a test asking for the handler
+    /// wanted one.
+    /// </remarks>
     public IExecutionRequestHandlerInfo Handler(string method, string path) {
         var handler = Route(method, path);
 
         Assert.True(handler != null, $"{method} {path} did not match any route.");
+        Assert.True(handler!.Handler != null,
+            $"{method} {path} matched the path but no handler answers that verb. " +
+            $"Allowed: {handler.Allow}");
 
-        return handler!.Handler.HandlerInfo;
+        return handler.Handler!.HandlerInfo;
     }
 
     /// <summary>The path token values bound by the route that matched, keyed by token name.</summary>
@@ -145,10 +155,12 @@ internal sealed class GeneratedRoutingTable {
         var handler = Route(method, path);
 
         Assert.True(handler != null, $"{method} {path} did not match any route.");
+        Assert.True(handler!.Handler != null,
+            $"{method} {path} matched the path but no handler answers that verb.");
 
         var tokens = new Dictionary<string, string?>();
 
-        for (var i = 0; i < handler!.PathTokens.Count; i++) {
+        for (var i = 0; i < handler.PathTokens.Count; i++) {
             var token = handler.PathTokens.Get(i);
 
             tokens[token.TokenName] = token.TokenValue;

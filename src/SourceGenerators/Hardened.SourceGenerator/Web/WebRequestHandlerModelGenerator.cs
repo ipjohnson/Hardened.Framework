@@ -1,5 +1,6 @@
 ﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Validation;
@@ -13,6 +14,69 @@ namespace Hardened.SourceGenerator.Web;
 
 public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     private static readonly HashSet<string> _attributeNames = GetAttributeNames();
+
+    public override RequestHandlerModel GenerateRequestModel(
+        GeneratorSyntaxContext context, CancellationToken cancellationToken) {
+        var model = base.GenerateRequestModel(context, cancellationToken);
+
+        var controller = context.Node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+
+        model.Tag = GetTagFromController(context, controller, cancellationToken);
+
+        // What the document has to say about the operation beyond its shape, taken from where a
+        // developer has already written it rather than from a second set of attributes.
+        var (summary, description) = XmlDocumentation.Read(context.Node);
+
+        model.Summary = summary;
+        model.Description = description;
+
+        // An obsolete controller deprecates everything on it: the operations are still served, and
+        // that is exactly what `deprecated` means in a document.
+        model.IsDeprecated =
+            HasObsolete(context.Node as MemberDeclarationSyntax) || HasObsolete(controller);
+
+        return model;
+    }
+
+    /// <summary>
+    /// Against the member's own attribute lists rather than <c>GetAttribute</c>, which searches
+    /// descendants - on a class that reaches every attribute on every member, so one obsolete
+    /// method would deprecate the whole controller.
+    /// </summary>
+    private static bool HasObsolete(MemberDeclarationSyntax? member) =>
+        member != null &&
+        member.AttributeLists
+            .SelectMany(list => list.Attributes)
+            .Any(attribute => {
+                var name = attribute.Name.ToString();
+
+                return name.EndsWith("Obsolete") || name.EndsWith("ObsoleteAttribute");
+            });
+
+    /// <summary>
+    /// The tag the controller declared with <c>[Tag]</c>, or null to let the document generator
+    /// derive one from the class name. Read here rather than there because it needs the syntax
+    /// tree, which is gone by the time a document is written.
+    /// </summary>
+    private static string? GetTagFromController(
+        GeneratorSyntaxContext context,
+        ClassDeclarationSyntax? classDeclaration,
+        CancellationToken cancellationToken) {
+        if (classDeclaration == null) {
+            return null;
+        }
+
+        var tagAttribute = AttributeModelHelper.GetAttributes(
+                context,
+                classDeclaration.AttributeLists,
+                cancellationToken,
+                syntax => syntax.Name.ToString().StartsWith("Tag"))
+            .FirstOrDefault();
+
+        var argument = tagAttribute?.Arguments.Split(',').FirstOrDefault()?.Trim().Trim('"');
+
+        return string.IsNullOrEmpty(argument) ? null : argument;
+    }
 
     protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
@@ -170,11 +234,17 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
             parameterIndex);
     }
 
+    /// <remarks>
+    /// <c>Output</c> is no longer excluded. It used to be, as <c>Template</c>, because the attribute was an
+    /// annotation read as response information and putting it in the metadata array as well would
+    /// have been a second copy of the same fact. <c>[Template&lt;T&gt;]</c> is a generic attribute,
+    /// so its name here spells as <c>Output&lt;Views.Fortunes&gt;</c> and never matched the case
+    /// anyway - and a template a filter can see is useful rather than duplicated.
+    /// </remarks>
     protected override bool IsFilterAttribute(AttributeSyntax attribute) {
         var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
         switch (attributeName) {
-            case "Template":
             case "RawResponse":
                 return false;
 

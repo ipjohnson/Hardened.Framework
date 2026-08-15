@@ -4,6 +4,7 @@ using Hardened.OpenApi.SourceGenerator.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Templates;
 using Hardened.SourceGenerator.Web;
 using Microsoft.CodeAnalysis;
 
@@ -145,6 +146,11 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             foreach (var model in models) {
                 ctx.CancellationToken.ThrowIfCancellationRequested();
                 try {
+                    // The contract and the implementation compile in the same pass, so a document
+                    // promising rendered markup for a model with nothing to render it is catchable
+                    // here rather than arriving as a 500 on the first request.
+                    model.ReportIfMarkupWithoutAView(ctx);
+
                     invokeGenerator.GenerateSource(ctx, model, excludeCoverage);
                 } catch (Exception exp) {
                     ReportError(ctx, $"Error generating handler: {exp.Message}");
@@ -169,6 +175,15 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             SourceGeneratorWrapper.Wrap<((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<string> Right) Left, bool Right)>(
                 (ctx, pair) => OpenApiRoutingTableGenerator.GenerateRoute(
                     ctx, pair.Left.Left.Left, pair.Left.Left.Right!, pair.Left.Right, pair.Right)));
+
+        // One abstract template base per [Enable<T>] marker, the same registration the attribute
+        // generator makes. Duplicated across the two handler generators rather than moved somewhere
+        // shared because an application uses exactly one of them, and the base is scoped to the
+        // entry point the same way the routing table is. Off the entry point alone, so adding an
+        // operation does not rebuild it.
+        context.RegisterSourceOutput(
+            entryPointProvider,
+            SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(TemplateBaseGenerator.Generate));
     }
 
     /// <summary>

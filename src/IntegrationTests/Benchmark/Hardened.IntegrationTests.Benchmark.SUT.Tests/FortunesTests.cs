@@ -6,10 +6,17 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// TechEmpower test type 4: fortunes, the HTML-rendering one.
 /// </summary>
 /// <remarks>
-/// End to end this covers the whole template path: <c>x-hardened-template</c> in the spec reaches
-/// the generated handler as an assignment to <c>Response.TemplateName</c>,
-/// <c>TemplateResponseSerializer</c> claims the response ahead of JSON, and the RazorBlade engine
-/// resolves the name to a compiled view and renders the model to the body.
+/// End to end this covers the whole template path: <c>[Template&lt;Views.Fortunes&gt;]</c> on the
+/// implementation reaches the generated handler as an assignment to
+/// <c>Response.TemplateFactory</c>, <c>TemplateResponseSerializer</c> claims the response ahead of
+/// JSON, and the view - which inherits the base <c>[Enable&lt;HardenedRazorTemplate&gt;]</c>
+/// generated - renders the model to the body.
+///
+/// <para>
+/// Kept from the name-based arrangement deliberately: the assertions are unchanged and only the
+/// wiring underneath them differs, which is what makes this the proof that the replacement is
+/// equivalent rather than merely present.
+/// </para>
 /// </remarks>
 public class FortunesTests {
 
@@ -27,8 +34,8 @@ public class FortunesTests {
     }
 
     /// <summary>
-    /// The content type comes from the template's base type - HtmlTemplate - rather than from the
-    /// spec's media type or the file's extension.
+    /// The content type comes from the marker the module enabled, which is to say from the view's
+    /// base class - rather than from the spec's media type or the file's extension.
     /// </summary>
     [HardenedTest]
     public async Task Fortunes_SetsTheHtmlContentType(ITestWebApp testWebApp) {

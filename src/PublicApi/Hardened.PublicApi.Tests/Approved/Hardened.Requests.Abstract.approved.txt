@@ -27,17 +27,17 @@ namespace Hardened.Requests.Abstract.Attributes
     {
         System.Threading.Tasks.ValueTask<T> BindValue<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter);
     }
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false, Inherited=false)]
+    public sealed class OutputAttribute<TOutput> : System.Attribute
+        where TOutput : Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput, new ()
+    {
+        public OutputAttribute() { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Method)]
     public class RawResponseAttribute : System.Attribute
     {
         public RawResponseAttribute(string contentType = "text/plain") { }
         public string ContentType { get; }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Method)]
-    public class TemplateAttribute : System.Attribute
-    {
-        public TemplateAttribute(string templateName) { }
-        public string TemplateName { get; }
     }
 }
 namespace Hardened.Requests.Abstract.Authorization
@@ -173,12 +173,13 @@ namespace Hardened.Requests.Abstract.Execution
         System.Exception? ExceptionValue { get; set; }
         System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
         bool IsBinary { get; set; }
+        Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
         bool ResponseStarted { get; }
         object? ResponseValue { get; set; }
         bool ShouldCompress { get; set; }
         bool ShouldSerialize { get; set; }
         int? Status { get; set; }
-        string? TemplateName { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null);
     }
     public interface IFunctionHandlerProvider
@@ -245,6 +246,7 @@ namespace Hardened.Requests.Abstract.Headers
     {
         public const string Accept = "Accept";
         public const string AcceptEncoding = "Accept-Encoding";
+        public const string Allow = "Allow";
         public const string CacheControl = "Cache-Control";
         public const string ContentEncoding = "Content-Encoding";
         public const string ContentLength = "Content-Length";
@@ -252,6 +254,7 @@ namespace Hardened.Requests.Abstract.Headers
         public const string Cookie = "Cookie";
         public const string IfMatch = "If-Match";
         public const string IfNoneMatch = "If-None-Match";
+        public const string Location = "Location";
         public static class Cors
         {
             public const string AccessControlAllowHeaders = "Access-Control-Allow-Headers";
@@ -265,6 +268,17 @@ namespace Hardened.Requests.Abstract.Headers
         Strict = 0,
         Lax = 1,
         None = 2,
+    }
+}
+namespace Hardened.Requests.Abstract.Links
+{
+    public interface ILinkContext
+    {
+        string BasePath { get; }
+        string? Host { get; }
+        string? Scheme { get; }
+        string Absolute(string path);
+        string Resolve(string path);
     }
 }
 namespace Hardened.Requests.Abstract.Logging
@@ -300,6 +314,15 @@ namespace Hardened.Requests.Abstract.Middleware
         Hardened.Requests.Abstract.Execution.IExecutionChain GetExecutionChain(Hardened.Requests.Abstract.Execution.IExecutionContext context);
         void Use(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> middlewareFunc);
     }
+}
+namespace Hardened.Requests.Abstract.Outputs
+{
+    public interface IHardenedResponseOutput
+    {
+        bool SupportsContentType(string? accept, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.Task WriteOutput(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IHardenedResponseOutput<in TModel> : Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput { }
 }
 namespace Hardened.Requests.Abstract.PathTokens
 {
@@ -427,11 +450,17 @@ namespace Hardened.Requests.Abstract.Serializer
 }
 namespace Hardened.Requests.Abstract.Templates
 {
-    public interface ITemplateEngine
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public class TemplateBaseAttribute : System.Attribute
     {
-        bool CanRender(string templateName);
-        string? ContentTypeFor(string templateName);
-        System.Threading.Tasks.Task RenderAsync(string templateName, object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        public TemplateBaseAttribute(System.Type baseType) { }
+        public System.Type BaseType { get; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public class TemplateContentTypeAttribute : System.Attribute
+    {
+        public TemplateContentTypeAttribute(string contentType) { }
+        public string ContentType { get; }
     }
 }
 namespace Hardened.Requests.Abstract.Utilities

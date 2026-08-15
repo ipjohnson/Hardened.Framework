@@ -43,12 +43,6 @@ internal class OperationModel : IEquatable<OperationModel> {
     public List<ErrorResponseModel> ErrorResponses { get; set; } = new();
 
     /// <summary>
-    /// The view this operation's model is rendered through, from <c>x-hardened-template</c>. Null
-    /// for an operation that serializes rather than renders.
-    /// </summary>
-    public string? TemplateName { get; set; }
-
-    /// <summary>
     /// Opt in to a <c>byte[]</c> signature for a response the spec types as a string.
     /// </summary>
     /// <remarks>
@@ -107,7 +101,6 @@ internal class OperationModel : IEquatable<OperationModel> {
                ResponseFormat == other.ResponseFormat &&
                ResponseIsArray == other.ResponseIsArray &&
                ResponseArrayItemsRef == other.ResponseArrayItemsRef &&
-               TemplateName == other.TemplateName &&
                ErrorResponses.SequenceEqual(other.ErrorResponses) &&
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&

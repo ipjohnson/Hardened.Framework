@@ -297,6 +297,32 @@ namespace Hardened.Requests.Runtime.Headers
         public void Append(string cookieName, string cookieValue, Hardened.Requests.Abstract.Headers.CookieSetOptions? options = null) { }
     }
 }
+namespace Hardened.Requests.Runtime.Links
+{
+    public interface ILinkConfiguration
+    {
+        string BasePath { get; }
+        string? Host { get; }
+        string? Scheme { get; }
+    }
+    public class LinkConfiguration : Hardened.Requests.Runtime.Links.ILinkConfiguration
+    {
+        public LinkConfiguration() { }
+        public string BasePath { get; set; }
+        public string? Host { get; set; }
+        public string? Scheme { get; set; }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class LinkContext : Hardened.Requests.Abstract.Links.ILinkContext
+    {
+        public LinkContext(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Links.ILinkConfiguration> configuration) { }
+        public string BasePath { get; }
+        public string? Host { get; }
+        public string? Scheme { get; }
+        public string Absolute(string path) { }
+        public string Resolve(string path) { }
+    }
+}
 namespace Hardened.Requests.Runtime.Logging
 {
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
@@ -447,18 +473,6 @@ namespace Hardened.Requests.Runtime.Serializer
     {
         public SystemTextJsonResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration) { }
         public bool IsDefaultSerializer { get; }
-        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
-        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
-    }
-}
-namespace Hardened.Requests.Runtime.Templates
-{
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
-    public class TemplateResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
-    {
-        public TemplateResponseSerializer(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Templates.ITemplateEngine> engines) { }
-        public bool IsDefaultSerializer { get; }
-        public int Order { get; }
         public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }

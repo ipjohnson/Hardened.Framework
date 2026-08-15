@@ -30,6 +30,14 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Hardened.OpenApi.BuildTask.Tests"/>
+
+        <!--
+            So the code-first round trip can close: that project emits an OpenAPI document from
+            attribute routes and feeds it straight back through this parser, which is the only way
+            to assert that operation ids and tags survive into the service interfaces a
+            specification-first build produces rather than merely look as though they would.
+        -->
+        <InternalsVisibleTo Include="Hardened.Web.SourceGenerator.Tests"/>
     </ItemGroup>
 
     <ItemGroup>

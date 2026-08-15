@@ -79,6 +79,35 @@ public class RequestHandlerModel {
     /// <summary>The request body's JSON Schema, on the same terms.</summary>
     public HandlerSchema? RequestSchema { get; set; }
 
+    /// <summary>
+    /// The OpenAPI tag this operation is grouped under, when the controller declared one with
+    /// <c>[Tag]</c>. Null means the default derivation applies - see
+    /// <c>OpenApiDocumentGenerator.Tag</c>.
+    /// </summary>
+    /// <remarks>
+    /// A property rather than a constructor parameter, on the same terms as
+    /// <see cref="ParametersInterface"/>: the model is shared with the function and console
+    /// generators, and neither has tags or a document to put them in.
+    /// </remarks>
+    public string? Tag { get; set; }
+
+    /// <summary>
+    /// The handler's <c>&lt;summary&gt;</c> doc comment, as the operation's <c>summary</c>.
+    /// </summary>
+    public string? Summary { get; set; }
+
+    /// <summary>
+    /// The handler's <c>&lt;remarks&gt;</c> doc comment, as the operation's <c>description</c>.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Whether the handler or its controller carries <c>[Obsolete]</c>, as the operation's
+    /// <c>deprecated</c>. A client generated from the document then warns where the application
+    /// warns, instead of the deprecation stopping at the assembly boundary.
+    /// </summary>
+    public bool IsDeprecated { get; set; }
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;
@@ -139,6 +168,22 @@ public class RequestHandlerModel {
             return false;
         }
 
+        if (!string.Equals(Tag, requestHandlerModel.Tag, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        if (!string.Equals(Summary, requestHandlerModel.Summary, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        if (!string.Equals(Description, requestHandlerModel.Description, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        if (IsDeprecated != requestHandlerModel.IsDeprecated) {
+            return false;
+        }
+
         return true;
     }
 
@@ -164,6 +209,10 @@ public class RequestHandlerModel {
             hashCode = (hashCode * 397) ^ RequestParameterInformationList.GetHashCodeAggregation();
             hashCode = (hashCode * 397) ^ ResponseInformation.GetHashCode();
             hashCode = (hashCode * 397) ^ Filters.GetHashCodeAggregation();
+            hashCode = (hashCode * 397) ^ (Tag?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ (Summary?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ (Description?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ IsDeprecated.GetHashCode();
 
             return hashCode;
         }

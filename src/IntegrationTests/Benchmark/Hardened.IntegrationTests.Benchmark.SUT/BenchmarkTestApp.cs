@@ -8,11 +8,12 @@ namespace Hardened.IntegrationTests.Benchmark.SUT;
 /// The TechEmpower routes as one Hardened application.
 /// </summary>
 /// <remarks>
-/// <c>RazorBladeTemplateLibrary</c> is listed last deliberately. The serializer locator tests later
-/// registrations first, so this is what puts a template response ahead of JSON for <c>/fortunes</c>,
-/// whose request would otherwise satisfy both.
+/// <c>[Enable&lt;HardenedRazorTemplates&gt;]</c> generates
+/// <c>BenchmarkTestAppRazorTemplates&lt;TModel&gt;</c>, which Views/Fortunes.cshtml inherits.
+/// Naming the marker is what references the package, so there is nothing to detect and nothing to
+/// register - the view renders itself.
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
-[RazorBladeTemplateLibrary]
+[Enable<HardenedRazorTemplates>]
 public partial class BenchmarkTestApp;

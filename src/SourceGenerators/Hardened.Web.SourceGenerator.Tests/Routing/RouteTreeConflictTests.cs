@@ -169,7 +169,7 @@ public class RouteTreeConflictTests {
     /// own switch over the request method with its own default, separate from the literal one.
     /// </summary>
     [Fact]
-    public void AVerbWithNoRouteBehindATokenDoesNotMatch() {
+    public void AVerbWithNoRouteBehindATokenReachesNoHandler() {
         var routing = Routing("""
             public class ReadOnlyController {
                 [Get("/items/{id}")]
@@ -177,9 +177,9 @@ public class RouteTreeConflictTests {
             }
             """);
 
-        Assert.NotNull(routing.Route("GET", "/items/42"));
-        Assert.Null(routing.Route("DELETE", "/items/42"));
-        Assert.Null(routing.Route("PATCH", "/items/42"));
+        Assert.NotNull(routing.Handler("GET", "/items/42"));
+        Assert.Null(routing.Route("DELETE", "/items/42")?.Handler);
+        Assert.Null(routing.Route("PATCH", "/items/42")?.Handler);
     }
 
     /// <summary>
@@ -273,15 +273,44 @@ public class RouteTreeConflictTests {
     }
 
     /// <summary>
-    /// A route declared in lower case matches a request in any case, tokens included — the token
-    /// scan and the literal comparison either side of it have to agree about that.
+    /// A route with a token is matched as written, tokens included - the token scan and the
+    /// literal comparison either side of it have to agree about that.
+    /// </summary>
+    [Theory]
+    [InlineData("/ORDERS/7/LINES")]
+    [InlineData("/Orders/7/Lines")]
+    public void ARouteWithATokenIsMatchedAsWritten(string path) {
+        var routing = Routing("""
+            public class CaseController {
+                [Get("/orders/{id}/lines")]
+                public string Lines(string id) => id;
+            }
+            """);
+
+        Assert.Equal("Lines", routing.Handler("GET", "/orders/7/lines").InvokeMethod);
+        Assert.Null(routing.Route("GET", path));
+    }
+
+    /// <summary>
+    /// And under <c>[CaseInsensitiveRoutes]</c> every spelling reaches it, with the token still
+    /// bound - the scan that finds where a token ends runs between the two literal comparisons, so
+    /// all three have to agree about case.
     /// </summary>
     [Theory]
     [InlineData("/orders/7/lines")]
     [InlineData("/ORDERS/7/LINES")]
     [InlineData("/Orders/7/Lines")]
-    public void ALowerCaseRouteWithATokenMatchesARequestInAnyCase(string path) {
-        var routing = Routing("""
+    public void CaseInsensitiveRoutesMatchesATokenRouteInAnyCase(string path) {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            [CaseInsensitiveRoutes]
+            public partial class TestApplication { }
+
             public class CaseController {
                 [Get("/orders/{id}/lines")]
                 public string Lines(string id) => id;

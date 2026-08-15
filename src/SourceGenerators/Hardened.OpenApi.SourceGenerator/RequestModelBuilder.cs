@@ -55,15 +55,14 @@ internal static class RequestModelBuilder {
                 foreach (var methodFilter in handlerInfo.MethodFilters) {
                     if (string.Equals(methodFilter.MethodName, model.HandlerMethod,
                             StringComparison.Ordinal)) {
-                        foreach (var attribute in methodFilter.Filters) {
-                            var templateName = TemplateNameFrom(attribute);
+                        filters.AddRange(methodFilter.Filters);
 
-                            if (templateName != null) {
-                                responseInformation = responseInformation with { TemplateName = templateName };
-                            }
-                            else {
-                                filters.Add(attribute);
-                            }
+                        // Which view renders a response is how the operation is fulfilled, not part
+                        // of the contract it publishes - so it is read from the implementation and
+                        // there is nothing in the document to override or be overridden by.
+                        if (methodFilter.OutputType != null) {
+                            responseInformation =
+                                responseInformation with { OutputType = methodFilter.OutputType };
                         }
 
                         break;
@@ -92,42 +91,6 @@ internal static class RequestModelBuilder {
         return result;
     }
 
-    /// <summary>
-    /// The view name if this attribute is <c>[Template]</c>, otherwise null - in which case the
-    /// attribute is an ordinary filter.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <c>[Template]</c> is response information, not a filter, which is what
-    /// <c>BaseRequestModelGenerator</c> has always done for hand-written handlers and what
-    /// <c>TemplateAttribute</c>'s own documentation describes. Left in the filter list it would be
-    /// emitted into the handler's metadata array as though it were an <c>IExecutionFilter</c>, and
-    /// the name would never reach <c>Response.TemplateName</c>.
-    /// </para>
-    /// <para>
-    /// Putting it on the implementation rather than in the spec is the point: which view renders a
-    /// model is how the operation is fulfilled, not part of the contract it publishes. The spec
-    /// still says the response is text/html, which stays true whichever engine renders it. A spec
-    /// that does declare <c>x-hardened-template</c> is treated as the default, and this overrides
-    /// it - the implementation is the more specific statement.
-    /// </para>
-    /// </remarks>
-    private static string? TemplateNameFrom(AttributeModel attribute) {
-        var name = attribute.TypeDefinition.Name;
-
-        if (name != "TemplateAttribute" && name != "Template") {
-            return null;
-        }
-
-        // Arguments is the argument list's source text, so a string literal arrives quoted.
-        var argument = attribute.Arguments.Trim();
-
-        if (argument.Length == 0) {
-            return null;
-        }
-
-        return argument.Trim('"');
-    }
 
     private static HandlerInfo? FindHandlerInfo(
         RequestHandlerModel model,
@@ -343,7 +306,12 @@ internal static class RequestModelBuilder {
         return new ResponseInformationModel {
             IsAsync = true,
             ReturnType = returnType,
-            TemplateName = operation.TemplateName
+            DeclaredContentType = operation.ResponseContentType,
+
+            // Carried so the implementation can be checked against the contract: a document
+            // promising rendered HTML for a model needs a view, and there is nothing to serialize
+            // an object as text/html without one.
+            RendersAModel = operation.ResponseRef != null || operation.ResponseIsArray
         };
     }
 

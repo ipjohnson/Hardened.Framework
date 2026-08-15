@@ -98,6 +98,9 @@
         <Compile Include="../Hardened.SourceGenerator/Shared/**/*">
             <Link>Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
         </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Links/**/*">
+            <Link>Links\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
         <Compile Include="../Hardened.SourceGenerator/Models/**/*">
             <Link>Models\Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
         </Compile>
@@ -107,6 +110,9 @@
         </Compile>
         <Compile Include="../Hardened.SourceGenerator/Requests/**/*">
             <Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Templates/**/*">
+            <Link>Templates\%(RecursiveDir)/%(FileName)%(Extension)</Link>
         </Compile>
         <Compile Include="../Hardened.SourceGenerator/Web/Routing/**/*">
             <Link>Web\Routing\%(RecursiveDir)/%(FileName)%(Extension)</Link>

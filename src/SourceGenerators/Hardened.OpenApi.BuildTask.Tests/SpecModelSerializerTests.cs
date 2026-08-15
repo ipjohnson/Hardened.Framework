@@ -330,7 +330,6 @@ public class SpecModelSerializerTests {
                 },
                 new ErrorResponseModel { StatusCode = 503 },
             },
-            TemplateName = "Fortunes",
             FilterInstances = { filterInstance },
             RequestBodyProperties = { property },
             RequestBodyRequired = { "name", "tag" },

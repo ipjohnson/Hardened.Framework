@@ -29,6 +29,15 @@ public static class MediaType {
             return false;
         }
 
+        // "text/html; charset=utf-8" is text/html. AcceptedContentTypes already strips parameters
+        // from the requested side, and a produced type carrying a charset - which a template's does,
+        // because the charset is part of what it writes - would otherwise match nothing but itself.
+        var parameters = produced!.IndexOf(';');
+
+        if (parameters >= 0) {
+            produced = produced.Substring(0, parameters).TrimEnd();
+        }
+
         // An absent Accept header means the client will take anything, which is the same answer as
         // */* rather than a reason to refuse.
         if (string.IsNullOrEmpty(requested) || requested == Any) {

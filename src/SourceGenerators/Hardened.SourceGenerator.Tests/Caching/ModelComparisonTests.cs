@@ -178,7 +178,7 @@ public class ModelComparisonTests {
         Assert.NotEqual(baseline, baseline with { IsAsync = true });
         Assert.NotEqual(baseline, baseline with { IsAsyncEnumerable = true });
         Assert.NotEqual(baseline, baseline with { AsyncEnumerableItemType = Type("String") });
-        Assert.NotEqual(baseline, baseline with { TemplateName = "Index" });
+        Assert.NotEqual(baseline, baseline with { OutputType = Type("Fortunes") });
         Assert.NotEqual(baseline, baseline with { RawResponseContentType = "text/csv" });
         Assert.NotEqual(baseline, baseline with { DefaultStatusCode = 201 });
     }
@@ -196,12 +196,12 @@ public class ModelComparisonTests {
     public void AResponseModelDescribesBothOfItsResponseAnnotations() {
         var model = new ResponseInformationModel {
             IsAsync = true,
-            TemplateName = "Index",
+            OutputType = Type("Fortunes"),
             RawResponseContentType = "text/csv",
             ReturnType = Type("String")
         };
 
-        Assert.Equal("True:Index:text/csv:System.String", model.ToString());
+        Assert.Equal("True:System.Fortunes:text/csv:System.String", model.ToString());
     }
 
     /// <summary>
@@ -213,8 +213,8 @@ public class ModelComparisonTests {
         var baseline = new ResponseInformationModel { ReturnType = Type("String") };
 
         Assert.NotEqual(
-            (baseline with { TemplateName = "Index" }).ToString(),
-            (baseline with { RawResponseContentType = "Index" }).ToString());
+            (baseline with { OutputType = Type("Fortunes") }).ToString(),
+            (baseline with { RawResponseContentType = "Fortunes" }).ToString());
     }
 
     /// <summary>

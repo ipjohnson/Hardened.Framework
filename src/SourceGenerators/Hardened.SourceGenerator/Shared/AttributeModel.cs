@@ -83,7 +83,19 @@ public static class AttributeModelHelper {
         if (!type.Name.EndsWith("Attribute")) {
             type = TypeDefinition.Get(type.Namespace, type.Name + "Attribute");
         }
-                        
+
+        // A generic attribute keeps its arguments. Without this the type reduces to its simple
+        // name, and the metadata array is emitted as `new TemplateAttribute()` for
+        // `[Template<Views.Fortunes>]` - which does not compile, because the attribute is generic
+        // and the arguments are not inferable from an object-initialised array.
+        if (operation.Type is INamedTypeSymbol { IsGenericType: true } genericAttribute) {
+            type = new GenericTypeDefinition(
+                TypeDefinitionEnum.ClassDefinition,
+                type.Namespace,
+                type.Name,
+                genericAttribute.TypeArguments.Select(argument => argument.GetTypeDefinition()).ToArray());
+        }
+
         return new AttributeModel(type,
             arguments,
             propertyAssignment);

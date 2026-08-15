@@ -1,6 +1,7 @@
 ﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
+using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Web;
@@ -12,7 +13,14 @@ public class WebExecutionHandlerCodeGenerator {
     }
 
     public void GenerateSource(SourceProductionContext sourceProductionContext,
-        RequestHandlerModel requestHandlerModel, bool excludeFromCoverage) {
+        RequestHandlerModel requestHandlerModel,
+        IReadOnlyList<RouteConstraintModel> constraints) {
+        GenerateSource(sourceProductionContext, requestHandlerModel, false, constraints);
+    }
+
+    public void GenerateSource(SourceProductionContext sourceProductionContext,
+        RequestHandlerModel requestHandlerModel, bool excludeFromCoverage,
+        IReadOnlyList<RouteConstraintModel>? constraints = null) {
         sourceProductionContext.CancellationToken.ThrowIfCancellationRequested();
 
         // A parameter whose type does not resolve cannot be bound, so this handler is skipped and
@@ -21,6 +29,13 @@ public class WebExecutionHandlerCodeGenerator {
         if (requestHandlerModel.ReportIfUnresolved(sourceProductionContext)) {
             return;
         }
+
+        // A token written in a brace form Hardened does not compile - {id:int}, {id?}, {id=5} - is
+        // an error but not a reason to stop emitting. The routing table filters on unresolved
+        // parameters, not on token syntax, so skipping here would leave it routing to a handler
+        // class that no longer exists: a pile of CS0246s on top of the one diagnostic that says
+        // what is actually wrong. The build fails either way; this way it fails legibly.
+        requestHandlerModel.ReportUnsupportedTokens(sourceProductionContext, constraints);
 
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 

@@ -11,7 +11,38 @@ public record ResponseInformationModel {
 
     public ITypeDefinition? ReturnType { get; set; }
 
-    public string? TemplateName { get; set; }
+    /// <summary>
+    /// What writes this response, named by <c>[Output&lt;T&gt;]</c>, or null.
+    /// </summary>
+    /// <remarks>
+    /// A type rather than a name, and that is the whole of the design: the attribute is applied in
+    /// the application's own assembly, so RazorBlade's <c>internal</c> generated classes are
+    /// nameable there, and the compiler enforces both the interface and the parameterless
+    /// constructor at the attribute.
+    /// </remarks>
+    public ITypeDefinition? OutputType { get; set; }
+
+    /// <summary>
+    /// The media type an OpenAPI document declared for the success response, when it named one
+    /// that is not JSON.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="RawResponseContentType"/>, which commits the response to a content type and
+    /// takes it out of negotiation. This only records what the contract says, so a document
+    /// promising rendered HTML for a model can be checked against an implementation that names no
+    /// view to render it.
+    /// </remarks>
+    public string? DeclaredContentType { get; set; }
+
+    /// <summary>
+    /// Whether the success response is an object or a list of them, rather than a scalar.
+    /// </summary>
+    /// <remarks>
+    /// The half of <see cref="DeclaredContentType"/> that makes it actionable. A handler returning
+    /// a string can answer <c>text/html</c> by writing it; a handler returning a model cannot,
+    /// because there is nothing that serializes an object as HTML without a view.
+    /// </remarks>
+    public bool RendersAModel { get; set; }
 
     public int? DefaultStatusCode { get; set; }
 
@@ -26,6 +57,6 @@ public record ResponseInformationModel {
     /// times as a side effect of adding or removing the template annotation.
     /// </remarks>
     public override string ToString() {
-        return $"{IsAsync}:{TemplateName}:{RawResponseContentType}:{ReturnType}";
+        return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{ReturnType}";
     }
 }

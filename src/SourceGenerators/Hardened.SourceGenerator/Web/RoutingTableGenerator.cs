@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
+using Hardened.SourceGenerator.Links;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
@@ -15,8 +16,38 @@ public static class RoutingTableGenerator {
     private static readonly IOutputComponent EmptyTokens =
         Property(KnownTypes.Requests.PathTokenCollection, "Empty");
 
+    /// <summary>
+    /// Whether this table matches without regard to case, from <c>[CaseInsensitiveRoutes]</c> on
+    /// the entry point.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Static, and set at the top of each emit. Every method below would otherwise have to thread
+    /// it through, including several that recurse - and the value is fixed for the whole of one
+    /// table, since the attribute is on the entry point the table belongs to.
+    /// </para>
+    /// <para>
+    /// A generator's source output runs one entry point at a time on one thread, so this is not
+    /// shared state between concurrent emits in practice. It is a deliberate trade: the alternative
+    /// is a parameter on a dozen private methods carrying one bool that is constant per call tree.
+    /// </para>
+    /// </remarks>
+    [ThreadStatic]
+    private static bool _caseInsensitive;
+
+    /// <summary>
+    /// The <c>[RouteConstraint]</c> methods the application declared, on the same terms as
+    /// <see cref="_caseInsensitive"/>.
+    /// </summary>
+    [ThreadStatic]
+    private static IReadOnlyList<RouteConstraintModel>? _constraints;
+
     public static void GenerateRoute(SourceProductionContext context,
-        (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models) {
+        (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
+        string? ambiguousRoutes = null,
+        IReadOnlyList<RouteConstraintModel>? constraints = null) {
+        _constraints = constraints;
+
         // Handlers that were not generated must not be routed to. Routing to one would emit a
         // table referencing a handler class that does not exist - uncompilable output, which is
         // worse than the missing route. Skipped silently: WebExecutionHandlerCodeGenerator has
@@ -24,6 +55,15 @@ public static class RoutingTableGenerator {
         var routable = models.Right
             .Where(handler => handler.UnresolvedParameter() == null)
             .ToList();
+
+        // Before anything is emitted. An ambiguous pair still produces a table - one of the two
+        // routes simply becomes unreachable for some values - so reporting is the only thing that
+        // makes it visible, and the build fails on it by default.
+        AmbiguousRouteDiagnostics.ReportAmbiguousRoutes(
+            context,
+            routable,
+            GetBasePath(models.Left),
+            AmbiguousRouteDiagnostics.Severity(ambiguousRoutes));
 
         var outputString = GenerateCSharpRouteFile(models.Left, routable, context.CancellationToken);
 
@@ -34,10 +74,17 @@ public static class RoutingTableGenerator {
         context.AddSource(
             models.Left.EntryPointType.Name + ".OpenApiDocument",
             OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left)));
+
+        // From the same models the table came from, and unconditionally: links have no third-party
+        // dependency, and the common case is an API with no views that still wants them for
+        // Location headers - which are exactly the strings that rot.
+        LinkGenerator.Generate(context, models.Left, routable, GetBasePath(models.Left));
     }
     
     public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken) {
+        _caseInsensitive = IsCaseInsensitive(appModel);
+
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
         CreateRoutingTable(appModel, handlers, applicationFile, cancellationToken);
@@ -116,8 +163,66 @@ public static class RoutingTableGenerator {
                 new[] { controllerType }));
         }
 
+        RegisterLinks(diMethod, serviceCollection, applicationModel, webEndPointModels);
+
+        RegisterEnabledModules(diMethod, serviceCollection, applicationModel);
+
         Validation.ParameterValidatorRegistration.Write(
             diMethod, serviceCollection, webEndPointModels, cancellationToken);
+    }
+
+    /// <summary>
+    /// The generated links type, so a handler can take it as a constructor parameter.
+    /// </summary>
+    /// <remarks>
+    /// Transient rather than singleton: it holds an <c>ILinkContext</c>, and a host that learns the
+    /// scheme and authority from the request it is answering registers a scoped one. Resolving a
+    /// singleton that captured a scoped dependency is the failure eager container validation exists
+    /// to catch.
+    /// </remarks>
+    private static void RegisterLinks(
+        MethodDefinition diMethod,
+        ParameterDefinition serviceCollection,
+        EntryPointSelector.Model applicationModel,
+        IReadOnlyList<RequestHandlerModel> webEndPointModels) {
+        diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
+            new[] { LinkGenerator.LinksType(applicationModel) }));
+    }
+
+    /// <summary>
+    /// The registrations of any <c>[Enable&lt;T&gt;]</c> marker that is also a DependencyModules
+    /// module.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// So a feature that ships services and a generated type is one attribute rather than two.
+    /// <c>AddModule</c> is DependencyModules' own entry point and goes through the module's
+    /// <c>PopulateServiceCollection</c>, which composes its nested modules, decorators and features
+    /// exactly as applying its attribute would.
+    /// </para>
+    /// <para>
+    /// What differs is position: these arrive with the other generated registrations rather than
+    /// where the attribute was written, which matters only for a module deliberately overriding a
+    /// registration made by another.
+    /// </para>
+    /// </remarks>
+    private static void RegisterEnabledModules(
+        MethodDefinition diMethod,
+        ParameterDefinition serviceCollection,
+        EntryPointSelector.Model applicationModel) {
+        foreach (var feature in applicationModel.EnabledFeatures) {
+            if (!feature.IsDependencyModule) {
+                continue;
+            }
+
+            // The extension called statically, because generated code carries none of the
+            // consumer's using directives and DependencyModules.Runtime is not one of the few this
+            // file imports.
+            diMethod.AddIndentedStatement(CodeOutputComponent.Get(
+                "global::DependencyModules.Runtime.ServiceCollectionExtensions.AddModule(" +
+                serviceCollection.Name + ", new global::" +
+                feature.MarkerType.Namespace + "." + feature.MarkerType.Name + "())"));
+        }
     }
 
     private static void ImplementHandlerMethod(EntryPointSelector.Model appModel, ClassDefinition routingClass,
@@ -236,14 +341,20 @@ public static class RoutingTableGenerator {
         foreach (var childNode in routeNode.ChildNodes) {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var lowerChar = char.ToLowerInvariant(childNode.Path.First());
-            var upperChar = char.ToUpperInvariant(lowerChar);
+            var character = childNode.Path.First();
 
-            if (upperChar != lowerChar) {
-                switchStatement.AddCase($"'{upperChar}'");
+            // A second label only where the module asked for case-insensitive matching. It used to
+            // be unconditional, which is half of what made every request compare each character
+            // twice.
+            if (_caseInsensitive) {
+                var upperChar = char.ToUpperInvariant(character);
+
+                if (upperChar != character) {
+                    switchStatement.AddCase($"'{upperChar}'");
+                }
             }
 
-            var caseStatement = switchStatement.AddCase($"'{lowerChar}'");
+            var caseStatement = switchStatement.AddCase($"'{character}'");
 
             var newMethodName = WriteRouteNode(routingClass, childNode, 1, cancellationToken);
 
@@ -350,11 +461,52 @@ public static class RoutingTableGenerator {
 
         var currentIndex = wildCardMethod.Assign(index).ToVar("currentIndex");
 
+        // The scan looks for this node's separator and, when the rest of the route does not match
+        // from there, tries the next occurrence. The retry is what resolves /files/{name}.{ext}
+        // against "a.b.json": the first '.' leaves "b.json", which is not "json", so it takes the
+        // second.
+        //
+        // Unbounded it also crosses '/', which for {name} is never right - a segment ends at the
+        // first separator, and no later one makes a deeper path a legitimate match. It is why
+        // /files/{name}/download used to answer /files/a/b/c/download with name = "a/b/c".
+        // Bounding the scan to the current segment keeps the '.' case and removes the '/' case:
+        // where the separator is '/' the limit is one past the first, so exactly one boundary is
+        // tried, which is all there ever was to try.
+        //
+        // {*name} is unbounded, because taking the rest of the path is the whole point of it.
+        //
+        // Bounded is also less work: one vectorised IndexOf replaces walking the rest of the path a
+        // character at a time whenever the match fails.
+        IOutputComponent whileLimit = span.Property("Length");
+
+        if (!wildCardNode.WildCardIsCatchAll) {
+            wildCardMethod.Assign(
+                    CodeOutputComponent.Get($"{span.Name}.Slice({index.Name}).IndexOf('/')"))
+                .ToVar("segmentEnd");
+
+            wildCardMethod.Assign(CodeOutputComponent.Get(
+                    $"segmentEnd < 0 ? {span.Name}.Length : {index.Name} + segmentEnd + 1"))
+                .ToVar("segmentLimit");
+
+            whileLimit = CodeOutputComponent.Get("segmentLimit");
+        }
+
         var whileBlock =
-            wildCardMethod.While(LessThan(currentIndex, span.Property("Length")));
+            wildCardMethod.While(LessThan(currentIndex, whileLimit));
 
         var pathCheck = CreatePathIfStatement(
             span, wildCardNode.Path, cancellationToken, currentIndex.Name);
+
+        // The constraint is part of whether the token matched, not something checked afterwards:
+        // failing it has to leave the scan free to try the next boundary, exactly as a literal
+        // mismatch does.
+        var constraintCheck = ConstraintTest(
+            wildCardNode,
+            $"{span.Name}.Slice({index.Name}, {currentIndex.Name} - {index.Name})");
+
+        if (constraintCheck != null) {
+            pathCheck = pathCheck.Concat(new[] { constraintCheck }).ToList();
+        }
 
         var ifStatement = whileBlock.If(And(pathCheck));
 
@@ -410,9 +562,39 @@ public static class RoutingTableGenerator {
         MethodDefinition wildCardMethod, ParameterDefinition methodString, ParameterDefinition span,
         ParameterDefinition index) {
         if (wildCardNode.LeafNodes.Count > 0) {
+            // A token that ends the route takes the rest of the path as its value. For {name} that
+            // has to stop at the first separator, or the route matches paths deeper than it
+            // declares: /users/{id} answered /users/42/anything/at/all with id = "42/anything/at/
+            // all", and no route could be written that matched exactly one segment.
+            //
+            // {*name} is the form that does want the remainder, so it keeps the old behaviour.
+            //
+            // Read across the leaves rather than from one: they are the routes ending here, and a
+            // node carrying both forms is a duplicate route either way. Permissive, so the
+            // catch-all stays reachable - see RouteTreeNode.WildCardIsCatchAll.
+            var catchAll = wildCardNode.LeafNodes.Any(
+                leaf => RouteTokens.IsCatchAll(leaf.WildCardTokens, wildCardNode.WildCardDepth));
+
+            if (!catchAll) {
+                wildCardMethod.If($"{span.Name}.Slice({index.Name}).IndexOf('/') >= 0").Return(Null());
+            }
+
+            // A value that fails the constraint is not a match at all, so the answer is null rather
+            // than a 405: there is no resource at that URL, which is the whole point of writing
+            // {id:int} instead of letting the binder answer 400.
+            var constraintTest = ConstraintTest(wildCardNode, $"{span.Name}.Slice({index.Name})", negate: true);
+
+            if (constraintTest != null) {
+                wildCardMethod.If(constraintTest).Return(Null());
+            }
+
             var switchBlock = wildCardMethod.Switch(methodString);
 
             foreach (var leafNode in wildCardNode.LeafNodes) {
+                if (RouteMethods.AddsHeadFallThrough(wildCardNode.LeafNodes, leafNode)) {
+                    switchBlock.AddCase(QuoteString(RouteMethods.Head));
+                }
+
                 var caseStatement = switchBlock.AddCase(QuoteString(leafNode.Method));
 
                 var field =
@@ -437,7 +619,7 @@ public static class RoutingTableGenerator {
                         pathTokensCollection));
             }
 
-            switchBlock.AddDefault().Return(Null());
+            switchBlock.AddDefault().Return(MethodNotAllowed(routingClass, wildCardNode.LeafNodes));
         }
         else {
             wildCardMethod.Return(Null());
@@ -456,6 +638,10 @@ public static class RoutingTableGenerator {
 
         foreach (var leafNode in routeNode.LeafNodes) {
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (RouteMethods.AddsHeadFallThrough(routeNode.LeafNodes, leafNode)) {
+                switchStatement.AddCase(QuoteString(RouteMethods.Head));
+            }
 
             var caseStatement = switchStatement.AddCase(QuoteString(leafNode.Method));
 
@@ -502,7 +688,80 @@ public static class RoutingTableGenerator {
                     pathTokensCollection));
         }
 
-        switchStatement.AddDefault().Return(Null());
+        switchStatement.AddDefault().Return(MethodNotAllowed(routingClass, routeNode.LeafNodes));
+    }
+
+    /// <summary>
+    /// The result for a path this leaf matched under a verb it does not answer.
+    /// </summary>
+    /// <remarks>
+    /// A static field per distinct verb set: it carries no per-request state - no handler, and the
+    /// shared empty token collection - so rebuilding one per rejected request would allocate for
+    /// the case least worth allocating for. Shared across leaves that allow the same verbs, which
+    /// most of an application's do.
+    /// </remarks>
+    private static IOutputComponent MethodNotAllowed<T>(
+        ClassDefinition routingClass, IReadOnlyList<RouteTreeLeafNode<T>> leaves) {
+        var allow = RouteMethods.Allow(leaves);
+        var fieldName = "_methodNotAllowed" + allow.Replace(", ", "");
+
+        var existing = routingClass.Fields.FirstOrDefault(field => field.Name == fieldName);
+
+        if (existing != null) {
+            return existing.Instance;
+        }
+
+        var newField = routingClass.AddField(KnownTypes.Web.RequestHandlerInfo, fieldName);
+
+        newField.Modifiers |= ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+        newField.InitializeValue = new CodeOutputComponent(
+            "global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed(\"" + allow + "\")");
+
+        return newField.Instance;
+    }
+
+    /// <summary>
+    /// The call that tests this node's constraint against <paramref name="value"/>, or null when
+    /// the token declares none.
+    /// </summary>
+    private static IOutputComponent? ConstraintTest<T>(
+        RouteTreeNode<T> node, string value, bool negate = false) {
+        var constraint = node.WildCardConstraint;
+
+        if (string.IsNullOrEmpty(constraint)) {
+            return null;
+        }
+
+        var test = RouteConstraintFacts.Test(constraint!) ?? Custom(constraint!);
+
+        // Null only for a name no built-in and no [RouteConstraint] declares, which
+        // RouteTokenDiagnostics has already reported as a build error. Emitting a call to nothing
+        // would bury that under a CS0103.
+        return test == null
+            ? null
+            : CodeOutputComponent.Get((negate ? "!" : "") + test + "(" + value + ")");
+    }
+
+    /// <summary>
+    /// The call a <c>[RouteConstraint]</c> declares for this name, or null.
+    /// </summary>
+    /// <remarks>
+    /// A declaration with the wrong signature is skipped rather than called: emitting a call to a
+    /// method that is not a <c>static bool(ReadOnlySpan&lt;char&gt;)</c> would bury the diagnostic
+    /// that says so under a compiler error in generated code.
+    /// </remarks>
+    private static string? Custom(string constraint) {
+        if (_constraints == null) {
+            return null;
+        }
+
+        foreach (var declared in _constraints) {
+            if (declared.SignatureIsValid && string.Equals(declared.Name, constraint, StringComparison.Ordinal)) {
+                return declared.Call;
+            }
+        }
+
+        return null;
     }
 
     private static IReadOnlyList<IOutputComponent> CreatePathIfStatement(
@@ -518,18 +777,26 @@ public static class RoutingTableGenerator {
         foreach (var pathChar in routeNodePath) {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var upperChar = char.ToUpper(pathChar);
+            var equalStatement = EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + pathChar + "'");
 
-            var lowerEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + pathChar + "'");
+            // One comparison per character, unless the module asked for case-insensitive matching.
+            // The second was emitted for every letter of every literal in every route, and ran on
+            // every request.
+            if (_caseInsensitive) {
+                var upperChar = char.ToUpperInvariant(pathChar);
 
-            if (upperChar != pathChar) {
-                var upperEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + upperChar + "'");
+                if (upperChar != pathChar) {
+                    returnList.Add(Or(
+                        equalStatement,
+                        EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + upperChar + "'")));
 
-                returnList.Add(Or(lowerEqualStatement, upperEqualStatement));
+                    index++;
+
+                    continue;
+                }
             }
-            else {
-                returnList.Add(lowerEqualStatement);
-            }
+
+            returnList.Add(equalStatement);
 
             index++;
         }
@@ -564,9 +831,19 @@ public static class RoutingTableGenerator {
             m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
                 basePath + m.Name.Path,
                 m.Name.Method,
-                m
+                m,
+                _caseInsensitive
             )).ToList());
     }
+
+    /// <summary>
+    /// Whether the entry point asked for case-insensitive matching, which every application used to
+    /// get whether it wanted it or not.
+    /// </summary>
+    private static bool IsCaseInsensitive(EntryPointSelector.Model appModel) =>
+        appModel.AttributeModels != null &&
+        appModel.AttributeModels.Any(model =>
+            model.TypeDefinition.Name.StartsWith("CaseInsensitiveRoutes", StringComparison.Ordinal));
 
     private static string GetBasePath(EntryPointSelector.Model appModel) {
         if (appModel.AttributeModels != null) {
@@ -601,7 +878,10 @@ public static class RoutingTableGenerator {
 
         field.Modifiers |= ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
 
-        var names = string.Join(", ", leafNode.WildCardTokens.Select(t => "\"" + t + "\""));
+        // Without the marker: {*path} binds to a parameter called path. The asterisk says how much
+        // of the path to take, not what to call it.
+        var names = string.Join(", ",
+            leafNode.WildCardTokens.Select(t => "\"" + RouteTokens.Name(t) + "\""));
 
         field.InitializeValue = new CodeOutputComponent("new string[] { " + names + " }");
 

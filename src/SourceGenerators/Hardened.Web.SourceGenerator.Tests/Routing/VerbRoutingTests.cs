@@ -74,8 +74,18 @@ public class VerbRoutingTests {
         Assert.Equal(handlers.Length, handlers.Distinct().Count());
     }
 
+    /// <summary>
+    /// A verb with no route on a path that does match is not a miss - it is a 405 waiting to
+    /// happen, and the table is the only thing that knows which verbs the path does answer.
+    /// </summary>
+    /// <remarks>
+    /// The leaf switch always fell to <c>default: return null</c> having matched the path, and
+    /// threw that away: a request to a real resource with the wrong verb came back
+    /// indistinguishable from a request to a URL nobody declared. Reported rather than answered
+    /// here, because another provider may have this path under this verb.
+    /// </remarks>
     [Fact]
-    public void AVerbWithNoRouteOnAKnownPathDoesNotMatch() {
+    public void AVerbWithNoRouteOnAKnownPathReportsWhatIsAllowed() {
         var routing = GeneratedRoutingTable.For("""
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
@@ -92,9 +102,53 @@ public class VerbRoutingTests {
             """);
 
         Assert.NotNull(routing.Route("GET", "/items/42"));
-        Assert.Null(routing.Route("DELETE", "/items/42"));
+
+        var rejected = routing.Route("DELETE", "/items/42");
+
+        Assert.NotNull(rejected);
+        Assert.Null(rejected!.Handler);
+        Assert.Equal("GET, HEAD", rejected.Allow);
     }
 
+    /// <summary>
+    /// HEAD is in the Allow header, because a client reading it is being told what it may call -
+    /// and the fall-through means it may call HEAD.
+    /// </summary>
+    [Fact]
+    public void TheAllowedVerbsIncludeTheHeadAGetLeafAnswers() {
+        var routing = GeneratedRoutingTable.For(FiveVerbController);
+
+        Assert.Equal("DELETE, GET, HEAD, PATCH, POST, PUT", routing.Route("OPTIONS", "/items/42")!.Allow);
+    }
+
+    /// <summary>
+    /// A route with no token reaches its leaf through a different emitter than one with a token,
+    /// so both have to report what they allow.
+    /// </summary>
+    [Fact]
+    public void ATokenlessRouteAlsoReportsWhatIsAllowed() {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class OrderController {
+                [Post("/orders")]
+                public string Create() => "created";
+            }
+            """);
+
+        Assert.Equal("POST", routing.Route("GET", "/orders")!.Allow);
+    }
+
+    /// <summary>
+    /// A path nobody declared is still nothing at all. The distinction between "no such URL" and
+    /// "not with that verb" is the whole point of reporting the second.
+    /// </summary>
     [Fact]
     public void AnUnknownPathDoesNotMatch() {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
@@ -112,8 +166,8 @@ public class VerbRoutingTests {
     public void TheRequestMethodIsMatchedCaseSensitively() {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
-        Assert.NotNull(routing.Route("GET", "/items/42"));
-        Assert.Null(routing.Route("get", "/items/42"));
+        Assert.NotNull(routing.Handler("GET", "/items/42"));
+        Assert.Null(routing.Route("get", "/items/42")?.Handler);
     }
 
     /// <summary>
@@ -129,6 +183,87 @@ public class VerbRoutingTests {
 
             Assert.Equal("abc123", Assert.Contains("id", tokens));
         }
+    }
+
+    /// <summary>
+    /// HEAD is GET without a body, so it reaches the GET handler rather than nothing.
+    ///
+    /// <para>
+    /// Before the fall-through case existed a HEAD matched no route at all, which meant every
+    /// endpoint in every Hardened application answered <c>curl -I</c> with a 404 — and health
+    /// checkers, link validators, CDNs and proxies all probe that way. The body is discarded
+    /// further out, in <c>HeadRequest</c>; routing's job is only to get there.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void HeadReachesTheGetHandler() {
+        var routing = GeneratedRoutingTable.For(FiveVerbController);
+
+        var handler = routing.Handler("HEAD", "/items/42");
+
+        Assert.Equal("GetItem", handler.InvokeMethod);
+    }
+
+    /// <summary>
+    /// The fall-through is attached to a GET leaf, not to the path. A resource that cannot be
+    /// fetched cannot be probed either.
+    /// </summary>
+    [Fact]
+    public void HeadDoesNotMatchAPathWithNoGetRoute() {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class WriteOnlyController {
+                [Post("/items/{id}")]
+                public string PostItem(string id) => id;
+            }
+            """);
+
+        Assert.Null(routing.Route("HEAD", "/items/42")?.Handler);
+    }
+
+    /// <summary>
+    /// A route with no token reaches its leaf through the leaf switch; one with a token reaches it
+    /// through the switch inside the wildcard match method. Those are two separate emitters, and
+    /// the fall-through has to be in both.
+    /// </summary>
+    [Fact]
+    public void HeadReachesAGetHandlerOnATokenlessRoute() {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class OrderController {
+                [Get("/orders")]
+                public string List() => "orders";
+            }
+            """);
+
+        Assert.Equal("List", routing.Handler("HEAD", "/orders").InvokeMethod);
+    }
+
+    /// <summary>
+    /// The token still binds. HEAD runs the GET handler in full, so a handler that reads its path
+    /// token has to receive it.
+    /// </summary>
+    [Fact]
+    public void HeadBindsThePathTokensOfTheGetRoute() {
+        var routing = GeneratedRoutingTable.For(FiveVerbController);
+
+        var tokens = routing.PathTokens("HEAD", "/items/abc123");
+
+        Assert.Equal("abc123", Assert.Contains("id", tokens));
     }
 
     /// <summary>

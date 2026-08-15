@@ -185,7 +185,7 @@ public abstract class BaseRequestModelGenerator {
 
         var id = parameter.Identifier.Text;
 
-        if (requestHandlerNameModel.Path.Contains($"{{{id}}}")) {
+        if (RouteTokens.BindsParameter(requestHandlerNameModel.Path, id)) {
             return CreateRequestParameterInformation(parameter, parameterType,
                 ParameterBindType.Path,parameterIndex);
         }
@@ -247,12 +247,7 @@ public abstract class BaseRequestModelGenerator {
     protected virtual ResponseInformationModel GetResponseInformation(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration) {
-        var templateAttribute = context.Node.GetAttribute("Template");
-        var template = "";
-
-        if (templateAttribute is { ArgumentList.Arguments.Count: > 0 }) {
-            template = templateAttribute.ArgumentList.Arguments[0].ToString().Trim('"');
-        }
+        var output = OutputAttributeSelector.Read(context, methodDeclaration);
 
         var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
 
@@ -285,7 +280,7 @@ public abstract class BaseRequestModelGenerator {
             IsAsync = isAsync,
             IsAsyncEnumerable = isAsyncEnumerable,
             AsyncEnumerableItemType = asyncEnumerableItemType,
-            TemplateName = template,
+            OutputType = output,
             ReturnType = returnType,
             RawResponseContentType = rawResponse
         };

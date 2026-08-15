@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.SourceGenerator.Links;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
@@ -13,6 +14,14 @@ internal static class OpenApiRoutingTableGenerator {
     private static readonly IOutputComponent EmptyTokens =
         Property(KnownTypes.Requests.PathTokenCollection, "Empty");
 
+    /// <summary>
+    /// Whether this table matches without regard to case, from <c>[CaseInsensitiveRoutes]</c> on
+    /// the entry point. Set at the top of each emit, for the reason the attribute-routed generator
+    /// does the same.
+    /// </summary>
+    [ThreadStatic]
+    private static bool _caseInsensitive;
+
     public static void GenerateRoute(
         SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
@@ -22,6 +31,11 @@ internal static class OpenApiRoutingTableGenerator {
         var outputString = GenerateCSharpRouteFile(models.Left, models.Right, handlerInfos, jsonTypeInfoResolvers, context.CancellationToken, excludeFromCoverage);
         var fileName = models.Left.EntryPointType.Name + ".OpenApiRouting";
         context.AddSource(fileName, outputString);
+
+        // The same links an attribute-routed application gets, from the same models. A document
+        // generates the routes, so a link built from one is checked against the document rather
+        // than against a hand-written route.
+        LinkGenerator.Generate(context, models.Left, models.Right, "");
     }
 
     public static string GenerateCSharpRouteFile(
@@ -31,6 +45,11 @@ internal static class OpenApiRoutingTableGenerator {
         ImmutableArray<string> jsonTypeInfoResolvers,
         CancellationToken cancellationToken,
         bool excludeFromCoverage = false) {
+        _caseInsensitive = appModel.AttributeModels != null &&
+                           appModel.AttributeModels.Any(model =>
+                               model.TypeDefinition.Name.StartsWith(
+                                   "CaseInsensitiveRoutes", StringComparison.Ordinal));
+
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
         CreateRoutingTable(appModel, handlers, handlerInfos, jsonTypeInfoResolvers, applicationFile, cancellationToken, excludeFromCoverage);
@@ -132,6 +151,12 @@ internal static class OpenApiRoutingTableGenerator {
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
                 new[] { interfaceType, handlerInfo.ImplementationType }));
         }
+
+        // The generated links type, so a handler can take it as a constructor parameter. Transient
+        // rather than singleton: it holds an ILinkContext, and a host that learns the scheme and
+        // authority from the request it is answering registers a scoped one.
+        diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
+            new[] { LinkGenerator.LinksType(applicationModel) }));
     }
 
     private static void ImplementHandlerMethod(
@@ -245,14 +270,17 @@ internal static class OpenApiRoutingTableGenerator {
 
         foreach (var childNode in routeNode.ChildNodes) {
             cancellationToken.ThrowIfCancellationRequested();
-            var lowerChar = char.ToLowerInvariant(childNode.Path.First());
-            var upperChar = char.ToUpperInvariant(lowerChar);
+            var character = childNode.Path.First();
 
-            if (upperChar != lowerChar) {
-                switchStatement.AddCase($"'{upperChar}'");
+            if (_caseInsensitive) {
+                var upperChar = char.ToUpperInvariant(character);
+
+                if (upperChar != character) {
+                    switchStatement.AddCase($"'{upperChar}'");
+                }
             }
 
-            var caseStatement = switchStatement.AddCase($"'{lowerChar}'");
+            var caseStatement = switchStatement.AddCase($"'{character}'");
             var newMethodName = WriteRouteNode(routingClass, childNode, 1, cancellationToken);
             caseStatement.Return(Invoke(newMethodName, span, "index + 1", methodString));
         }
@@ -342,7 +370,23 @@ internal static class OpenApiRoutingTableGenerator {
             KnownTypes.Web.RequestHandlerInfo.MakeNullable(), Null())).ToVar("handlerInfo");
 
         var currentIndex = wildCardMethod.Assign(index).ToVar("currentIndex");
-        var whileBlock = wildCardMethod.While(LessThan(currentIndex, span.Property("Length")));
+
+        // Bounded to the current segment, as the attribute-routed table is. Unbounded, the scan
+        // retries at every later separator when the rest of the route does not match, so a token
+        // could span segments and /files/{name}/download answered /files/a/b/c/download.
+        //
+        // There is no catch-all here. An OpenAPI path template cannot express one - a template
+        // expression is a parameter name and nothing more - so every token compiled from a
+        // document is a single segment, and this needs no opt-out.
+        wildCardMethod.Assign(CodeOutputComponent.Get($"{span.Name}.Slice({index.Name}).IndexOf('/')"))
+            .ToVar("segmentEnd");
+
+        wildCardMethod.Assign(CodeOutputComponent.Get(
+                $"segmentEnd < 0 ? {span.Name}.Length : {index.Name} + segmentEnd + 1"))
+            .ToVar("segmentLimit");
+
+        var whileBlock =
+            wildCardMethod.While(LessThan(currentIndex, CodeOutputComponent.Get("segmentLimit")));
 
         var pathCheck = CreatePathIfStatement(span, wildCardNode.Path, cancellationToken, currentIndex.Name);
         var ifStatement = whileBlock.If(And(pathCheck));
@@ -379,9 +423,19 @@ internal static class OpenApiRoutingTableGenerator {
         ParameterDefinition span,
         ParameterDefinition index) {
         if (wildCardNode.LeafNodes.Count > 0) {
+            // A token that ends the route takes the rest of the path as its value, so without this
+            // the route matches paths deeper than the document declares: /users/{id} answered
+            // /users/42/anything/at/all. An OpenAPI template means one segment, and this is the
+            // table compiled from one.
+            wildCardMethod.If($"{span.Name}.Slice({index.Name}).IndexOf('/') >= 0").Return(Null());
+
             var switchBlock = wildCardMethod.Switch(methodString);
 
             foreach (var leafNode in wildCardNode.LeafNodes) {
+                if (RouteMethods.AddsHeadFallThrough(wildCardNode.LeafNodes, leafNode)) {
+                    switchBlock.AddCase(QuoteString(RouteMethods.Head));
+                }
+
                 var caseStatement = switchBlock.AddCase(QuoteString(leafNode.Method));
 
                 var field = routingClass.AddField(
@@ -402,7 +456,7 @@ internal static class OpenApiRoutingTableGenerator {
                 caseStatement.Return(New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, pathTokensCollection));
             }
 
-            switchBlock.AddDefault().Return(Null());
+            switchBlock.AddDefault().Return(MethodNotAllowed(routingClass, wildCardNode.LeafNodes));
         } else {
             wildCardMethod.Return(Null());
         }
@@ -421,6 +475,10 @@ internal static class OpenApiRoutingTableGenerator {
 
         foreach (var leafNode in routeNode.LeafNodes) {
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (RouteMethods.AddsHeadFallThrough(routeNode.LeafNodes, leafNode)) {
+                switchStatement.AddCase(QuoteString(RouteMethods.Head));
+            }
 
             var caseStatement = switchStatement.AddCase(QuoteString(leafNode.Method));
 
@@ -441,7 +499,32 @@ internal static class OpenApiRoutingTableGenerator {
             caseStatement.Return(New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, pathTokensCollection));
         }
 
-        switchStatement.AddDefault().Return(Null());
+        switchStatement.AddDefault().Return(MethodNotAllowed(routingClass, routeNode.LeafNodes));
+    }
+
+    /// <summary>
+    /// The result for a path this leaf matched under a verb it does not answer. The same rule the
+    /// attribute-routed table follows, for the reason Part 0 fixed the token bound in both: two
+    /// routing tables disagreeing about what a request means is worse than either being wrong.
+    /// </summary>
+    private static IOutputComponent MethodNotAllowed<T>(
+        ClassDefinition routingClass, IReadOnlyList<RouteTreeLeafNode<T>> leaves) {
+        var allow = RouteMethods.Allow(leaves);
+        var fieldName = "_methodNotAllowed" + allow.Replace(", ", "");
+
+        var existing = routingClass.Fields.FirstOrDefault(field => field.Name == fieldName);
+
+        if (existing != null) {
+            return existing.Instance;
+        }
+
+        var newField = routingClass.AddField(KnownTypes.Web.RequestHandlerInfo, fieldName);
+
+        newField.Modifiers |= ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+        newField.InitializeValue = new CodeOutputComponent(
+            "global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed(\"" + allow + "\")");
+
+        return newField.Instance;
     }
 
     private static IReadOnlyList<IOutputComponent> CreatePathIfStatement(
@@ -455,15 +538,28 @@ internal static class OpenApiRoutingTableGenerator {
         int idx = 0;
         foreach (var pathChar in routeNodePath) {
             cancellationToken.ThrowIfCancellationRequested();
-            var upperChar = char.ToUpper(pathChar);
-            var lowerEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {idx}]", "'" + pathChar + "'");
 
-            if (upperChar != pathChar) {
-                var upperEqualStatement = EqualsStatement($"{span.Name}[{indexName} + {idx}]", "'" + upperChar + "'");
-                returnList.Add(Or(lowerEqualStatement, upperEqualStatement));
-            } else {
-                returnList.Add(lowerEqualStatement);
+            var equalStatement = EqualsStatement($"{span.Name}[{indexName} + {idx}]", "'" + pathChar + "'");
+
+            // One comparison per character unless the module asked otherwise. See
+            // CaseInsensitiveRoutesAttribute: paths are case-sensitive per RFC 3986, an OpenAPI
+            // document has no notion of a case-insensitive path, and the second comparison ran for
+            // every letter of every literal on every request.
+            if (_caseInsensitive) {
+                var upperChar = char.ToUpperInvariant(pathChar);
+
+                if (upperChar != pathChar) {
+                    returnList.Add(Or(
+                        equalStatement,
+                        EqualsStatement($"{span.Name}[{indexName} + {idx}]", "'" + upperChar + "'")));
+
+                    idx++;
+
+                    continue;
+                }
             }
+
+            returnList.Add(equalStatement);
 
             idx++;
         }
@@ -496,7 +592,8 @@ internal static class OpenApiRoutingTableGenerator {
             m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
                 m.Name.Path,
                 m.Name.Method,
-                m
+                m,
+                _caseInsensitive
             )).ToList());
     }
 }

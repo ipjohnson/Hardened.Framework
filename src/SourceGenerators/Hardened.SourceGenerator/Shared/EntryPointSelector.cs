@@ -16,6 +16,13 @@ public static class EntryPointSelector {
         public IReadOnlyList<HardenedMethodDefinition> MethodDefinitions { get; set; } = default!;
 
         public IReadOnlyList<HardenedPropertyDefinition>? PropertyDefinitions { get; set; }
+
+        /// <summary>
+        /// The optional features this entry point turned on with <c>[Enable&lt;T&gt;]</c>, each
+        /// carrying what its marker declares about itself.
+        /// </summary>
+        public IReadOnlyList<EnabledFeatureModel> EnabledFeatures { get; set; } =
+            Array.Empty<EnabledFeatureModel>();
     }
 
     public class Comparer : IEqualityComparer<Model> {
@@ -34,7 +41,8 @@ public static class EntryPointSelector {
                    x.RootEntryPoint == y.RootEntryPoint &&
                    CompareAttributes(x, y) &&
                    CompareMethodDefinitions(x, y) &&
-                   CompareProperties(x, y);
+                   CompareProperties(x, y) &&
+                   x.EnabledFeatures.SequenceEqual(y.EnabledFeatures);
         }
 
         private bool CompareProperties(Model x, Model y) {
@@ -113,11 +121,17 @@ public static class EntryPointSelector {
             var methods = syntaxContext.Node.DescendantNodes().OfType<MethodDeclarationSyntax>();
 
             IReadOnlyList<AttributeModel> attributes = Array.Empty<AttributeModel>();
+            IReadOnlyList<EnabledFeatureModel> features = Array.Empty<EnabledFeatureModel>();
 
             if (syntaxContext.Node is ClassDeclarationSyntax classDeclarationSyntax) {
                 attributes = AttributeModelHelper
                     .GetAttributes(syntaxContext, classDeclarationSyntax.AttributeLists, token)
                     .ToList();
+
+                // Read here, while the marker's symbol still exists. What survives into the model
+                // is names, strings and type definitions - enough to emit from, and comparable by
+                // value so the model still keys the incremental cache.
+                features = EnabledFeatureSelector.Read(syntaxContext, classDeclarationSyntax, token);
             }
 
             return new Model {
@@ -125,7 +139,8 @@ public static class EntryPointSelector {
                 MethodDefinitions = GenerateMethodDefinitions(syntaxContext, methods),
                 RootEntryPoint = rootEntryPoint,
                 AttributeModels = attributes,
-                PropertyDefinitions = GeneratePropertyDefinitions(syntaxContext)
+                PropertyDefinitions = GeneratePropertyDefinitions(syntaxContext),
+                EnabledFeatures = features
             };
         };
     }

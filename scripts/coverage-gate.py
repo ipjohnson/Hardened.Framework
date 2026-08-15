@@ -11,8 +11,20 @@ Usage:
     python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
     python3 scripts/coverage-gate.py --summary coverage-report/Summary.json --update
 
---update rewrites the baseline from the current run. Run it locally when coverage goes up, and
-commit the result. Never run it in CI: a workflow that re-baselines cannot detect a regression.
+--update rewrites the baseline from the current run. Never run it in CI: a workflow that
+re-baselines cannot detect a regression.
+
+Take the summary from a CI run rather than a local one. The generator assemblies compile their
+dependencies from source, and which source depends on what is checked out beside this repository:
+CSharpAuthor.props and ValidationModulesImpl.props switch to a sibling checkout when one exists,
+so a developer with ~/CSharpAuthor or ~/ValidationModules builds assemblies whose contents differ
+from the ones CI builds. A baseline written from that machine records percentages CI cannot
+reproduce, and an assembly - ValidationModules.Runtime - that only exists as a project locally.
+
+The coverage-report artifact is uploaded on every run, including a failed one:
+
+    gh run download <run-id> -n coverage-report -D /tmp/cicov
+    python3 scripts/coverage-gate.py --summary /tmp/cicov/Summary.json --update
 """
 
 from __future__ import annotations
@@ -24,6 +36,12 @@ import sys
 
 # Coverage is measured to one decimal place, and re-runs wobble slightly when a test touches a
 # line conditionally. Anything smaller than this is noise, not a regression.
+#
+# --update records whatever the run it was given measured, so baselining off a run that happened
+# to read at the top of an assembly's wobble leaves no headroom underneath and the next ordinary
+# run fails. Hardened.Shared.Runtime's branch coverage moves between 85.2 and 85.8 - wider than
+# this tolerance - and was briefly pinned at 85.8 that way. Where an assembly is known to wobble,
+# the baseline belongs at the bottom of the range rather than at the reading in front of you.
 TOLERANCE = 0.5
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent

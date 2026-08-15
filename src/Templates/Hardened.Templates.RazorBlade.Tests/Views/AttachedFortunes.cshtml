@@ -1,0 +1,10 @@
+@using Hardened.Templates.RazorBlade.Tests.Models
+@*
+    The shape everything after this depends on: a view built on Hardened's own base rather than on
+    RazorBlade's generic one, so its model can be attached after construction.
+
+    global:: for the same reason Fortunes.cshtml needs it - this assembly's namespace ends in
+    RazorBlade, so an unqualified name binds to the wrong thing.
+*@
+@inherits global::Hardened.Templates.RazorBlade.HardenedHtmlTemplate<Hardened.Templates.RazorBlade.Tests.Models.FortunePage>
+<ul>@foreach (var fortune in Model.Fortunes) {<li>@fortune.Id: @fortune.Message</li>}</ul>

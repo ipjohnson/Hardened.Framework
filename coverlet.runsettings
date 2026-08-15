@@ -9,14 +9,40 @@
                     <!--
                       Excluded from coverage because none of it is shipped, hand-written
                       product code:
-                        *.Tests  - the test suites themselves
-                        *.SUT    - systems-under-test that exist only as test fixtures
+                        *.Tests         - the test suites themselves
+                        *.SUT           - systems-under-test that exist only as test fixtures
+                        CSharpAuthor    - vendored source, see below
+                        ValidationModules - vendored source, see below
 
                       Note that the *.Testing packages (Hardened.Shared.Testing,
                       Hardened.Web.Testing, Hardened.Requests.Testing) are deliberately NOT
                       excluded - they ship to consumers and their coverage counts.
+
+                      CSharpAuthor and ValidationModules ship as source: their build targets
+                      compile src/**/*.cs straight into whichever assembly references them,
+                      which is what keeps a Roslyn analyzer self-contained (see
+                      SourceGenerators/CSharpAuthor.props). Every generator therefore carries a
+                      private copy - 1828 lines of CSharpAuthor, and 1512 more of
+                      ValidationModules in the two that take it - and without these filters all
+                      of it counted as Hardened's product code, once per assembly that linked
+                      it in.
+
+                      That was 32% to 79% of each generator assembly, and it measured the wrong
+                      thing in both directions. Hardened.SourceGenerator read as 56.7% when its
+                      own code was at 73.1%; Hardened.Library.SourceGenerator's 41.0% was
+                      mostly a measurement of how much of CSharpAuthor happens to execute.
+                      Worse, the ratio moved whenever a linked Compile glob changed, so adding
+                      a shared folder to one generator regressed its coverage without any code
+                      becoming less tested - which is what tripped this gate on the routing and
+                      templates branch.
+
+                      Scoped to [Hardened.*] rather than [*] on purpose. ValidationModules.Runtime
+                      is a referenced assembly rather than vendored source, and a bare
+                      [*]ValidationModules.* empties it and records a meaningless 0.0 baseline
+                      for it. These filters are about copies compiled into Hardened's own
+                      assemblies, and say so.
                     -->
-                    <Exclude>[*.Tests]*,[*.SUT]*</Exclude>
+                    <Exclude>[*.Tests]*,[*.SUT]*,[Hardened.*]CSharpAuthor.*,[Hardened.*]ValidationModules.*</Exclude>
 
                     <!-- Source-generated output is verified through behaviour in the
                          integration tests, not by line coverage of the emitted files. -->
