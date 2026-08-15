@@ -146,6 +146,11 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             foreach (var model in models) {
                 ctx.CancellationToken.ThrowIfCancellationRequested();
                 try {
+                    // The contract and the implementation compile in the same pass, so a document
+                    // promising rendered markup for a model with nothing to render it is catchable
+                    // here rather than arriving as a 500 on the first request.
+                    model.ReportIfMarkupWithoutAView(ctx);
+
                     invokeGenerator.GenerateSource(ctx, model, excludeCoverage);
                 } catch (Exception exp) {
                     ReportError(ctx, $"Error generating handler: {exp.Message}");

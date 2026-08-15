@@ -22,6 +22,28 @@ public record ResponseInformationModel {
     /// </remarks>
     public ITypeDefinition? TemplateType { get; set; }
 
+    /// <summary>
+    /// The media type an OpenAPI document declared for the success response, when it named one
+    /// that is not JSON.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="RawResponseContentType"/>, which commits the response to a content type and
+    /// takes it out of negotiation. This only records what the contract says, so a document
+    /// promising rendered HTML for a model can be checked against an implementation that names no
+    /// view to render it.
+    /// </remarks>
+    public string? DeclaredContentType { get; set; }
+
+    /// <summary>
+    /// Whether the success response is an object or a list of them, rather than a scalar.
+    /// </summary>
+    /// <remarks>
+    /// The half of <see cref="DeclaredContentType"/> that makes it actionable. A handler returning
+    /// a string can answer <c>text/html</c> by writing it; a handler returning a model cannot,
+    /// because there is nothing that serializes an object as HTML without a view.
+    /// </remarks>
+    public bool RendersAModel { get; set; }
+
     public int? DefaultStatusCode { get; set; }
 
     public string? RawResponseContentType { get; set; }

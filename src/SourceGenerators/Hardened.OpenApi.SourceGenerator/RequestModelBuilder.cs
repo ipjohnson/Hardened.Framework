@@ -305,7 +305,13 @@ internal static class RequestModelBuilder {
 
         return new ResponseInformationModel {
             IsAsync = true,
-            ReturnType = returnType
+            ReturnType = returnType,
+            DeclaredContentType = operation.ResponseContentType,
+
+            // Carried so the implementation can be checked against the contract: a document
+            // promising rendered HTML for a model needs a view, and there is nothing to serialize
+            // an object as text/html without one.
+            RendersAModel = operation.ResponseRef != null || operation.ResponseIsArray
         };
     }
 
