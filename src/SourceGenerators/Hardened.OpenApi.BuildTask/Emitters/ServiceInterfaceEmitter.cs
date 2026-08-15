@@ -40,6 +40,13 @@ internal static class ServiceInterfaceEmitter {
     }
 
     internal static ITypeDefinition GetReturnType(OperationModel operation, string modelsNamespace) {
+        // Ahead of the schema, because it is a deliberate override of it. x-hardened-raw-bytes says
+        // the application holds this payload already encoded, which the schema has no way to say -
+        // type: string describes the wire, not what the handler is holding.
+        if (operation.RawBytesResponse) {
+            return Task(TypeDefinition.Get(typeof(byte[])));
+        }
+
         if (operation.ResponseRef != null) {
             return Task(Model(operation.ResponseRef, modelsNamespace));
         }

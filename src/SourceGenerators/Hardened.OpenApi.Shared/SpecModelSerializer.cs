@@ -370,6 +370,7 @@ internal static class SpecModelSerializer {
         record.Add("RequestBodyRef", operation.RequestBodyRef);
         record.Add("RequestBodyType", operation.RequestBodyType);
         record.Add("ResponseContentType", operation.ResponseContentType);
+        record.Add("RawBytesResponse", operation.RawBytesResponse);
         record.Add("ResponseRef", operation.ResponseRef);
         record.Add("ResponseType", operation.ResponseType);
         record.Add("ResponseFormat", operation.ResponseFormat);
@@ -428,6 +429,7 @@ internal static class SpecModelSerializer {
         RequestBodyRef = record.String("RequestBodyRef"),
         RequestBodyType = record.String("RequestBodyType"),
         ResponseContentType = record.String("ResponseContentType"),
+        RawBytesResponse = record.Bool("RawBytesResponse"),
         ResponseRef = record.String("ResponseRef"),
         ResponseType = record.String("ResponseType"),
         ResponseFormat = record.String("ResponseFormat"),
