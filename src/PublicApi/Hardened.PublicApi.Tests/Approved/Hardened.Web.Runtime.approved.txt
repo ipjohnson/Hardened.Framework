@@ -53,6 +53,12 @@ namespace Hardened.Web.Runtime.Attributes
         public PutAttribute(string path = "") { }
         public string Path { get; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public class TagAttribute : System.Attribute
+    {
+        public TagAttribute(string name) { }
+        public string Name { get; }
+    }
     public class WebLibraryAttribute : System.Attribute
     {
         public WebLibraryAttribute() { }

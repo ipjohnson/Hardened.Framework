@@ -14,6 +14,40 @@ namespace Hardened.SourceGenerator.Web;
 public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     private static readonly HashSet<string> _attributeNames = GetAttributeNames();
 
+    public override RequestHandlerModel GenerateRequestModel(
+        GeneratorSyntaxContext context, CancellationToken cancellationToken) {
+        var model = base.GenerateRequestModel(context, cancellationToken);
+
+        model.Tag = GetTagFromController(context, cancellationToken);
+
+        return model;
+    }
+
+    /// <summary>
+    /// The tag the controller declared with <c>[Tag]</c>, or null to let the document generator
+    /// derive one from the class name. Read here rather than there because it needs the syntax
+    /// tree, which is gone by the time a document is written.
+    /// </summary>
+    private static string? GetTagFromController(
+        GeneratorSyntaxContext context, CancellationToken cancellationToken) {
+        var classDeclaration = context.Node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+
+        if (classDeclaration == null) {
+            return null;
+        }
+
+        var tagAttribute = AttributeModelHelper.GetAttributes(
+                context,
+                classDeclaration.AttributeLists,
+                cancellationToken,
+                syntax => syntax.Name.ToString().StartsWith("Tag"))
+            .FirstOrDefault();
+
+        var argument = tagAttribute?.Arguments.Split(',').FirstOrDefault()?.Trim().Trim('"');
+
+        return string.IsNullOrEmpty(argument) ? null : argument;
+    }
+
     protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
         CancellationToken cancellation) {

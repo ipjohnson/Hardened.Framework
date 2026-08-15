@@ -79,6 +79,18 @@ public class RequestHandlerModel {
     /// <summary>The request body's JSON Schema, on the same terms.</summary>
     public HandlerSchema? RequestSchema { get; set; }
 
+    /// <summary>
+    /// The OpenAPI tag this operation is grouped under, when the controller declared one with
+    /// <c>[Tag]</c>. Null means the default derivation applies - see
+    /// <c>OpenApiDocumentGenerator.Tag</c>.
+    /// </summary>
+    /// <remarks>
+    /// A property rather than a constructor parameter, on the same terms as
+    /// <see cref="ParametersInterface"/>: the model is shared with the function and console
+    /// generators, and neither has tags or a document to put them in.
+    /// </remarks>
+    public string? Tag { get; set; }
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;
@@ -139,6 +151,10 @@ public class RequestHandlerModel {
             return false;
         }
 
+        if (!string.Equals(Tag, requestHandlerModel.Tag, StringComparison.Ordinal)) {
+            return false;
+        }
+
         return true;
     }
 
@@ -164,6 +180,7 @@ public class RequestHandlerModel {
             hashCode = (hashCode * 397) ^ RequestParameterInformationList.GetHashCodeAggregation();
             hashCode = (hashCode * 397) ^ ResponseInformation.GetHashCode();
             hashCode = (hashCode * 397) ^ Filters.GetHashCodeAggregation();
+            hashCode = (hashCode * 397) ^ (Tag?.GetHashCode() ?? 0);
 
             return hashCode;
         }

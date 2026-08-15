@@ -54,6 +54,19 @@
           generator classes.
         -->
         <ProjectReference Include="..\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj"/>
+
+        <!--
+            The build task, so the round trip can be closed rather than described: the document this
+            generator emits is fed back through the parser and emitter a specification-first build
+            uses, and the interfaces that come out are compared against the controllers that went
+            in. Without it the two halves are only asserted to agree by inspection.
+
+            Safe to reference despite the CS0433 note above, because nothing here names a CSharpAuthor
+            type - only Hardened.OpenApi.SourceGenerator.OpenApiSpecParser and the spec model, which
+            exist in this assembly alone.
+        -->
+        <ProjectReference Include="..\Hardened.OpenApi.BuildTask\Hardened.OpenApi.BuildTask.csproj"
+                          SetTargetFramework="TargetFramework=net8.0"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>

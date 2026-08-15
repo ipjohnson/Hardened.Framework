@@ -66,6 +66,17 @@ public class OpenApiRoundTripTests {
             [Delete("/{id}")]
             public void Delete(string id) { }
         }
+
+        [BasePath("/customers")]
+        [Tag("People")]
+        public class CustomerController {
+
+            [Get("/{id}")]
+            public OrderSummary Get(string id) => new();
+
+            [Get("/active")]
+            public List<OrderSummary> Active() => new();
+        }
         """;
 
     /// <summary>
@@ -196,6 +207,78 @@ public class OpenApiRoundTripTests {
         var delete = document.Paths["/orders/{id}"].Operations[OperationType.Delete];
 
         Assert.Empty(delete.Responses["200"].Content);
+    }
+
+    /// <summary>All operations in the document, flattened out of the path grouping.</summary>
+    private static IReadOnlyList<OpenApiOperation> Operations(OpenApiDocument document) =>
+        document.Paths.Values.SelectMany(path => path.Operations.Values).ToArray();
+
+    /// <summary>
+    /// <c>operationId</c> MUST be unique - a client generator fed a document with a duplicate
+    /// either fails or silently drops an operation.
+    /// </summary>
+    /// <remarks>
+    /// It was not. The id was built from the verb and the route's literal segments with tokens
+    /// skipped, so <c>/verbs/item</c> and <c>/verbs/item/{id}</c> collided. Verified on the WebApp
+    /// fixture: 42 operations, <c>getBindingPath</c> and <c>deleteVerbsItem</c> emitted twice each.
+    /// Every test in this file passed while that was true, because Microsoft.OpenApi is a lenient
+    /// reader - which is exactly why this assertion is here and not left to the parser.
+    /// </remarks>
+    [Fact]
+    public void EveryOperationIdIsUnique() {
+        var ids = Operations(RoundTrip()).Select(operation => operation.OperationId).ToArray();
+
+        Assert.Equal(ids.Length, ids.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    /// <summary>
+    /// And is the C# method name, so a generated client reads like the application it was
+    /// generated from. <c>NamingHelper.ToMethodName</c> pascal-cases the id, so the camelCase form
+    /// is what comes back as the original name.
+    /// </summary>
+    [Fact]
+    public void AnOperationIdIsTheMethodName() {
+        var list = RoundTrip().Paths["/orders/"].Operations[OperationType.Get];
+
+        Assert.Equal("list", list.OperationId);
+    }
+
+    /// <summary>
+    /// Two controllers with a method of the same name cannot both keep it, so the tag - the one
+    /// thing that tells them apart - disambiguates. Both <c>OrderController</c> and
+    /// <c>CustomerController</c> declare <c>Get</c>.
+    /// </summary>
+    [Fact]
+    public void ACrossControllerClashIsDisambiguatedByTheTag() {
+        var document = RoundTrip();
+
+        Assert.Equal("orderGet", document.Paths["/orders/{id}"].Operations[OperationType.Get].OperationId);
+        Assert.Equal("peopleGet", document.Paths["/customers/{id}"].Operations[OperationType.Get].OperationId);
+    }
+
+    /// <summary>
+    /// Every operation carries a tag. The emitter wrote none, and specification-first groups by
+    /// <c>Tags.FirstOrDefault()?.Name ?? "Default"</c> - so a round-tripped application collapsed
+    /// into a single <c>IDefaultService</c> and lost its controller structure entirely.
+    /// </summary>
+    [Fact]
+    public void EveryOperationCarriesATag() {
+        Assert.All(Operations(RoundTrip()), operation => Assert.NotEmpty(operation.Tags));
+    }
+
+    /// <summary>
+    /// And the tag set is the controller set. No new grouping construct was introduced for this:
+    /// the controller already is the group, and the document simply did not say so.
+    /// <c>CustomerController</c> carries <c>[Tag("People")]</c>, which is the override.
+    /// </summary>
+    [Fact]
+    public void TheTagSetIsTheControllerSet() {
+        var tags = Operations(RoundTrip())
+            .SelectMany(operation => operation.Tags.Select(tag => tag.Name))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.Ordinal);
+
+        Assert.Equal(new[] { "Order", "People" }, tags);
     }
 
     /// <summary>
