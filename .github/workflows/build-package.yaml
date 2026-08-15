@@ -128,7 +128,9 @@ jobs:
       - name: Pack
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
-          RELEASE_LINE: 0.1.0
+          # The open line, which is the one previews belong under - not the last one released.
+          # Released so far: v0.1.0-rc1, v0.2.0-rc1000, v0.3.0-rc1000.
+          RELEASE_LINE: 0.4.0
         run: |
           BUILD=$(printf '%06d' "$GITHUB_RUN_NUMBER")
           echo "Packing $RELEASE_LINE-preview$BUILD"
