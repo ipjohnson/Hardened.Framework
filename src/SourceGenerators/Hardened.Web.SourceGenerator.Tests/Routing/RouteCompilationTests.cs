@@ -484,7 +484,6 @@ public class RouteCompilationTests {
     [InlineData("[CacheControl(Type = CacheControlEnum.MaxAge | CacheControlEnum.Public)]")]
     [InlineData("[RawResponse]")]
     [InlineData("[RawResponse(\"text/csv\")]")]
-    [InlineData("[Template(\"home\")]")]
     public void EveryHandlerOptionAttributeCompiles(string attribute) {
         CompileApplication($$"""
             public class OptionController {
@@ -516,10 +515,10 @@ public class RouteCompilationTests {
     }
 
     /// <summary>
-    /// An attribute the generator has never heard of. Anything that is not a verb,
-    /// <c>[Template]</c> or <c>[RawResponse]</c> is treated as a filter attribute and copied into
-    /// the handler's metadata verbatim — which means an ordinary framework attribute on a handler
-    /// has to survive the trip into a file carrying none of the consumer's usings.
+    /// An attribute the generator has never heard of. Anything that is not a verb or
+    /// <c>[RawResponse]</c> is treated as a filter attribute and copied into the handler's metadata
+    /// verbatim — which means an ordinary framework attribute on a handler has to survive the trip
+    /// into a file carrying none of the consumer's usings.
     /// </summary>
     [Fact]
     public void AnUnrecognisedAttributeOnAHandlerBecomesMetadataAndCompiles() {

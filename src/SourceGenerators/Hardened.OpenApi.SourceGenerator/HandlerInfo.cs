@@ -54,26 +54,47 @@ internal class HandlerInfo : IEquatable<HandlerInfo> {
 internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
     public HandlerMethodFilterInfo(
         string methodName,
-        IReadOnlyList<AttributeModel> filters) {
+        IReadOnlyList<AttributeModel> filters,
+        ITypeDefinition? templateType = null) {
         MethodName = methodName;
         Filters = filters;
+        TemplateType = templateType;
     }
 
     public string MethodName { get; }
 
     public IReadOnlyList<AttributeModel> Filters { get; }
 
+    /// <summary>
+    /// The view named by <c>[Template&lt;T&gt;]</c> on this method, or null.
+    /// </summary>
+    /// <remarks>
+    /// Carried separately from the filter list because a generic attribute's type argument is what
+    /// is wanted here, and an <c>AttributeModel</c> is the attribute as it will be re-emitted. This
+    /// is the specification-first side of the same reading the web generator does directly on the
+    /// method - a document generates the handler's signature, so the implementation is the only
+    /// place a view can be named.
+    /// </remarks>
+    public ITypeDefinition? TemplateType { get; }
+
     public bool Equals(HandlerMethodFilterInfo? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return MethodName == other.MethodName && Filters.DeepEquals(other.Filters);
+        return MethodName == other.MethodName &&
+               Equals(TemplateType, other.TemplateType) &&
+               Filters.DeepEquals(other.Filters);
     }
 
     public override bool Equals(object? obj) => Equals(obj as HandlerMethodFilterInfo);
 
     public override int GetHashCode() {
         unchecked {
-            return (MethodName.GetHashCode() * 397) ^ Filters.GetHashCodeAggregation();
+            var hash = MethodName.GetHashCode();
+
+            hash = (hash * 397) ^ Filters.GetHashCodeAggregation();
+            hash = (hash * 397) ^ (TemplateType?.GetHashCode() ?? 0);
+
+            return hash;
         }
     }
 }

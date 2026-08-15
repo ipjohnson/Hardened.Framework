@@ -27,6 +27,8 @@ public static class InvokeClassGenerator {
         cancellationToken.ThrowIfCancellationRequested();
         HandlerInfoCodeGenerator.Implement(handlerModel, invokeClass);
 
+        TemplateFactoryGenerator.Implement(handlerModel, invokeClass);
+
         CreateConstructor(handlerModel, invokeClass);
 
         InvokeMethodCodeGenerator.Implement(handlerModel, invokeClass);

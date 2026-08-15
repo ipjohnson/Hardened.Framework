@@ -805,12 +805,18 @@ public class SpecModelEqualityTests {
     }
 
     /// <summary>
-    /// Changing the view an operation renders through changes what the handler assigns to
-    /// <c>Response.TemplateName</c>.
+    /// A vendor extension Hardened does not read leaves the model unchanged, so editing one does
+    /// not invalidate an incremental build.
     /// </summary>
+    /// <remarks>
+    /// <c>x-hardened-template</c> was one such extension until this work removed it - which view
+    /// renders a response is not part of an HTTP contract, and reading it here created two sources
+    /// of truth with a precedence order. It is asserted with that name because that is the
+    /// regression worth catching: nothing should start reading it again.
+    /// </remarks>
     [Fact]
-    public void ChangingAnOperationsTemplateMakesTheModelUnequal() {
-        Assert.NotEqual(Parse(TemplatedWith("Fortunes")), Parse(TemplatedWith("FortunesCompact")));
+    public void AnExtensionHardenedDoesNotReadLeavesTheModelUnchanged() {
+        Assert.Equal(Parse(TemplatedWith("Fortunes")), Parse(TemplatedWith("FortunesCompact")));
     }
 
     private static string TemplatedWith(string template) =>

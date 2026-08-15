@@ -42,11 +42,13 @@ public class BenchmarkServiceImpl(BenchmarkData data) : IBenchmarkService {
     /// the added row lands in the middle rather than at the end.
     /// </summary>
     /// <remarks>
-    /// The view is named here rather than in the spec. The spec says this operation answers with
-    /// text/html, which is the contract; which template produces that HTML is how this
-    /// implementation chooses to fulfil it, and swapping engines should not edit the API document.
+    /// The view is named here rather than in the spec, and by type rather than by name. The spec
+    /// says this operation answers with text/html, which is the contract; which template produces
+    /// that HTML is how this implementation chooses to fulfil it, and swapping engines should not
+    /// edit the API document. Naming the type is also what makes a model mismatch a build error -
+    /// see the _templateCheck_ field the generator emits beside this handler.
     /// </remarks>
-    [Template("Fortunes")]
+    [Template<Views.Fortunes>]
     public Task<FortunePage> Fortunes() {
         var fortunes = data.Fortunes
             .Append(new Fortune(0, "Additional fortune added at request time."))

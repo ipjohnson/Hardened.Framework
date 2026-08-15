@@ -90,8 +90,8 @@ paths:
       operationId: fortunes
       responses:
         '200':
-          # No x-hardened-template. Which view renders this is the implementation's business -
-          # see [Template] on BenchmarkServiceImpl.Fortunes. The contract is that it is HTML.
+          # Which view renders this is the implementation's business - see [Template<T>] on
+          # BenchmarkServiceImpl.Fortunes. The contract is that it is HTML.
           description: The fortunes table, rendered as HTML
           content:
             text/html:

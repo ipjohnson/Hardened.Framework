@@ -11,7 +11,16 @@ public record ResponseInformationModel {
 
     public ITypeDefinition? ReturnType { get; set; }
 
-    public string? TemplateName { get; set; }
+    /// <summary>
+    /// The view named by <c>[Template&lt;T&gt;]</c>, or null.
+    /// </summary>
+    /// <remarks>
+    /// A type rather than a name, and that is the whole of the template design: the attribute is
+    /// applied in the application's own assembly, so RazorBlade's <c>internal</c> generated classes
+    /// are nameable there, and the compiler enforces both the interface and the parameterless
+    /// constructor at the attribute.
+    /// </remarks>
+    public ITypeDefinition? TemplateType { get; set; }
 
     public int? DefaultStatusCode { get; set; }
 
@@ -26,6 +35,6 @@ public record ResponseInformationModel {
     /// times as a side effect of adding or removing the template annotation.
     /// </remarks>
     public override string ToString() {
-        return $"{IsAsync}:{TemplateName}:{RawResponseContentType}:{ReturnType}";
+        return $"{IsAsync}:{TemplateType}:{RawResponseContentType}:{ReturnType}";
     }
 }

@@ -74,7 +74,8 @@ namespace Hardened.Web.AspNetCore.Runtime.Impl
         public bool ShouldCompress { get; set; }
         public bool ShouldSerialize { get; set; }
         public int? Status { get; set; }
-        public string? TemplateName { get; set; }
+        public Hardened.Requests.Abstract.Templates.IHardenedTemplate? Template { get; set; }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Templates.IHardenedTemplate>? TemplateFactory { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
     }
     public interface IAspNetCoreRequestHandler

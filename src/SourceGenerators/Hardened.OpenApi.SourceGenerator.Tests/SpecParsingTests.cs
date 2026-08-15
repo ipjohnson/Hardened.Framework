@@ -929,12 +929,19 @@ public class SpecParsingTests {
     }
 
     /// <summary>
-    /// <c>x-hardened-template</c> names the view an operation renders through. The content map
-    /// cannot carry this - it says the response is text/html, which is true and says nothing about
-    /// which view produced it.
+    /// An unknown extension is ignored rather than rejected, which is what lets a document carry
+    /// vendor extensions Hardened has no opinion about.
     /// </summary>
+    /// <remarks>
+    /// <c>x-hardened-template</c> used to be read here. It is gone: which server-side view renders
+    /// a response is not part of an HTTP contract - clients, gateways and documentation tooling
+    /// have no views, and a second implementation of the same specification in another language has
+    /// nothing to do with the value. It also created two sources of truth with a precedence order,
+    /// with the specification's value acting as a default the implementation overrode.
+    /// <c>[Template&lt;T&gt;]</c> on the implementation is where that is said now.
+    /// </remarks>
     [Fact]
-    public void AnOperationWithATemplateExtensionRecordsTheTemplateName() {
+    public void AnUnknownVendorExtensionIsIgnored() {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -953,15 +960,10 @@ public class SpecParsingTests {
                           schema: { type: string }
             """);
 
-        Assert.Equal("Fortunes", model.Services.Single().Operations.Single().TemplateName);
-    }
+        var operation = model.Services.Single().Operations.Single();
 
-    /// <summary>An operation without the extension records no template.</summary>
-    [Fact]
-    public void AnOperationWithoutATemplateExtensionRecordsNoTemplateName() {
-        var model = Parse(Specs.Minimal);
-
-        Assert.Null(model.Services.Single().Operations.Single().TemplateName);
+        Assert.Equal("fortunes", operation.OperationId);
+        Assert.Equal("text/html", operation.ResponseContentType);
     }
 
     /// <summary>

@@ -33,11 +33,11 @@ namespace Hardened.Requests.Abstract.Attributes
         public RawResponseAttribute(string contentType = "text/plain") { }
         public string ContentType { get; }
     }
-    [System.AttributeUsage(System.AttributeTargets.Method)]
-    public class TemplateAttribute : System.Attribute
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false, Inherited=false)]
+    public sealed class TemplateAttribute<TTemplate> : System.Attribute
+        where TTemplate : Hardened.Requests.Abstract.Templates.IHardenedTemplate, new ()
     {
-        public TemplateAttribute(string templateName) { }
-        public string TemplateName { get; }
+        public TemplateAttribute() { }
     }
 }
 namespace Hardened.Requests.Abstract.Authorization
@@ -178,7 +178,8 @@ namespace Hardened.Requests.Abstract.Execution
         bool ShouldCompress { get; set; }
         bool ShouldSerialize { get; set; }
         int? Status { get; set; }
-        string? TemplateName { get; set; }
+        Hardened.Requests.Abstract.Templates.IHardenedTemplate? Template { get; set; }
+        System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Templates.IHardenedTemplate>? TemplateFactory { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null);
     }
     public interface IFunctionHandlerProvider
@@ -436,12 +437,6 @@ namespace Hardened.Requests.Abstract.Templates
     public interface IHardenedTemplate<in TModel> : Hardened.Requests.Abstract.Templates.IHardenedTemplate
     {
         void Attach(TModel model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
-    }
-    public interface ITemplateEngine
-    {
-        bool CanRender(string templateName);
-        string? ContentTypeFor(string templateName);
-        System.Threading.Tasks.Task RenderAsync(string templateName, object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
     public class TemplateBaseAttribute : System.Attribute

@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Templates;
 using Hardened.Requests.Abstract.Headers;
 using Microsoft.Extensions.Primitives;
 
@@ -25,7 +26,9 @@ internal class FakeExecutionResponse : IExecutionResponse {
 
     public object? ResponseValue { get; set; }
 
-    public string? TemplateName { get; set; }
+    public Func<IExecutionContext, IHardenedTemplate>? TemplateFactory { get; set; }
+
+    public IHardenedTemplate? Template { get; set; }
 
     public bool ShouldCompress { get; set; }
 

@@ -6,156 +6,158 @@ using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Templates;
 using Hardened.Requests.Runtime.Tests.Support;
 using Microsoft.Extensions.Options;
-using NSubstitute;
 using Xunit;
 
 namespace Hardened.Requests.Runtime.Tests.Templates;
 
 /// <summary>
-/// Routing a response that names a template to an engine that can render it.
+/// Rendering a response that carries a view.
 /// </summary>
+/// <remarks>
+/// There is no engine and no registry here any more. The generated handler puts a factory on the
+/// response, this builds the view, hands it the model and asks it to write - so what used to be a
+/// name resolved through a dictionary of descriptors is a delegate and a virtual call.
+/// </remarks>
 public class TemplateResponseSerializerTests {
 
-    private static ITemplateEngine Engine(string? renders = null, string contentType = "text/html") {
-        var engine = Substitute.For<ITemplateEngine>();
+    /// <summary>A view that records what it was given and writes something recognisable.</summary>
+    private class RecordingTemplate : IHardenedTemplate {
+        public RecordingTemplate(string contentType = "text/html") {
+            ContentType = contentType;
+        }
 
-        engine.CanRender(Arg.Any<string>())
-            .Returns(call => renders != null && (string)call[0] == renders);
-        engine.ContentTypeFor(Arg.Any<string>())
-            .Returns(call => renders != null && (string)call[0] == renders ? contentType : null);
+        public string ContentType { get; }
 
-        return engine;
+        public object? AttachedModel { get; private set; }
+
+        public IExecutionContext? AttachedContext { get; private set; }
+
+        public int Renders { get; private set; }
+
+        public void Attach(object? model, IExecutionContext context) {
+            AttachedModel = model;
+            AttachedContext = context;
+        }
+
+        public async Task RenderAsync(TextWriter writer, CancellationToken cancellationToken = default) {
+            Renders++;
+
+            await writer.WriteAsync("rendered");
+        }
     }
 
-    private static IExecutionContext ContextFor(string? templateName, object? responseValue = null) {
-        var context = Pipeline.Context();
+    private static IExecutionContext ContextFor(
+        IHardenedTemplate? template, object? responseValue = null, string? accept = null) {
+        var context = accept == null ? Pipeline.Context() : Pipeline.Context(accept: accept);
 
-        context.Response.TemplateName = templateName;
+        if (template != null) {
+            context.Response.TemplateFactory = _ => template;
+        }
+
         context.Response.ResponseValue = responseValue;
 
         return context;
     }
 
     /// <summary>
-    /// A response with no template name is an ordinary response, and must fall through to the
-    /// serializer that would otherwise have handled it.
+    /// A response with no view is an ordinary response, and must fall through to the serializer
+    /// that would otherwise have handled it.
     /// </summary>
     [Fact]
-    public void CanProduce_FalseWithoutATemplateName() {
-        var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
-
-        Assert.False(serializer.CanProduce("text/html", ContextFor(null)));
-    }
-
-    /// <summary>
-    /// A name no engine knows is not this serializer's response either. Claiming it here would
-    /// turn a missing template into an exception in place of the JSON the request asked for.
-    /// </summary>
-    [Fact]
-    public void CanProduce_FalseWhenNoEngineKnowsTheName() {
-        var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
-
-        Assert.False(serializer.CanProduce("text/html", ContextFor("Missing")));
+    public void CanProduce_FalseWithoutATemplate() {
+        Assert.False(new TemplateResponseSerializer().CanProduce("text/html", ContextFor(null)));
     }
 
     [Fact]
-    public void CanProduce_TrueWhenTheEngineRendersThatMediaType() {
-        var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
-
-        Assert.True(serializer.CanProduce("text/html", ContextFor("Fortunes")));
+    public void CanProduce_TrueWhenTheTemplateProducesThatMediaType() {
+        Assert.True(new TemplateResponseSerializer()
+            .CanProduce("text/html", ContextFor(new RecordingTemplate())));
     }
 
     /// <summary>
     /// The response value is the model. Nothing else carries it - the handler's return value is
-    /// assigned to <c>ResponseValue</c> and the template name is assigned beside it.
+    /// assigned to <c>ResponseValue</c> and the factory is assigned beside it.
     /// </summary>
     [Fact]
-    public async Task SerializeResponse_PassesTheResponseValueAsTheModel() {
-        var engine = Engine("Fortunes");
+    public async Task SerializeResponse_AttachesTheResponseValueAsTheModel() {
+        var template = new RecordingTemplate();
         var model = new { Fortunes = 3 };
-        var context = ContextFor("Fortunes", model);
+        var context = ContextFor(template, model);
 
-        await new TemplateResponseSerializer(new[] { engine }).SerializeResponse(context);
+        await new TemplateResponseSerializer().SerializeResponse(context);
 
-        await engine.Received(1).RenderAsync("Fortunes", model, context);
+        Assert.Same(model, template.AttachedModel);
+        Assert.Same(context, template.AttachedContext);
+        Assert.Equal(1, template.Renders);
     }
 
     /// <summary>
-    /// Engines are tested in reverse registration order, so an application's engine is asked
-    /// before one the framework registered. This mirrors SerializationLocatorService rather than
-    /// inventing a second ordering rule.
+    /// A filter can replace the view after the handler chose one - a different view for mobile
+    /// than for desktop, an A/B test, an error view. That is the dynamic selection a template name
+    /// allowed, kept and typed.
     /// </summary>
     [Fact]
-    public async Task SerializeResponse_TheLastRegisteredEngineThatClaimsTheNameWins() {
-        var framework = Engine("Fortunes");
-        var application = Engine("Fortunes");
-        var context = ContextFor("Fortunes");
+    public async Task SerializeResponse_RendersWhicheverFactoryWasAssignedLast() {
+        var chosen = new RecordingTemplate();
+        var context = ContextFor(new RecordingTemplate());
 
-        await new TemplateResponseSerializer(new[] { framework, application }).SerializeResponse(context);
+        context.Response.TemplateFactory = _ => chosen;
 
-        await application.Received(1).RenderAsync("Fortunes", Arg.Any<object?>(), context);
-        await framework.DidNotReceive().RenderAsync(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<IExecutionContext>());
+        await new TemplateResponseSerializer().SerializeResponse(context);
+
+        Assert.Equal(1, chosen.Renders);
     }
 
     /// <summary>
-    /// An engine that does not claim the name is skipped rather than being handed a name it
-    /// already said it could not render.
+    /// The view is built once. Negotiation asks what a template produces once per media type the
+    /// client listed, and building one per question would allocate a view for a request that may
+    /// not be rendered as one at all.
     /// </summary>
     [Fact]
-    public async Task SerializeResponse_SkipsEnginesThatDoNotClaimTheName() {
-        var declines = Engine("Other");
-        var claims = Engine("Fortunes");
-        var context = ContextFor("Fortunes");
+    public async Task TheTemplateIsBuiltOnceAcrossNegotiationAndRendering() {
+        var built = 0;
+        var context = Pipeline.Context();
 
-        await new TemplateResponseSerializer(new[] { claims, declines }).SerializeResponse(context);
+        context.Response.TemplateFactory = _ => {
+            built++;
 
-        await claims.Received(1).RenderAsync("Fortunes", Arg.Any<object?>(), context);
-        await declines.DidNotReceive().RenderAsync(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<IExecutionContext>());
+            return new RecordingTemplate();
+        };
+
+        var serializer = new TemplateResponseSerializer();
+
+        serializer.CanProduce("application/json", context);
+        serializer.CanProduce("text/html", context);
+
+        await serializer.SerializeResponse(context);
+
+        Assert.Equal(1, built);
     }
 
-    /// <summary>
-    /// Reachable when a filter assigns a template name after selection has already run.
-    /// </summary>
+    /// <summary>Reachable when a filter clears the view after selection has already run.</summary>
     [Fact]
-    public async Task SerializeResponse_ThrowsWhenNoEngineClaimsTheName() {
-        var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => serializer.SerializeResponse(ContextFor("Missing")));
-
-        Assert.Contains("Missing", exception.Message);
-    }
-
-    [Fact]
-    public async Task SerializeResponse_ThrowsWhenThereIsNoTemplateName() {
-        var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
-
+    public async Task SerializeResponse_ThrowsWhenThereIsNoTemplate() {
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => serializer.SerializeResponse(ContextFor(null)));
+            () => new TemplateResponseSerializer().SerializeResponse(ContextFor(null)));
     }
 
     /// <summary>
     /// Never the fallback. A default serializer answers when nothing claims the context, and a
     /// template serializer volunteering there would meet every unmatched request with an exception
-    /// about a template name that was never set.
+    /// about a view that was never chosen.
     /// </summary>
     [Fact]
     public void IsDefaultSerializer_IsFalse() {
-        Assert.False(new TemplateResponseSerializer(Array.Empty<ITemplateEngine>()).IsDefaultSerializer);
+        Assert.False(new TemplateResponseSerializer().IsDefaultSerializer);
     }
 
     /// <summary>
     /// Ordered ahead of JSON, so a contested response goes to the template rather than to whichever
     /// implementation type name happened to sort later.
     /// </summary>
-    /// <remarks>
-    /// Read through the interface, because <c>Order</c> is a default interface member: a serializer
-    /// that does not implement it has no such member on the concrete type at all. That is what makes
-    /// adding it non-breaking for every serializer already out there.
-    /// </remarks>
     [Fact]
     public void Order_IsAheadOfTheJsonSerializers() {
-        IResponseSerializer template = new TemplateResponseSerializer(Array.Empty<ITemplateEngine>());
+        IResponseSerializer template = new TemplateResponseSerializer();
         IResponseSerializer json = new SystemTextJsonResponseSerializer(
             Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration()));
 
@@ -164,8 +166,8 @@ public class TemplateResponseSerializerTests {
     }
 
     /// <summary>
-    /// The template serializer declines a media type its template does not render, so a client
-    /// asking for JSON against a route that names a view gets JSON.
+    /// The template serializer declines a media type its view does not produce, so a client asking
+    /// for JSON against a route that renders a view gets JSON.
     /// </summary>
     /// <remarks>
     /// It used to claim any response carrying a template name, whatever the client asked for, and
@@ -174,23 +176,35 @@ public class TemplateResponseSerializerTests {
     /// never a safe question to answer on its own.
     /// </remarks>
     [Fact]
-    public void CanProduce_FalseForAMediaTypeTheTemplateDoesNotRender() {
-        var serializer = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
-
-        Assert.False(serializer.CanProduce("application/json", ContextFor("Fortunes")));
+    public void CanProduce_FalseForAMediaTypeTheTemplateDoesNotProduce() {
+        Assert.False(new TemplateResponseSerializer()
+            .CanProduce("application/json", ContextFor(new RecordingTemplate())));
     }
 
     /// <summary>
-    /// The media type comes from the template, not from the serializer - the same engine renders
-    /// html views and plain-text ones.
+    /// The media type comes from the view, not from the serializer - an HTML base and a plain-text
+    /// base render the same way and answer differently.
     /// </summary>
     [Fact]
-    public void CanProduce_UsesTheContentTypeTheEngineReportsForThatTemplate() {
-        var serializer = new TemplateResponseSerializer(
-            new[] { Engine("Receipt", contentType: "text/plain") });
+    public void CanProduce_UsesTheContentTypeTheTemplateReports() {
+        var serializer = new TemplateResponseSerializer();
 
-        Assert.True(serializer.CanProduce("text/plain", ContextFor("Receipt")));
-        Assert.False(serializer.CanProduce("text/html", ContextFor("Receipt")));
+        Assert.True(serializer.CanProduce("text/plain", ContextFor(new RecordingTemplate("text/plain"))));
+        Assert.False(serializer.CanProduce("text/html", ContextFor(new RecordingTemplate("text/plain"))));
+    }
+
+    /// <summary>
+    /// The view fills in a blank content type rather than overwriting one a handler committed to.
+    /// </summary>
+    [Fact]
+    public async Task SerializeResponse_DoesNotOverwriteAContentTypeTheHandlerChose() {
+        var context = ContextFor(new RecordingTemplate());
+
+        context.Response.ContentType = "text/html; charset=iso-8859-1";
+
+        await new TemplateResponseSerializer().SerializeResponse(context);
+
+        Assert.Equal("text/html; charset=iso-8859-1", context.Response.ContentType);
     }
 
     /// <summary>
@@ -202,15 +216,12 @@ public class TemplateResponseSerializerTests {
         var json = new SystemTextJsonResponseSerializer(
             Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration()));
 
-        var template = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
-
-        var context = Pipeline.Context(accept: "*/*");
-        context.Response.TemplateName = "Fortunes";
+        var template = new TemplateResponseSerializer();
 
         var chosen = new SerializationLocatorService(
                 Array.Empty<IRequestDeserializer>(),
                 new IResponseSerializer[] { template, json })
-            .FindResponseSerializer(context);
+            .FindResponseSerializer(ContextFor(new RecordingTemplate(), accept: "*/*"));
 
         Assert.Same(template, chosen);
     }
@@ -221,15 +232,13 @@ public class TemplateResponseSerializerTests {
         var json = new SystemTextJsonResponseSerializer(
             Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration()));
 
-        var template = new TemplateResponseSerializer(new[] { Engine("Fortunes") });
-
-        var context = Pipeline.Context(accept: "application/json,text/html;q=0.9");
-        context.Response.TemplateName = "Fortunes";
+        var template = new TemplateResponseSerializer();
 
         var chosen = new SerializationLocatorService(
                 Array.Empty<IRequestDeserializer>(),
                 new IResponseSerializer[] { template, json })
-            .FindResponseSerializer(context);
+            .FindResponseSerializer(
+                ContextFor(new RecordingTemplate(), accept: "application/json,text/html;q=0.9"));
 
         Assert.Same(json, chosen);
     }

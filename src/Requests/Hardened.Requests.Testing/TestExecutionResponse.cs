@@ -1,5 +1,6 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Templates;
 using Hardened.Requests.Runtime.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Primitives;
@@ -15,7 +16,8 @@ public class TestExecutionResponse : IExecutionResponse {
     public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
         return new TestExecutionResponse(Body) {
             ResponseValue = ResponseValue,
-            TemplateName = TemplateName,
+            TemplateFactory = TemplateFactory,
+            Template = Template,
             Status = Status,
             ShouldCompress = ShouldCompress,
             Headers = headerCollection as IDictionary<string, StringValues> ?? Headers,
@@ -31,7 +33,9 @@ public class TestExecutionResponse : IExecutionResponse {
 
     public object? ResponseValue { get; set; }
 
-    public string? TemplateName { get; set; }
+    public Func<IExecutionContext, IHardenedTemplate>? TemplateFactory { get; set; }
+
+    public IHardenedTemplate? Template { get; set; }
 
     public int? Status { get; set; }
 

@@ -72,6 +72,8 @@ public static class KnownTypes {
                     public const string Serializer = "Hardened.Requests.Abstract.Serializer";
 
                     public const string PathTokens = "Hardened.Requests.Abstract.PathTokens";
+
+                    public const string Templates = "Hardened.Requests.Abstract.Templates";
                 }
 
                 public static class Runtime {
@@ -193,6 +195,10 @@ public static class KnownTypes {
 
         public static ITypeDefinition DefaultOutputFunc =
             TypeDefinition.Get(Namespace.Hardened.Requests.Abstract.Execution, "DefaultOutputFunc");
+
+        public static readonly ITypeDefinition IHardenedTemplate =
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition,
+                Namespace.Hardened.Requests.Abstract.Templates, "IHardenedTemplate");
 
         public static readonly ITypeDefinition IExecutionFilter =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,

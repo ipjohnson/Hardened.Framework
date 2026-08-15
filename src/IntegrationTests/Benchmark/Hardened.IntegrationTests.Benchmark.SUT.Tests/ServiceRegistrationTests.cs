@@ -1,8 +1,5 @@
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Templates;
-using Hardened.Requests.Abstract.Templates;
-using Hardened.Templates.RazorBlade;
-using Hardened.Templates.RazorBlade.Impl;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
@@ -23,6 +20,11 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// <para>
 /// Route tests catch the symptom. These catch the cause, and would catch it again for any service
 /// resolved as a set that someone registers with <c>Try</c>.
+/// </para>
+/// <para>
+/// There is nothing template-specific left to register. A view renders itself now - the generated
+/// handler carries a factory and the serializer builds it - so the engine, the template source and
+/// the name-keyed registry they existed to serve are all gone.
 /// </para>
 /// </remarks>
 public class ServiceRegistrationTests {
@@ -52,19 +54,5 @@ public class ServiceRegistrationTests {
     [Fact]
     public void ResponseSerializersResolveAsASetRatherThanASingleWinner() {
         Assert.True(RegistrationsFor(typeof(IResponseSerializer)).Count > 1);
-    }
-
-    /// <summary>
-    /// Same shape, same reason: <c>ITemplateEngine</c> is resolved as a set so an application can
-    /// add an engine for a subset of its views, and <c>Try</c> would make a second one impossible.
-    /// </summary>
-    [Fact]
-    public void TheRazorBladeEngineIsRegistered() {
-        Assert.Contains(nameof(RazorBladeTemplateEngine), RegistrationsFor(typeof(ITemplateEngine)));
-    }
-
-    [Fact]
-    public void TheApplicationsTemplateSourceIsRegistered() {
-        Assert.Contains(nameof(BenchmarkTemplates), RegistrationsFor(typeof(IRazorBladeTemplateSource)));
     }
 }

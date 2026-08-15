@@ -1,5 +1,6 @@
 using CSharpAuthor;
 using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -54,10 +55,13 @@ internal static class HandlerSelector {
                 methodDeclaration.AttributeLists,
                 cancellationToken).ToList();
 
-            if (methodAttrs.Count > 0) {
+            var templateType = TemplateAttributeSelector.Read(context, methodDeclaration);
+
+            if (methodAttrs.Count > 0 || templateType != null) {
                 methodFilters.Add(new HandlerMethodFilterInfo(
                     methodDeclaration.Identifier.Text,
-                    methodAttrs));
+                    methodAttrs,
+                    templateType));
             }
         }
 

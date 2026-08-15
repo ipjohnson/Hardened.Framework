@@ -29,7 +29,7 @@ public static class InvokeMethodCodeGenerator {
             invokeStatement = Await(invokeStatement);
         }
 
-        AssignTemplateName(requestHandlerModel, invokeMethod, context);
+        AssignTemplateFactory(requestHandlerModel, invokeMethod, context);
         AssignRawContentType(requestHandlerModel, invokeMethod, context);
 
         if (requestHandlerModel.ResponseInformation.ReturnType != null && 
@@ -42,35 +42,29 @@ public static class InvokeMethodCodeGenerator {
     }
 
     /// <summary>
-    /// Puts the handler's <c>[Template]</c> name on the response, when it declares one.
+    /// Puts the handler's <c>[Template&lt;T&gt;]</c> factory on the response, when it declares one.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The attribute is an annotation and nothing more - the engine that used to read it was
-    /// removed in #101, and the renderer that will replace it does not exist yet. What this does is
-    /// make the annotation <em>reachable</em>: the name is known at build time and the thing that
-    /// will want it runs per request, so the generated handler is the only place the two meet.
-    /// </para>
-    /// <para>
-    /// Without it <c>IExecutionResponse.TemplateName</c> is decoration. That is exactly the state
-    /// #101 found the property in - "never assigned, never read" - and the reason it was deleted
-    /// along with the engine. Re-adding the property and not assigning it would earn the same
-    /// verdict a second time.
+    /// The build-time and run-time halves of a template meet here and nowhere else: the view type
+    /// is known when the handler is generated, and the thing that renders it runs per request.
     /// </para>
     /// <para>
     /// Assigned before the handler is invoked rather than after, so a handler that wants to choose
-    /// its own view can overwrite it through the response it was handed.
+    /// its own view - mobile against desktop, an A/B test, an error view - can overwrite it through
+    /// the response it was handed. That is the dynamic selection a template name allowed, kept, and
+    /// typed.
     /// </para>
     /// </remarks>
-    private static void AssignTemplateName(
+    private static void AssignTemplateFactory(
         RequestHandlerModel requestHandlerModel, MethodDefinition invokeMethod, ParameterDefinition context) {
-        var templateName = requestHandlerModel.ResponseInformation.TemplateName;
-
-        if (string.IsNullOrEmpty(templateName)) {
+        if (requestHandlerModel.ResponseInformation.TemplateType == null) {
             return;
         }
 
-        invokeMethod.Assign(QuoteString(templateName!)).To(context.Property("Response.TemplateName"));
+        invokeMethod
+            .Assign(CodeOutputComponent.Get(TemplateFactoryGenerator.FactoryField))
+            .To(context.Property("Response.TemplateFactory"));
     }
 
     /// <summary>

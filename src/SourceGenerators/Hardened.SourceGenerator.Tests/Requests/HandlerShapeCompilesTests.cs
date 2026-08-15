@@ -274,15 +274,14 @@ public class HandlerShapeCompilesTests {
 
 
     /// <summary>
-    /// <c>[Template]</c> and <c>[RawResponse]</c> are read as response information, not as filters,
-    /// so neither reaches the metadata array. A handler carrying only one of them has no metadata
-    /// at all — which is also the shape that broke the parameters slot.
+    /// <c>[RawResponse]</c> is read as response information, not as a filter, so it does not reach
+    /// the metadata array. A handler carrying only that has no metadata at all - which is also the
+    /// shape that broke the parameters slot.
     /// </summary>
     [Fact]
-    public void TemplateAndRawResponseAreNotTreatedAsFilters() {
+    public void RawResponseIsNotTreatedAsAFilter() {
         var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
                 [Get("/page")]
-                [Template("Index")]
                 [RawResponse("text/html")]
                 public string Page() => "x";
             """)).AssertNoErrors();
@@ -291,30 +290,8 @@ public class HandlerShapeCompilesTests {
     }
 
     /// <summary>
-    /// The template name reaches the response, which is the only thing that makes the annotation
-    /// worth carrying.
-    /// </summary>
-    /// <remarks>
-    /// <c>[Template]</c> names a view at build time and whatever renders it runs per request, so
-    /// the generated handler is where the two meet. Without this the attribute is read, put on a
-    /// model, and dropped - which is the state <c>IExecutionResponse.TemplateName</c> was deleted in
-    /// (#101: "never assigned, never read"), and re-adding the property without assigning it would
-    /// have earned that verdict a second time.
-    /// </remarks>
-    [Fact]
-    public void ATemplateNameIsPutOnTheResponse() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/page")]
-                [Template("Index")]
-                public string Page() => "x";
-            """)).AssertNoErrors();
-
-        Assert.Contains("context.Response.TemplateName = \"Index\"", result.SourceContaining("Page"));
-    }
-
-    /// <summary>
-    /// A handler without the attribute assigns nothing, so the property stays null for the
-    /// overwhelming majority of handlers rather than being set to an empty string.
+    /// A handler with no <c>[Template&lt;T&gt;]</c> assigns no factory, so the property stays null
+    /// for the overwhelming majority of handlers and the template serializer declines them.
     /// </summary>
     [Fact]
     public void AHandlerWithoutATemplateAssignsNothing() {
@@ -323,6 +300,6 @@ public class HandlerShapeCompilesTests {
                 public string Plain() => "x";
             """)).AssertNoErrors();
 
-        Assert.DoesNotContain("TemplateName", result.SourceContaining("Plain"));
+        Assert.DoesNotContain("TemplateFactory", result.SourceContaining("Plain"));
     }
 }
