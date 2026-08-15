@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.AspNetCore.Runtime.Impl;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
@@ -80,5 +81,77 @@ public class AspNetExecutionResponseTests {
         var clone = response.Clone(null);
 
         Assert.Null(clone.Status);
+    }
+
+    /// <summary>
+    /// A cookie set by a handler has to reach the client, which over HTTP means a Set-Cookie
+    /// header on the response.
+    /// </summary>
+    /// <remarks>
+    /// The collection had no reader on this host either: Append stored into a dictionary nothing
+    /// serialised, so the call compiled, ran, and the client never saw it. Same defect as the
+    /// Kestrel host, and the same one Hardened.Amz fixed on 2026-08-11.
+    /// </remarks>
+    [Fact]
+    public void AppendingACookieWritesASetCookieHeader() {
+        var httpContext = new DefaultHttpContext();
+        var response = new AspNetExecutionResponse(httpContext.Response);
+
+        response.Cookies.Append("session", "abc123");
+
+        Assert.Equal("session=abc123; HttpOnly; Secure", httpContext.Response.Headers["Set-Cookie"]);
+    }
+
+    [Fact]
+    public void AppendingSeveralCookiesWritesAHeaderForEach() {
+        var httpContext = new DefaultHttpContext();
+        var response = new AspNetExecutionResponse(httpContext.Response);
+
+        response.Cookies.Append("first", "1");
+        response.Cookies.Append("second", "2");
+
+        var written = httpContext.Response.Headers["Set-Cookie"];
+
+        Assert.Equal(2, written.Count);
+        Assert.Contains(written.ToArray(), v => v!.StartsWith("first=1"));
+        Assert.Contains(written.ToArray(), v => v!.StartsWith("second=2"));
+    }
+
+    /// <summary>Last write for a name wins, matching the other collections.</summary>
+    [Fact]
+    public void AppendingTheSameCookieTwiceKeepsOnlyTheLastValue() {
+        var httpContext = new DefaultHttpContext();
+        var response = new AspNetExecutionResponse(httpContext.Response);
+
+        response.Cookies.Append("session", "first");
+        response.Cookies.Append("session", "second");
+
+        var written = httpContext.Response.Headers["Set-Cookie"];
+
+        Assert.Equal(1, written.Count);
+        Assert.StartsWith("session=second", written.ToString());
+    }
+
+    [Fact]
+    public void CookieOptionsAreSerialisedOntoTheHeader() {
+        var httpContext = new DefaultHttpContext();
+        var response = new AspNetExecutionResponse(httpContext.Response);
+
+        response.Cookies.Append("session", "abc",
+            new CookieSetOptions(Path: "/api", SameSite: SameSite.Strict));
+
+        var written = httpContext.Response.Headers["Set-Cookie"].ToString();
+
+        Assert.Contains("Path=/api", written);
+        Assert.Contains("SameSite=Strict", written);
+    }
+
+    /// <summary>A response that sets no cookie allocates no collection.</summary>
+    [Fact]
+    public void AResponseThatSetsNoCookieWritesNoHeader() {
+        var httpContext = new DefaultHttpContext();
+        _ = new AspNetExecutionResponse(httpContext.Response);
+
+        Assert.False(httpContext.Response.Headers.ContainsKey("Set-Cookie"));
     }
 }
