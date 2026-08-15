@@ -44,10 +44,16 @@
         <HardenedOpenApiTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\bin\$(Configuration)\net8.0\Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
     </PropertyGroup>
 
-    <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
-
     <ItemGroup>
         <HardenedOpenApiSpec Include="Specs\benchmark.yaml"/>
     </ItemGroup>
+
+    <!--
+        Imported after the specs, which is where a package's build/*.targets lands anyway. The
+        targets file puts the generated sources into @(Compile) from a top-level ItemGroup so the
+        IDE sees them without a build, and top-level item groups are evaluated in document order -
+        so an import above @(HardenedOpenApiSpec) reads it as empty and contributes nothing.
+    -->
+    <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
 
 </Project>
