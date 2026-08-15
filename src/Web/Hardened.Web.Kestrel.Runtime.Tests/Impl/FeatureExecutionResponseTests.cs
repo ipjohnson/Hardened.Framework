@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Kestrel.Runtime.Impl;
 using Xunit;
 
@@ -133,5 +134,69 @@ public class FeatureExecutionResponseTests {
         await Response(features).CompleteAsync();
 
         Assert.Equal(1, features.ResponseBody.CompleteCount);
+    }
+
+    /// <summary>
+    /// A cookie set by a handler has to reach the client, which over HTTP means a Set-Cookie
+    /// header on the response the server writes.
+    /// </summary>
+    /// <remarks>
+    /// The collection had no reader on this host: Append stored into a dictionary nothing
+    /// serialised, so the call compiled, ran, and the client never saw it. Hardened.Amz carried the
+    /// same defect until 2026-08-11, where it at least threw NotImplementedException rather than
+    /// silently accepting the cookie.
+    /// </remarks>
+    [Fact]
+    public void AppendingACookieWritesASetCookieHeader() {
+        var features = new ServerFeatures();
+        var response = new FeatureExecutionResponse(features.Response, features.ResponseBody);
+
+        response.Cookies.Append("session", "abc123");
+
+        Assert.Equal("session=abc123; HttpOnly; Secure", features.Response.Headers["Set-Cookie"]);
+    }
+
+    [Fact]
+    public void AppendingSeveralCookiesWritesAHeaderForEach() {
+        var features = new ServerFeatures();
+        var response = new FeatureExecutionResponse(features.Response, features.ResponseBody);
+
+        response.Cookies.Append("first", "1");
+        response.Cookies.Append("second", "2");
+
+        var written = features.Response.Headers["Set-Cookie"];
+
+        Assert.Equal(2, written.Count);
+        Assert.Contains(written.ToArray(), v => v!.StartsWith("first=1"));
+        Assert.Contains(written.ToArray(), v => v!.StartsWith("second=2"));
+    }
+
+    /// <summary>Last write for a name wins, which is the semantic Hardened.Amz documents.</summary>
+    [Fact]
+    public void AppendingTheSameCookieTwiceKeepsOnlyTheLastValue() {
+        var features = new ServerFeatures();
+        var response = new FeatureExecutionResponse(features.Response, features.ResponseBody);
+
+        response.Cookies.Append("session", "first");
+        response.Cookies.Append("session", "second");
+
+        var written = features.Response.Headers["Set-Cookie"];
+
+        Assert.Equal(1, written.Count);
+        Assert.StartsWith("session=second", written.ToString());
+    }
+
+    [Fact]
+    public void CookieOptionsAreSerialisedOntoTheHeader() {
+        var features = new ServerFeatures();
+        var response = new FeatureExecutionResponse(features.Response, features.ResponseBody);
+
+        response.Cookies.Append("session", "abc",
+            new CookieSetOptions(Path: "/api", SameSite: SameSite.Strict));
+
+        var written = features.Response.Headers["Set-Cookie"].ToString();
+
+        Assert.Contains("Path=/api", written);
+        Assert.Contains("SameSite=Strict", written);
     }
 }

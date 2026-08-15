@@ -290,6 +290,12 @@ namespace Hardened.Requests.Runtime.Headers
         public bool TryGet(string key, out Microsoft.Extensions.Primitives.StringValues value) { }
         public bool TryGetValue(string key, out Microsoft.Extensions.Primitives.StringValues value) { }
     }
+    public class HeaderCookieSetCollection : Hardened.Requests.Abstract.Headers.ICookieSetCollection
+    {
+        public HeaderCookieSetCollection(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Tuple<string, Hardened.Requests.Abstract.Headers.CookieSetOptions>> Cookies { get; }
+        public void Append(string cookieName, string cookieValue, Hardened.Requests.Abstract.Headers.CookieSetOptions? options = null) { }
+    }
 }
 namespace Hardened.Requests.Runtime.Logging
 {
