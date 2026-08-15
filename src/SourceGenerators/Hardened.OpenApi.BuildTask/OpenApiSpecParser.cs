@@ -719,6 +719,15 @@ internal static class OpenApiSpecParser {
                 opModel.TemplateName = templateName.Value;
             }
 
+            // x-hardened-raw-bytes opts the signature into byte[] for a response the spec types as
+            // a string. Also not something the content map can say: text/plain describes the wire,
+            // not whether the application holds the payload already encoded.
+            if (operation.Extensions != null &&
+                operation.Extensions.TryGetValue("x-hardened-raw-bytes", out var rawBytesExt) &&
+                rawBytesExt is OpenApiBoolean { Value: true }) {
+                opModel.RawBytesResponse = true;
+            }
+
             if (!operationsByTag.TryGetValue(tag, out var list)) {
                 list = new List<OperationModel>();
                 operationsByTag[tag] = list;

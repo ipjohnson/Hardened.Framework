@@ -330,6 +330,12 @@ internal static class RequestModelBuilder {
             }
         }
 
+        // byte[] in place of the string the schema asked for, when the operation opted in. Written
+        // before the Task<> wrap so the signature comes out Task<byte[]>.
+        if (operation.RawBytesResponse) {
+            returnType = TypeDefinition.Get(typeof(byte[]));
+        }
+
         if (returnType != null) {
             returnType = new GenericTypeDefinition(typeof(Task<>), new[] { returnType });
         }
@@ -340,5 +346,6 @@ internal static class RequestModelBuilder {
             TemplateName = operation.TemplateName
         };
     }
+
 
 }

@@ -48,6 +48,19 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// </summary>
     public string? TemplateName { get; set; }
 
+    /// <summary>
+    /// Opt in to a <c>byte[]</c> signature for a response the spec types as a string.
+    /// </summary>
+    /// <remarks>
+    /// The default stays <c>string</c>, which is what <c>type: string</c> means and what a caller
+    /// reading the document expects. <c>byte[]</c> is a performance choice about a payload the
+    /// application already holds encoded: RawOutputHelper writes a byte[] straight to the body,
+    /// where a string is UTF-8 encoded into a fresh array on every request. It only pays when the
+    /// value is cached - encoding per request just moves the allocation - so it is the author's
+    /// call rather than something inferred from the schema.
+    /// </remarks>
+    public bool RawBytesResponse { get; set; }
+
     // x-filters: typed filter attribute instances applied to this operation
     public List<FilterInstanceModel> FilterInstances { get; set; } = new();
 
