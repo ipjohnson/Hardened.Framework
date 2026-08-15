@@ -2,4 +2,47 @@
   <ItemGroup Condition="'$(PackageHardenedIncludeSource)' == 'true'">
     <Compile Include="$(MSBuildThisFileDirectory)../src/**/*.cs" Visible="false"/>
   </ItemGroup>
+
+  <!--
+    This package ships as source: the files above are compiled into the referencing assembly,
+    which is what keeps a Roslyn analyzer self-contained. They use CSharpAuthor, so the version
+    of CSharpAuthor the *consumer* resolves has to be new enough for them - and nothing says so.
+    CSharpAuthor is referenced here with PrivateAssets=all, deliberately, so no dependency
+    constraint reaches consumers to be checked. Flowing one instead would put a CSharpAuthor.dll
+    next to the analyzer, which is the FileNotFoundException that arrangement exists to avoid;
+    see SourceGenerators/CSharpAuthor.props.
+
+    So the check is here. Without it the failure arrives as errors inside this package's own
+    source, at paths under ~/.nuget/packages, naming CSharpAuthor APIs the reader never wrote:
+
+      hardened.sourcegenerator/<v>/src/Hardened.SourceGenerator/Links/LinkGenerator.cs(309,73):
+        error CS0117: 'ComponentModifier' does not contain a definition for 'Sealed'
+
+    Hardened.Amz hit exactly that, pinned at 1.1.1006 against a framework built on 1.1.1010.
+
+    Set HardenedSkipCSharpAuthorVersionCheck=true to opt out.
+  -->
+  <Target Name="HardenedVerifyCSharpAuthorVersion"
+          BeforeTargets="CoreCompile"
+          Condition="'$(PackageHardenedIncludeSource)' == 'true' and '$(HardenedSkipCSharpAuthorVersionCheck)' != 'true'">
+
+    <PropertyGroup>
+      <_HardenedCSharpAuthorRequired>1.1.1010</_HardenedCSharpAuthorRequired>
+
+      <!-- A direct reference first; then central package management, where PackageReference
+           carries no version and PackageVersion holds it. -->
+      <_HardenedCSharpAuthorFound>@(PackageReference->WithMetadataValue('Identity', 'CSharpAuthor')->'%(Version)')</_HardenedCSharpAuthorFound>
+      <_HardenedCSharpAuthorFound Condition="'$(_HardenedCSharpAuthorFound)' == ''">@(PackageVersion->WithMetadataValue('Identity', 'CSharpAuthor')->'%(Version)')</_HardenedCSharpAuthorFound>
+
+      <!-- Only a plain dotted number can be compared. A floating or prerelease version is left
+           alone rather than guessed at - a check that throws on an input it did not expect is
+           worse than the error it was added to replace. -->
+      <_HardenedCSharpAuthorComparable
+          Condition="'$(_HardenedCSharpAuthorFound)' != '' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(_HardenedCSharpAuthorFound)', '^[0-9]+(\.[0-9]+){1,3}$'))">true</_HardenedCSharpAuthorComparable>
+    </PropertyGroup>
+
+    <Error Condition="'$(_HardenedCSharpAuthorComparable)' == 'true' and $([System.Version]::Parse('$(_HardenedCSharpAuthorFound)').CompareTo($([System.Version]::Parse('$(_HardenedCSharpAuthorRequired)')))) &lt; 0"
+           Code="HARDENED001"
+           Text="CSharpAuthor $(_HardenedCSharpAuthorFound) is older than $(_HardenedCSharpAuthorRequired), which Hardened.SourceGenerator's source needs. It is compiled into this project, so it fails here rather than in the package. Raise the CSharpAuthor version to $(_HardenedCSharpAuthorRequired) or later." />
+  </Target>
 </Project>

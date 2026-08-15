@@ -540,9 +540,18 @@ public static class RoutingTableGenerator {
         var matchIfHandlerBlock =
             ifStatement.If(NotEquals(handlerInfo, Null()));
 
+        // Only a real match has somewhere to put the value. A path that matched under another verb
+        // comes back as a RequestHandlerInfo too - non-null, with a null Handler - and it carries
+        // PathTokenCollection.Empty, so writing a token into it throws IndexOutOfRangeException and
+        // takes down a request that was on its way to an ordinary 405. That info is also a static
+        // field shared by every leaf allowing the same verbs, so the write would be cross-request
+        // mutation of shared state if the collection had been long enough to accept it.
+        var realMatchBlock =
+            matchIfHandlerBlock.If(NotEquals(handlerInfo.Property("Handler"), Null()));
+
         // The value is positional. Its name belongs to whichever route matched, which is
         // only known further down, so the collection was created with that route's names.
-        matchIfHandlerBlock.AddIndentedStatement(
+        realMatchBlock.AddIndentedStatement(
             handlerInfo.Property("PathTokens").Invoke(
                 "SetValue",
                 wildCardNode.WildCardDepth - 1,

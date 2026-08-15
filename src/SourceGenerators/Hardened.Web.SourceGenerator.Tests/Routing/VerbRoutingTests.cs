@@ -111,6 +111,46 @@ public class VerbRoutingTests {
     }
 
     /// <summary>
+    /// The same, on a route with a token that is not the last segment.
+    /// </summary>
+    /// <remarks>
+    /// A trailing token is bound where the leaf is chosen, so it already knows whether a handler
+    /// was found. An earlier token is bound on the way down, against whatever the descent returned
+    /// - and a path matched under another verb returns a <c>RequestHandlerInfo</c> as well: non-null,
+    /// with a null <c>Handler</c> and <c>PathTokenCollection.Empty</c>. Writing a token into that
+    /// threw <c>IndexOutOfRangeException</c> and took down a request on its way to an ordinary 405.
+    ///
+    /// It survived <see cref="AVerbWithNoRouteOnAKnownPathReportsWhatIsAllowed"/> because
+    /// <c>/items/{id}</c> has only the trailing kind. It took two tokens to reach, and was found
+    /// from Hardened.Amz rather than from here.
+    /// </remarks>
+    [Fact]
+    public void AVerbWithNoRouteIsReportedOnAPathWhoseTokensAreNotAllTrailing() {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class BookController {
+                [Get("/{author}/{name}")]
+                public string GetBook(string author, string name) => author + name;
+            }
+            """);
+
+        Assert.NotNull(routing.Route("GET", "/tolkien/the-hobbit"));
+
+        var rejected = routing.Route("DELETE", "/tolkien/the-hobbit");
+
+        Assert.NotNull(rejected);
+        Assert.Null(rejected!.Handler);
+        Assert.Equal("GET, HEAD", rejected.Allow);
+    }
+
+    /// <summary>
     /// HEAD is in the Allow header, because a client reading it is being told what it may call -
     /// and the fall-through means it may call HEAD.
     /// </summary>
