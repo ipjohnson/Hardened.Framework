@@ -1,5 +1,16 @@
 namespace Hardened.Templates.RazorBlade
 {
+    public abstract class HardenedHtmlTemplate<TModel> : RazorBlade.HtmlTemplate, Hardened.Requests.Abstract.Templates.IHardenedTemplate, Hardened.Requests.Abstract.Templates.IHardenedTemplate<TModel>
+    {
+        protected HardenedHtmlTemplate() { }
+        public virtual string ContentType { get; }
+        protected Hardened.Requests.Abstract.Execution.IExecutionContext Context { get; }
+        public TModel Model { get; }
+        public void Attach(TModel model, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    [Hardened.Requests.Abstract.Templates.TemplateBase(typeof(Hardened.Templates.RazorBlade.HardenedHtmlTemplate<TModel>))]
+    [Hardened.Requests.Abstract.Templates.TemplateContentType("text/html; charset=utf-8")]
+    public sealed class HardenedRazorTemplate { }
     public interface IRazorBladeTemplateSource
     {
         System.Collections.Generic.IEnumerable<Hardened.Templates.RazorBlade.RazorBladeTemplateDescriptor> Templates { get; }

@@ -2,6 +2,7 @@
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Templates;
 using Hardened.SourceGenerator.Validation;
 using Microsoft.CodeAnalysis;
 
@@ -28,6 +29,13 @@ public static class WebIncrementalGenerator {
             modelProvider,
             SourceGeneratorWrapper.Wrap<RequestHandlerModel>(invokeGenerator.GenerateSource)
         );
+
+        // One abstract base per [Enable<T>] marker, off the entry point alone - it depends on no
+        // handler, and pairing it with the handler collection would rebuild every template base
+        // whenever any route changed.
+        initializationContext.RegisterSourceOutput(
+            entryPointProvider,
+            SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(TemplateBaseGenerator.Generate));
 
         var collection = modelProvider.Collect();
 

@@ -427,11 +427,33 @@ namespace Hardened.Requests.Abstract.Serializer
 }
 namespace Hardened.Requests.Abstract.Templates
 {
+    public interface IHardenedTemplate
+    {
+        string ContentType { get; }
+        void Attach(object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.Task RenderAsync(System.IO.TextWriter writer, System.Threading.CancellationToken cancellationToken = default);
+    }
+    public interface IHardenedTemplate<in TModel> : Hardened.Requests.Abstract.Templates.IHardenedTemplate
+    {
+        void Attach(TModel model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
     public interface ITemplateEngine
     {
         bool CanRender(string templateName);
         string? ContentTypeFor(string templateName);
         System.Threading.Tasks.Task RenderAsync(string templateName, object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public class TemplateBaseAttribute : System.Attribute
+    {
+        public TemplateBaseAttribute(System.Type baseType) { }
+        public System.Type BaseType { get; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public class TemplateContentTypeAttribute : System.Attribute
+    {
+        public TemplateContentTypeAttribute(string contentType) { }
+        public string ContentType { get; }
     }
 }
 namespace Hardened.Requests.Abstract.Utilities

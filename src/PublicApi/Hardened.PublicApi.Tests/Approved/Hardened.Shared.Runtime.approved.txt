@@ -64,6 +64,11 @@ namespace Hardened.Shared.Runtime.Attributes
     {
         public ConfigurationProviderAttribute() { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class, AllowMultiple=true, Inherited=false)]
+    public class EnableAttribute<TFeature> : System.Attribute
+    {
+        public EnableAttribute() { }
+    }
     public class FromEnvironmentVariableAttribute : System.Attribute
     {
         public FromEnvironmentVariableAttribute(string environmentVariable) { }
