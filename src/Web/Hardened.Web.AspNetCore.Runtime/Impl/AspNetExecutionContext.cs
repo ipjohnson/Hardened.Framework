@@ -233,7 +233,16 @@ public class AspNetExecutionResponse : IExecutionResponse {
 
     public bool IsBinary { get; set; }
 
-    public ICookieSetCollection Cookies { get; } = new CookieSetCollectionImpl();
+    /// <summary>
+    /// Header backed, and lazily. Over HTTP a cookie reaches the client as <c>Set-Cookie</c>, and
+    /// nothing on this host serialised the recording collection that used to sit here — so
+    /// <c>Response.Cookies.Append(...)</c> compiled, ran, and the client never saw it. The same
+    /// defect the Kestrel host had, and the one Hardened.Amz fixed on 2026-08-11.
+    /// </summary>
+    public ICookieSetCollection Cookies =>
+        _cookies ??= new HeaderCookieSetCollection(_httpResponse.Headers);
+
+    private ICookieSetCollection? _cookies;
 
     public bool ShouldSerialize { get; set; } = true;
 }

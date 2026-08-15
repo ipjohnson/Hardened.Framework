@@ -32,22 +32,32 @@
 
     <!--
         In-repo wiring for the build task, matching the OpenApi SUT. The ProjectReference exists
-        only to order the build; HardenedOpenApiTaskAssembly points UsingTask at its output.
+        only to order the build; HardenedOpenApiTaskAssembly points UsingTask at its output, and
+        selects the flavour on $(MSBuildRuntimeType) because setting the property suppresses the
+        package's own selection - Visual Studio's MSBuild is .NET Framework and cannot load net8.0.
     -->
+    <PropertyGroup>
+        <_HardenedOpenApiTaskTfm Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_HardenedOpenApiTaskTfm>
+        <_HardenedOpenApiTaskTfm Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_HardenedOpenApiTaskTfm>
+        <HardenedOpenApiTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\bin\$(Configuration)\$(_HardenedOpenApiTaskTfm)\Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
+    </PropertyGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\Hardened.OpenApi.BuildTask.csproj"
                           ReferenceOutputAssembly="false"
-                          SetTargetFramework="TargetFramework=net8.0"/>
+                          SetTargetFramework="TargetFramework=$(_HardenedOpenApiTaskTfm)"/>
     </ItemGroup>
-
-    <PropertyGroup>
-        <HardenedOpenApiTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\bin\$(Configuration)\net8.0\Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
-    </PropertyGroup>
-
-    <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
 
     <ItemGroup>
         <HardenedOpenApiSpec Include="Specs\benchmark.yaml"/>
     </ItemGroup>
+
+    <!--
+        Imported after the specs, which is where a package's build/*.targets lands anyway. The
+        targets file puts the generated sources into @(Compile) from a top-level ItemGroup so the
+        IDE sees them without a build, and top-level item groups are evaluated in document order -
+        so an import above @(HardenedOpenApiSpec) reads it as empty and contributes nothing.
+    -->
+    <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
 
 </Project>

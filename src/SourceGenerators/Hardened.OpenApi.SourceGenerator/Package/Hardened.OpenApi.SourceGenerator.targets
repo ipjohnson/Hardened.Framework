@@ -25,13 +25,58 @@
                AssemblyFile="$(HardenedOpenApiTaskAssembly)"/>
 
     <!--
-        The model directory is resolved inside a target, not in a PropertyGroup up here.
-        $(IntermediateOutputPath) is set by Microsoft.Common.CurrentVersion.targets, so at import
-        time it is defined for a package - build/*.targets is imported last - and empty for anyone
-        importing this file from the body of a csproj. Empty meant the models were written to
-        ./openapi/ beside the project instead of into obj/, and because that directory then survived
-        every clean, the Inputs/Outputs check reported the target up to date while the compiler saw
-        no models at all.
+        The files the task will write are declared here, at the top level, and NOT inside the target
+        that writes them.
+
+        An IDE builds its project model out of MSBuild *evaluation*, not out of a build. Rider has no
+        CompileDesignTime target at all, so a file that only becomes a @(Compile) item while some
+        target is running is a file the editor never hears about: the spec-derived models and service
+        interfaces resolve on the compiler command line and nowhere else, and every reference to them
+        reddens in a project that builds clean. Same for @(AdditionalFiles) - the generator reading
+        the model produces nothing in-editor if the model is not in view at evaluation. The source
+        generator this replaced never had the problem, because Roslyn runs generators inside the
+        IDE's own compilation.
+
+        Top level is also what makes the paths resolvable. MSBuild evaluates every top-level ItemGroup
+        in a pass that runs after every property and every import, so $(IntermediateOutputPath) is
+        final here even though it is still empty at the point a csproj body imports this file - which
+        is why these paths can be spelled here but not in a PropertyGroup beside them, and why
+        HardenedOpenApiResolveModelDir below still has to be a target.
+
+        Transforms of @(HardenedOpenApiSpec), not a glob of the output directory: on a clean tree the
+        files do not exist yet, and a glob would come back empty on exactly the build that has to
+        declare them. Deriving from the specs also means deleting a spec drops its generated code from
+        the compilation, rather than leaving whatever an earlier build wrote to be picked up.
+    -->
+    <ItemGroup Condition="'@(HardenedOpenApiSpec)' != ''">
+        <_HardenedOpenApiModel Condition="'$(HardenedOpenApiModelDir)' == ''"
+                               Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/%(Filename).openapi-model.txt')"/>
+        <_HardenedOpenApiModel Condition="'$(HardenedOpenApiModelDir)' != ''"
+                               Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename).openapi-model.txt')"/>
+
+        <_HardenedOpenApiSource Condition="'$(HardenedOpenApiGeneratedDir)' == '' And '$(HardenedOpenApiModelDir)' == ''"
+                                Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/generated/%(Filename).g.cs')"/>
+        <_HardenedOpenApiSource Condition="'$(HardenedOpenApiGeneratedDir)' == '' And '$(HardenedOpenApiModelDir)' != ''"
+                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)generated/%(Filename).g.cs')"/>
+        <_HardenedOpenApiSource Condition="'$(HardenedOpenApiGeneratedDir)' != ''"
+                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename).g.cs')"/>
+
+        <AdditionalFiles Include="@(_HardenedOpenApiModel)"/>
+        <Compile Include="@(_HardenedOpenApiSource)" Visible="false"/>
+    </ItemGroup>
+
+    <!--
+        The directories the task writes to repeat the defaults above because they have to be resolved
+        inside a target. $(IntermediateOutputPath) is set by Microsoft.Common.CurrentVersion.targets,
+        so at import time it is defined for a package - build/*.targets is imported last - and empty
+        for anyone importing this file from the body of a csproj. Empty meant the models were written
+        to ./openapi/ beside the project instead of into obj/, and because that directory then
+        survived every clean, the Inputs/Outputs check reported the target up to date while the
+        compiler saw no models at all.
+
+        The repetition is guarded rather than eliminated: if the two ever disagree, the task writes
+        somewhere the compilation is not looking, and HOAT004 below fails the build naming the file
+        that is missing.
     -->
     <Target Name="HardenedOpenApiResolveModelDir">
         <PropertyGroup>
@@ -46,16 +91,18 @@
         The task both emits C# and writes the normalised model, because it has the parsed spec in
         hand either way and parsing it twice is the one thing this design exists to avoid.
 
-        Inputs/Outputs so an untouched spec does not re-run. Each spec produces exactly two files
-        whose names follow from its own, so both can be declared here - MSBuild has to be able to
-        list a target's outputs without running it, which is the whole reason the task emits one file
-        per spec rather than one per type.
+        Inputs/Outputs so an untouched spec does not re-run. The outputs are the same items the
+        compilation was handed at evaluation, so the up-to-date check is made against exactly the
+        files the compiler will open - MSBuild has to be able to list a target's outputs without
+        running it, which is the whole reason the task emits one file per spec rather than one per
+        type.
     -->
     <Target Name="HardenedOpenApiExtractSpecs"
             DependsOnTargets="HardenedOpenApiResolveModelDir"
+            BeforeTargets="CoreCompile"
             Condition="'@(HardenedOpenApiSpec)' != ''"
             Inputs="@(HardenedOpenApiSpec)"
-            Outputs="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename).openapi-model.txt');@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename).g.cs')">
+            Outputs="@(_HardenedOpenApiModel);@(_HardenedOpenApiSource)">
 
         <ExtractOpenApiSpec Specs="@(HardenedOpenApiSpec)"
                             OutputDirectory="$(HardenedOpenApiModelDir)"
@@ -69,30 +116,36 @@
     </Target>
 
     <!--
-        Always runs, even when the target above is skipped as up to date: a skipped target
-        contributes nothing to @(Compile) or @(AdditionalFiles), and the compiler would then see
-        neither the emitted types nor the models. Both come from the same transform as the target's
-        Outputs rather than from a directory glob, so removing a spec removes its generated code from
-        the compilation instead of leaving whatever an earlier build wrote to be picked up.
+        Runs even when the target above is skipped as up to date, because that is the case worth
+        catching: a spec whose model or generated source is not on disk means the up-to-date check
+        was made against files that are not there, or that the task wrote them somewhere other than
+        where evaluation said they would be. Either way the compiler is about to open a file that
+        does not exist. Silence would surface as an empty generator run and a project full of
+        missing types.
     -->
-    <Target Name="HardenedOpenApiAddModels"
+    <Target Name="HardenedOpenApiVerifyModels"
             DependsOnTargets="HardenedOpenApiExtractSpecs"
             BeforeTargets="CoreCompile"
             Condition="'@(HardenedOpenApiSpec)' != ''">
 
-        <ItemGroup>
-            <AdditionalFiles Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename).openapi-model.txt')"/>
-            <Compile Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename).g.cs')" Visible="false"/>
-        </ItemGroup>
-
         <!--
-            A model that is missing here means the target above was skipped as up to date against
-            files that are not there. Silence would surface as an empty generator run and a project
-            full of missing types.
+            Specs at build time but nothing declared at evaluation means this file was imported above
+            the @(HardenedOpenApiSpec) declaration: top-level item groups are evaluated in document
+            order, so the ItemGroup up top saw an empty list and put nothing into @(Compile). The
+            build would still succeed - HardenedOpenApiExtractSpecs writes the files either way - and
+            every spec-derived type would be missing from the compilation. Fail here instead.
         -->
-        <Error Condition="!Exists('%(AdditionalFiles.FullPath)') And '%(AdditionalFiles.Extension)' == '.txt' And $([System.String]::Copy('%(AdditionalFiles.Filename)').EndsWith('.openapi-model'))"
+        <Error Condition="'@(_HardenedOpenApiSource)' == ''"
+               Code="HOAT005"
+               Text="Hardened.OpenApi.SourceGenerator.targets was imported before these specs were declared: @(HardenedOpenApiSpec). No generated source reached the compilation. Move the &lt;Import&gt; below the &lt;HardenedOpenApiSpec&gt; item group."/>
+
+        <Error Condition="!Exists('%(_HardenedOpenApiModel.FullPath)')"
                Code="HOAT004"
-               Text="The OpenAPI model '%(AdditionalFiles.Identity)' was not written. Delete $(HardenedOpenApiModelDir) and rebuild."/>
+               Text="The OpenAPI model '%(_HardenedOpenApiModel.Identity)' was not written. Delete $(HardenedOpenApiModelDir) and rebuild."/>
+
+        <Error Condition="!Exists('%(_HardenedOpenApiSource.FullPath)')"
+               Code="HOAT004"
+               Text="The generated OpenAPI source '%(_HardenedOpenApiSource.Identity)' was not written. Delete $(HardenedOpenApiModelDir) and rebuild."/>
     </Target>
 
     <!--

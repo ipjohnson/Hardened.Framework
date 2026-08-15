@@ -20,12 +20,17 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
     private Stream? _bodyOverride;
     private int? _status;
 
+    /// <summary>
+    /// Created on first use. Most responses set no cookie, so this stays null and the per-request
+    /// cost is a null check rather than a dictionary.
+    /// </summary>
+    private ICookieSetCollection? _cookies;
+
     public FeatureExecutionResponse(
         IHttpResponseFeature feature,
         IHttpResponseBodyFeature bodyFeature) {
         _feature = feature;
         _bodyFeature = bodyFeature;
-        Cookies = new CookieSetCollectionImpl();
     }
 
     private FeatureExecutionResponse(
@@ -38,7 +43,7 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
         _bodyFeature = bodyFeature;
         _bodyOverride = bodyOverride;
         _status = status;
-        Cookies = cookies;
+        _cookies = cookies;
     }
 
     public IExecutionResponse Clone(IHeaderCollection? headerCollection = null) {
@@ -108,7 +113,13 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
 
     public bool IsBinary { get; set; }
 
-    public ICookieSetCollection Cookies { get; }
+    /// <summary>
+    /// Header backed: over HTTP a cookie reaches the client as <c>Set-Cookie</c>, and nothing on
+    /// this host serialised the recording collection that used to sit here — so
+    /// <c>Response.Cookies.Append(...)</c> compiled, ran, and the client never saw it.
+    /// </summary>
+    public ICookieSetCollection Cookies =>
+        _cookies ??= new HeaderCookieSetCollection(_feature.Headers);
 
     public bool ShouldSerialize { get; set; } = true;
 

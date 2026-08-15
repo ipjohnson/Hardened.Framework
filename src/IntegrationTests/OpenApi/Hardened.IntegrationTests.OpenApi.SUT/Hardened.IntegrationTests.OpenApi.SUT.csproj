@@ -26,21 +26,36 @@
         In-repo wiring for the build task, which the package does through build/*.targets. The
         ProjectReference exists only to order the build - nothing here binds against the task
         assembly - and HardenedOpenApiTaskAssembly points UsingTask at where that build puts it.
+
+        The flavour is selected on $(MSBuildRuntimeType), exactly as the package's targets select
+        between tasks/net472 and tasks/net8.0, because MSBuild has two hosts: Visual Studio runs on
+        .NET Framework, the dotnet CLI and Rider on .NET. Setting this property is what suppresses
+        the package's own selection, so pinning it to net8.0 hands .NET Framework MSBuild a .NET 8
+        assembly and fails at task execution rather than at build. The ProjectReference tracks the
+        same flavour, so the one the host is about to load is the one built first.
     -->
+    <PropertyGroup>
+        <_HardenedOpenApiTaskTfm Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_HardenedOpenApiTaskTfm>
+        <_HardenedOpenApiTaskTfm Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_HardenedOpenApiTaskTfm>
+        <HardenedOpenApiTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\bin\$(Configuration)\$(_HardenedOpenApiTaskTfm)\Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
+    </PropertyGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\Hardened.OpenApi.BuildTask.csproj"
                           ReferenceOutputAssembly="false"
-                          SetTargetFramework="TargetFramework=net8.0"/>
+                          SetTargetFramework="TargetFramework=$(_HardenedOpenApiTaskTfm)"/>
     </ItemGroup>
-
-    <PropertyGroup>
-        <HardenedOpenApiTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\bin\$(Configuration)\net8.0\Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
-    </PropertyGroup>
-
-    <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
 
     <ItemGroup>
         <HardenedOpenApiSpec Include="Specs\petstore.yaml" />
     </ItemGroup>
+
+    <!--
+        Imported after the specs, which is where a package's build/*.targets lands anyway. The
+        targets file puts the generated sources into @(Compile) from a top-level ItemGroup so the
+        IDE sees them without a build, and top-level item groups are evaluated in document order -
+        so an import above @(HardenedOpenApiSpec) reads it as empty and contributes nothing.
+    -->
+    <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
 
 </Project>
