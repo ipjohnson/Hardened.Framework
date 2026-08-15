@@ -23,6 +23,28 @@ public static class RouteMethods {
     public const string Head = "HEAD";
 
     /// <summary>
+    /// The verbs a leaf answers, as an <c>Allow</c> header value.
+    /// </summary>
+    /// <remarks>
+    /// Includes the HEAD a GET leaf answers through the fall-through, because a client reading
+    /// Allow is being told what it may call - and it may call HEAD. Sorted so the header does not
+    /// reshuffle between builds.
+    /// </remarks>
+    public static string Allow<T>(IReadOnlyList<RouteTreeLeafNode<T>> leaves) {
+        var verbs = new SortedSet<string>(StringComparer.Ordinal);
+
+        foreach (var leaf in leaves) {
+            verbs.Add(leaf.Method);
+
+            if (AddsHeadFallThrough(leaves, leaf)) {
+                verbs.Add(Head);
+            }
+        }
+
+        return string.Join(", ", verbs);
+    }
+
+    /// <summary>
     /// Whether <paramref name="leaf"/> should also answer HEAD.
     ///
     /// <para>

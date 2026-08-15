@@ -514,7 +514,7 @@ public static class RoutingTableGenerator {
                         pathTokensCollection));
             }
 
-            switchBlock.AddDefault().Return(Null());
+            switchBlock.AddDefault().Return(MethodNotAllowed(routingClass, wildCardNode.LeafNodes));
         }
         else {
             wildCardMethod.Return(Null());
@@ -583,7 +583,36 @@ public static class RoutingTableGenerator {
                     pathTokensCollection));
         }
 
-        switchStatement.AddDefault().Return(Null());
+        switchStatement.AddDefault().Return(MethodNotAllowed(routingClass, routeNode.LeafNodes));
+    }
+
+    /// <summary>
+    /// The result for a path this leaf matched under a verb it does not answer.
+    /// </summary>
+    /// <remarks>
+    /// A static field per distinct verb set: it carries no per-request state - no handler, and the
+    /// shared empty token collection - so rebuilding one per rejected request would allocate for
+    /// the case least worth allocating for. Shared across leaves that allow the same verbs, which
+    /// most of an application's do.
+    /// </remarks>
+    private static IOutputComponent MethodNotAllowed<T>(
+        ClassDefinition routingClass, IReadOnlyList<RouteTreeLeafNode<T>> leaves) {
+        var allow = RouteMethods.Allow(leaves);
+        var fieldName = "_methodNotAllowed" + allow.Replace(", ", "");
+
+        var existing = routingClass.Fields.FirstOrDefault(field => field.Name == fieldName);
+
+        if (existing != null) {
+            return existing.Instance;
+        }
+
+        var newField = routingClass.AddField(KnownTypes.Web.RequestHandlerInfo, fieldName);
+
+        newField.Modifiers |= ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+        newField.InitializeValue = new CodeOutputComponent(
+            "global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed(\"" + allow + "\")");
+
+        return newField.Instance;
     }
 
     private static IReadOnlyList<IOutputComponent> CreatePathIfStatement(

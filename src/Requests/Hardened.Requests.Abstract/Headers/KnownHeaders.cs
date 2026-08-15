@@ -3,6 +3,12 @@
 public static class KnownHeaders {
     public const string Accept = "Accept";
 
+    /// <summary>
+    /// The verbs a resource does answer. Required on a 405 - it is what makes the response
+    /// actionable rather than merely correct.
+    /// </summary>
+    public const string Allow = "Allow";
+
     public const string AcceptEncoding = "Accept-Encoding";
 
     public const string CacheControl = "Cache-Control";

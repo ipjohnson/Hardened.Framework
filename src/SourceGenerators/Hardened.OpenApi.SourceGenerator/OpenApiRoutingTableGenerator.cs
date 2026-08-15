@@ -440,7 +440,7 @@ internal static class OpenApiRoutingTableGenerator {
                 caseStatement.Return(New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, pathTokensCollection));
             }
 
-            switchBlock.AddDefault().Return(Null());
+            switchBlock.AddDefault().Return(MethodNotAllowed(routingClass, wildCardNode.LeafNodes));
         } else {
             wildCardMethod.Return(Null());
         }
@@ -483,7 +483,32 @@ internal static class OpenApiRoutingTableGenerator {
             caseStatement.Return(New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, pathTokensCollection));
         }
 
-        switchStatement.AddDefault().Return(Null());
+        switchStatement.AddDefault().Return(MethodNotAllowed(routingClass, routeNode.LeafNodes));
+    }
+
+    /// <summary>
+    /// The result for a path this leaf matched under a verb it does not answer. The same rule the
+    /// attribute-routed table follows, for the reason Part 0 fixed the token bound in both: two
+    /// routing tables disagreeing about what a request means is worse than either being wrong.
+    /// </summary>
+    private static IOutputComponent MethodNotAllowed<T>(
+        ClassDefinition routingClass, IReadOnlyList<RouteTreeLeafNode<T>> leaves) {
+        var allow = RouteMethods.Allow(leaves);
+        var fieldName = "_methodNotAllowed" + allow.Replace(", ", "");
+
+        var existing = routingClass.Fields.FirstOrDefault(field => field.Name == fieldName);
+
+        if (existing != null) {
+            return existing.Instance;
+        }
+
+        var newField = routingClass.AddField(KnownTypes.Web.RequestHandlerInfo, fieldName);
+
+        newField.Modifiers |= ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+        newField.InitializeValue = new CodeOutputComponent(
+            "global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed(\"" + allow + "\")");
+
+        return newField.Instance;
     }
 
     private static IReadOnlyList<IOutputComponent> CreatePathIfStatement(

@@ -169,7 +169,7 @@ public class RouteTreeConflictTests {
     /// own switch over the request method with its own default, separate from the literal one.
     /// </summary>
     [Fact]
-    public void AVerbWithNoRouteBehindATokenDoesNotMatch() {
+    public void AVerbWithNoRouteBehindATokenReachesNoHandler() {
         var routing = Routing("""
             public class ReadOnlyController {
                 [Get("/items/{id}")]
@@ -177,9 +177,9 @@ public class RouteTreeConflictTests {
             }
             """);
 
-        Assert.NotNull(routing.Route("GET", "/items/42"));
-        Assert.Null(routing.Route("DELETE", "/items/42"));
-        Assert.Null(routing.Route("PATCH", "/items/42"));
+        Assert.NotNull(routing.Handler("GET", "/items/42"));
+        Assert.Null(routing.Route("DELETE", "/items/42")?.Handler);
+        Assert.Null(routing.Route("PATCH", "/items/42")?.Handler);
     }
 
     /// <summary>

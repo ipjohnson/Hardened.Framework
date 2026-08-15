@@ -74,8 +74,18 @@ public class VerbRoutingTests {
         Assert.Equal(handlers.Length, handlers.Distinct().Count());
     }
 
+    /// <summary>
+    /// A verb with no route on a path that does match is not a miss - it is a 405 waiting to
+    /// happen, and the table is the only thing that knows which verbs the path does answer.
+    /// </summary>
+    /// <remarks>
+    /// The leaf switch always fell to <c>default: return null</c> having matched the path, and
+    /// threw that away: a request to a real resource with the wrong verb came back
+    /// indistinguishable from a request to a URL nobody declared. Reported rather than answered
+    /// here, because another provider may have this path under this verb.
+    /// </remarks>
     [Fact]
-    public void AVerbWithNoRouteOnAKnownPathDoesNotMatch() {
+    public void AVerbWithNoRouteOnAKnownPathReportsWhatIsAllowed() {
         var routing = GeneratedRoutingTable.For("""
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
@@ -92,9 +102,53 @@ public class VerbRoutingTests {
             """);
 
         Assert.NotNull(routing.Route("GET", "/items/42"));
-        Assert.Null(routing.Route("DELETE", "/items/42"));
+
+        var rejected = routing.Route("DELETE", "/items/42");
+
+        Assert.NotNull(rejected);
+        Assert.Null(rejected!.Handler);
+        Assert.Equal("GET, HEAD", rejected.Allow);
     }
 
+    /// <summary>
+    /// HEAD is in the Allow header, because a client reading it is being told what it may call -
+    /// and the fall-through means it may call HEAD.
+    /// </summary>
+    [Fact]
+    public void TheAllowedVerbsIncludeTheHeadAGetLeafAnswers() {
+        var routing = GeneratedRoutingTable.For(FiveVerbController);
+
+        Assert.Equal("DELETE, GET, HEAD, PATCH, POST, PUT", routing.Route("OPTIONS", "/items/42")!.Allow);
+    }
+
+    /// <summary>
+    /// A route with no token reaches its leaf through a different emitter than one with a token,
+    /// so both have to report what they allow.
+    /// </summary>
+    [Fact]
+    public void ATokenlessRouteAlsoReportsWhatIsAllowed() {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class OrderController {
+                [Post("/orders")]
+                public string Create() => "created";
+            }
+            """);
+
+        Assert.Equal("POST", routing.Route("GET", "/orders")!.Allow);
+    }
+
+    /// <summary>
+    /// A path nobody declared is still nothing at all. The distinction between "no such URL" and
+    /// "not with that verb" is the whole point of reporting the second.
+    /// </summary>
     [Fact]
     public void AnUnknownPathDoesNotMatch() {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
@@ -112,8 +166,8 @@ public class VerbRoutingTests {
     public void TheRequestMethodIsMatchedCaseSensitively() {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
-        Assert.NotNull(routing.Route("GET", "/items/42"));
-        Assert.Null(routing.Route("get", "/items/42"));
+        Assert.NotNull(routing.Handler("GET", "/items/42"));
+        Assert.Null(routing.Route("get", "/items/42")?.Handler);
     }
 
     /// <summary>
@@ -171,7 +225,7 @@ public class VerbRoutingTests {
             }
             """);
 
-        Assert.Null(routing.Route("HEAD", "/items/42"));
+        Assert.Null(routing.Route("HEAD", "/items/42")?.Handler);
     }
 
     /// <summary>

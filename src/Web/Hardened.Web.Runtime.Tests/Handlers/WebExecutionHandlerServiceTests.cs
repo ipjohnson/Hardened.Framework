@@ -163,11 +163,79 @@ public class WebExecutionHandlerServiceTests {
         fixture.StaticContent.Handle(fixture.Context).Returns(true);
 
         var service = new WebExecutionHandlerService(
-            [], fixture.NotFound, fixture.RequestLogger, fixture.StaticContent);
+            [], fixture.NotFound, fixture.MethodNotAllowed, fixture.RequestLogger, fixture.StaticContent);
 
         await service.Execute(fixture.Chain);
 
         await fixture.StaticContent.Received(1).Handle(fixture.Context);
+    }
+
+    /// <summary>
+    /// A path a table recognised under another verb is a resource that exists. Answering 404 there
+    /// made a real resource indistinguishable from a URL nobody declared - and API Gateway,
+    /// CloudFront and generated clients all read the two differently.
+    /// </summary>
+    [Fact]
+    public async Task APathMatchedUnderAnotherVerbIs405RatherThan404() {
+        var fixture = new Fixture();
+
+        fixture.MethodMismatch("GET, HEAD");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await fixture.MethodNotAllowed.Received(1).Handle(fixture.Context, "GET, HEAD");
+        await fixture.NotFound.DidNotReceive().Handle(Arg.Any<IExecutionChain>());
+    }
+
+    /// <summary>
+    /// A later provider that does answer the verb wins. Providers are consulted in turn, so a 405
+    /// from the first that merely recognised the path would shadow a table that had the route.
+    /// </summary>
+    [Fact]
+    public async Task AProviderThatAnswersTheVerbBeatsOneThatOnlyMatchedThePath() {
+        var fixture = new Fixture();
+
+        fixture.MethodMismatch("GET");
+        fixture.RouteMatches("/thing");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await fixture.MethodNotAllowed.DidNotReceive()
+            .Handle(Arg.Any<IExecutionContext>(), Arg.Any<string>());
+    }
+
+    /// <summary>
+    /// Two tables declaring the same path under different verbs report both. Reporting one would
+    /// tell a client the other verb is unavailable when it is not.
+    /// </summary>
+    [Fact]
+    public async Task AllowedVerbsFromEveryTableAreReported() {
+        var fixture = new Fixture();
+
+        fixture.MethodMismatch("GET");
+        fixture.MethodMismatch("POST");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await fixture.MethodNotAllowed.Received(1)
+            .Handle(fixture.Context, Arg.Is<string>(allow => allow.Contains("GET") && allow.Contains("POST")));
+    }
+
+    /// <summary>
+    /// Static content still wins. A file at that path is a resource that answers the verb, and
+    /// a 405 ahead of it would hide it.
+    /// </summary>
+    [Fact]
+    public async Task StaticContentIsTriedBeforeThe405() {
+        var fixture = new Fixture();
+
+        fixture.MethodMismatch("GET");
+        fixture.StaticContent.Handle(fixture.Context).Returns(true);
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await fixture.MethodNotAllowed.DidNotReceive()
+            .Handle(Arg.Any<IExecutionContext>(), Arg.Any<string>());
     }
 
     private sealed class Fixture {
@@ -243,9 +311,25 @@ public class WebExecutionHandlerServiceTests {
             return provider;
         }
 
+        public IMethodNotAllowedHandler MethodNotAllowed { get; } =
+            Substitute.For<IMethodNotAllowedHandler>();
+
+        /// <summary>A provider that recognises the path but not the verb.</summary>
+        public IWebExecutionRequestHandlerProvider MethodMismatch(string allow) {
+            var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
+
+            provider.GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+                .Returns(RequestHandlerInfo.MethodNotAllowed(allow));
+
+            _providers.Add(provider);
+
+            return provider;
+        }
+
         public WebExecutionHandlerService Service(params IWebExecutionRequestHandlerProvider[] providers) =>
             new(providers.Length > 0 ? providers : _providers,
                 NotFound,
+                MethodNotAllowed,
                 RequestLogger,
                 StaticContent);
     }
