@@ -74,6 +74,8 @@ public static class KnownTypes {
                     public const string PathTokens = "Hardened.Requests.Abstract.PathTokens";
 
                     public const string Templates = "Hardened.Requests.Abstract.Templates";
+
+                    public const string Links = "Hardened.Requests.Abstract.Links";
                 }
 
                 public static class Runtime {
@@ -195,6 +197,10 @@ public static class KnownTypes {
 
         public static ITypeDefinition DefaultOutputFunc =
             TypeDefinition.Get(Namespace.Hardened.Requests.Abstract.Execution, "DefaultOutputFunc");
+
+        public static readonly ITypeDefinition ILinkContext =
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition,
+                Namespace.Hardened.Requests.Abstract.Links, "ILinkContext");
 
         public static readonly ITypeDefinition IHardenedTemplate =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition,

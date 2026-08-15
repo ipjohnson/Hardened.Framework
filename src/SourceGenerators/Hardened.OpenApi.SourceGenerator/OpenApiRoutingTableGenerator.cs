@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.SourceGenerator.Links;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
@@ -22,6 +23,11 @@ internal static class OpenApiRoutingTableGenerator {
         var outputString = GenerateCSharpRouteFile(models.Left, models.Right, handlerInfos, jsonTypeInfoResolvers, context.CancellationToken, excludeFromCoverage);
         var fileName = models.Left.EntryPointType.Name + ".OpenApiRouting";
         context.AddSource(fileName, outputString);
+
+        // The same links an attribute-routed application gets, from the same models. A document
+        // generates the routes, so a link built from one is checked against the document rather
+        // than against a hand-written route.
+        LinkGenerator.Generate(context, models.Left, models.Right, "");
     }
 
     public static string GenerateCSharpRouteFile(
@@ -132,6 +138,12 @@ internal static class OpenApiRoutingTableGenerator {
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
                 new[] { interfaceType, handlerInfo.ImplementationType }));
         }
+
+        // The generated links type, so a handler can take it as a constructor parameter. Transient
+        // rather than singleton: it holds an ILinkContext, and a host that learns the scheme and
+        // authority from the request it is answering registers a scoped one.
+        diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
+            new[] { LinkGenerator.LinksType(applicationModel) }));
     }
 
     private static void ImplementHandlerMethod(

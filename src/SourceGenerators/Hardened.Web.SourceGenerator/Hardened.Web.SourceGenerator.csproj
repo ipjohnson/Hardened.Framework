@@ -47,6 +47,9 @@
             <Link>DependencyInjection\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Links/**/*">
+            <Link>Links\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
         <Compile Include="../Hardened.SourceGenerator/Models/**/*">
             <Link>Models\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

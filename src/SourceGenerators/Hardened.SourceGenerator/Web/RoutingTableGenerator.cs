@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
+using Hardened.SourceGenerator.Links;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
@@ -34,6 +35,11 @@ public static class RoutingTableGenerator {
         context.AddSource(
             models.Left.EntryPointType.Name + ".OpenApiDocument",
             OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left)));
+
+        // From the same models the table came from, and unconditionally: links have no third-party
+        // dependency, and the common case is an API with no views that still wants them for
+        // Location headers - which are exactly the strings that rot.
+        LinkGenerator.Generate(context, models.Left, routable, GetBasePath(models.Left));
     }
     
     public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
@@ -116,8 +122,28 @@ public static class RoutingTableGenerator {
                 new[] { controllerType }));
         }
 
+        RegisterLinks(diMethod, serviceCollection, applicationModel, webEndPointModels);
+
         Validation.ParameterValidatorRegistration.Write(
             diMethod, serviceCollection, webEndPointModels, cancellationToken);
+    }
+
+    /// <summary>
+    /// The generated links type, so a handler can take it as a constructor parameter.
+    /// </summary>
+    /// <remarks>
+    /// Transient rather than singleton: it holds an <c>ILinkContext</c>, and a host that learns the
+    /// scheme and authority from the request it is answering registers a scoped one. Resolving a
+    /// singleton that captured a scoped dependency is the failure eager container validation exists
+    /// to catch.
+    /// </remarks>
+    private static void RegisterLinks(
+        MethodDefinition diMethod,
+        ParameterDefinition serviceCollection,
+        EntryPointSelector.Model applicationModel,
+        IReadOnlyList<RequestHandlerModel> webEndPointModels) {
+        diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
+            new[] { LinkGenerator.LinksType(applicationModel) }));
     }
 
     private static void ImplementHandlerMethod(EntryPointSelector.Model appModel, ClassDefinition routingClass,

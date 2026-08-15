@@ -331,27 +331,20 @@ public static class OpenApiDocumentGenerator {
     /// or its class name with a <c>Controller</c> suffix stripped.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The emitter wrote no tags at all. Specification-first groups by
     /// <c>operation.Tags?.FirstOrDefault()?.Name ?? "Default"</c> and turns the tag into an
     /// interface name, so round-tripping an attribute-routed application collapsed every operation
     /// into one <c>IDefaultService</c> and destroyed the controller structure. No new grouping
-    /// construct was needed for that - the controller already is the group, and the document
-    /// simply did not say so.
+    /// construct was needed for that - the controller already is the group, and the document simply
+    /// did not say so.
+    /// </para>
+    /// <para>
+    /// Shared with the links generator, which has to name the same group the same way or a route
+    /// name would change meaning when the document round-trips.
+    /// </para>
     /// </remarks>
-    private static string Tag(RequestHandlerModel handler) {
-        if (!string.IsNullOrEmpty(handler.Tag)) {
-            return handler.Tag!;
-        }
-
-        var name = handler.ControllerType.Name;
-
-        return name.Length > ControllerSuffix.Length &&
-               name.EndsWith(ControllerSuffix, System.StringComparison.Ordinal)
-            ? name.Substring(0, name.Length - ControllerSuffix.Length)
-            : name;
-    }
-
-    private const string ControllerSuffix = "Controller";
+    private static string Tag(RequestHandlerModel handler) => HandlerGroup.Name(handler);
 
     private static string CamelCase(string value) =>
         value.Length == 0 ? value : char.ToLowerInvariant(value[0]) + value.Substring(1);

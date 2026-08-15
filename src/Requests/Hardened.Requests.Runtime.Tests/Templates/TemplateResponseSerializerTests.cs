@@ -30,13 +30,15 @@ public class TemplateResponseSerializerTests {
 
         public object? AttachedModel { get; private set; }
 
-        public IExecutionContext? AttachedContext { get; private set; }
+        public IExecutionContext Context { get; private set; } = default!;
+
+        public IExecutionContext? AttachedContext => Context;
 
         public int Renders { get; private set; }
 
         public void Attach(object? model, IExecutionContext context) {
             AttachedModel = model;
-            AttachedContext = context;
+            Context = context;
         }
 
         public async Task RenderAsync(TextWriter writer, CancellationToken cancellationToken = default) {

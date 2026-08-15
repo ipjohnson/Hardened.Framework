@@ -32,6 +32,17 @@ public interface IHardenedTemplate {
     string ContentType { get; }
 
     /// <summary>
+    /// The request being rendered, as attached.
+    /// </summary>
+    /// <remarks>
+    /// On the interface rather than left to each base class because generated code has to reach it:
+    /// a per-module template base exposes a <c>Links</c> property, and resolving the links type
+    /// means reaching the request's services. A base is free to implement this explicitly - and
+    /// <c>HardenedHtmlTemplate</c> does - so it stays off the surface a template author sees.
+    /// </remarks>
+    IExecutionContext Context { get; }
+
+    /// <summary>
     /// Writes the rendered output.
     /// </summary>
     /// <remarks>

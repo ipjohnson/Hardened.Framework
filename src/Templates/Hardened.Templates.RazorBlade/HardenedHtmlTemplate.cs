@@ -47,6 +47,12 @@ public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemp
     /// </summary>
     protected IExecutionContext Context { get; private set; } = default!;
 
+    /// <summary>
+    /// Explicit, so a template author sees the protected member above rather than a public one on
+    /// every view. Generated code reaches it through the interface.
+    /// </summary>
+    IExecutionContext IHardenedTemplate.Context => Context;
+
     /// <inheritdoc />
     public virtual string ContentType => "text/html; charset=utf-8";
 

@@ -268,6 +268,17 @@ namespace Hardened.Requests.Abstract.Headers
         None = 2,
     }
 }
+namespace Hardened.Requests.Abstract.Links
+{
+    public interface ILinkContext
+    {
+        string BasePath { get; }
+        string? Host { get; }
+        string? Scheme { get; }
+        string Absolute(string path);
+        string Resolve(string path);
+    }
+}
 namespace Hardened.Requests.Abstract.Logging
 {
     public interface IRequestLogger
@@ -431,6 +442,7 @@ namespace Hardened.Requests.Abstract.Templates
     public interface IHardenedTemplate
     {
         string ContentType { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionContext Context { get; }
         void Attach(object? model, Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.Task RenderAsync(System.IO.TextWriter writer, System.Threading.CancellationToken cancellationToken = default);
     }

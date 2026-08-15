@@ -53,9 +53,14 @@ public class TemplateFactoryGeneratorTests {
         public abstract class ViewBase<TModel> : IHardenedTemplate<TModel> {
             public TModel Model { get; private set; } = default!;
 
+            public IExecutionContext Context { get; private set; } = default!;
+
             public string ContentType => "text/html";
 
-            public void Attach(TModel model, IExecutionContext context) => Model = model;
+            public void Attach(TModel model, IExecutionContext context) {
+                Model = model;
+                Context = context;
+            }
 
             void IHardenedTemplate.Attach(object? model, IExecutionContext context) =>
                 Attach((TModel)model!, context);

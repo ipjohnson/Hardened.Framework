@@ -1,4 +1,5 @@
 using CSharpAuthor;
+using Hardened.SourceGenerator.Links;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
@@ -100,6 +101,8 @@ public static class TemplateBaseGenerator {
             baseType.Name,
             new ITypeDefinition[] { new TypeParameterDefinition(ModelParameter) }));
 
+        WriteLinks(appModel, definition);
+
         var contentType = feature.Facet(ContentTypeFacet)?.Value;
 
         // Only when the marker states one. The base class already answers with what it produces,
@@ -120,5 +123,43 @@ public static class TemplateBaseGenerator {
         file.WriteOutput(outputContext);
 
         return outputContext.Output();
+    }
+
+    /// <summary>
+    /// The module's links, on every view that derives from this base.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is where links pay off. RazorBlade compiles <c>.cshtml</c> at build time, copies
+    /// <c>@</c> expressions verbatim without analysing them, and emits <c>#line</c> directives with
+    /// exact spans - so <c>@Links.Products.GetProduct(Model.Id)</c> breaks the template at compile
+    /// time, at its own line and column, when the route changes. Rails' <c>product_path</c> and
+    /// Flask's <c>url_for</c> are runtime lookups; the same mistake fails when someone loads the
+    /// page.
+    /// </para>
+    /// <para>
+    /// Reached through <c>IHardenedTemplate.Context</c> rather than a member of whichever base the
+    /// marker names, so this works for a template engine the generator has never seen. Resolved on
+    /// first use, because most views do not link.
+    /// </para>
+    /// </remarks>
+    private static void WriteLinks(EntryPointSelector.Model appModel, ClassDefinition definition) {
+        var linksType = LinkGenerator.LinksType(appModel);
+        var qualified = "global::" + linksType.Namespace + "." + linksType.Name;
+
+        var backing = definition.AddField(linksType.MakeNullable(), "_links");
+
+        backing.Modifiers |= ComponentModifier.Private;
+
+        var property = definition.AddProperty(linksType, "Links");
+
+        property.Modifiers |= ComponentModifier.Public;
+        property.Set = null;
+        property.Get.LambdaSyntax = true;
+        property.Get.AddCode(
+            "_links ??= global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions" +
+            ".GetRequiredService<" + qualified + ">(" +
+            "((global::" + KnownTypes.Requests.IHardenedTemplate.Namespace + "." +
+            KnownTypes.Requests.IHardenedTemplate.Name + ")this).Context.RequestServices);");
     }
 }

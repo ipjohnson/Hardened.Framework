@@ -41,9 +41,14 @@ public class TemplateBaseGeneratorTests {
         public abstract class FluidBase<TModel> : IHardenedTemplate<TModel> {
             public TModel Model { get; private set; } = default!;
 
+            public IExecutionContext Context { get; private set; } = default!;
+
             public virtual string ContentType => "text/plain";
 
-            public void Attach(TModel model, IExecutionContext context) => Model = model;
+            public void Attach(TModel model, IExecutionContext context) {
+                Model = model;
+                Context = context;
+            }
 
             void IHardenedTemplate.Attach(object? model, IExecutionContext context) =>
                 Attach((TModel)model!, context);

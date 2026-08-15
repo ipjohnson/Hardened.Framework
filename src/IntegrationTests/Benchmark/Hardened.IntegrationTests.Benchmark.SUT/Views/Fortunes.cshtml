@@ -11,6 +11,12 @@
 <body>
 <table>
 <tr><th>id</th><th>message</th></tr>
+@*
+    A generated link, in the one place it pays off. RazorBlade copies @ expressions verbatim and
+    emits #line directives with exact spans, so renaming the route or its handler breaks this
+    template at compile time, reported here rather than when someone loads the page.
+*@
+<tr><td colspan="2"><a href="@Links.Benchmark.Fortunes()">reload</a></td></tr>
 @foreach (var fortune in Model.Fortunes)
 {<tr><td>@fortune.Id</td><td>@fortune.Message</td></tr>
 }</table>
