@@ -33,7 +33,12 @@ internal static class SpecFileEmitter {
     /// <summary>Types under the root namespace that parameter interfaces and patterns live in.</summary>
     private const string ValidationNamespace = "Validation";
 
-    public static string Emit(OpenApiSpecModel model, string rootNamespace, bool excludeFromCoverage) {
+    public static string Emit(
+        OpenApiSpecModel model,
+        string rootNamespace,
+        bool excludeFromCoverage,
+        string document = "",
+        string specPath = "") {
         // An unnamed namespace writes no wrapper of its own, so this is the file rather than a
         // namespace in it. Filter types declare their own namespace in the spec and may sit outside
         // the root entirely, which is why the file needs to hold more than one top-level block.
@@ -75,6 +80,15 @@ internal static class SpecFileEmitter {
         Coverage.Apply(
             JsonTypeInfoEmitter.Emit(models, model.Schemas, modelsNamespace, model.FileName),
             excludeFromCoverage);
+
+        // The specification itself, so the application can serve the contract it was built from
+        // rather than a second description of it. Under the root namespace rather than Models,
+        // because it is not one - it is the input.
+        if (document.Length > 0) {
+            Coverage.Apply(
+                SpecificationDocumentEmitter.Emit(root, model, document, specPath),
+                excludeFromCoverage);
+        }
 
         EmitFilterTypes(file, model, excludeFromCoverage);
 

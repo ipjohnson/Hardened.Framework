@@ -28,9 +28,19 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
     private readonly string _path;
     private readonly OpenApiDocumentHandler _handler;
 
-    public OpenApiDocumentProvider(string document, string path = "/openapi.json") {
+    /// <summary>
+    /// Serves <paramref name="document"/> at <paramref name="path"/>.
+    /// </summary>
+    /// <param name="contentType">
+    /// What the document is written in. Defaults to JSON, which is what the generated document is
+    /// and what the default path implies. A specification-first application serves its source
+    /// specification verbatim, and that may be YAML - converting it would put an emitter back in a
+    /// path that exists to have none.
+    /// </param>
+    public OpenApiDocumentProvider(
+        string document, string path = "/openapi.json", string contentType = "application/json") {
         _path = path;
-        _handler = new OpenApiDocumentHandler(document, path);
+        _handler = new OpenApiDocumentHandler(document, path, contentType);
     }
 
     public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context) {
@@ -44,9 +54,11 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
 
     private class OpenApiDocumentHandler : IExecutionRequestHandler {
         private readonly byte[] _document;
+        private readonly string _contentType;
 
-        public OpenApiDocumentHandler(string document, string path) {
+        public OpenApiDocumentHandler(string document, string path, string contentType) {
             _document = Encoding.UTF8.GetBytes(document);
+            _contentType = contentType;
 
             HandlerInfo = new ExecutionRequestHandlerInfo(
                 path, "GET", typeof(OpenApiDocumentProvider), nameof(GetExecutionChain));
@@ -55,7 +67,11 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
         public IExecutionRequestHandlerInfo HandlerInfo { get; }
 
         public IExecutionChain GetExecutionChain(IExecutionContext context) =>
-            new ExecutionChain(new Func<IExecutionContext, IExecutionFilter>[] { _ => new WriteFilter(_document) }, context);
+            new ExecutionChain(
+                new Func<IExecutionContext, IExecutionFilter>[] {
+                    _ => new WriteFilter(_document, _contentType)
+                },
+                context);
     }
 
     /// <summary>
@@ -64,16 +80,18 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
     /// </summary>
     private class WriteFilter : IExecutionFilter {
         private readonly byte[] _document;
+        private readonly string _contentType;
 
-        public WriteFilter(byte[] document) {
+        public WriteFilter(byte[] document, string contentType) {
             _document = document;
+            _contentType = contentType;
         }
 
         public async Task Execute(IExecutionChain chain) {
             var response = chain.Context.Response;
 
             response.Status = 200;
-            response.ContentType = "application/json";
+            response.ContentType = _contentType;
             response.ShouldSerialize = false;
             response.Headers[KnownHeaders.CacheControl] = new StringValues("no-cache");
 

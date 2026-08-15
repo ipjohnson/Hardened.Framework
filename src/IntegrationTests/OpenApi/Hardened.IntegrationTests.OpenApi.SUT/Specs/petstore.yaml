@@ -1,3 +1,6 @@
+# This comment is load-bearing. ServedSpecificationTests asserts it reaches the wire, which is
+# only true if the document served is this file rather than something emitted from a model of it -
+# no OpenAPI model carries comments, so nothing that re-serialises could reproduce this line.
 openapi: "3.0.0"
 info:
   title: Petstore API

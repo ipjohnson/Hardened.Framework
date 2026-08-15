@@ -87,11 +87,12 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             }
 
             var fileName = Path.GetFileNameWithoutExtension(path);
+            var document = File.ReadAllText(path);
             OpenApiSpecModel model;
 
             try {
                 var parsed = OpenApiSpecParser.Parse(
-                    File.ReadAllText(path), fileName, CancellationToken.None, ApplyServerBasePath);
+                    document, fileName, CancellationToken.None, ApplyServerBasePath);
 
                 if (parsed is null) {
                     Log.LogError(null, "HOAT002", null, path, 0, 0, 0, 0,
@@ -126,7 +127,7 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             model.JsonTypeInfoResolverName = JsonTypeInfoEmitter.ResolverNameFor(fileName);
 
             var sourcePath = Path.Combine(GeneratedSourceDirectory, fileName + SourceSuffix);
-            WriteIfChanged(sourcePath, Emit(model));
+            WriteIfChanged(sourcePath, Emit(model, document, path));
             sources.Add(new TaskItem(sourcePath));
 
             var modelPath = Path.Combine(OutputDirectory, fileName + ModelSuffix);
@@ -152,8 +153,8 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     /// such rule, and a single file is what keeps this target's incrementality honest: its outputs
     /// are then derivable from the item list without reading a spec, which one file per type is not.
     /// </remarks>
-    private string Emit(OpenApiSpecModel model) =>
-        SpecFileEmitter.Emit(model, Namespace, ExcludeFromCoverage);
+    private string Emit(OpenApiSpecModel model, string document, string specPath) =>
+        SpecFileEmitter.Emit(model, Namespace, ExcludeFromCoverage, document, specPath);
 
     /// <summary>
     /// Rewriting an unchanged file would bump its timestamp, and both the compiler's up-to-date

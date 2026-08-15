@@ -189,7 +189,7 @@ namespace Hardened.Web.Runtime.OpenApi
 {
     public class OpenApiDocumentProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
     {
-        public OpenApiDocumentProvider(string document, string path = "/openapi.json") { }
+        public OpenApiDocumentProvider(string document, string path = "/openapi.json", string contentType = "application/json") { }
         public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
 }
