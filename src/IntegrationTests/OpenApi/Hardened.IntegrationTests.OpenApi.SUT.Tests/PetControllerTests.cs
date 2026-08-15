@@ -56,4 +56,22 @@ public class PetControllerTests {
 
         response.Assert.Ok();
     }
+
+    /// <summary>
+    /// A path template describes one segment, and the table compiled from it matches one.
+    ///
+    /// <para>
+    /// Until 2026-08-15 <c>/pets/{petId}</c> answered any deeper path, binding
+    /// <c>petId = "42/anything/at/all"</c> — so a document declaring four operations served an
+    /// unbounded number of paths, and a client could not tell a real route from a typo. There is no
+    /// catch-all on this side to weigh against it: an OpenAPI template expression is a parameter
+    /// name, and cannot ask for the rest of the path.
+    /// </para>
+    /// </summary>
+    [HardenedTest]
+    public async Task GetPet_WithADeeperPath_IsNotFound(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets/42/anything/at/all");
+
+        response.Assert.NotFound();
+    }
 }

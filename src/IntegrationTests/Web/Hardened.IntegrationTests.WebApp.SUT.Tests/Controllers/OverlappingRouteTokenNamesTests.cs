@@ -29,6 +29,24 @@ public class OverlappingRouteTokenNamesTests {
     }
 
     /// <summary>
+    /// A path deeper than either route declares matches neither, over the whole host rather than
+    /// against the routing table alone.
+    ///
+    /// <para>
+    /// Both of these used to return 200: a token took the rest of the path, so
+    /// <c>/binding/path/a/b/c</c> reached <c>OverlappingPathTokens</c> with
+    /// <c>second = "b/c"</c>, and <c>/binding/path-typed/1/2/3</c> reached the typed handler with
+    /// <c>"1/2/3"</c> and failed conversion — a 400, which reads as a bad request rather than a
+    /// path that was never declared.
+    /// </para>
+    /// </summary>
+    [HardenedTest]
+    public async Task APathDeeperThanAnyRouteIsNotFound(ITestWebApp testWebApp) {
+        (await testWebApp.Get("/binding/path/a/b/c")).Assert.NotFound();
+        (await testWebApp.Get("/binding/path-typed/1/2/3")).Assert.NotFound();
+    }
+
+    /// <summary>
     /// The shorter route keeps working. It always did, which is why the defect went
     /// unnoticed: whichever route registered first behaved correctly.
     /// </summary>

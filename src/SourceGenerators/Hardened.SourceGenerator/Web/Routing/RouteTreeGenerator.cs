@@ -20,6 +20,12 @@ public class RouteTreeGenerator<T> {
 
         public string Method { get; }
 
+        /// <summary>
+        /// The token names as written, asterisk included — <c>{*path}</c> is kept here as
+        /// <c>"*path"</c>. The marker travels with the name because that is the only place the
+        /// route's own declaration survives into the tree; strip it with
+        /// <see cref="RouteTokens.Name"/> wherever the name is used to bind.
+        /// </summary>
         public IReadOnlyList<string> WildCardTokens { get; }
 
         public T Value { get; }
@@ -103,6 +109,11 @@ public class RouteTreeGenerator<T> {
     private IReadOnlyList<RouteTreeNode<T>> ProcessWildCardNodes(List<Entry> keyValuePair, int stringIndex,
         int wildCardDepth) {
         var token = keyValuePair.First().WildCardTokens[wildCardDepth - 1];
+
+        // Taken across every route through this position rather than from the first, because the
+        // node is shared and they may not agree. See RouteTreeNode.WildCardIsCatchAll.
+        var catchAll = keyValuePair.Any(entry => RouteTokens.IsCatchAll(entry.WildCardTokens, wildCardDepth));
+
         stringIndex += "{TOKEN}".Length;
 
         var returnList = new List<RouteTreeNode<T>>();
@@ -114,7 +125,10 @@ public class RouteTreeGenerator<T> {
             returnList.Add(ProcessEntries(group.Key.ToString(), group.Value, stringIndex + 1, wildCardDepth));
         }
 
-        returnList.ForEach(n => n.WildCardToken = token);
+        returnList.ForEach(n => {
+            n.WildCardToken = token;
+            n.WildCardIsCatchAll = catchAll;
+        });
 
         return returnList;
     }

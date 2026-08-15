@@ -342,7 +342,23 @@ internal static class OpenApiRoutingTableGenerator {
             KnownTypes.Web.RequestHandlerInfo.MakeNullable(), Null())).ToVar("handlerInfo");
 
         var currentIndex = wildCardMethod.Assign(index).ToVar("currentIndex");
-        var whileBlock = wildCardMethod.While(LessThan(currentIndex, span.Property("Length")));
+
+        // Bounded to the current segment, as the attribute-routed table is. Unbounded, the scan
+        // retries at every later separator when the rest of the route does not match, so a token
+        // could span segments and /files/{name}/download answered /files/a/b/c/download.
+        //
+        // There is no catch-all here. An OpenAPI path template cannot express one - a template
+        // expression is a parameter name and nothing more - so every token compiled from a
+        // document is a single segment, and this needs no opt-out.
+        wildCardMethod.Assign(CodeOutputComponent.Get($"{span.Name}.Slice({index.Name}).IndexOf('/')"))
+            .ToVar("segmentEnd");
+
+        wildCardMethod.Assign(CodeOutputComponent.Get(
+                $"segmentEnd < 0 ? {span.Name}.Length : {index.Name} + segmentEnd + 1"))
+            .ToVar("segmentLimit");
+
+        var whileBlock =
+            wildCardMethod.While(LessThan(currentIndex, CodeOutputComponent.Get("segmentLimit")));
 
         var pathCheck = CreatePathIfStatement(span, wildCardNode.Path, cancellationToken, currentIndex.Name);
         var ifStatement = whileBlock.If(And(pathCheck));
@@ -379,6 +395,12 @@ internal static class OpenApiRoutingTableGenerator {
         ParameterDefinition span,
         ParameterDefinition index) {
         if (wildCardNode.LeafNodes.Count > 0) {
+            // A token that ends the route takes the rest of the path as its value, so without this
+            // the route matches paths deeper than the document declares: /users/{id} answered
+            // /users/42/anything/at/all. An OpenAPI template means one segment, and this is the
+            // table compiled from one.
+            wildCardMethod.If($"{span.Name}.Slice({index.Name}).IndexOf('/') >= 0").Return(Null());
+
             var switchBlock = wildCardMethod.Switch(methodString);
 
             foreach (var leafNode in wildCardNode.LeafNodes) {

@@ -201,8 +201,27 @@ public static class OpenApiDocumentGenerator {
         return builder.ToString();
     }
 
-    /// <summary>The route as a document writes it. Hardened's own form already matches.</summary>
-    private static string ToTemplate(string path) => path;
+    /// <summary>
+    /// The route as a document writes it.
+    ///
+    /// <para>
+    /// Hardened's own form matches except for the catch-all marker: <c>/files/{*path}</c> is a
+    /// Hardened route, and <c>{*path}</c> is not a valid OpenAPI path template — a template
+    /// expression is a name, and the name has to match a declared parameter. The marker says how
+    /// much of the path the token takes, which is a routing concern the document has no way to
+    /// express, so it is dropped and the parameter is written under its own name.
+    /// </para>
+    ///
+    /// <para>
+    /// That does lose something: a specification round-tripped back through
+    /// <c>Hardened.OpenApi.BuildTask</c> gives a single-segment token where the source route had a
+    /// catch-all. Worth knowing, and better than emitting a document no OpenAPI reader accepts.
+    /// </para>
+    /// </summary>
+    private static string ToTemplate(string path) =>
+        path.IndexOf("{*", StringComparison.Ordinal) < 0
+            ? path
+            : path.Replace("{*", "{");
 
     private static string? Location(ParameterBindType bindType) =>
         bindType switch {

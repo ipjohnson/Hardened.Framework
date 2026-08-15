@@ -350,8 +350,38 @@ public static class RoutingTableGenerator {
 
         var currentIndex = wildCardMethod.Assign(index).ToVar("currentIndex");
 
+        // The scan looks for this node's separator and, when the rest of the route does not match
+        // from there, tries the next occurrence. The retry is what resolves /files/{name}.{ext}
+        // against "a.b.json": the first '.' leaves "b.json", which is not "json", so it takes the
+        // second.
+        //
+        // Unbounded it also crosses '/', which for {name} is never right - a segment ends at the
+        // first separator, and no later one makes a deeper path a legitimate match. It is why
+        // /files/{name}/download used to answer /files/a/b/c/download with name = "a/b/c".
+        // Bounding the scan to the current segment keeps the '.' case and removes the '/' case:
+        // where the separator is '/' the limit is one past the first, so exactly one boundary is
+        // tried, which is all there ever was to try.
+        //
+        // {*name} is unbounded, because taking the rest of the path is the whole point of it.
+        //
+        // Bounded is also less work: one vectorised IndexOf replaces walking the rest of the path a
+        // character at a time whenever the match fails.
+        IOutputComponent whileLimit = span.Property("Length");
+
+        if (!wildCardNode.WildCardIsCatchAll) {
+            wildCardMethod.Assign(
+                    CodeOutputComponent.Get($"{span.Name}.Slice({index.Name}).IndexOf('/')"))
+                .ToVar("segmentEnd");
+
+            wildCardMethod.Assign(CodeOutputComponent.Get(
+                    $"segmentEnd < 0 ? {span.Name}.Length : {index.Name} + segmentEnd + 1"))
+                .ToVar("segmentLimit");
+
+            whileLimit = CodeOutputComponent.Get("segmentLimit");
+        }
+
         var whileBlock =
-            wildCardMethod.While(LessThan(currentIndex, span.Property("Length")));
+            wildCardMethod.While(LessThan(currentIndex, whileLimit));
 
         var pathCheck = CreatePathIfStatement(
             span, wildCardNode.Path, cancellationToken, currentIndex.Name);
@@ -410,6 +440,23 @@ public static class RoutingTableGenerator {
         MethodDefinition wildCardMethod, ParameterDefinition methodString, ParameterDefinition span,
         ParameterDefinition index) {
         if (wildCardNode.LeafNodes.Count > 0) {
+            // A token that ends the route takes the rest of the path as its value. For {name} that
+            // has to stop at the first separator, or the route matches paths deeper than it
+            // declares: /users/{id} answered /users/42/anything/at/all with id = "42/anything/at/
+            // all", and no route could be written that matched exactly one segment.
+            //
+            // {*name} is the form that does want the remainder, so it keeps the old behaviour.
+            //
+            // Read across the leaves rather than from one: they are the routes ending here, and a
+            // node carrying both forms is a duplicate route either way. Permissive, so the
+            // catch-all stays reachable - see RouteTreeNode.WildCardIsCatchAll.
+            var catchAll = wildCardNode.LeafNodes.Any(
+                leaf => RouteTokens.IsCatchAll(leaf.WildCardTokens, wildCardNode.WildCardDepth));
+
+            if (!catchAll) {
+                wildCardMethod.If($"{span.Name}.Slice({index.Name}).IndexOf('/') >= 0").Return(Null());
+            }
+
             var switchBlock = wildCardMethod.Switch(methodString);
 
             foreach (var leafNode in wildCardNode.LeafNodes) {
@@ -601,7 +648,10 @@ public static class RoutingTableGenerator {
 
         field.Modifiers |= ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
 
-        var names = string.Join(", ", leafNode.WildCardTokens.Select(t => "\"" + t + "\""));
+        // Without the marker: {*path} binds to a parameter called path. The asterisk says how much
+        // of the path to take, not what to call it.
+        var names = string.Join(", ",
+            leafNode.WildCardTokens.Select(t => "\"" + RouteTokens.Name(t) + "\""));
 
         field.InitializeValue = new CodeOutputComponent("new string[] { " + names + " }");
 

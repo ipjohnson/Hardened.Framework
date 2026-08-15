@@ -72,18 +72,37 @@ public class RouteTreeMatchingTests {
     }
 
     /// <summary>
-    /// A token at the end of a route takes the whole remainder of the path, slashes included. That
-    /// makes every trailing token a catch-all, which is what <c>{*name}</c> relies on — the
-    /// asterisk is not syntax, it is just part of the token name.
+    /// A token matches one segment, so a path deeper than the route declares is not a match.
+    ///
+    /// <para>
+    /// This asserted the opposite until 2026-08-15 — that a trailing token took the whole
+    /// remainder, slashes included — on the grounds that it "makes every trailing token a
+    /// catch-all, which is what <c>{*name}</c> relies on, the asterisk is not syntax, it is just
+    /// part of the token name." The asterisk was in no route, no document and no code path: the
+    /// convention it described did not exist, and the rationale was written to explain the
+    /// behaviour rather than the behaviour written to satisfy it. What it cost was the ordinary
+    /// case — <c>/users/{id}</c> answered <c>/users/42/anything/at/all</c>, and no route could
+    /// express a single segment. <c>{*name}</c> is syntax now, and covered below.
+    /// </para>
     /// </summary>
     [Fact]
-    public void ATrailingTokenTakesTheRestOfThePath() {
+    public void ATrailingTokenMatchesOneSegmentAndNoMore() {
         var routing = GeneratedRoutingTable.For(OverlappingRoutes);
 
-        var tokens = routing.PathTokens("GET", "/users/42/unmatched/tail");
+        Assert.Equal("42", Assert.Contains("id", routing.PathTokens("GET", "/users/42")));
+        Assert.Null(routing.Route("GET", "/users/42/unmatched/tail"));
+    }
 
-        Assert.Equal("GetUser", routing.Handler("GET", "/users/42/unmatched/tail").InvokeMethod);
-        Assert.Equal("42/unmatched/tail", Assert.Contains("id", tokens));
+    /// <summary>
+    /// A deeper path does not fall back to a shorter route that happens to share its prefix.
+    /// </summary>
+    [Fact]
+    public void ADeeperPathDoesNotFallBackToAShallowerRoute() {
+        var routing = GeneratedRoutingTable.For(OverlappingRoutes);
+
+        Assert.Equal("GetPost", routing.Handler("GET", "/users/42/posts/9").InvokeMethod);
+        Assert.Null(routing.Route("GET", "/users/42/posts/9/comments"));
+        Assert.Null(routing.Route("GET", "/users/42/posts"));
     }
 
     /// <summary>A token can match nothing at all; the segment before it still has to be there.</summary>
@@ -194,8 +213,16 @@ public class RouteTreeMatchingTests {
     }
 
     /// <summary>
-    /// A token in the middle of a route stops at the next literal rather than consuming to the end,
-    /// even when the literal that follows also appears inside the value.
+    /// A token in the middle of a route stops at the segment boundary, so the literal after it has
+    /// to be the very next segment.
+    ///
+    /// <para>
+    /// This asserted <c>/files/a/b/c/download</c> binding <c>name = "a/b/c"</c> until 2026-08-15.
+    /// The scan that finds where a token ends walks the path and retries at the next separator when
+    /// the rest of the route does not match, which let a middle token span segments too — the same
+    /// defect as the trailing case, reached a different way, and the reason a leaf-only fix moved
+    /// where the path was split instead of rejecting it.
+    /// </para>
     /// </summary>
     [Fact]
     public void AMiddleTokenStopsAtTheSegmentThatFollowsIt() {
@@ -214,10 +241,71 @@ public class RouteTreeMatchingTests {
             }
             """);
 
-        Assert.Equal("a/b/c", Assert.Contains("name",
-            routing.PathTokens("GET", "/files/a/b/c/download")));
+        Assert.Equal("a", Assert.Contains("name", routing.PathTokens("GET", "/files/a/download")));
+        Assert.Null(routing.Route("GET", "/files/a/b/c/download"));
 
         Assert.Null(routing.Route("GET", "/files/a/b/c"));
+    }
+
+    private const string CatchAllRoutes = """
+        using Hardened.Shared.Runtime.Attributes;
+        using Hardened.Web.Runtime.Attributes;
+
+        namespace TestApp;
+
+        [HardenedModule]
+        public partial class TestApplication { }
+
+        public class AssetController {
+            [Get("/assets/{*path}")]
+            public string Asset(string path) => path;
+
+            [Get("/assets/index")]
+            public string Index() => "index";
+        }
+        """;
+
+    /// <summary>
+    /// <c>{*name}</c> takes the rest of the path, separators included. This is the behaviour every
+    /// token used to have; it is now the behaviour you ask for.
+    /// </summary>
+    [Fact]
+    public void ACatchAllTokenTakesTheRestOfThePath() {
+        var routing = GeneratedRoutingTable.For(CatchAllRoutes);
+
+        Assert.Equal("Asset", routing.Handler("GET", "/assets/a/b/c.png").InvokeMethod);
+        Assert.Equal("a/b/c.png", Assert.Contains("path", routing.PathTokens("GET", "/assets/a/b/c.png")));
+    }
+
+    /// <summary>A catch-all still matches a single segment — it is a lower bound, not a shape.</summary>
+    [Fact]
+    public void ACatchAllTokenAlsoMatchesOneSegment() {
+        var routing = GeneratedRoutingTable.For(CatchAllRoutes);
+
+        Assert.Equal("only", Assert.Contains("path", routing.PathTokens("GET", "/assets/only")));
+    }
+
+    /// <summary>
+    /// The marker says how much to match, not what to call it: <c>{*path}</c> binds a parameter
+    /// named <c>path</c>. Emitting the name with the asterisk still attached would leave the
+    /// handler's parameter unbound and fail at binding rather than at routing.
+    /// </summary>
+    [Fact]
+    public void ACatchAllTokenBindsWithoutTheMarkerInItsName() {
+        var routing = GeneratedRoutingTable.For(CatchAllRoutes);
+
+        var tokens = routing.PathTokens("GET", "/assets/a/b");
+
+        Assert.Contains("path", tokens);
+        Assert.DoesNotContain("*path", tokens);
+    }
+
+    /// <summary>A literal in the same position still wins, as it does against an ordinary token.</summary>
+    [Fact]
+    public void ALiteralStillWinsOverACatchAll() {
+        var routing = GeneratedRoutingTable.For(CatchAllRoutes);
+
+        Assert.Equal("Index", routing.Handler("GET", "/assets/index").InvokeMethod);
     }
 
     /// <summary>
