@@ -48,6 +48,21 @@ public class RouteAttributeTests {
     [BasePath("/api")]
     private class BasePathController { }
 
+    private static class ConstraintController {
+        [RouteConstraint("isbn")]
+        public static bool IsIsbn(ReadOnlySpan<char> value) => value.Length == 13;
+    }
+
+    [Server("https://api.example.com", "Production")]
+    [Server("https://staging.example.com")]
+    private class ServedApplication { }
+
+    [Tag("Products")]
+    private class V2ProductsController { }
+
+    [CaseInsensitiveRoutes]
+    private class LenientApplication { }
+
     private class BindingController {
         public string Named(
             [FromHeader("X-Tenant")] string tenant,
@@ -183,6 +198,97 @@ public class RouteAttributeTests {
 
         Assert.Null(parameters[0].GetCustomAttribute<FromHeaderAttribute>()!.Name);
         Assert.Null(parameters[1].GetCustomAttribute<FromQueryStringAttribute>()!.Name);
+    }
+
+    /// <summary>
+    /// <c>[RouteConstraint]</c> names a constraint a route template may then use after a colon.
+    /// The name is the whole contract between the two halves — the generator matches
+    /// <c>{code:isbn}</c> against it by string — so a consumer reading it back has to see what it
+    /// wrote.
+    /// </summary>
+    [Fact]
+    public void RouteConstraintCarriesTheNameARouteTemplateUses() {
+        var method = typeof(ConstraintController).GetMethod("IsIsbn", BindingFlags.Static | BindingFlags.Public)!;
+
+        Assert.Equal("isbn", method.GetCustomAttribute<RouteConstraintAttribute>()!.Name);
+    }
+
+    /// <summary>
+    /// Declared for methods and repeatable, because one static method can serve as more than one
+    /// named constraint and a class may declare several.
+    /// </summary>
+    [Fact]
+    public void RouteConstraintIsDeclaredForMethodsAndRepeats() {
+        var usage = typeof(RouteConstraintAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
+
+        Assert.Equal(AttributeTargets.Method, usage.ValidOn);
+        Assert.True(usage.AllowMultiple);
+    }
+
+    /// <summary>
+    /// <c>[Server]</c> is the one part of a generated document that cannot be derived from the
+    /// code, so both halves have to survive being read back — a URL with no description is the
+    /// common form, and the description is what tells two servers apart.
+    /// </summary>
+    [Fact]
+    public void ServerCarriesItsUrlAndOptionalDescription() {
+        var servers = typeof(ServedApplication)
+            .GetCustomAttributes<ServerAttribute>(inherit: false)
+            .OrderBy(server => server.Url)
+            .ToArray();
+
+        Assert.Equal("https://api.example.com", servers[0].Url);
+        Assert.Equal("Production", servers[0].Description);
+
+        Assert.Equal("https://staging.example.com", servers[1].Url);
+        Assert.Null(servers[1].Description);
+    }
+
+    /// <summary>
+    /// Repeatable and declared for classes and assemblies, because an application served from
+    /// several places names each one, and the entry point is where it goes.
+    /// </summary>
+    [Fact]
+    public void ServerIsDeclaredForClassesAndAssembliesAndRepeats() {
+        var usage = typeof(ServerAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
+
+        Assert.Equal(AttributeTargets.Class | AttributeTargets.Assembly, usage.ValidOn);
+        Assert.True(usage.AllowMultiple);
+    }
+
+    /// <summary>
+    /// <c>[Tag]</c> overrides the group a controller's operations document under. Tags are what a
+    /// specification-first build turns back into service interfaces, so a name that did not survive
+    /// the round trip would collapse the controller structure rather than merely mislabel it.
+    /// </summary>
+    [Fact]
+    public void TagCarriesTheGroupNameItWasGiven() {
+        Assert.Equal("Products", typeof(V2ProductsController).GetCustomAttribute<TagAttribute>()!.Name);
+    }
+
+    /// <summary>
+    /// One tag per controller — the controller already is the group, so a second one would be
+    /// asking the document to put the same operations in two places.
+    /// </summary>
+    [Fact]
+    public void TagIsDeclaredForOneClassAtATime() {
+        var usage = typeof(TagAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
+
+        Assert.Equal(AttributeTargets.Class, usage.ValidOn);
+        Assert.False(usage.AllowMultiple);
+    }
+
+    /// <summary>
+    /// <c>[CaseInsensitiveRoutes]</c> is a marker — it carries no state, and its presence on the
+    /// entry point is the whole signal. It is applied here from a referencing assembly for the same
+    /// reason the verb attributes are: a marker nothing can apply is a marker that does nothing.
+    /// </summary>
+    [Fact]
+    public void CaseInsensitiveRoutesIsAMarkerAConsumerCanApply() {
+        Assert.NotNull(typeof(LenientApplication).GetCustomAttribute<CaseInsensitiveRoutesAttribute>());
+
+        Assert.Empty(typeof(CaseInsensitiveRoutesAttribute).GetProperties(
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly));
     }
 
     private static string PathOf(object attribute) =>

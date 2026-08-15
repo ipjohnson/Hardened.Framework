@@ -344,6 +344,202 @@ public class WebExecutionHandlerServiceTests {
         await fixture.NotFound.Received(1).Handle(fixture.Chain);
     }
 
+    /// <summary>
+    /// A table that recognised the path but named no verbs adds nothing to the header. It still
+    /// counts as recognising the path — the request is a 405 rather than a 404 — but an empty
+    /// contribution merged in as though it were a verb would produce a header with a stray comma,
+    /// which a client parses as a verb whose name is the empty string.
+    /// </summary>
+    [Fact]
+    public async Task ATableThatNamesNoVerbsAddsNothingToTheAllowHeader() {
+        var fixture = new Fixture();
+
+        fixture.Context.Request.Path.Returns("/thing");
+
+        fixture.MethodMismatch("GET");
+        fixture.MethodMismatch("");
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await fixture.MethodNotAllowed.Received(1).Handle(fixture.Context, "GET");
+    }
+
+    /// <summary>
+    /// A HEAD reaches the GET handler and runs it in full, so the response carries the headers the
+    /// GET would have carried. What differs is that the bytes are counted and dropped: the real
+    /// body is put back untouched, and Content-Length reports what was measured.
+    /// </summary>
+    [Fact]
+    public async Task AHeadRequestRunsTheHandlerAndReportsTheLengthOfTheBodyItDiscards() {
+        var fixture = new Fixture();
+        var realBody = new MemoryStream();
+
+        fixture.Context.Request.Method.Returns("HEAD");
+        fixture.Context.Response.Body = realBody;
+
+        var handlerChain = fixture.RouteMatches("/orders");
+
+        handlerChain.Next().Returns(_ => {
+            fixture.Context.Response.Body.Write(new byte[10], 0, 10);
+
+            return Task.CompletedTask;
+        });
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        Assert.Equal("10", fixture.Headers["Content-Length"]);
+        Assert.Equal(0, realBody.Length);
+        Assert.Same(realBody, fixture.Context.Response.Body);
+    }
+
+    /// <summary>
+    /// The stream swapped in for the body counts every write path the framework has — the
+    /// serializers, the raw output helper, the gzip wrapper and the newline the async-enumerable
+    /// filter writes between items all end at <c>Response.Body</c>. A single overload left
+    /// uncounted is a Content-Length that is quietly short.
+    /// </summary>
+    [Fact]
+    public async Task TheDiscardingStreamCountsEveryWriteOverloadAndRefusesToBeRead() {
+        var fixture = new Fixture();
+
+        fixture.Context.Request.Method.Returns("HEAD");
+        fixture.Context.Response.Body = new MemoryStream();
+
+        var handlerChain = fixture.RouteMatches("/orders");
+
+        Stream? discard = null;
+
+        handlerChain.Next().Returns(_ => {
+            discard = fixture.Context.Response.Body;
+
+            discard.Write(new byte[3], 0, 3);
+            discard.WriteByte(1);
+            discard.Write(new byte[5].AsSpan());
+            discard.WriteAsync(new byte[7], 0, 7).GetAwaiter().GetResult();
+            discard.WriteAsync(new ReadOnlyMemory<byte>(new byte[11])).GetAwaiter().GetResult();
+
+            discard.Flush();
+            discard.FlushAsync().GetAwaiter().GetResult();
+
+            return Task.CompletedTask;
+        });
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        Assert.Equal("27", fixture.Headers["Content-Length"]);
+
+        // Write-only, and what it has counted is readable as the length.
+        Assert.False(discard!.CanRead);
+        Assert.False(discard.CanSeek);
+        Assert.True(discard.CanWrite);
+        Assert.Equal(27, discard.Length);
+        Assert.Equal(27, discard.Position);
+
+        // Nothing is kept, so every read or seek is a mistake rather than an empty answer.
+        Assert.Throws<NotSupportedException>(() => discard.Position = 0);
+        Assert.Throws<NotSupportedException>(() => discard.Read(new byte[1], 0, 1));
+        Assert.Throws<NotSupportedException>(() => discard.Seek(0, SeekOrigin.Begin));
+        Assert.Throws<NotSupportedException>(() => discard.SetLength(1));
+    }
+
+    /// <summary>
+    /// A filter may start the response deliberately, and rewriting headers after that throws on
+    /// Kestrel. The length is dropped rather than the request, because a HEAD that 500s is worse
+    /// than one that answers without a Content-Length.
+    /// </summary>
+    [Fact]
+    public async Task AHeadRequestLeavesContentLengthAloneOnceTheResponseHasStarted() {
+        var fixture = new Fixture();
+
+        fixture.Context.Request.Method.Returns("HEAD");
+        fixture.Context.Response.Body = new MemoryStream();
+        fixture.Context.Response.ResponseStarted.Returns(true);
+
+        var handlerChain = fixture.RouteMatches("/orders");
+
+        handlerChain.Next().Returns(_ => {
+            fixture.Context.Response.Body.WriteByte(1);
+
+            return Task.CompletedTask;
+        });
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        Assert.False(fixture.Headers.ContainsKey("Content-Length"));
+    }
+
+    /// <summary>
+    /// The body is restored in a <c>finally</c>, so a handler that throws does not leave the
+    /// counting stream in place for whatever writes the error response.
+    /// </summary>
+    [Fact]
+    public async Task AHeadRequestPutsTheBodyBackWhenTheHandlerThrows() {
+        var fixture = new Fixture();
+        var realBody = new MemoryStream();
+
+        fixture.Context.Request.Method.Returns("HEAD");
+        fixture.Context.Response.Body = realBody;
+
+        var handlerChain = fixture.RouteMatches("/orders");
+
+        handlerChain.Next().Returns<Task>(_ => throw new InvalidOperationException("handler failed"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => fixture.Service().Execute(fixture.Chain));
+
+        Assert.Same(realBody, fixture.Context.Response.Body);
+    }
+
+    /// <summary>
+    /// The verb is compared without regard to case, because the method a client sends is not
+    /// guaranteed to arrive uppercased and a lowercase <c>head</c> that fell through would send a
+    /// body.
+    /// </summary>
+    [Fact]
+    public async Task AHeadRequestIsRecognisedWhateverCaseItArrivesIn() {
+        var fixture = new Fixture();
+
+        fixture.Context.Request.Method.Returns("head");
+        fixture.Context.Response.Body = new MemoryStream();
+
+        var handlerChain = fixture.RouteMatches("/orders");
+
+        handlerChain.Next().Returns(_ => {
+            fixture.Context.Response.Body.WriteByte(1);
+
+            return Task.CompletedTask;
+        });
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        Assert.Equal("1", fixture.Headers["Content-Length"]);
+    }
+
+    /// <summary>
+    /// A GET is left alone: its bytes go to the real body and no length is invented for it.
+    /// </summary>
+    [Fact]
+    public async Task AGetRequestWritesToTheRealBody() {
+        var fixture = new Fixture();
+        var realBody = new MemoryStream();
+
+        fixture.Context.Request.Method.Returns("GET");
+        fixture.Context.Response.Body = realBody;
+
+        var handlerChain = fixture.RouteMatches("/orders");
+
+        handlerChain.Next().Returns(_ => {
+            fixture.Context.Response.Body.Write(new byte[4], 0, 4);
+
+            return Task.CompletedTask;
+        });
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        Assert.Equal(4, realBody.Length);
+        Assert.False(fixture.Headers.ContainsKey("Content-Length"));
+    }
+
     private sealed class Fixture {
         private readonly List<IWebExecutionRequestHandlerProvider> _providers = [];
 
