@@ -91,6 +91,23 @@ public class RequestHandlerModel {
     /// </remarks>
     public string? Tag { get; set; }
 
+    /// <summary>
+    /// The handler's <c>&lt;summary&gt;</c> doc comment, as the operation's <c>summary</c>.
+    /// </summary>
+    public string? Summary { get; set; }
+
+    /// <summary>
+    /// The handler's <c>&lt;remarks&gt;</c> doc comment, as the operation's <c>description</c>.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Whether the handler or its controller carries <c>[Obsolete]</c>, as the operation's
+    /// <c>deprecated</c>. A client generated from the document then warns where the application
+    /// warns, instead of the deprecation stopping at the assembly boundary.
+    /// </summary>
+    public bool IsDeprecated { get; set; }
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;
@@ -155,6 +172,18 @@ public class RequestHandlerModel {
             return false;
         }
 
+        if (!string.Equals(Summary, requestHandlerModel.Summary, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        if (!string.Equals(Description, requestHandlerModel.Description, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        if (IsDeprecated != requestHandlerModel.IsDeprecated) {
+            return false;
+        }
+
         return true;
     }
 
@@ -181,6 +210,9 @@ public class RequestHandlerModel {
             hashCode = (hashCode * 397) ^ ResponseInformation.GetHashCode();
             hashCode = (hashCode * 397) ^ Filters.GetHashCodeAggregation();
             hashCode = (hashCode * 397) ^ (Tag?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ (Summary?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ (Description?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ IsDeprecated.GetHashCode();
 
             return hashCode;
         }

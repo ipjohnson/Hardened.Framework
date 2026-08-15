@@ -170,11 +170,14 @@ public static class JsonSchemaWriter {
 
             properties
                 .Append('"').Append(Escape(CamelCase(property.Name))).Append("\":")
-                .Append(SchemaFor(property.Type, components, inProgress));
+                .Append(SchemaConstraintWriter.Apply(
+                    SchemaFor(property.Type, components, inProgress), property));
 
-            // A non-nullable reference type is one the author said would always be there.
-            if (property.Type.NullableAnnotation == NullableAnnotation.NotAnnotated &&
-                property.Type.IsReferenceType) {
+            // A non-nullable reference type is one the author said would always be there, and so
+            // is one carrying [Required] - which is the only way to say it about a value type.
+            if ((property.Type.NullableAnnotation == NullableAnnotation.NotAnnotated &&
+                 property.Type.IsReferenceType) ||
+                SchemaConstraintWriter.IsRequired(property)) {
                 required.Add(CamelCase(property.Name));
             }
 

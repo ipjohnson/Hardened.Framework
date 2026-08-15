@@ -40,7 +40,11 @@ public static class OpenApiDocumentGenerator {
 
         builder.Append("{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"")
             .Append(JsonSchemaWriter.Escape(appModel.EntryPointType.Name))
-            .Append("\",\"version\":\"1.0.0\"},\"paths\":{");
+            .Append("\",\"version\":\"1.0.0\"}");
+
+        WriteServers(builder, appModel);
+
+        builder.Append(",\"paths\":{");
 
         var components = new SortedDictionary<string, string>(System.StringComparer.Ordinal);
         var operationIds = OperationIds(handlers);
@@ -116,11 +120,79 @@ public static class OpenApiDocumentGenerator {
             .Append(JsonSchemaWriter.Escape(operationIds[HandlerKey(handler)]))
             .Append('"');
 
+        WriteText(builder, "summary", handler.Summary);
+        WriteText(builder, "description", handler.Description);
+
+        if (handler.IsDeprecated) {
+            builder.Append(",\"deprecated\":true");
+        }
+
         WriteParameters(builder, handler);
         WriteRequestBody(builder, handler, components);
         WriteResponses(builder, handler, components);
 
         builder.Append('}');
+    }
+
+    private static void WriteText(StringBuilder builder, string field, string? value) {
+        if (string.IsNullOrEmpty(value)) {
+            return;
+        }
+
+        builder.Append(",\"").Append(field).Append("\":\"")
+            .Append(JsonSchemaWriter.Escape(value!)).Append('"');
+    }
+
+    /// <summary>
+    /// The <c>servers</c> the entry point declares with <c>[Server]</c>. Omitted entirely when
+    /// there are none - an empty <c>servers</c> array is not the same as saying nothing, since a
+    /// reader treats the absent case as "the document's own location" and an empty one as an
+    /// application served from nowhere.
+    /// </summary>
+    private static void WriteServers(StringBuilder builder, EntryPointSelector.Model appModel) {
+        if (appModel.AttributeModels == null) {
+            return;
+        }
+
+        var first = true;
+
+        foreach (var attribute in appModel.AttributeModels) {
+            if (!attribute.TypeDefinition.Name.StartsWith("Server", System.StringComparison.Ordinal)) {
+                continue;
+            }
+
+            // "url", "description" - split on the first comma only, because a URL may contain one
+            // and the description is whatever remains.
+            var arguments = attribute.Arguments;
+            var comma = arguments.IndexOf(',');
+
+            var url = (comma < 0 ? arguments : arguments.Substring(0, comma)).Trim().Trim('"');
+
+            if (url.Length == 0) {
+                continue;
+            }
+
+            builder.Append(first ? ",\"servers\":[" : ",");
+
+            builder.Append("{\"url\":\"").Append(JsonSchemaWriter.Escape(url)).Append('"');
+
+            if (comma >= 0) {
+                var description = arguments.Substring(comma + 1).Trim().Trim('"');
+
+                if (description.Length > 0) {
+                    builder.Append(",\"description\":\"")
+                        .Append(JsonSchemaWriter.Escape(description)).Append('"');
+                }
+            }
+
+            builder.Append('}');
+
+            first = false;
+        }
+
+        if (!first) {
+            builder.Append(']');
+        }
     }
 
     private static void WriteParameters(StringBuilder builder, RequestHandlerModel handler) {

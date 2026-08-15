@@ -27,20 +27,33 @@ public class OpenApiRoundTripTests {
 
     private const string Application =
         """
+        using System;
         using System.Collections.Generic;
         using System.Threading.Tasks;
         using Hardened.Requests.Abstract.Attributes;
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Attributes;
+        using ValidationModules.Constraints;
 
         namespace TestApp;
 
         [HardenedModule]
+        [Server("https://api.example.com", "Production")]
+        [Server("https://staging.example.com")]
         public partial class TestApplication { }
 
         public class Order {
+            [StringLength(3, 12)]
+            [Pattern("^[A-Z0-9-]+$")]
             public string Sku { get; set; } = "";
+
+            [Range(1, 500)]
             public int Quantity { get; set; }
+
+            [AllowedValues("standard", "express")]
+            public string? Shipping { get; set; }
+
+            [ItemCount(0, 8)]
             public List<string>? Tags { get; set; }
         }
 
@@ -52,6 +65,11 @@ public class OpenApiRoundTripTests {
         [BasePath("/orders")]
         public class OrderController {
 
+            /// <summary>One order, by its identifier.</summary>
+            /// <remarks>
+            /// Reads from the replica, so an order created in the last few
+            /// seconds may not be visible yet.
+            /// </remarks>
             [Get("/{id}")]
             public OrderSummary Get(string id) => new();
 
@@ -63,6 +81,7 @@ public class OpenApiRoundTripTests {
             [Post("/")]
             public OrderSummary Create(Order order) => new();
 
+            [Obsolete("Cancel the order instead.")]
             [Delete("/{id}")]
             public void Delete(string id) { }
         }
@@ -82,11 +101,19 @@ public class OpenApiRoundTripTests {
     /// <summary>
     /// The document the generator emitted, read back with a real OpenAPI parser.
     /// </summary>
+    /// <summary>
+    /// The routing anchors plus ValidationModules, whose constraints the fixture puts on the model
+    /// so the schema facets they imply can be asserted. The validation generator itself is
+    /// deliberately not run - the constraints are being read as documentation here, not compiled.
+    /// </summary>
+    private static readonly Type[] Anchors =
+        GeneratedRoutingTable.Anchors.Append(typeof(ValidationModules.Constraints.RangeAttribute)).ToArray();
+
     private static OpenApiDocument RoundTrip() {
         var result = GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = Application },
             new[] { new WebLibrarySourceGenerator() },
-            GeneratedRoutingTable.Anchors);
+            Anchors);
 
         result.AssertNoErrors();
 
@@ -279,6 +306,73 @@ public class OpenApiRoundTripTests {
             .OrderBy(name => name, StringComparer.Ordinal);
 
         Assert.Equal(new[] { "Order", "People" }, tags);
+    }
+
+    /// <summary>
+    /// A doc comment is prose a developer has already written about the operation. Carrying it
+    /// means the document says what the code says, rather than being a shape with no explanation.
+    /// </summary>
+    [Fact]
+    public void DocCommentsBecomeSummaryAndDescription() {
+        var get = RoundTrip().Paths["/orders/{id}"].Operations[OperationType.Get];
+
+        Assert.Equal("One order, by its identifier.", get.Summary);
+        Assert.Equal(
+            "Reads from the replica, so an order created in the last few seconds may not be visible yet.",
+            get.Description);
+    }
+
+    /// <summary>
+    /// <c>[Obsolete]</c> and <c>deprecated</c> are the same statement, so a client generated from
+    /// the document warns where the application warns instead of the deprecation stopping at the
+    /// assembly boundary.
+    /// </summary>
+    [Fact]
+    public void ObsoleteBecomesDeprecated() {
+        var operations = RoundTrip().Paths["/orders/{id}"].Operations;
+
+        Assert.True(operations[OperationType.Delete].Deprecated);
+        Assert.False(operations[OperationType.Get].Deprecated);
+    }
+
+    /// <summary>
+    /// A constraint and a schema facet are one statement written twice. Without this the document
+    /// describes a property as merely "a string" while the server rejects most strings, and a
+    /// generated client cannot check anything before sending it.
+    /// </summary>
+    [Fact]
+    public void ValidationConstraintsBecomeSchemaFacets() {
+        var order = RoundTrip().Components.Schemas["Order"];
+
+        Assert.Equal(3, order.Properties["sku"].MinLength);
+        Assert.Equal(12, order.Properties["sku"].MaxLength);
+        Assert.Equal("^[A-Z0-9-]+$", order.Properties["sku"].Pattern);
+
+        Assert.Equal(1, order.Properties["quantity"].Minimum);
+        Assert.Equal(500, order.Properties["quantity"].Maximum);
+
+        Assert.Equal(8, order.Properties["tags"].MaxItems);
+
+        Assert.Equal(
+            new[] { "standard", "express" },
+            order.Properties["shipping"].Enum.OfType<Microsoft.OpenApi.Any.OpenApiString>()
+                .Select(value => value.Value));
+    }
+
+    /// <summary>
+    /// Where the application is deployed is the one thing in the document that cannot be derived
+    /// from the code, so it is declared. Without it a generated client has a set of paths and
+    /// nowhere to send them.
+    /// </summary>
+    [Fact]
+    public void DeclaredServersAppear() {
+        var servers = RoundTrip().Servers;
+
+        Assert.Equal(
+            new[] { "https://api.example.com", "https://staging.example.com" },
+            servers.Select(server => server.Url));
+
+        Assert.Equal("Production", servers[0].Description);
     }
 
     /// <summary>

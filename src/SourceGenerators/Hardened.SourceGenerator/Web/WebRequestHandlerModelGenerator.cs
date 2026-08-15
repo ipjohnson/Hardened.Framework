@@ -1,5 +1,6 @@
 ﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Validation;
@@ -18,10 +19,39 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         GeneratorSyntaxContext context, CancellationToken cancellationToken) {
         var model = base.GenerateRequestModel(context, cancellationToken);
 
-        model.Tag = GetTagFromController(context, cancellationToken);
+        var controller = context.Node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+
+        model.Tag = GetTagFromController(context, controller, cancellationToken);
+
+        // What the document has to say about the operation beyond its shape, taken from where a
+        // developer has already written it rather than from a second set of attributes.
+        var (summary, description) = XmlDocumentation.Read(context.Node);
+
+        model.Summary = summary;
+        model.Description = description;
+
+        // An obsolete controller deprecates everything on it: the operations are still served, and
+        // that is exactly what `deprecated` means in a document.
+        model.IsDeprecated =
+            HasObsolete(context.Node as MemberDeclarationSyntax) || HasObsolete(controller);
 
         return model;
     }
+
+    /// <summary>
+    /// Against the member's own attribute lists rather than <c>GetAttribute</c>, which searches
+    /// descendants - on a class that reaches every attribute on every member, so one obsolete
+    /// method would deprecate the whole controller.
+    /// </summary>
+    private static bool HasObsolete(MemberDeclarationSyntax? member) =>
+        member != null &&
+        member.AttributeLists
+            .SelectMany(list => list.Attributes)
+            .Any(attribute => {
+                var name = attribute.Name.ToString();
+
+                return name.EndsWith("Obsolete") || name.EndsWith("ObsoleteAttribute");
+            });
 
     /// <summary>
     /// The tag the controller declared with <c>[Tag]</c>, or null to let the document generator
@@ -29,9 +59,9 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     /// tree, which is gone by the time a document is written.
     /// </summary>
     private static string? GetTagFromController(
-        GeneratorSyntaxContext context, CancellationToken cancellationToken) {
-        var classDeclaration = context.Node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-
+        GeneratorSyntaxContext context,
+        ClassDeclarationSyntax? classDeclaration,
+        CancellationToken cancellationToken) {
         if (classDeclaration == null) {
             return null;
         }
