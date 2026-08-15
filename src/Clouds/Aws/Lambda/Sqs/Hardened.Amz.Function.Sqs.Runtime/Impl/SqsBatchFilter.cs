@@ -19,12 +19,12 @@ public class SqsBatchFilter : BaseBatchExecutionFilter<SQSEvent, SQSEvent.SQSMes
     public SqsBatchFilter(
         IJsonSerializer jsonSerializer,
         IMemoryStreamPool memoryStreamPool,
-        IBatchProcessorExceptionHandler bulkProcessorExceptionHandler,
+        IBatchProcessorExceptionHandler batchProcessorExceptionHandler,
         ILogger<SqsBatchFilter> logger) :
         base(
             jsonSerializer,
             memoryStreamPool,
-            bulkProcessorExceptionHandler,
+            batchProcessorExceptionHandler,
             logger) {
     }
 

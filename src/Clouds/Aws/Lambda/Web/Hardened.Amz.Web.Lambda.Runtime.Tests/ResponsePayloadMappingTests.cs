@@ -42,9 +42,17 @@ public class ResponsePayloadMappingTests {
     }
 
     /// <summary>
-    /// Zero is not a status. It is what an <c>int</c> holds before anything sets it, and the
-    /// backing field on the proxy response is an <c>int</c>, so "unset" and "zero" are the same
-    /// value here.
+    /// Zero is not a status a handler can have meant, and API Gateway renders it as a 502, so the
+    /// processor normalises it.
+    ///
+    /// <para>
+    /// It used to be indistinguishable from "unset", because the response read its status straight
+    /// off the proxy response's non-nullable <c>int</c>. That is what stopped
+    /// <c>ResourceNotFoundHandler</c> ever firing. Since 2026-08-15 unset is null and zero is only
+    /// reachable by a handler assigning it, so this asserts the narrow defensive case it was always
+    /// named for rather than standing in for the unset one — which
+    /// <c>RoutingStatusTests</c> now covers end to end.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task AStatusOfZeroIsTreatedAsUnsetAndReturns200() {

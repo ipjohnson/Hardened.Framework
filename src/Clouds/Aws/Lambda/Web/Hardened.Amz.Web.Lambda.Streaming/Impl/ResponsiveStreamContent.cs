@@ -21,36 +21,25 @@ public class ResponsiveStreamContent : HttpContent {
         Stream stream, TransportContext? context, CancellationToken cancellationToken) {
         var buffer = new byte[4096];
         var timestamp = MachineTimestamp.Now;
-        var totalRead = 0;
-        var readCount = 0;
-
-        Console.Error.WriteLine("[StreamDiag] ResponsiveStreamContent: SerializeToStreamAsync starting");
 
         while (!cancellationToken.IsCancellationRequested) {
             var read = await _stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-            readCount++;
 
-            if (read > 0) {
-                totalRead += read;
-                await stream.WriteAsync(buffer, 0, read, cancellationToken);
-
-                if (timestamp.GetElapsedMilliseconds() > _flushDelayMs) {
-                    await stream.FlushAsync(cancellationToken);
-                    timestamp = MachineTimestamp.Now;
-                }
-            }
-            else {
-                Console.Error.WriteLine($"[StreamDiag] ResponsiveStreamContent: EOF after {readCount} reads, {totalRead} total bytes");
+            if (read == 0) {
                 break;
             }
+
+            await stream.WriteAsync(buffer, 0, read, cancellationToken);
+
+            if (timestamp.GetElapsedMilliseconds() > _flushDelayMs) {
+                await stream.FlushAsync(cancellationToken);
+                timestamp = MachineTimestamp.Now;
+            }
         }
 
+        // Nothing to flush once cancelled: the request is gone and the write would throw.
         if (!cancellationToken.IsCancellationRequested) {
-            Console.Error.WriteLine($"[StreamDiag] ResponsiveStreamContent: final flush, {totalRead} bytes total");
             await stream.FlushAsync(cancellationToken);
-        }
-        else {
-            Console.Error.WriteLine($"[StreamDiag] ResponsiveStreamContent: cancelled, {totalRead} bytes sent before cancel");
         }
     }
 

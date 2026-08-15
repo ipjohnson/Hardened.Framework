@@ -1,9 +1,20 @@
 ﻿using CSharpAuthor;
-using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.Amz.Web.Lambda.SourceGenerator;
 
+/// <summary>
+/// Assembles the generated application file. The class itself is written by
+/// <see cref="LambdaWebApplicationFileWriter"/>.
+///
+/// <para>
+/// A private <c>CreateApplicationClass</c> and the three methods it called used to sit below,
+/// unreachable — a stale near-copy of the live writer that emitted the handler as
+/// <c>FunctionHandlerAsync</c> where the live path emits <c>Invoke</c>. Two contradictory answers
+/// to what the Lambda entry point is called, one of them wrong and neither compiled into anything.
+/// Removed 2026-08-15.
+/// </para>
+/// </summary>
 public static class ApplicationFileWriter {
     public static string WriteFile(EntryPointSelector.Model entryPoint) {
         var applicationFile = new CSharpFileDefinition(entryPoint.EntryPointType.Namespace);
@@ -19,111 +30,5 @@ public static class ApplicationFileWriter {
         applicationFile.WriteOutput(context);
 
         return context.Output();
-    }
-
-    private static void CreateApplicationClass(CSharpFileDefinition applicationFile,
-        EntryPointSelector.Model entryPoint) {
-        var appClass = applicationFile.AddClass(entryPoint.EntryPointType.Name);
-
-        appClass.Modifiers |= ComponentModifier.Partial;
-
-        appClass.AddBaseType(KnownTypes.Lambda.IApiGatewayV2Handler);
-
-        var field = appClass.AddField(KnownTypes.Lambda.IApiGatewayEventProcessor, "_eventProcessor");
-
-        field.Modifiers |= ComponentModifier.Readonly | ComponentModifier.Private;
-
-        var providerInstance = appClass.ImplementApplicationRoot();
-
-        CreateConstructors(appClass, entryPoint, providerInstance);
-
-        CreateHandlerMethod(appClass, entryPoint, providerInstance, field.Instance);
-    }
-
-    private static void CreateHandlerMethod(ClassDefinition appClass, EntryPointSelector.Model entryPoint,
-        InstanceDefinition providerInstance, InstanceDefinition eventProcessor) {
-        var handler = appClass.AddMethod("FunctionHandlerAsync");
-
-        handler.SetReturnType(new GenericTypeDefinition(typeof(Task<>),
-            new[] { KnownTypes.Lambda.APIGatewayHttpApiV2ProxyResponse }));
-
-        handler.AddAttribute(
-            KnownTypes.Lambda.LambdaSerializer,
-            "typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer)");
-
-        var request = handler.AddParameter(KnownTypes.Lambda.APIGatewayHttpApiV2ProxyRequest, "request");
-        var context = handler.AddParameter(KnownTypes.Lambda.ILambdaContext, "context");
-
-        handler.Return(eventProcessor.Invoke("Process", request, context));
-    }
-
-    private static void CreateConstructors(ClassDefinition appClass,
-        EntryPointSelector.Model entryPoint,
-        InstanceDefinition providerInstanceDefinition) {
-        appClass.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl), Null()));
-
-        var constructor = appClass.AddConstructor();
-
-        var environment = constructor.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
-
-        var overrides =
-            constructor.AddParameter(
-                TypeDefinition.Action(KnownTypes.Application.IHardenedEnvironment, KnownTypes.DI.IServiceCollection)
-                    .MakeNullable(), "overrideDependencies");
-
-        var loggingBuilder = SetupLoggingBuilderAction(entryPoint, constructor, environment);
-
-        constructor.Assign(Invoke("CreateServiceProvider", environment, overrides, loggingBuilder, "RegisterInitDi"))
-            .To(providerInstanceDefinition);
-
-        var registerInitDi = appClass.AddMethod("RegisterInitDi");
-
-        registerInitDi.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
-        var env = registerInitDi.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
-        var coll = registerInitDi.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-
-        var startupMethod = "null";
-
-        if (entryPoint.MethodDefinitions.Any(m => m.Name == "Startup")) {
-            startupMethod = "Startup";
-        }
-
-        constructor.AddIndentedStatement(
-            Invoke(
-                KnownTypes.Application.ApplicationLogic,
-                "StartWithWait",
-                providerInstanceDefinition,
-                startupMethod,
-                15));
-
-        var handler =
-            constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-                new[] { KnownTypes.Web.IWebExecutionHandlerService })).ToVar("handler");
-
-        var middleware =
-            constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-                new[] { KnownTypes.Requests.IMiddlewareService })).ToVar("middleware");
-
-        constructor.AddIndentedStatement(middleware.Invoke("Use", "_ => handler"));
-
-        constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-            new[] { KnownTypes.Lambda.IApiGatewayEventProcessor })).To("_eventProcessor");
-    }
-
-    private static IOutputComponent SetupLoggingBuilderAction(
-        EntryPointSelector.Model entryPoint, ConstructorDefinition constructor, ParameterDefinition environment) {
-        var loggingMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogging");
-        var logLevelMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogLevel");
-
-        if (loggingMethod != null) {
-            if (loggingMethod.Parameters.Count == 1) {
-                return CodeOutputComponent.Get(loggingMethod.Name);
-            }
-
-            return constructor.Assign("builder => ConfigureLogging(environment, builder)")
-                .ToLocal(TypeDefinition.Action(KnownTypes.Logging.ILoggingBuilder), "loggingBuilderAction");
-        }
-
-        return Null();
     }
 }

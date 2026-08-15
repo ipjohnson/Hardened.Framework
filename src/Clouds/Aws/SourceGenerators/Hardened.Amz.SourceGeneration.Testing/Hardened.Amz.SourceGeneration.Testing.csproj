@@ -21,8 +21,8 @@
       caller hands this harness the generator instance and the reference anchors its source needs.
     -->
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
-        <PackageReference Include="xunit.v3.assert" Version="3.2.2" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+        <PackageReference Include="xunit.v3.assert" />
     </ItemGroup>
 
 </Project>

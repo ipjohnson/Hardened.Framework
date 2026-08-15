@@ -26,7 +26,9 @@ AWS integrations for the [Hardened](https://ipjohnson.github.io/Hardened.Docs) e
 |---|---|
 | `Hardened.Amz.DynamoDbClient` | `IDynamoDbClientProvider`, DynamoDB extensions |
 | `Hardened.Amz.DynamoDbClient.Testing` | `[LocalDynamoDb]` with Testcontainers |
-| `Hardened.Amz.SqsClient` | `ISqsClient` for SQS messaging |
+
+There is no SQS client package. `Hardened.Amz.Function.Sqs.Runtime` consumes a queue; writing to
+one means taking a direct `AWSSDK.SQS` dependency for now.
 
 ### Infrastructure
 
@@ -55,13 +57,16 @@ public class OrderHandler {
 
 ### Lambda Web API (API Gateway)
 
+`[LambdaWebModule]` brings the API Gateway host and the web pipeline underneath it. An application
+without it builds and then throws on construction, so it is not optional.
+
 ```csharp
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.Runtime.Attributes;
-using Hardened.Amz.Web.Lambda.Runtime;
+using Hardened.Amz.Web.Lambda.Runtime.DependencyInjection;
 
 [HardenedModule]
-[LambdaWebApplication(Version = ProxyIntegrationType.HttpApiV2)]
+[LambdaWebModule]
 public partial class Application { }
 
 public class ProductController {

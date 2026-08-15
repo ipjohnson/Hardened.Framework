@@ -1,6 +1,10 @@
 {
+  "DynamoDbStreamApp": {
+    "line": 76.9,
+    "branch": 0.0
+  },
   "Hardened.Amz.Cdk": {
-    "line": 53.6,
+    "line": 54.5,
     "branch": 67.3
   },
   "Hardened.Amz.DynamoDbClient": {
@@ -16,59 +20,63 @@
     "branch": 100.0
   },
   "Hardened.Amz.Function.DDB.Testing": {
-    "line": 0.0,
+    "line": 100.0,
     "branch": 100.0
   },
   "Hardened.Amz.Function.Lambda.Runtime": {
-    "line": 93.2,
+    "line": 93.3,
     "branch": 87.5
   },
   "Hardened.Amz.Function.Lambda.SourceGenerator": {
-    "line": 0.0,
-    "branch": 0.0
+    "line": 97.7,
+    "branch": 84.3
   },
   "Hardened.Amz.Function.Lambda.Streaming": {
     "line": 25.0,
     "branch": 5.5
   },
   "Hardened.Amz.Function.Lambda.Testing": {
-    "line": 0.0,
-    "branch": 0.0
+    "line": 71.4,
+    "branch": 75.0
   },
   "Hardened.Amz.Function.Sqs.Runtime": {
     "line": 100.0,
     "branch": 100.0
   },
   "Hardened.Amz.Function.Sqs.Testing": {
-    "line": 0.0,
-    "branch": 0.0
+    "line": 100.0,
+    "branch": 100.0
   },
   "Hardened.Amz.Shared.Lambda.Runtime": {
-    "line": 63.8,
-    "branch": 66.3
+    "line": 85.6,
+    "branch": 77.5
   },
   "Hardened.Amz.Shared.Lambda.Testing": {
-    "line": 74.4,
+    "line": 76.7,
     "branch": 100.0
   },
   "Hardened.Amz.SourceGeneration.Testing": {
-    "line": 0.0,
-    "branch": 0.0
+    "line": 59.4,
+    "branch": 41.9
   },
   "Hardened.Amz.Web.Lambda.Harness": {
     "line": 71.4,
     "branch": 100.0
   },
   "Hardened.Amz.Web.Lambda.Runtime": {
-    "line": 89.3,
-    "branch": 81.2
+    "line": 95.0,
+    "branch": 85.7
   },
   "Hardened.Amz.Web.Lambda.SourceGenerator": {
-    "line": 0.0,
-    "branch": 0.0
+    "line": 97.7,
+    "branch": 83.3
   },
   "Hardened.Amz.Web.Lambda.Streaming": {
-    "line": 68.2,
-    "branch": 52.4
+    "line": 73.6,
+    "branch": 60.7
+  },
+  "SqsTest": {
+    "line": 80.6,
+    "branch": 0.0
   }
 }

@@ -12,17 +12,17 @@ public record Result<T>(bool Success, T Value);
 public abstract class BaseBatchExecutionFilter<TEvent, TRecord> : IExecutionFilter {
     protected readonly IJsonSerializer JsonSerializer;
     protected readonly IMemoryStreamPool MemoryStreamPool;
-    private readonly IBatchProcessorExceptionHandler _bulkProcessorExceptionHandler;
+    private readonly IBatchProcessorExceptionHandler _batchProcessorExceptionHandler;
     private readonly ILogger _logger;
 
     protected BaseBatchExecutionFilter(
         IJsonSerializer jsonSerializer,
         IMemoryStreamPool memoryStreamPool,
-        IBatchProcessorExceptionHandler bulkProcessorExceptionHandler,
+        IBatchProcessorExceptionHandler batchProcessorExceptionHandler,
         ILogger logger) {
         JsonSerializer = jsonSerializer;
         _logger = logger;
-        _bulkProcessorExceptionHandler = bulkProcessorExceptionHandler;
+        _batchProcessorExceptionHandler = batchProcessorExceptionHandler;
         MemoryStreamPool = memoryStreamPool;
     }
 
@@ -61,7 +61,7 @@ public abstract class BaseBatchExecutionFilter<TEvent, TRecord> : IExecutionFilt
             return forkedChain.Context.Response.Status is null or < 300;
         }
         catch (Exception exp) {
-            return await _bulkProcessorExceptionHandler.HandleException(chain.Context, _logger, exp);
+            return await _batchProcessorExceptionHandler.HandleException(chain.Context, _logger, exp);
         }
     }
 

@@ -8,13 +8,13 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
-        <PackageReference Include="Hardened.Requests.Abstract" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.Shared.Runtime" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
-        <PackageReference Include="Hardened.Web.Runtime" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.Web.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Requests.Abstract" />
+        <PackageReference Include="Hardened.Requests.Runtime" />
+        <PackageReference Include="Hardened.Shared.Runtime" />
+        <PackageReference Include="Hardened.SourceGenerator" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Web.Runtime" />
+        <PackageReference Include="Hardened.Web.SourceGenerator" PrivateAssets="all" />
     </ItemGroup>
     
     <ItemGroup>

@@ -20,14 +20,41 @@
     </PropertyGroup>
 
     <!--
+      The solution builds warning-free. Escalating warnings to errors is what keeps it that way;
+      without it the count drifts back up one commit at a time. Copied from Hardened.Framework,
+      which has had this since before the split - this repository had no gate at all until
+      2026-08-15.
+
+      Deliberately scoped to CI rather than local builds, so an in-progress edit with an unused
+      variable does not block someone's inner loop. CI sets ContinuousIntegrationBuild.
+    -->
+    <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <!--
+      RS2008 asks an analyzer project to keep an AnalyzerReleases.Shipped.md tracking file. It
+      fires here for rules this repository does not own: Hardened.SourceGenerator and
+      ValidationModules.SourceGenerator.Impl ship their .cs under src/ in the package, so their
+      DiagnosticDescriptors are compiled into whichever generator project references them and
+      reported against it. Nothing in this repository can add release tracking for another
+      repository's rules.
+    -->
+    <PropertyGroup Condition="$(MSBuildProjectName.Contains('SourceGenerator'))">
+        <NoWarn>$(NoWarn);RS2008</NoWarn>
+    </PropertyGroup>
+
+    <!--
       Applies to every project under src/.
 
       Test projects get coverlet.collector so that collecting "XPlat Code Coverage" during
       `dotnet test` produces Cobertura reports. Collection settings (what is excluded from
       the numbers) live in coverlet.runsettings at the repository root.
+
+      The version lives in Directory.Packages.props with everything else.
     -->
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
-        <PackageReference Include="coverlet.collector" Version="6.0.2">
+        <PackageReference Include="coverlet.collector">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>

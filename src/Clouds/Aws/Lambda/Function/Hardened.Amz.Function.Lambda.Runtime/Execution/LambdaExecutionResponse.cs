@@ -1,5 +1,6 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Runtime.Headers;
 using Microsoft.Extensions.Primitives;
 
@@ -21,7 +22,8 @@ public class LambdaExecutionResponse : IExecutionResponse {
     public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
         return new LambdaExecutionResponse(Body, headerCollection ?? Headers) {
             ResponseValue = ResponseValue,
-            TemplateName = TemplateName,
+            OutputFactory = OutputFactory,
+            Output = Output,
             Status = Status,
             ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
@@ -36,7 +38,14 @@ public class LambdaExecutionResponse : IExecutionResponse {
 
     public object? ResponseValue { get; set; }
 
-    public string? TemplateName { get; set; }
+    /// <summary>
+    /// Built from <see cref="OutputFactory"/> on first use and kept. Replaces <c>TemplateName</c>,
+    /// which named a view by string and is gone - a view is a type now.
+    /// </summary>
+    public IHardenedResponseOutput? Output { get; set; }
+
+    /// <summary>Builds what writes this response, or null when it is serialized like any other.</summary>
+    public Func<IExecutionContext, IHardenedResponseOutput>? OutputFactory { get; set; }
 
     public int? Status { get; set; }
 

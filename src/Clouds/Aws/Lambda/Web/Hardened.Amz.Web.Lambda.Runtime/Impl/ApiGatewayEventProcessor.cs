@@ -80,8 +80,14 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
 
         await chain.Next();
 
-        if (executionContext.Response.Status == null ||
-            executionContext.Response.Status == 0) {
+        // Null means "handled, no opinion" — nothing sets a status on an ordinary success path — and
+        // becomes a 200. It no longer means "unmatched": ResourceNotFoundHandler has run by this
+        // point and set a 404 if the routing table did not match, which it could not do while the
+        // response reported an unset status as 0.
+        //
+        // Zero is kept as a separate case because it is not a status a handler can have meant and
+        // API Gateway renders it as a 502. It is now reachable only by a handler assigning it.
+        if (executionContext.Response.Status is null or 0) {
             executionContext.Response.Status = 200;
         }
 

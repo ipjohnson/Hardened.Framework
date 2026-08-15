@@ -1,0 +1,121 @@
+<Project>
+
+    <!--
+      Central package management for every project under src/.
+
+      Versions lived in the individual csproj files until 2026-08-15 and had drifted: three test
+      projects on Microsoft.NET.Test.Sdk 17.10 against sixteen on 17.12, two still on xunit 2.9,
+      SimpleFixture a release behind what CLAUDE.md specifies, and two packages on floating
+      versions. A single list is the only arrangement where that cannot happen quietly.
+    -->
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+        <!--
+          Central package management rejects floating versions by default (NU1011). The Hardened.*
+          line below is deliberately floating, so the check is opted out of rather than the
+          versions being pinned to a build number that would need bumping by hand on every
+          framework change. Everything else here is exact.
+        -->
+        <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+    </PropertyGroup>
+
+    <!--
+      Hardened.* floats deliberately. build-package.yaml publishes a {line}-preview{run padded to
+      six} to GitHub Packages on every push to main, and this repository tracks that feed rather
+      than pinning to a build number that would need bumping by hand on every framework change.
+
+      The prefix is NOT open-ended: it names the release line, so it has to be moved by hand when
+      a new line opens. It was left at 1.0.0-preview* through the 0.1.0, 0.2.0 and 0.3.0 lines,
+      and since nothing publishes 1.0.0-preview any more the float silently kept resolving to
+      1.0.0-preview10199 - a framework from before 0.1.0 opened. The build stayed green against
+      it, which is what made it invisible: a float that matches nothing new does not fail, it
+      just stops moving.
+    -->
+    <ItemGroup Label="Hardened.Framework">
+        <PackageVersion Include="Hardened.Commands" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Console.SourceGenerator" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Requests.Abstract" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Requests.Runtime" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Shared.Runtime" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Shared.Testing" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.SourceGenerator" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Web.Runtime" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Web.SourceGenerator" Version="0.4.0-preview*" />
+    </ItemGroup>
+
+    <ItemGroup Label="DependencyModules and code generation">
+        <!--
+          Must be at least what Hardened.Framework builds its generators against, currently
+          1.1.1010. Hardened.SourceGenerator ships as source and is compiled into this
+          repository's assemblies, so its use of CSharpAuthor is compiled here too - and
+          PrivateAssets=all on the framework side means no dependency constraint arrives to say
+          so. At 1.1.1006 the framework's own LinkGenerator and TemplateBaseGenerator failed to
+          compile here for want of ComponentModifier.Sealed, TypeParameterDefinition and
+          ClassDefinition.AddGenericParameter.
+        -->
+        <PackageVersion Include="CSharpAuthor" Version="1.1.1010" />
+        <PackageVersion Include="DependencyModules.Runtime" Version="1.0.0-rc9230" />
+        <PackageVersion Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9230" />
+        <PackageVersion Include="DependencyModules.Testing" Version="1.0.0-rc9230" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+        <PackageVersion Include="ValidationModules.SourceGenerator.Impl" Version="0.1.0-alpha.1" />
+    </ItemGroup>
+
+    <ItemGroup Label="AWS">
+        <PackageVersion Include="Amazon.CDK.Lib" Version="2.263.0" />
+        <PackageVersion Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.0" />
+        <PackageVersion Include="Amazon.Lambda.Core" Version="2.2.0" />
+        <PackageVersion Include="Amazon.Lambda.DynamoDBEvents" Version="3.1.1" />
+        <PackageVersion Include="Amazon.Lambda.Logging.AspNetCore" Version="3.1.0" />
+        <PackageVersion Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.3" />
+        <PackageVersion Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
+        <!--
+          Pinned. This was "3.7.*", which makes a build non-reproducible: the same commit can pick
+          up a different SDK between a green CI run and a rebuild of it.
+        -->
+        <PackageVersion Include="AWSSDK.DynamoDBv2" Version="3.7.513.4" />
+        <PackageVersion Include="Cdklabs.CdkMonitoringConstructs" Version="8.1.1" />
+    </ItemGroup>
+
+    <!--
+      The two Abstractions packages are on 8.0.2, not 8.0.1. Microsoft.Extensions.Logging 8.0.1
+      requires Logging.Abstractions >= 8.0.2 and pulls DependencyInjection 8.0.1, which requires
+      DependencyInjection.Abstractions >= 8.0.2, so pinning either at 8.0.1 is a package downgrade
+      (NU1605). It had been one for as long as these references existed; with no warning gate in
+      this repository nothing said so.
+    -->
+    <ItemGroup Label="Microsoft.Extensions and BCL">
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+        <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
+        <PackageVersion Include="System.Memory" Version="4.5.5" />
+        <PackageVersion Include="System.Text.Json" Version="8.0.5" />
+    </ItemGroup>
+
+    <!--
+      xunit.v3, never xunit 2.x. Hardened.Shared.Testing depends on DependencyModules.xUnit, which
+      brings v3, and referencing it alongside 2.x makes every Fact and Assert ambiguous. Two
+      projects were still on 2.9 as of 2026-08-15 - not because they needed it, but because nothing
+      had moved them - and they are the two a new test project is most likely to be copied from.
+    -->
+    <ItemGroup Label="Testing">
+        <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageVersion Include="NSubstitute" Version="5.1.0" />
+        <PackageVersion Include="SimpleFixture.NSubstitute" Version="4.0.0-RC191" />
+        <PackageVersion Include="SimpleFixture.xUnit" Version="4.0.0-RC191" />
+        <!-- Pinned, was "4.*". Same reproducibility argument as AWSSDK.DynamoDBv2. -->
+        <PackageVersion Include="Testcontainers.DynamoDb" Version="4.14.0" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+        <PackageVersion Include="xunit.v3" Version="3.2.2" />
+        <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
+    </ItemGroup>
+
+</Project>

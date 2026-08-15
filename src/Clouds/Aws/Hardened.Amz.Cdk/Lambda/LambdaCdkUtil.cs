@@ -24,7 +24,25 @@ public class LambdaRequest {
 }
 
 public class HttpApiLambdaRequest : LambdaRequest {
-    
+
+    /// <summary>
+    /// CORS preflight for the API. Null — no preflight configured — is the default, and is correct
+    /// for an API that browsers do not call directly.
+    ///
+    /// <para>
+    /// This used to default to <c>AllowOrigins ["*"]</c> with <c>AllowMethods ANY</c>, so every API
+    /// created through <see cref="LambdaCdkUtil.HttpApiFunctionCreate"/> was open to every origin
+    /// unless the caller noticed and closed it. Name the origins:
+    /// </para>
+    /// <code>
+    /// CorsPreflight = new CorsPreflightOptions {
+    ///     AllowOrigins = ["https://app.example.com"],
+    ///     AllowMethods = [CorsHttpMethod.GET, CorsHttpMethod.POST]
+    /// }
+    /// </code>
+    /// </summary>
+    public CorsPreflightOptions? CorsPreflight { get; set; }
+
     public Action<HttpApiProps> HttpApiProps { get; set; } = props => {};
 
     public Action<HttpApi, Alias> ConfigureApi { get; set; } = (api, alias) => {
@@ -66,14 +84,18 @@ public class LambdaCdkUtil {
                 "The API integrates against the alias, so one has to exist.");
         }
 
+        // No CORS preflight unless the caller asks for one. This defaulted to AllowOrigins ["*"]
+        // with AllowMethods ANY, so every API built through this helper was open to any origin
+        // and any method unless someone thought to close it. Overridable is not the same as
+        // safe-by-default, and the default is what ships when nobody is thinking about it.
+        //
+        // A browser-facing API sets its own through HttpApiProps, or through CorsPreflight on
+        // HttpApiLambdaRequest, which names the origins rather than accepting all of them.
         var apiProps = new HttpApiProps {
             ApiName = request.Name,
-            CorsPreflight = new CorsPreflightOptions {
-                AllowOrigins = ["*"],
-                AllowMethods = [CorsHttpMethod.ANY]
-            },
+            CorsPreflight = request.CorsPreflight,
         };
-        
+
         request.HttpApiProps(apiProps);
         
         var apiGateway = new HttpApi(context.Stack, request.Name + "-gateway",apiProps);
@@ -132,9 +154,5 @@ public class LambdaCdkUtil {
         }
         
         return (lambdaFunction, null);
-    }
-
-    private void ValidateRequest(HttpApiLambdaRequest request) {
-
     }
 }

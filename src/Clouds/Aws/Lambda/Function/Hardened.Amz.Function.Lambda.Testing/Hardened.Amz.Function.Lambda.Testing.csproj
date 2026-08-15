@@ -10,16 +10,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Amazon.Lambda.Core" Version="2.2.0" />
-        <PackageReference Include="Hardened.Shared.Testing" Version="1.0.0-preview*" />
+        <PackageReference Include="Amazon.Lambda.Core" />
+        <PackageReference Include="Hardened.Shared.Testing" />
         <!--
              The framework-neutral test contracts this attribute implements. Referenced directly
              rather than taken through Hardened.Shared.Testing, because they are this project's own
              public surface: LambdaFunctionTestingAttribute implements them by name.
         -->
-        <PackageReference Include="DependencyModules.Testing" Version="1.0.0-rc9230" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+        <PackageReference Include="DependencyModules.Testing" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
     </ItemGroup>
 
     <ItemGroup>

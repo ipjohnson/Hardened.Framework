@@ -16,8 +16,31 @@
                       Hardened.Amz.Function.Lambda.Testing, Hardened.Amz.Function.DDB.Testing,
                       Hardened.Amz.Function.Sqs.Testing) are deliberately NOT excluded - they
                       ship to consumers and their coverage counts.
+
+                      CSharpAuthor, Hardened.SourceGenerator and ValidationModules all ship as
+                      source: their build targets compile src/**/*.cs into whichever assembly
+                      references them, which is what keeps a Roslyn analyzer self-contained. The
+                      two generator assemblies here are 97% that borrowed source - 6737 lines of
+                      it against roughly 170 of their own - so the gate was measuring three other
+                      libraries and reporting the number as Hardened.Amz's:
+
+                        Hardened.Amz.Function.Lambda.SourceGenerator   35.6% measured, 97.8% own
+                        Hardened.Amz.Web.Lambda.SourceGenerator        46.9% measured, 97.7% own
+
+                      It also moved for reasons that have nothing to do with this repository.
+                      Tracking Hardened.Framework 0.4.0 after being stuck on a 1.0.0-preview from
+                      before the 0.1.0 line brought in Links/, Templates/ and the compiled route
+                      constraints, and CSharpAuthor went 1.1.1006 to 1.1.1010 - so the denominator
+                      grew by framework code this repository does not execute, and the gate failed
+                      a pull request in which nothing became less tested.
+
+                      Scoped to [Hardened.Amz.*] so this repository's own namespaces are untouched:
+                      Hardened.Amz.* stays measured, Hardened.SourceGenerator.* does not. The type
+                      filters matter here - both start with "Hardened".
+
+                      Hardened.Framework carries the same filters for the same reason.
                     -->
-                    <Exclude>[*.Tests]*,[LambdaWebTest*]*</Exclude>
+                    <Exclude>[*.Tests]*,[LambdaWebTest*]*,[Hardened.Amz.*]CSharpAuthor.*,[Hardened.Amz.*]Hardened.SourceGenerator.*,[Hardened.Amz.*]ValidationModules.*</Exclude>
 
                     <!--
                       Source-generated output is verified through behaviour, not by line

@@ -112,7 +112,12 @@ internal sealed class ApiGatewayHarness {
             IsBase64Encoded = isBase64Encoded,
             Headers = headers ?? new Dictionary<string, string>(),
             QueryStringParameters = queryStringParameters,
-            Cookies = cookies ?? Array.Empty<string>(),
+            // Passed through, including null. API Gateway omits the field entirely when the
+            // request carried no cookies, so null is the ordinary case and not an edge one.
+            // Defaulting it to an empty array here made the harness kinder than the transport it
+            // stands in for, and hid that the mapper handed that null straight back through a
+            // non-nullable IReadOnlyList.
+            Cookies = cookies!,
             RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext {
                 Stage = stage,
                 Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription {

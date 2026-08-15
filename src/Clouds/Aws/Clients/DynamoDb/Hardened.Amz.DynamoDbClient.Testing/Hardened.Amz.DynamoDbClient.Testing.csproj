@@ -10,8 +10,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Hardened.Shared.Testing" Version="1.0.0-preview*" />
-        <PackageReference Include="Testcontainers.DynamoDb" Version="4.*" />
+        <PackageReference Include="Hardened.Shared.Testing" />
+        <PackageReference Include="Testcontainers.DynamoDb" />
     </ItemGroup>
 
     <ItemGroup>

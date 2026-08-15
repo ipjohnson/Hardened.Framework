@@ -103,6 +103,95 @@ public class StructuredLogLineBuilderTests {
         Assert.Equal("42", root.GetProperty("request.count").GetString());
     }
 
+    /// <summary>
+    /// The branch that produced invalid JSON until 2026-08-15. A non-primitive value was serialized
+    /// and then interpolated into a quoted string without escaping, so the value's own quotes closed
+    /// the string early and CloudWatch could not parse the line.
+    /// </summary>
+    [Fact]
+    public void HandlesKeyedState_ComplexValueStaysParseable() {
+        _jsonSerializer.Serialize(Arg.Any<object>()).Returns("{\"Name\":\"widget\",\"Qty\":3}");
+
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "order {order}"),
+            new("order", new { Name = "widget", Qty = 3 })
+        };
+
+        var result = _builder.Build(LogLevel.Information, new EventId(1), state, null, (s, e) => "order");
+
+        var order = JsonDocument.Parse(result).RootElement.GetProperty("request.order");
+
+        // Inline, not stringified: the point of serializing it is that it stays queryable.
+        Assert.Equal(JsonValueKind.Object, order.ValueKind);
+        Assert.Equal("widget", order.GetProperty("Name").GetString());
+        Assert.Equal(3, order.GetProperty("Qty").GetInt32());
+    }
+
+    /// <summary>
+    /// Serialized JSON too large for a field cannot be emitted inline — a truncated object is not
+    /// an object — so it degrades to an escaped string rather than to a broken line.
+    /// </summary>
+    [Fact]
+    public void HandlesKeyedState_OversizedComplexValueDegradesToAString() {
+        _jsonSerializer.Serialize(Arg.Any<object>())
+            .Returns("{\"blob\":\"" + new string('z', 4000) + "\"}");
+
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "big"),
+            new("payload", new object())
+        };
+
+        var result = _builder.Build(LogLevel.Information, new EventId(1), state, null, (s, e) => "big");
+
+        var payload = JsonDocument.Parse(result).RootElement.GetProperty("request.payload");
+
+        Assert.Equal(JsonValueKind.String, payload.ValueKind);
+    }
+
+    /// <summary>
+    /// The AOT failure from AMZ-LAMBDA-FINDINGS.md §3, and every sibling it had.
+    /// <c>Type.IsPrimitive</c> is false for <c>TimeSpan</c>, <c>DateTime</c>, <c>Guid</c>,
+    /// <c>decimal</c> and every enum, so all of them reach the serializer — which, under NativeAOT
+    /// with source-generated serialization, throws for any type the application's context does not
+    /// cover. The exception used to leave the logger and take the log line with it.
+    /// </summary>
+    [Fact]
+    public void HandlesKeyedState_SerializerFailureFallsBackInsteadOfThrowing() {
+        _jsonSerializer.Serialize(Arg.Any<object>())
+            .Returns(_ => throw new NotSupportedException(
+                "JsonTypeInfo metadata for type 'System.TimeSpan' was not provided"));
+
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "took {elapsed}"),
+            new("elapsed", TimeSpan.FromSeconds(3))
+        };
+
+        var result = _builder.Build(LogLevel.Information, new EventId(1), state, null, (s, e) => "took");
+
+        var root = JsonDocument.Parse(result).RootElement;
+
+        Assert.Equal(TimeSpan.FromSeconds(3).ToString(), root.GetProperty("request.elapsed").GetString());
+        Assert.Equal("took", root.GetProperty("message").GetString());
+    }
+
+    /// <summary>
+    /// A formatter is the caller's code, and it runs most often when something has already gone
+    /// wrong. It must not be able to take the entry down with it.
+    /// </summary>
+    [Fact]
+    public void AFormatterThatThrowsStillProducesALine() {
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "boom")
+        };
+
+        var result = _builder.Build(LogLevel.Error, new EventId(1), state, null,
+            (s, e) => throw new InvalidOperationException("no"));
+
+        var root = JsonDocument.Parse(result).RootElement;
+
+        Assert.Contains("InvalidOperationException", root.GetProperty("message").GetString());
+    }
+
     [Fact]
     public void EscapesSpecialCharacters() {
         var state = new List<KeyValuePair<string, object?>> {
@@ -134,16 +223,36 @@ public class StructuredLogLineBuilderTests {
         Assert.Contains("\\u0001", result);
     }
 
+    /// <summary>
+    /// A string state does not reach the serializer at all — it is already a JSON scalar, and every
+    /// call avoided is one less type an application's AOT serializer context has to cover.
+    /// </summary>
     [Fact]
-    public void HandlesNonKeyedState_BySerializingAsJson() {
+    public void HandlesNonKeyedState_StringGoesOutDirectly() {
         var state = "just a plain string";
-        _jsonSerializer.Serialize(state).Returns("\"just a plain string\"");
 
         var result = _builder.Build(LogLevel.Information, new EventId(1),
             state, null, (s, e) => "test message");
 
-        Assert.Contains("\"request\":", result);
-        Assert.Contains("\"stateType\":\"String\"", result);
+        var root = JsonDocument.Parse(result).RootElement;
+
+        Assert.Equal("just a plain string", root.GetProperty("request").GetString());
+        Assert.Equal("String", root.GetProperty("stateType").GetString());
+        _jsonSerializer.DidNotReceive().Serialize(Arg.Any<object>());
+    }
+
+    [Fact]
+    public void HandlesNonKeyedState_BySerializingAsJson() {
+        var state = new { Id = 7 };
+        _jsonSerializer.Serialize(Arg.Any<object>()).Returns("{\"Id\":7}");
+
+        var result = _builder.Build(LogLevel.Information, new EventId(1),
+            state, null, (s, e) => "test message");
+
+        var root = JsonDocument.Parse(result).RootElement;
+
+        Assert.Equal(7, root.GetProperty("request").GetProperty("Id").GetInt32());
+        Assert.Equal(state.GetType().Name, root.GetProperty("stateType").GetString());
         _jsonSerializer.Received(1).Serialize(state);
     }
 
@@ -170,8 +279,15 @@ public class StructuredLogLineBuilderTests {
         Assert.Contains("...[truncated]", stackTrace);
     }
 
+    /// <summary>
+    /// Truncation used to cut at a byte offset and append <c>...[truncated]}</c>, which lands
+    /// mid-string and closes the object over an unterminated one — so the lines that lost content
+    /// were also the lines Logs Insights could not read. Asserting the length and the closing brace,
+    /// as this did, passes on both the broken and the fixed version; parsing is the assertion that
+    /// separates them.
+    /// </summary>
     [Fact]
-    public void TruncatesOverallLogLine_WhenExceedsMaxLength() {
+    public void TruncatesOverallLogLine_AndTheResultIsStillParseable() {
         var state = new List<KeyValuePair<string, object?>> {
             new("{OriginalFormat}", "test"),
             new("bigData", new string('y', 5000))
@@ -184,8 +300,51 @@ public class StructuredLogLineBuilderTests {
         var result = builder.Build(LogLevel.Information, new EventId(1),
             state, null, (s, e) => "test");
 
-        Assert.True(result.Length <= 512);
-        Assert.EndsWith("}", result);
+        Assert.True(result.Length <= 512, $"line was {result.Length} characters");
+
+        var root = JsonDocument.Parse(result).RootElement;
+
+        Assert.True(root.GetProperty("truncated").GetBoolean());
+    }
+
+    /// <summary>
+    /// Whatever else is dropped, the message survives — it is written first for that reason.
+    /// </summary>
+    [Fact]
+    public void TruncationKeepsTheMessage() {
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "test"),
+            new("a", new string('y', 2000)),
+            new("b", new string('z', 2000))
+        };
+
+        var builder = new StructuredLogLineBuilder(
+            _jsonSerializer, new StringBuilderPool(), "TestLogger",
+            maxLogLineLength: 256);
+
+        var result = builder.Build(LogLevel.Information, new EventId(1),
+            state, null, (s, e) => "the important part");
+
+        var root = JsonDocument.Parse(result).RootElement;
+
+        Assert.Equal("the important part", root.GetProperty("message").GetString());
+    }
+
+    /// <summary>
+    /// A line that fits carries no truncation marker, so a query for <c>truncated</c> finds only
+    /// the lines that actually lost content.
+    /// </summary>
+    [Fact]
+    public void AnUntruncatedLineIsNotMarkedTruncated() {
+        var state = new List<KeyValuePair<string, object?>> {
+            new("{OriginalFormat}", "small"),
+            new("userId", "user-123")
+        };
+
+        var result = _builder.Build(LogLevel.Information, new EventId(1),
+            state, null, (s, e) => "small");
+
+        Assert.False(JsonDocument.Parse(result).RootElement.TryGetProperty("truncated", out _));
     }
 
     [Fact]

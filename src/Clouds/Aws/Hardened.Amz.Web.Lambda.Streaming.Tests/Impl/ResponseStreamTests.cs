@@ -48,7 +48,7 @@ public class ResponseStreamTests {
         var stream = CreateStream();
         var data = Encoding.UTF8.GetBytes("hello");
 
-        await stream.WriteAsync(data.AsMemory());
+        await stream.WriteAsync(data.AsMemory(), TestContext.Current.CancellationToken);
 
         Assert.Equal(5, stream.Length);
         Assert.Equal(5, stream.Position);
@@ -63,7 +63,7 @@ public class ResponseStreamTests {
         Assert.False(_responseStarted);
         Assert.False(stream.HasResponseStarted);
 
-        await stream.WriteAsync(data.AsMemory());
+        await stream.WriteAsync(data.AsMemory(), TestContext.Current.CancellationToken);
 
         Assert.True(_preludeWritten);
         Assert.True(_responseStarted);
@@ -99,7 +99,7 @@ public class ResponseStreamTests {
         Assert.False(_preludeWritten);
         Assert.False(_responseStarted);
 
-        await stream.FlushAsync();
+        await stream.FlushAsync(TestContext.Current.CancellationToken);
 
         Assert.True(_preludeWritten);
         Assert.True(_responseStarted);
@@ -119,9 +119,9 @@ public class ResponseStreamTests {
     public async Task WriteAsync_MultipleWrites_AccumulatesLength() {
         var stream = CreateStream();
 
-        await stream.WriteAsync(new byte[10].AsMemory());
-        await stream.WriteAsync(new byte[20].AsMemory());
-        await stream.WriteAsync(new byte[5].AsMemory());
+        await stream.WriteAsync(new byte[10].AsMemory(), TestContext.Current.CancellationToken);
+        await stream.WriteAsync(new byte[20].AsMemory(), TestContext.Current.CancellationToken);
+        await stream.WriteAsync(new byte[5].AsMemory(), TestContext.Current.CancellationToken);
 
         Assert.Equal(35, stream.Length);
         Assert.Equal(35, stream.Position);
@@ -136,9 +136,9 @@ public class ResponseStreamTests {
             () => { });
         stream.SetExecutionResponse(_response);
 
-        await stream.WriteAsync(new byte[5].AsMemory());
-        await stream.WriteAsync(new byte[5].AsMemory());
-        await stream.FlushAsync();
+        await stream.WriteAsync(new byte[5].AsMemory(), TestContext.Current.CancellationToken);
+        await stream.WriteAsync(new byte[5].AsMemory(), TestContext.Current.CancellationToken);
+        await stream.FlushAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, preludeCount);
     }
@@ -152,9 +152,9 @@ public class ResponseStreamTests {
             () => { startCount++; });
         stream.SetExecutionResponse(_response);
 
-        await stream.WriteAsync(new byte[5].AsMemory());
-        await stream.WriteAsync(new byte[5].AsMemory());
-        await stream.FlushAsync();
+        await stream.WriteAsync(new byte[5].AsMemory(), TestContext.Current.CancellationToken);
+        await stream.WriteAsync(new byte[5].AsMemory(), TestContext.Current.CancellationToken);
+        await stream.FlushAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, startCount);
     }
@@ -209,10 +209,10 @@ public class ResponseStreamTests {
         var stream = CreateStream();
         var data = Encoding.UTF8.GetBytes("pipe-data");
 
-        await stream.WriteAsync(data.AsMemory());
+        await stream.WriteAsync(data.AsMemory(), TestContext.Current.CancellationToken);
         await _pipe.Writer.CompleteAsync();
 
-        var result = await _pipe.Reader.ReadAsync();
+        var result = await _pipe.Reader.ReadAsync(TestContext.Current.CancellationToken);
         var output = Encoding.UTF8.GetString(result.Buffer);
 
         // Output should contain "pipe-data" (possibly with prelude data before it)

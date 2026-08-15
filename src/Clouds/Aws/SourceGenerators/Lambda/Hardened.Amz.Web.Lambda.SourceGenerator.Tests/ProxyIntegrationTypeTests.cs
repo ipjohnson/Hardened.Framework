@@ -1,4 +1,5 @@
 using Hardened.Amz.Web.Lambda.Runtime;
+using Microsoft.CodeAnalysis;
 using Xunit;
 
 namespace Hardened.Amz.Web.Lambda.SourceGenerator.Tests;
@@ -15,13 +16,13 @@ namespace Hardened.Amz.Web.Lambda.SourceGenerator.Tests;
 /// </para>
 ///
 /// <para>
-/// <b>The generator does not distinguish them.</b> <c>LambdaWebApplicationAttribute.Version</c> is
-/// declared, is settable, and is read by nothing: <see cref="WebLambdaSourceGenerator"/> selects on
-/// <c>[HardenedModule]</c> and never looks at the attribute, and
-/// <see cref="LambdaWebApplicationFileWriter"/> hard-codes the v2 request and response types.
-/// Recorded 2026-08-12 and reported rather than asserted as intended — see
-/// <c>docs/testing-conventions.md</c> §6. The tests below pin what actually happens, so that
-/// implementing the option is visible as a change here.
+/// Only the v2 format is implemented. <c>Version</c> used to be declared, settable and read by
+/// nothing — recorded on 2026-08-12 and reported rather than asserted as intended, per
+/// <c>docs/testing-conventions.md</c> §6 — so selecting the REST integration produced a v2 handler
+/// that a REST API would feed a v1 payload, and the function failed at the runtime's
+/// deserialisation in a deployed environment. Since 2026-08-15 it is a build error (HRDAWS001).
+/// The tests below are the ones that were reporting the gap, turned into assertions now that there
+/// is a defined behaviour to assert.
 /// </para>
 /// </summary>
 public class ProxyIntegrationTypeTests {
@@ -31,29 +32,73 @@ public class ProxyIntegrationTypeTests {
             .SourceContaining("App");
 
     /// <summary>
-    /// Both values of the enum, and no attribute at all, produce byte-identical applications.
+    /// The value that works, and no attribute at all, produce byte-identical applications — v2 is
+    /// the default, so saying so changes nothing.
     /// </summary>
     [Theory]
-    [InlineData("[LambdaWebApplication(Version = ProxyIntegrationType.ApiGateway)]")]
     [InlineData("[LambdaWebApplication(Version = ProxyIntegrationType.HttpApiV2)]")]
+    [InlineData("[LambdaWebApplication]")]
     [InlineData("")]
-    public void TheProxyIntegrationVersionDoesNotChangeWhatIsEmitted(string attribute) {
+    public void TheHttpApiV2VersionIsWhatIsEmittedWithOrWithoutTheAttribute(string attribute) {
         Assert.Equal(ApplicationFor(""), ApplicationFor(attribute));
     }
 
-    /// <summary>
-    /// What every application gets regardless: the HTTP API v2 payload types. An application
-    /// deployed behind a REST API integration is handed a <c>APIGatewayProxyRequest</c> payload that
-    /// this signature cannot bind, and fails at the runtime's deserialisation rather than at build.
-    /// </summary>
     [Fact]
     public void EveryApplicationIsEmittedForTheHttpApiV2PayloadFormat() {
         var application = ApplicationFor(
-            "[LambdaWebApplication(Version = ProxyIntegrationType.ApiGateway)]");
+            "[LambdaWebApplication(Version = ProxyIntegrationType.HttpApiV2)]");
 
         Assert.Contains("APIGatewayHttpApiV2ProxyRequest", application);
         Assert.Contains("APIGatewayHttpApiV2ProxyResponse", application);
         Assert.DoesNotContain("global::Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest ", application);
+    }
+
+    /// <summary>
+    /// Selecting the REST integration fails the build rather than emitting a handler that cannot
+    /// read what a REST API sends it.
+    /// </summary>
+    [Fact]
+    public void SelectingTheRestApiIntegrationIsABuildError() {
+        // Run rather than Generate: Generate asserts the compilation has no errors, and an
+        // application with no handler emitted does not compile - which is the point.
+        var result = WebGeneratorHarness.Run(
+            new WebLambdaSourceGenerator(),
+            WebGeneratorHarness.Application(
+                attributes: "[LambdaWebApplication(Version = ProxyIntegrationType.ApiGateway)]"));
+
+        var diagnostic = Assert.Single(
+            result.GeneratorDiagnostics, d => d.Id == "HRDAWS001");
+
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+    }
+
+    /// <summary>
+    /// And emits nothing. A handler alongside the error would still be a handler bound to the wrong
+    /// payload format, and would go on compiling for anyone who suppressed the diagnostic.
+    /// </summary>
+    [Fact]
+    public void SelectingTheRestApiIntegrationEmitsNoApplication() {
+        // Run rather than Generate: Generate asserts the compilation has no errors, and an
+        // application with no handler emitted does not compile - which is the point.
+        var result = WebGeneratorHarness.Run(
+            new WebLambdaSourceGenerator(),
+            WebGeneratorHarness.Application(
+                attributes: "[LambdaWebApplication(Version = ProxyIntegrationType.ApiGateway)]"));
+
+        Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("App"));
+    }
+
+    /// <summary>
+    /// The working value does not trip the diagnostic — the check reads the assignment as written,
+    /// so a substring match on the wrong member name would catch both.
+    /// </summary>
+    [Fact]
+    public void SelectingTheHttpApiV2IntegrationReportsNothing() {
+        var result = WebGeneratorHarness.Generate(
+            WebGeneratorHarness.Application(
+                attributes: "[LambdaWebApplication(Version = ProxyIntegrationType.HttpApiV2)]"));
+
+        Assert.DoesNotContain(result.GeneratorDiagnostics, d => d.Id == "HRDAWS001");
     }
 
     /// <summary>
@@ -77,11 +122,11 @@ public class ProxyIntegrationTypeTests {
     }
 
     /// <summary>
-    /// The enum a consumer would set. Both values exist and are distinct, which is what makes the
-    /// generator ignoring them a gap rather than a non-feature.
+    /// The default is the value that works, so an application that applies the attribute without
+    /// saying which integration it wants gets the implemented one rather than the error.
     /// </summary>
     [Fact]
-    public void BothProxyIntegrationTypesAreDeclaredAndDistinct() {
-        Assert.NotEqual(ProxyIntegrationType.ApiGateway, ProxyIntegrationType.HttpApiV2);
+    public void TheDefaultProxyIntegrationTypeIsHttpApiV2() {
+        Assert.Equal(ProxyIntegrationType.HttpApiV2, new LambdaWebApplicationAttribute().Version);
     }
 }

@@ -13,6 +13,15 @@ namespace Hardened.Amz.Function.DDB.Runtime.Tests.Impl;
 /// <see cref="StreamsEventResponse.BatchItemFailures"/> tells Lambda to retry the shard from that
 /// record, so the wrong identifier either replays records that already succeeded or skips the one
 /// that failed.
+///
+/// <para>
+/// The identifier is the record's <c>Dynamodb.SequenceNumber</c>. That is what "retry the shard
+/// from that record" is expressed in — Lambda takes the lowest sequence number reported and
+/// replays from it. Until 2026-08-15 the filter reported <c>EventID</c>, which names a record and
+/// not a position, so Lambda could resolve no checkpoint from it and re-drove the whole batch.
+/// These tests asserted the event id and so agreed with the defect; the harness left
+/// <c>SequenceNumber</c> unset, which is what made the two indistinguishable.
+/// </para>
 /// </summary>
 public class DynamoDbStreamBatchResponseTests {
 
@@ -23,6 +32,9 @@ public class DynamoDbStreamBatchResponseTests {
     private const string First = "4b1f2e";
     private const string Second = "8c0a77";
     private const string Third = "d3e991";
+
+    /// <summary>The sequence number the harness gives the record with this event id.</summary>
+    private static string Seq(string eventId) => SequenceNumberFor(eventId);
 
     private static IEnumerable<DynamoDBEvent.DynamodbStreamRecord> ThreeRecords() {
         return [
@@ -46,7 +58,7 @@ public class DynamoDbStreamBatchResponseTests {
     }
 
     [Fact]
-    public async Task ASingleFailingRecordNamesOnlyItsOwnEventId() {
+    public async Task ASingleFailingRecordNamesOnlyItsOwnSequenceNumber() {
         var response = await Run(ThreeRecords(), (_, recordContext) => {
             if (recordContext.CurrentRecord.EventID == Second) {
                 throw new InvalidOperationException("handler failed");
@@ -55,23 +67,29 @@ public class DynamoDbStreamBatchResponseTests {
             return Task.CompletedTask;
         });
 
-        Assert.Equal(Second, Assert.Single(response.BatchItemFailures).ItemIdentifier);
+        Assert.Equal(Seq(Second), Assert.Single(response.BatchItemFailures).ItemIdentifier);
     }
 
     [Fact]
-    public async Task EveryRecordFailingNamesEveryEventId() {
+    public async Task EveryRecordFailingNamesEverySequenceNumber() {
         var response = await Run(ThreeRecords(), (_, _) => throw new InvalidOperationException("handler failed"));
 
-        Assert.Equal(new[] { First, Second, Third }, FailedIds(response));
+        Assert.Equal(new[] { Seq(First), Seq(Second), Seq(Third) }, FailedIds(response));
     }
 
     /// <summary>
-    /// The identifier is the record's <c>EventID</c>, not its position in the batch. Real event ids
-    /// are opaque hex strings; a batch whose ids happened to run 0, 1, 2 would hide an
-    /// index-for-id substitution entirely.
+    /// The identifier is the record's sequence number, and specifically not its event id or its
+    /// index in the batch.
+    ///
+    /// <para>
+    /// All three are strings that look plausible in a response, and only one is a position Lambda
+    /// can restart a shard from. The filter reported the event id until 2026-08-15 and every test
+    /// here agreed with it, because the harness never set a sequence number for them to differ
+    /// from. Naming all three is what makes this test able to fail.
+    /// </para>
     /// </summary>
     [Fact]
-    public async Task TheIdentifierIsTheEventIdAndNotThePositionInTheStream() {
+    public async Task TheIdentifierIsTheSequenceNumberAndNotTheEventIdOrThePosition() {
         var response = await Run(ThreeRecords(), (_, recordContext) => {
             if (recordContext.CurrentRecord.EventID == Third) {
                 throw new InvalidOperationException("handler failed");
@@ -82,7 +100,8 @@ public class DynamoDbStreamBatchResponseTests {
 
         var identifier = Assert.Single(response.BatchItemFailures).ItemIdentifier;
 
-        Assert.Equal(Third, identifier);
+        Assert.Equal(Seq(Third), identifier);
+        Assert.NotEqual(Third, identifier);
         Assert.NotEqual("2", identifier);
     }
 
@@ -96,7 +115,7 @@ public class DynamoDbStreamBatchResponseTests {
             return Task.CompletedTask;
         });
 
-        Assert.Equal(new[] { First, Third }, FailedIds(response));
+        Assert.Equal(new[] { Seq(First), Seq(Third) }, FailedIds(response));
     }
 
     /// <summary>
@@ -131,7 +150,7 @@ public class DynamoDbStreamBatchResponseTests {
             [Record("evt-" + eventName, eventName)],
             (_, _) => throw new InvalidOperationException("handler failed"));
 
-        Assert.Equal("evt-" + eventName, Assert.Single(response.BatchItemFailures).ItemIdentifier);
+        Assert.Equal(Seq("evt-" + eventName), Assert.Single(response.BatchItemFailures).ItemIdentifier);
     }
 
     [Theory]
@@ -147,7 +166,7 @@ public class DynamoDbStreamBatchResponseTests {
             return Task.CompletedTask;
         });
 
-        Assert.Equal(First, Assert.Single(response.BatchItemFailures).ItemIdentifier);
+        Assert.Equal(Seq(First), Assert.Single(response.BatchItemFailures).ItemIdentifier);
     }
 
     [Theory]
@@ -192,7 +211,7 @@ public class DynamoDbStreamBatchResponseTests {
             return Task.CompletedTask;
         }, handler);
 
-        Assert.Equal(First, Assert.Single(response.BatchItemFailures).ItemIdentifier);
+        Assert.Equal(Seq(First), Assert.Single(response.BatchItemFailures).ItemIdentifier);
     }
 
     /// <summary>
@@ -210,7 +229,7 @@ public class DynamoDbStreamBatchResponseTests {
             return Task.CompletedTask;
         });
 
-        Assert.Equal(Third, Assert.Single(response.BatchItemFailures).ItemIdentifier);
+        Assert.Equal(Seq(Third), Assert.Single(response.BatchItemFailures).ItemIdentifier);
     }
 
     [Fact]
@@ -226,7 +245,7 @@ public class DynamoDbStreamBatchResponseTests {
             [Record("only-one", Insert, newImage: Image(("id", "1")))],
             (_, _) => throw new InvalidOperationException("handler failed"));
 
-        Assert.Equal("only-one", Assert.Single(response.BatchItemFailures).ItemIdentifier);
+        Assert.Equal(Seq("only-one"), Assert.Single(response.BatchItemFailures).ItemIdentifier);
     }
 
     [Fact]
@@ -239,6 +258,6 @@ public class DynamoDbStreamBatchResponseTests {
             return Task.CompletedTask;
         });
 
-        Assert.Equal(new[] { First, Third }, FailedIds(response));
+        Assert.Equal(new[] { Seq(First), Seq(Third) }, FailedIds(response));
     }
 }

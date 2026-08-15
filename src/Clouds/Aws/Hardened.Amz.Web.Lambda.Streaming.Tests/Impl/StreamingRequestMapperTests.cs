@@ -3,7 +3,9 @@ using Amazon.Lambda.APIGatewayEvents;
 using Hardened.Amz.Web.Lambda.Streaming.Impl;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Shared.Runtime.Metrics;
+using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
 
@@ -127,6 +129,62 @@ public class StreamingExecutionRequestTests {
         var request = new StreamingExecutionRequest(CreateProxyRequest()) { Parameters = null };
 
         Assert.Null(request.Clone(method: "POST").Parameters);
+    }
+
+    /// <summary>
+    /// Clone accepted all five of its arguments and applied none of them until 2026-08-15 — the
+    /// same defect the buffered transport carried, in the same shape. The two tests above have
+    /// always passed <c>method: "POST"</c> and asserted only on parameters, which is how it stayed
+    /// invisible on both.
+    /// </summary>
+    [Fact]
+    public void CloneRebindsTheMethodAndPathItIsGiven() {
+        var request = new StreamingExecutionRequest(CreateProxyRequest(method: "GET", rawPath: "/original"));
+
+        var clone = request.Clone(method: "DELETE", path: "/replaced");
+
+        Assert.Equal("DELETE", clone.Method);
+        Assert.Equal("/replaced", clone.Path);
+    }
+
+    [Fact]
+    public void CloneKeepsTheMethodAndPathWhenGivenNeither() {
+        var request = new StreamingExecutionRequest(CreateProxyRequest(method: "PATCH", rawPath: "/original"));
+
+        var clone = request.Clone();
+
+        Assert.Equal("PATCH", clone.Method);
+        Assert.Equal("/original", clone.Path);
+    }
+
+    [Fact]
+    public void CloneRebindsTheHeadersItIsGiven() {
+        var request = new StreamingExecutionRequest(CreateProxyRequest());
+
+        var clone = request.Clone(
+            headers: new Dictionary<string, StringValues> { { "X-Replaced", "yes" } });
+
+        Assert.True(clone.Headers.TryGetValue("X-Replaced", out var value));
+        Assert.Equal("yes", value.ToString());
+    }
+
+    [Fact]
+    public void RebindingHeadersInACloneDoesNotTouchTheOriginal() {
+        var request = new StreamingExecutionRequest(CreateProxyRequest());
+        var clone = request.Clone();
+
+        clone.Headers["X-Added-In-Fork"] = "yes";
+
+        Assert.False(request.Headers.ContainsKey("X-Added-In-Fork"));
+    }
+
+    [Fact]
+    public void CloneRebindsTheCookiesItIsGiven() {
+        var request = new StreamingExecutionRequest(CreateProxyRequest());
+
+        var clone = request.Clone(cookies: new[] { "session=replaced" });
+
+        Assert.Contains("session=replaced", clone.Cookies);
     }
 
     /// <summary>One mutable value, so a test can prove the copy is independent.</summary>
@@ -328,9 +386,13 @@ public class StreamingExecutionResponseTests {
     [Fact]
     public void Clone_PreservesProperties() {
         var body = new MemoryStream();
+        var output = Substitute.For<IHardenedResponseOutput>();
+        Func<IExecutionContext, IHardenedResponseOutput> factory = _ => output;
+
         var response = new StreamingExecutionResponse(body) {
             ResponseValue = "test-value",
-            TemplateName = "template",
+            Output = output,
+            OutputFactory = factory,
             ShouldCompress = true,
             IsBinary = true,
             ShouldSerialize = false,
@@ -339,7 +401,8 @@ public class StreamingExecutionResponseTests {
         var clone = response.Clone(null);
 
         Assert.Equal("test-value", clone.ResponseValue);
-        Assert.Equal("template", clone.TemplateName);
+        Assert.Same(output, clone.Output);
+        Assert.Same(factory, clone.OutputFactory);
         Assert.True(clone.ShouldCompress);
         Assert.True(clone.IsBinary);
         Assert.False(clone.ShouldSerialize);

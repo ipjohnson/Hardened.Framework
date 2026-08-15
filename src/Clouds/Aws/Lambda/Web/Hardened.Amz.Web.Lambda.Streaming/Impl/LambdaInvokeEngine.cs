@@ -79,9 +79,7 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                 responseStream.SetExecutionResponse(executionContext.Response);
 
                 var chain = _middlewareService.GetExecutionChain(executionContext);
-                Console.Error.WriteLine($"[StreamDiag] {requestId} chain.Next starting");
                 await chain.Next();
-                Console.Error.WriteLine($"[StreamDiag] {requestId} chain.Next done, responseStarted={responseStream.HasResponseStarted}, bodyBytes={responseStream.Length}");
 
                 // Streaming responses with no body content cause CloudFront to hang
                 // waiting for data. Write a newline so the stream has content to terminate.
@@ -89,25 +87,19 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                     await responseStream.WriteAsync("\n"u8.ToArray(), ct);
                 }
 
-                Console.Error.WriteLine($"[StreamDiag] {requestId} responseStream.FlushAsync starting");
                 await responseStream.FlushAsync(ct);
-                Console.Error.WriteLine($"[StreamDiag] {requestId} responseStream.FlushAsync done, responseStarted={responseStream.HasResponseStarted}");
-
-                Console.Error.WriteLine($"[StreamDiag] {requestId} pipe.Writer.FlushAsync starting");
                 await pipe.Writer.FlushAsync(ct);
-                Console.Error.WriteLine($"[StreamDiag] {requestId} pipe.Writer.FlushAsync done");
-
-                Console.Error.WriteLine($"[StreamDiag] {requestId} pipe.Writer.CompleteAsync starting");
                 await pipe.Writer.CompleteAsync();
-                Console.Error.WriteLine($"[StreamDiag] {requestId} pipe.Writer.CompleteAsync done, responseTask={responseTask != null}");
 
                 if (responseTask != null) {
-                    Console.Error.WriteLine($"[StreamDiag] {requestId} awaiting responseTask");
                     await responseTask;
-                    Console.Error.WriteLine($"[StreamDiag] {requestId} responseTask completed");
                 }
                 else {
-                    Console.Error.WriteLine($"[StreamDiag] {requestId} WARNING: responseTask is null - no response sent!");
+                    // The beginResponse callback never fired, so nothing was ever sent to the
+                    // runtime API and this invocation will time out rather than fail. Worth saying;
+                    // the caller has no other signal that it happened.
+                    _lambdaContextAccessor.Context?.Logger.LogLine(
+                        $"No response was sent for invocation {requestId}: the response stream never started.");
                 }
 
                 metricLogger.Record(RequestMetrics.TotalRequestDuration,

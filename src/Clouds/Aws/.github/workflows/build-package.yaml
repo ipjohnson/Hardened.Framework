@@ -24,7 +24,10 @@ jobs:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - run: dotnet restore
-      - run: dotnet build --configuration Release --no-restore
+
+      # ContinuousIntegrationBuild turns warnings into errors (see src/Directory.Build.props).
+      # Local builds do not set it, so an in-progress edit does not block someone's inner loop.
+      - run: dotnet build --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
 
       - name: Test with coverage
         run: |
@@ -79,7 +82,11 @@ jobs:
       - name: Coverage gate
         run: python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
 
+      # always(), because the report is most wanted exactly when the gate rejected the run - and
+      # the gate is the step before this one, so a failure meant no artifact to look at. Matching
+      # Hardened.Framework, where the same omission cost a round trip.
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: coverage-report
           path: coverage-report

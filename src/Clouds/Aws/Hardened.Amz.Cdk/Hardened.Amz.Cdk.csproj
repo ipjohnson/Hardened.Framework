@@ -8,12 +8,12 @@
         <IsPackable>true</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Hardened.Commands" Version="1.0.0-preview*" />
-        <PackageReference Include="Hardened.Console.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
-        <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
-        <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
-        <PackageReference Include="Amazon.CDK.Lib" Version="2.263.0" />
-        <PackageReference Include="Cdklabs.CdkMonitoringConstructs" Version="8.1.1" />
+        <PackageReference Include="Hardened.Commands" />
+        <PackageReference Include="Hardened.Console.SourceGenerator" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Requests.Runtime" />
+        <PackageReference Include="Amazon.CDK.Lib" />
+        <PackageReference Include="Cdklabs.CdkMonitoringConstructs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj" />

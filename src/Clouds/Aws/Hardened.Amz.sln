@@ -115,6 +115,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamoDbStreamApp", "src\In
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamoDbStreamApp.Tests", "src\IntegTests\DynamoDbStreamApp.Tests\DynamoDbStreamApp.Tests.csproj", "{517D7643-B191-44DC-9FEF-8E7135017354}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LambdaWebTest.Tests", "src\LambdaWebTest.Tests\LambdaWebTest.Tests.csproj", "{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -605,6 +607,18 @@ Global
 		{517D7643-B191-44DC-9FEF-8E7135017354}.Release|x64.Build.0 = Release|Any CPU
 		{517D7643-B191-44DC-9FEF-8E7135017354}.Release|x86.ActiveCfg = Release|Any CPU
 		{517D7643-B191-44DC-9FEF-8E7135017354}.Release|x86.Build.0 = Release|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Debug|x64.Build.0 = Debug|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Debug|x86.Build.0 = Debug|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Release|x64.ActiveCfg = Release|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Release|x64.Build.0 = Release|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Release|x86.ActiveCfg = Release|Any CPU
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -664,5 +678,6 @@ Global
 		{20E47C84-674F-4B19-9436-DA8E50676A4E} = {6AFBF6D8-D4D7-4A97-9866-CCF4219CEB21}
 		{47F6AB1C-9D6D-40E8-AFBC-6938EA3280BA} = {42630596-7D98-4419-ADCD-FA7D5CE24822}
 		{517D7643-B191-44DC-9FEF-8E7135017354} = {42630596-7D98-4419-ADCD-FA7D5CE24822}
+		{E824DFFA-0CA7-4E6C-A559-BDE235345CA6} = {6AFBF6D8-D4D7-4A97-9866-CCF4219CEB21}
 	EndGlobalSection
 EndGlobal

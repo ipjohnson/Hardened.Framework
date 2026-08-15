@@ -21,7 +21,7 @@ public class ResponsiveStreamContentTests {
         var destination = new MemoryStream();
 
         var content = new ResponsiveStreamContent(source);
-        await content.CopyToAsync(destination);
+        await content.CopyToAsync(destination, TestContext.Current.CancellationToken);
 
         Assert.Equal(sourceData, destination.ToArray());
     }
@@ -32,7 +32,7 @@ public class ResponsiveStreamContentTests {
         var destination = new MemoryStream();
 
         var content = new ResponsiveStreamContent(source);
-        await content.CopyToAsync(destination);
+        await content.CopyToAsync(destination, TestContext.Current.CancellationToken);
 
         Assert.Empty(destination.ToArray());
     }
@@ -45,7 +45,7 @@ public class ResponsiveStreamContentTests {
         var destination = new MemoryStream();
 
         var content = new ResponsiveStreamContent(source);
-        await content.CopyToAsync(destination);
+        await content.CopyToAsync(destination, TestContext.Current.CancellationToken);
 
         Assert.Equal(sourceData, destination.ToArray());
     }

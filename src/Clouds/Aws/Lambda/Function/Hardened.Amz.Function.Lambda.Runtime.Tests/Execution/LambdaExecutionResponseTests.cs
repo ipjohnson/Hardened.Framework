@@ -2,7 +2,9 @@ using System.Text;
 using Hardened.Amz.Function.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Runtime.Headers;
+using NSubstitute;
 
 namespace Hardened.Amz.Function.Lambda.Runtime.Tests.Execution;
 
@@ -65,7 +67,11 @@ public class LambdaExecutionResponseTests {
         response.IsBinary = true;
         response.ShouldCompress = true;
         response.ShouldSerialize = false;
-        response.TemplateName = "template";
+        var output = Substitute.For<IHardenedResponseOutput>();
+        Func<IExecutionContext, IHardenedResponseOutput> factory = _ => output;
+
+        response.Output = output;
+        response.OutputFactory = factory;
 
         var clone = response.Clone(null);
 
@@ -74,7 +80,8 @@ public class LambdaExecutionResponseTests {
         Assert.True(clone.IsBinary);
         Assert.True(clone.ShouldCompress);
         Assert.False(clone.ShouldSerialize);
-        Assert.Equal("template", clone.TemplateName);
+        Assert.Same(output, clone.Output);
+        Assert.Same(factory, clone.OutputFactory);
     }
 
     [Fact]

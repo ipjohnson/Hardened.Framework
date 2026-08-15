@@ -79,18 +79,14 @@ public class ResponseStream : Stream {
                     "ExecutionResponse must be set before writing to the stream.");
             }
 
-            Console.Error.WriteLine($"[StreamDiag] ResponseStream: writing prelude, status={_executionResponse.Status}, contentType={_executionResponse.ContentType}");
             _writePrelude(_executionResponse, _pipeWriter);
-            Console.Error.WriteLine("[StreamDiag] ResponseStream: prelude written");
         }
     }
 
     private void EnsureResponseStarted() {
         if (!_responseStarted) {
             _responseStarted = true;
-            Console.Error.WriteLine("[StreamDiag] ResponseStream: starting response (beginResponse callback)");
             _beginResponse();
-            Console.Error.WriteLine("[StreamDiag] ResponseStream: response started");
         }
     }
 

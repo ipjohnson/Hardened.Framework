@@ -9,9 +9,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Hardened.Library.SourceGenerator" Version="1.0.0-preview*" />
-      <PackageReference Include="Hardened.Function.SourceGenerator" Version="1.0.0-preview*" PrivateAssets="all" />
-      <PackageReference Include="Hardened.Requests.Runtime" Version="1.0.0-preview*" />
+      <PackageReference Include="Hardened.Library.SourceGenerator" />
+      <PackageReference Include="Hardened.Function.SourceGenerator" PrivateAssets="all" />
+      <PackageReference Include="Hardened.Requests.Runtime" />
     </ItemGroup>
 
     <ItemGroup>

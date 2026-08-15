@@ -23,21 +23,40 @@ public static class DdbStreamHarness {
     public const string Modify = "MODIFY";
     public const string Remove = "REMOVE";
 
+    /// <summary>
+    /// A record carries an event id and a sequence number, and they are deliberately unalike.
+    ///
+    /// <para>
+    /// The sequence number is the record's position in the shard and the only thing Lambda can
+    /// check a stream back to; the event id names the record and says nothing about where it sits.
+    /// The filter reported the event id until 2026-08-15. Leaving <c>SequenceNumber</c> unset — as
+    /// this factory did — meant no test could tell the two apart.
+    /// </para>
+    /// </summary>
     public static DynamoDBEvent.DynamodbStreamRecord Record(
         string eventId,
         string eventName = Modify,
         Dictionary<string, DynamoDBEvent.AttributeValue>? newImage = null,
-        Dictionary<string, DynamoDBEvent.AttributeValue>? oldImage = null) {
+        Dictionary<string, DynamoDBEvent.AttributeValue>? oldImage = null,
+        string? sequenceNumber = null) {
 
         return new DynamoDBEvent.DynamodbStreamRecord {
             EventID = eventId,
             EventName = eventName,
             Dynamodb = new DynamoDBEvent.StreamRecord {
                 NewImage = newImage,
-                OldImage = oldImage
+                OldImage = oldImage,
+                SequenceNumber = sequenceNumber ?? SequenceNumberFor(eventId)
             }
         };
     }
+
+    /// <summary>
+    /// Shaped like the real thing — a long decimal string — and derived from the event id only so
+    /// that a test naming one can name the other.
+    /// </summary>
+    public static string SequenceNumberFor(string eventId) =>
+        "1000000000" + Math.Abs(eventId.GetHashCode()).ToString("D11");
 
     public static Dictionary<string, DynamoDBEvent.AttributeValue> Image(params (string Key, string Value)[] values) {
         return values.ToDictionary(v => v.Key, v => new DynamoDBEvent.AttributeValue { S = v.Value });
