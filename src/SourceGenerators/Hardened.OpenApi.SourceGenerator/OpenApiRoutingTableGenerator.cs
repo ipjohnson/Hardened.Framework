@@ -404,6 +404,10 @@ internal static class OpenApiRoutingTableGenerator {
             var switchBlock = wildCardMethod.Switch(methodString);
 
             foreach (var leafNode in wildCardNode.LeafNodes) {
+                if (RouteMethods.AddsHeadFallThrough(wildCardNode.LeafNodes, leafNode)) {
+                    switchBlock.AddCase(QuoteString(RouteMethods.Head));
+                }
+
                 var caseStatement = switchBlock.AddCase(QuoteString(leafNode.Method));
 
                 var field = routingClass.AddField(
@@ -443,6 +447,10 @@ internal static class OpenApiRoutingTableGenerator {
 
         foreach (var leafNode in routeNode.LeafNodes) {
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (RouteMethods.AddsHeadFallThrough(routeNode.LeafNodes, leafNode)) {
+                switchStatement.AddCase(QuoteString(RouteMethods.Head));
+            }
 
             var caseStatement = switchStatement.AddCase(QuoteString(leafNode.Method));
 
