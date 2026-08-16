@@ -2,7 +2,7 @@ using CSharpAuthor;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// The specification itself, embedded verbatim so the application can serve the document it was

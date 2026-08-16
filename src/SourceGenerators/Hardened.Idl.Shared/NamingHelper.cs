@@ -169,6 +169,36 @@ internal static class NamingHelper {
         return ToPascalCase(operationId);
     }
 
+    /// <summary>
+    /// A method name for an operation, from the route it answers on.
+    /// </summary>
+    /// <remarks>
+    /// Two callers want the same answer: a description that declares no id for an operation, and
+    /// the allocator when an id a description does declare collides with another. It lives here
+    /// rather than in either of them because it reads nothing but a verb and a route, which is what
+    /// any interface language with HTTP bindings has - not something particular to OpenAPI.
+    /// </remarks>
+    public static string OperationIdFromRoute(string method, string route) {
+        var name = new StringBuilder(method.ToLowerInvariant());
+
+        foreach (var segment in route.Split('/')) {
+            if (segment.Length == 0) {
+                continue;
+            }
+
+            // A parameter reads as what it selects by, so /pets/{petId} is getPetsByPetId rather
+            // than getPetsPetId - which says the same thing twice and loses that it was a variable.
+            if (segment[0] == '{') {
+                name.Append("By");
+                name.Append(ToPascalCase(segment.Trim('{', '}')));
+            } else {
+                name.Append(ToPascalCase(segment));
+            }
+        }
+
+        return name.ToString();
+    }
+
     public static string ToInterfaceName(string tag) {
         var pascal = ToPascalCase(tag);
         if (pascal.StartsWith("I") && pascal.Length > 1 && char.IsUpper(pascal[1])) {

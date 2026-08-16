@@ -97,6 +97,13 @@
         <Reference Include="System.Net.Http"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.Emit/**/*.cs"
+                 Exclude="../Hardened.Idl.Emit/obj/**/*;../Hardened.Idl.Emit/bin/**/*;../Hardened.Idl.Emit/IsExternalInit.cs">
+            <Link>Emit\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
     <!-- Shared with the generator. See Hardened.Idl.Shared for why this is source and not a reference. -->
     <ItemGroup>
         <Compile Include="../Hardened.Idl.Shared/**/*.cs"

@@ -1,12 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
-using Hardened.OpenApi.SourceGenerator;
-using Hardened.OpenApi.SourceGenerator.Emitters;
+using Hardened.Idl.Emitters;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.BuildTask.Validation;
+namespace Hardened.Idl.Validation;
 
 /// <summary>
 /// The parameter interface one operation gets, when anything about it is constrained.

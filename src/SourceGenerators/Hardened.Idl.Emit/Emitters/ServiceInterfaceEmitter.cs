@@ -3,7 +3,7 @@ using CSharpAuthor;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// One service tag, as the interface a handler implements.

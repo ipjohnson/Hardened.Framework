@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Hardened.OpenApi.BuildTask.Validation;
+namespace Hardened.Idl.Validation;
 
 /// <summary>
 /// The regular expressions a spec declares, and the <c>[GeneratedRegex]</c> member each one becomes.

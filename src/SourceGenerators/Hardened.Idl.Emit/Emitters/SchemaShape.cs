@@ -3,7 +3,7 @@ using System.Linq;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// How a schema's properties are divided between a record's constructor and its body.

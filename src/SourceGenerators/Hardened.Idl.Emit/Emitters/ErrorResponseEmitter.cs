@@ -4,7 +4,7 @@ using CSharpAuthor;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// The exception an implementation throws to produce a response the specification declares.

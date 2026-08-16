@@ -1,9 +1,7 @@
 using System.Collections.Generic;
-using Hardened.OpenApi.SourceGenerator;
 using Hardened.Idl.Models;
-using Hardened.Idl;
 
-namespace Hardened.OpenApi.BuildTask;
+namespace Hardened.Idl;
 
 /// <summary>
 /// Problems a spec can describe that generate C# which will not compile.

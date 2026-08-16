@@ -1,6 +1,6 @@
-using Hardened.OpenApi.BuildTask.Filtering;
+using Hardened.Idl.Filtering;
 using Hardened.OpenApi.SourceGenerator;
-using Hardened.OpenApi.SourceGenerator.Emitters;
+using Hardened.Idl.Emitters;
 using Hardened.Idl.Models;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;

@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Hardened.Idl;
 using Hardened.Idl.Models;
 
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl;
 
 /// <summary>
 /// Every C# name this document produces, decided once.
@@ -188,7 +187,7 @@ internal static class NameAllocator {
                 var name = TypeMapper.GetRefName(reference.Value ?? "");
 
                 if (reference.Value != null && renamed.TryGetValue(name, out var replacement)) {
-                    reference.Set("#/components/schemas/" + replacement);
+                    reference.Set(TypeMapper.MakeRef(replacement));
                 }
             }
         }
@@ -238,7 +237,7 @@ internal static class NameAllocator {
             // which is a convention the generator already uses and a reader already recognises.
             operation.MethodName = ids.Allocate(
                 operation.OperationId,
-                OpenApiSpecParser.GenerateOperationId(operation.HttpMethod, operation.Path));
+                NamingHelper.OperationIdFromRoute(operation.HttpMethod, operation.Path));
         }
     }
 

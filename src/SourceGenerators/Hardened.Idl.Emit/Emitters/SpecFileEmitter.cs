@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
-using Hardened.OpenApi.BuildTask.Validation;
+using Hardened.Idl.Validation;
 using Hardened.Idl.Models;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// Composes one spec's generated C# into a single file.

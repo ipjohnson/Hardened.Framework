@@ -53,7 +53,7 @@
             code that cannot compile and failures that point nowhere. The emitters' own behaviour is
             tested in Hardened.OpenApi.BuildTask.Tests.
         -->
-        <Compile Include="..\Hardened.OpenApi.BuildTask\Emitters\**\*.cs" Link="Emitters\%(FileName)%(Extension)" />
+        <Compile Include="..\Hardened.Idl.Emit\**\*.cs" Link="Emit\%(RecursiveDir)%(FileName)%(Extension)" Exclude="..\Hardened.Idl.Emit\obj\**\*;..\Hardened.Idl.Emit\bin\**\*;..\Hardened.Idl.Emit\IsExternalInit.cs" />
 
         <!--
             The spec front-end, for the same reason: these tests assert on what a project ends up
@@ -65,7 +65,6 @@
             attributes back out of the compilation like any other. Compiling Impl in here bound this
             project to a Roslyn-free/Roslyn-coupled split it does not need and cannot police.
         -->
-        <Compile Include="..\Hardened.OpenApi.BuildTask\Validation\**\*.cs" Link="Validation\%(FileName)%(Extension)" />
         <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj" />
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />

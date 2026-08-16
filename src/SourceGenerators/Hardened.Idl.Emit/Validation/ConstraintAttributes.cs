@@ -5,7 +5,7 @@ using CSharpAuthor;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.BuildTask.Validation;
+namespace Hardened.Idl.Validation;
 
 /// <summary>
 /// OpenAPI's constraint keywords, as ValidationModules attributes to put on emitted members.

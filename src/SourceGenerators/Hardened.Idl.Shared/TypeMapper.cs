@@ -259,8 +259,32 @@ internal static class TypeMapper {
         return builder.ToString();
     }
 
+    /// <summary>
+    /// The name a reference names.
+    /// </summary>
+    /// <remarks>
+    /// Tolerant of the shape the reference arrived in, because a front-end may not have normalized
+    /// it - it takes the last segment, so <c>#/components/schemas/Pet</c> and a bare <c>Pet</c> both
+    /// answer <c>Pet</c>. Paired with <see cref="MakeRef"/>: read with this, write with that, and no
+    /// caller has to know the form.
+    /// </remarks>
     public static string GetRefName(string refPath) {
         var lastSlash = refPath.LastIndexOf('/');
         return lastSlash >= 0 ? refPath.Substring(lastSlash + 1) : refPath;
     }
+
+    /// <summary>
+    /// A reference to a schema by name, in the form the model holds.
+    /// </summary>
+    /// <remarks>
+    /// The model is an internal representation, so the form is the spine's to define rather than
+    /// any one description language's. It happens to be the OpenAPI pointer, because that is the
+    /// front-end there is - but the point is that the passes which rewrite references
+    /// (<c>NameAllocator</c> renaming a type, <c>SpecSlicer</c> walking to a derived one) call this
+    /// rather than concatenating the pointer themselves. Those passes never read a description;
+    /// they are what a second front-end - Smithy, whose references are shape ids like
+    /// <c>com.example#Pet</c> - would reuse unchanged, and a pointer spelled inline in them is a
+    /// dependency on OpenAPI that nothing declares.
+    /// </remarks>
+    public static string MakeRef(string schemaName) => "#/components/schemas/" + schemaName;
 }

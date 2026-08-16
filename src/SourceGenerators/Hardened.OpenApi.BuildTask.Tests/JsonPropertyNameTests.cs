@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using Hardened.OpenApi.BuildTask.Validation;
-using Hardened.OpenApi.SourceGenerator.Emitters;
+using Hardened.Idl.Validation;
+using Hardened.Idl.Emitters;
 using Hardened.Idl.Models;
 using Xunit;
 

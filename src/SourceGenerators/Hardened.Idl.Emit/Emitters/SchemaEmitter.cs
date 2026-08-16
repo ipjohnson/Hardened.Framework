@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
-using Hardened.OpenApi.BuildTask.Validation;
+using Hardened.Idl.Validation;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// One schema, as a record or an enum.

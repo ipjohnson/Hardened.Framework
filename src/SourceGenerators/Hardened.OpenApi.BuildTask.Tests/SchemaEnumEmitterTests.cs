@@ -1,4 +1,4 @@
-using Hardened.OpenApi.SourceGenerator.Emitters;
+using Hardened.Idl.Emitters;
 using Hardened.Idl.Models;
 using Xunit;
 
