@@ -1,5 +1,6 @@
 using Hardened.SourceGenerator.Models.Request;
 using Microsoft.CodeAnalysis;
+using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Web.Routing;
 

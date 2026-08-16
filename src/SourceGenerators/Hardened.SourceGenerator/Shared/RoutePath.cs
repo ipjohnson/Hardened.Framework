@@ -1,4 +1,4 @@
-namespace Hardened.SourceGenerator.Web.Routing;
+namespace Hardened.SourceGenerator.Shared;
 
 /// <summary>
 /// Joins a base path to a route template.

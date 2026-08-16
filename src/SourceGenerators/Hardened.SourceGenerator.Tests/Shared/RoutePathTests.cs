@@ -1,7 +1,7 @@
-using Hardened.SourceGenerator.Web.Routing;
+using Hardened.SourceGenerator.Shared;
 using Xunit;
 
-namespace Hardened.SourceGenerator.Tests.Web;
+namespace Hardened.SourceGenerator.Tests.Shared;
 
 /// <summary>
 /// The one place a base path and a route template are joined.
