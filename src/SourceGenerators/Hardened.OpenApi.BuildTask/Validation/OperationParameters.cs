@@ -57,8 +57,7 @@ internal static class OperationParameters {
             // Suppressed where the C# type already guarantees presence, exactly as SchemaEmitter
             // has always done for properties. A required integer path parameter is the common case.
             var emitRequired = parameter.ConstrainedAsRequired &&
-                               !TypeMapper.IsNonNullableValueType(csType) &&
-                               !isEnumType;
+                               !TypeMapper.IsNonNullableValueType(csType, spec.Schemas);
 
             var attributes = ConstraintAttributes.ForParameter(
                 parameter, emitRequired, !isEnumType, patterns);
@@ -82,8 +81,15 @@ internal static class OperationParameters {
             // same name.
             // Constrained excludes readOnly properties, whose constraints are never emitted - a
             // validator that descends into a body with nothing to check is dead code.
+            //
+            // Asked by building the body's attributes rather than by re-deriving the rule. A body
+            // whose only constraint was `required` on a non-nullable value type now gets no
+            // attributes at all, so no validator is generated for it - and a [ValidateNested]
+            // naming a validator that does not exist is CS0234 in a generated file. Both answers
+            // have to come from one place to stay in step.
             var attributes = bodySchema.Properties.Any(
-                p => p.Constrained && (p.HasValidationConstraints || p.IsRequired))
+                property => property.Constrained &&
+                            PropertyAttributes(property, spec, patterns).Count > 0)
                 ? new[] { new ConstraintAttributes.Model(
                     ConstraintAttributes.ValidateNested(), System.Array.Empty<string>()) }
                 : System.Array.Empty<ConstraintAttributes.Model>();
@@ -99,6 +105,20 @@ internal static class OperationParameters {
                 "I" + NamingHelper.ToPascalCase(operation.OperationId) + "Parameters",
                 members)
             : null;
+    }
+
+    /// <summary>
+    /// The attributes a property would carry, by the same rules the model emitter applies.
+    /// </summary>
+    private static IReadOnlyList<ConstraintAttributes.Model> PropertyAttributes(
+        PropertyModel property, ServiceSpecModel spec, PatternRegistry patterns) {
+        var csType = TypeMapper.MapPropertyToCSharpType(property);
+
+        return ConstraintAttributes.ForProperty(
+            property,
+            property.ConstrainedAsRequired && !TypeMapper.IsNonNullableValueType(csType, spec.Schemas),
+            patterns,
+            !TypeMapper.IsGeneratedEnum(csType, spec.Schemas));
     }
 
     private static SchemaModel? BodySchema(OperationModel operation, ServiceSpecModel spec) {

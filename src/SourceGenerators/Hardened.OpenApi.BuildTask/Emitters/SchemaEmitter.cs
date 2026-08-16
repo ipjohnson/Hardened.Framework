@@ -64,7 +64,7 @@ internal static class SchemaEmitter {
             constructor.IsPrimary = true;
 
             foreach (var property in parameters) {
-                EmitConstructorParameter(constructor, property, modelsNamespace, patterns);
+                EmitConstructorParameter(constructor, property, modelsNamespace, patterns, allSchemas);
             }
         }
 
@@ -78,7 +78,7 @@ internal static class SchemaEmitter {
     /// <summary>One property, as a positional record parameter.</summary>
     private static void EmitConstructorParameter(
         ConstructorDefinition constructor, PropertyModel property, string modelsNamespace,
-        PatternRegistry patterns) {
+        PatternRegistry patterns, IReadOnlyList<SchemaModel>? allSchemas) {
         var csType = TypeMapper.MapPropertyToCSharpType(property);
         var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
 
@@ -101,9 +101,12 @@ internal static class SchemaEmitter {
 
         // Required, except where the type already guarantees it - see
         // TypeMapper.IsNonNullableValueType.
-        var emitRequired = property.ConstrainedAsRequired && !TypeMapper.IsNonNullableValueType(csType);
+        var emitRequired = property.ConstrainedAsRequired &&
+                           !TypeMapper.IsNonNullableValueType(csType, allSchemas);
 
-        foreach (var constraint in ConstraintAttributes.ForProperty(property, emitRequired, patterns)) {
+        foreach (var constraint in ConstraintAttributes.ForProperty(
+                     property, emitRequired, patterns,
+                     !TypeMapper.IsGeneratedEnum(csType, allSchemas))) {
             ValidationEmitter.Apply(parameter, constraint).Target = "property";
         }
     }

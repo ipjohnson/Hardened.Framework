@@ -142,6 +142,41 @@ internal static class TypeMapper {
             _ => false
         };
 
+    /// <summary>
+    /// As above, but able to recognise the enums this specification generates.
+    /// </summary>
+    /// <remarks>
+    /// A generated enum is a value type and cannot be told apart from a record by its name alone,
+    /// so callers holding the schema list pass it. Without this, a required enum-typed member draws
+    /// a <c>[Required]</c>, and the validator answers it with <c>is null</c> against a value type -
+    /// the same CS0037 the numerics used to produce, and what OpenAI's document hits 150 times.
+    /// </remarks>
+    public static bool IsNonNullableValueType(
+        string csType, IEnumerable<SchemaModel>? schemas) =>
+        IsNonNullableValueType(csType) || IsGeneratedEnum(csType, schemas);
+
+    /// <summary>
+    /// Whether the type names an enum this specification generates.
+    /// </summary>
+    /// <remarks>
+    /// Such a member is already restricted to the enum's own members, so <c>[AllowedValues]</c>
+    /// adds nothing - and, because it renders its arguments as string literals, it compares the
+    /// enum against strings and does not compile.
+    /// </remarks>
+    public static bool IsGeneratedEnum(string csType, IEnumerable<SchemaModel>? schemas) {
+        if (schemas == null) {
+            return false;
+        }
+
+        foreach (var schema in schemas) {
+            if (schema.Kind == SchemaKind.Enum && NamingHelper.ToPascalCase(schema.Name) == csType) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static string GetRefName(string refPath) {
         var lastSlash = refPath.LastIndexOf('/');
         return lastSlash >= 0 ? refPath.Substring(lastSlash + 1) : refPath;

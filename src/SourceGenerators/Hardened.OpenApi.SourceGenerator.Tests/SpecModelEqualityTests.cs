@@ -380,8 +380,8 @@ public class SpecModelEqualityTests {
     [InlineData("maxLength: 12")]
     [InlineData("minimum: 1")]
     [InlineData("maximum: 100")]
-    [InlineData("minimum: 1\n                        exclusiveMinimum: true")]
-    [InlineData("maximum: 1\n                        exclusiveMaximum: true")]
+    [InlineData("minimum: 1\n            exclusiveMinimum: true")]
+    [InlineData("maximum: 1\n            exclusiveMaximum: true")]
     [InlineData("pattern: \"^[a-z]+$\"")]
     public void AddingAConstraintToAParameterMakesTheModelUnequal(string constraint) {
         Assert.NotEqual(

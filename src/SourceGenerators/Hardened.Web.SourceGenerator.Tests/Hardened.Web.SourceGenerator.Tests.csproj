@@ -41,7 +41,8 @@
             would put two copies of CSharpAuthor in scope, which is the CS0433 that
             Hardened.OpenApi.SourceGenerator.Tests documents at length.
         -->
-        <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.22"/>
+        <PackageReference Include="Microsoft.OpenApi" Version="3.10.0"/>
+        <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.10.0"/>
         <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
 
         <!--

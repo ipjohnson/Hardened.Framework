@@ -51,9 +51,14 @@ internal static class ConstraintAttributes {
     /// From the caller rather than the model: it also knows whether the C# type makes
     /// <c>[Required]</c> unfailable - see <c>TypeMapper.IsNonNullableValueType</c>.
     /// </param>
+    /// <param name="allowedValues">
+    /// False where the C# type already admits only the permitted values - see the same parameter on
+    /// <see cref="ForParameter"/>.
+    /// </param>
     public static IReadOnlyList<Model> ForProperty(
-        PropertyModel property, bool required, PatternRegistry patterns) =>
-        Build(property, required, patterns);
+        PropertyModel property, bool required, PatternRegistry patterns,
+        bool allowedValues = true) =>
+        Build(property, required, patterns, allowedValues);
 
     private static IReadOnlyList<Model> Build(
         IConstraintFacets facets, bool required, PatternRegistry patterns,

@@ -19,9 +19,54 @@
         <_HardenedOpenApiTasksDir Condition="'$(MSBuildRuntimeType)' == 'Core'">$(MSBuildThisFileDirectory)../tasks/net8.0/</_HardenedOpenApiTasksDir>
         <_HardenedOpenApiTasksDir Condition="'$(MSBuildRuntimeType)' != 'Core'">$(MSBuildThisFileDirectory)../tasks/net472/</_HardenedOpenApiTasksDir>
         <HardenedOpenApiTaskAssembly Condition="'$(HardenedOpenApiTaskAssembly)' == ''">$(_HardenedOpenApiTasksDir)Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
+
+        <!--
+            The .NET task host, which lets .NET Framework MSBuild run a task in a .NET process.
+            MSBuild 18.0 ships with .NET SDK 10 and Visual Studio 2026; $(MSBuildVersion) is checked
+            for emptiness first because the version comparison errors on an empty string.
+        -->
+        <HardenedOpenApiNetTaskAssembly Condition="'$(HardenedOpenApiNetTaskAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/net8.0/Hardened.OpenApi.BuildTask.dll</HardenedOpenApiNetTaskAssembly>
+        <_HardenedOpenApiUseNetTaskHost>false</_HardenedOpenApiUseNetTaskHost>
+        <_HardenedOpenApiUseNetTaskHost
+            Condition="'$(MSBuildRuntimeType)' != 'Core' And '$(MSBuildVersion)' != '' And $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">true</_HardenedOpenApiUseNetTaskHost>
     </PropertyGroup>
 
+    <!--
+        Out of process, always.
+
+        A task assembly is loaded into MSBuild itself, and on .NET Framework that means the default
+        AppDomain, where assembly identity is global and the only binding redirects are the ones
+        Microsoft.Build ships for its own dependencies. Visual Studio has already loaded a
+        System.Text.Json by the time this runs; the OpenAPI reader wants its own. In process that is
+        a FileLoadException at task execution, and nothing in this repository can fix it, because
+        the config file that would is MSBuild's.
+
+        A task host is a fresh process with none of that in it. The usual objection - a process per
+        invocation - does not apply here: this task runs once per project and spends its time
+        parsing megabytes of YAML, so the launch is not measurable against the work.
+
+        It also fixes a second thing. The task assembly is built by the same build that consumes it
+        in this repository's own integration tests, and an in-process task is held open afterwards,
+        so an edited task is silently ignored until the MSBuild nodes die. That is what
+        TaskHostFactory is recommended for.
+    -->
     <UsingTask TaskName="Hardened.OpenApi.BuildTask.ExtractOpenApiSpec"
+               Condition="'$(_HardenedOpenApiUseNetTaskHost)' == 'true'"
+               Runtime="NET"
+               AssemblyFile="$(HardenedOpenApiNetTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.OpenApi.BuildTask.ExtractOpenApiSpec"
+               Condition="'$(_HardenedOpenApiUseNetTaskHost)' != 'true' And '$(HardenedOpenApiInProcessTask)' != 'true'"
+               TaskFactory="TaskHostFactory"
+               AssemblyFile="$(HardenedOpenApiTaskAssembly)"/>
+
+    <!--
+        In process, for the case the task host cannot serve: a build that produces the task assembly
+        it is about to run. Set HardenedOpenApiInProcessTask=true to opt in, and expect the assembly
+        to stay locked afterwards.
+    -->
+    <UsingTask TaskName="Hardened.OpenApi.BuildTask.ExtractOpenApiSpec"
+               Condition="'$(_HardenedOpenApiUseNetTaskHost)' != 'true' And '$(HardenedOpenApiInProcessTask)' == 'true'"
                AssemblyFile="$(HardenedOpenApiTaskAssembly)"/>
 
     <!--
