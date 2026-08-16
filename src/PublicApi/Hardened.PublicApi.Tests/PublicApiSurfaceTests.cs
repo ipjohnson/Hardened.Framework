@@ -33,7 +33,6 @@ public class PublicApiSurfaceTests {
 
     /// <summary>Every shipped net8.0 assembly, by name.</summary>
     private static readonly string[] Shipped = [
-        "Hardened.Commands",
         "Hardened.Requests.Abstract",
         "Hardened.Requests.Runtime",
         "Hardened.Requests.Serializers.Newtonsoft",

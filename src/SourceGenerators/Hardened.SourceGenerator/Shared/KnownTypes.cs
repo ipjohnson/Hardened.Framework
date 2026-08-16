@@ -45,12 +45,6 @@ public static class KnownTypes {
                 }
             }
 
-            public static class Commands {
-                public const string NS = "Hardened.Commands";
-                public const string Impl = "Hardened.Commands.Impl";
-                public const string Attributes = "Hardened.Commands.Attributes";
-            }
-
             public static class Web {
                 public const string Runtime = "Hardened.Web.Runtime";
 
@@ -376,11 +370,5 @@ public static class KnownTypes {
 
         public static ITypeDefinition IAsyncDisposable =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, "System", "IAsyncDisposable");
-    }
-    
-    public static class Commands {
-        
-        public static readonly ITypeDefinition CommandAttribute =
-            TypeDefinition.Get(Namespace.Hardened.Commands.Attributes, "CommandAttribute");
     }
 }

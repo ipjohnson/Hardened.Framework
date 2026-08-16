@@ -380,24 +380,19 @@ branch names and PR titles.
 - **Landmines:** template files are `AdditionalFiles`; the test project needs the same
   `None Remove` + `AdditionalFiles` pairing as a real consumer.
 
-### `console` — console and commands
+### ~~`console` — console and commands~~ (withdrawn)
 
-- **Owns:** `Hardened.Framework/src/Commands/Hardened.Commands.Tests/`, new
-  `Hardened.Console.SourceGenerator.Tests/`, new
-  `Hardened.Framework/src/IntegrationTests/Console/Hardened.IntegrationTests.Console.SUT.Tests/`
-- **Targets:** `Hardened.Commands` (41.4%, 6 tests), `Hardened.Console.SourceGenerator`
-  (460 lines, **zero coverage**)
-- **Must deliver:**
-  - `OutputCompiles` for command definitions and the generated entry point
-  - Parser: flags, `--name value`, `--name=value`, quoting, unknown option, missing required,
-    type conversion failure, `--help` at each level
-  - Subcommand nesting and inherited options
-  - `[Option]` renaming, `[FileOption]`, `[ExcludeOption]`
-  - Exit codes propagate from `ICommandHandler<T>.Handle`
-  - **Integration tests for `Hardened.IntegrationTests.Console.SUT`** — it exists, builds every CI
-    run, and has never been executed by a test
-- **Landmines:** the console entry point is generated with its own constructors and `Run()`; drive it
-  the way `Program.cs` does rather than reaching past it.
+`Hardened.Commands` and `Hardened.Console.SourceGenerator` were removed from the repository rather
+than tested. The workstream is withdrawn; there is nothing left for it to own.
+
+The parser held 92.3% line coverage at the point it was deleted, and could not execute a single
+command end to end — `CommandsLibrary` never pulled in `HardenedCoreModule`, so binding died on an
+unresolved `IJsonSerializer` on the first real invocation, including in the repository's own sample.
+The item this workstream listed as its priority — *"integration tests for
+`Hardened.IntegrationTests.Console.SUT`, it exists, builds every CI run, and has never been executed
+by a test"* — is exactly what would have caught it. Worth keeping in view as the argument for the
+`Must deliver` lists elsewhere in this plan leading with an end-to-end case rather than closing with
+one.
 
 ### `test-framework` — the test harness itself
 
