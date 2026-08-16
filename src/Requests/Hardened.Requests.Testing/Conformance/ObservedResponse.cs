@@ -46,16 +46,5 @@ public record ObservedResponse(
         return null;
     }
 
-    /// <summary>Every value of a header, or empty.</summary>
-    public IReadOnlyList<string> HeaderValues(string name) {
-        foreach (var pair in Headers) {
-            if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase)) {
-                return pair.Value;
-            }
-        }
-
-        return Array.Empty<string>();
-    }
-
     public string BodyAsText() => System.Text.Encoding.UTF8.GetString(Body);
 }

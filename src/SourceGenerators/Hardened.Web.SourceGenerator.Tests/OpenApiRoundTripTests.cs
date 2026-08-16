@@ -85,6 +85,27 @@ public class OpenApiRoundTripTests {
             [Obsolete("Cancel the order instead.")]
             [Delete("/{id}")]
             public void Delete(string id) { }
+
+            /// <summary>Every scalar a value parsed from text can be declared as.</summary>
+            [Get("/search/{count:long}")]
+            public List<OrderSummary> Search(
+                long count,
+                [FromQueryString] bool includeCancelled,
+                [FromQueryString] Guid tenant,
+                [FromQueryString] DateTime placedAfter,
+                [FromQueryString] decimal minimumTotal,
+                [FromQueryString] double weighting,
+                [FromHeader("X-Page")] int page) => new();
+
+            [Get("/receipts/{*path}")]
+            public string Receipt(string path) => path;
+
+            [Get("/on/{day}")]
+            public List<OrderSummary> OnDay(
+                DateOnly day,
+                [FromQueryString] Uri callback,
+                [FromQueryString] float weight,
+                [FromQueryString] short batch) => new();
         }
 
         [BasePath("/customers")]
@@ -392,5 +413,80 @@ public class OpenApiRoundTripTests {
         Assert.Equal(
             first.Components.Schemas.Keys.OrderBy(k => k, StringComparer.Ordinal),
             second.Components.Schemas.Keys.OrderBy(k => k, StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// A parameter is typed as the handler declared it.
+    /// </summary>
+    /// <remarks>
+    /// Every one of these was written as <c>{"type":"string"}</c> whatever the C# type, so a
+    /// document described <c>Search(long count)</c> as taking a string and a generated client had
+    /// no reason to reject a value before sending it. The mapping is by name rather than by symbol,
+    /// because no symbol survives to the point the document is written.
+    /// </remarks>
+    [Fact]
+    public void ParametersCarryTheirDeclaredType() {
+        var parameters = RoundTrip().Paths["/orders/search/{count}"]
+            .Operations[OperationType.Get].Parameters
+            .ToDictionary(parameter => parameter.Name, parameter => parameter.Schema);
+
+        Assert.Equal(("integer", "int64"), (parameters["count"].Type, parameters["count"].Format));
+        Assert.Equal("boolean", parameters["includeCancelled"].Type);
+        Assert.Equal(("string", "uuid"), (parameters["tenant"].Type, parameters["tenant"].Format));
+        Assert.Equal(("string", "date-time"), (parameters["placedAfter"].Type, parameters["placedAfter"].Format));
+        Assert.Equal("number", parameters["minimumTotal"].Type);
+        Assert.Equal(("number", "double"), (parameters["weighting"].Type, parameters["weighting"].Format));
+
+        Assert.Equal(("integer", "int32"), (parameters["X-Page"].Type, parameters["X-Page"].Format));
+    }
+
+    /// <summary>
+    /// A path template is a parameter name and nothing else - no constraint, no catch-all marker.
+    /// </summary>
+    /// <remarks>
+    /// Both are routing syntax a document cannot express. The marker says how much of the path a
+    /// token takes, which costs something worth knowing: a specification round-tripped back through
+    /// the build task gives a single-segment token where the source route had a catch-all. Better
+    /// than emitting a template no OpenAPI reader accepts.
+    /// </remarks>
+    [Fact]
+    public void APathTemplateCarriesNoRoutingSyntax() {
+        var document = RoundTrip();
+
+        Assert.True(document.Paths.ContainsKey("/orders/search/{count}"));
+        Assert.True(document.Paths.ContainsKey("/orders/receipts/{path}"));
+        Assert.DoesNotContain(document.Paths.Keys, path => path.Contains(':') || path.Contains('*'));
+    }
+
+    /// <summary>The remaining scalar shapes a value parsed from text can be declared as.</summary>
+    [Fact]
+    public void TheRestOfTheScalarShapesMapToo() {
+        var parameters = RoundTrip().Paths["/orders/on/{day}"]
+            .Operations[OperationType.Get].Parameters
+            .ToDictionary(parameter => parameter.Name, parameter => parameter.Schema);
+
+        Assert.Equal(("string", "date"), (parameters["day"].Type, parameters["day"].Format));
+        Assert.Equal(("string", "uri"), (parameters["callback"].Type, parameters["callback"].Format));
+        Assert.Equal(("number", "float"), (parameters["weight"].Type, parameters["weight"].Format));
+        Assert.Equal(("integer", "int32"), (parameters["batch"].Type, parameters["batch"].Format));
+    }
+
+    /// <summary>The document declares the groups its operations reference.</summary>
+    [Fact]
+    public void TheDocumentDeclaresItsTags() {
+        var document = RoundTrip();
+
+        var declared = document.Tags.Select(tag => tag.Name).ToList();
+
+        Assert.Contains("Order", declared);
+        Assert.Contains("People", declared);
+
+        var used = document.Paths.Values
+            .SelectMany(path => path.Operations.Values)
+            .SelectMany(operation => operation.Tags)
+            .Select(tag => tag.Name)
+            .Distinct();
+
+        Assert.All(used, tag => Assert.Contains(tag, declared));
     }
 }

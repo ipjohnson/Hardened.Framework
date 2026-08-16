@@ -475,13 +475,23 @@ public static class OpenApiDocumentGenerator {
     /// value parsed from a string is a scalar by construction. Anything unrecognised stays a string,
     /// which is what it arrived as.
     /// </para>
+    /// <para>
+    /// <b>Known gap.</b> A nullable scalar - <c>int?</c> on a query value or header - still
+    /// describes as a string. The type reaches here as a <c>Nullable</c> definition carrying no
+    /// type argument, so the underlying type is not recoverable from the model as it stands;
+    /// recovering it means changing what the syntax transform records, which is a wider change than
+    /// this. Not a regression - every parameter described as a string before - and the value does
+    /// arrive as text, so the schema is unspecific rather than wrong.
+    /// </para>
     /// </remarks>
     private static string ScalarSchema(ITypeDefinition type) {
         // int? and friends: the schema describes the value, and "required" already says whether one
-        // has to be there.
-        var name = type.Name == "Nullable" && type.TypeArguments.Count == 1
+        // has to be there. Two spellings reach here - Nullable<T> with a type argument, and the
+        // underlying name with a '?' on it, depending on how the parameter was written - so both
+        // are unwrapped rather than guessing which the generator produced.
+        var name = (type.Name == "Nullable" && type.TypeArguments.Count == 1
             ? type.TypeArguments[0].Name
-            : type.Name;
+            : type.Name).TrimEnd('?');
 
         return name switch {
             "String" or "Char" => "{\"type\":\"string\"}",

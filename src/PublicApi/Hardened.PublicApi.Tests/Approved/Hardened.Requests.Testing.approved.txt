@@ -86,7 +86,6 @@ namespace Hardened.Requests.Testing.Conformance
         public int StatusCode { get; init; }
         public string BodyAsText() { }
         public string? Header(string name) { }
-        public System.Collections.Generic.IReadOnlyList<string> HeaderValues(string name) { }
     }
 }
 namespace Hardened.Requests.Testing
