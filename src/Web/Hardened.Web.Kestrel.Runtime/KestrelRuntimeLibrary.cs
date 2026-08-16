@@ -1,4 +1,5 @@
 using DependencyModules.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
 
 namespace Hardened.Web.Kestrel.Runtime;
 
@@ -24,6 +25,15 @@ namespace Hardened.Web.Kestrel.Runtime;
 /// applications that want the ASP.NET middleware ecosystem — authentication, rate limiting,
 /// forwarded headers, and the standard OpenTelemetry instrumentation, none of which exist here.
 /// See the readme for the full list of what is given up.
+///
+/// <para>
+/// <c>[HardenedWebModule]</c> brings the web pipeline this host serves with —
+/// <c>IWebExecutionHandlerService</c>, the routing table and the request pipeline underneath it.
+/// It was absent here for the same reason it was absent on <c>AspNetCoreRuntime</c> and
+/// <c>LambdaWebModule</c>: every sample declared it separately, so nothing ever exercised the
+/// module on its own. Importing it twice is harmless — modules deduplicate by equality.
+/// </para>
 /// </summary>
 [DependencyModule]
+[HardenedWebModule]
 public partial class KestrelRuntime { }
