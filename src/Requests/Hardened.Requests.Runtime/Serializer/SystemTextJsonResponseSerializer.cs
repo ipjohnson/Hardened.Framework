@@ -35,7 +35,6 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// </remarks>
 [RequiresUnreferencedCode(Reason)]
 [RequiresDynamicCode(Reason)]
-[SingletonService(Using = RegistrationType.Add)]
 public class SystemTextJsonResponseSerializer : IResponseSerializer {
 
     private const string Reason =
@@ -47,7 +46,8 @@ public class SystemTextJsonResponseSerializer : IResponseSerializer {
     public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration) {
         _serializerOptions =
             configuration.Value.SerializeOptions ??
-            new(JsonSerializerDefaults.Web);
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
     }
 
     public bool IsDefaultSerializer => true;

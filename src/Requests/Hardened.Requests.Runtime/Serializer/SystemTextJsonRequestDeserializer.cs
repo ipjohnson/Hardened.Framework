@@ -31,7 +31,6 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// </remarks>
 [RequiresUnreferencedCode(Reason)]
 [RequiresDynamicCode(Reason)]
-[SingletonService(Using = RegistrationType.Try)]
 public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
     private const string Reason =
         "Reads the model's shape by reflection. Import AotSerializerModule for a trimmed or " +
@@ -45,7 +44,8 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
         _logger = logger;
         _serializerOptions =
             configuration.Value.DeSerializerOptions ??
-            new(JsonSerializerDefaults.Web);
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
     }
 
     public bool IsDefaultSerializer => true;

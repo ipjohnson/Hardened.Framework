@@ -49,6 +49,9 @@ public class AotRequestDeserializer : IRequestDeserializer {
                         _serializerOptions.Converters.Add(converter);
                     }
                 }
+
+        // Reflection last, and only where it is available - see WithReflectionFallback.
+        Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(_serializerOptions);
             }
         }
     }
@@ -66,7 +69,7 @@ public class AotRequestDeserializer : IRequestDeserializer {
 
         _logger.LogInformation($"Deserialize with option convert count {_serializerOptions.Converters.Count}");
         return await System.Text.Json.JsonSerializer.DeserializeAsync(
-            context.Request.Body, AotTypeInfo.For<T>(_serializerOptions));
+            context.Request.Body, Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions));
     }
 
     private async ValueTask<T?> DeserializeEncodedContent<T>(IExecutionContext context, StringValues contentEncoding) {
@@ -74,14 +77,14 @@ public class AotRequestDeserializer : IRequestDeserializer {
             await using var decompressStream = new GZipStream(context.Request.Body, CompressionMode.Decompress);
 
             return await System.Text.Json.JsonSerializer.DeserializeAsync(
-                decompressStream, AotTypeInfo.For<T>(_serializerOptions));
+                decompressStream, Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions));
         }
 
         if (contentEncoding.Contains(KnownEncoding.Br)) {
             await using var decompressStream = new BrotliStream(context.Request.Body, CompressionMode.Decompress);
 
             return await System.Text.Json.JsonSerializer.DeserializeAsync(
-                decompressStream, AotTypeInfo.For<T>(_serializerOptions));
+                decompressStream, Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions));
         }
 
         throw new BadContentEncodingException(contentEncoding.ToString());

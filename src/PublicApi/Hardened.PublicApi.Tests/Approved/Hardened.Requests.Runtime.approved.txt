@@ -460,7 +460,6 @@ namespace Hardened.Requests.Runtime.Serializer
         public T ParseWithDefault<T>(string value, string valueName, T defaultValue) { }
         protected virtual T StandardConverter<T>(string value) { }
     }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Reads the model\'s shape by reflection. Import AotSerializerModule for a trimmed o" +
         "r AOT-published application, which registers the source-generated serializers in" +
         "stead.")]
@@ -474,7 +473,6 @@ namespace Hardened.Requests.Runtime.Serializer
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
     [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Reads the model\'s shape by reflection. Import AotSerializerModule for a trimmed o" +
         "r AOT-published application, which registers the source-generated serializers in" +
         "stead.")]

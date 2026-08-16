@@ -256,6 +256,16 @@ namespace Hardened.Shared.Runtime.Json
         public string Serialize(object obj, bool pretty) { }
         public System.Threading.Tasks.Task SerializeAsync(System.IO.Stream jsonStream, object obj, bool pretty, System.Threading.CancellationToken cancellationToken) { }
     }
+    public static class JsonTypeInfoLookup
+    {
+        public static System.Text.Json.Serialization.Metadata.JsonTypeInfo For(System.Text.Json.JsonSerializerOptions options, object value) { }
+        public static System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> For<T>(System.Text.Json.JsonSerializerOptions options) { }
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode", Justification="Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the b" +
+            "ranch.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode", Justification="Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the b" +
+            "ranch.")]
+        public static System.Text.Json.JsonSerializerOptions WithReflectionFallback(System.Text.Json.JsonSerializerOptions options) { }
+    }
 }
 namespace Hardened.Shared.Runtime.Logging
 {

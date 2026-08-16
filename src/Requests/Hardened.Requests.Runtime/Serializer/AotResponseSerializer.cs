@@ -16,7 +16,8 @@ public class AotResponseSerializer : IResponseSerializer {
         IEnumerable<IJsonTypeInfoResolver> resolvers) {
         _serializerOptions =
             configuration.Value.SerializeOptions ??
-            new(JsonSerializerDefaults.Web);
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
         foreach (var resolver in resolvers) {
             _serializerOptions.TypeInfoResolverChain.Add(resolver);
@@ -57,7 +58,7 @@ public class AotResponseSerializer : IResponseSerializer {
             await System.Text.Json.JsonSerializer.SerializeAsync(
                 gzipStream,
                 context.Response.ResponseValue,
-                AotTypeInfo.For(_serializerOptions, context.Response.ResponseValue));
+                Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For(_serializerOptions, context.Response.ResponseValue));
 
             await gzipStream.FlushAsync();
         }
@@ -65,7 +66,7 @@ public class AotResponseSerializer : IResponseSerializer {
             await System.Text.Json.JsonSerializer.SerializeAsync(
                 context.Response.Body,
                 context.Response.ResponseValue,
-                AotTypeInfo.For(_serializerOptions, context.Response.ResponseValue));
+                Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For(_serializerOptions, context.Response.ResponseValue));
         }
     }
 }

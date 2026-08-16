@@ -23,25 +23,25 @@ public class AotJsonSerializer : IJsonSerializer {
 
     public async Task<T> DeserializeAsync<T>(Stream jsonStream, CancellationToken cancellationToken = default) {
         return await JsonSerializer.DeserializeAsync(
-                   jsonStream, AotTypeInfo.For<T>(_serializerOptions), cancellationToken) ??
+                   jsonStream, JsonTypeInfoLookup.For<T>(_serializerOptions), cancellationToken) ??
                throw new Exception("Deserialized to null instance");
     }
 
     public T Deserialize<T>(string json) {
-        return JsonSerializer.Deserialize(json, AotTypeInfo.For<T>(_serializerOptions)) ??
+        return JsonSerializer.Deserialize(json, JsonTypeInfoLookup.For<T>(_serializerOptions)) ??
                throw new Exception("Deserialized to null instance");
     }
 
     public string Serialize(object obj, bool pretty) {
         var options = pretty ? _prettyOptions : _serializerOptions;
 
-        return JsonSerializer.Serialize(obj, AotTypeInfo.For(options, obj));
+        return JsonSerializer.Serialize(obj, JsonTypeInfoLookup.For(options, obj));
     }
 
     public Task SerializeAsync(Stream jsonStream, object obj, bool pretty, CancellationToken cancellationToken) {
         var options = pretty ? _prettyOptions : _serializerOptions;
 
         return JsonSerializer.SerializeAsync(
-            jsonStream, obj, AotTypeInfo.For(options, obj), cancellationToken);
+            jsonStream, obj, JsonTypeInfoLookup.For(options, obj), cancellationToken);
     }
 }

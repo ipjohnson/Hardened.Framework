@@ -40,6 +40,60 @@ jobs:
       # The solution builds warning-free; this is what stops that drifting back.
       - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
+      # The claim the framework is sold on, checked rather than asserted.
+      #
+      # IsAotCompatible on the runtime packages makes `dotnet build` fail on a trim-unsafe call,
+      # which is most of it. It is not all of it: the analyzer works per assembly and per compile,
+      # so an incremental build can report clean by not rebuilding the project with the problem,
+      # and it says nothing about whether ILC can actually produce a binary. This step is what says
+      # both - ILC analyses the whole program, including everything the generators emitted.
+      #
+      # `--fail-on-warning`, because IL2026 and IL3050 are the entire point. A warning here is a
+      # call that works today and stops working once something is trimmed away.
+      - name: Publish the integration application with Native AOT
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+          dotnet publish src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.SUT/Hardened.IntegrationTests.Aot.SUT.csproj \
+            --configuration Release \
+            --runtime linux-x64 \
+            -p:ContinuousIntegrationBuild=true \
+            --fail-on-warning
+
+      # And that the binary serves a request, which a clean compile does not tell you: a trimmer
+      # removes what nothing references, so the failure this catches is a route, a binder or a
+      # serializer that resolved through metadata ILC could not see.
+      - name: Serve a request from the native binary
+        run: |
+          set -o pipefail
+
+          binary=$(find src/IntegrationTests/Aot -type f -name 'Hardened.IntegrationTests.Aot.SUT' -perm -u+x | head -1)
+
+          if [ -z "$binary" ]; then
+            echo "::error::No native binary was produced."
+            exit 1
+          fi
+
+          "$binary" 5199 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+
+          for _ in $(seq 1 40); do
+            if curl -fsS "http://localhost:5199/health" >/dev/null 2>&1; then break; fi
+            sleep 0.25
+          done
+
+          echo "health:  $(curl -fsS http://localhost:5199/health)"
+
+          # Routing, path-token binding and source-generated serialization, in one request.
+          body=$(curl -fsS http://localhost:5199/echo/hardened)
+          echo "echo:    $body"
+
+          case "$body" in
+            *'"message":"hardened"'*'"length":8'*) echo "Native AOT binary served a bound, serialized response." ;;
+            *) echo "::error::Unexpected response from the native binary: $body"; exit 1 ;;
+          esac
+
       # The document the code-first generator emits, checked by a linter rather than only by a
       # reader. Microsoft.OpenApi already proves the specification-first side parses, and that is a
       # weaker claim than it sounds: path templating is prose in the OpenAPI specification rather
