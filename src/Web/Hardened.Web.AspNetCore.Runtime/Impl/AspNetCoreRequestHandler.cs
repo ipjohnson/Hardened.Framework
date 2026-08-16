@@ -44,18 +44,29 @@ public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
 
         _requestLogger.RequestBegin(executionContext);
 
-        var executionChain = _middlewareService.GetExecutionChain(executionContext);
+        try {
+            var executionChain = _middlewareService.GetExecutionChain(executionContext);
 
-        await executionChain.Next();
+            await executionChain.Next();
 
-        if (!Answered(executionContext)) {
-            await requestDelegate(context);
+            if (!Answered(executionContext)) {
+                await requestDelegate(context);
+            }
         }
+        finally {
+            // In a finally because these ran as straight-line statements after the chain, so an
+            // exception escaping to ASP.NET's own handler took the whole close-out with it: no
+            // duration, no end, and no flush. A request that threw is one worth having a record of.
+            executionContext.RequestMetrics.Record(
+                RequestMetrics.TotalRequestDuration, requestStartTimestamp.GetElapsedMilliseconds());
 
-        executionContext.RequestMetrics.Record(
-            RequestMetrics.TotalRequestDuration, requestStartTimestamp.GetElapsedMilliseconds());
+            _requestLogger.RequestEnd(executionContext);
 
-        _requestLogger.RequestEnd(executionContext);
+            // The logger is per request and nothing else owns it. Disposal is how a provider learns
+            // the request finished - EmbeddedMetricLogger writes its EMF line here - so without it
+            // any provider that emits on completion emitted nothing at all.
+            executionContext.RequestMetrics.Dispose();
+        }
     }
 
     /// <summary>

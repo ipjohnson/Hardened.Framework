@@ -146,6 +146,22 @@ public class HardenedHttpApplicationTests {
     }
 
     /// <summary>
+    /// The metric logger is created per request in <c>CreateContext</c> and nothing else owns it.
+    /// Disposal is how a provider learns the request finished — <c>EmbeddedMetricLogger</c> writes
+    /// its EMF line there — so a host that recorded but never disposed produced nothing at all from
+    /// any provider that emits on completion.
+    /// </summary>
+    [Fact]
+    public void DisposeContext_FlushesTheMetricLogger() {
+        var harness = new Harness();
+        var context = harness.Application.CreateContext(new ServerFeatures().Collection);
+
+        harness.Application.DisposeContext(context, null);
+
+        harness.MetricLogger.Received(1).Dispose();
+    }
+
+    /// <summary>
     /// The per-request scope is the application's, so nothing else will dispose it. A leak here
     /// would show up as scoped services accumulating for the life of the process.
     /// </summary>

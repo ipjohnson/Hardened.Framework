@@ -92,7 +92,7 @@ namespace Hardened.Requests.Testing
 {
     public class TestExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
     {
-        public TestExecutionContext(System.IServiceProvider rootServiceProvider, System.IServiceProvider requestServices, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Requests.Abstract.Execution.IExecutionResponse response, System.Threading.CancellationToken cancellationToken) { }
+        public TestExecutionContext(System.IServiceProvider rootServiceProvider, System.IServiceProvider requestServices, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Requests.Abstract.Execution.IExecutionResponse response, System.Threading.CancellationToken cancellationToken, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null) { }
         public System.Threading.CancellationToken CancellationToken { get; }
         public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
