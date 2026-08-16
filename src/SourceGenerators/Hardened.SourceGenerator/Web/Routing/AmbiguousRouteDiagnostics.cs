@@ -73,7 +73,7 @@ public static class AmbiguousRouteDiagnostics {
             StringComparer.Ordinal);
 
         foreach (var handler in handlers) {
-            var route = basePath + handler.Name.Path;
+            var route = RoutePath.Combine(basePath, handler.Name.Path);
             var (shape, tokens) = RouteTreeGenerator<RequestHandlerModel>.StandardizeToken(route);
             var key = handler.Name.Method + " " + shape;
 

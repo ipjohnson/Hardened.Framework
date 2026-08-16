@@ -838,7 +838,7 @@ public static class RoutingTableGenerator {
         
         return generator.GenerateTree(endPointModels.Select(
             m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
-                basePath + m.Name.Path,
+                Routing.RoutePath.Combine(basePath, m.Name.Path),
                 m.Name.Method,
                 m,
                 _caseInsensitive

@@ -52,7 +52,7 @@ public static class OpenApiDocumentGenerator {
         // Grouped by path, because a document keys operations under one path entry rather than
         // repeating the path per verb.
         var byPath = handlers
-            .GroupBy(handler => basePath + handler.Name.Path)
+            .GroupBy(handler => Web.Routing.RoutePath.Combine(basePath, handler.Name.Path))
             .OrderBy(group => group.Key, System.StringComparer.Ordinal);
 
         var firstPath = true;

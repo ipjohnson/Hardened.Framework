@@ -126,7 +126,7 @@ public static class LinkGenerator {
     /// bind to them.
     /// </summary>
     private static Link Build(RequestHandlerModel handler, string basePath) {
-        var template = basePath + handler.Name.Path;
+        var template = Web.Routing.RoutePath.Combine(basePath, handler.Name.Path);
         var body = new StringBuilder();
         var parameters = new List<Parameter>();
         var literal = new StringBuilder();

@@ -138,6 +138,12 @@ public class OpenApiReverseRoundTripTests {
     /// <summary>
     /// Routes survive with their base path, since that is the path a client calls.
     /// </summary>
+    /// <remarks>
+    /// The collection routes are <c>/products</c> and <c>/baskets</c>, not <c>/products/</c> and
+    /// <c>/baskets/</c>. They read the other way until the base path and a <c>/</c> template stopped
+    /// being concatenated — which is the shape this test exists to protect, since a document is
+    /// what a generated client calls and the trailing slash was a URL the application did not serve.
+    /// </remarks>
     [Fact]
     public void RoutesSurviveTheRoundTrip() {
         var paths = Reparsed().Services
@@ -147,7 +153,7 @@ public class OpenApiReverseRoundTripTests {
 
         Assert.Equal(
             new[] {
-                "GET /baskets/{id}", "GET /products/", "GET /products/{id}", "POST /baskets/"
+                "GET /baskets/{id}", "GET /products", "GET /products/{id}", "POST /baskets"
             },
             paths);
     }

@@ -4,6 +4,7 @@ using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Validation;
+using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Buffers.Text;
@@ -123,7 +124,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
                 if (path != null) {
                     path = path.Trim('"');
-                    pathTemplate = path + pathTemplate;
+                    pathTemplate = RoutePath.Combine(path, pathTemplate);
                 }
             }
         }

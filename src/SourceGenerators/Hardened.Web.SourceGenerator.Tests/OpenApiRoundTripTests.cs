@@ -154,14 +154,14 @@ public class OpenApiRoundTripTests {
         var document = RoundTrip();
 
         Assert.True(document.Paths.ContainsKey("/orders/{id}"), "the token route is missing");
-        Assert.True(document.Paths.ContainsKey("/orders/"), "the collection route is missing");
+        Assert.True(document.Paths.ContainsKey("/orders"), "the collection route is missing");
 
         var byId = document.Paths["/orders/{id}"].Operations;
 
         Assert.True(byId.ContainsKey(OperationType.Get));
         Assert.True(byId.ContainsKey(OperationType.Delete));
 
-        var collection = document.Paths["/orders/"].Operations;
+        var collection = document.Paths["/orders"].Operations;
 
         Assert.True(collection.ContainsKey(OperationType.Get));
         Assert.True(collection.ContainsKey(OperationType.Post));
@@ -183,7 +183,7 @@ public class OpenApiRoundTripTests {
         Assert.Equal(ParameterLocation.Path, id.In);
         Assert.True(id.Required);
 
-        var list = document.Paths["/orders/"].Operations[OperationType.Get];
+        var list = document.Paths["/orders"].Operations[OperationType.Get];
 
         var locations = list.Parameters.ToDictionary(p => p.Name, p => p.In);
 
@@ -199,7 +199,7 @@ public class OpenApiRoundTripTests {
     public void BodiesAreDescribedByResolvableSchemas() {
         var document = RoundTrip();
 
-        var create = document.Paths["/orders/"].Operations[OperationType.Post];
+        var create = document.Paths["/orders"].Operations[OperationType.Post];
 
         var request = create.RequestBody.Content["application/json"].Schema;
 
@@ -265,7 +265,7 @@ public class OpenApiRoundTripTests {
     /// </summary>
     [Fact]
     public void AnOperationIdIsTheMethodName() {
-        var list = RoundTrip().Paths["/orders/"].Operations[OperationType.Get];
+        var list = RoundTrip().Paths["/orders"].Operations[OperationType.Get];
 
         Assert.Equal("list", list.OperationId);
     }
