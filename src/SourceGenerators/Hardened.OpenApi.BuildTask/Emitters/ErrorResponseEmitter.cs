@@ -42,7 +42,7 @@ internal static class ErrorResponseEmitter {
         IConstructContainer container, OperationModel operation, ErrorResponseModel response,
         string modelsNamespace) {
         var name =
-            NamingHelper.ToMethodName(operation.OperationId) +
+            operation.MethodName +
             StatusName(response.StatusCode) +
             "Exception";
 

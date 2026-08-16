@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
@@ -249,8 +250,10 @@ internal static class SchemaEmitter {
             new CodeOutputComponent(
                 "typeof(System.Text.Json.Serialization.JsonStringEnumConverter)") { Indented = false });
 
-        foreach (var value in schema.EnumValues) {
-            enumDefinition.AddValue(NamingHelper.ToPascalCase(value));
+        // Allocated, not derived - see NameAllocator. Two wire values can reach C# as one member
+        // name, and deciding that here would be deciding it in one of the places that used to.
+        foreach (var member in schema.EnumMembers) {
+            enumDefinition.AddValue(member);
         }
 
         return enumDefinition;

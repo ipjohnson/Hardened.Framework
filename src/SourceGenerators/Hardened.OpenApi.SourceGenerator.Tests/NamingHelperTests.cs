@@ -9,7 +9,7 @@ public class NamingHelperTests {
     [InlineData("pet_store", "PetStore")]
     [InlineData("pet-store", "PetStore")]
     [InlineData("Pet", "Pet")]
-    [InlineData("", "")]
+    [InlineData("", "Empty")]
     public void ToPascalCase(string input, string expected) {
         Assert.Equal(expected, NamingHelper.ToPascalCase(input));
     }

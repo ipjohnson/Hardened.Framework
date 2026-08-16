@@ -110,6 +110,14 @@ internal static class SpecModelSerializer {
 
                 case "enumvalue":
                     schema?.EnumValues.Add(record.String("Value") ?? "");
+
+                    // Only when it was written. An absent member name means the allocator did not
+                    // run, and the model derives one - filling it with the wire value here would
+                    // put "available" where "Available" belongs.
+                    if (record.String("Member") is { } enumMember) {
+                        schema?.EnumMemberNames.Add(enumMember);
+                    }
+
                     break;
 
                 case "required":
@@ -128,7 +136,10 @@ internal static class SpecModelSerializer {
                     break;
 
                 case "service":
-                    service = new ServiceModel { Tag = record.String("Tag") ?? "" };
+                    service = new ServiceModel {
+                        Tag = record.String("Tag") ?? "",
+                        TypeBaseName = record.String("TypeBaseName") ?? ""
+                    };
                     model.Services.Add(service);
                     break;
 
@@ -226,9 +237,15 @@ internal static class SpecModelSerializer {
         record.Add("DictionaryValueRef", schema.DictionaryValueRef);
         record.WriteTo(builder);
 
-        foreach (var value in schema.EnumValues) {
+        for (var i = 0; i < schema.EnumValues.Count; i++) {
             var enumValue = new Record("enumvalue");
-            enumValue.Add("Value", value);
+            enumValue.Add("Value", schema.EnumValues[i]);
+
+            // The allocated member name travels with the wire value; the generator side reads this
+            // file and must not re-derive it.
+            enumValue.Add("Member",
+                i < schema.EnumMemberNames.Count ? schema.EnumMemberNames[i] : null);
+
             enumValue.WriteTo(builder);
         }
 
@@ -351,6 +368,7 @@ internal static class SpecModelSerializer {
     private static void WriteService(StringBuilder builder, ServiceModel service) {
         var record = new Record("service");
         record.Add("Tag", service.Tag);
+        record.Add("TypeBaseName", service.TypeBaseName);
         record.WriteTo(builder);
 
         foreach (var operation in service.Operations) {
@@ -361,6 +379,7 @@ internal static class SpecModelSerializer {
     private static void WriteOperation(StringBuilder builder, OperationModel operation) {
         var record = new Record("op");
         record.Add("OperationId", operation.OperationId);
+        record.Add("MethodName", operation.MethodName);
         record.Add("Path", operation.Path);
         record.Add("HttpMethod", operation.HttpMethod);
         record.Add("Tag", operation.Tag);
@@ -418,6 +437,7 @@ internal static class SpecModelSerializer {
     }
 
     private static OperationModel ReadOperation(Record record) => new() {
+        MethodName = record.String("MethodName") ?? "",
         OperationId = record.String("OperationId") ?? "",
         Path = record.String("Path") ?? "",
         HttpMethod = record.String("HttpMethod") ?? "",

@@ -2,6 +2,22 @@ namespace Hardened.Idl.Models;
 
 internal class OperationModel : IEquatable<OperationModel> {
     public string OperationId { get; set; } = "";
+
+    /// <summary>
+    /// The C# name this operation's method, handler and parameter interface are built from.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="OperationId"/>, which is the document's own and stays as written -
+    /// it is what a reader matches against and what the code-first direction round-trips. Cloudflare
+    /// declares both <c>DeleteWebhook</c> and <c>deleteWebhook</c>, so the two ids are distinct and
+    /// the two C# names have to be made so.
+    /// </remarks>
+    public string MethodName {
+        get => _methodName.Length > 0 ? _methodName : Idl.NamingHelper.ToPascalCase(OperationId);
+        set => _methodName = value ?? "";
+    }
+
+    private string _methodName = "";
     public string Path { get; set; } = "";
     public string HttpMethod { get; set; } = "";
     public string? Tag { get; set; }

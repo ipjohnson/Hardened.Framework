@@ -169,199 +169,68 @@ internal static class OpenApiSpecParser {
             });
         }
 
-        ResolveDuplicateTypeNames(model);
-        ResolveParameterNameCollisions(model);
+        // Order matters, and only here. References are cleared before names are allocated so the
+        // allocator never names a type nothing will emit; base types are dropped before that
+        // because a dropped base changes which members a type declares.
         InlineNonObjectRefs(model);
-        ResolveMemberNameCollisions(model);
+        DropIncompatibleBaseTypes(model);
+        NameAllocator.Apply(model, fileName);
 
         return model;
     }
 
     /// <summary>
-    /// Two parameters of one operation that would generate one member.
-    /// </summary>
-    /// <remarks>
-    /// Legal, and not rare: OpenAPI scopes a parameter's uniqueness to name <em>and</em> location,
-    /// so Kubernetes' proxy routes declare <c>path</c> in the path and <c>path</c> in the query.
-    /// The location is what distinguishes them in the document, so it is what distinguishes them
-    /// here - and it is a fixed set, so which one keeps the plain name does not depend on the order
-    /// they were read in.
-    /// </remarks>
-    private static void ResolveParameterNameCollisions(ServiceSpecModel model) {
-        // The document's own precedence: a path parameter is part of the address, a query parameter
-        // is not, and so on down.
-        static int Rank(string? location) => location switch {
-            "path" => 0,
-            "query" => 1,
-            "header" => 2,
-            "cookie" => 3,
-            _ => 4
-        };
-
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                var byMember = new Dictionary<string, List<ParameterModel>>(StringComparer.Ordinal);
-
-                foreach (var parameter in operation.Parameters) {
-                    if (!byMember.TryGetValue(parameter.MemberName, out var group)) {
-                        byMember[parameter.MemberName] = group = new List<ParameterModel>();
-                    }
-
-                    group.Add(parameter);
-                }
-
-                foreach (var group in byMember.Values) {
-                    if (group.Count < 2) {
-                        continue;
-                    }
-
-                    group.Sort((left, right) => Rank(left.In).CompareTo(Rank(right.In)));
-
-                    for (var i = 1; i < group.Count; i++) {
-                        group[i].MemberNameOverride =
-                            group[i].MemberName + NamingHelper.ToPascalCase(group[i].In ?? "value");
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Two declared schemas whose names differ only in ways C# naming removes.
+    /// Inheritance a record cannot express, dropped in favour of the derived type's own shape.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Ory declares both <c>NullTime</c> and <c>nullTime</c>. Those are two schemas to the document
-    /// and one type here, and the author is a vendor - so this renames rather than refusing, and
-    /// rewrites every reference to match.
+    /// A derived schema may narrow a property the base left loose - Jira's
+    /// <c>ProjectIdAssociationContext</c> declares <c>identifier</c> as an integer where its base
+    /// declares a <c>oneOf</c>, which reaches C# as <c>JsonElement</c>. That is ordinary in a
+    /// document and impossible in a record: a positional parameter must match the inherited member
+    /// exactly, so the narrowed one is CS8866.
     /// </para>
     /// <para>
-    /// Safe to do afterwards, unlike a synthesized collision: these have distinct <c>$ref</c> names,
-    /// so a reference still says unambiguously which was meant. Only the C# name they would share
-    /// has to move.
-    /// </para>
-    /// <para>
-    /// Ordered by name rather than by the order they were read, so one document always renames the
-    /// same one. The first keeps its name; a schema added later that sorts ahead of it would take
-    /// the name over, which is the price of not suffixing every member of the group.
+    /// The base relationship goes rather than the narrowing. <c>allOf</c> has already merged every
+    /// branch's properties into the derived schema, so it carries the whole shape either way - what
+    /// is lost is the type relationship, not any of the data.
     /// </para>
     /// </remarks>
-    private static void ResolveDuplicateTypeNames(ServiceSpecModel model) {
-        var byTypeName = new Dictionary<string, List<SchemaModel>>(StringComparer.Ordinal);
+    private static void DropIncompatibleBaseTypes(ServiceSpecModel model) {
+        var byName = new Dictionary<string, SchemaModel>(StringComparer.Ordinal);
 
         foreach (var schema in model.Schemas) {
-            var typeName = NamingHelper.ToPascalCase(schema.Name);
-
-            if (!byTypeName.TryGetValue(typeName, out var group)) {
-                byTypeName[typeName] = group = new List<SchemaModel>();
-            }
-
-            group.Add(schema);
+            byName[schema.Name] = schema;
         }
 
-        var renamed = new Dictionary<string, string>(StringComparer.Ordinal);
-
-        foreach (var group in byTypeName.Values) {
-            if (group.Count < 2) {
+        foreach (var schema in model.Schemas) {
+            if (schema.BaseRef == null ||
+                !byName.TryGetValue(TypeMapper.GetRefName(schema.BaseRef), out var baseSchema)) {
                 continue;
-            }
-
-            group.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
-
-            for (var i = 1; i < group.Count; i++) {
-                var schema = group[i];
-                var replacement = schema.Name + "_" + StableSuffix(schema.Name);
-
-                renamed[schema.Name] = replacement;
-                schema.Name = replacement;
-            }
-        }
-
-        ResolveGeneratedNameShadows(model, renamed);
-
-        if (renamed.Count > 0) {
-            RewriteRefs(model, renamed);
-        }
-    }
-
-    /// <summary>
-    /// Schemas whose name is one another schema's generated helper.
-    /// </summary>
-    /// <remarks>
-    /// Sentry declares <c>Monitor</c> and <c>MonitorValidator</c>. The validation generator names a
-    /// validator after the type it checks, so <c>Monitor</c> produces a <c>MonitorValidator</c>
-    /// class - and the second schema is already a record of that name. The declared schema moves,
-    /// because the generated one has nowhere else to go.
-    /// </remarks>
-    private static void ResolveGeneratedNameShadows(
-        ServiceSpecModel model, Dictionary<string, string> renamed) {
-        const string suffix = "Validator";
-
-        var typeNames = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var schema in model.Schemas) {
-            typeNames.Add(NamingHelper.ToPascalCase(schema.Name));
-        }
-
-        foreach (var schema in model.Schemas) {
-            var typeName = NamingHelper.ToPascalCase(schema.Name);
-
-            if (!typeName.EndsWith(suffix, StringComparison.Ordinal)) {
-                continue;
-            }
-
-            var shadowed = typeName.Substring(0, typeName.Length - suffix.Length);
-
-            if (shadowed.Length == 0 || !typeNames.Contains(shadowed)) {
-                continue;
-            }
-
-            var replacement = schema.Name + "_" + StableSuffix(schema.Name);
-
-            renamed[schema.Name] = replacement;
-            schema.Name = replacement;
-        }
-    }
-
-    /// <summary>Points every reference at a renamed schema's new name.</summary>
-    private static void RewriteRefs(ServiceSpecModel model, Dictionary<string, string> renamed) {
-        string? Rewrite(string? reference) =>
-            reference != null && renamed.TryGetValue(TypeMapper.GetRefName(reference), out var name)
-                ? "#/components/schemas/" + name
-                : reference;
-
-        foreach (var schema in model.Schemas) {
-            schema.BaseRef = Rewrite(schema.BaseRef);
-            schema.ArrayItemsRef = Rewrite(schema.ArrayItemsRef);
-
-            foreach (var mapping in schema.DiscriminatorMapping) {
-                mapping.Ref = Rewrite(mapping.Ref) ?? mapping.Ref;
             }
 
             foreach (var property in schema.Properties) {
-                property.Ref = Rewrite(property.Ref);
-                property.ArrayItemsRef = Rewrite(property.ArrayItemsRef);
-                property.DictionaryValueRef = Rewrite(property.DictionaryValueRef);
-            }
-        }
+                var inherited = baseSchema.Properties.Find(p => p.MemberName == property.MemberName);
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                operation.RequestBodyRef = Rewrite(operation.RequestBodyRef);
-                operation.ResponseRef = Rewrite(operation.ResponseRef);
-                operation.ResponseArrayItemsRef = Rewrite(operation.ResponseArrayItemsRef);
-
-                foreach (var error in operation.ErrorResponses) {
-                    error.Ref = Rewrite(error.Ref);
+                if (inherited == null) {
+                    continue;
                 }
 
-                foreach (var parameter in operation.Parameters) {
-                    parameter.Ref = Rewrite(parameter.Ref);
-                    parameter.ArrayItemsRef = Rewrite(parameter.ArrayItemsRef);
+                if (TypeMapper.MapPropertyToCSharpType(inherited) !=
+                        TypeMapper.MapPropertyToCSharpType(property) ||
+                    inherited.IsCSharpNullable != property.IsCSharpNullable) {
+                    schema.BaseRef = null;
+                    break;
                 }
             }
         }
     }
+
+
+
+
+
+    /// <summary>Points every reference at a renamed schema's new name.</summary>
 
     /// <summary>
     /// A short, stable qualifier for a name that has to differ from another.
@@ -384,42 +253,6 @@ internal static class OpenApiSpecParser {
         }
     }
 
-    /// <summary>
-    /// Properties whose generated member would carry their own type's name.
-    /// </summary>
-    /// <remarks>
-    /// C# forbids it - CS0542 - and it is an ordinary shape in published documents: GitHub declares
-    /// <c>commit.commit</c>, <c>email.email</c>, <c>key.key</c> and
-    /// <c>marketplace-purchase.marketplace_purchase</c>, Stripe declares <c>error.error</c>. Telling
-    /// the author to rename one of them assumes the author is the person building, which for a
-    /// vendor's description is exactly who they are not.
-    ///
-    /// <para>
-    /// The suffix is applied to the member only. <c>[JsonPropertyName]</c> already pins the wire
-    /// name, so nothing about the request or response changes.
-    /// </para>
-    /// </remarks>
-    private static void ResolveMemberNameCollisions(ServiceSpecModel model) {
-        foreach (var schema in model.Schemas) {
-            var typeName = NamingHelper.ToPascalCase(schema.Name);
-
-            foreach (var property in schema.Properties) {
-                if (property.MemberName != typeName) {
-                    continue;
-                }
-
-                var candidate = typeName + "Value";
-
-                // Vanishingly unlikely, but a sibling could already be called that.
-                while (schema.Properties.Exists(
-                           p => !ReferenceEquals(p, property) && p.MemberName == candidate)) {
-                    candidate += "_";
-                }
-
-                property.MemberNameOverride = candidate;
-            }
-        }
-    }
 
     /// <summary>
     /// Rewrites references to top-level array schemas into the array they stand for.
@@ -483,9 +316,26 @@ internal static class OpenApiSpecParser {
             }
         }
 
+        // Every schema that carries a reference, not only properties. A base type, a discriminator
+        // branch, a parameter and a declared error response all name a type in generated code, and
+        // Cloudflare and PagerDuty reference hundreds of schemas that produce none - each one a
+        // CS0234 naming something nothing declares.
+        foreach (var schema in model.Schemas) {
+            if (Missing(schema.BaseRef)) schema.BaseRef = null;
+
+            schema.DiscriminatorMapping.RemoveAll(mapping => Missing(mapping.Ref));
+        }
+
         foreach (var service in model.Services) {
             foreach (var operation in service.Operations) {
                 if (Missing(operation.RequestBodyRef)) operation.RequestBodyRef = null;
+
+                foreach (var parameter in operation.Parameters) {
+                    if (Missing(parameter.Ref)) parameter.Ref = null;
+                    if (Missing(parameter.ArrayItemsRef)) parameter.ArrayItemsRef = null;
+                }
+
+                operation.ErrorResponses.RemoveAll(error => Missing(error.Ref));
 
                 var response = Array(operation.ResponseRef);
 

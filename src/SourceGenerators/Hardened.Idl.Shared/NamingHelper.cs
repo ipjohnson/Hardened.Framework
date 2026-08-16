@@ -43,7 +43,12 @@ internal static class NamingHelper {
     /// </para>
     /// </remarks>
     public static string ToPascalCase(string input) {
-        if (string.IsNullOrEmpty(input)) return input;
+        // A name can be absent and still be a name. Docker and Cloudflare both declare an enum
+        // whose value set includes the empty string, and PagerDuty declares a property called it -
+        // all of which reached C# as nothing at all, leaving `enum X { , Inactive }` and a record
+        // parameter with a type and no identifier. The wire name stays empty either way; only the
+        // member needs something to be called.
+        if (string.IsNullOrWhiteSpace(input)) return "Empty";
 
         var tokens = new List<string>();
         var current = new StringBuilder();

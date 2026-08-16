@@ -12,12 +12,12 @@ internal static class ServiceInterfaceEmitter {
 
     public static InterfaceDefinition Emit(
         IConstructContainer container, ServiceModel service, string modelsNamespace) {
-        var interfaceDefinition = container.AddInterface(NamingHelper.ToInterfaceName(service.Tag));
+        var interfaceDefinition = container.AddInterface(NamingHelper.ToInterfaceName(service.TypeBaseName));
 
         interfaceDefinition.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
 
         foreach (var operation in service.Operations) {
-            var method = interfaceDefinition.AddMethod(NamingHelper.ToMethodName(operation.OperationId));
+            var method = interfaceDefinition.AddMethod(operation.MethodName);
 
             // The route line first, so it stays where a reader and the existing tests expect it,
             // and the spec's own prose below it after a blank line. A spec that says nothing reads

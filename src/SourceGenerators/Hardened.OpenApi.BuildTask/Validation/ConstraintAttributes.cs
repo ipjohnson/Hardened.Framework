@@ -119,7 +119,13 @@ internal static class ConstraintAttributes {
         }
 
         if (stringLike && !string.IsNullOrEmpty(pattern)) {
-            attributes.Add(new Model(Attribute("PatternAttribute"), patterns.AttributeArguments(pattern!)));
+            var arguments = patterns.AttributeArguments(pattern!);
+
+            // Null when the runtime's regex engine will not take it; the pattern is reported once
+            // against the spec rather than emitted into a member that cannot be generated.
+            if (arguments != null) {
+                attributes.Add(new Model(Attribute("PatternAttribute"), arguments));
+            }
         }
 
         if (counted && (minItems.HasValue || maxItems.HasValue)) {

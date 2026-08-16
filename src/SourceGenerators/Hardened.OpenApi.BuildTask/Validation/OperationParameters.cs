@@ -102,7 +102,7 @@ internal static class OperationParameters {
         return constrained
             ? new Model(
                 operation.OperationId,
-                "I" + NamingHelper.ToPascalCase(operation.OperationId) + "Parameters",
+                "I" + operation.MethodName + "Parameters",
                 members)
             : null;
     }
