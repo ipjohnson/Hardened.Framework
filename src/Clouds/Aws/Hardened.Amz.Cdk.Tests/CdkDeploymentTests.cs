@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Hardened.Amz.Cdk.Tests;
 
 /// <summary>
-/// The deploy command is the whole CDK package in one method: it finds the application's
+/// A deployment is the whole CDK package in one method: it finds the application's
 /// configuration, turns registered stack definitions into deployers, orders them, gives each one a
 /// CloudFormation stack in the right account, and synthesises.
 ///
@@ -19,7 +19,7 @@ namespace Hardened.Amz.Cdk.Tests;
 /// was handed — are only observable in what CDK produced.
 /// </para>
 /// </summary>
-public class DeployCommandHandlerTests : IDisposable {
+public class CdkDeploymentTests : IDisposable {
 
     private readonly List<string> _outputDirectories = [];
 
@@ -325,7 +325,7 @@ public class DeployCommandHandlerTests : IDisposable {
         public async Task<CloudFormationStackArtifact[]> Deploy() {
             var serviceProvider = _services.BuildServiceProvider();
 
-            var handler = new DeployCommandHandler(
+            var deployment = new CdkDeployment(
                 new CdkConfigurationRegistry(serviceProvider),
                 serviceProvider,
                 new EnvironmentImpl(customData: _provideCdkApp
@@ -334,7 +334,7 @@ public class DeployCommandHandlerTests : IDisposable {
                 new DeploymentAccountProvider(),
                 StackContextAccessor);
 
-            var exitCode = await handler.Handle(new DeployCommand());
+            var exitCode = await deployment.Deploy();
 
             Assert.Equal(0, exitCode);
 

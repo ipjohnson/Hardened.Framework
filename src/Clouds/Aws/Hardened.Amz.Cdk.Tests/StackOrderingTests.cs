@@ -107,7 +107,7 @@ public class StackOrderingTests {
     private static string[] Sorted(params IStackDefinitionBase[] definitions) {
         var deployers = definitions.Select(d => (IStackDefinitionDeployer)new StubDeployer(d)).ToList();
 
-        DeployCommandHandler.SortStackDefinitions(deployers);
+        CdkDeployment.SortStackDefinitions(deployers);
 
         return deployers.Select(d => d.Name()).ToArray();
     }

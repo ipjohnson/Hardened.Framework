@@ -42,8 +42,6 @@
       rather than silent.
     -->
     <ItemGroup Label="Hardened.Framework">
-        <PackageVersion Include="Hardened.Commands" Version="0.4.0-rc1000" />
-        <PackageVersion Include="Hardened.Console.SourceGenerator" Version="0.4.0-rc1000" />
         <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.4.0-rc1000" />
         <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.4.0-rc1000" />
         <PackageVersion Include="Hardened.Requests.Abstract" Version="0.4.0-rc1000" />

@@ -1,21 +1,37 @@
 using Amazon.CDK;
 using DependencyModules.Runtime.Attributes;
-using Hardened.Commands;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 using Environment = Amazon.CDK.Environment;
 
 namespace Hardened.Amz.Cdk.Commands;
 
-[TransientService]
-public class DeployCommandHandler : ICommandHandler<DeployCommand> {
+/// <summary>
+/// What a CDK deployment application does when it runs.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This was an <c>ICommandHandler&lt;DeployCommand&gt;</c> from <c>Hardened.Commands</c>, where
+/// <c>DeployCommand</c> was an empty class carrying <c>[Command("")]</c> and the handler never read
+/// the value it was passed. A deployment takes no arguments — stage and region come off the CDK
+/// app's own context — so the whole command line layer was parsing nothing on the way to a single
+/// entry point.
+/// </para>
+/// <para>
+/// <see cref="IApplicationDelegateProvider"/> is that entry point without the layer: it is the seam
+/// the generated <c>Run()</c> already asks for, and command line parsing was only ever one
+/// implementation of it.
+/// </para>
+/// </remarks>
+[TransientService(As = typeof(IApplicationDelegateProvider))]
+public class CdkDeployment : IApplicationDelegateProvider {
     private readonly CdkConfigurationRegistry _registry;
     private readonly IServiceProvider _serviceProvider;
     private readonly IHardenedEnvironment _hardenedEnvironment;
     private readonly IDeploymentAccountProvider _deploymentAccountProvider;
     private readonly StackContextAccessor _stackContextAccessor;
 
-    public DeployCommandHandler(
+    public CdkDeployment(
         CdkConfigurationRegistry registry,
         IServiceProvider serviceProvider,
         IHardenedEnvironment hardenedEnvironment,
@@ -28,7 +44,13 @@ public class DeployCommandHandler : ICommandHandler<DeployCommand> {
         _stackContextAccessor = stackContextAccessor;
     }
 
-    public Task<int> Handle(DeployCommand value) {
+    /// <summary>Startup services run first: they are what register the configuration providers
+    /// <see cref="Deploy"/> resolves.</summary>
+    public Task<ApplicationDelegate> ProvideDelegate(
+        IHardenedEnvironment environment, IServiceProvider serviceProvider) =>
+        Task.FromResult(new ApplicationDelegate(Deploy, ShouldStartApp: true));
+
+    public Task<int> Deploy() {
         var cdkApp = _hardenedEnvironment.CustomData<App>("cdkApp");
         
         if (cdkApp == null) {

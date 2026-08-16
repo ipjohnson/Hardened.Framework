@@ -11,7 +11,7 @@ public interface ITypedStackDefinition {
 }
 
 // Registered as the concrete type, not as ICdkConfigurationRegistry: HardenedCdk maps the
-// interface to this registration itself, and DeployCommandHandler injects the class.
+// interface to this registration itself, and CdkDeployment injects the class.
 [SingletonService(As = typeof(CdkConfigurationRegistry))]
 public class CdkConfigurationRegistry : ICdkConfigurationRegistry {
     private readonly IServiceProvider _serviceProvider;

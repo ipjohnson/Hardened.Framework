@@ -8,8 +8,6 @@
         <IsPackable>true</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Hardened.Commands" />
-        <PackageReference Include="Hardened.Console.SourceGenerator" PrivateAssets="all" />
         <PackageReference Include="Hardened.Library.SourceGenerator" PrivateAssets="all" />
         <PackageReference Include="Hardened.Requests.Runtime" />
         <PackageReference Include="Amazon.CDK.Lib" />
@@ -21,7 +19,7 @@
     <ItemGroup>
       <!--
         Stack ordering is the one piece of logic here worth asserting directly. Driving it through
-        Handle() means a CDK App, a synth and a jsii process per case, which is a slow way to ask
+        Deploy() means a CDK App, a synth and a jsii process per case, which is a slow way to ask
         which of two stacks sorts first.
       -->
       <InternalsVisibleTo Include="Hardened.Amz.Cdk.Tests" />

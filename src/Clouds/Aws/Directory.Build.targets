@@ -1,0 +1,124 @@
+<Project>
+
+    <!--
+      Build against a sibling Hardened.Framework checkout when there is one, and against the
+      published packages otherwise.
+
+      This is the arrangement Hardened.Framework already uses for its own siblings - see the
+      ValidationModules and CSharpAuthor blocks in its csproj files - applied in the other
+      direction. Editing the two repositories together keeps working with no flag to remember, and
+      a machine without the checkout (every CI runner) builds against what was published rather
+      than failing on a path that does not exist.
+
+      It also unblocks work that spans the boundary. Conformance suites are the immediate case: the
+      Lambda transports implement contracts whose test suites live in Hardened.Requests.Testing, so
+      enrolling them meant either publishing a package first or having no way to compile the test.
+
+      Centralised here rather than per project because there are 20 of them and nine packages, and
+      the condition is identical every time. Directory.Build.targets is imported after each
+      project's own body, which is what makes @(PackageReference) complete by the time this runs.
+
+      Force it either way with -p:UseLocalHardenedFramework=true|false. Point it somewhere else
+      with -p:HardenedFrameworkRoot=/path/to/checkout.
+    -->
+
+    <PropertyGroup>
+        <HardenedFrameworkRoot Condition="'$(HardenedFrameworkRoot)' == ''">$(MSBuildThisFileDirectory)..\..\Hardened.Framework</HardenedFrameworkRoot>
+
+        <!--
+          Probed through one project rather than the directory: a directory can exist as an empty
+          clone, a stale worktree or a leftover, and what this actually needs is something to
+          reference.
+        -->
+        <_HardenedFrameworkProbe>$(HardenedFrameworkRoot)\src\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj</_HardenedFrameworkProbe>
+
+        <UseLocalHardenedFramework Condition="'$(UseLocalHardenedFramework)' == '' And Exists('$(_HardenedFrameworkProbe)')">true</UseLocalHardenedFramework>
+        <UseLocalHardenedFramework Condition="'$(UseLocalHardenedFramework)' == ''">false</UseLocalHardenedFramework>
+    </PropertyGroup>
+
+    <!--
+      The map. Split by kind because a generator has to arrive as an analyzer with no reference to
+      its output, and a runtime library as an ordinary reference - metadata that cannot be applied
+      conditionally inside one item transform.
+    -->
+    <ItemGroup Condition="'$(UseLocalHardenedFramework)' == 'true'">
+        <HardenedLocalLibrary Include="Hardened.Requests.Abstract" Path="src\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <HardenedLocalLibrary Include="Hardened.Requests.Runtime" Path="src\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <HardenedLocalLibrary Include="Hardened.Requests.Testing" Path="src\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
+        <HardenedLocalLibrary Include="Hardened.Shared.Runtime" Path="src\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <HardenedLocalLibrary Include="Hardened.Shared.Testing" Path="src\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
+        <HardenedLocalLibrary Include="Hardened.Web.Runtime" Path="src\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+
+        <HardenedLocalAnalyzer Include="Hardened.Library.SourceGenerator" Path="src\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"/>
+        <HardenedLocalAnalyzer Include="Hardened.Function.SourceGenerator" Path="src\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj"/>
+        <HardenedLocalAnalyzer Include="Hardened.Web.SourceGenerator" Path="src\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj"/>
+    </ItemGroup>
+
+    <!--
+      Only the mapped packages this project actually asked for. Exclude matches on identity, so
+      subtracting "everything mapped that is not referenced" leaves the intersection with its
+      Path metadata intact.
+    -->
+    <ItemGroup Condition="'$(UseLocalHardenedFramework)' == 'true'">
+        <_HardenedUnreferencedLibrary Include="@(HardenedLocalLibrary)" Exclude="@(PackageReference)"/>
+        <_HardenedWantedLibrary Include="@(HardenedLocalLibrary)" Exclude="@(_HardenedUnreferencedLibrary)"/>
+
+        <_HardenedUnreferencedAnalyzer Include="@(HardenedLocalAnalyzer)" Exclude="@(PackageReference)"/>
+        <_HardenedWantedAnalyzer Include="@(HardenedLocalAnalyzer)" Exclude="@(_HardenedUnreferencedAnalyzer)"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(UseLocalHardenedFramework)' == 'true'">
+        <PackageReference Remove="@(_HardenedWantedLibrary)"/>
+        <PackageReference Remove="@(_HardenedWantedAnalyzer)"/>
+
+        <ProjectReference Include="@(_HardenedWantedLibrary->'$(HardenedFrameworkRoot)\%(Path)')"/>
+
+        <!--
+          What the package form does: analyzers/dotnet/cs with PrivateAssets=all. ReferenceOutputAssembly
+          is false because a generator is a build-time tool, and compiling against it would put a
+          netstandard2.0 Roslyn assembly on a net8.0 project's reference list.
+        -->
+        <ProjectReference Include="@(_HardenedWantedAnalyzer->'$(HardenedFrameworkRoot)\%(Path)')"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all"/>
+    </ItemGroup>
+
+    <!--
+      Hardened.Library.SourceGenerator's package carries two analyzer assemblies, not one: it packs
+      Hardened.DependencyModules.SourceGenerator.dll alongside its own, which is why that generator
+      is no longer published on its own. A ProjectReference contributes only the project's own
+      output, so the companion has to be named.
+
+      Without it the module partials get their Hardened half and not their DependencyModules half,
+      and every application fails on generated code calling a PopulateServiceCollection nothing
+      emitted - which is what happened the first time this file existed.
+    -->
+    <ItemGroup Condition="'$(UseLocalHardenedFramework)' == 'true'">
+        <_HardenedLibraryGeneratorProbe Include="Hardened.Library.SourceGenerator"/>
+        <_HardenedLibraryGeneratorAbsent Include="@(_HardenedLibraryGeneratorProbe)" Exclude="@(_HardenedWantedAnalyzer)"/>
+        <_HardenedLibraryGenerator Include="@(_HardenedLibraryGeneratorProbe)" Exclude="@(_HardenedLibraryGeneratorAbsent)"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(UseLocalHardenedFramework)' == 'true' And '@(_HardenedLibraryGenerator)' != ''">
+        <ProjectReference Include="$(HardenedFrameworkRoot)\src\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all"/>
+    </ItemGroup>
+
+    <!--
+      Hardened.SourceGenerator is not a reference at all. It ships its source and a targets file
+      that globs it in when PackageHardenedIncludeSource is set, because a Roslyn generator cannot
+      load a dependency alongside itself - the shared code has to be compiled into each generator.
+      So the local form is the same glob against the checkout.
+    -->
+    <ItemGroup Condition="'$(UseLocalHardenedFramework)' == 'true' And '$(PackageHardenedIncludeSource)' == 'true'">
+        <PackageReference Remove="Hardened.SourceGenerator"/>
+
+        <Compile Include="$(HardenedFrameworkRoot)\src\SourceGenerators\Hardened.SourceGenerator\**\*.cs"
+                 Exclude="$(HardenedFrameworkRoot)\src\SourceGenerators\Hardened.SourceGenerator\obj\**\*.cs;$(HardenedFrameworkRoot)\src\SourceGenerators\Hardened.SourceGenerator\bin\**\*.cs"
+                 Visible="false"/>
+    </ItemGroup>
+
+</Project>
