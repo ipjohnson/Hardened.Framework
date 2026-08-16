@@ -4,7 +4,7 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// OpenAPI documents the generator tests are driven with.
 ///
 /// <para>
-/// Kept as text rather than as hand-built <c>OpenApiSpecModel</c> instances on purpose: a model built
+/// Kept as text rather than as hand-built <c>ServiceSpecModel</c> instances on purpose: a model built
 /// in a test can express shapes the parser never produces, and then the emitter is being tested
 /// against a spec that cannot occur. Every document here is one a real project could ship.
 /// </para>

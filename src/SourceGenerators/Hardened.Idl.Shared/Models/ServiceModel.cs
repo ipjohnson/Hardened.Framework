@@ -1,4 +1,4 @@
-namespace Hardened.OpenApi.SourceGenerator.Models;
+namespace Hardened.Idl.Models;
 
 internal class ServiceModel : IEquatable<ServiceModel> {
     public string Tag { get; set; } = "";

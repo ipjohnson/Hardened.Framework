@@ -28,7 +28,7 @@ internal sealed class PatternRegistry {
 
     public PatternRegistry(string patternNamespace, string specFileName) {
         _namespace = patternNamespace;
-        ClassName = Hardened.OpenApi.SourceGenerator.NamingHelper.ToPascalCase(specFileName) + "Patterns";
+        ClassName = Hardened.Idl.NamingHelper.ToPascalCase(specFileName) + "Patterns";
     }
 
     /// <summary>The class the members are declared on.</summary>

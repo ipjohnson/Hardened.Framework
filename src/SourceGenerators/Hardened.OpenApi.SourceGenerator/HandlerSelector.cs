@@ -1,5 +1,5 @@
 using CSharpAuthor;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;

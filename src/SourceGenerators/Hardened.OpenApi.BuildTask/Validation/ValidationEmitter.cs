@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 
 namespace Hardened.OpenApi.BuildTask.Validation;
 
@@ -26,7 +26,7 @@ internal static class ValidationEmitter {
 
     public static IReadOnlyList<OperationParameters.Model> Emit(
         NamespaceDefinition validation,
-        OpenApiSpecModel model,
+        ServiceSpecModel model,
         string modelsNamespace,
         PatternRegistry patterns) {
         var operations = new List<OperationParameters.Model>();

@@ -1,9 +1,10 @@
 using System.Text.RegularExpressions;
 using Hardened.OpenApi.SourceGenerator;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.SourceGenerator.Tests.Routing;
 using Xunit;
+using Hardened.Idl;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -69,7 +70,7 @@ public class OpenApiReverseRoundTripTests {
     /// The document the web generator emits, parsed by the build task exactly as it would parse a
     /// hand-written specification.
     /// </summary>
-    private static OpenApiSpecModel Reparsed() {
+    private static ServiceSpecModel Reparsed() {
         var result = GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = Application },
             new[] { new WebLibrarySourceGenerator() },

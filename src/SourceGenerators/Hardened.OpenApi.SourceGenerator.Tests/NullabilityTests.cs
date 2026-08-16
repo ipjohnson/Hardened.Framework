@@ -1,4 +1,4 @@
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGeneration.Testing;
 using Xunit;
 
@@ -14,7 +14,7 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// </remarks>
 public class NullabilityTests {
 
-    private static OpenApiSpecModel Parse() {
+    private static ServiceSpecModel Parse() {
         var model = OpenApiSpecParser.Parse(Specs.RequiredAndNullable, "test", CancellationToken.None);
 
         Assert.NotNull(model);

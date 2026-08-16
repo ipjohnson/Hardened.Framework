@@ -1,4 +1,4 @@
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGeneration.Testing;
 using Xunit;
 

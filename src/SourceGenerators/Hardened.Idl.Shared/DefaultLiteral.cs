@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl;
 
 /// <summary>
 /// A specification's <c>default</c>, as a C# literal.

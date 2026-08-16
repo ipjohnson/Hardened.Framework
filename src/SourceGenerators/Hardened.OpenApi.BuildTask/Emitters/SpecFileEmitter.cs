@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
 using Hardened.OpenApi.BuildTask.Validation;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 
 namespace Hardened.OpenApi.SourceGenerator.Emitters;
 
@@ -34,7 +34,7 @@ internal static class SpecFileEmitter {
     private const string ValidationNamespace = "Validation";
 
     public static string Emit(
-        OpenApiSpecModel model,
+        ServiceSpecModel model,
         string rootNamespace,
         bool excludeFromCoverage,
         string document = "",
@@ -126,7 +126,7 @@ internal static class SpecFileEmitter {
     /// file level, where there is nothing to ask.
     /// </remarks>
     private static void EmitFilterTypes(
-        CSharpFileDefinition file, OpenApiSpecModel model, bool excludeFromCoverage) {
+        CSharpFileDefinition file, ServiceSpecModel model, bool excludeFromCoverage) {
         var namespaces = new Dictionary<string, NamespaceDefinition>(System.StringComparer.Ordinal);
 
         foreach (var filterType in model.FilterTypes) {

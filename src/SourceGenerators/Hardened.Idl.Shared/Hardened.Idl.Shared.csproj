@@ -3,8 +3,8 @@
     <Import Project="../CSharpAuthor.props"/>
 
     <!--
-        Source shared by Hardened.OpenApi.BuildTask and Hardened.OpenApi.SourceGenerator, which
-        compile these files in via linked Compile items rather than referencing this assembly. The
+        The IDL-neutral spine, shared by Hardened.OpenApi.BuildTask and Hardened.OpenApi.SourceGenerator,
+        which compile these files in via linked Compile items rather than referencing this assembly.
         task runs in MSBuild and the generator runs in Roslyn; neither can reference the other, and
         an assembly reference from the generator would have to be shipped inside the analyzer -
         which is the arrangement this whole move exists to delete.

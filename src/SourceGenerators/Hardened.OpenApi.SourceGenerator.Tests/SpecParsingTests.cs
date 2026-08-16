@@ -1,5 +1,6 @@
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Xunit;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -10,7 +11,7 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// </summary>
 public class SpecParsingTests {
 
-    private static OpenApiSpecModel Parse(string yaml) {
+    private static ServiceSpecModel Parse(string yaml) {
         var model = OpenApiSpecParser.Parse(yaml, "test", CancellationToken.None);
 
         Assert.NotNull(model);

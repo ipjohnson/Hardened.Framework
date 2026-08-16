@@ -4,6 +4,7 @@ using Hardened.Web.SourceGenerator.Tests.Routing;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Readers;
 using Xunit;
+using Hardened.Idl;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 

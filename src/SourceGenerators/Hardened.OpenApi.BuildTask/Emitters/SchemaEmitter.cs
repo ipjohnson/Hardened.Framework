@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
 using Hardened.OpenApi.BuildTask.Validation;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator.Emitters;
 

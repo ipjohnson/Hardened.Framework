@@ -1,12 +1,13 @@
 using System.Collections.Immutable;
 using System.Linq;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Templates;
 using Hardened.SourceGenerator.Web;
 using Microsoft.CodeAnalysis;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator;
 
@@ -199,7 +200,7 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
 
     private const string SpecModelSuffix = ".openapi-model.txt";
 
-    private static (OpenApiSpecModel? Model, string? Error) ReadSpecModel(AdditionalText text, CancellationToken cancellationToken) {
+    private static (ServiceSpecModel? Model, string? Error) ReadSpecModel(AdditionalText text, CancellationToken cancellationToken) {
         var content = text.GetText(cancellationToken)?.ToString();
         if (string.IsNullOrEmpty(content)) {
             return (null, $"Empty content for {text.Path}");

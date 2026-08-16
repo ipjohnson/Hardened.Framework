@@ -1,13 +1,14 @@
 using CSharpAuthor;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator;
 
 internal static class RequestModelBuilder {
     public static List<RequestHandlerModel> BuildModels(
-        OpenApiSpecModel spec,
+        ServiceSpecModel spec,
         string modelsNamespace,
         string servicesNamespace,
         string generatedNamespace,

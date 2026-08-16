@@ -1,6 +1,7 @@
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGeneration.Testing;
 using Xunit;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -13,7 +14,7 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// </remarks>
 public class InlineObjectTests {
 
-    private static OpenApiSpecModel Parse() {
+    private static ServiceSpecModel Parse() {
         var model = OpenApiSpecParser.Parse(Specs.InlineObjects, "test", CancellationToken.None);
 
         Assert.NotNull(model);

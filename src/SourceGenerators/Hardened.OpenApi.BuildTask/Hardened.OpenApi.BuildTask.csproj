@@ -70,10 +70,10 @@
         <Compile Include="IsExternalInit.cs" Condition="'$(TargetFramework)' == 'net472'"/>
     </ItemGroup>
 
-    <!-- Shared with the generator. See Hardened.OpenApi.Shared for why this is source and not a reference. -->
+    <!-- Shared with the generator. See Hardened.Idl.Shared for why this is source and not a reference. -->
     <ItemGroup>
-        <Compile Include="../Hardened.OpenApi.Shared/**/*.cs"
-                 Exclude="../Hardened.OpenApi.Shared/obj/**/*;../Hardened.OpenApi.Shared/bin/**/*">
+        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
+                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
             <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
         </Compile>
     </ItemGroup>

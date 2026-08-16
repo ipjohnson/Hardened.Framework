@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGenerator.Links;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;

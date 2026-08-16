@@ -1,5 +1,5 @@
 using System.Linq;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
@@ -10,14 +10,14 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// </summary>
 public class SpecDiagnosticsTests {
 
-    private static OpenApiSpecModel SpecWith(string schemaName, params string[] propertyNames) {
+    private static ServiceSpecModel SpecWith(string schemaName, params string[] propertyNames) {
         var schema = new SchemaModel { Name = schemaName, Kind = SchemaKind.Object };
 
         foreach (var name in propertyNames) {
             schema.Properties.Add(new PropertyModel { Name = name, Type = "string" });
         }
 
-        return new OpenApiSpecModel { FileName = "spec", Schemas = { schema } };
+        return new ServiceSpecModel { FileName = "spec", Schemas = { schema } };
     }
 
     /// <summary>
@@ -69,7 +69,7 @@ public class SpecDiagnosticsTests {
     /// </remarks>
     [Fact]
     public void TwoSchemasGeneratingOneTypeAreReported() {
-        var model = new OpenApiSpecModel {
+        var model = new ServiceSpecModel {
             Schemas = {
                 new SchemaModel { Name = "PetAddress", Kind = SchemaKind.Object },
                 new SchemaModel { Name = "petAddress", Kind = SchemaKind.Object },
@@ -85,7 +85,7 @@ public class SpecDiagnosticsTests {
     /// <summary>Distinct names are not reported, however similar.</summary>
     [Fact]
     public void DistinctSchemaNamesAreClean() {
-        var model = new OpenApiSpecModel {
+        var model = new ServiceSpecModel {
             Schemas = {
                 new SchemaModel { Name = "Pet", Kind = SchemaKind.Object },
                 new SchemaModel { Name = "PetAddress", Kind = SchemaKind.Object },

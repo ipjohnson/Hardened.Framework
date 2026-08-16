@@ -43,7 +43,7 @@
             Compiled in, the parser binds against the generator's copy of those types through
             InternalsVisibleTo, so there is exactly one.
         -->
-        <Compile Include="..\Hardened.OpenApi.BuildTask\OpenApiSpecParser.cs" Link="OpenApiSpecParser.cs" />
+        <Compile Include="..\Hardened.OpenApi.BuildTask\Parsing\OpenApiSpecParser.cs" Link="Parsing\OpenApiSpecParser.cs" />
 
         <!--
             The emitters, for the same reason. These tests assert on what a project ends up

@@ -1,10 +1,11 @@
 using System.Collections.Immutable;
 using Hardened.OpenApi.SourceGenerator.Emitters;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Handlers;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -164,7 +165,7 @@ internal static class OpenApiGenerator {
     /// model. A spec that will not parse is surfaced here rather than as an empty generator run,
     /// which is the same trade the task makes.
     /// </summary>
-    private static OpenApiSpecModel ParseSpec(string specFileName, string yaml) {
+    private static ServiceSpecModel ParseSpec(string specFileName, string yaml) {
         var fileName = Path.GetFileNameWithoutExtension(specFileName);
 
         var model = OpenApiSpecParser.Parse(yaml, fileName, CancellationToken.None)

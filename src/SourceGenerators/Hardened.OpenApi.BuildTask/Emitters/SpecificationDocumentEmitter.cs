@@ -1,5 +1,6 @@
 using CSharpAuthor;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator.Emitters;
 
@@ -29,7 +30,7 @@ namespace Hardened.OpenApi.SourceGenerator.Emitters;
 internal static class SpecificationDocumentEmitter {
 
     public static ClassDefinition Emit(
-        NamespaceDefinition container, OpenApiSpecModel model, string document, string specPath) {
+        NamespaceDefinition container, ServiceSpecModel model, string document, string specPath) {
         var definition = container.AddClass(TypeName(model.FileName));
 
         definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;

@@ -1,4 +1,4 @@
-namespace Hardened.OpenApi.SourceGenerator.Models;
+namespace Hardened.Idl.Models;
 
 internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     public string Name { get; set; } = "";
