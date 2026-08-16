@@ -128,7 +128,6 @@ jobs:
       - name: Pack
         run: |
           for project in \
-            src/Commands/Hardened.Commands/Hardened.Commands.csproj \
             src/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj \
             src/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj \
             src/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj \
@@ -137,7 +136,6 @@ jobs:
             src/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj \
             src/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj \
-            src/SourceGenerators/Hardened.Console.SourceGenerator/Hardened.Console.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.OpenApi.SourceGenerator/Hardened.OpenApi.SourceGenerator.csproj \
@@ -167,7 +165,10 @@ jobs:
           # what this step is for - it failed the v0.1.0-rc1 release before anything was pushed.
           # 20 after Hardened.DependencyModules.SourceGenerator was removed from the list; see the
           # note above the pack step for why it is not published on its own.
-          EXPECTED=20
+          # 18 after Hardened.Commands and Hardened.Console.SourceGenerator were removed - command
+          # line parsing shares nothing with the request pipeline and was dropped to shrink the
+          # surface area.
+          EXPECTED=18
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

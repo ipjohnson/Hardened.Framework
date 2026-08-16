@@ -20,7 +20,6 @@ Hardened uses C# source generators to wire up dependency injection, request rout
 | `Hardened.DependencyModules.SourceGenerator` | Module wiring and DI source generator |
 | `Hardened.Web.SourceGenerator` | Web routing source generator |
 | `Hardened.Library.SourceGenerator` | Library/module source generator |
-| `Hardened.Console.SourceGenerator` | Console application source generator |
 
 ## Quick Start
 
