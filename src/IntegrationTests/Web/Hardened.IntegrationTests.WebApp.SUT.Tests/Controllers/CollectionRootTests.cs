@@ -46,18 +46,15 @@ public class CollectionRootTests {
     /// quietly start answering both.
     /// </summary>
     /// <remarks>
-    /// Asserted as "not the collection" rather than as a status, because the status this currently
-    /// produces is a separate defect: <c>/collection/</c> reaches <c>/collection/{id}</c> with an
-    /// empty segment bound to <c>id</c>, and comes back 400 from the binder rather than 404. A
-    /// token should not match an empty segment — the routing guide's own rule is that a token
-    /// matches exactly one segment, and the trailing empty string after a final slash is not one.
-    /// That is its own fix in the route tree and does not belong in this one, so this test pins
-    /// only what the base-path composition is responsible for.
+    /// It answered 400 for a while, because <c>/collection/</c> reached <c>/collection/{id}</c>
+    /// with an empty segment bound to <c>id</c> and the binder rejected it — telling a client it
+    /// had addressed a real endpoint incorrectly, about a URL that addresses no endpoint at all.
+    /// A token names at least one character, so there is no match to bind and 404 is the answer.
     /// </remarks>
     [HardenedTest]
     public async Task TheTrailingSlashSpellingIsADifferentUrl(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/collection/");
 
-        Assert.NotEqual(200, response.StatusCode);
+        response.Assert.NotFound();
     }
 }

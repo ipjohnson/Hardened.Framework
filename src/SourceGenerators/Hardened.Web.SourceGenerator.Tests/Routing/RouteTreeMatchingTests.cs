@@ -105,12 +105,22 @@ public class RouteTreeMatchingTests {
         Assert.Null(routing.Route("GET", "/users/42/posts"));
     }
 
-    /// <summary>A token can match nothing at all; the segment before it still has to be there.</summary>
+    /// <summary>
+    /// A token names at least one character, and the segment before it still has to be there.
+    /// </summary>
+    /// <remarks>
+    /// <c>/users/</c> used to match <c>/users/{id}</c> with <c>id</c> bound to <c>""</c>, which
+    /// reached the handler's binder and came back 400 — telling a client it had addressed a real
+    /// endpoint incorrectly, about a URL that addresses no endpoint at all. The empty string after
+    /// a trailing slash is not a segment, so there is nothing to bind and no match to report.
+    /// <c>{id?}</c> is a build error for the same reason: an optional segment is two routes, not
+    /// one token permitted to match nothing.
+    /// </remarks>
     [Fact]
-    public void ATokenMatchesAnEmptyValueButTheSegmentBeforeItIsRequired() {
+    public void ATokenDoesNotMatchAnEmptyValueAndTheSegmentBeforeItIsRequired() {
         var routing = GeneratedRoutingTable.For(OverlappingRoutes);
 
-        Assert.Equal("", Assert.Contains("id", routing.PathTokens("GET", "/users/")));
+        Assert.Null(routing.Route("GET", "/users/"));
         Assert.Null(routing.Route("GET", "/users"));
     }
 
