@@ -1,5 +1,6 @@
 using System.Linq;
 using Hardened.Idl.Models;
+using Hardened.Idl;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;

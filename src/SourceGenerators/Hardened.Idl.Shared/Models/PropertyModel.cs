@@ -3,6 +3,21 @@ namespace Hardened.Idl.Models;
 internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public string Name { get; set; } = "";
 
+    /// <summary>
+    /// The C# member name, where it cannot be the PascalCased wire name.
+    /// </summary>
+    /// <remarks>
+    /// A schema declaring a property of its own name - GitHub's <c>commit.commit</c>, Stripe's
+    /// <c>error.error</c> - would emit a member named after its enclosing type, which C# forbids
+    /// (CS0542). That used to fail the build with advice to rename one of them, which is not advice
+    /// a consumer of someone else's published document can take. The wire name is pinned by
+    /// <c>[JsonPropertyName]</c> either way, so renaming the member costs nothing over the wire.
+    /// </remarks>
+    public string? MemberNameOverride { get; set; }
+
+    /// <summary>The name this property carries in generated C#.</summary>
+    public string MemberName => MemberNameOverride ?? Idl.NamingHelper.ToPascalCase(Name);
+
     /// <summary>The property's <c>description</c>, as its <c>&lt;param&gt;</c> doc comment.</summary>
     public string? Description { get; set; }
     public string? Type { get; set; }
@@ -81,6 +96,18 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public string? DictionaryValueType { get; set; }
     public string? DictionaryValueRef { get; set; }
     public List<string>? EnumValues { get; set; }
+
+    /// <summary>
+    /// The schemas a <c>oneOf</c> or <c>anyOf</c> property may hold.
+    /// </summary>
+    /// <remarks>
+    /// The property itself is typed <c>JsonElement</c> for now, so nothing in the emitted code
+    /// names these - and that is exactly why they are recorded. They are what the payload is
+    /// allowed to be, so they are part of the contract and have to be generated for a caller to
+    /// deserialize into or switch over. Without this the reachability pass sees a property nothing
+    /// points from, and the branch types are not emitted at all.
+    /// </remarks>
+    public List<string> OneOfRefs { get; set; } = new();
 
     // Validation constraints
     public int? MinLength { get; set; }

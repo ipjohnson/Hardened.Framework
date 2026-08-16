@@ -2,7 +2,7 @@ using CSharpAuthor;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// Emits a partial attribute class from an x-filter-types definition.

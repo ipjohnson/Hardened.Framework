@@ -23,7 +23,7 @@ internal class ValidationRuleModel {
 
     public static ValidationRuleModel FromParameter(ParameterModel param) {
         return new ValidationRuleModel {
-            ParameterName = NamingHelper.ToParameterName(param.Name),
+            ParameterName = param.MemberName,
             IsRequired = param.IsRequired,
             MinLength = param.MinLength,
             MaxLength = param.MaxLength,

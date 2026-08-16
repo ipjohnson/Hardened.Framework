@@ -1,8 +1,9 @@
 using System.Text.RegularExpressions;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.SourceGenerator.Tests.Routing;
-using Microsoft.OpenApi.Models;
-using Microsoft.OpenApi.Readers;
+using Microsoft.OpenApi;
+using Microsoft.OpenApi.Reader;
+using Microsoft.OpenApi.YamlReader;
 using Xunit;
 using Hardened.Idl;
 
@@ -141,13 +142,70 @@ public class OpenApiRoundTripTests {
 
         var document = ExtractDocument(result.SourceContaining("OpenApiDocument"));
 
-        var parsed = new OpenApiStringReader().Read(document, out var diagnostic);
+        var settings = new OpenApiReaderSettings();
+        settings.AddYamlReader();
+
+        var read = OpenApiDocument.Parse(document, "yaml", settings);
+        var parsed = read.Document;
+        var diagnostic = read.Diagnostic!;
 
         // The build task refuses a specification its reader reports errors on, so a document that
         // fails here is one the specification-first direction would reject outright.
         Assert.Empty(diagnostic.Errors);
 
+        Assert.NotNull(parsed);
+
         return parsed;
+    }
+
+    /// <summary>
+    /// The operations declared on a path, asserted to be there.
+    /// </summary>
+    /// <remarks>
+    /// Microsoft.OpenApi 3.x annotates most of a document as nullable, because most of a document
+    /// is optional in the specification. Every use of it here is reading back a document this test
+    /// just generated, so a null means the generator omitted something the assertion below was
+    /// about to check - which is worth failing on by name rather than dereferencing and reporting a
+    /// NullReferenceException from whichever line got there first.
+    /// </remarks>
+    private static IDictionary<HttpMethod, OpenApiOperation> Operations(
+        OpenApiDocument document, string path) {
+        Assert.True(document.Paths.ContainsKey(path), $"no path {path}");
+
+        var operations = document.Paths[path].Operations;
+
+        Assert.NotNull(operations);
+
+        return operations;
+    }
+
+    /// <summary>One operation, asserted to be declared on the path and verb given.</summary>
+    private static OpenApiOperation Operation(
+        OpenApiDocument document, string path, HttpMethod method) {
+        var operations = Operations(document, path);
+
+        Assert.True(operations.ContainsKey(method), $"no {method} on {path}");
+
+        return operations[method];
+    }
+
+    /// <summary>Every operation the document declares, across all paths.</summary>
+    private static IEnumerable<OpenApiOperation> EveryOperation(OpenApiDocument document) =>
+        document.Paths.Values.SelectMany(path => path.Operations!.Values);
+
+    /// <summary>The component schemas, asserted to be there.</summary>
+    private static IDictionary<string, IOpenApiSchema> Schemas(OpenApiDocument document) {
+        Assert.NotNull(document.Components);
+        Assert.NotNull(document.Components.Schemas);
+
+        return document.Components.Schemas;
+    }
+
+    /// <summary>The parameters an operation declares, asserted to be there.</summary>
+    private static IList<IOpenApiParameter> Parameters(OpenApiOperation operation) {
+        Assert.NotNull(operation.Parameters);
+
+        return operation.Parameters;
     }
 
     /// <summary>The string literal the generator wrote, unescaped back to its JSON.</summary>
@@ -178,15 +236,15 @@ public class OpenApiRoundTripTests {
         Assert.True(document.Paths.ContainsKey("/orders/{id}"), "the token route is missing");
         Assert.True(document.Paths.ContainsKey("/orders"), "the collection route is missing");
 
-        var byId = document.Paths["/orders/{id}"].Operations;
+        var byId = Operations(document, "/orders/{id}");
 
-        Assert.True(byId.ContainsKey(OperationType.Get));
-        Assert.True(byId.ContainsKey(OperationType.Delete));
+        Assert.True(byId.ContainsKey(HttpMethod.Get));
+        Assert.True(byId.ContainsKey(HttpMethod.Delete));
 
-        var collection = document.Paths["/orders"].Operations;
+        var collection = Operations(document, "/orders");
 
-        Assert.True(collection.ContainsKey(OperationType.Get));
-        Assert.True(collection.ContainsKey(OperationType.Post));
+        Assert.True(collection.ContainsKey(HttpMethod.Get));
+        Assert.True(collection.ContainsKey(HttpMethod.Post));
     }
 
     /// <summary>
@@ -197,17 +255,17 @@ public class OpenApiRoundTripTests {
     public void ParametersKeepTheirLocation() {
         var document = RoundTrip();
 
-        var byId = document.Paths["/orders/{id}"].Operations[OperationType.Get];
+        var byId = Operation(document, "/orders/{id}", HttpMethod.Get);
 
-        var id = Assert.Single(byId.Parameters);
+        var id = Assert.Single(Parameters(byId));
 
         Assert.Equal("id", id.Name);
         Assert.Equal(ParameterLocation.Path, id.In);
         Assert.True(id.Required);
 
-        var list = document.Paths["/orders"].Operations[OperationType.Get];
+        var list = Operation(document, "/orders", HttpMethod.Get);
 
-        var locations = list.Parameters.ToDictionary(p => p.Name, p => p.In);
+        var locations = Parameters(list).ToDictionary(p => p.Name!, p => p.In);
 
         Assert.Equal(ParameterLocation.Query, locations["page"]);
         Assert.Equal(ParameterLocation.Header, locations["X-Tenant"]);
@@ -221,15 +279,15 @@ public class OpenApiRoundTripTests {
     public void BodiesAreDescribedByResolvableSchemas() {
         var document = RoundTrip();
 
-        var create = document.Paths["/orders"].Operations[OperationType.Post];
+        var create = Operation(document, "/orders", HttpMethod.Post);
 
-        var request = create.RequestBody.Content["application/json"].Schema;
+        var request = create.RequestBody!.Content!["application/json"].Schema!;
 
         // The reader resolves the $ref, so reaching the properties proves the component exists.
-        Assert.Equal("object", request.Type);
-        Assert.True(request.Properties.ContainsKey("sku"));
-        Assert.Equal("integer", request.Properties["quantity"].Type);
-        Assert.Equal("array", request.Properties["tags"].Type);
+        Assert.Equal(JsonSchemaType.Object, request.Type);
+        Assert.True(request.Properties!.ContainsKey("sku"));
+        Assert.Equal(JsonSchemaType.Integer, request.Properties!["quantity"].Type);
+        Assert.Equal(JsonSchemaType.Array, request.Properties!["tags"].Type);
     }
 
     /// <summary>A type reached through another is written once and referenced.</summary>
@@ -237,12 +295,12 @@ public class OpenApiRoundTripTests {
     public void NestedTypesBecomeTheirOwnComponents() {
         var document = RoundTrip();
 
-        Assert.True(document.Components.Schemas.ContainsKey("Order"));
-        Assert.True(document.Components.Schemas.ContainsKey("OrderSummary"));
+        Assert.True(Schemas(document).ContainsKey("Order"));
+        Assert.True(Schemas(document).ContainsKey("OrderSummary"));
 
-        var summary = document.Components.Schemas["OrderSummary"];
+        var summary = Schemas(document)["OrderSummary"];
 
-        Assert.Equal("object", summary.Properties["order"].Type);
+        Assert.Equal(JsonSchemaType.Object, summary.Properties!["order"].Type);
     }
 
     /// <summary>
@@ -253,14 +311,16 @@ public class OpenApiRoundTripTests {
     public void AVoidHandlerHasNoResponseBody() {
         var document = RoundTrip();
 
-        var delete = document.Paths["/orders/{id}"].Operations[OperationType.Delete];
+        var delete = Operation(document, "/orders/{id}", HttpMethod.Delete);
 
-        Assert.Empty(delete.Responses["200"].Content);
+        // Collections are no longer initialised by default, so a response that declares no
+        // content has a null map rather than an empty one. Both say the same thing.
+        Assert.True(delete.Responses!["200"].Content is null or { Count: 0 });
     }
 
     /// <summary>All operations in the document, flattened out of the path grouping.</summary>
     private static IReadOnlyList<OpenApiOperation> Operations(OpenApiDocument document) =>
-        document.Paths.Values.SelectMany(path => path.Operations.Values).ToArray();
+        document.Paths.Values.SelectMany(path => path.Operations!.Values).ToArray();
 
     /// <summary>
     /// <c>operationId</c> MUST be unique - a client generator fed a document with a duplicate
@@ -287,7 +347,7 @@ public class OpenApiRoundTripTests {
     /// </summary>
     [Fact]
     public void AnOperationIdIsTheMethodName() {
-        var list = RoundTrip().Paths["/orders"].Operations[OperationType.Get];
+        var list = Operation(RoundTrip(), "/orders", HttpMethod.Get);
 
         Assert.Equal("list", list.OperationId);
     }
@@ -301,8 +361,8 @@ public class OpenApiRoundTripTests {
     public void ACrossControllerClashIsDisambiguatedByTheTag() {
         var document = RoundTrip();
 
-        Assert.Equal("orderGet", document.Paths["/orders/{id}"].Operations[OperationType.Get].OperationId);
-        Assert.Equal("peopleGet", document.Paths["/customers/{id}"].Operations[OperationType.Get].OperationId);
+        Assert.Equal("orderGet", Operation(document, "/orders/{id}", HttpMethod.Get).OperationId);
+        Assert.Equal("peopleGet", Operation(document, "/customers/{id}", HttpMethod.Get).OperationId);
     }
 
     /// <summary>
@@ -312,7 +372,7 @@ public class OpenApiRoundTripTests {
     /// </summary>
     [Fact]
     public void EveryOperationCarriesATag() {
-        Assert.All(Operations(RoundTrip()), operation => Assert.NotEmpty(operation.Tags));
+        Assert.All(EveryOperation(RoundTrip()), operation => Assert.NotEmpty(operation.Tags!));
     }
 
     /// <summary>
@@ -323,7 +383,7 @@ public class OpenApiRoundTripTests {
     [Fact]
     public void TheTagSetIsTheControllerSet() {
         var tags = Operations(RoundTrip())
-            .SelectMany(operation => operation.Tags.Select(tag => tag.Name))
+            .SelectMany(operation => operation.Tags!.Select(tag => tag.Name!))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(name => name, StringComparer.Ordinal);
 
@@ -336,7 +396,7 @@ public class OpenApiRoundTripTests {
     /// </summary>
     [Fact]
     public void DocCommentsBecomeSummaryAndDescription() {
-        var get = RoundTrip().Paths["/orders/{id}"].Operations[OperationType.Get];
+        var get = Operation(RoundTrip(), "/orders/{id}", HttpMethod.Get);
 
         Assert.Equal("One order, by its identifier.", get.Summary);
         Assert.Equal(
@@ -351,10 +411,10 @@ public class OpenApiRoundTripTests {
     /// </summary>
     [Fact]
     public void ObsoleteBecomesDeprecated() {
-        var operations = RoundTrip().Paths["/orders/{id}"].Operations;
+        var operations = Operations(RoundTrip(), "/orders/{id}");
 
-        Assert.True(operations[OperationType.Delete].Deprecated);
-        Assert.False(operations[OperationType.Get].Deprecated);
+        Assert.True(operations[HttpMethod.Delete].Deprecated);
+        Assert.False(operations[HttpMethod.Get].Deprecated);
     }
 
     /// <summary>
@@ -364,21 +424,20 @@ public class OpenApiRoundTripTests {
     /// </summary>
     [Fact]
     public void ValidationConstraintsBecomeSchemaFacets() {
-        var order = RoundTrip().Components.Schemas["Order"];
+        var order = Schemas(RoundTrip())["Order"];
 
-        Assert.Equal(3, order.Properties["sku"].MinLength);
-        Assert.Equal(12, order.Properties["sku"].MaxLength);
-        Assert.Equal("^[A-Z0-9-]+$", order.Properties["sku"].Pattern);
+        Assert.Equal(3, order.Properties!["sku"].MinLength);
+        Assert.Equal(12, order.Properties!["sku"].MaxLength);
+        Assert.Equal("^[A-Z0-9-]+$", order.Properties!["sku"].Pattern);
 
-        Assert.Equal(1, order.Properties["quantity"].Minimum);
-        Assert.Equal(500, order.Properties["quantity"].Maximum);
+        Assert.Equal("1", order.Properties!["quantity"].Minimum);
+        Assert.Equal("500", order.Properties!["quantity"].Maximum);
 
-        Assert.Equal(8, order.Properties["tags"].MaxItems);
+        Assert.Equal(8, order.Properties!["tags"].MaxItems);
 
         Assert.Equal(
             new[] { "standard", "express" },
-            order.Properties["shipping"].Enum.OfType<Microsoft.OpenApi.Any.OpenApiString>()
-                .Select(value => value.Value));
+            order.Properties!["shipping"].Enum!.Select(value => value!.GetValue<string>()));
     }
 
     /// <summary>
@@ -392,9 +451,9 @@ public class OpenApiRoundTripTests {
 
         Assert.Equal(
             new[] { "https://api.example.com", "https://staging.example.com" },
-            servers.Select(server => server.Url));
+            servers!.Select(server => server.Url!));
 
-        Assert.Equal("Production", servers[0].Description);
+        Assert.Equal("Production", servers![0].Description);
     }
 
     /// <summary>
@@ -411,8 +470,8 @@ public class OpenApiRoundTripTests {
             second.Paths.Keys.OrderBy(k => k, StringComparer.Ordinal));
 
         Assert.Equal(
-            first.Components.Schemas.Keys.OrderBy(k => k, StringComparer.Ordinal),
-            second.Components.Schemas.Keys.OrderBy(k => k, StringComparer.Ordinal));
+            Schemas(first).Keys.OrderBy(k => k, StringComparer.Ordinal),
+            Schemas(second).Keys.OrderBy(k => k, StringComparer.Ordinal));
     }
 
     /// <summary>
@@ -426,18 +485,17 @@ public class OpenApiRoundTripTests {
     /// </remarks>
     [Fact]
     public void ParametersCarryTheirDeclaredType() {
-        var parameters = RoundTrip().Paths["/orders/search/{count}"]
-            .Operations[OperationType.Get].Parameters
-            .ToDictionary(parameter => parameter.Name, parameter => parameter.Schema);
+        var parameters = Parameters(Operation(RoundTrip(), "/orders/search/{count}", HttpMethod.Get))
+            .ToDictionary(parameter => parameter.Name!, parameter => parameter.Schema!);
 
-        Assert.Equal(("integer", "int64"), (parameters["count"].Type, parameters["count"].Format));
-        Assert.Equal("boolean", parameters["includeCancelled"].Type);
-        Assert.Equal(("string", "uuid"), (parameters["tenant"].Type, parameters["tenant"].Format));
-        Assert.Equal(("string", "date-time"), (parameters["placedAfter"].Type, parameters["placedAfter"].Format));
-        Assert.Equal("number", parameters["minimumTotal"].Type);
-        Assert.Equal(("number", "double"), (parameters["weighting"].Type, parameters["weighting"].Format));
+        Assert.Equal((JsonSchemaType.Integer, "int64"), (parameters["count"].Type, parameters["count"].Format));
+        Assert.Equal(JsonSchemaType.Boolean, parameters["includeCancelled"].Type);
+        Assert.Equal((JsonSchemaType.String, "uuid"), (parameters["tenant"].Type, parameters["tenant"].Format));
+        Assert.Equal((JsonSchemaType.String, "date-time"), (parameters["placedAfter"].Type, parameters["placedAfter"].Format));
+        Assert.Equal(JsonSchemaType.Number, parameters["minimumTotal"].Type);
+        Assert.Equal((JsonSchemaType.Number, "double"), (parameters["weighting"].Type, parameters["weighting"].Format));
 
-        Assert.Equal(("integer", "int32"), (parameters["X-Page"].Type, parameters["X-Page"].Format));
+        Assert.Equal((JsonSchemaType.Integer, "int32"), (parameters["X-Page"].Type, parameters["X-Page"].Format));
     }
 
     /// <summary>
@@ -461,14 +519,13 @@ public class OpenApiRoundTripTests {
     /// <summary>The remaining scalar shapes a value parsed from text can be declared as.</summary>
     [Fact]
     public void TheRestOfTheScalarShapesMapToo() {
-        var parameters = RoundTrip().Paths["/orders/on/{day}"]
-            .Operations[OperationType.Get].Parameters
-            .ToDictionary(parameter => parameter.Name, parameter => parameter.Schema);
+        var parameters = Parameters(Operation(RoundTrip(), "/orders/on/{day}", HttpMethod.Get))
+            .ToDictionary(parameter => parameter.Name!, parameter => parameter.Schema!);
 
-        Assert.Equal(("string", "date"), (parameters["day"].Type, parameters["day"].Format));
-        Assert.Equal(("string", "uri"), (parameters["callback"].Type, parameters["callback"].Format));
-        Assert.Equal(("number", "float"), (parameters["weight"].Type, parameters["weight"].Format));
-        Assert.Equal(("integer", "int32"), (parameters["batch"].Type, parameters["batch"].Format));
+        Assert.Equal((JsonSchemaType.String, "date"), (parameters["day"].Type, parameters["day"].Format));
+        Assert.Equal((JsonSchemaType.String, "uri"), (parameters["callback"].Type, parameters["callback"].Format));
+        Assert.Equal((JsonSchemaType.Number, "float"), (parameters["weight"].Type, parameters["weight"].Format));
+        Assert.Equal((JsonSchemaType.Integer, "int32"), (parameters["batch"].Type, parameters["batch"].Format));
     }
 
     /// <summary>The document declares the groups its operations reference.</summary>
@@ -476,15 +533,15 @@ public class OpenApiRoundTripTests {
     public void TheDocumentDeclaresItsTags() {
         var document = RoundTrip();
 
-        var declared = document.Tags.Select(tag => tag.Name).ToList();
+        var declared = document.Tags!.Select(tag => tag.Name!).ToList();
 
         Assert.Contains("Order", declared);
         Assert.Contains("People", declared);
 
         var used = document.Paths.Values
-            .SelectMany(path => path.Operations.Values)
-            .SelectMany(operation => operation.Tags)
-            .Select(tag => tag.Name)
+            .SelectMany(path => path.Operations!.Values)
+            .SelectMany(operation => operation.Tags!)
+            .Select(tag => tag.Name!)
             .Distinct();
 
         Assert.All(used, tag => Assert.Contains(tag, declared));

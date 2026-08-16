@@ -5,7 +5,7 @@ using CSharpAuthor;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.BuildTask.Validation;
+namespace Hardened.Idl.Validation;
 
 /// <summary>
 /// OpenAPI's constraint keywords, as ValidationModules attributes to put on emitted members.
@@ -32,19 +32,50 @@ internal static class ConstraintAttributes {
     /// <param name="Arguments">Already-rendered arguments, positional then named.</param>
     internal sealed record Model(ITypeDefinition Type, IReadOnlyList<string> Arguments);
 
-    public static IReadOnlyList<Model> ForParameter(ParameterModel parameter, PatternRegistry patterns) =>
-        Build(parameter, parameter.ConstrainedAsRequired, patterns);
+    /// <param name="required">
+    /// From the caller, for the same reason as <see cref="ForProperty"/>. Computing it here from
+    /// the model alone put <c>[Required]</c> on non-nullable value types, and the validation
+    /// generator answers that with <c>value.petId is null</c> against a <c>long</c> - CS0037, in a
+    /// generated file, from a spec that is not wrong.
+    /// </param>
+    /// <param name="allowedValues">
+    /// False where the C# type already admits only the permitted values. A parameter whose schema
+    /// is a <c>$ref</c> to an enum is typed as the generated enum, and <c>[AllowedValues]</c> then
+    /// compares that enum against string literals - CS0019, once per member.
+    /// </param>
+    /// <param name="itemCount">
+    /// False where the C# type has no count. An array whose element type cannot be named degrades
+    /// to <c>JsonElement</c>, and <c>[ItemCount]</c> then draws <c>value.X.Count</c> against a
+    /// struct that has no such member.
+    /// </param>
+    public static IReadOnlyList<Model> ForParameter(
+        ParameterModel parameter, bool required, string csType, PatternRegistry patterns) =>
+        Build(parameter, required, patterns, csType);
 
     /// <param name="required">
     /// From the caller rather than the model: it also knows whether the C# type makes
     /// <c>[Required]</c> unfailable - see <c>TypeMapper.IsNonNullableValueType</c>.
     /// </param>
+    /// <param name="allowedValues">
+    /// False where the C# type already admits only the permitted values - see the same parameter on
+    /// <see cref="ForParameter"/>.
+    /// </param>
     public static IReadOnlyList<Model> ForProperty(
-        PropertyModel property, bool required, PatternRegistry patterns) =>
-        Build(property, required, patterns);
+        PropertyModel property, bool required, PatternRegistry patterns, string csType) =>
+        Build(property, required, patterns, csType);
 
+    /// <param name="csType">
+    /// The type the member will have. Every constraint below is a comparison the validation
+    /// generator emits against that type, so a bound the type cannot carry is not a stricter rule -
+    /// it is code that does not compile. Box puts `minimum` on a string, Vercel puts an `enum` on a
+    /// member that fell back to JsonElement, and OpenAI types parameters as generated enums; all
+    /// three produced CS0019 on an operator that does not exist for the operands.
+    /// </param>
     private static IReadOnlyList<Model> Build(
-        IConstraintFacets facets, bool required, PatternRegistry patterns) {
+        IConstraintFacets facets, bool required, PatternRegistry patterns, string csType) {
+        var numeric = TypeMapper.IsNumeric(csType);
+        var stringLike = TypeMapper.IsStringLike(csType);
+        var counted = TypeMapper.HasItemCount(csType);
         var minLength = facets.MinLength;
         var maxLength = facets.MaxLength;
         var minimum = facets.Minimum;
@@ -64,11 +95,11 @@ internal static class ConstraintAttributes {
 
         // Named arguments, because a spec may set one bound and not the other while the positional
         // constructors take both. Min and Max default to unbounded.
-        if (minLength.HasValue || maxLength.HasValue) {
+        if (stringLike && (minLength.HasValue || maxLength.HasValue)) {
             attributes.Add(new Model(Attribute("StringLengthAttribute"), Bounds(minLength, maxLength)));
         }
 
-        if (minimum.HasValue || maximum.HasValue) {
+        if (numeric && (minimum.HasValue || maximum.HasValue)) {
             // Range has no partially-bounded constructor, and its double overload takes the widest
             // set of spec values - so an absent bound becomes the extreme rather than being omitted.
             var arguments = new List<string> {
@@ -87,15 +118,21 @@ internal static class ConstraintAttributes {
             attributes.Add(new Model(Attribute("RangeAttribute"), arguments));
         }
 
-        if (!string.IsNullOrEmpty(pattern)) {
-            attributes.Add(new Model(Attribute("PatternAttribute"), patterns.AttributeArguments(pattern!)));
+        if (stringLike && !string.IsNullOrEmpty(pattern)) {
+            var arguments = patterns.AttributeArguments(pattern!);
+
+            // Null when the runtime's regex engine will not take it; the pattern is reported once
+            // against the spec rather than emitted into a member that cannot be generated.
+            if (arguments != null) {
+                attributes.Add(new Model(Attribute("PatternAttribute"), arguments));
+            }
         }
 
-        if (minItems.HasValue || maxItems.HasValue) {
+        if (counted && (minItems.HasValue || maxItems.HasValue)) {
             attributes.Add(new Model(Attribute("ItemCountAttribute"), Bounds(minItems, maxItems)));
         }
 
-        if (enumValues is { Count: > 0 }) {
+        if (stringLike && enumValues is { Count: > 0 }) {
             attributes.Add(new Model(
                 Attribute("AllowedValuesAttribute"), enumValues.Select(Quote).ToList()));
         }

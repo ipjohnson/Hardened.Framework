@@ -1,6 +1,6 @@
 using CSharpAuthor;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// Marks generated types as excluded from code coverage, so generated code does not count against a

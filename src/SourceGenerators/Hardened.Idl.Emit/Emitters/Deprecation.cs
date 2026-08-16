@@ -1,6 +1,6 @@
 using CSharpAuthor;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// A schema or operation marked <c>deprecated</c>, as <c>[Obsolete]</c>.

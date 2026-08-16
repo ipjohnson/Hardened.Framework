@@ -1,9 +1,7 @@
 using System.Collections.Generic;
-using Hardened.OpenApi.SourceGenerator;
 using Hardened.Idl.Models;
-using Hardened.Idl;
 
-namespace Hardened.OpenApi.BuildTask;
+namespace Hardened.Idl;
 
 /// <summary>
 /// Problems a spec can describe that generate C# which will not compile.
@@ -16,14 +14,27 @@ namespace Hardened.OpenApi.BuildTask;
 internal static class SpecDiagnostics {
 
     internal readonly struct Problem {
-        public Problem(string code, string message) {
+        public Problem(string code, string message, bool fatal = true) {
             Code = code;
             Message = message;
+            Fatal = fatal;
         }
 
         public string Code { get; }
 
         public string Message { get; }
+
+        /// <summary>
+        /// Whether the build stops. False where the generator has already chosen an answer and is
+        /// only reporting it.
+        /// </summary>
+        /// <remarks>
+        /// Both problems here used to be fatal, and both told the author to rename something in the
+        /// document. That is reasonable advice for a specification you own and impossible for one
+        /// you fetched: renaming a schema in GitHub's 9.4 MB description, and again on every
+        /// update, is not a workflow. The generator resolves them and says what it did.
+        /// </remarks>
+        public bool Fatal { get; }
     }
 
     public static IReadOnlyList<Problem> Find(ServiceSpecModel model) {
@@ -35,6 +46,8 @@ internal static class SpecDiagnostics {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
 
             foreach (var property in schema.Properties) {
+                // The parser has already renamed the member; compare against the wire name to see
+                // whether it had to.
                 if (NamingHelper.ToPascalCase(property.Name) != typeName) {
                     continue;
                 }
@@ -42,17 +55,13 @@ internal static class SpecDiagnostics {
                 // C# forbids it outright: CS0542, "member names cannot be the same as their
                 // enclosing type". The emitted record would be
                 // "record Message(string Message)", which is not a compilable declaration.
-                //
-                // Not worked around by renaming the property, though the wire name is now pinned by
-                // [JsonPropertyName] and renaming would be invisible to clients. A generated model
-                // whose property is called something other than what the author wrote is worse to
-                // debug than being told to pick a different name, and this collides rarely enough
-                // that asking is reasonable.
                 problems.Add(new Problem(
                     "HOAT003",
-                    $"Schema '{schema.Name}' declares property '{property.Name}', which generates a " +
-                    $"member named '{typeName}' inside a type of the same name - C# does not allow " +
-                    "that (CS0542). Rename either the schema or the property."));
+                    $"Schema '{schema.Name}' declares property '{property.Name}', which would " +
+                    $"generate a member named '{typeName}' inside a type of the same name - C# does " +
+                    $"not allow that (CS0542). The member is generated as '{property.MemberName}'; " +
+                    "the wire name is unchanged.",
+                    fatal: false));
             }
         }
 
@@ -81,11 +90,16 @@ internal static class SpecDiagnostics {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
 
             if (seen.TryGetValue(typeName, out var first)) {
+                // Both kinds of collision are resolved before this runs - synthesized names are
+                // made unique as they are invented, declared ones are renamed afterwards. This is
+                // the assertion that neither missed, and it does not stop the build, because a
+                // duplicate type name surfaces immediately as CS0101 anyway.
                 problems.Add(new Problem(
                     "HOAT005",
                     $"Schemas '{first}' and '{schema.Name}' both generate a type named " +
-                    $"'{typeName}'. One of them is a name given to a schema written inline; rename " +
-                    "the declared schema or the property it collides with."));
+                    $"'{typeName}', which should have been resolved automatically. Rename one of " +
+                    "them in the document.",
+                    fatal: false));
 
                 continue;
             }

@@ -19,9 +19,54 @@
         <_HardenedOpenApiTasksDir Condition="'$(MSBuildRuntimeType)' == 'Core'">$(MSBuildThisFileDirectory)../tasks/net8.0/</_HardenedOpenApiTasksDir>
         <_HardenedOpenApiTasksDir Condition="'$(MSBuildRuntimeType)' != 'Core'">$(MSBuildThisFileDirectory)../tasks/net472/</_HardenedOpenApiTasksDir>
         <HardenedOpenApiTaskAssembly Condition="'$(HardenedOpenApiTaskAssembly)' == ''">$(_HardenedOpenApiTasksDir)Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
+
+        <!--
+            The .NET task host, which lets .NET Framework MSBuild run a task in a .NET process.
+            MSBuild 18.0 ships with .NET SDK 10 and Visual Studio 2026; $(MSBuildVersion) is checked
+            for emptiness first because the version comparison errors on an empty string.
+        -->
+        <HardenedOpenApiNetTaskAssembly Condition="'$(HardenedOpenApiNetTaskAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/net8.0/Hardened.OpenApi.BuildTask.dll</HardenedOpenApiNetTaskAssembly>
+        <_HardenedOpenApiUseNetTaskHost>false</_HardenedOpenApiUseNetTaskHost>
+        <_HardenedOpenApiUseNetTaskHost
+            Condition="'$(MSBuildRuntimeType)' != 'Core' And '$(MSBuildVersion)' != '' And $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">true</_HardenedOpenApiUseNetTaskHost>
     </PropertyGroup>
 
+    <!--
+        Out of process, always.
+
+        A task assembly is loaded into MSBuild itself, and on .NET Framework that means the default
+        AppDomain, where assembly identity is global and the only binding redirects are the ones
+        Microsoft.Build ships for its own dependencies. Visual Studio has already loaded a
+        System.Text.Json by the time this runs; the OpenAPI reader wants its own. In process that is
+        a FileLoadException at task execution, and nothing in this repository can fix it, because
+        the config file that would is MSBuild's.
+
+        A task host is a fresh process with none of that in it. The usual objection - a process per
+        invocation - does not apply here: this task runs once per project and spends its time
+        parsing megabytes of YAML, so the launch is not measurable against the work.
+
+        It also fixes a second thing. The task assembly is built by the same build that consumes it
+        in this repository's own integration tests, and an in-process task is held open afterwards,
+        so an edited task is silently ignored until the MSBuild nodes die. That is what
+        TaskHostFactory is recommended for.
+    -->
     <UsingTask TaskName="Hardened.OpenApi.BuildTask.ExtractOpenApiSpec"
+               Condition="'$(_HardenedOpenApiUseNetTaskHost)' == 'true'"
+               Runtime="NET"
+               AssemblyFile="$(HardenedOpenApiNetTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.OpenApi.BuildTask.ExtractOpenApiSpec"
+               Condition="'$(_HardenedOpenApiUseNetTaskHost)' != 'true' And '$(HardenedOpenApiInProcessTask)' != 'true'"
+               TaskFactory="TaskHostFactory"
+               AssemblyFile="$(HardenedOpenApiTaskAssembly)"/>
+
+    <!--
+        In process, for the case the task host cannot serve: a build that produces the task assembly
+        it is about to run. Set HardenedOpenApiInProcessTask=true to opt in, and expect the assembly
+        to stay locked afterwards.
+    -->
+    <UsingTask TaskName="Hardened.OpenApi.BuildTask.ExtractOpenApiSpec"
+               Condition="'$(_HardenedOpenApiUseNetTaskHost)' != 'true' And '$(HardenedOpenApiInProcessTask)' == 'true'"
                AssemblyFile="$(HardenedOpenApiTaskAssembly)"/>
 
     <!--
@@ -49,17 +94,27 @@
         the compilation, rather than leaving whatever an earlier build wrote to be picked up.
     -->
     <ItemGroup Condition="'@(HardenedOpenApiSpec)' != ''">
+        <!--
+            One document is routinely sliced differently by several projects, and can be sliced more
+            than once within one - so the output is keyed on the slice as well as the file, or two
+            slices of github.yaml would both write github.g.cs. Empty for an unsliced spec, which
+            keeps every existing path exactly as it was.
+        -->
+        <HardenedOpenApiSpec Update="@(HardenedOpenApiSpec)">
+            <SliceSuffix Condition="'%(HardenedOpenApiSpec.Slice)' != ''">.%(HardenedOpenApiSpec.Slice)</SliceSuffix>
+        </HardenedOpenApiSpec>
+
         <_HardenedOpenApiModel Condition="'$(HardenedOpenApiModelDir)' == ''"
-                               Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/%(Filename).openapi-model.txt')"/>
+                               Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/%(Filename)%(SliceSuffix).openapi-model.txt')"/>
         <_HardenedOpenApiModel Condition="'$(HardenedOpenApiModelDir)' != ''"
-                               Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename).openapi-model.txt')"/>
+                               Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename)%(SliceSuffix).openapi-model.txt')"/>
 
         <_HardenedOpenApiSource Condition="'$(HardenedOpenApiGeneratedDir)' == '' And '$(HardenedOpenApiModelDir)' == ''"
-                                Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/generated/%(Filename).g.cs')"/>
+                                Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/generated/%(Filename)%(SliceSuffix).g.cs')"/>
         <_HardenedOpenApiSource Condition="'$(HardenedOpenApiGeneratedDir)' == '' And '$(HardenedOpenApiModelDir)' != ''"
-                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)generated/%(Filename).g.cs')"/>
+                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)generated/%(Filename)%(SliceSuffix).g.cs')"/>
         <_HardenedOpenApiSource Condition="'$(HardenedOpenApiGeneratedDir)' != ''"
-                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename).g.cs')"/>
+                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename)%(SliceSuffix).g.cs')"/>
 
         <AdditionalFiles Include="@(_HardenedOpenApiModel)"/>
         <Compile Include="@(_HardenedOpenApiSource)" Visible="false"/>
@@ -97,11 +152,30 @@
         running it, which is the whole reason the task emits one file per spec rather than one per
         type.
     -->
+    <!--
+        The filter is item metadata, so changing it does not touch the spec file, and the
+        up-to-date check below would skip the target and leave the previous slice's output in place.
+        Writing it to a stamp gives the check something whose timestamp moves when the filter
+        changes - and only then, which is what WriteOnlyWhenDifferent is for.
+
+        A dependency rather than a BeforeTargets, because a target's Inputs are read after its
+        DependsOnTargets have run: the stamp has to exist before it is compared against.
+    -->
+    <Target Name="HardenedOpenApiFilterStamp" DependsOnTargets="HardenedOpenApiResolveModelDir">
+        <MakeDir Directories="$(HardenedOpenApiModelDir)"/>
+
+        <WriteLinesToFile
+            File="$(HardenedOpenApiModelDir)filters.stamp"
+            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)')"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true"/>
+    </Target>
+
     <Target Name="HardenedOpenApiExtractSpecs"
-            DependsOnTargets="HardenedOpenApiResolveModelDir"
+            DependsOnTargets="HardenedOpenApiResolveModelDir;HardenedOpenApiFilterStamp"
             BeforeTargets="CoreCompile"
             Condition="'@(HardenedOpenApiSpec)' != ''"
-            Inputs="@(HardenedOpenApiSpec)"
+            Inputs="@(HardenedOpenApiSpec);$(HardenedOpenApiModelDir)filters.stamp"
             Outputs="@(_HardenedOpenApiModel);@(_HardenedOpenApiSource)">
 
         <ExtractOpenApiSpec Specs="@(HardenedOpenApiSpec)"
@@ -109,7 +183,11 @@
                             GeneratedSourceDirectory="$(HardenedOpenApiGeneratedDir)"
                             Namespace="$(HardenedOpenApiNamespace)"
                             ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)"
-                            ApplyServerBasePath="$(HardenedOpenApiApplyServerBasePath)">
+                            ApplyServerBasePath="$(HardenedOpenApiApplyServerBasePath)"
+                            EmbedDocument="$(HardenedOpenApiEmbedDocument)"
+                            GroupUntaggedByPath="$(HardenedOpenApiGroupUntaggedByPath)"
+                            LoadExternalRefs="$(HardenedOpenApiLoadExternalRefs)"
+                            EmitUnreferencedSchemas="$(HardenedOpenApiEmitUnreferencedSchemas)">
             <Output TaskParameter="ModelFiles" ItemName="_HardenedOpenApiModelWritten"/>
             <Output TaskParameter="GeneratedSources" ItemName="_HardenedOpenApiSourceWritten"/>
         </ExtractOpenApiSpec>

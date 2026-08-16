@@ -22,9 +22,9 @@ internal static class RequestModelBuilder {
         }
 
         foreach (var service in spec.Services) {
-            var interfaceName = NamingHelper.ToInterfaceName(service.Tag);
+            var interfaceName = NamingHelper.ToInterfaceName(service.TypeBaseName);
             var serviceType = TypeDefinition.Get(servicesNamespace, interfaceName);
-            var handlerClassPrefix = NamingHelper.ToControllerName(service.Tag);
+            var handlerClassPrefix = NamingHelper.ToControllerName(service.TypeBaseName);
 
             foreach (var operation in service.Operations) {
                 var model = BuildHandlerModel(operation, serviceType, handlerClassPrefix,
@@ -134,7 +134,7 @@ internal static class RequestModelBuilder {
         string validationNamespace,
         IReadOnlyList<ValidatedOperationModel> validatedOperations,
         Dictionary<string, FilterTypeModel> filterTypeLookup) {
-        var methodName = NamingHelper.ToMethodName(operation.OperationId);
+        var methodName = operation.MethodName;
         var handlerTypeName = $"{handlerClassPrefix}_{methodName}";
         var invokeHandlerType = TypeDefinition.Get(generatedNamespace, handlerTypeName);
 
@@ -237,7 +237,7 @@ internal static class RequestModelBuilder {
 
             parameters.Add(new RequestParameterInformation(
                 typeDefinition,
-                NamingHelper.ToParameterName(param.Name),
+                param.MemberName,
                 param.IsRequired,
                 // Drives ParseWithDefault in the binder, so an absent value arrives as the
                 // specification's default rather than as null.

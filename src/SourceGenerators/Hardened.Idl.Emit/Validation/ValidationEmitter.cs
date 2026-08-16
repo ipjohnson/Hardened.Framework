@@ -3,7 +3,7 @@ using System.Linq;
 using CSharpAuthor;
 using Hardened.Idl.Models;
 
-namespace Hardened.OpenApi.BuildTask.Validation;
+namespace Hardened.Idl.Validation;
 
 /// <summary>
 /// The validation a spec declares: a parameter interface per constrained operation, and the

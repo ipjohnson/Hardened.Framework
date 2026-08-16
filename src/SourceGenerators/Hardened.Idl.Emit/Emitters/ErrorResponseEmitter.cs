@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using System.Text;
 using CSharpAuthor;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// The exception an implementation throws to produce a response the specification declares.
@@ -41,7 +42,7 @@ internal static class ErrorResponseEmitter {
         IConstructContainer container, OperationModel operation, ErrorResponseModel response,
         string modelsNamespace) {
         var name =
-            NamingHelper.ToMethodName(operation.OperationId) +
+            operation.MethodName +
             StatusName(response.StatusCode) +
             "Exception";
 
@@ -76,7 +77,14 @@ internal static class ErrorResponseEmitter {
             property.Modifiers |= ComponentModifier.Public;
             property.Set = null;
             property.Get.LambdaSyntax = true;
-            property.Get.AddCode($"({payload.Name})Value!;");
+
+            // Raw code, so it bypasses the output context and would keep the short name while
+            // every type around it is qualified - the one cast in this file that could still bind
+            // to a consumer's type of the same name.
+            var cast = new StringBuilder();
+            payload.WriteTypeName(cast, TypeOutputMode.Global);
+
+            property.Get.AddCode($"({cast})Value!;");
         }
 
         return definition;

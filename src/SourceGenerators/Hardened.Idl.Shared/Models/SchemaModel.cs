@@ -11,6 +11,22 @@ internal class SchemaModel : IEquatable<SchemaModel> {
     public string? Description { get; set; }
     public List<PropertyModel> Properties { get; set; } = new();
     public List<string> EnumValues { get; set; } = new();
+
+    /// <summary>
+    /// The C# member name for each entry of <see cref="EnumValues"/>, in the same order.
+    /// </summary>
+    /// <remarks>
+    /// Allocated rather than derived, because two wire values can reach C# as one member name -
+    /// Elasticsearch's column enums carry <c>buckets.count</c> beside <c>bc</c> and a dozen more
+    /// that PascalCase alike, and Docker and Cloudflare both declare the empty string as a value.
+    /// </remarks>
+    public List<string> EnumMemberNames { get; set; } = new();
+
+    /// <summary>The member names to emit, derived when the allocator has not run.</summary>
+    public IReadOnlyList<string> EnumMembers =>
+        EnumMemberNames.Count == EnumValues.Count
+            ? EnumMemberNames
+            : EnumValues.ConvertAll(Idl.NamingHelper.ToPascalCase);
     public List<string> Required { get; set; } = new();
     public string? ArrayItemsRef { get; set; }
     public string? ArrayItemsType { get; set; }

@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
-namespace Hardened.OpenApi.BuildTask.Validation;
+namespace Hardened.Idl.Validation;
 
 /// <summary>
 /// The regular expressions a spec declares, and the <c>[GeneratedRegex]</c> member each one becomes.
@@ -24,6 +25,7 @@ namespace Hardened.OpenApi.BuildTask.Validation;
 /// </remarks>
 internal sealed class PatternRegistry {
     private readonly Dictionary<string, string> _members = new(System.StringComparer.Ordinal);
+    private readonly List<string> _rejected = new();
     private readonly string _namespace;
 
     public PatternRegistry(string patternNamespace, string specFileName) {
@@ -39,6 +41,9 @@ internal sealed class PatternRegistry {
 
     public bool IsEmpty => _members.Count == 0;
 
+    /// <summary>Patterns the runtime's engine will not accept, with the reason.</summary>
+    public IReadOnlyList<string> Rejected => _rejected;
+
     /// <summary>
     /// The arguments for a <c>[Pattern]</c> in its reference form, declaring a
     /// <c>[GeneratedRegex]</c> member for <paramref name="pattern"/> on first sighting.
@@ -50,11 +55,34 @@ internal sealed class PatternRegistry {
     /// referenced member is resolved at generation time, so a typo is VM0018 rather than something
     /// found later.
     /// </remarks>
-    public System.Collections.Generic.IReadOnlyList<string> AttributeArguments(string pattern) {
+    /// <returns>Null when the pattern is not one .NET can compile - see <see cref="Rejected"/>.</returns>
+    public System.Collections.Generic.IReadOnlyList<string>? AttributeArguments(string pattern) {
+        // OpenAPI specifies ECMA-262, and .NET's engine is not a superset of it. Grafana declares
+        // ^[a-zA-Z0-9\-\_]+$, where \_ is an ordinary escaped underscore in ECMA-262 and an
+        // unrecognized escape sequence here. Emitted anyway it reaches [GeneratedRegex], which
+        // fails to generate, leaving its partial method unimplemented - CS8795 in a generated file,
+        // for a pattern the document was entitled to write.
+        if (!Compiles(pattern)) {
+            return null;
+        }
+
         var member = Member(pattern);
         var qualified = $"global::{_namespace}.{ClassName}";
 
         return new[] { $"typeof({qualified})", $"nameof({qualified}.{member})" };
+    }
+
+    private bool Compiles(string pattern) {
+        try {
+            _ = new Regex(pattern);
+            return true;
+        } catch (System.ArgumentException exception) {
+            if (!_rejected.Exists(entry => entry.StartsWith(pattern, System.StringComparison.Ordinal))) {
+                _rejected.Add(pattern + " - " + exception.Message);
+            }
+
+            return false;
+        }
     }
 
     private string Member(string pattern) {

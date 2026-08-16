@@ -3,7 +3,7 @@ using System.Linq;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// How a schema's properties are divided between a record's constructor and its body.
@@ -61,6 +61,26 @@ internal static class SchemaShape {
 
         return schema.Properties
             .Where(property => !property.IsConstructorParameter)
+            .Where(property => inherited?.Properties.Any(
+                declared => declared.Name == property.Name) != true)
+            .ToList();
+    }
+
+    /// <summary>
+    /// The properties this type declares itself, rather than forwarding to a base.
+    /// </summary>
+    /// <remarks>
+    /// A positional record passes an inherited property straight to the base constructor, so it
+    /// never becomes a member of the derived type - and a constraint on it is the base's to check.
+    /// Bitbucket's <c>DeploymentEnvironment</c> derives from a schema carrying the only constrained
+    /// property, which made it look constrained here and unconstrained to the validation generator:
+    /// one emitted a [ValidateNested] and the other declined to generate the validator it named.
+    /// </remarks>
+    public static List<PropertyModel> Declared(
+        SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas) {
+        var inherited = Base(schema, allSchemas);
+
+        return schema.Properties
             .Where(property => inherited?.Properties.Any(
                 declared => declared.Name == property.Name) != true)
             .ToList();

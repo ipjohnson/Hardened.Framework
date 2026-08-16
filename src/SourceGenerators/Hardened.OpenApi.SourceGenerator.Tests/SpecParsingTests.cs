@@ -1138,12 +1138,16 @@ public class SpecParsingTests {
     // ── naming ────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// A missing <c>operationId</c> is derived from the verb and the path, with tokens dropped —
-    /// <c>{id}</c> contributes nothing, because two routes differing only in a token name would
-    /// otherwise collide.
+    /// A missing <c>operationId</c> is derived from the verb and the path, tokens included as
+    /// <c>By…</c>.
     /// </summary>
+    /// <remarks>
+    /// Tokens used to be dropped, which made sibling routes indistinguishable: DigitalOcean names
+    /// no operations at all, and <c>DELETE /v2/droplets</c> and <c>DELETE /v2/droplets/{id}</c>
+    /// both produced <c>deleteV2Droplets</c> - one interface method declared twice.
+    /// </remarks>
     [Fact]
-    public void AMissingOperationIdIsDerivedFromTheVerbAndPathWithTokensDropped() {
+    public void AMissingOperationIdIsDerivedFromTheVerbAndPath() {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -1156,6 +1160,6 @@ public class SpecParsingTests {
                     '200': { description: ok }
             """);
 
-        Assert.Equal("getShippingLabelsHistory", model.Services.Single().Operations.Single().OperationId);
+        Assert.Equal("getShippingLabelsByIdHistory", model.Services.Single().Operations.Single().OperationId);
     }
 }

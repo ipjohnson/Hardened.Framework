@@ -45,8 +45,8 @@ public class GeneratedCodeCompilesTests {
         var record = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial record Widget(", record);
-        Assert.Contains("List<Part>? Parts = default", record);
-        Assert.Contains("Dictionary<string,string>? Labels = default", record);
+        Assert.Contains("global::System.Collections.Generic.List<global::TestNamespace.Models.Part>? Parts = default", record);
+        Assert.Contains("global::System.Collections.Generic.Dictionary<string,string>? Labels = default", record);
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public class GeneratedCodeCompilesTests {
         var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial interface IWidgetService", generated);
-        Assert.Contains("Task<List<Widget>> ListWidgets(", generated);
+        Assert.Contains("Task<global::System.Collections.Generic.List<global::TestNamespace.Models.Widget>> ListWidgets(", generated);
     }
 
     /// <summary>
@@ -213,11 +213,11 @@ public class GeneratedCodeCompilesTests {
 
         var resolver = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public sealed class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", resolver);
-        Assert.Contains("if (type == typeof(Widget)) return CreateWidgetTypeInfo(options);", resolver);
-        Assert.Contains("if (type == typeof(WidgetStatus)) return CreateWidgetStatusTypeInfo(options);", resolver);
-        Assert.Contains("CreateListInfo<List<Part>, Part>", resolver);
-        Assert.Contains("CreateDictionaryInfo<Dictionary<string, string>, string, string>", resolver);
+        Assert.Contains("public sealed class PetstoreJsonTypeInfoResolver : global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver", resolver);
+        Assert.Contains("if (type == typeof(global::TestNamespace.Models.Widget)) return CreateWidgetTypeInfo(options);", resolver);
+        Assert.Contains("if (type == typeof(global::TestNamespace.Models.WidgetStatus)) return CreateWidgetStatusTypeInfo(options);", resolver);
+        Assert.Contains("CreateListInfo<global::System.Collections.Generic.List<global::TestNamespace.Models.Part>, global::TestNamespace.Models.Part>", resolver);
+        Assert.Contains("CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,string>, string, string>", resolver);
     }
 
     /// <summary>
@@ -276,7 +276,7 @@ public class GeneratedCodeCompilesTests {
 
         var attribute = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public partial class RateLimitAttribute : Attribute", attribute);
+        Assert.Contains("public partial class RateLimitAttribute : global::System.Attribute", attribute);
         Assert.Contains("public int MaxRequests { get; set; } = 100;", attribute);
         Assert.Contains("public string Window { get; set; } = \"minute\";", attribute);
         Assert.Contains("public bool Enabled { get; set; } = true;", attribute);
@@ -573,7 +573,7 @@ public class GeneratedCodeCompilesTests {
                     '200': { description: ok }
             """).AssertNoErrors();
 
-        Assert.Contains("GetShippingLabelsHistory(", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("GetShippingLabelsByIdHistory(", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -732,7 +732,7 @@ public class GeneratedCodeCompilesTests {
 
         // The base declares the shared properties; each derived record forwards them.
         Assert.Contains("public partial record Pet(", generated);
-        Assert.Contains(") : Pet(PetType, Name, Nickname);", generated);
+        Assert.Contains(") : global::TestNamespace.Models.Pet(PetType, Name, Nickname);", generated);
         Assert.Contains("record Dog(", generated);
         Assert.Contains("record Cat(", generated);
 
@@ -756,8 +756,8 @@ public class GeneratedCodeCompilesTests {
 
         Assert.Contains("typeInfo.PolymorphismOptions = new JsonPolymorphismOptions", generated);
         Assert.Contains("""TypeDiscriminatorPropertyName = "petType",""", generated);
-        Assert.Contains("""new JsonDerivedType(typeof(Dog), "dog"),""", generated);
-        Assert.Contains("""new JsonDerivedType(typeof(Cat), "cat"),""", generated);
+        Assert.Contains("""new JsonDerivedType(typeof(global::TestNamespace.Models.Dog), "dog"),""", generated);
+        Assert.Contains("""new JsonDerivedType(typeof(global::TestNamespace.Models.Cat), "cat"),""", generated);
 
         // An unrecognised runtime type fails loudly rather than silently writing the base shape.
         Assert.Contains("JsonUnknownDerivedTypeHandling.FailSerialization", generated);

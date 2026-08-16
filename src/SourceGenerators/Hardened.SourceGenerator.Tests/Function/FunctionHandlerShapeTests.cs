@@ -182,8 +182,8 @@ public class FunctionHandlerShapeTests {
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
-        Assert.Contains("return model!;", source);
-        Assert.Contains("return thing!;", source);
+        Assert.Contains("return this.model!;", source);
+        Assert.Contains("return this.thing!;", source);
         Assert.Contains("case 0:", source);
         Assert.Contains("case 1:", source);
     }

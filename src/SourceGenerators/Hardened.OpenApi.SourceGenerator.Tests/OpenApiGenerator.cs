@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Hardened.OpenApi.SourceGenerator.Emitters;
+using Hardened.Idl.Emitters;
 using Hardened.Idl.Models;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Validation;

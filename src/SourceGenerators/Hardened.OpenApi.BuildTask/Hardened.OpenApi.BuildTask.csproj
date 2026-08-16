@@ -59,15 +59,49 @@
             loaded by MSBuild, so its dependencies resolve the ordinary way - the whole reason the
             spec read moves here.
         -->
-        <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.22"/>
-        <PackageReference Include="Microsoft.OpenApi" Version="1.6.22"/>
-        <PackageReference Include="SharpYaml" Version="2.1.1"/>
+        <!--
+            3.x for OpenAPI 3.1, which the 1.6 line rejects outright with
+            OpenApiUnsupportedSpecVersionException - and which is what OpenAI, Train Travel and a
+            growing share of published descriptions are now written in. One object model reads 2.0,
+            3.0, 3.1 and 3.2.
+
+            Microsoft.OpenApi.Readers is gone: the reader moved into the main package at 2.0, and
+            the separate package stops at 2.0.0-preview9. SharpYaml goes with it - the reader parses
+            YAML itself and nothing here ever called into SharpYaml directly.
+
+            The task runs out of process (see the targets file), which is what makes this safe on
+            .NET Framework MSBuild: 3.x brings System.Text.Json, and resolving that inside Visual
+            Studio's own MSBuild is the conflict a task host exists to avoid.
+        -->
+        <PackageReference Include="Microsoft.OpenApi" Version="3.10.0"/>
+
+        <!--
+            YAML is a separate package from 2.0 onward - the core package reads JSON and nothing
+            else, and its reader has to be registered before a YAML document will parse. Every spec
+            this was built against except two is YAML, so this is not optional.
+        -->
+        <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.10.0"/>
     </ItemGroup>
 
     <!-- TypeMapper, which the emitters use, returns CSharpAuthor type definitions. -->
     <ItemGroup>
         <Compile Remove="IsExternalInit.cs"/>
         <Compile Include="IsExternalInit.cs" Condition="'$(TargetFramework)' == 'net472'"/>
+    </ItemGroup>
+
+    <!--
+        Microsoft.OpenApi 3.x keys an operation by System.Net.Http.HttpMethod, which .NET Framework
+        does not reference by default. This is the leg that runs under Visual Studio's MSBuild.
+    -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.Emit/**/*.cs"
+                 Exclude="../Hardened.Idl.Emit/obj/**/*;../Hardened.Idl.Emit/bin/**/*;../Hardened.Idl.Emit/IsExternalInit.cs">
+            <Link>Emit\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
     </ItemGroup>
 
     <!-- Shared with the generator. See Hardened.Idl.Shared for why this is source and not a reference. -->

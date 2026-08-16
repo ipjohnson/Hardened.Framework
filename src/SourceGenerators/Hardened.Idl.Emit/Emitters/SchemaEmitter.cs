@@ -1,11 +1,12 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
-using Hardened.OpenApi.BuildTask.Validation;
+using Hardened.Idl.Validation;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator.Emitters;
+namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// One schema, as a record or an enum.
@@ -64,7 +65,7 @@ internal static class SchemaEmitter {
             constructor.IsPrimary = true;
 
             foreach (var property in parameters) {
-                EmitConstructorParameter(constructor, property, modelsNamespace, patterns);
+                EmitConstructorParameter(constructor, property, modelsNamespace, patterns, allSchemas);
             }
         }
 
@@ -78,12 +79,12 @@ internal static class SchemaEmitter {
     /// <summary>One property, as a positional record parameter.</summary>
     private static void EmitConstructorParameter(
         ConstructorDefinition constructor, PropertyModel property, string modelsNamespace,
-        PatternRegistry patterns) {
+        PatternRegistry patterns, IReadOnlyList<SchemaModel>? allSchemas) {
         var csType = TypeMapper.MapPropertyToCSharpType(property);
         var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
 
         var parameter = constructor.AddParameter(
-            typeDefinition, NamingHelper.ToPascalCase(property.Name));
+            typeDefinition, property.MemberName);
 
         parameter.Comment = DocComment.Format(property.Description);
 
@@ -101,9 +102,11 @@ internal static class SchemaEmitter {
 
         // Required, except where the type already guarantees it - see
         // TypeMapper.IsNonNullableValueType.
-        var emitRequired = property.ConstrainedAsRequired && !TypeMapper.IsNonNullableValueType(csType);
+        var emitRequired = property.ConstrainedAsRequired &&
+                           !TypeMapper.IsNonNullableValueType(csType, allSchemas);
 
-        foreach (var constraint in ConstraintAttributes.ForProperty(property, emitRequired, patterns)) {
+        foreach (var constraint in ConstraintAttributes.ForProperty(
+                     property, emitRequired, patterns, csType)) {
             ValidationEmitter.Apply(parameter, constraint).Target = "property";
         }
     }
@@ -134,7 +137,7 @@ internal static class SchemaEmitter {
         var csType = TypeMapper.MapPropertyToCSharpType(property);
         var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
 
-        var member = record.AddProperty(typeDefinition, NamingHelper.ToPascalCase(property.Name));
+        var member = record.AddProperty(typeDefinition, property.MemberName);
 
         member.Modifiers |= ComponentModifier.Public;
         member.Set = new PropertyMethodDefinition { IsInit = true };
@@ -193,7 +196,7 @@ internal static class SchemaEmitter {
 
         foreach (var property in inherited) {
             arguments.Add(
-                new CodeOutputComponent(NamingHelper.ToPascalCase(property.Name)) { Indented = false });
+                new CodeOutputComponent(property.MemberName) { Indented = false });
         }
 
         record.AddBaseType(baseType, arguments.ToArray());
@@ -247,8 +250,10 @@ internal static class SchemaEmitter {
             new CodeOutputComponent(
                 "typeof(System.Text.Json.Serialization.JsonStringEnumConverter)") { Indented = false });
 
-        foreach (var value in schema.EnumValues) {
-            enumDefinition.AddValue(NamingHelper.ToPascalCase(value));
+        // Allocated, not derived - see NameAllocator. Two wire values can reach C# as one member
+        // name, and deciding that here would be deciding it in one of the places that used to.
+        foreach (var member in schema.EnumMembers) {
+            enumDefinition.AddValue(member);
         }
 
         return enumDefinition;

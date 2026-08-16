@@ -1,0 +1,801 @@
+<title>Making Seven Specs Build</title>
+<style>
+  /* Shares the evaluation report's identity — companion document, same system. */
+  :root {
+    --ground:      #FBF8FA;
+    --surface:     #FFFFFF;
+    --surface-alt: #F5F0F3;
+    --border:      #E7DDE3;
+    --border-firm: #D3C4CD;
+    --ink:         #1F1A22;
+    --ink-soft:    #574C5C;
+    --ink-mute:    #837589;
+    --accent:      #7A2E56;
+    --accent-soft: #F3E4EC;
+    --p0:          #A62430;
+    --p0-bg:       #FBE9EA;
+    --p1:          #94620C;
+    --p1-bg:       #FAF0DC;
+    --p2:          #376B52;
+    --p2-bg:       #E6F1EA;
+
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono:  ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --measure: 70ch;
+    --pad: clamp(1.15rem, 4vw, 2.5rem);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #16121A; --surface: #1E1922; --surface-alt: #262030;
+      --border: #322A38; --border-firm: #473C4E;
+      --ink: #EFE8F1; --ink-soft: #C3B7C8; --ink-mute: #948A9A;
+      --accent: #E093B8; --accent-soft: #35202C;
+      --p0: #F09098; --p0-bg: #391D21;
+      --p1: #E3B75C; --p1-bg: #352A16;
+      --p2: #86C4A3; --p2-bg: #1B2E25;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #16121A; --surface: #1E1922; --surface-alt: #262030;
+    --border: #322A38; --border-firm: #473C4E;
+    --ink: #EFE8F1; --ink-soft: #C3B7C8; --ink-mute: #948A9A;
+    --accent: #E093B8; --accent-soft: #35202C;
+    --p0: #F09098; --p0-bg: #391D21;
+    --p1: #E3B75C; --p1-bg: #352A16;
+    --p2: #86C4A3; --p2-bg: #1B2E25;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 16.5px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 62rem; margin: 0 auto; padding: var(--pad); display: flex; flex-direction: column; gap: 3.25rem; }
+
+  .mast { display: flex; flex-direction: column; gap: 1.1rem; padding-top: 1.5rem; }
+  .eyebrow { font-family: var(--mono); font-size: .7rem; letter-spacing: .13em; text-transform: uppercase; color: var(--accent); }
+  h1 {
+    font-family: var(--serif); font-weight: 600;
+    font-size: clamp(2.3rem, 6.5vw, 3.6rem); line-height: 1.04;
+    letter-spacing: -.02em; margin: 0; text-wrap: balance;
+  }
+  .standfirst {
+    font-family: var(--serif); font-size: clamp(1.06rem, 2.4vw, 1.24rem);
+    line-height: 1.55; color: var(--ink-soft); max-width: var(--measure); margin: 0;
+  }
+  .runbar {
+    display: flex; flex-wrap: wrap; gap: .4rem 1.5rem;
+    font-family: var(--mono); font-size: .76rem; color: var(--ink-mute);
+    border-top: 1px solid var(--border); padding-top: .95rem; margin-top: .35rem;
+  }
+  .runbar b { color: var(--ink-soft); font-weight: 500; }
+
+  section { display: flex; flex-direction: column; gap: 1.15rem; }
+  h2 {
+    font-family: var(--serif); font-size: clamp(1.5rem, 3.4vw, 1.95rem);
+    font-weight: 600; letter-spacing: -.015em; margin: 0; text-wrap: balance;
+  }
+  h2 .rule { display: block; width: 2.6rem; height: 2px; background: var(--accent); margin-bottom: .85rem; }
+  p { margin: 0; max-width: var(--measure); }
+  code {
+    font-family: var(--mono); font-size: .855em; background: var(--surface-alt);
+    border: 1px solid var(--border); border-radius: 3px; padding: .07em .32em; overflow-wrap: anywhere;
+  }
+  pre {
+    font-family: var(--mono); font-size: .78rem; line-height: 1.6;
+    background: var(--surface-alt); border: 1px solid var(--border);
+    border-left: 3px solid var(--border-firm); border-radius: 4px;
+    padding: .85rem 1rem; margin: 0; overflow-x: auto; white-space: pre; color: var(--ink-soft);
+  }
+  pre b { color: var(--ink); font-weight: 600; }
+  pre .go { color: var(--p2); font-weight: 600; }
+  pre .no { color: var(--p0); font-weight: 600; }
+
+  .callout {
+    background: var(--surface); border: 1px solid var(--border);
+    border-top: 3px solid var(--accent); border-radius: 5px;
+    padding: 1.35rem 1.45rem; display: flex; flex-direction: column; gap: .8rem;
+  }
+  .callout p { max-width: none; }
+  .callout .lede { font-family: var(--serif); font-size: 1.12rem; color: var(--ink); }
+
+  .scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .855rem; min-width: 44rem; }
+  thead th {
+    text-align: left; font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-mute); font-weight: 500;
+    padding: .8rem .9rem; border-bottom: 1px solid var(--border-firm); white-space: nowrap;
+  }
+  tbody td { padding: .78rem .9rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.k { font-family: var(--mono); font-size: .78rem; white-space: nowrap; font-weight: 600; }
+  td.note { color: var(--ink-soft); }
+  td.num { font-family: var(--mono); font-size: .78rem; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-soft); }
+
+  .chip {
+    display: inline-block; font-family: var(--mono); font-size: .67rem;
+    letter-spacing: .05em; text-transform: uppercase; padding: .16rem .45rem;
+    border-radius: 3px; white-space: nowrap; font-weight: 600;
+  }
+  .chip.p0 { color: var(--p0); background: var(--p0-bg); }
+  .chip.p1 { color: var(--p1); background: var(--p1-bg); }
+  .chip.p2 { color: var(--p2); background: var(--p2-bg); }
+
+  .items { display: flex; flex-direction: column; gap: 1.05rem; }
+  .item { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+  .item > summary {
+    list-style: none; cursor: pointer; padding: 1rem 1.15rem;
+    display: grid; grid-template-columns: auto auto 1fr; gap: .5rem .8rem; align-items: baseline;
+  }
+  .item > summary::-webkit-details-marker { display: none; }
+  .wid {
+    font-family: var(--mono); font-size: .74rem; font-weight: 700;
+    color: var(--surface); background: var(--accent);
+    padding: .16rem .42rem; border-radius: 3px; letter-spacing: .03em;
+  }
+  .wtitle { font-weight: 650; font-size: 1.03rem; line-height: 1.4; }
+  .wsum { grid-column: 3; color: var(--ink-soft); font-size: .92rem; margin: 0; max-width: var(--measure); }
+  .wbody {
+    padding: 0 1.15rem 1.2rem; display: flex; flex-direction: column; gap: .9rem;
+    border-top: 1px solid var(--border); margin-top: .25rem; padding-top: 1.05rem;
+  }
+  .wbody p { max-width: var(--measure); font-size: .93rem; }
+  .lbl {
+    font-family: var(--mono); font-size: .66rem; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--ink-mute); display: block; margin-bottom: .35rem;
+  }
+  .where {
+    font-family: var(--mono); font-size: .78rem; color: var(--ink-soft);
+    background: var(--accent-soft); border-radius: 4px; padding: .6rem .8rem;
+    overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .ac { border-left: 3px solid var(--p2); background: var(--surface-alt); border-radius: 4px; padding: .6rem .85rem; font-size: .89rem; }
+  .ac b { font-family: var(--mono); font-size: .7rem; letter-spacing: .08em; color: var(--p2); display: block; margin-bottom: .25rem; }
+
+  ul.plain { margin: 0; padding-left: 1.15rem; max-width: var(--measure); display: flex; flex-direction: column; gap: .45rem; }
+  ul.plain li::marker { color: var(--accent); }
+  ul.plain.tight { gap: .3rem; }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 1.4rem 0 3rem;
+    font-family: var(--mono); font-size: .75rem; color: var(--ink-mute);
+    display: flex; flex-direction: column; gap: .4rem;
+  }
+  a { color: var(--accent); }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="eyebrow">Hardened.Framework &middot; OpenAPI remediation plan</div>
+    <h1>Making Seven Specs Build</h1>
+    <p class="standfirst">
+      Work required to generate operations and models from the seven published API descriptions in the
+      evaluation. Eleven items, sequenced by what they unblock rather than by where they sit in the
+      pipeline. Four of them account for every spec that currently fails.
+    </p>
+    <div class="runbar">
+      <span><b>base</b> main @ 3bc8e5b</span>
+      <span><b>branch</b> feature/openapi-remediation</span>
+      <span><b>clone</b> ~/Hardened-openapi-work</span>
+      <span><b>harness</b> ~/testing/openapi-eval</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="callout">
+      <p class="lede">Each fix reveals the next layer. Plan for re-measurement, not for a single pass.</p>
+      <p>
+        Every blocker in the evaluation hid whatever sat behind it. Clearing GitHub's eight
+        <code>HOAT003</code> errors exposed 101,766 syntax errors that no one could see beforehand.
+        The items below are grounded in what has actually been observed &mdash; but the list cannot be
+        complete, because layers below the current blockers have never been reached.
+      </p>
+      <p>
+        The harness exists to answer that. <code>run-all.sh</code> rebuilds all seven specs in both
+        modes and takes about three minutes. Run it after every item, and expect the plan to grow.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="rule"></span>What unblocks what</h2>
+    <p>
+      Mapping the seven specs to the work that makes them build. The critical path is narrow: one item
+      unblocks four specs, and two more finish the set.
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Spec</th><th>Blocked by</th><th>Needs</th><th>Also wants</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="k">Petstore</td><td class="note">CS0037 &times;6</td>
+            <td class="k">W1</td><td class="note">&mdash;</td>
+          </tr>
+          <tr>
+            <td class="k">Twilio</td><td class="note">13,010 syntax errors</td>
+            <td class="k">W2</td><td class="note">dotted schema names, <code>StartTime&lt;</code> parameters</td>
+          </tr>
+          <tr>
+            <td class="k">Slack</td><td class="note">2,232 syntax errors</td>
+            <td class="k">W2 W7</td><td class="note">dotted tags; <code>Blocks</code> never emitted</td>
+          </tr>
+          <tr>
+            <td class="k">GitHub</td><td class="note">HOAT003 &times;8, then 101,766</td>
+            <td class="k">W2 W5</td><td class="note"><code>+1</code>/<code>-1</code> properties, <code>Won't fix</code> enum</td>
+          </tr>
+          <tr>
+            <td class="k">Stripe</td><td class="note">HOAT005 &times;28, HOAT003 &times;2</td>
+            <td class="k">W2 W5</td><td class="note">W3 for name quality, not to unblock</td>
+          </tr>
+          <tr>
+            <td class="k">OpenAI</td><td class="note">HOAT002 &mdash; 3.1</td>
+            <td class="k">W6</td><td class="note">W9 &mdash; oneOf-heavy once parsing</td>
+          </tr>
+          <tr>
+            <td class="k">Train&nbsp;Travel</td><td class="note">HOAT002 &mdash; 3.1</td>
+            <td class="k">W6</td><td class="note">W8 &mdash; 20 allOf, 0 discriminators</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <pre><b>Critical path to "all seven generate"</b>
+
+  W1 ─────────────────────────────  Petstore                           <span class="go">1 of 7</span>
+  W2 + W5 + W7 ───────────────────  + Twilio, Slack, GitHub, Stripe    <span class="go">5 of 7</span>
+  W6 ─────────────────────────────  + OpenAI, Train Travel             <span class="go">7 of 7</span>
+
+  W4 is a prerequisite of W3, not of any spec — but W3 is what keeps the
+  names W2 produces short, so both belong in the same phase.
+
+  W8 (except its merge fix, a build break) and W9–W11 raise fidelity.
+  None of them unblock a spec.</pre>
+  </section>
+
+  <section>
+    <h2><span class="rule"></span>The work</h2>
+    <p>
+      Priority is <span class="chip p0">p0</span> unblocks a spec,
+      <span class="chip p1">p1</span> correctness or policy that shapes the p0 work,
+      <span class="chip p2">p2</span> fidelity. Sizes are relative, not estimates.
+    </p>
+
+    <div class="items">
+
+      <details class="item" open>
+        <summary>
+          <span class="wid">W1</span><span class="chip p0">p0</span>
+          <span class="wtitle">Guard <code>[Required]</code> on non-nullable value types</span>
+          <p class="wsum">One call path is missing the check its sibling already applies. Unblocks Petstore
+            on its own. Do this first &mdash; it is independent of everything else.</p>
+        </summary>
+        <div class="wbody">
+          <div>
+            <span class="lbl">Where</span>
+            <div class="where">Validation/ConstraintAttributes.cs:35   ForParameter — no guard
+Emitters/SchemaEmitter.cs:104          ForProperty  — guard applied
+
+  ForParameter(…) =&gt; Build(parameter, parameter.ConstrainedAsRequired, …)
+
+  var emitRequired = property.ConstrainedAsRequired
+                     &amp;&amp; !TypeMapper.IsNonNullableValueType(csType);</div>
+          </div>
+          <p>
+            <code>ForProperty</code> takes <code>required</code> from its caller precisely so the caller can
+            apply <code>IsNonNullableValueType</code>; the doc comment on the parameter says so.
+            <code>ForParameter</code> computes it itself and skips the check, so a required
+            <code>integer</code> path parameter gets <code>[Required]</code> on a <code>long</code>, and the
+            validation generator emits <code>value.itemId is null</code>.
+          </p>
+          <p>
+            Note the build already emits <code>VM0004</code> warning that this <code>[Required]</code> can
+            never fail, then fails compiling the check it warned about. Both should go quiet together.
+          </p>
+          <div class="ac"><b>Done when</b>
+            Petstore builds clean with the validation generator enabled, and no <code>VM0004</code> is
+            emitted for spec-derived parameters.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W2</span><span class="chip p0">p0</span>
+          <span class="wtitle">Name allocator: one component that owns every identifier</span>
+          <p class="wsum">The largest item and the highest leverage. Closes 116,000 of the ~117,000 errors
+            observed, across four specs.</p>
+        </summary>
+        <div class="wbody">
+          <p>
+            Today <code>NamingHelper.ToPascalCase</code> is called at the point of use from six different
+            places, splits on <code>_ - space</code> only, and lets every other character through unchecked.
+            Point-of-use naming also cannot detect collisions, because a call site has no view of what else
+            exists.
+          </p>
+          <div>
+            <span class="lbl">Shape</span>
+            <div class="where">Runs over ServiceSpecModel after parse, before emit.
+
+1. PROPOSE   every nameable thing gets a candidate + provenance chain
+             schemas · synthesized inline schemas · tags · operations
+             properties · parameters · enum members · the spec file itself
+
+2. RESOLVE   group by (scope, candidate); singletons pass through;
+             collisions walk out the provenance chain until separated
+
+3. OVERRIDE  sidecar map wins; an override that itself collides is a hard error
+
+4. PUBLISH   write the full name table into the .openapi-model.txt the task
+             already emits</div>
+          </div>
+          <p><b>Name sources, in order.</b> Read <code>title</code> first &mdash; it is OpenAPI's own naming
+            affordance and it is everywhere: 4,700 in Stripe, 2,175 in GitHub, 741 in OpenAI, 37 of Slack's
+            48 definitions. <code>.Title</code> is currently read zero times anywhere in the build task. Fall
+            back to synthesis only when it is absent.</p>
+          <p><b>Transliterate, do not delete.</b> <code>+1</code> and <code>-1</code> must not both reduce to
+            <code>1</code>; <code>StartTime&lt;</code> and <code>StartTime&gt;</code> must not both reduce to
+            <code>StartTime</code>. Replacement preserves what deletion destroys.</p>
+          <ul class="plain tight">
+            <li>The table must be <b>total over Unicode</b> &mdash; real specs carry non-ASCII property names
+              and emoji in enum values. Any character without a mapping needs a defined fallback.</li>
+            <li><code>-</code> is <b>context-dependent</b>: a sign in <code>-1</code>, a separator in
+              <code>marketplace-purchase</code>. Both appear in GitHub's document.</li>
+          </ul>
+          <p><b>Scope, don't flatten.</b> Properties need uniqueness within their type, enum members within
+            their enum, types within their namespace. Flattening everything into one namespace is part of why
+            Stripe produces 28 collisions.</p>
+          <p><b>Never disambiguate by arrival order.</b> An ordinal suffix makes a name a function of
+            iteration order, so reordering a spec renames unrelated types and silently breaks handler code.
+            Qualify by content &mdash; parent scope, path position &mdash; so the name is a pure function of
+            the thing's identity.</p>
+          <div>
+            <span class="lbl">Determinism rules</span>
+            <div class="where">sort before allocating   Microsoft.OpenApi returns dictionaries; enumeration
+                         order is not contractual across versions
+ordinal everywhere       StringComparer.Ordinal, ToUpperInvariant
+stable hashing           reuse the FNV-1a in Validation/PatternRegistry.cs:77,
+                         which already avoids per-process GetHashCode randomisation</div>
+          </div>
+          <div class="ac"><b>Done when</b>
+            Twilio, Slack and GitHub emit syntactically valid C#. Stripe's 28 <code>HOAT005</code> are gone.
+            A shuffle test &mdash; permute a spec's key order, regenerate &mdash; produces a byte-identical
+            name table.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W3</span><span class="chip p0">p0</span>
+          <span class="wtitle">URI space tree and namespaces</span>
+          <p class="wsum">Gives W2 somewhere to put the disambiguation, so type names stay short and readable
+            instead of growing to 84 characters.</p>
+        </summary>
+        <div class="wbody">
+          <p>
+            Kiota's design overview names this problem directly: OpenAPI descriptions do not represent the
+            URL hierarchy, so <em>it must be constructed</em>. Once names come from position in a tree they no
+            longer need to be globally unique, because position already is.
+          </p>
+          <div>
+            <span class="lbl">The boundary trap</span>
+            <div class="where">Namespaces alone do NOT fix the Stripe collision — the erased boundary just moves:
+
+  A: POST /treasury/financial_accounts          prop features.card_issuing
+     → Treasury.FinancialAccounts .Features . CardIssuing
+  B: POST /treasury/financial_accounts/features prop card_issuing
+     → Treasury.FinancialAccounts.Features .    CardIssuing        <span class="no">identical</span>
+
+Path-space and property-space need a marker between them. The operation works,
+and is information the reader wants anyway:
+
+  A: Treasury.FinancialAccounts.Post.Features.CardIssuing
+  B: Treasury.FinancialAccounts.Features.Post.CardIssuing          <span class="go">distinct</span></div>
+          </div>
+          <p>
+            Every leaf is then a short natural name, the hierarchy reads like the API, and the
+            disambiguation lives entirely in structure a consumer can <code>using</code> away. It separates
+            <code>GET</code> and <code>POST</code> on one path for free, which is needed regardless since
+            their bodies differ.
+          </p>
+          <p>
+            <b>Reserve namespace segments as taken names.</b> Kiota's live issue is <code>CS0118</code>,
+            &ldquo;'X' is a namespace but is used like a type&rdquo;, when a model name matches one of its
+            own segments. Cheap to prevent in the allocator now, expensive to retrofit after a layout ships.
+          </p>
+          <div class="ac"><b>Done when</b>
+            Stripe's synthesized names are unique without ordinal suffixes, and no generated type name
+            exceeds a reasonable length bound. No <code>CS0118</code> across all seven specs.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W4</span><span class="chip p0">p0</span>
+          <span class="wtitle">Carry type definitions, not strings</span>
+          <p class="wsum">Types currently round-trip through a stringly-typed intermediate, which strips the
+            namespace CSharpAuthor needs and hides a silent type-hijack bug.</p>
+        </summary>
+        <div class="wbody">
+          <div>
+            <span class="lbl">The round trip</span>
+            <div class="where">TypeMapper.MapPropertyToCSharpType   →  returns a string
+    return $"List&lt;{itemType}&gt;";              // itemType's namespace: gone
+
+TypeMapper.GetTypeDefinition        →  parses it back out
+    if (csType.StartsWith("List&lt;")) {
+        var inner = csType.Substring(5, csType.Length - 6);
+        var innerType = GetTypeDefinition(ns, inner, false);   // ns re-guessed</div>
+          </div>
+          <p>
+            CSharpAuthor emits <code>global::</code>-qualified names out of the box when it holds a real
+            <code>ITypeDefinition</code>. That is why the <code>Pattern</code> attribute comes out fully
+            qualified &mdash; it is built with <code>TypeDefinition.Get(...)</code> directly &mdash; while
+            <code>ObjsBotProfile?</code> does not.
+          </p>
+          <p>
+            <b>The single <code>ns</code> parameter is the blocker for W3.</b> It hard-codes the assumption
+            that every model type lives in one namespace, and passes that same <code>ns</code> down for
+            generic arguments. Survivable while everything is flat; the moment W3 lands it resolves types
+            into the wrong namespace, and the failure is quiet.
+          </p>
+          <div>
+            <span class="lbl">Latent bug this also closes</span>
+            <div class="where">GetPrimitiveTypeDefinition keys on the rendered name:
+
+  "DateTime"    => TypeDefinition.Get(typeof(DateTime))
+  "JsonElement" => TypeDefinition.Get("System.Text.Json", "JsonElement")
+
+A schema named date_time PascalCases to DateTime, hits that switch, and silently
+binds to System.DateTime instead of the generated model. No error. Same for
+json_element and byte.</div>
+          </div>
+          <div class="ac"><b>Done when</b>
+            Every generated type reference is <code>global::</code>-qualified including generic arguments,
+            and a spec declaring <code>date_time</code> generates and binds its own model.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W5</span><span class="chip p0">p0</span>
+          <span class="wtitle">Never fail the build on a name; offer an override instead</span>
+          <p class="wsum">Policy change, small code. Unblocks GitHub and Stripe, and encodes the principle
+            that consumers do not control the specs they generate from.</p>
+        </summary>
+        <div class="wbody">
+          <p>
+            <code>HOAT003</code> refuses <code>commit.commit</code>, <code>email.email</code>,
+            <code>key.key</code>, <code>marketplace-purchase.marketplace_purchase</code> and Stripe's
+            <code>error.error</code>, advising the author to rename the schema or the property. That is
+            sound for a spec you own and impossible for a vendor's published description.
+          </p>
+          <p>
+            The mechanism to resolve it automatically already exists: <code>[JsonPropertyName]</code> pins
+            the wire contract everywhere else, so renaming the <em>member</em> costs nothing on the wire.
+            The existing reasoning &mdash; that a member named differently from what the author wrote is
+            worse to debug &mdash; holds when the author wrote it, and inverts when they did not.
+          </p>
+          <div>
+            <span class="lbl">Target policy</span>
+            <div class="where">resolve automatically  →  warn, naming both the source and the chosen name
+author overrides      →  sidecar map, keyed by spec + JSON pointer
+hard error            →  only when genuinely impossible, or an override collides</div>
+          </div>
+          <p>
+            <b>Put overrides in a sidecar, not in the spec.</b> <code>x-</code> extensions are wiped every
+            time a vendor document is re-fetched. A sidecar file or MSBuild items survive re-fetching, which
+            is the difference between a workflow and a chore. Precedent for the extension route already
+            exists in the parser via <code>x-filter-types</code>; it is the wrong home for this.
+          </p>
+          <p>
+            While here, renumber the overloaded codes: <code>HOAT003</code> and <code>HOAT005</code> each
+            mean two unrelated things today, one from the targets file and one from the build task, and both
+            pairs are reachable in the same build.
+          </p>
+          <div class="ac"><b>Done when</b>
+            GitHub and Stripe generate without hand-editing their documents, each automatic rename is
+            warned about, and a sidecar override changes a generated name.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W6</span><span class="chip p0">p0</span>
+          <span class="wtitle">OpenAPI 3.1 via the Microsoft.OpenApi upgrade</span>
+          <p class="wsum">Two specs, and the largest engineering lift. Insulated from W2&ndash;W5 by the IDL
+            spine, so it can run in parallel.</p>
+        </summary>
+        <div class="wbody">
+          <p>
+            Pinned at <code>1.6.22</code>, which throws
+            <code>OpenApiUnsupportedSpecVersionException</code> for 3.1.0. Confirmed with one document
+            differing only in its version line. 3.1 support first landed in <b>2.0</b>; the package is now
+            at <b>3.10.0</b>, so this is two majors, not a bump.
+          </p>
+          <div>
+            <span class="lbl">Breaking changes that hit this code</span>
+            <div class="where">OpenApiSchema → IOpenApiSchema     inline vs OpenApiSchemaReference
+OpenApiAny/OpenApiString removed  → JsonNode  (parser opens with `using Microsoft.OpenApi.Any;`)
+ParseNode infrastructure removed  → visitor/writer APIs
+OpenApiReference reshaped         → local vs external refs
+
+Semantics the library will not do for you:
+  nullable: true        →  type: ["string", "null"]
+  exclusiveMinimum      →  boolean in 3.0, number in 3.1</div>
+          </div>
+          <p>
+            <b>The parallelism is real and worth exploiting.</b> The emitters run off
+            <code>ServiceSpecModel</code>, not Microsoft's object model, so the parser swap is contained
+            behind the IDL spine and the name allocator never sees <code>IOpenApiSchema</code>. The same
+            upgrade also buys 3.2.
+          </p>
+          <div class="ac"><b>Done when</b>
+            OpenAI and Train Travel parse and generate. The 3.0 corpus produces byte-identical output to
+            before the upgrade &mdash; that regression check is what makes the swap safe.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W7</span><span class="chip p1">p1</span>
+          <span class="wtitle">Surface parse diagnostics; emit top-level array schemas</span>
+          <p class="wsum">Two small independent fixes: one restores the reason behind every parse failure,
+            one closes a dangling type reference.</p>
+        </summary>
+        <div class="wbody">
+          <div>
+            <span class="lbl">Diagnostics — Parsing/OpenApiSpecParser.cs:17</span>
+            <div class="where">    var reader = new OpenApiStringReader();
+    document = reader.Read(text, out var diagnostic);   // never inspected
+} catch (Exception) {
+    return null;                                        // message discarded
+}</div>
+          </div>
+          <p>
+            <code>diagnostic.Errors</code> carries messages and JSON pointers, and the exception names the
+            problem exactly. Both are dropped, so <code>HOAT002</code> reports a bare &ldquo;could not be
+            parsed&rdquo; on a 2.8 MB document. Reporting them costs nothing and would have made W6
+            self-evident.
+          </p>
+          <p>
+            <b>Top-level arrays.</b> Slack declares <code>blocks</code> as <code>type: array</code>;
+            properties referencing it are typed <code>Blocks?</code> and no <code>Blocks</code> is ever
+            declared, producing <code>CS0246</code>. Top-level scalar aliases in the same document resolve
+            correctly, so this is specific to named array schemas.
+          </p>
+          <div class="ac"><b>Done when</b>
+            Every <code>HOAT002</code> names a reason and a location, and Slack generates no unresolved type
+            references.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W8</span><span class="chip p1">p1</span>
+          <span class="wtitle">allOf: merge, collapse, relate</span>
+          <p class="wsum">Four distinct shapes wearing one keyword. One of them is a build break; the rest
+            lose information silently.</p>
+        </summary>
+        <div class="wbody">
+          <div>
+            <span class="lbl">Observed distribution</span>
+            <div class="where">                  allOf   extension   mixin   ref-wrapper   discriminators
+openai.yaml         156         145       4             5        107
+github.yaml          54          10      26             4          5
+train-travel.yaml    20          12       8             0          <b>0</b>
+stripe · twilio · petstore    — no allOf at all —</div>
+          </div>
+          <ul class="plain">
+            <li><b>Merge properties by name.</b> <code>ParseAllOf</code> appends every branch's properties
+              without merging, so refining a constraint on an inherited property emits the member twice:
+              <code>CS0100</code> / <code>CS0102</code>. This is a build break and the only p0-shaped item
+              in W8.</li>
+            <li><b>Collapse the ref-wrapper.</b> <code>allOf: [$ref X]</code> plus a description is the
+              standard OpenAPI 3.0 workaround for <code>$ref</code> ignoring siblings, and today it generates
+              a duplicate record of <code>X</code>. It should alias and emit nothing. 3.1 makes the pattern
+              obsolete, but every 3.0 document is full of it.</li>
+            <li><b>Ungate the relationship.</b> <code>ParsePolymorphism</code> sets <code>BaseRef</code>
+              only when an <code>allOf</code> branch is a <code>$ref</code> <em>and</em> declares a
+              discriminator. But a discriminator says how to deserialize a hierarchy, not whether one
+              exists. Train Travel is the proof: 20 compositions, zero discriminators, all flattened.</li>
+            <li><b>Mixins need interfaces.</b> GitHub's 26 multi-<code>$ref</code> compositions have no
+              expressible base class. Emitting an interface per composed schema and having records implement
+              them handles mixins and extensions with one mechanism, and avoids threading base constructor
+              arguments through positional records.</li>
+          </ul>
+          <p>
+            Interface caveat: if a base has <code>count</code> optional (<code>int?</code>) and a child marks
+            it required (<code>int</code>), the record does not implement the interface &mdash; value-type
+            nullability is not erased the way reference-type nullability is. Generate the interface from the
+            merged view.
+          </p>
+          <div class="ac"><b>Done when</b>
+            The five-shape allOf probe builds, <code>RefWrapper</code> resolves to its target rather than a
+            duplicate, and Train Travel's 20 compositions retain their relationships.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W9</span><span class="chip p1">p1</span>
+          <span class="wtitle">oneOf / anyOf: a generated union type per site</span>
+          <p class="wsum">Replaces the silent <code>JsonElement</code> fallback with a named type, typed
+            accessors, and an emitted converter.</p>
+        </summary>
+        <div class="wbody">
+          <p>
+            The discriminator is already parsed into <code>DiscriminatorPropertyName</code> and
+            <code>DiscriminatorMapping</code> and then dropped at emission &mdash; the same shape as the
+            allOf gate. Variant records are generated correctly today and simply never referenced.
+          </p>
+          <div>
+            <span class="lbl">Surface</span>
+            <div class="where">public readonly record struct PetPayload {
+    private PetPayload(object value) =&gt; Value = value;
+
+    public object Value { get; }                      // pattern matching; handles scalar variants
+
+    public bool TryGetCat(out Cat value);             // discoverable, compile-time safe
+    public bool TryGetDog(out Dog value);
+
+    public static implicit operator PetPayload(Cat value) =&gt; new(value);
+    public static implicit operator PetPayload(Dog value) =&gt; new(value);
+}</div>
+          </div>
+          <ul class="plain tight">
+            <li><b>Get-only <code>Value</code>, construction through implicit operators.</b> A validating
+              setter moves to runtime a check the compiler makes for free.</li>
+            <li><b>No generic <code>TryGet&lt;T&gt;</code>.</b> The variants are known at generation time, so
+              named accessors are more discoverable and need no marker interface, leaving variant records
+              unpolluted. Arity-free &mdash; 40 variants costs 40 methods and zero type parameters.</li>
+            <li><b><code>object</code>, not a generated interface.</b> An interface cannot represent scalar
+              variants, and <code>oneOf: [string, object]</code> is pervasive &mdash; it is how Stripe models
+              every expandable reference.</li>
+            <li><b>Beware the struct default.</b> <code>default(PetPayload)</code> holds nothing and is
+              silently constructible. Add <code>HasValue</code>, or use a sealed class so <code>null</code>
+              carries absence honestly.</li>
+          </ul>
+          <div>
+            <span class="lbl">Emitted converter</span>
+            <div class="where">write            switch on runtime type, delegate to that variant's JsonTypeInfo
+
+read, disc.      Utf8JsonReader is a ref struct — copy it, scan ahead for the
+                 discriminator, discard the copy, deserialize with the concrete
+                 JsonTypeInfo. Single pass, no DOM, order-independent.
+
+read, no disc.   buffer to JsonElement, shape-match on required-property sets.
+                 Ambiguity is possible — warn at generation time, not at runtime.
+
+AOT              call generated JsonTypeInfo&lt;T&gt; overloads, never
+                 JsonSerializer.Deserialize&lt;T&gt;. Register the union via
+                 JsonMetadataServices.CreateValueInfo&lt;PetPayload&gt;(options, converter).</div>
+          </div>
+          <p>
+            <b>Owning the converter avoids a live landmine.</b> Using STJ's own polymorphism would put the
+            discriminator in conflict with a declared property &mdash; and OpenAPI <em>requires</em>
+            <code>propertyName</code> to name a real, required property. STJ throws on that conflict even
+            when the property is <code>[JsonIgnore]</code>, .NET 10 moved the throw earlier to serializer
+            construction, and the discriminator property also cannot be <code>required</code>. A generated
+            converter sidesteps all of it, and variant records keep their discriminator property as normal.
+          </p>
+          <p>
+            The union needs a name, and an inline <code>oneOf</code> at a property site has none. Take
+            <code>title</code>, else derive from the property path through W2's allocator &mdash; do not
+            concatenate variant names, which dies at 40 variants.
+          </p>
+          <div class="ac"><b>Done when</b>
+            A <code>oneOf</code> with a discriminator round-trips through a single-pass read, one without
+            produces a warning naming the ambiguity, and no union reaches a handler as raw
+            <code>JsonElement</code> without a diagnostic.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W10</span><span class="chip p2">p2</span>
+          <span class="wtitle">Fidelity gaps that currently degrade silently</span>
+          <p class="wsum">Each one is a place where the document says more than the generated signature does.</p>
+        </summary>
+        <div class="wbody">
+          <div class="where">array of arrays      →  List&lt;JsonElement&gt;      inner element type dropped
+multipart/form-data  →  JsonElement body       form fields unmodelled
+format: binary       →  (nothing)              no stream or file type
+format: uuid         →  string                 not Guid
+non-2xx responses    →  absent                 Problem generated, unreferenced by any signature</div>
+          <p>
+            The governing rule is worth stating once and applying to all of them: <b>always emit a compiling
+            project; degrade to a weaker type rather than failing; say what degraded.</b> Silent degradation
+            is the actual defect here &mdash; it is easy to ship a handler taking <code>JsonElement</code>
+            without ever learning what was lost.
+          </p>
+          <div class="ac"><b>Done when</b>
+            Every degradation emits a diagnostic naming the construct and the type it fell back to.</div>
+        </div>
+      </details>
+
+      <details class="item">
+        <summary>
+          <span class="wid">W11</span><span class="chip p2">p2</span>
+          <span class="wtitle">PascalCase generated public members</span>
+          <p class="wsum">Parameter interfaces carry the spec's casing onto public C# API surface.</p>
+        </summary>
+        <div class="wbody">
+          <div class="where">public partial interface IGetItemParameters {
+    [Required]
+    long <b>itemId</b> { get; }        // conventionally ItemId
+    string? <b>xTraceId</b> { get; }
+}</div>
+          <p>
+            Model records are already PascalCased with <code>[JsonPropertyName]</code> pinning the wire name,
+            so the two halves of the generated surface follow different conventions today. This is a
+            breaking change to generated API, so it belongs with W2 rather than after it &mdash; the
+            allocator is where casing should be decided once for everything.
+          </p>
+          <div class="ac"><b>Done when</b>
+            No generated public member is camelCase, and wire names are unchanged.</div>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="rule"></span>Sequencing</h2>
+    <pre><b>Phase 1 — independent, start now</b>
+  W1  required-guard            one call site, unblocks Petstore
+  W7  parse diagnostics         makes every later failure legible
+  W6  Microsoft.OpenApi 3.x     longest lead time, parallel track behind the IDL spine
+
+<b>Phase 2 — the naming core, in order</b>
+  W4  type definitions          must precede W3, or namespaces resolve wrongly
+  W2  name allocator            + W11 casing, decided once
+  W3  URI tree and namespaces
+  W5  never-fail policy         + sidecar overrides, + code renumbering
+
+<b>Phase 3 — fidelity</b>
+  W8  allOf                     merge is a build break; treat that part as phase 2
+  W9  oneOf union types
+  W10 remaining degradations</pre>
+    <p>
+      W4 before W3 is the one ordering that is not negotiable: introducing namespaces while types still
+      travel as strings resolves generic arguments into the referencing type's namespace, and it fails
+      quietly.
+    </p>
+    <p>
+      W6 has no dependency on the naming work in either direction, which is worth exploiting given it is the
+      biggest single item. That independence is a property of the IDL spine, not an accident.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="rule"></span>How to know it worked</h2>
+    <ul class="plain">
+      <li><b>The harness, after every item.</b> <code>~/testing/openapi-eval/run-all.sh</code> builds all
+        seven specs in both modes in about three minutes and writes per-spec logs. The goal state is seven
+        projects generating operations and models; compiling handlers is not required, since nobody is going
+        to implement GitHub's 600 operations.</li>
+      <li><b>The shuffle test.</b> Permute a spec's key order, regenerate, diff the name table. Byte-identical
+        or the allocator is order-dependent.</li>
+      <li><b>The 3.0 regression check.</b> Before W6, snapshot generated output for the 3.0 corpus. After the
+        upgrade it must be byte-identical. This is the only thing that makes a two-major dependency swap
+        safe to review.</li>
+      <li><b>The name table as a CI gate.</b> Once it lands in the model file, a vendor spec update that
+        renames a public type shows up as a reviewable diff instead of a compile error in a consumer's
+        handler.</li>
+      <li><b>Re-measure the layers.</b> Expect new findings each time a blocker clears. GitHub went from 8
+        errors to 101,766 the moment its first blocker was removed; nothing below Twilio's parameter-name
+        failures has been seen at all.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Hardened.Framework &middot; OpenAPI remediation plan &middot; 11 items &middot; base main @ 3bc8e5b</span>
+    <span>Companion to the evaluation report. Working clone: ~/Hardened-openapi-work on feature/openapi-remediation.</span>
+  </footer>
+
+</div>
