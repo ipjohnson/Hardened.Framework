@@ -114,6 +114,14 @@ public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.
 
         _requestLogger.RequestEnd(execution);
 
+        // The logger is created per request in CreateContext and nothing else owns it. Disposal is
+        // how a provider learns the request finished - EmbeddedMetricLogger writes its EMF line
+        // here - so without it any provider that emits on completion emitted nothing at all.
+        //
+        // Kestrel calls DisposeContext for every request it created a context for, including one
+        // that threw, so this needs no guard of its own.
+        execution.RequestMetrics.Dispose();
+
         context.Scope.Dispose();
     }
 }

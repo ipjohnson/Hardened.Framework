@@ -40,6 +40,37 @@ public class AspNetCoreRequestHandlerTests {
         harness.MetricLogger.Received(1).Record(RequestMetrics.TotalRequestDuration, Arg.Any<double>());
     }
 
+    /// <summary>
+    /// The logger is created per request and nothing else owns it. Disposal is how a provider
+    /// learns the request finished — <c>EmbeddedMetricLogger</c> writes its EMF line there — so a
+    /// host that never disposes gets nothing out of any provider that emits on completion.
+    /// </summary>
+    [Fact]
+    public async Task HandleRequest_FlushesTheMetricLogger() {
+        var harness = new Harness();
+
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
+
+        harness.MetricLogger.Received(1).Dispose();
+    }
+
+    /// <summary>
+    /// The close-out ran as straight-line statements after the chain, so an exception on its way to
+    /// ASP.NET's own handler took the duration, the end and the flush with it — leaving no record
+    /// of the request most worth having one.
+    /// </summary>
+    [Fact]
+    public async Task HandleRequest_ClosesTheRequestOutWhenTheChainThrows() {
+        var harness = new Harness(chainEffect: _ => throw new InvalidOperationException("boom"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask));
+
+        harness.MetricLogger.Received(1).Record(RequestMetrics.TotalRequestDuration, Arg.Any<double>());
+        harness.RequestLogger.Received(1).RequestEnd(Arg.Any<IExecutionContext>());
+        harness.MetricLogger.Received(1).Dispose();
+    }
+
     [Fact]
     public async Task HandleRequest_RunsTheExecutionChain() {
         var harness = new Harness();
