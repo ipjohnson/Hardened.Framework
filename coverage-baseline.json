@@ -1,12 +1,4 @@
 {
-  "Hardened.Commands": {
-    "line": 92.3,
-    "branch": 92.8
-  },
-  "Hardened.Console.SourceGenerator": {
-    "line": 39.4,
-    "branch": 28.7
-  },
   "Hardened.DependencyModules.SourceGenerator": {
     "line": 20.1,
     "branch": 9.9
