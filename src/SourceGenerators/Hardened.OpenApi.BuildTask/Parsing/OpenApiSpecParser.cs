@@ -7,16 +7,32 @@ using Hardened.Idl;
 namespace Hardened.OpenApi.SourceGenerator;
 
 internal static class OpenApiSpecParser {
+    /// <param name="diagnostics">
+    /// Reasons, when there are any. The reader knows exactly what is wrong - an unsupported
+    /// specification version, an unresolved reference - and its message was previously the only
+    /// description of the failure anyone would have got, discarded along with the exception. A
+    /// caller that passes nothing still behaves as before.
+    /// </param>
     public static ServiceSpecModel? Parse(
         string text, string fileName, CancellationToken cancellationToken,
-        bool applyServerBasePath = false) {
+        bool applyServerBasePath = false, ICollection<string>? diagnostics = null) {
         cancellationToken.ThrowIfCancellationRequested();
 
         OpenApiDocument? document;
         try {
             var reader = new OpenApiStringReader();
             document = reader.Read(text, out var diagnostic);
-        } catch (Exception) {
+
+            if (diagnostic?.Errors != null) {
+                foreach (var error in diagnostic.Errors) {
+                    diagnostics?.Add(
+                        string.IsNullOrEmpty(error.Pointer)
+                            ? error.Message
+                            : error.Pointer + ": " + error.Message);
+                }
+            }
+        } catch (Exception exception) {
+            diagnostics?.Add(exception.Message);
             return null;
         }
 
@@ -76,7 +92,152 @@ internal static class OpenApiSpecParser {
             });
         }
 
+        InlineNonObjectRefs(model);
+        ResolveMemberNameCollisions(model);
+
         return model;
+    }
+
+    /// <summary>
+    /// Properties whose generated member would carry their own type's name.
+    /// </summary>
+    /// <remarks>
+    /// C# forbids it - CS0542 - and it is an ordinary shape in published documents: GitHub declares
+    /// <c>commit.commit</c>, <c>email.email</c>, <c>key.key</c> and
+    /// <c>marketplace-purchase.marketplace_purchase</c>, Stripe declares <c>error.error</c>. Telling
+    /// the author to rename one of them assumes the author is the person building, which for a
+    /// vendor's description is exactly who they are not.
+    ///
+    /// <para>
+    /// The suffix is applied to the member only. <c>[JsonPropertyName]</c> already pins the wire
+    /// name, so nothing about the request or response changes.
+    /// </para>
+    /// </remarks>
+    /// <summary>
+    /// A short, stable qualifier for a name that has to differ from another.
+    /// </summary>
+    /// <remarks>
+    /// FNV-1a, for the reason <c>PatternRegistry</c> gives: <see cref="string.GetHashCode"/> is
+    /// randomised per process in .NET Core, and a generated type that renames itself on every build
+    /// churns the file and recompiles every consumer. Derived from provenance rather than from the
+    /// order things were parsed in, so reordering a document cannot rename a type.
+    /// </remarks>
+    private static string StableSuffix(string provenance) {
+        unchecked {
+            var hash = 2166136261;
+
+            foreach (var character in provenance) {
+                hash = (hash ^ character) * 16777619;
+            }
+
+            return hash.ToString("x8", System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
+
+    private static void ResolveMemberNameCollisions(ServiceSpecModel model) {
+        foreach (var schema in model.Schemas) {
+            var typeName = NamingHelper.ToPascalCase(schema.Name);
+
+            foreach (var property in schema.Properties) {
+                if (property.MemberName != typeName) {
+                    continue;
+                }
+
+                var candidate = typeName + "Value";
+
+                // Vanishingly unlikely, but a sibling could already be called that.
+                while (schema.Properties.Exists(
+                           p => !ReferenceEquals(p, property) && p.MemberName == candidate)) {
+                    candidate += "_";
+                }
+
+                property.MemberNameOverride = candidate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Rewrites references to top-level array schemas into the array they stand for.
+    /// </summary>
+    /// <remarks>
+    /// A schema declared at the top level as <c>type: array</c> is an alias for a list, not a type
+    /// of its own, and no record is emitted for it. Anything referencing it was still typed by the
+    /// reference's name, so Slack's <c>blocks</c> produced a property of type <c>Blocks</c> that
+    /// nothing declared - CS0246 in a generated file.
+    ///
+    /// <para>
+    /// Done as a pass over the finished model rather than at the point each property is parsed,
+    /// because a reference can be read before the schema it names has been.
+    /// </para>
+    /// </remarks>
+    private static void InlineNonObjectRefs(ServiceSpecModel model) {
+        // Only objects and enums become types. A reference to anything else - a top-level array
+        // alias, an anyOf with no shape of its own, a schema this parser could not read - was still
+        // typed by the reference's name, naming something nothing declares. Slack's `blocks`,
+        // GitHub's `code-frequency-stat` and Stripe's `external_account` were all CS0246.
+        var emittable = new HashSet<string>();
+        var arrays = new Dictionary<string, SchemaModel>();
+
+        foreach (var schema in model.Schemas) {
+            if (schema.Kind == SchemaKind.Object || schema.Kind == SchemaKind.Enum) {
+                emittable.Add(schema.Name);
+            }
+
+            if (schema.Kind == SchemaKind.Array) {
+                arrays[schema.Name] = schema;
+            }
+        }
+
+        bool Missing(string? reference) =>
+            reference != null && !emittable.Contains(TypeMapper.GetRefName(reference));
+
+        SchemaModel? Array(string? reference) =>
+            reference != null && arrays.TryGetValue(TypeMapper.GetRefName(reference), out var found)
+                ? found
+                : null;
+
+        foreach (var schema in model.Schemas) {
+            foreach (var property in schema.Properties) {
+                var target = Array(property.Ref);
+
+                if (target != null) {
+                    // An alias for a list, so the property becomes that list.
+                    property.Ref = null;
+                    property.IsArray = true;
+                    property.ArrayItemsRef = target.ArrayItemsRef;
+                    property.ArrayItemsType = target.ArrayItemsType;
+                    property.ArrayItemsFormat = target.ArrayItemsFormat;
+                } else if (Missing(property.Ref)) {
+                    property.Ref = null;
+                }
+
+                // Nested arrays and unreadable element types both fall back to JsonElement, which
+                // is what the mapper already does for an element it cannot name.
+                if (Missing(property.ArrayItemsRef)) property.ArrayItemsRef = null;
+                if (Missing(property.DictionaryValueRef)) property.DictionaryValueRef = null;
+            }
+        }
+
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                if (Missing(operation.RequestBodyRef)) operation.RequestBodyRef = null;
+
+                var response = Array(operation.ResponseRef);
+
+                if (response != null) {
+                    operation.ResponseRef = null;
+                    operation.ResponseIsArray = true;
+                    operation.ResponseArrayItemsRef = response.ArrayItemsRef;
+                } else if (Missing(operation.ResponseRef)) {
+                    operation.ResponseRef = null;
+                }
+
+                if (Missing(operation.ResponseArrayItemsRef)) {
+                    operation.ResponseArrayItemsRef = null;
+                    operation.ResponseIsArray = false;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -287,13 +448,71 @@ internal static class OpenApiSpecParser {
                 foreach (var propKvp in allOfSchema.Properties) {
                     var isRequired = model.Required.Contains(propKvp.Key) ||
                                      (allOfSchema.Required?.Contains(propKvp.Key) ?? false);
-                    model.Properties.Add(
-                        ParseProperty(propKvp.Key, propKvp.Value, isRequired, name, collector));
+                    var parsed =
+                        ParseProperty(propKvp.Key, propKvp.Value, isRequired, name, collector);
+
+                    // allOf is an intersection, so a property named by more than one branch is one
+                    // property described twice - most often a base declaring it and a later branch
+                    // narrowing a constraint on it. Appending both produced two record parameters
+                    // of the same name: CS0100 and CS0102, from a document that is entirely legal.
+                    var existing = model.Properties.FindIndex(p => p.Name == parsed.Name);
+
+                    if (existing >= 0) {
+                        model.Properties[existing] = MergeProperty(model.Properties[existing], parsed);
+                    } else {
+                        model.Properties.Add(parsed);
+                    }
                 }
             }
         }
 
         return model;
+    }
+
+    /// <summary>
+    /// One property described by two <c>allOf</c> branches, folded into one.
+    /// </summary>
+    /// <remarks>
+    /// Later branches win on anything they state, which is what narrowing means: a branch that
+    /// repeats a property to add <c>maxLength</c> is refining the earlier declaration, not replacing
+    /// it. Anything the later branch is silent about keeps the earlier value, so the type and
+    /// description a base declared survive a branch that only tightens a bound.
+    /// </remarks>
+    private static PropertyModel MergeProperty(PropertyModel first, PropertyModel second) {
+        return new PropertyModel {
+            Name = first.Name,
+            Type = second.Type ?? first.Type,
+            Format = second.Format ?? first.Format,
+            Ref = second.Ref ?? first.Ref,
+            IsArray = second.IsArray || first.IsArray,
+            ArrayItemsRef = second.ArrayItemsRef ?? first.ArrayItemsRef,
+            ArrayItemsType = second.ArrayItemsType ?? first.ArrayItemsType,
+            ArrayItemsFormat = second.ArrayItemsFormat ?? first.ArrayItemsFormat,
+
+            // Required anywhere is required: a branch cannot loosen what another branch demands.
+            IsRequired = first.IsRequired || second.IsRequired,
+            IsNullable = first.IsNullable && second.IsNullable,
+
+            Description = second.Description ?? first.Description,
+            Default = second.Default ?? first.Default,
+            IsReadOnly = second.IsReadOnly || first.IsReadOnly,
+            IsWriteOnly = second.IsWriteOnly || first.IsWriteOnly,
+
+            IsDictionary = second.IsDictionary || first.IsDictionary,
+            DictionaryValueType = second.DictionaryValueType ?? first.DictionaryValueType,
+            DictionaryValueRef = second.DictionaryValueRef ?? first.DictionaryValueRef,
+
+            MinLength = second.MinLength ?? first.MinLength,
+            MaxLength = second.MaxLength ?? first.MaxLength,
+            Minimum = second.Minimum ?? first.Minimum,
+            Maximum = second.Maximum ?? first.Maximum,
+            ExclusiveMinimum = second.ExclusiveMinimum || first.ExclusiveMinimum,
+            ExclusiveMaximum = second.ExclusiveMaximum || first.ExclusiveMaximum,
+            Pattern = second.Pattern ?? first.Pattern,
+            MinItems = second.MinItems ?? first.MinItems,
+            MaxItems = second.MaxItems ?? first.MaxItems,
+            EnumValues = second.EnumValues is { Count: > 0 } ? second.EnumValues : first.EnumValues
+        };
     }
 
     private static SchemaModel ParseDictionarySchema(string name, OpenApiSchema schema) {
@@ -334,7 +553,21 @@ internal static class OpenApiSpecParser {
     /// </remarks>
     private static string SynthesizeSchema(
         string parentName, string propertyName, OpenApiSchema schema, List<SchemaModel> collector) {
+        // `title` is OpenAPI's own way to name a schema and would give far better names than this
+        // concatenation - Stripe carries 4,700 of them, GitHub 2,175. It is not usable yet: titles
+        // are not unique, and checking one against every name already taken needs the reserved set
+        // for the whole document, which only the declared schemas' own pass currently holds.
+        // Wiring that set through is the change that makes titles safe.
         var name = NamingHelper.ToPascalCase(parentName) + NamingHelper.ToPascalCase(propertyName);
+
+        // Joining an operation to a property path with no separator lets two different pairs land
+        // on one name: Stripe's POST .../financial_account with `features.card_issuing` collides
+        // with POST .../financial_account/features with `card_issuing`, 28 times over. Nothing in
+        // the document is wrong and neither name is declared, so there is nothing an author could
+        // rename. Qualify by where it came from instead - the provenance is what actually differs.
+        if (collector.Exists(s => NamingHelper.ToPascalCase(s.Name) == name)) {
+            name += "_" + StableSuffix(parentName + "/" + propertyName);
+        }
 
         var model = ParseObjectSchema(name, schema, collector);
 

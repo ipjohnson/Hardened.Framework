@@ -83,7 +83,7 @@ internal static class SchemaEmitter {
         var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
 
         var parameter = constructor.AddParameter(
-            typeDefinition, NamingHelper.ToPascalCase(property.Name));
+            typeDefinition, property.MemberName);
 
         parameter.Comment = DocComment.Format(property.Description);
 
@@ -134,7 +134,7 @@ internal static class SchemaEmitter {
         var csType = TypeMapper.MapPropertyToCSharpType(property);
         var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
 
-        var member = record.AddProperty(typeDefinition, NamingHelper.ToPascalCase(property.Name));
+        var member = record.AddProperty(typeDefinition, property.MemberName);
 
         member.Modifiers |= ComponentModifier.Public;
         member.Set = new PropertyMethodDefinition { IsInit = true };
@@ -193,7 +193,7 @@ internal static class SchemaEmitter {
 
         foreach (var property in inherited) {
             arguments.Add(
-                new CodeOutputComponent(NamingHelper.ToPascalCase(property.Name)) { Indented = false });
+                new CodeOutputComponent(property.MemberName) { Indented = false });
         }
 
         record.AddBaseType(baseType, arguments.ToArray());

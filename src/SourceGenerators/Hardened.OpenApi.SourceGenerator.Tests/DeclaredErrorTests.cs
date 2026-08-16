@@ -65,7 +65,7 @@ public class DeclaredErrorTests {
         var generated = OpenApiGenerator.Run(Specs.DeclaredErrors).AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
-        Assert.Contains("Task<Pet> GetPet(string petId);", generated);
+        Assert.Contains("Task<global::TestNamespace.Models.Pet> GetPet(string petId);", generated);
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ public class DeclaredErrorTests {
         Assert.Contains("public GetPetServiceUnavailableException()\n: base(503)", undented);
 
         // The ones that do declare a body get typed access to it.
-        Assert.Contains("public GetPetNotFoundException(ApiError value)\n: base(404, value)", undented);
-        Assert.Contains("public ApiError Body => (ApiError)Value!;", undented);
+        Assert.Contains("public GetPetNotFoundException(global::TestNamespace.Models.ApiError value)\n: base(404, value)", undented);
+        Assert.Contains("public global::TestNamespace.Models.ApiError Body => (global::TestNamespace.Models.ApiError)Value!;", undented);
     }
 }

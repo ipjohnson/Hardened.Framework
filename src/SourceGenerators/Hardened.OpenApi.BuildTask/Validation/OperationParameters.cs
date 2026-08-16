@@ -39,9 +39,29 @@ internal static class OperationParameters {
         var members = new List<Member>();
         var constrained = false;
 
+        // Enums the document declares, by the name their generated type carries. A parameter typed
+        // as one of these is already restricted to its members, and it is not a reference type -
+        // both of which change which constraints can be emitted against it.
+        var enumTypes = new HashSet<string>();
+
+        foreach (var schema in spec.Schemas) {
+            if (schema.Kind == SchemaKind.Enum) {
+                enumTypes.Add(NamingHelper.ToPascalCase(schema.Name));
+            }
+        }
+
         foreach (var parameter in operation.Parameters) {
             var csType = TypeMapper.MapParameterToCSharpType(parameter);
-            var attributes = ConstraintAttributes.ForParameter(parameter, patterns);
+            var isEnumType = enumTypes.Contains(csType);
+
+            // Suppressed where the C# type already guarantees presence, exactly as SchemaEmitter
+            // has always done for properties. A required integer path parameter is the common case.
+            var emitRequired = parameter.ConstrainedAsRequired &&
+                               !TypeMapper.IsNonNullableValueType(csType) &&
+                               !isEnumType;
+
+            var attributes = ConstraintAttributes.ForParameter(
+                parameter, emitRequired, !isEnumType, patterns);
 
             constrained |= attributes.Count > 0;
 

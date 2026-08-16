@@ -32,8 +32,20 @@ internal static class ConstraintAttributes {
     /// <param name="Arguments">Already-rendered arguments, positional then named.</param>
     internal sealed record Model(ITypeDefinition Type, IReadOnlyList<string> Arguments);
 
-    public static IReadOnlyList<Model> ForParameter(ParameterModel parameter, PatternRegistry patterns) =>
-        Build(parameter, parameter.ConstrainedAsRequired, patterns);
+    /// <param name="required">
+    /// From the caller, for the same reason as <see cref="ForProperty"/>. Computing it here from
+    /// the model alone put <c>[Required]</c> on non-nullable value types, and the validation
+    /// generator answers that with <c>value.petId is null</c> against a <c>long</c> - CS0037, in a
+    /// generated file, from a spec that is not wrong.
+    /// </param>
+    /// <param name="allowedValues">
+    /// False where the C# type already admits only the permitted values. A parameter whose schema
+    /// is a <c>$ref</c> to an enum is typed as the generated enum, and <c>[AllowedValues]</c> then
+    /// compares that enum against string literals - CS0019, once per member.
+    /// </param>
+    public static IReadOnlyList<Model> ForParameter(
+        ParameterModel parameter, bool required, bool allowedValues, PatternRegistry patterns) =>
+        Build(parameter, required, patterns, allowedValues);
 
     /// <param name="required">
     /// From the caller rather than the model: it also knows whether the C# type makes
@@ -44,7 +56,8 @@ internal static class ConstraintAttributes {
         Build(property, required, patterns);
 
     private static IReadOnlyList<Model> Build(
-        IConstraintFacets facets, bool required, PatternRegistry patterns) {
+        IConstraintFacets facets, bool required, PatternRegistry patterns,
+        bool allowedValues = true) {
         var minLength = facets.MinLength;
         var maxLength = facets.MaxLength;
         var minimum = facets.Minimum;
@@ -95,7 +108,7 @@ internal static class ConstraintAttributes {
             attributes.Add(new Model(Attribute("ItemCountAttribute"), Bounds(minItems, maxItems)));
         }
 
-        if (enumValues is { Count: > 0 }) {
+        if (allowedValues && enumValues is { Count: > 0 }) {
             attributes.Add(new Model(
                 Attribute("AllowedValuesAttribute"), enumValues.Select(Quote).ToList()));
         }

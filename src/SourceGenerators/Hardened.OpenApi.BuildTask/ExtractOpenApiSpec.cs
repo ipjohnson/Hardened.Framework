@@ -97,8 +97,10 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     /// implementation is a guess frozen into the shape of the task.
     /// </para>
     /// </remarks>
-    private ServiceSpecModel? Parse(string document, string fileName) =>
-        OpenApiSpecParser.Parse(document, fileName, CancellationToken.None, ApplyServerBasePath);
+    private ServiceSpecModel? Parse(
+        string document, string fileName, ICollection<string> diagnostics) =>
+        OpenApiSpecParser.Parse(
+            document, fileName, CancellationToken.None, ApplyServerBasePath, diagnostics);
 
     public override bool Execute() {
         var models = new List<ITaskItem>();
@@ -120,13 +122,27 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             var document = File.ReadAllText(path);
             ServiceSpecModel model;
 
+            // Whatever the reader had to say. Populated even on success, where it describes
+            // something the document got away with rather than something that stopped it.
+            var readerDiagnostics = new List<string>();
+
             try {
-                var parsed = Parse(document, fileName);
+                var parsed = Parse(document, fileName, readerDiagnostics);
 
                 if (parsed is null) {
                     Log.LogError(null, "HOAT002", null, path, 0, 0, 0, 0,
-                        "OpenAPI spec '{0}' could not be parsed.", path);
+                        "OpenAPI spec '{0}' could not be parsed{1}", path,
+                        readerDiagnostics.Count > 0
+                            ? ": " + string.Join("; ", readerDiagnostics.ToArray())
+                            : ", and the reader gave no reason.");
                     continue;
+                }
+
+                // Not fatal - the document produced a model. Reported so a partially understood
+                // spec does not look like a fully understood one.
+                foreach (var diagnostic in readerDiagnostics) {
+                    Log.LogWarning(null, "HOAT006", null, path, 0, 0, 0, 0,
+                        "OpenAPI spec '{0}': {1}", path, diagnostic);
                 }
 
                 model = parsed;
@@ -142,12 +158,20 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             // emitting it anyway turns a fixable spec problem into a compiler error in a generated
             // file the author cannot edit.
             var problems = SpecDiagnostics.Find(model);
+            var fatal = false;
 
-            if (problems.Count > 0) {
-                foreach (var problem in problems) {
+            foreach (var problem in problems) {
+                if (problem.Fatal) {
                     Log.LogError(null, problem.Code, null, path, 0, 0, 0, 0, "{0}", problem.Message);
+                    fatal = true;
+                } else {
+                    // Already resolved. Reported so the choice is visible rather than discovered
+                    // later in a generated file nobody opened.
+                    Log.LogWarning(null, problem.Code, null, path, 0, 0, 0, 0, "{0}", problem.Message);
                 }
+            }
 
+            if (fatal) {
                 continue;
             }
 

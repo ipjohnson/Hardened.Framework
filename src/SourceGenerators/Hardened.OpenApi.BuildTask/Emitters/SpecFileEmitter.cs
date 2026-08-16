@@ -108,7 +108,14 @@ internal static class SpecFileEmitter {
             })
             .ToList();
 
-        var context = new OutputContext();
+        // Fully qualified, because the names in this file come from someone else's document and
+        // routinely collide with the BCL: GitHub declares Environment and Thread, Stripe declares
+        // File, and each of those was CS0104 against System.Environment, System.Threading.Thread
+        // and System.IO.File. Nobody reads this file, so the length costs nothing, and it also
+        // means a type the consumer declares can never change what generated code binds to.
+        var context = new OutputContext(new OutputContextOptions {
+            TypeOutputMode = TypeOutputMode.Global
+        });
 
         file.WriteOutput(context);
 

@@ -45,8 +45,8 @@ public class GeneratedCodeCompilesTests {
         var record = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial record Widget(", record);
-        Assert.Contains("List<Part>? Parts = default", record);
-        Assert.Contains("Dictionary<string,string>? Labels = default", record);
+        Assert.Contains("global::System.Collections.Generic.List<global::TestNamespace.Models.Part>? Parts = default", record);
+        Assert.Contains("global::System.Collections.Generic.Dictionary<string,string>? Labels = default", record);
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public class GeneratedCodeCompilesTests {
         var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial interface IWidgetService", generated);
-        Assert.Contains("Task<List<Widget>> ListWidgets(", generated);
+        Assert.Contains("Task<global::System.Collections.Generic.List<global::TestNamespace.Models.Widget>> ListWidgets(", generated);
     }
 
     /// <summary>
@@ -213,7 +213,7 @@ public class GeneratedCodeCompilesTests {
 
         var resolver = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public sealed class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", resolver);
+        Assert.Contains("public sealed class PetstoreJsonTypeInfoResolver : global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver", resolver);
         Assert.Contains("if (type == typeof(Widget)) return CreateWidgetTypeInfo(options);", resolver);
         Assert.Contains("if (type == typeof(WidgetStatus)) return CreateWidgetStatusTypeInfo(options);", resolver);
         Assert.Contains("CreateListInfo<List<Part>, Part>", resolver);
@@ -276,7 +276,7 @@ public class GeneratedCodeCompilesTests {
 
         var attribute = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public partial class RateLimitAttribute : Attribute", attribute);
+        Assert.Contains("public partial class RateLimitAttribute : global::System.Attribute", attribute);
         Assert.Contains("public int MaxRequests { get; set; } = 100;", attribute);
         Assert.Contains("public string Window { get; set; } = \"minute\";", attribute);
         Assert.Contains("public bool Enabled { get; set; } = true;", attribute);
@@ -732,7 +732,7 @@ public class GeneratedCodeCompilesTests {
 
         // The base declares the shared properties; each derived record forwards them.
         Assert.Contains("public partial record Pet(", generated);
-        Assert.Contains(") : Pet(PetType, Name, Nickname);", generated);
+        Assert.Contains(") : global::TestNamespace.Models.Pet(PetType, Name, Nickname);", generated);
         Assert.Contains("record Dog(", generated);
         Assert.Contains("record Cat(", generated);
 

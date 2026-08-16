@@ -280,7 +280,7 @@ internal static class JsonTypeInfoEmitter {
     private static void EmitPropertyInfo(StringBuilder sb, PropertyModel prop, string declaringTypeName,
         List<SchemaModel> allSchemas) {
         var genericType = GetPropertyInfoGenericType(prop, allSchemas);
-        var propName = NamingHelper.ToPascalCase(prop.Name);
+        var propName = prop.MemberName;
 
         var getter = prop.IsWriteOnly
             ? "null"
@@ -300,7 +300,7 @@ internal static class JsonTypeInfoEmitter {
     private static void EmitParameterInfo(StringBuilder sb, PropertyModel prop, int position,
         List<SchemaModel> allSchemas) {
         var paramType = GetPropertyInfoGenericType(prop, allSchemas);
-        var propName = NamingHelper.ToPascalCase(prop.Name);
+        var propName = prop.MemberName;
 
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
         var isValueType = IsValueType(baseType, prop, allSchemas);

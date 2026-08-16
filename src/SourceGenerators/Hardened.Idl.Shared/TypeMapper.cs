@@ -126,9 +126,19 @@ internal static class TypeMapper {
     /// escalates warnings to errors under ContinuousIntegrationBuild, so a spec with a required
     /// integer property would fail CI while building clean locally.
     /// </remarks>
+    /// <remarks>
+    /// <c>JsonElement</c> belongs here for the same reason the numerics do, and its absence was
+    /// worth a build of its own: it is a struct, so a required property that fell back to it drew
+    /// <c>value.X is null</c> against a non-nullable value type. Generated enums are the remaining
+    /// case and cannot be recognised from a type name - callers holding the spec pass those in
+    /// separately.
+    /// </remarks>
     public static bool IsNonNullableValueType(string csType) =>
         csType switch {
-            "int" or "uint" or "long" or "float" or "double" or "bool" or "DateTime" or "DateOnly" => true,
+            "int" or "uint" or "long" or "ulong" or "short" or "ushort" or "byte" or "sbyte" or
+            "float" or "double" or "decimal" or "bool" or "char" or
+            "DateTime" or "DateOnly" or "TimeOnly" or "DateTimeOffset" or "TimeSpan" or
+            "Guid" or "JsonElement" => true,
             _ => false
         };
 
