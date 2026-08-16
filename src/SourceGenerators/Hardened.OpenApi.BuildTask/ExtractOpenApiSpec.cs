@@ -75,6 +75,26 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     public bool EmbedDocument { get; set; }
 
     /// <summary>
+    /// Whether operations with no tag are grouped by first path segment.
+    /// </summary>
+    /// <remarks>
+    /// Off, so an untagged document produces one service, which is what most of them mean. Turn it
+    /// on for a description that carries no tags at all and hundreds of operations - DigitalOcean's
+    /// is one - where a single interface with every method on it is not what anyone implements.
+    /// </remarks>
+    public bool GroupUntaggedByPath { get; set; }
+
+    /// <summary>
+    /// Whether <c>$ref</c>s into other files are followed.
+    /// </summary>
+    /// <remarks>
+    /// Off, and deliberately. A reference may name any URL, so following them turns a build into
+    /// something that reaches the network - not reproducible, and not safe against a description
+    /// someone else publishes. On, resolution is rooted at the directory holding the specification.
+    /// </remarks>
+    public bool LoadExternalRefs { get; set; }
+
+    /// <summary>
     /// Whether the path of the first <c>servers</c> entry prefixes every route.
     /// </summary>
     /// <remarks>
@@ -118,9 +138,11 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     /// </para>
     /// </remarks>
     private ServiceSpecModel? Parse(
-        string document, string fileName, ICollection<string> diagnostics) =>
+        string document, string fileName, string specPath, ICollection<string> diagnostics) =>
         OpenApiSpecParser.Parse(
-            document, fileName, CancellationToken.None, ApplyServerBasePath, diagnostics);
+            document, fileName, CancellationToken.None, ApplyServerBasePath, diagnostics,
+            GroupUntaggedByPath,
+            LoadExternalRefs ? Path.GetDirectoryName(Path.GetFullPath(specPath)) : null);
 
     /// <summary>
     /// Narrows a document to the operations one service implements. Returns true if that failed.
@@ -254,7 +276,7 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             var readerDiagnostics = new List<string>();
 
             try {
-                var parsed = Parse(document, fileName, readerDiagnostics);
+                var parsed = Parse(document, fileName, path, readerDiagnostics);
 
                 if (parsed is null) {
                     Log.LogError(null, "HOAT002", null, path, 0, 0, 0, 0,

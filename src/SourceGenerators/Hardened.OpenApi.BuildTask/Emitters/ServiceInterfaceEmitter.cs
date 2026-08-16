@@ -77,7 +77,7 @@ internal static class ServiceInterfaceEmitter {
 
             var emitted = method.AddParameter(
                 TypeMapper.GetTypeDefinition(modelsNamespace, csType, parameter.IsCSharpNullable),
-                NamingHelper.ToParameterName(parameter.Name));
+                parameter.MemberName);
 
             emitted.Comment = DocComment.Format(parameter.Description);
         }

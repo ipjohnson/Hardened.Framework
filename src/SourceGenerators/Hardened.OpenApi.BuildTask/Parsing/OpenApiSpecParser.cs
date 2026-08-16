@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
@@ -17,10 +19,21 @@ internal static class OpenApiSpecParser {
     /// added before a YAML document will parse at all. Both are first-class here - the Petstore and
     /// Slack descriptions are JSON, everything else tested is YAML.
     /// </remarks>
-    private static OpenApiReaderSettings ReaderSettings() {
+    private static OpenApiReaderSettings ReaderSettings(string? externalRefRoot) {
         var settings = new OpenApiReaderSettings();
 
         settings.AddYamlReader();
+
+        if (externalRefRoot != null) {
+            settings.LoadExternalRefs = true;
+
+            // A file URI, so relative references resolve beside the specification rather than
+            // against the process's working directory or, worse, over the network.
+            settings.BaseUrl = new Uri(
+                externalRefRoot.EndsWith("/", StringComparison.Ordinal)
+                    ? externalRefRoot
+                    : externalRefRoot + "/");
+        }
 
         return settings;
     }
@@ -52,14 +65,37 @@ internal static class OpenApiSpecParser {
     /// description of the failure anyone would have got, discarded along with the exception. A
     /// caller that passes nothing still behaves as before.
     /// </param>
+    /// <param name="groupUntaggedByPath">
+    /// Whether operations with no tag are grouped by first path segment rather than onto one
+    /// service. See <see cref="UntaggedGroup"/>.
+    /// </param>
+    /// <param name="externalRefRoot">
+    /// The directory external <c>$ref</c>s resolve against, or null to leave them unresolved.
+    /// Opt in: a document may reference any URL, and a build that reaches the network is neither
+    /// reproducible nor safe to run against a description someone else controls. Passing a
+    /// directory restricts resolution to files beside the specification.
+    /// </param>
     public static ServiceSpecModel? Parse(
         string text, string fileName, CancellationToken cancellationToken,
-        bool applyServerBasePath = false, ICollection<string>? diagnostics = null) {
+        bool applyServerBasePath = false, ICollection<string>? diagnostics = null,
+        bool groupUntaggedByPath = false, string? externalRefRoot = null) {
         cancellationToken.ThrowIfCancellationRequested();
 
         OpenApiDocument? document;
         try {
-            var result = OpenApiDocument.Parse(text, DetectFormat(text), ReaderSettings());
+            var settings = ReaderSettings(externalRefRoot);
+            var format = DetectFormat(text);
+
+            // External references are only followed by the asynchronous reader - the synchronous
+            // one refuses outright. Blocking on it is safe here and nowhere near a hot path: an
+            // MSBuild task's Execute is synchronous by contract, the task runs in its own host
+            // process with no synchronisation context to deadlock against, and it runs once.
+            var result = externalRefRoot == null
+                ? OpenApiDocument.Parse(text, format, settings)
+                : OpenApiDocument
+                    .LoadAsync(new MemoryStream(Encoding.UTF8.GetBytes(text)), format, settings,
+                        cancellationToken)
+                    .GetAwaiter().GetResult();
 
             document = result.Document;
 
@@ -85,7 +121,7 @@ internal static class OpenApiSpecParser {
         // Schemas the document does not name, lifted out of the places they were written inline.
         // Collected separately and appended, so a synthesized name colliding with a declared one is
         // visible to SpecDiagnostics as a duplicate rather than quietly overwriting it.
-        var synthesized = new List<SchemaModel>();
+        var synthesized = new SchemaCollector(document.Components?.Schemas?.Keys);
 
         if (document.Components?.Schemas != null) {
             foreach (var kvp in document.Components.Schemas) {
@@ -117,11 +153,12 @@ internal static class OpenApiSpecParser {
         if (document.Paths != null) {
             foreach (var pathKvp in document.Paths) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ParsePath(basePath + pathKvp.Key, pathKvp.Value, operationsByTag, synthesized);
+                ParsePath(basePath + pathKvp.Key, pathKvp.Value, operationsByTag, synthesized,
+                    groupUntaggedByPath);
             }
         }
 
-        foreach (var schema in synthesized) {
+        foreach (var schema in synthesized.Synthesized) {
             model.Schemas.Add(schema);
         }
 
@@ -132,10 +169,198 @@ internal static class OpenApiSpecParser {
             });
         }
 
+        ResolveDuplicateTypeNames(model);
+        ResolveParameterNameCollisions(model);
         InlineNonObjectRefs(model);
         ResolveMemberNameCollisions(model);
 
         return model;
+    }
+
+    /// <summary>
+    /// Two parameters of one operation that would generate one member.
+    /// </summary>
+    /// <remarks>
+    /// Legal, and not rare: OpenAPI scopes a parameter's uniqueness to name <em>and</em> location,
+    /// so Kubernetes' proxy routes declare <c>path</c> in the path and <c>path</c> in the query.
+    /// The location is what distinguishes them in the document, so it is what distinguishes them
+    /// here - and it is a fixed set, so which one keeps the plain name does not depend on the order
+    /// they were read in.
+    /// </remarks>
+    private static void ResolveParameterNameCollisions(ServiceSpecModel model) {
+        // The document's own precedence: a path parameter is part of the address, a query parameter
+        // is not, and so on down.
+        static int Rank(string? location) => location switch {
+            "path" => 0,
+            "query" => 1,
+            "header" => 2,
+            "cookie" => 3,
+            _ => 4
+        };
+
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                var byMember = new Dictionary<string, List<ParameterModel>>(StringComparer.Ordinal);
+
+                foreach (var parameter in operation.Parameters) {
+                    if (!byMember.TryGetValue(parameter.MemberName, out var group)) {
+                        byMember[parameter.MemberName] = group = new List<ParameterModel>();
+                    }
+
+                    group.Add(parameter);
+                }
+
+                foreach (var group in byMember.Values) {
+                    if (group.Count < 2) {
+                        continue;
+                    }
+
+                    group.Sort((left, right) => Rank(left.In).CompareTo(Rank(right.In)));
+
+                    for (var i = 1; i < group.Count; i++) {
+                        group[i].MemberNameOverride =
+                            group[i].MemberName + NamingHelper.ToPascalCase(group[i].In ?? "value");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Two declared schemas whose names differ only in ways C# naming removes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Ory declares both <c>NullTime</c> and <c>nullTime</c>. Those are two schemas to the document
+    /// and one type here, and the author is a vendor - so this renames rather than refusing, and
+    /// rewrites every reference to match.
+    /// </para>
+    /// <para>
+    /// Safe to do afterwards, unlike a synthesized collision: these have distinct <c>$ref</c> names,
+    /// so a reference still says unambiguously which was meant. Only the C# name they would share
+    /// has to move.
+    /// </para>
+    /// <para>
+    /// Ordered by name rather than by the order they were read, so one document always renames the
+    /// same one. The first keeps its name; a schema added later that sorts ahead of it would take
+    /// the name over, which is the price of not suffixing every member of the group.
+    /// </para>
+    /// </remarks>
+    private static void ResolveDuplicateTypeNames(ServiceSpecModel model) {
+        var byTypeName = new Dictionary<string, List<SchemaModel>>(StringComparer.Ordinal);
+
+        foreach (var schema in model.Schemas) {
+            var typeName = NamingHelper.ToPascalCase(schema.Name);
+
+            if (!byTypeName.TryGetValue(typeName, out var group)) {
+                byTypeName[typeName] = group = new List<SchemaModel>();
+            }
+
+            group.Add(schema);
+        }
+
+        var renamed = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var group in byTypeName.Values) {
+            if (group.Count < 2) {
+                continue;
+            }
+
+            group.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
+
+            for (var i = 1; i < group.Count; i++) {
+                var schema = group[i];
+                var replacement = schema.Name + "_" + StableSuffix(schema.Name);
+
+                renamed[schema.Name] = replacement;
+                schema.Name = replacement;
+            }
+        }
+
+        ResolveGeneratedNameShadows(model, renamed);
+
+        if (renamed.Count > 0) {
+            RewriteRefs(model, renamed);
+        }
+    }
+
+    /// <summary>
+    /// Schemas whose name is one another schema's generated helper.
+    /// </summary>
+    /// <remarks>
+    /// Sentry declares <c>Monitor</c> and <c>MonitorValidator</c>. The validation generator names a
+    /// validator after the type it checks, so <c>Monitor</c> produces a <c>MonitorValidator</c>
+    /// class - and the second schema is already a record of that name. The declared schema moves,
+    /// because the generated one has nowhere else to go.
+    /// </remarks>
+    private static void ResolveGeneratedNameShadows(
+        ServiceSpecModel model, Dictionary<string, string> renamed) {
+        const string suffix = "Validator";
+
+        var typeNames = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var schema in model.Schemas) {
+            typeNames.Add(NamingHelper.ToPascalCase(schema.Name));
+        }
+
+        foreach (var schema in model.Schemas) {
+            var typeName = NamingHelper.ToPascalCase(schema.Name);
+
+            if (!typeName.EndsWith(suffix, StringComparison.Ordinal)) {
+                continue;
+            }
+
+            var shadowed = typeName.Substring(0, typeName.Length - suffix.Length);
+
+            if (shadowed.Length == 0 || !typeNames.Contains(shadowed)) {
+                continue;
+            }
+
+            var replacement = schema.Name + "_" + StableSuffix(schema.Name);
+
+            renamed[schema.Name] = replacement;
+            schema.Name = replacement;
+        }
+    }
+
+    /// <summary>Points every reference at a renamed schema's new name.</summary>
+    private static void RewriteRefs(ServiceSpecModel model, Dictionary<string, string> renamed) {
+        string? Rewrite(string? reference) =>
+            reference != null && renamed.TryGetValue(TypeMapper.GetRefName(reference), out var name)
+                ? "#/components/schemas/" + name
+                : reference;
+
+        foreach (var schema in model.Schemas) {
+            schema.BaseRef = Rewrite(schema.BaseRef);
+            schema.ArrayItemsRef = Rewrite(schema.ArrayItemsRef);
+
+            foreach (var mapping in schema.DiscriminatorMapping) {
+                mapping.Ref = Rewrite(mapping.Ref) ?? mapping.Ref;
+            }
+
+            foreach (var property in schema.Properties) {
+                property.Ref = Rewrite(property.Ref);
+                property.ArrayItemsRef = Rewrite(property.ArrayItemsRef);
+                property.DictionaryValueRef = Rewrite(property.DictionaryValueRef);
+            }
+        }
+
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                operation.RequestBodyRef = Rewrite(operation.RequestBodyRef);
+                operation.ResponseRef = Rewrite(operation.ResponseRef);
+                operation.ResponseArrayItemsRef = Rewrite(operation.ResponseArrayItemsRef);
+
+                foreach (var error in operation.ErrorResponses) {
+                    error.Ref = Rewrite(error.Ref);
+                }
+
+                foreach (var parameter in operation.Parameters) {
+                    parameter.Ref = Rewrite(parameter.Ref);
+                    parameter.ArrayItemsRef = Rewrite(parameter.ArrayItemsRef);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -336,7 +561,7 @@ internal static class OpenApiSpecParser {
     }
 
     private static SchemaModel? ParseSchema(
-        string name, IOpenApiSchema schema, List<SchemaModel> collector) {
+        string name, IOpenApiSchema schema, SchemaCollector collector) {
         var model = ParseSchemaKind(name, schema, collector);
 
         if (model != null) {
@@ -407,7 +632,7 @@ internal static class OpenApiSpecParser {
     }
 
     private static SchemaModel? ParseSchemaKind(
-        string name, IOpenApiSchema schema, List<SchemaModel> collector) {
+        string name, IOpenApiSchema schema, SchemaCollector collector) {
         if (schema.Enum is { Count: > 0 }) {
             return new SchemaModel {
                 Name = name,
@@ -451,7 +676,7 @@ internal static class OpenApiSpecParser {
     }
 
     private static SchemaModel ParseObjectSchema(
-        string name, IOpenApiSchema schema, List<SchemaModel> collector) {
+        string name, IOpenApiSchema schema, SchemaCollector collector) {
         var model = new SchemaModel {
             Name = name,
             Kind = SchemaKind.Object,
@@ -469,7 +694,7 @@ internal static class OpenApiSpecParser {
     }
 
     private static SchemaModel ParseAllOf(
-        string name, IOpenApiSchema schema, List<SchemaModel> collector) {
+        string name, IOpenApiSchema schema, SchemaCollector collector) {
         var model = new SchemaModel {
             Name = name,
             Kind = SchemaKind.Object,
@@ -593,7 +818,7 @@ internal static class OpenApiSpecParser {
     /// </para>
     /// </remarks>
     private static string SynthesizeSchema(
-        string parentName, string propertyName, IOpenApiSchema schema, List<SchemaModel> collector) {
+        string parentName, string propertyName, IOpenApiSchema schema, SchemaCollector collector) {
         // `title` is OpenAPI's own way to name a schema and would give far better names than this
         // concatenation - Stripe carries 4,700 of them, GitHub 2,175. It is not usable yet: titles
         // are not unique, and checking one against every name already taken needs the reserved set
@@ -606,9 +831,12 @@ internal static class OpenApiSpecParser {
         // with POST .../financial_account/features with `card_issuing`, 28 times over. Nothing in
         // the document is wrong and neither name is declared, so there is nothing an author could
         // rename. Qualify by where it came from instead - the provenance is what actually differs.
-        if (collector.Exists(s => NamingHelper.ToPascalCase(s.Name) == name)) {
+        if (collector.IsTaken(name)) {
             name += "_" + StableSuffix(parentName + "/" + propertyName);
         }
+
+        // Claimed before the children are read, since they are lifted during that read.
+        collector.Reserve(name);
 
         var model = ParseObjectSchema(name, schema, collector);
 
@@ -621,7 +849,7 @@ internal static class OpenApiSpecParser {
     }
 
     private static PropertyModel ParseProperty(
-        string name, IOpenApiSchema prop, bool isRequired, string parentName, List<SchemaModel> collector) {
+        string name, IOpenApiSchema prop, bool isRequired, string parentName, SchemaCollector collector) {
         var model = new PropertyModel {
             Name = name,
             IsRequired = isRequired,
@@ -900,12 +1128,14 @@ internal static class OpenApiSpecParser {
     }
 
     private static void ParsePath(string path, IOpenApiPathItem pathItem,
-        Dictionary<string, List<OperationModel>> operationsByTag, List<SchemaModel> collector) {
+        Dictionary<string, List<OperationModel>> operationsByTag, SchemaCollector collector,
+        bool groupUntaggedByPath) {
         foreach (var opKvp in pathItem.Operations ?? Enumerable.Empty<KeyValuePair<HttpMethod, OpenApiOperation>>()) {
             var operation = opKvp.Value;
             var httpMethod = opKvp.Key.ToString().ToUpperInvariant();
 
-            var tag = operation.Tags?.FirstOrDefault()?.Name ?? "Default";
+            var tag = operation.Tags?.FirstOrDefault()?.Name
+                      ?? UntaggedGroup(path, groupUntaggedByPath);
             var operationId = operation.OperationId ?? GenerateOperationId(httpMethod, path);
 
             var opModel = new OperationModel {
@@ -1060,12 +1290,55 @@ internal static class OpenApiSpecParser {
         return default;
     }
 
+    /// <summary>
+    /// A name for an operation the document did not name.
+    /// </summary>
+    /// <remarks>
+    /// Path parameters are folded in as <c>By…</c> rather than dropped. Dropping them made sibling
+    /// routes indistinguishable - DigitalOcean declares no operation ids at all, and
+    /// <c>DELETE /v2/droplets</c> and <c>DELETE /v2/droplets/{droplet_id}</c> both became
+    /// <c>deleteV2Droplets</c>, which is one interface method declared twice.
+    /// </remarks>
     private static string GenerateOperationId(string method, string path) {
-        var parts = path.Split('/')
-            .Where(p => !string.IsNullOrEmpty(p) && !p.StartsWith("{"))
-            .Select(NamingHelper.ToPascalCase);
+        var name = new StringBuilder(method.ToLowerInvariant());
 
-        return method.ToLowerInvariant() + string.Join("", parts);
+        foreach (var segment in path.Split('/')) {
+            if (segment.Length == 0) {
+                continue;
+            }
+
+            if (segment[0] == '{') {
+                name.Append("By");
+                name.Append(NamingHelper.ToPascalCase(segment.Trim('{', '}')));
+            } else {
+                name.Append(NamingHelper.ToPascalCase(segment));
+            }
+        }
+
+        return name.ToString();
+    }
+
+    /// <summary>
+    /// The service an untagged operation belongs to.
+    /// </summary>
+    /// <remarks>
+    /// One <c>Default</c> service by default, which is what a document with no tags asks for. Some
+    /// have none at all and hundreds of operations - DigitalOcean is one - and a single interface
+    /// with every method on it is not what anyone implements, so
+    /// <c>HardenedOpenApiGroupUntaggedByPath</c> groups them by first path segment instead.
+    /// </remarks>
+    private static string UntaggedGroup(string path, bool byPath) {
+        if (!byPath) {
+            return "Default";
+        }
+
+        foreach (var segment in path.Split('/')) {
+            if (segment.Length > 0 && segment[0] != '{') {
+                return segment;
+            }
+        }
+
+        return "Default";
     }
 
     // ── x-filter-types parsing ─────────────────────────────────────────

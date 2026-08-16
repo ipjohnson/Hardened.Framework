@@ -92,13 +92,16 @@ internal static class SpecDiagnostics {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
 
             if (seen.TryGetValue(typeName, out var first)) {
+                // Both kinds of collision are resolved before this runs - synthesized names are
+                // made unique as they are invented, declared ones are renamed afterwards. This is
+                // the assertion that neither missed, and it does not stop the build, because a
+                // duplicate type name surfaces immediately as CS0101 anyway.
                 problems.Add(new Problem(
                     "HOAT005",
                     $"Schemas '{first}' and '{schema.Name}' both generate a type named " +
-                    $"'{typeName}'. Names synthesized for inline schemas are qualified " +
-                    "automatically, so these are two declared schemas whose names differ only in " +
-                    "ways C# naming removes. Rename one of them, or map one with " +
-                    "HardenedOpenApiSchemaName."));
+                    $"'{typeName}', which should have been resolved automatically. Rename one of " +
+                    "them in the document.",
+                    fatal: false));
 
                 continue;
             }

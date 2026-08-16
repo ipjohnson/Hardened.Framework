@@ -440,6 +440,7 @@ internal static class SpecModelSerializer {
     private static void WriteParameter(StringBuilder builder, ParameterModel parameter) {
         var record = new Record("param");
         record.Add("Name", parameter.Name);
+        record.Add("MemberNameOverride", parameter.MemberNameOverride);
         record.Add("In", parameter.In);
         record.Add("Description", parameter.Description);
         record.Add("IsRequired", parameter.IsRequired);
@@ -465,6 +466,7 @@ internal static class SpecModelSerializer {
     }
 
     private static ParameterModel ReadParameter(Record record) => new() {
+        MemberNameOverride = record.String("MemberNameOverride"),
         Name = record.String("Name") ?? "",
         In = record.String("In") ?? "",
         Description = record.String("Description"),

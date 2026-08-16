@@ -573,7 +573,7 @@ public class GeneratedCodeCompilesTests {
                     '200': { description: ok }
             """).AssertNoErrors();
 
-        Assert.Contains("GetShippingLabelsHistory(", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("GetShippingLabelsByIdHistory(", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>

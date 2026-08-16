@@ -56,6 +56,21 @@ public static class ParametersClassGenerator {
         WriteItemSetProperty(handlerModel, indexProperty);
     }
 
+    /// <summary>
+    /// Every member reached through <c>this.</c>, because the indexer's own parameter is in scope.
+    /// </summary>
+    /// <remarks>
+    /// The indexer is <c>this[int index]</c>, so a request parameter named <c>index</c> is shadowed
+    /// by it: unqualified, <c>return index</c> hands back the <em>ordinal</em> rather than the
+    /// parameter's value, and it compiles, because both are ints. Gitea's specification declares a
+    /// path parameter called <c>index</c> and only failed loudly because it is an <c>int64</c> - a
+    /// 32-bit one would have been silently wrong at runtime.
+    ///
+    /// <para>
+    /// Qualifying rather than renaming the indexer's parameter: the name a specification chooses is
+    /// not ours to predict, and <c>this.</c> holds whatever it is.
+    /// </para>
+    /// </remarks>
     private static void WriteItemGetProperty(RequestHandlerModel handlerModel, PropertyDefinition indexProperty) {
         var switchStatement = indexProperty.Get.Switch("index");
         var index = 0;
@@ -63,7 +78,7 @@ public static class ParametersClassGenerator {
         foreach (var parameterInformation in handlerModel.RequestParameterInformationList) {
             var caseBlock = switchStatement.AddCase(index++);
 
-            caseBlock.Return(parameterInformation.Name + "!");
+            caseBlock.Return("this." + parameterInformation.Name + "!");
         }
 
         var throwMessage =
@@ -79,7 +94,9 @@ public static class ParametersClassGenerator {
         foreach (var parameterInformation in handlerModel.RequestParameterInformationList) {
             var caseBlock = switchStatement.AddCase(index++);
 
-            caseBlock.Assign(StaticCast(parameterInformation.ParameterType, "value")).To(parameterInformation.Name);
+            // this., for the reason WriteItemGetProperty gives.
+            caseBlock.Assign(StaticCast(parameterInformation.ParameterType, "value"))
+                .To("this." + parameterInformation.Name);
 
             // return, not break: break leaves the switch and falls into the throw below, so every
             // set threw IndexOutOfRangeException including the valid ones. The getter always used

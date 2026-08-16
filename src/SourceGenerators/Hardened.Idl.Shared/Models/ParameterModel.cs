@@ -39,6 +39,19 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     public string? Description { get; set; }
     public string? Type { get; set; }
     public string? Format { get; set; }
+    /// <summary>
+    /// The C# member name, where it cannot be the camelCased wire name.
+    /// </summary>
+    /// <remarks>
+    /// OpenAPI scopes a parameter's uniqueness to its name <em>and</em> location, so one operation
+    /// may legally declare two called the same thing: Kubernetes' proxy routes take <c>path</c> in
+    /// the path and <c>path</c> in the query. Both would generate one member.
+    /// </remarks>
+    public string? MemberNameOverride { get; set; }
+
+    /// <summary>The name this parameter carries in generated C#.</summary>
+    public string MemberName => MemberNameOverride ?? Idl.NamingHelper.ToParameterName(Name);
+
     public string? Ref { get; set; }
     public bool IsArray { get; set; }
     public string? ArrayItemsType { get; set; }

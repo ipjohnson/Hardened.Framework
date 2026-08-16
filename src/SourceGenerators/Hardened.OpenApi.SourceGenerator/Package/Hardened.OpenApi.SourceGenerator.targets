@@ -184,7 +184,9 @@
                             Namespace="$(HardenedOpenApiNamespace)"
                             ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)"
                             ApplyServerBasePath="$(HardenedOpenApiApplyServerBasePath)"
-                            EmbedDocument="$(HardenedOpenApiEmbedDocument)">
+                            EmbedDocument="$(HardenedOpenApiEmbedDocument)"
+                            GroupUntaggedByPath="$(HardenedOpenApiGroupUntaggedByPath)"
+                            LoadExternalRefs="$(HardenedOpenApiLoadExternalRefs)">
             <Output TaskParameter="ModelFiles" ItemName="_HardenedOpenApiModelWritten"/>
             <Output TaskParameter="GeneratedSources" ItemName="_HardenedOpenApiSourceWritten"/>
         </ExtractOpenApiSpec>

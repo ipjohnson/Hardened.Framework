@@ -65,7 +65,7 @@ internal static class OperationParameters {
             constrained |= attributes.Count > 0;
 
             members.Add(new Member(
-                NamingHelper.ToParameterName(parameter.Name),
+                parameter.MemberName,
                 TypeMapper.GetTypeDefinition(modelsNamespace, csType, parameter.IsCSharpNullable),
                 attributes));
         }

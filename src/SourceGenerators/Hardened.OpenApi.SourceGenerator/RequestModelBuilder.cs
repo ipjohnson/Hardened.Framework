@@ -237,7 +237,7 @@ internal static class RequestModelBuilder {
 
             parameters.Add(new RequestParameterInformation(
                 typeDefinition,
-                NamingHelper.ToParameterName(param.Name),
+                param.MemberName,
                 param.IsRequired,
                 // Drives ParseWithDefault in the binder, so an absent value arrives as the
                 // specification's default rather than as null.
