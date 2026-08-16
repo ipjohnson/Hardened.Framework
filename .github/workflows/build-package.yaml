@@ -48,8 +48,10 @@ jobs:
       # and it says nothing about whether ILC can actually produce a binary. This step is what says
       # both - ILC analyses the whole program, including everything the generators emitted.
       #
-      # `--fail-on-warning`, because IL2026 and IL3050 are the entire point. A warning here is a
-      # call that works today and stops working once something is trimmed away.
+      # `-warnaserror`, because IL2026 and IL3050 are the entire point: a warning here is a call
+      # that works today and stops working once something is trimmed away. It is the MSBuild switch
+      # rather than TreatWarningsAsErrors, which Directory.Build.props already sets for CI - that
+      # one is the C# compiler's and does not cover what ILC reports.
       - name: Publish the integration application with Native AOT
         run: |
           sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
@@ -58,7 +60,7 @@ jobs:
             --configuration Release \
             --runtime linux-x64 \
             -p:ContinuousIntegrationBuild=true \
-            --fail-on-warning
+            -warnaserror
 
       # And that the binary serves a request, which a clean compile does not tell you: a trimmer
       # removes what nothing references, so the failure this catches is a route, a binder or a
@@ -67,12 +69,25 @@ jobs:
         run: |
           set -o pipefail
 
-          binary=$(find src/IntegrationTests/Aot -type f -name 'Hardened.IntegrationTests.Aot.SUT' -perm -u+x | head -1)
+          # Scoped to publish/, because the IL apphost in bin/ carries the same name and is also
+          # executable - running that one would prove nothing about ILC.
+          binary=$(find src/IntegrationTests/Aot -type f -path '*/publish/*' \
+            -name 'Hardened.IntegrationTests.Aot.SUT' -perm -u+x | head -1)
 
           if [ -z "$binary" ]; then
             echo "::error::No native binary was produced."
+            find src/IntegrationTests/Aot -name 'Hardened.IntegrationTests.Aot.SUT*' -type f || true
             exit 1
           fi
+
+          # A native binary has no runtimeconfig beside it; an apphost does. Cheap way to be sure
+          # the thing about to run is the one ILC produced.
+          if [ -f "$(dirname "$binary")/Hardened.IntegrationTests.Aot.SUT.runtimeconfig.json" ]; then
+            echo "::error::Found the framework-dependent apphost rather than the native binary."
+            exit 1
+          fi
+
+          echo "native binary: $binary ($(du -h "$binary" | cut -f1))"
 
           "$binary" 5199 &
           pid=$!
