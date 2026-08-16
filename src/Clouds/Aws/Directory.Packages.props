@@ -12,38 +12,47 @@
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 
         <!--
-          Central package management rejects floating versions by default (NU1011). The Hardened.*
-          line below is deliberately floating, so the check is opted out of rather than the
-          versions being pinned to a build number that would need bumping by hand on every
-          framework change. Everything else here is exact.
+          Nothing here floats. Central package management rejects floating versions by default
+          (NU1011) and that default is left in place, because the one group that used to float -
+          Hardened.* below - is exactly the group a float did the most damage to.
         -->
-        <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
     </PropertyGroup>
 
     <!--
-      Hardened.* floats deliberately. build-package.yaml publishes a {line}-preview{run padded to
-      six} to GitHub Packages on every push to main, and this repository tracks that feed rather
-      than pinning to a build number that would need bumping by hand on every framework change.
+      Hardened.* is pinned to a released version, not a preview.
 
-      The prefix is NOT open-ended: it names the release line, so it has to be moved by hand when
-      a new line opens. It was left at 1.0.0-preview* through the 0.1.0, 0.2.0 and 0.3.0 lines,
-      and since nothing publishes 1.0.0-preview any more the float silently kept resolving to
-      1.0.0-preview10199 - a framework from before 0.1.0 opened. The build stayed green against
-      it, which is what made it invisible: a float that matches nothing new does not fail, it
-      just stops moving.
+      It floated on {line}-preview* until 2026-08-15, tracking what build-package.yaml publishes to
+      GitHub Packages on every push to main. Two things were wrong with that, and only the second
+      one is obvious after the first is fixed.
+
+      The prefix names a release line rather than being open-ended, so it has to be moved by hand
+      when a new line opens - and it was left at 1.0.0-preview* through 0.1.0, 0.2.0 and 0.3.0.
+      Since nothing publishes 1.0.0-preview any more, the float silently kept resolving to
+      1.0.0-preview10199, a framework from before 0.1.0 opened. A float that matches nothing new
+      does not fail, it just stops moving, so the build stayed green throughout.
+
+      The worse half: a preview exists only on GitHub Packages, and pack writes whatever was
+      resolved into the nuspec. Hardened.Amz.Web.Lambda.Runtime 0.1.0-rc1 went to nuget.org
+      declaring a dependency on Hardened.Requests.Abstract 1.0.0-preview10197, which 404s there -
+      so the published package cannot be restored by anyone using nuget.org alone, and a version
+      on nuget.org can be unlisted but never removed.
+
+      A released version is on both feeds, so a pin cannot reproduce that. It costs a bump per
+      framework release; release.yaml's on-nuget.org check is what makes forgetting one loud
+      rather than silent.
     -->
     <ItemGroup Label="Hardened.Framework">
-        <PackageVersion Include="Hardened.Commands" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.Console.SourceGenerator" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.Requests.Abstract" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.Requests.Runtime" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.Shared.Runtime" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.Shared.Testing" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.SourceGenerator" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.Web.Runtime" Version="0.4.0-preview*" />
-        <PackageVersion Include="Hardened.Web.SourceGenerator" Version="0.4.0-preview*" />
+        <PackageVersion Include="Hardened.Commands" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.Console.SourceGenerator" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.Requests.Abstract" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.Requests.Runtime" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.Shared.Runtime" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.Shared.Testing" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.SourceGenerator" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.Web.Runtime" Version="0.4.0-rc1000" />
+        <PackageVersion Include="Hardened.Web.SourceGenerator" Version="0.4.0-rc1000" />
     </ItemGroup>
 
     <ItemGroup Label="DependencyModules and code generation">

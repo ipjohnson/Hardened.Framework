@@ -33,8 +33,10 @@ jobs:
     # GitHub Packages source answers 401. A source that cannot be reached fails the whole restore
     # rather than the packages it serves, so the first tag pushed would have failed before packing.
     #
-    # Unlike Hardened.Framework, this feed cannot simply be dropped: Hardened.* packages are
-    # published only to GitHub Packages, and this repository consumes them.
+    # Unlike Hardened.Framework, this feed cannot simply be dropped: nuget.config maps Hardened.*
+    # to it, and this repository consumes those packages. A released Hardened.* goes to both feeds,
+    # so what is pinned here restores from this one and is installable from nuget.org - which is
+    # what the check after restore exists to keep true.
     env:
       NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
@@ -75,6 +77,18 @@ jobs:
           echo "Releasing $VERSION"
 
       - run: dotnet restore
+
+      # Every Hardened.* this repository resolved has to exist on nuget.org, because pack writes
+      # the resolved version into the nuspec and this release publishes there.
+      #
+      # Hardened.Amz.Web.Lambda.Runtime 0.1.0-rc1 shipped depending on Hardened.Requests.Abstract
+      # 1.0.0-preview10197 - a preview, which only ever exists on GitHub Packages. It 404s on
+      # nuget.org, so the published package cannot be restored by anyone using that feed alone.
+      # Nothing failed: the restore here had the private feed, and pack does not care where a
+      # version came from. A version on nuget.org can be unlisted but never removed, so this is
+      # checked before packing rather than after.
+      - name: Framework dependencies must be on nuget.org
+        run: python3 scripts/check-framework-dependencies.py
 
       - run: dotnet build --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
