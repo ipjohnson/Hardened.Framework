@@ -1,0 +1,17 @@
+# Lints the OpenAPI document the code-first generator emits, in CI.
+#
+# Worth having rather than a schema check, which is what the specification-first side already gets
+# from Microsoft.OpenApi's reader. Path templating is prose in the OpenAPI specification instead of
+# schema, so openapi-spec-validator accepts `/boards/{boardId:guid}` — a template whose parameter
+# name no `parameters` entry declares, which a generated client turns into a request for
+# `/boards/%7BboardId:guid%7D`. Spectral reports it as path-params, and did so ten times against a
+# real application before the emitter stopped leaking route constraints.
+extends: ["spectral:oas"]
+
+rules:
+  # An operation's description comes from the handler's XML doc comment, and most handlers do not
+  # have one. Worth encouraging and not worth failing a build over — the rules that stay at error
+  # are the ones that describe a document a client cannot use.
+  operation-description: warn
+  operation-tag-defined: error
+  path-params: error

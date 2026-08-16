@@ -1,4 +1,4 @@
-namespace Hardened.OpenApi.SourceGenerator.Models;
+namespace Hardened.Idl.Models;
 
 internal class ValidationRuleModel {
     public string ParameterName { get; set; } = "";

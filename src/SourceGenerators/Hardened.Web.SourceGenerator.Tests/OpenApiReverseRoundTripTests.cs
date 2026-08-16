@@ -1,9 +1,10 @@
 using System.Text.RegularExpressions;
 using Hardened.OpenApi.SourceGenerator;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.SourceGenerator.Tests.Routing;
 using Xunit;
+using Hardened.Idl;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -69,7 +70,7 @@ public class OpenApiReverseRoundTripTests {
     /// The document the web generator emits, parsed by the build task exactly as it would parse a
     /// hand-written specification.
     /// </summary>
-    private static OpenApiSpecModel Reparsed() {
+    private static ServiceSpecModel Reparsed() {
         var result = GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = Application },
             new[] { new WebLibrarySourceGenerator() },
@@ -138,6 +139,12 @@ public class OpenApiReverseRoundTripTests {
     /// <summary>
     /// Routes survive with their base path, since that is the path a client calls.
     /// </summary>
+    /// <remarks>
+    /// The collection routes are <c>/products</c> and <c>/baskets</c>, not <c>/products/</c> and
+    /// <c>/baskets/</c>. They read the other way until the base path and a <c>/</c> template stopped
+    /// being concatenated — which is the shape this test exists to protect, since a document is
+    /// what a generated client calls and the trailing slash was a URL the application did not serve.
+    /// </remarks>
     [Fact]
     public void RoutesSurviveTheRoundTrip() {
         var paths = Reparsed().Services
@@ -147,7 +154,7 @@ public class OpenApiReverseRoundTripTests {
 
         Assert.Equal(
             new[] {
-                "GET /baskets/{id}", "GET /products/", "GET /products/{id}", "POST /baskets/"
+                "GET /baskets/{id}", "GET /products", "GET /products/{id}", "POST /baskets"
             },
             paths);
     }

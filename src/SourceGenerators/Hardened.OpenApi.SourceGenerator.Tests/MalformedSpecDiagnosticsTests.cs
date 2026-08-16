@@ -1,6 +1,7 @@
 using Hardened.SourceGeneration.Testing;
 using Microsoft.CodeAnalysis;
 using Xunit;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 

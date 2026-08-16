@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
 using Hardened.OpenApi.SourceGenerator;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.BuildTask.Validation;
 
@@ -34,7 +35,7 @@ internal static class OperationParameters {
         string Name, ITypeDefinition Type, IReadOnlyList<ConstraintAttributes.Model> Attributes);
 
     public static Model? Build(
-        OperationModel operation, OpenApiSpecModel spec, string modelsNamespace, PatternRegistry patterns) {
+        OperationModel operation, ServiceSpecModel spec, string modelsNamespace, PatternRegistry patterns) {
         var members = new List<Member>();
         var constrained = false;
 
@@ -80,7 +81,7 @@ internal static class OperationParameters {
             : null;
     }
 
-    private static SchemaModel? BodySchema(OperationModel operation, OpenApiSpecModel spec) {
+    private static SchemaModel? BodySchema(OperationModel operation, ServiceSpecModel spec) {
         if (operation.RequestBodyRef == null) {
             return null;
         }

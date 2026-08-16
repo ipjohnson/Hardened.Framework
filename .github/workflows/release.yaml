@@ -165,8 +165,10 @@ jobs:
           # what this step is for - it failed the v0.1.0-rc1 release before anything was pushed.
           # 20 after Hardened.DependencyModules.SourceGenerator was removed from the list; see the
           # note above the pack step for why it is not published on its own.
-          # 18 after Hardened.Commands and Hardened.Console.SourceGenerator were removed. The
-          # 0.4.0-rc1000 packages of both remain on nuget.org and are deliberately left listed.
+          # 18 after Hardened.Commands and Hardened.Console.SourceGenerator were removed - command
+          # line parsing shares nothing with the request pipeline and was dropped to shrink the
+          # surface area. The 0.4.0-rc1000 packages of both remain on nuget.org and are
+          # deliberately left listed.
           EXPECTED=18
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 

@@ -149,17 +149,15 @@ public static class HandlerValidationGenerator {
                 "")
         };
 
-        return new RequestHandlerModel(
-            handler.Name,
-            handler.ControllerType,
-            handler.HandlerMethod,
-            handler.InvokeHandlerType,
-            handler.RequestParameterInformationList,
-            handler.ResponseInformation,
-            filters) {
-            ParametersInterface = handler.ParametersInterface,
-            ParametersValidator = TypeDefinition.Get(validator.Namespace, validator.ValidatorName),
-        };
+        // Through WithFilters rather than a fresh construction. Rebuilt by hand this carried two of
+        // the eight settable properties, so a handler that gained a validator lost both its OpenAPI
+        // schemas, its [Tag], its summary, its description and its deprecation flag - and the served
+        // document described its best-specified operations as having no body and no response.
+        var withFilter = handler.WithFilters(filters);
+
+        withFilter.ParametersValidator = TypeDefinition.Get(validator.Namespace, validator.ValidatorName);
+
+        return withFilter;
     }
 
     /// <summary>

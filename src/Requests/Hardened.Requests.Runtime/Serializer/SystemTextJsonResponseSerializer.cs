@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
 using System.Text.Json;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
@@ -24,15 +25,29 @@ namespace Hardened.Requests.Runtime.Serializer;
 ///
 /// AOT precedence is now stated as an order instead - see <c>AotResponseSerializer.Order</c> - which
 /// does not depend on registration timing or on how two class names happen to sort.
+///
+/// Annotated rather than fixed, because reflection is what this type is. It reads a model's shape
+/// at run time, which is what an application wants until it publishes trimmed or AOT — at which
+/// point the model it was reading may not be there any more. The annotations put that on the
+/// record at the point of use rather than inside the build: an application importing
+/// <c>AotSerializerModule</c> never reaches this code, because <c>AotResponseSerializer</c> sorts
+/// ahead of it, and one that does not is told what it is relying on.
 /// </remarks>
-[SingletonService(Using = RegistrationType.Add)]
+[RequiresUnreferencedCode(Reason)]
+[RequiresDynamicCode(Reason)]
 public class SystemTextJsonResponseSerializer : IResponseSerializer {
+
+    private const string Reason =
+        "Reads the model's shape by reflection. Import AotSerializerModule for a trimmed or " +
+        "AOT-published application, which registers the source-generated serializers instead.";
+
     private readonly JsonSerializerOptions _serializerOptions;
 
     public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration) {
         _serializerOptions =
             configuration.Value.SerializeOptions ??
-            new(JsonSerializerDefaults.Web);
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
     }
 
     public bool IsDefaultSerializer => true;

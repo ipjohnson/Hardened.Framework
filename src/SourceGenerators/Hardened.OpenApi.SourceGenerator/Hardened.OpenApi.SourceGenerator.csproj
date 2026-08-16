@@ -85,11 +85,11 @@
               Pack="true" PackagePath="tasks/net8.0" Visible="false"/>
     </ItemGroup>
 
-    <!-- Shared with the build task. See Hardened.OpenApi.Shared for why this is source and not a reference. -->
+    <!-- Shared with the build task. See Hardened.Idl.Shared for why this is source and not a reference. -->
     <ItemGroup>
-        <Compile Include="../Hardened.OpenApi.Shared/**/*.cs"
-                 Exclude="../Hardened.OpenApi.Shared/obj/**/*;../Hardened.OpenApi.Shared/bin/**/*">
-            <Link>Shared\OpenApi\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
+                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
+            <Link>Shared\Idl\%(RecursiveDir)%(FileName)%(Extension)</Link>
         </Compile>
     </ItemGroup>
 

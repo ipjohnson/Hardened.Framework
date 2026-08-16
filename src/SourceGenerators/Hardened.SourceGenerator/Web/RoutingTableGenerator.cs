@@ -497,6 +497,16 @@ public static class RoutingTableGenerator {
         var pathCheck = CreatePathIfStatement(
             span, wildCardNode.Path, cancellationToken, currentIndex.Name);
 
+        // The token has to have consumed something. Without this the scan accepts a boundary at the
+        // position it started from, which is what let //items match /{id}/items with id bound to ""
+        // - the same defect the terminal case had at the end of a path. First in the conjunction
+        // because it is an integer compare and the rest is character work.
+        pathCheck = new[] {
+                (IOutputComponent)CodeOutputComponent.Get(
+                    $"{currentIndex.Name} > {index.Name}")
+            }
+            .Concat(pathCheck).ToList();
+
         // The constraint is part of whether the token matched, not something checked afterwards:
         // failing it has to leave the scan free to try the next boundary, exactly as a literal
         // mismatch does.
@@ -583,6 +593,16 @@ public static class RoutingTableGenerator {
             // catch-all stays reachable - see RouteTreeNode.WildCardIsCatchAll.
             var catchAll = wildCardNode.LeafNodes.Any(
                 leaf => RouteTokens.IsCatchAll(leaf.WildCardTokens, wildCardNode.WildCardDepth));
+
+            // A token names at least one character. Nothing is left to name when the path ended on
+            // the separator, so /collection/ is not a match for /collection/{id}. It used to bind
+            // id to "" and come back 400 from the binder, which tells a client it addressed a real
+            // endpoint incorrectly about a URL that addresses no endpoint at all. 404 is the
+            // truthful answer, and it is what the routing guide's own rule implies: a token matches
+            // exactly one segment, and the empty string after a trailing slash is not one.
+            //
+            // Catch-alls included. {*name} means the rest of the path, and /assets/ has no rest.
+            wildCardMethod.If($"{span.Name}.Length <= {index.Name}").Return(Null());
 
             if (!catchAll) {
                 wildCardMethod.If($"{span.Name}.Slice({index.Name}).IndexOf('/') >= 0").Return(Null());
@@ -838,7 +858,7 @@ public static class RoutingTableGenerator {
         
         return generator.GenerateTree(endPointModels.Select(
             m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
-                basePath + m.Name.Path,
+                RoutePath.Combine(basePath, m.Name.Path),
                 m.Name.Method,
                 m,
                 _caseInsensitive

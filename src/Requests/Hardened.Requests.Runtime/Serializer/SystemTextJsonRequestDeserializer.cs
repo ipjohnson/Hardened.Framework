@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
 using System.Text.Json;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
@@ -12,8 +13,29 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
-[SingletonService(Using = RegistrationType.Try)]
+/// <summary>
+/// The reflection-based JSON deserializer, and the default when nothing replaces it.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Annotated rather than fixed, because reflection is what this type is. It reads a model's shape
+/// at run time, which is the behaviour an application wants until it publishes trimmed or AOT — at
+/// which point the model it was reading may not be there any more.
+/// </para>
+/// <para>
+/// The annotations put that on the record where it is used instead of inside the build.
+/// <c>RequestRuntimeDI</c> registers this with <c>TryAdd</c>, and <c>AotSerializerModule</c>
+/// registers the <c>Aot</c> deserializer over it — so an application that imports that module never
+/// reaches this code, and one that does not gets told what it is relying on.
+/// </para>
+/// </remarks>
+[RequiresUnreferencedCode(Reason)]
+[RequiresDynamicCode(Reason)]
 public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
+    private const string Reason =
+        "Reads the model's shape by reflection. Import AotSerializerModule for a trimmed or " +
+        "AOT-published application, which registers the source-generated serializers instead.";
+
     private readonly JsonSerializerOptions _serializerOptions;
     private readonly ILogger<SystemTextJsonRequestDeserializer> _logger;
 
@@ -22,7 +44,8 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
         _logger = logger;
         _serializerOptions =
             configuration.Value.DeSerializerOptions ??
-            new(JsonSerializerDefaults.Web);
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
     }
 
     public bool IsDefaultSerializer => true;

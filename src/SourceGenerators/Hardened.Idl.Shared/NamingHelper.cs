@@ -1,4 +1,4 @@
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl;
 
 internal static class NamingHelper {
     private static readonly HashSet<string> CSharpKeywords = new() {

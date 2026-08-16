@@ -1,7 +1,7 @@
 using CSharpAuthor;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl;
 
 internal static class TypeMapper {
     public static string MapToCSharpType(string? type, string? format, string? refName = null) {

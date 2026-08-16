@@ -1,6 +1,7 @@
 using Hardened.OpenApi.SourceGenerator;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Xunit;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
@@ -24,7 +25,7 @@ public class SpecModelSerializerTests {
 
     [Fact]
     public void RoundTrip_PreservesAnEmptyModel() {
-        var model = new OpenApiSpecModel { FileName = "empty" };
+        var model = new ServiceSpecModel { FileName = "empty" };
 
         DeepEquality.AssertEqual(model, SpecModelSerializer.Read(SpecModelSerializer.Write(model)));
     }
@@ -35,7 +36,7 @@ public class SpecModelSerializerTests {
     /// </summary>
     [Fact]
     public void RoundTrip_KeepsNullDistinctFromEmptyString() {
-        var model = new OpenApiSpecModel {
+        var model = new ServiceSpecModel {
             FileName = "nulls",
             Schemas = {
                 new SchemaModel {
@@ -68,7 +69,7 @@ public class SpecModelSerializerTests {
     /// </summary>
     [Fact]
     public void RoundTrip_KeepsANullListDistinctFromAnEmptyOne() {
-        var model = new OpenApiSpecModel {
+        var model = new ServiceSpecModel {
             FileName = "lists",
             Schemas = {
                 new SchemaModel {
@@ -105,7 +106,7 @@ public class SpecModelSerializerTests {
     [InlineData("^[A-Z]{3}\\d+$")]
     [InlineData("")]
     public void RoundTrip_SurvivesAwkwardCharacters(string value) {
-        var model = new OpenApiSpecModel {
+        var model = new ServiceSpecModel {
             FileName = "escapes",
             Schemas = {
                 new SchemaModel {
@@ -127,7 +128,7 @@ public class SpecModelSerializerTests {
     /// </summary>
     [Fact]
     public void RoundTrip_PreservesGenerateFalseOnAFilterType() {
-        var model = new OpenApiSpecModel {
+        var model = new ServiceSpecModel {
             FileName = "filters",
             FilterTypes = {
                 new FilterTypeModel { Name = "external", Namespace = "Some.Ns", Generate = false },
@@ -165,7 +166,7 @@ public class SpecModelSerializerTests {
         instance.PropertyValues["mango"] = "3";
         operation.FilterInstances.Add(instance);
 
-        var model = new OpenApiSpecModel {
+        var model = new ServiceSpecModel {
             FileName = "s",
             Services = { new ServiceModel { Tag = "t", Operations = { operation } } },
         };
@@ -224,7 +225,7 @@ public class SpecModelSerializerTests {
         "dictionary value", "dictionary key", "collection length",
     ];
 
-    private static readonly Action<OpenApiSpecModel>[] Mutations = [
+    private static readonly Action<ServiceSpecModel>[] Mutations = [
         model => model.FileName = "changed",
         model => model.Schemas[0].Format = "changed",
         model => model.Schemas[1].Type = "object",
@@ -247,7 +248,7 @@ public class SpecModelSerializerTests {
     /// Every field on every model set to a value distinguishable from its default, so the reflective
     /// comparison has something to catch when one goes missing.
     /// </summary>
-    private static OpenApiSpecModel FullyPopulated() {
+    private static ServiceSpecModel FullyPopulated() {
         var property = new PropertyModel {
             Name = "prop",
             Description = "What the property means.",
@@ -335,7 +336,7 @@ public class SpecModelSerializerTests {
             RequestBodyRequired = { "name", "tag" },
         };
 
-        return new OpenApiSpecModel {
+        return new ServiceSpecModel {
             FileName = "petstore",
             Schemas = {
                 new SchemaModel {

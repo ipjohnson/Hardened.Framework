@@ -1,5 +1,5 @@
 using Hardened.OpenApi.SourceGenerator.Emitters;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;

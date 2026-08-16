@@ -1,4 +1,4 @@
-namespace Hardened.OpenApi.SourceGenerator.Models;
+namespace Hardened.Idl.Models;
 
 /// <summary>
 /// One entry of a <c>discriminator.mapping</c>: the value that appears on the wire, and the schema

@@ -1,4 +1,4 @@
-namespace Hardened.OpenApi.SourceGenerator.Models;
+namespace Hardened.Idl.Models;
 
 internal class OperationModel : IEquatable<OperationModel> {
     public string OperationId { get; set; } = "";

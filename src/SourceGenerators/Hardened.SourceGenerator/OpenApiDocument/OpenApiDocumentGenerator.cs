@@ -43,6 +43,7 @@ public static class OpenApiDocumentGenerator {
             .Append("\",\"version\":\"1.0.0\"}");
 
         WriteServers(builder, appModel);
+        WriteTags(builder, handlers);
 
         builder.Append(",\"paths\":{");
 
@@ -52,7 +53,7 @@ public static class OpenApiDocumentGenerator {
         // Grouped by path, because a document keys operations under one path entry rather than
         // repeating the path per verb.
         var byPath = handlers
-            .GroupBy(handler => basePath + handler.Name.Path)
+            .GroupBy(handler => RoutePath.Combine(basePath, handler.Name.Path))
             .OrderBy(group => group.Key, System.StringComparer.Ordinal);
 
         var firstPath = true;
@@ -195,6 +196,45 @@ public static class OpenApiDocumentGenerator {
         }
     }
 
+    /// <summary>
+    /// The document's own <c>tags</c> list, declaring every group its operations reference.
+    /// </summary>
+    /// <remarks>
+    /// Each operation already carried a tag; nothing declared them. That is legal and it is lossy:
+    /// the top-level list is where a tag gets a description and, more practically, where its order
+    /// is set — a reader that finds tags only on operations shows them alphabetically, so the
+    /// grouping a client's documentation and generated SDK present is whatever the names sort to
+    /// rather than what the application declared. Emitted in the order the handlers do, which is
+    /// the order the routing table was built in.
+    /// </remarks>
+    private static void WriteTags(StringBuilder builder, IReadOnlyList<RequestHandlerModel> handlers) {
+        var seen = new List<string>();
+
+        foreach (var handler in handlers) {
+            var tag = Tag(handler);
+
+            if (!seen.Contains(tag)) {
+                seen.Add(tag);
+            }
+        }
+
+        if (seen.Count == 0) {
+            return;
+        }
+
+        builder.Append(",\"tags\":[");
+
+        for (var i = 0; i < seen.Count; i++) {
+            if (i > 0) {
+                builder.Append(',');
+            }
+
+            builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(seen[i])).Append("\"}");
+        }
+
+        builder.Append(']');
+    }
+
     private static void WriteParameters(StringBuilder builder, RequestHandlerModel handler) {
         var bound = handler.RequestParameterInformationList
             .Where(p => Location(p.BindingType) != null)
@@ -220,7 +260,8 @@ public static class OpenApiDocumentGenerator {
             builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(name))
                 .Append("\",\"in\":\"").Append(Location(parameter.BindingType))
                 .Append("\",\"required\":").Append(parameter.Required ? "true" : "false")
-                .Append(",\"schema\":{\"type\":\"string\"}}");
+                .Append(",\"schema\":").Append(ScalarSchema(parameter.ParameterType))
+                .Append('}');
         }
 
         builder.Append(']');
@@ -369,10 +410,105 @@ public static class OpenApiDocumentGenerator {
     /// catch-all. Worth knowing, and better than emitting a document no OpenAPI reader accepts.
     /// </para>
     /// </summary>
-    private static string ToTemplate(string path) =>
-        path.IndexOf("{*", StringComparison.Ordinal) < 0
-            ? path
-            : path.Replace("{*", "{");
+    private static string ToTemplate(string path) {
+        if (path.IndexOf('{') < 0) {
+            return path;
+        }
+
+        var builder = new StringBuilder(path.Length);
+        var index = 0;
+
+        while (index < path.Length) {
+            var open = path.IndexOf('{', index);
+
+            if (open < 0) {
+                builder.Append(path, index, path.Length - index);
+                break;
+            }
+
+            var close = path.IndexOf('}', open);
+
+            if (close < 0) {
+                builder.Append(path, index, path.Length - index);
+                break;
+            }
+
+            builder.Append(path, index, open - index).Append('{');
+
+            var start = open + 1;
+
+            // The catch-all marker: how much of the path the token takes, which a document cannot
+            // express.
+            if (start < close && path[start] == '*') {
+                start++;
+            }
+
+            // The constraint: what the token has to look like to match. A template expression is a
+            // parameter name and nothing else, so ":int" is not a shorter spelling of a schema - it
+            // is a syntax error that happens to parse. Left in, it made the name in the template
+            // disagree with the name in "parameters", which Spectral reports as path-params and a
+            // generated client turns into a request for /boards/%7BboardId:guid%7D.
+            var name = path.IndexOf(':', start);
+            var end = name >= 0 && name < close ? name : close;
+
+            builder.Append(path, start, end - start).Append('}');
+
+            index = close + 1;
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// The schema for a value that arrived as text — a path token, a query value, a header, a cookie.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every one of these was written as <c>{"type":"string"}</c> whatever the handler declared, so
+    /// a document described <c>Double(int count)</c> as taking a string. A generated client then has
+    /// no reason to reject <c>/double/abc</c> before sending it, and no way to know the value is
+    /// numeric — which is most of what a typed client is for.
+    /// </para>
+    /// <para>
+    /// Matched by name rather than by symbol because there is no symbol left. Schemas that need one
+    /// are captured during the syntax transform and carried on the model; these do not, since a
+    /// value parsed from a string is a scalar by construction. Anything unrecognised stays a string,
+    /// which is what it arrived as.
+    /// </para>
+    /// <para>
+    /// <b>Known gap.</b> A nullable scalar - <c>int?</c> on a query value or header - still
+    /// describes as a string. The type reaches here as a <c>Nullable</c> definition carrying no
+    /// type argument, so the underlying type is not recoverable from the model as it stands;
+    /// recovering it means changing what the syntax transform records, which is a wider change than
+    /// this. Not a regression - every parameter described as a string before - and the value does
+    /// arrive as text, so the schema is unspecific rather than wrong.
+    /// </para>
+    /// </remarks>
+    private static string ScalarSchema(ITypeDefinition type) {
+        // int? and friends: the schema describes the value, and "required" already says whether one
+        // has to be there. Two spellings reach here - Nullable<T> with a type argument, and the
+        // underlying name with a '?' on it, depending on how the parameter was written - so both
+        // are unwrapped rather than guessing which the generator produced.
+        var name = (type.Name == "Nullable" && type.TypeArguments.Count == 1
+            ? type.TypeArguments[0].Name
+            : type.Name).TrimEnd('?');
+
+        return name switch {
+            "String" or "Char" => "{\"type\":\"string\"}",
+            "Boolean" => "{\"type\":\"boolean\"}",
+            "Byte" or "SByte" or "Int16" or "UInt16" or "Int32" or "UInt32" =>
+                "{\"type\":\"integer\",\"format\":\"int32\"}",
+            "Int64" or "UInt64" => "{\"type\":\"integer\",\"format\":\"int64\"}",
+            "Single" => "{\"type\":\"number\",\"format\":\"float\"}",
+            "Double" => "{\"type\":\"number\",\"format\":\"double\"}",
+            "Decimal" => "{\"type\":\"number\"}",
+            "DateTime" or "DateTimeOffset" => "{\"type\":\"string\",\"format\":\"date-time\"}",
+            "DateOnly" => "{\"type\":\"string\",\"format\":\"date\"}",
+            "Guid" => "{\"type\":\"string\",\"format\":\"uuid\"}",
+            "Uri" => "{\"type\":\"string\",\"format\":\"uri\"}",
+            _ => "{\"type\":\"string\"}"
+        };
+    }
 
     private static string? Location(ParameterBindType bindType) =>
         bindType switch {

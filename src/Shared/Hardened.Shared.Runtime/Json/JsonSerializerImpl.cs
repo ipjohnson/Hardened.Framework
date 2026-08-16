@@ -26,7 +26,7 @@ public class JsonSerializerImpl : IJsonSerializer {
     private readonly JsonSerializerOptions _prettyOptions;
 
     public JsonSerializerImpl(IOptions<IJsonSerializerConfiguration> configuration) {
-        _serializerOptions = configuration.Value.Options;
+        _serializerOptions = JsonTypeInfoLookup.WithReflectionFallback(configuration.Value.Options);
         _prettyOptions = new JsonSerializerOptions(_serializerOptions) { WriteIndented = true };
     }
 
@@ -46,28 +46,29 @@ public class JsonSerializerImpl : IJsonSerializer {
     /// </para>
     /// </summary>
     public async Task<T> DeserializeAsync<T>(Stream jsonStream, CancellationToken cancellationToken = default) {
-        return await JsonSerializer.DeserializeAsync<T>(jsonStream, _serializerOptions, cancellationToken) ??
+        return await JsonSerializer.DeserializeAsync(
+                   jsonStream, JsonTypeInfoLookup.For<T>(_serializerOptions), cancellationToken) ??
                throw new Exception("Deserialized to null instance");
     }
 
     public T Deserialize<T>(string json) {
-        return JsonSerializer.Deserialize<T>(json, _serializerOptions) ??
+        return JsonSerializer.Deserialize(json, JsonTypeInfoLookup.For<T>(_serializerOptions)) ??
                throw new Exception("Deserialized to null instance");
     }
 
     public string Serialize(object obj, bool pretty) {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(
-            obj,
-            pretty ? _prettyOptions : _serializerOptions);
+        var options = pretty ? _prettyOptions : _serializerOptions;
 
-        return Encoding.UTF8.GetString(bytes);
+        return JsonSerializer.Serialize(obj, JsonTypeInfoLookup.For(options, obj));
     }
 
     public Task SerializeAsync(Stream jsonStream, object obj, bool pretty, CancellationToken cancellationToken) {
+        var options = pretty ? _prettyOptions : _serializerOptions;
+
         return JsonSerializer.SerializeAsync(
             jsonStream,
             obj,
-            pretty ? _prettyOptions : _serializerOptions,
+            JsonTypeInfoLookup.For(options, obj),
             cancellationToken);
     }
 }

@@ -1,5 +1,5 @@
 using CSharpAuthor;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Xunit;
@@ -7,8 +7,8 @@ using Xunit;
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
 public class RequestModelBuilderTests {
-    private static OpenApiSpecModel CreatePetstoreSpec() {
-        return new OpenApiSpecModel {
+    private static ServiceSpecModel CreatePetstoreSpec() {
+        return new ServiceSpecModel {
             FileName = "petstore",
             Schemas = new List<SchemaModel> {
                 new() { Name = "Pet", Kind = SchemaKind.Object },
@@ -249,7 +249,7 @@ public class RequestModelBuilderTests {
         Assert.Null(EnrichRobots(null).ResponseInformation.OutputType);
     }
 
-    private static OpenApiSpecModel SpecReturning(string? contentType) =>
+    private static ServiceSpecModel SpecReturning(string? contentType) =>
         new() {
             FileName = "content",
             Services = new List<ServiceModel> {
@@ -400,7 +400,7 @@ public class RequestModelBuilderTests {
 
     [Fact]
     public void BuildModels_HeaderParameter_MapsToHeaderBindType() {
-        var spec = new OpenApiSpecModel {
+        var spec = new ServiceSpecModel {
             FileName = "test",
             Services = new List<ServiceModel> {
                 new() {

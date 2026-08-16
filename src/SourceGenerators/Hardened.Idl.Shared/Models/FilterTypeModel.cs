@@ -1,4 +1,4 @@
-namespace Hardened.OpenApi.SourceGenerator.Models;
+namespace Hardened.Idl.Models;
 
 /// <summary>
 /// Represents a filter attribute type defined in x-filter-types.

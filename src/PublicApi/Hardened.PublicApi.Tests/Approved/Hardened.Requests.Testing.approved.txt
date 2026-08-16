@@ -35,10 +35,57 @@ namespace Hardened.Requests.Testing.Conformance
         public void PathTokensAreEmptyRatherThanNullBeforeRouting() { }
         public void QueryStringIsSurfaced() { }
     }
+    public abstract class ExecutionResponseConformanceTests
+    {
+        protected ExecutionResponseConformanceTests() { }
+        protected abstract Hardened.Requests.Testing.Conformance.IExecutionResponseConformanceAdapter Adapter { get; }
+        public System.Threading.Tasks.Task ACookieAppendedToACloneReachesTheClient() { }
+        public System.Threading.Tasks.Task AnAppendedCookieReachesTheClient() { }
+        public System.Threading.Tasks.Task AnEmptyBodyIsEmptyRatherThanAbsent() { }
+        public System.Threading.Tasks.Task AnUnsetStatusBecomesTwoHundred() { }
+        public System.Threading.Tasks.Task BodySurvivesCompletion() { }
+        public System.Threading.Tasks.Task CloneCarriesTheStatus() { }
+        public System.Threading.Tasks.Task ContentTypeSurvivesCompletion() { }
+        public System.Threading.Tasks.Task CookieAttributesReachTheClient() { }
+        public System.Threading.Tasks.Task EveryAppendedCookieReachesTheClient() { }
+        public System.Threading.Tasks.Task HeadersSurviveCompletion() { }
+        public System.Threading.Tasks.Task NoCookiesMeansNothingIsSent() { }
+        public System.Threading.Tasks.Task ResponseHasNotStartedBeforeAnythingIsWritten() { }
+        public System.Threading.Tasks.Task StatusSurvivesCompletionWithABody() { }
+        [Xunit.InlineData(new object[] {
+                200})]
+        [Xunit.InlineData(new object[] {
+                204})]
+        [Xunit.InlineData(new object[] {
+                302})]
+        [Xunit.InlineData(new object[] {
+                404})]
+        [Xunit.InlineData(new object[] {
+                405})]
+        [Xunit.InlineData(new object[] {
+                500})]
+        public System.Threading.Tasks.Task StatusSurvivesCompletionWithNoBody(int status) { }
+    }
     public interface IExecutionRequestConformanceAdapter
     {
         string TransportName { get; }
         Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Requests.Testing.Conformance.ConformanceRequestSpec spec);
+    }
+    public interface IExecutionResponseConformanceAdapter
+    {
+        string TransportName { get; }
+        System.Threading.Tasks.Task<Hardened.Requests.Testing.Conformance.ObservedResponse> Complete(Hardened.Requests.Abstract.Execution.IExecutionResponse response);
+        Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse();
+    }
+    public class ObservedResponse : System.IEquatable<Hardened.Requests.Testing.Conformance.ObservedResponse>
+    {
+        public ObservedResponse(int StatusCode, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IReadOnlyList<string>> Headers, System.Collections.Generic.IReadOnlyList<string> SetCookies, byte[] Body) { }
+        public byte[] Body { get; init; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IReadOnlyList<string>> Headers { get; init; }
+        public System.Collections.Generic.IReadOnlyList<string> SetCookies { get; init; }
+        public int StatusCode { get; init; }
+        public string BodyAsText() { }
+        public string? Header(string name) { }
     }
 }
 namespace Hardened.Requests.Testing

@@ -1,6 +1,6 @@
 using System;
 using CSharpAuthor;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.OpenApi.BuildTask.Validation;
 using Hardened.OpenApi.SourceGenerator.Emitters;
 

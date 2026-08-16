@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
@@ -17,7 +18,6 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// </summary>
 public class ResponseSerializerCompressionTests {
 
-    private record Payload(string Name, int Value);
 
     private static IOptions<IJsonSerializerConfiguration> Config() =>
         Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration {
@@ -43,7 +43,8 @@ public class ResponseSerializerCompressionTests {
 
     private static IEnumerable<IResponseSerializer> Serializers() {
         yield return new SystemTextJsonResponseSerializer(Config());
-        yield return new AotResponseSerializer(Config(), Array.Empty<IJsonTypeInfoResolver>());
+        yield return new AotResponseSerializer(
+            Config(), new IJsonTypeInfoResolver[] { PayloadContext.Default });
     }
 
     public static TheoryData<string> SerializerNames => new() {
@@ -160,3 +161,22 @@ public class ResponseSerializerCompressionTests {
         Assert.True(SerializerNamed(serializerName).IsDefaultSerializer);
     }
 }
+
+internal record Payload(string Name, int Value);
+
+/// <summary>
+/// Metadata for <see cref="Payload"/>, source generated.
+/// </summary>
+/// <remarks>
+/// The AOT serializer used to be handed no resolver at all, and worked: the reflection overload it
+/// called installs a default reflection resolver when the options carry none. So the test covering
+/// the AOT path was exercising reflection, and would have gone on passing however AOT-hostile the
+/// serializer became. It now takes real source-generated metadata, which is what an AOT application
+/// supplies and what the serializer finds at run time.
+///
+/// At namespace scope because System.Text.Json's generator does not emit for a context nested
+/// inside a type that is not itself partial.
+/// </remarks>
+[JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
+[JsonSerializable(typeof(Payload))]
+internal partial class PayloadContext : JsonSerializerContext { }

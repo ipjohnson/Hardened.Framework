@@ -1,11 +1,11 @@
 using System.Globalization;
 using System.Text;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl;
 
 /// <summary>
-/// Writes an <see cref="OpenApiSpecModel"/> to text and reads it back. The private contract between
+/// Writes an <see cref="ServiceSpecModel"/> to text and reads it back. The private contract between
 /// the build task, which parses the yaml, and the source generator, which never opens it.
 /// </summary>
 /// <remarks>
@@ -36,7 +36,7 @@ internal static class SpecModelSerializer {
 
     private const char FieldSeparator = '\t';
 
-    public static string Write(OpenApiSpecModel model) {
+    public static string Write(ServiceSpecModel model) {
         var builder = new StringBuilder();
         builder.Append(Header).Append('\n');
 
@@ -67,8 +67,8 @@ internal static class SpecModelSerializer {
         return builder.ToString();
     }
 
-    public static OpenApiSpecModel Read(string text) {
-        var model = new OpenApiSpecModel();
+    public static ServiceSpecModel Read(string text) {
+        var model = new ServiceSpecModel();
 
         SchemaModel? schema = null;
         ServiceModel? service = null;

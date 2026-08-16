@@ -1,6 +1,6 @@
-namespace Hardened.OpenApi.SourceGenerator.Models;
+namespace Hardened.Idl.Models;
 
-internal class OpenApiSpecModel : IEquatable<OpenApiSpecModel> {
+internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public string FileName { get; set; } = "";
     public List<SchemaModel> Schemas { get; set; } = new();
     public List<ServiceModel> Services { get; set; } = new();
@@ -20,7 +20,7 @@ internal class OpenApiSpecModel : IEquatable<OpenApiSpecModel> {
     /// </summary>
     public List<ValidatedOperationModel> ValidatedOperations { get; set; } = new();
 
-    public bool Equals(OpenApiSpecModel? other) {
+    public bool Equals(ServiceSpecModel? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         if (FileName != other.FileName) return false;
@@ -49,7 +49,7 @@ internal class OpenApiSpecModel : IEquatable<OpenApiSpecModel> {
         return true;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as OpenApiSpecModel);
+    public override bool Equals(object? obj) => Equals(obj as ServiceSpecModel);
 
     public override int GetHashCode() {
         unchecked {

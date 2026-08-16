@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
         <Description>Core runtime for the Hardened framework: module entry points ([HardenedModule]), configuration binding, environment abstraction and application lifecycle. Service registration is handled by DependencyModules ([SingletonService], [ScopedService], [TransientService]).</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

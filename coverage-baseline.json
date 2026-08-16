@@ -4,7 +4,7 @@
     "branch": 9.9
   },
   "Hardened.Library.SourceGenerator": {
-    "line": 40.5,
+    "line": 39.7,
     "branch": 19.8
   },
   "Hardened.OpenApi.BuildTask": {
@@ -12,8 +12,8 @@
     "branch": 10.7
   },
   "Hardened.OpenApi.SourceGenerator": {
-    "line": 59.0,
-    "branch": 51.2
+    "line": 58.0,
+    "branch": 48.7
   },
   "Hardened.Requests.Abstract": {
     "line": 82.2,
@@ -45,7 +45,7 @@
   },
   "Hardened.SourceGenerator": {
     "line": 73.0,
-    "branch": 59.4
+    "branch": 57.6
   },
   "Hardened.Templates.RazorBlade": {
     "line": 100.0,

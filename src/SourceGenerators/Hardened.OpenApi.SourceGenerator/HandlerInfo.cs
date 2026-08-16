@@ -1,7 +1,7 @@
 using CSharpAuthor;
 using Hardened.SourceGenerator.Shared;
 
-namespace Hardened.OpenApi.SourceGenerator.Models;
+namespace Hardened.OpenApi.SourceGenerator;
 
 internal class HandlerInfo : IEquatable<HandlerInfo> {
     public HandlerInfo(

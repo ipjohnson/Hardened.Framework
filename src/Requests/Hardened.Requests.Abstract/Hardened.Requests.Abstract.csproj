@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
         <Description>Transport-agnostic request and response abstractions for the Hardened execution pipeline: IExecutionContext, IExecutionRequest, IExecutionResponse and IExecutionFilter.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

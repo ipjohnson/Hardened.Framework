@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Hardened.OpenApi.SourceGenerator;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.BuildTask;
 
@@ -25,7 +26,7 @@ internal static class SpecDiagnostics {
         public string Message { get; }
     }
 
-    public static IReadOnlyList<Problem> Find(OpenApiSpecModel model) {
+    public static IReadOnlyList<Problem> Find(ServiceSpecModel model) {
         var problems = new List<Problem>();
 
         FindDuplicateSchemaNames(model, problems);
@@ -73,7 +74,7 @@ internal static class SpecDiagnostics {
     /// only surfaced as CS0101 in generated code.
     /// </para>
     /// </remarks>
-    private static void FindDuplicateSchemaNames(OpenApiSpecModel model, List<Problem> problems) {
+    private static void FindDuplicateSchemaNames(ServiceSpecModel model, List<Problem> problems) {
         var seen = new Dictionary<string, string>();
 
         foreach (var schema in model.Schemas) {

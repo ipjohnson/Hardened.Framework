@@ -1,4 +1,4 @@
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Hardened.SourceGeneration.Testing;
 using Xunit;
 
@@ -8,7 +8,7 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// What the spec model's equality is for.
 ///
 /// <para>
-/// <see cref="OpenApiSpecModel"/> and everything it holds sit inside Roslyn's incremental pipeline:
+/// <see cref="ServiceSpecModel"/> and everything it holds sit inside Roslyn's incremental pipeline:
 /// <c>OpenApiSourceGenerator</c> parses each <c>AdditionalFiles</c> entry into one, and Roslyn
 /// compares the new value against the cached one to decide whether the downstream emit runs again.
 /// Equality that is too loose serves stale generated code after a real edit; equality that is too
@@ -24,7 +24,7 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// </summary>
 public class SpecModelEqualityTests {
 
-    private static OpenApiSpecModel Parse(string yaml, string fileName = "spec") {
+    private static ServiceSpecModel Parse(string yaml, string fileName = "spec") {
         var model = OpenApiSpecParser.Parse(yaml, fileName, CancellationToken.None);
 
         Assert.NotNull(model);

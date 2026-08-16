@@ -97,4 +97,115 @@ public class OpenApiDocumentTests {
         Assert.Equal("object", schema.GetProperty("type").GetString());
         Assert.Equal("array", schema.GetProperty("properties").GetProperty("values").GetProperty("type").GetString());
     }
+
+    /// <summary>
+    /// A path template names its parameters and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// Route constraints and the catch-all marker used to survive into the template, so the
+    /// document declared <c>/binding/path-constrained/{count:int}</c>. The name there then
+    /// disagreed with the name in <c>parameters</c>, which is a <c>path-params</c> error to a
+    /// linter and a request for <c>/boards/%7BboardId:guid%7D</c> from a generated client.
+    /// </remarks>
+    [HardenedTest]
+    public async Task PathTemplatesCarryNoRoutingSyntax(ITestWebApp testWebApp) {
+        using var document = await Fetch(testWebApp);
+
+        var leaked = document.RootElement.GetProperty("paths").EnumerateObject()
+            .Select(path => path.Name)
+            .Where(path => path.Contains(':') || path.Contains('*'))
+            .ToList();
+
+        Assert.True(leaked.Count == 0,
+            "path templates carry routing syntax a document cannot express: " + string.Join(", ", leaked));
+
+        // The constrained route is still there, under the name its parameter is declared with.
+        Assert.True(document.RootElement.GetProperty("paths")
+            .TryGetProperty("/binding/path-constrained/{count}", out _));
+    }
+
+    /// <summary>
+    /// A parameter is typed as the handler declared it, not as the text it arrived in.
+    /// </summary>
+    /// <remarks>
+    /// Every parameter was written as a string whatever its C# type, so a document described
+    /// <c>ConstrainedPathToken(int count)</c> as taking a string — and a typed client had no reason
+    /// to reject <c>/path-constrained/abc</c> before sending it.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ParametersCarryTheirDeclaredType(ITestWebApp testWebApp) {
+        using var document = await Fetch(testWebApp);
+
+        var schema = document.RootElement.GetProperty("paths")
+            .GetProperty("/binding/path-constrained/{count}")
+            .GetProperty("get").GetProperty("parameters")[0]
+            .GetProperty("schema");
+
+        Assert.Equal("integer", schema.GetProperty("type").GetString());
+        Assert.Equal("int32", schema.GetProperty("format").GetString());
+    }
+
+    /// <summary>
+    /// The document declares the groups its operations reference.
+    /// </summary>
+    /// <remarks>
+    /// Operations carried tags and nothing declared them, which is legal and lossy: the top-level
+    /// list is where a tag's order is set, so a reader and a generated SDK grouped by whatever the
+    /// names sorted to rather than by what the application declared.
+    /// </remarks>
+    [HardenedTest]
+    public async Task TheDocumentDeclaresItsTags(ITestWebApp testWebApp) {
+        using var document = await Fetch(testWebApp);
+
+        Assert.True(document.RootElement.TryGetProperty("tags", out var tags),
+            "the document declares no tags, so its operations reference groups it never defines");
+
+        var declared = tags.EnumerateArray().Select(tag => tag.GetProperty("name").GetString()).ToList();
+
+        Assert.Contains("Registration", declared);
+        Assert.Contains("Binding", declared);
+
+        // Every tag an operation uses has to be one of these.
+        var used = document.RootElement.GetProperty("paths").EnumerateObject()
+            .SelectMany(path => path.Value.EnumerateObject())
+            .SelectMany(operation => operation.Value.GetProperty("tags").EnumerateArray())
+            .Select(tag => tag.GetString())
+            .Distinct();
+
+        Assert.All(used, tag => Assert.Contains(tag, declared));
+    }
+
+    /// <summary>
+    /// A handler carrying a validation filter still describes its body and its response.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The regression guard for the defect that produced two of these findings at once. Attaching
+    /// a validator rebuilt the handler model by hand and carried two of its eight settable
+    /// properties, dropping both OpenAPI schemas — so the operations with the most carefully
+    /// specified models were the ones documented as accepting nothing and returning nothing.
+    /// </para>
+    /// <para>
+    /// Asserted here rather than in the generator's own round-trip tests because those deliberately
+    /// do not run the validation generator, and this defect only exists once it has run.
+    /// <c>RegistrationController</c> is the handler set that gets validators.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task AValidatedHandlerStillDescribesItsBodyAndResponse(ITestWebApp testWebApp) {
+        using var document = await Fetch(testWebApp);
+
+        var operation = document.RootElement.GetProperty("paths")
+            .GetProperty("/registration").GetProperty("post");
+
+        var body = operation.GetProperty("requestBody")
+            .GetProperty("content").GetProperty("application/json").GetProperty("schema");
+
+        Assert.Equal("#/components/schemas/RegistrationModel", body.GetProperty("$ref").GetString());
+
+        var response = operation.GetProperty("responses").GetProperty("200")
+            .GetProperty("content").GetProperty("application/json").GetProperty("schema");
+
+        Assert.Equal("string", response.GetProperty("type").GetString());
+    }
 }

@@ -25,7 +25,7 @@ public class RegistrationValidationTests {
 
     [HardenedTest]
     public async Task MissingRequiredField_Returns400(ITestWebApp testWebApp) {
-        var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration/");
+        var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration");
 
         response.Assert.BadRequest();
 
@@ -42,7 +42,7 @@ public class RegistrationValidationTests {
     /// </summary>
     [HardenedTest]
     public async Task BothConstraintVocabulariesReportTheSameWay(ITestWebApp testWebApp) {
-        var response = await testWebApp.Post(new { Name = "ab", Age = 7 }, "/registration/");
+        var response = await testWebApp.Post(new { Name = "ab", Age = 7 }, "/registration");
 
         response.Assert.BadRequest();
 
@@ -60,7 +60,7 @@ public class RegistrationValidationTests {
     public async Task NestedModelFailuresCarryTheirPath(ITestWebApp testWebApp) {
         var response = await testWebApp.Post(
             new { Name = "Valid", Age = 30, Address = new { City = "", Country = "USA" } },
-            "/registration/");
+            "/registration");
 
         response.Assert.BadRequest();
 
@@ -93,7 +93,7 @@ public class RegistrationValidationTests {
     public async Task ValidRequestStillSucceeds(ITestWebApp testWebApp) {
         var response = await testWebApp.Post(
             new { Name = "Whiskers", Age = 30, Address = new { City = "Boston", Country = "US" } },
-            "/registration/");
+            "/registration");
 
         response.Assert.Ok();
     }
@@ -104,7 +104,7 @@ public class RegistrationValidationTests {
     /// </summary>
     [HardenedTest]
     public async Task OmittingAnOptionalNestedModelIsFine(ITestWebApp testWebApp) {
-        var response = await testWebApp.Post(new { Name = "Whiskers", Age = 30 }, "/registration/");
+        var response = await testWebApp.Post(new { Name = "Whiskers", Age = 30 }, "/registration");
 
         response.Assert.Ok();
     }

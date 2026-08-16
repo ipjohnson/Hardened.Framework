@@ -1,12 +1,13 @@
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Readers;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator;
 
 internal static class OpenApiSpecParser {
-    public static OpenApiSpecModel? Parse(
+    public static ServiceSpecModel? Parse(
         string text, string fileName, CancellationToken cancellationToken,
         bool applyServerBasePath = false) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -23,7 +24,7 @@ internal static class OpenApiSpecParser {
             return null;
         }
 
-        var model = new OpenApiSpecModel { FileName = fileName };
+        var model = new ServiceSpecModel { FileName = fileName };
 
         // Schemas the document does not name, lifted out of the places they were written inline.
         // Collected separately and appended, so a synthesized name colliding with a declared one is

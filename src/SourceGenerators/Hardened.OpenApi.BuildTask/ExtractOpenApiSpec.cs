@@ -1,8 +1,9 @@
 using Hardened.OpenApi.SourceGenerator;
 using Hardened.OpenApi.SourceGenerator.Emitters;
-using Hardened.OpenApi.SourceGenerator.Models;
+using Hardened.Idl.Models;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.BuildTask;
 
@@ -70,6 +71,35 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     [Output]
     public ITaskItem[] GeneratedSources { get; set; } = System.Array.Empty<ITaskItem>();
 
+    /// <summary>
+    /// Turns one document into the neutral model everything downstream works on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The only line in this task that knows what an OpenAPI document is. Everything past it — the
+    /// emitters, the validation, the diagnostics, the source generator that reads the written model
+    /// — operates on <see cref="ServiceSpecModel"/> and contains no OpenAPI concept.
+    /// </para>
+    /// <para>
+    /// <b>Private, not <c>protected virtual</c>.</b> A second IDL front end wants to override this,
+    /// and the plan for one said to make it virtual now. It cannot be, yet, and finding out what
+    /// that costs is worth more than the change would have been: this class is <c>sealed</c>, so a
+    /// virtual member does not compile (CS0549), and <see cref="ServiceSpecModel"/> is internal, so
+    /// a protected member returning it does not either (CS0050). The extension point is therefore
+    /// an unseal plus a model promoted to public — real surface, on a shipped MSBuild task,
+    /// widened for a subclass nobody has written.
+    /// </para>
+    /// <para>
+    /// So the parsing is named and isolated here, which is the part that pays off either way, and
+    /// the widening waits for the front end whose requirements would justify it. Making this
+    /// <c>protected virtual</c> then is one keyword and one accessibility change. That is the same
+    /// reasoning that keeps an <c>ISpecParser</c> interface out: a seam guessed before its second
+    /// implementation is a guess frozen into the shape of the task.
+    /// </para>
+    /// </remarks>
+    private ServiceSpecModel? Parse(string document, string fileName) =>
+        OpenApiSpecParser.Parse(document, fileName, CancellationToken.None, ApplyServerBasePath);
+
     public override bool Execute() {
         var models = new List<ITaskItem>();
         var sources = new List<ITaskItem>();
@@ -88,11 +118,10 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
 
             var fileName = Path.GetFileNameWithoutExtension(path);
             var document = File.ReadAllText(path);
-            OpenApiSpecModel model;
+            ServiceSpecModel model;
 
             try {
-                var parsed = OpenApiSpecParser.Parse(
-                    document, fileName, CancellationToken.None, ApplyServerBasePath);
+                var parsed = Parse(document, fileName);
 
                 if (parsed is null) {
                     Log.LogError(null, "HOAT002", null, path, 0, 0, 0, 0,
@@ -153,7 +182,7 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     /// such rule, and a single file is what keeps this target's incrementality honest: its outputs
     /// are then derivable from the item list without reading a spec, which one file per type is not.
     /// </remarks>
-    private string Emit(OpenApiSpecModel model, string document, string specPath) =>
+    private string Emit(ServiceSpecModel model, string document, string specPath) =>
         SpecFileEmitter.Emit(model, Namespace, ExcludeFromCoverage, document, specPath);
 
     /// <summary>

@@ -48,7 +48,7 @@ public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
 
         await executionChain.Next();
 
-        if (!context.Response.HasStarted) {
+        if (!Answered(executionContext)) {
             await requestDelegate(context);
         }
 
@@ -56,6 +56,50 @@ public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
             RequestMetrics.TotalRequestDuration, requestStartTimestamp.GetElapsedMilliseconds());
 
         _requestLogger.RequestEnd(executionContext);
+    }
+
+    /// <summary>
+    /// Whether the Hardened chain answered this request, and so whether it stops here rather than
+    /// continuing down the ASP.NET pipeline.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This used to ask <c>context.Response.HasStarted</c>, which turns true only once response
+    /// <em>bytes</em> have flushed. A status and headers flush nothing, so every response with no
+    /// body fell through to the terminal delegate and came back as ASP.NET's 404: a 204, a 308
+    /// redirect, a 405 with its <c>Allow</c> header, a <c>HEAD</c>, and any 200 from a handler
+    /// returning <c>Task</c>. The side effect had already happened — a <c>DELETE</c> really did
+    /// delete — and the caller was told the resource did not exist. The Kestrel host was unaffected
+    /// because it has no fallthrough to fall into.
+    /// </para>
+    /// <para>
+    /// Four signals, because the pipeline has four ways to answer and they set different things:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><c>HandlerInfo</c> — routing selected a handler. Set by
+    /// <c>WebExecutionHandlerService.Dispatch</c> before the handler runs, so it holds even when the
+    /// handler writes nothing at all. This is the one the old check had no equivalent of.</item>
+    /// <item><c>Status</c> — static content (200 or 304), a 405, a 308 trailing-slash redirect, or a
+    /// handler that set one itself.</item>
+    /// <item><c>ResponseValue</c> — a handler returned something not yet serialized.</item>
+    /// <item><c>ResponseStarted</c> — bytes are already on the wire. The old signal, still
+    /// sufficient, now merely no longer necessary.</item>
+    /// </list>
+    /// <para>
+    /// A path Hardened declares nothing for reaches none of them, because this host registers
+    /// <see cref="AspNetResourceNotFoundHandler"/> in place of the framework's terminal one exactly
+    /// so the status stays unset. That request falls through — which is the reason the fallthrough
+    /// exists, so static files, another middleware or MVC behind <c>UseHardened()</c> get their
+    /// turn, and ASP.NET's own 404 answers if none of them do.
+    /// </para>
+    /// </remarks>
+    private static bool Answered(IExecutionContext executionContext) {
+        var response = executionContext.Response;
+
+        return executionContext.HandlerInfo != null
+               || response.Status.HasValue
+               || response.ResponseValue != null
+               || response.ResponseStarted;
     }
 
     private IExecutionContext GetExecutionContext(
