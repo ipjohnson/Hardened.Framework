@@ -30,6 +30,7 @@ namespace Hardened.Web.Kestrel.Runtime
         public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddHardenedKestrel(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>? configureKestrel = null, System.Action<Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions>? configureTransport = null) { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Web.Runtime.DependencyInjection.HardenedWebModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class KestrelRuntime : DependencyModules.Runtime.Interfaces.IDependencyModule
     {

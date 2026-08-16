@@ -83,18 +83,90 @@ public class AspNetCoreRequestHandlerTests {
         Assert.False(nextInvoked);
     }
 
+    /// <summary>
+    /// The four ways the chain answers with no body, each of which used to fall through to the
+    /// terminal delegate and come back as ASP.NET's 404.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// These are the cases the shortener app's two-host diff found: <c>DELETE</c> returning 200,
+    /// a wrong verb returning 405 with an <c>Allow</c> header, a <c>HEAD</c>, and a 302 redirect.
+    /// Each really had happened — the DELETE deleted — and each was reported to the caller as a
+    /// resource that does not exist.
+    /// </para>
+    /// <para>
+    /// They are expressed as what the chain leaves on the context rather than as whole requests,
+    /// because that is the boundary this class owns. A status covers the 405, the redirect and any
+    /// handler that sets one; <c>HandlerInfo</c> covers a route that matched and wrote nothing,
+    /// which is the signal the old check had no equivalent of at all.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task HandleRequest_SkipsTheNextDelegateWhenTheChainSetAStatusWithNoBody() {
+        var harness = new Harness(chainEffect: context => context.Response.Status = 204);
+        var nextInvoked = false;
+
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
+            nextInvoked = true;
+            return Task.CompletedTask;
+        });
+
+        Assert.False(nextInvoked);
+        Assert.Equal(204, harness.HttpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task HandleRequest_SkipsTheNextDelegateWhenRoutingSelectedAHandler() {
+        var harness = new Harness(chainEffect: context =>
+            context.HandlerInfo = Substitute.For<IExecutionRequestHandlerInfo>());
+        var nextInvoked = false;
+
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
+            nextInvoked = true;
+            return Task.CompletedTask;
+        });
+
+        Assert.False(nextInvoked);
+    }
+
+    [Fact]
+    public async Task HandleRequest_SkipsTheNextDelegateWhenTheChainLeftAResponseValue() {
+        var harness = new Harness(chainEffect: context => context.Response.ResponseValue = "value");
+        var nextInvoked = false;
+
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
+            nextInvoked = true;
+            return Task.CompletedTask;
+        });
+
+        Assert.False(nextInvoked);
+    }
+
     private class Harness {
-        public Harness(bool startResponse = false) {
+        public Harness(bool startResponse = false, Action<IExecutionContext>? chainEffect = null) {
             RequestLogger = Substitute.For<IRequestLogger>();
             MetricLogger = Substitute.For<IMetricLogger>();
             Chain = Substitute.For<IExecutionChain>();
-            Chain.Next().Returns(Task.CompletedTask);
 
             var metricLoggerProvider = Substitute.For<IMetricLoggerProvider>();
             metricLoggerProvider.CreateLogger(Arg.Any<string>()).Returns(MetricLogger);
 
             var middlewareService = Substitute.For<IMiddlewareService>();
-            middlewareService.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(Chain);
+
+            // The context is built inside HandleRequest, so it is captured on the way past rather
+            // than handed in — chainEffect stands in for whatever the real chain would have left
+            // on it.
+            middlewareService.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(callInfo => {
+                ExecutionContext = callInfo.Arg<IExecutionContext>();
+
+                return Chain;
+            });
+
+            Chain.Next().Returns(_ => {
+                chainEffect?.Invoke(ExecutionContext!);
+
+                return Task.CompletedTask;
+            });
 
             // AspNetExecutionContext resolves IKnownServices out of RequestServices as it is built.
             var services = new ServiceCollection();
@@ -115,6 +187,8 @@ public class AspNetCoreRequestHandlerTests {
         public IMetricLogger MetricLogger { get; }
 
         public IExecutionChain Chain { get; }
+
+        public IExecutionContext? ExecutionContext { get; private set; }
 
         public HttpContext HttpContext { get; }
 

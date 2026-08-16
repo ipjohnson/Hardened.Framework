@@ -6,10 +6,12 @@ namespace Hardened.Web.AspNetCore.Runtime
         public static Microsoft.AspNetCore.Builder.IApplicationBuilder UseHardened(this Microsoft.AspNetCore.Builder.IApplicationBuilder builder) { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Web.Runtime.DependencyInjection.HardenedWebModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class AspNetCoreRuntime : DependencyModules.Runtime.Interfaces.IDependencyModule
+    public class AspNetCoreRuntime : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public AspNetCoreRuntime() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
@@ -77,6 +79,11 @@ namespace Hardened.Web.AspNetCore.Runtime.Impl
         public bool ShouldSerialize { get; set; }
         public int? Status { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+    public class AspNetResourceNotFoundHandler : Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler
+    {
+        public AspNetResourceNotFoundHandler() { }
+        public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
     public interface IAspNetCoreRequestHandler
     {

@@ -1,5 +1,10 @@
 using DependencyModules.Runtime.Attributes;
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Abstract.Errors;
+using Hardened.Web.AspNetCore.Runtime.Impl;
 using Hardened.Web.Runtime.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hardened.Web.AspNetCore.Runtime;
 
@@ -31,4 +36,18 @@ namespace Hardened.Web.AspNetCore.Runtime;
 /// </summary>
 [DependencyModule]
 [HardenedWebModule]
-public partial class AspNetCoreRuntime { }
+public partial class AspNetCoreRuntime : IServiceCollectionConfiguration {
+
+    /// <summary>
+    /// Replaces the terminal not-found handler with one that leaves the request unanswered.
+    /// </summary>
+    /// <remarks>
+    /// The same shape <c>LambdaWebModule</c> uses to swap the logger provider: remove what the
+    /// framework registered, add the host's own. See <see cref="AspNetResourceNotFoundHandler"/>
+    /// for why this host wants a different answer than every other one.
+    /// </remarks>
+    public void ConfigureServices(IServiceCollection services) {
+        services.RemoveAll<IResourceNotFoundHandler>();
+        services.AddSingleton<IResourceNotFoundHandler, AspNetResourceNotFoundHandler>();
+    }
+}
