@@ -31,15 +31,31 @@ namespace Hardened.OpenApi.SourceGenerator;
 /// <b>Allocated names are idempotent under <see cref="NamingHelper.ToPascalCase"/>.</b> That is the
 /// invariant that lets the emitters keep deriving: passing an allocated name through the sanitizer
 /// again returns it unchanged, so a call site that re-derives gets the same answer rather than a
-/// different one. It is asserted below, and it is why a disambiguating suffix carries no separator -
-/// <c>_</c> would be stripped on the next pass and two names would converge again.
+/// different one. It is asserted in the tests, and it is why nothing added to disambiguate carries a
+/// separator - <c>_</c> would be stripped on the next pass and two names would converge again.
+/// </para>
+/// <para>
+/// <b>A name that has to move is qualified by the scope that owns it</b> - <c>ZoomDateTime</c>,
+/// <c>RepositoryClone</c>, <c>queryPath</c> - because that is the thing which distinguishes it from
+/// whatever it collided with, and it reads. The first attempt was a hash of the same information,
+/// which was equally stable and produced <c>DateTimeN9bec7490</c>; stability was never the part that
+/// was hard. Only where the scope distinguishes nothing does a number appear, and sorting before
+/// allocating is what makes which one gets it independent of the document's order.
 /// </para>
 /// </remarks>
 internal static class NameAllocator {
 
-    /// <summary>Members every type already has, which a property cannot redeclare.</summary>
+    /// <summary>
+    /// Members a record already has, which a property cannot redeclare.
+    /// </summary>
+    /// <remarks>
+    /// <c>Clone</c> is the record-only one and is stricter than the rest: the compiler reserves the
+    /// name for its copy method and rejects any member called it outright (CS8859), where the
+    /// others merely collide. Bitbucket declares a property named <c>clone</c>.
+    /// </remarks>
     private static readonly string[] ObjectMembers = {
-        "ToString", "Equals", "GetHashCode", "GetType", "ReferenceEquals", "MemberwiseClone"
+        "ToString", "Equals", "GetHashCode", "GetType", "ReferenceEquals", "MemberwiseClone",
+        "Clone", "Deconstruct", "PrintMembers", "EqualityContract"
     };
 
     /// <summary>
@@ -60,33 +76,62 @@ internal static class NameAllocator {
 
         public void Reserve(string name) => _taken.Add(name);
 
-        /// <param name="provenance">
-        /// What makes this name different from the one it collided with. Disambiguation is derived
-        /// from it rather than from a counter, so the answer depends on the thing being named and
-        /// not on how many names were allocated before it - a document that gains a schema does not
-        /// rename the ones it already had.
+        /// <param name="alternative">
+        /// What to call it instead when the name it wants is taken. Every caller supplies the same
+        /// kind of thing - the name qualified by the scope that contains it, so Bitbucket's
+        /// <c>clone</c> becomes <c>RepositoryClone</c> and Zoom's <c>DateTime</c> becomes
+        /// <c>ZoomDateTime</c>. Derived from the thing being named rather than from a counter, so
+        /// the answer does not depend on how many names came before it.
         /// </param>
-        public string Allocate(string desired, string provenance) {
+        public string Allocate(string desired, string alternative) {
             var candidate = NamingHelper.ToPascalCase(desired);
 
             if (_taken.Add(candidate)) {
                 return candidate;
             }
 
-            candidate += Suffix(provenance);
+            var qualified = NamingHelper.ToPascalCase(alternative);
 
-            // Only if the provenance itself collides, which means two identical things.
-            while (!_taken.Add(candidate)) {
-                candidate += "X";
+            if (qualified != candidate && _taken.Add(qualified)) {
+                return qualified;
             }
 
-            return candidate;
+            // Both taken, which means two things the document does not distinguish by anything this
+            // scope can see. Numbered, and the order is fixed by sorting before allocating.
+            for (var suffix = 2; ; suffix++) {
+                var numbered = candidate + suffix.ToString(CultureInfo.InvariantCulture);
+
+                if (_taken.Add(numbered)) {
+                    return numbered;
+                }
+            }
         }
     }
 
+    /// <summary>
+    /// A name qualified by the scope that contains it - or unchanged, where that would only stutter.
+    /// </summary>
+    /// <remarks>
+    /// A schema called <c>StripeAccount</c> in <c>stripe.yaml</c> would become
+    /// <c>StripeStripeAccount</c>, which is worse than the numbered form it falls through to. A name
+    /// that <em>equals</em> its scope is the opposite case and does get qualified: GitHub's commit
+    /// schema declares a property called <c>commit</c>, and <c>CommitCommit</c> at least says which
+    /// two things met, where a number says nothing.
+    /// </remarks>
+    private static string Qualify(string scope, string name) {
+        var prefix = NamingHelper.ToPascalCase(scope);
+        var pascal = NamingHelper.ToPascalCase(name);
+
+        return pascal.Length > prefix.Length && pascal.StartsWith(prefix, StringComparison.Ordinal)
+            ? pascal
+            : prefix + pascal;
+    }
+
     public static void Apply(ServiceSpecModel model, string specFileName) {
-        AllocateTypeNames(model, specFileName);
-        AllocateOperationNames(model);
+        var file = NamingHelper.ToPascalCase(specFileName);
+
+        AllocateTypeNames(model, file);
+        AllocateOperationNames(model, file);
         AllocateMemberNames(model);
     }
 
@@ -106,11 +151,17 @@ internal static class NameAllocator {
     /// <c>Monitor</c> is always allocated first and always wins the argument.
     /// </para>
     /// </remarks>
-    private static void AllocateTypeNames(ServiceSpecModel model, string specFileName) {
-        var file = NamingHelper.ToPascalCase(specFileName);
-
+    private static void AllocateTypeNames(ServiceSpecModel model, string file) {
         var scope = new Scope(new[] {
-            file + "Patterns", file + "Specification", file + "JsonTypeInfoResolver"
+            file + "Patterns", file + "Specification", file + "JsonTypeInfoResolver",
+
+            // Exactly the names the type mapper resolves by spelling - no more. It looks a type up
+            // by its rendered name, so a schema called DateTime became System.DateTime everywhere
+            // it was referenced; Zoom declares one, and it is a date range with `from` and `to`,
+            // not a moment. The keyword forms (int, string) cannot collide because a pascal-cased
+            // name never produces one, and reserving ordinary words like Type or Object would
+            // rename a great many schemas to no purpose.
+            "DateTime", "DateOnly", "JsonElement"
         });
 
         var ordered = new List<SchemaModel>(model.Schemas);
@@ -119,7 +170,10 @@ internal static class NameAllocator {
         var renamed = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (var schema in ordered) {
-            var allocated = scope.Allocate(schema.Name, schema.Name);
+            // Qualified by the document, because what a schema collides with is either another
+            // schema in the same document or a name the language already spends - and the document
+            // is what distinguishes it from both.
+            var allocated = scope.Allocate(schema.Name, Qualify(file, schema.Name));
 
             scope.Reserve(allocated + "Validator");
 
@@ -150,14 +204,16 @@ internal static class NameAllocator {
     /// because the parameter interface is partial, the two merged into a single type with every
     /// member declared twice rather than failing where the duplication was.
     /// </remarks>
-    private static void AllocateOperationNames(ServiceSpecModel model) {
+    private static void AllocateOperationNames(ServiceSpecModel model, string file) {
         var services = new List<ServiceModel>(model.Services);
         services.Sort((left, right) => string.CompareOrdinal(left.Tag, right.Tag));
 
         var tags = new Scope();
 
         foreach (var service in services) {
-            service.TypeBaseName = tags.Allocate(service.Tag ?? "Default", service.Tag ?? "Default");
+            var tag = service.Tag ?? "Default";
+
+            service.TypeBaseName = tags.Allocate(tag, Qualify(file, tag));
         }
 
         var operations = new List<OperationModel>();
@@ -176,8 +232,13 @@ internal static class NameAllocator {
         var ids = new Scope();
 
         foreach (var operation in operations) {
+            // Not qualified by the tag: Cloudflare's DeleteWebhook and deleteWebhook share one, so
+            // it distinguishes nothing. What differs is the route, so a colliding id falls back to
+            // the name the operation would have had if it had declared none - deleteZonesZoneId -
+            // which is a convention the generator already uses and a reader already recognises.
             operation.MethodName = ids.Allocate(
-                operation.OperationId, operation.HttpMethod + " " + operation.Path);
+                operation.OperationId,
+                OpenApiSpecParser.GenerateOperationId(operation.HttpMethod, operation.Path));
         }
     }
 
@@ -204,8 +265,14 @@ internal static class NameAllocator {
 
             properties.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
 
+            var typeName = NamingHelper.ToPascalCase(schema.Name);
+
             foreach (var property in properties) {
-                property.MemberNameOverride = members.Allocate(property.Name, property.Name);
+                // Qualified by the type that declares it, which is what a property collides
+                // against: its own type's name, a member every record already has, or another
+                // property of the same type. Bitbucket's repository.clone becomes RepositoryClone.
+                property.MemberNameOverride =
+                    members.Allocate(property.Name, Qualify(typeName, property.Name));
             }
 
             if (schema.EnumValues is { Count: > 0 }) {
@@ -223,8 +290,8 @@ internal static class NameAllocator {
                     string.CompareOrdinal(schema.EnumValues[left], schema.EnumValues[right]));
 
                 foreach (var index in order) {
-                    allocated[index] =
-                        values.Allocate(schema.EnumValues[index], schema.EnumValues[index]);
+                    allocated[index] = values.Allocate(
+                        schema.EnumValues[index], Qualify(typeName, schema.EnumValues[index]));
                 }
 
                 schema.EnumMemberNames = new List<string>(allocated);
@@ -236,9 +303,14 @@ internal static class NameAllocator {
                 var parameters = new Scope();
 
                 foreach (var parameter in Ordered(operation.Parameters)) {
+                    // Qualified by where it travels, because that is what OpenAPI allows two
+                    // parameters of one name to differ by: Kubernetes' proxy routes take `path` in
+                    // the path and `path` in the query, so the second becomes queryPath.
                     parameter.MemberNameOverride = NamingHelper.EscapeIdentifier(
                         NamingHelper.ToCamelCase(
-                            parameters.Allocate(parameter.Name, parameter.In ?? "value")));
+                            parameters.Allocate(
+                                parameter.Name,
+                                Qualify(parameter.In ?? "value", parameter.Name))));
                 }
             }
         }
@@ -272,25 +344,5 @@ internal static class NameAllocator {
 
         return ordered;
     }
-
-    /// <summary>
-    /// A short, stable qualifier, carrying no separator so the result survives being sanitized
-    /// again.
-    /// </summary>
-    /// <remarks>
-    /// FNV-1a rather than <see cref="string.GetHashCode"/>, which is randomised per process in .NET
-    /// Core - a generated type that renames itself on every build churns the file and recompiles
-    /// every consumer.
-    /// </remarks>
-    private static string Suffix(string provenance) {
-        unchecked {
-            var hash = 2166136261;
-
-            foreach (var character in provenance) {
-                hash = (hash ^ character) * 16777619;
-            }
-
-            return "N" + hash.ToString("x8", CultureInfo.InvariantCulture);
-        }
-    }
 }
+

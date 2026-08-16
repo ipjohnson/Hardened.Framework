@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
 using Hardened.OpenApi.SourceGenerator;
+using Hardened.OpenApi.SourceGenerator.Emitters;
 using Hardened.Idl.Models;
 using Hardened.Idl;
 
@@ -87,7 +88,10 @@ internal static class OperationParameters {
             // attributes at all, so no validator is generated for it - and a [ValidateNested]
             // naming a validator that does not exist is CS0234 in a generated file. Both answers
             // have to come from one place to stay in step.
-            var attributes = bodySchema.Properties.Any(
+            // Only what this type declares. An inherited property is the base's to check, and
+            // the validation generator sees it that way too - counting them here named a validator
+            // it had already declined to generate.
+            var attributes = SchemaShape.Declared(bodySchema, spec.Schemas).Any(
                 property => property.Constrained &&
                             PropertyAttributes(property, spec, patterns).Count > 0)
                 ? new[] { new ConstraintAttributes.Model(

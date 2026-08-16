@@ -21,6 +21,13 @@ namespace Hardened.OpenApi.BuildTask.Filtering;
 /// transitive closure of what the surviving operations actually reach - through properties, array
 /// elements, dictionary values, base types and discriminator branches - and everything else goes.
 /// </para>
+/// <para>
+/// The closure runs whether or not a filter was given. A description declares component schemas, it
+/// does not promise anything uses them: Zoom declares a <c>DateTime</c> object that nothing in the
+/// document references, and generating it produced a type that collided with the BCL name for no
+/// benefit at all. A filter changes which operations are roots of the closure; it is not what
+/// decides that there is one.
+/// </para>
 /// </remarks>
 internal static class SpecSlicer {
 
@@ -69,33 +76,41 @@ internal static class SpecSlicer {
         public bool MatchedNothing { get; set; }
     }
 
-    public static Result Apply(ServiceSpecModel model, Filter filter) {
+    /// <param name="keepUnreferenced">
+    /// Whether schemas nothing reaches are emitted anyway. The escape hatch for a project that
+    /// hand-writes calls against types the description declares but never uses in an operation.
+    /// </param>
+    public static Result Apply(ServiceSpecModel model, Filter filter, bool keepUnreferenced = false) {
         var result = new Result();
 
-        if (filter.IsEmpty) {
-            result.OperationsKept = CountOperations(model);
+        // 1. Operations the filter selects. An empty filter selects them all - it is only the
+        // roots of the closure below that a filter changes, not whether there is one.
+        if (!filter.IsEmpty) {
+            foreach (var service in model.Services) {
+                var kept = new List<OperationModel>();
+
+                foreach (var operation in service.Operations) {
+                    if (Selected(operation, service.Tag, filter)) {
+                        kept.Add(operation);
+                    } else {
+                        result.OperationsDropped++;
+                    }
+                }
+
+                service.Operations = kept;
+            }
+
+            model.Services.RemoveAll(service => service.Operations.Count == 0);
+        }
+
+        result.OperationsKept = CountOperations(model);
+
+        if (keepUnreferenced) {
             result.SchemasKept = model.Schemas.Count;
+            result.MatchedNothing = !filter.IsEmpty && result.OperationsKept == 0;
 
             return result;
         }
-
-        // 1. Operations the filter selects.
-        foreach (var service in model.Services) {
-            var kept = new List<OperationModel>();
-
-            foreach (var operation in service.Operations) {
-                if (Selected(operation, service.Tag, filter)) {
-                    kept.Add(operation);
-                } else {
-                    result.OperationsDropped++;
-                }
-            }
-
-            service.Operations = kept;
-        }
-
-        model.Services.RemoveAll(service => service.Operations.Count == 0);
-        result.OperationsKept = CountOperations(model);
 
         // 2. Schemas those operations reach, transitively.
         var byName = new Dictionary<string, SchemaModel>(StringComparer.Ordinal);
@@ -138,6 +153,29 @@ internal static class SpecSlicer {
             }
         }
 
+        // Derived types, indexed by the base they extend.
+        //
+        // Every other edge here runs from a use to what it names, and a derived type is the one
+        // thing nothing names: a response typed as Pet is answered on the wire by a Dog, and the
+        // only trace of Dog is Dog's own allOf pointing back at Pet. Followed only where the base
+        // declares a discriminator, which is the document saying the substitution happens; a plain
+        // allOf is reuse, and a derived type nothing references really is unreachable.
+        var derived = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        foreach (var schema in model.Schemas) {
+            if (schema.BaseRef == null) {
+                continue;
+            }
+
+            var baseName = TypeMapper.GetRefName(schema.BaseRef);
+
+            if (!derived.TryGetValue(baseName, out var subtypes)) {
+                derived[baseName] = subtypes = new List<string>();
+            }
+
+            subtypes.Add(schema.Name);
+        }
+
         while (pending.Count > 0) {
             var schema = byName[pending.Pop()];
 
@@ -146,6 +184,13 @@ internal static class SpecSlicer {
 
             foreach (var mapping in schema.DiscriminatorMapping) {
                 Reach(mapping.Ref);
+            }
+
+            if (!string.IsNullOrEmpty(schema.DiscriminatorPropertyName) &&
+                derived.TryGetValue(schema.Name, out var subtypes)) {
+                foreach (var subtype in subtypes) {
+                    Reach("#/components/schemas/" + subtype);
+                }
             }
 
             foreach (var property in schema.Properties) {
@@ -165,7 +210,7 @@ internal static class SpecSlicer {
 
         result.SchemasDropped = model.Schemas.RemoveAll(schema => dropped.Contains(schema.Name));
         result.SchemasKept = model.Schemas.Count;
-        result.MatchedNothing = result.OperationsKept == 0;
+        result.MatchedNothing = !filter.IsEmpty && result.OperationsKept == 0;
 
         VerifyClosure(model, dropped, result);
 

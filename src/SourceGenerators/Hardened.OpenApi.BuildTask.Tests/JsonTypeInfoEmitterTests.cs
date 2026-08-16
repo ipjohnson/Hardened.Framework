@@ -25,7 +25,7 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("namespace Test.Api.Models\n{", result);
         Assert.Contains("class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", result);
         Assert.Contains("public readonly static PetstoreJsonTypeInfoResolver Instance = new();", result);
-        Assert.Contains("if (type == typeof(Pet)) return CreatePetTypeInfo(options);", result);
+        Assert.Contains("if (type == typeof(global::Test.Api.Models.Pet)) return CreatePetTypeInfo(options);", result);
         Assert.Contains("ObjectWithParameterizedConstructorCreator", result);
         Assert.Contains("(string)args[0]", result);
         Assert.Contains("(string)args[1]", result);
@@ -50,13 +50,13 @@ public class JsonTypeInfoEmitterTests {
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         Assert.Contains("CreatePropertyInfo<string>(options", result);
-        Assert.Contains("DeclaringType = typeof(Pet)", result);
+        Assert.Contains("DeclaringType = typeof(global::Test.Api.Models.Pet)", result);
         Assert.Contains("PropertyName = \"id\"", result);
         Assert.Contains("PropertyName = \"name\"", result);
         Assert.Contains("PropertyName = \"tag\"", result);
-        Assert.Contains("((Pet)obj).Id", result);
-        Assert.Contains("((Pet)obj).Name", result);
-        Assert.Contains("((Pet)obj).Tag", result);
+        Assert.Contains("((global::Test.Api.Models.Pet)obj).Id", result);
+        Assert.Contains("((global::Test.Api.Models.Pet)obj).Name", result);
+        Assert.Contains("((global::Test.Api.Models.Pet)obj).Tag", result);
         Assert.Contains("Setter = null", result);
     }
 
@@ -109,13 +109,13 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("CreatePropertyInfo<string>(options", result);
         Assert.Contains("CreatePropertyInfo<int>(options", result);
         Assert.Contains("CreatePropertyInfo<long>(options", result);
-        Assert.Contains("CreatePropertyInfo<float>(options", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Single>(options", result);
         Assert.Contains("CreatePropertyInfo<double>(options", result);
         Assert.Contains("CreatePropertyInfo<bool>(options", result);
         Assert.Contains("(string)args[0]", result);
         Assert.Contains("(int)args[1]", result);
         Assert.Contains("(long)args[2]", result);
-        Assert.Contains("(float)args[3]", result);
+        Assert.Contains("(global::System.Single)args[3]", result);
         Assert.Contains("(double)args[4]", result);
         Assert.Contains("(bool)args[5]", result);
     }
@@ -138,13 +138,13 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<DateTime>(options", result);
-        Assert.Contains("CreatePropertyInfo<DateOnly>(options", result);
-        Assert.Contains("CreatePropertyInfo<byte[]>(options", result);
+        Assert.Contains("CreatePropertyInfo<global::System.DateTime>(options", result);
+        Assert.Contains("CreatePropertyInfo<global::System.DateOnly>(options", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Byte[]>(options", result);
         Assert.Contains("CreatePropertyInfo<string>(options", result);
-        Assert.Contains("(DateTime)args[0]", result);
-        Assert.Contains("(DateOnly)args[1]", result);
-        Assert.Contains("(byte[])args[2]", result);
+        Assert.Contains("(global::System.DateTime)args[0]", result);
+        Assert.Contains("(global::System.DateOnly)args[1]", result);
+        Assert.Contains("(global::System.Byte[])args[2]", result);
     }
 
     [Fact]
@@ -169,10 +169,10 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<Owner>(options", result);
-        Assert.Contains("((Pet)obj).Owner", result);
-        Assert.Contains("(Owner)args[1]", result);
-        Assert.Contains("ParameterType = typeof(Owner)", result);
+        Assert.Contains("CreatePropertyInfo<global::Test.Api.Models.Owner>(options", result);
+        Assert.Contains("((global::Test.Api.Models.Pet)obj).Owner", result);
+        Assert.Contains("(global::Test.Api.Models.Owner)args[1]", result);
+        Assert.Contains("ParameterType = typeof(global::Test.Api.Models.Owner)", result);
     }
 
     [Fact]
@@ -194,9 +194,9 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<List<string>>(options", result);
-        Assert.Contains("(List<string>)args[0]", result);
-        Assert.Contains("ParameterType = typeof(List<string>)", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<string>>(options", result);
+        Assert.Contains("(global::System.Collections.Generic.List<string>)args[0]", result);
+        Assert.Contains("ParameterType = typeof(global::System.Collections.Generic.List<string>)", result);
     }
 
     [Fact]
@@ -225,8 +225,8 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<List<Pet>>(options", result);
-        Assert.Contains("(List<Pet>)args[0]", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Pet>>(options", result);
+        Assert.Contains("(global::System.Collections.Generic.List<global::Test.Api.Models.Pet>)args[0]", result);
     }
 
     [Fact]
@@ -248,8 +248,8 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<Dictionary<string, string>>(options", result);
-        Assert.Contains("(Dictionary<string, string>)args[0]", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,string>>(options", result);
+        Assert.Contains("(global::System.Collections.Generic.Dictionary<string,string>)args[0]", result);
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<Dictionary<string, Pet>>(options", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>>(options", result);
     }
 
     [Fact]
@@ -293,8 +293,8 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("if (type == typeof(PetStatus)) return CreatePetStatusTypeInfo(options);", result);
-        Assert.Contains("CreateValueInfo<PetStatus>(options", result);
+        Assert.Contains("if (type == typeof(global::Test.Api.Models.PetStatus)) return CreatePetStatusTypeInfo(options);", result);
+        Assert.Contains("CreateValueInfo<global::Test.Api.Models.PetStatus>(options", result);
     }
 
     [Fact]
@@ -322,9 +322,9 @@ public class JsonTypeInfoEmitterTests {
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // Optional enum should be nullable (value type)
-        Assert.Contains("CreatePropertyInfo<PetStatus?>(options", result);
-        Assert.Contains("(PetStatus?)args[1]", result);
-        Assert.Contains("ParameterType = typeof(PetStatus?)", result);
+        Assert.Contains("CreatePropertyInfo<global::Test.Api.Models.PetStatus?>(options", result);
+        Assert.Contains("(global::Test.Api.Models.PetStatus?)args[1]", result);
+        Assert.Contains("ParameterType = typeof(global::Test.Api.Models.PetStatus?)", result);
     }
 
     [Fact]
@@ -357,8 +357,8 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("(bool?)args[2]", result);
 
         // Optional DateTime: nullable
-        Assert.Contains("CreatePropertyInfo<DateTime?>(options", result);
-        Assert.Contains("(DateTime?)args[3]", result);
+        Assert.Contains("CreatePropertyInfo<global::System.DateTime?>(options", result);
+        Assert.Contains("(global::System.DateTime?)args[3]", result);
     }
 
     [Fact]
@@ -418,7 +418,7 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("ObjectCreator = static () => new EmptyModel()", result);
+        Assert.Contains("ObjectCreator = static () => new global::Test.Api.Models.EmptyModel()", result);
         Assert.DoesNotContain("ObjectWithParameterizedConstructorCreator", result);
         Assert.DoesNotContain("ConstructorParameterMetadataInitializer", result);
     }
@@ -463,13 +463,13 @@ public class JsonTypeInfoEmitterTests {
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // All three types are in the resolver
-        Assert.Contains("typeof(Tag)", result);
-        Assert.Contains("typeof(Pet)", result);
-        Assert.Contains("typeof(PetStore)", result);
+        Assert.Contains("typeof(global::Test.Api.Models.Tag)", result);
+        Assert.Contains("typeof(global::Test.Api.Models.Pet)", result);
+        Assert.Contains("typeof(global::Test.Api.Models.PetStore)", result);
 
         // Nested list types
-        Assert.Contains("CreatePropertyInfo<List<Tag>>(options", result);
-        Assert.Contains("CreatePropertyInfo<List<Pet>>(options", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Tag>>(options", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Pet>>(options", result);
     }
 
     [Fact]
@@ -497,15 +497,15 @@ public class JsonTypeInfoEmitterTests {
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // Enum dispatch
-        Assert.Contains("if (type == typeof(Color)) return CreateColorTypeInfo(options);", result);
-        Assert.Contains("CreateValueInfo<Color>(options", result);
+        Assert.Contains("if (type == typeof(global::Test.Api.Models.Color)) return CreateColorTypeInfo(options);", result);
+        Assert.Contains("CreateValueInfo<global::Test.Api.Models.Color>(options", result);
 
         // Object dispatch
-        Assert.Contains("if (type == typeof(Shape)) return CreateShapeTypeInfo(options);", result);
+        Assert.Contains("if (type == typeof(global::Test.Api.Models.Shape)) return CreateShapeTypeInfo(options);", result);
 
         // Required enum ref is a value type, no nullable
-        Assert.Contains("CreatePropertyInfo<Color>(options", result);
-        Assert.Contains("(Color)args[1]", result);
+        Assert.Contains("CreatePropertyInfo<global::Test.Api.Models.Color>(options", result);
+        Assert.Contains("(global::Test.Api.Models.Color)args[1]", result);
     }
 
     [Fact]
@@ -524,10 +524,10 @@ public class JsonTypeInfoEmitterTests {
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // C# type and property names are PascalCase
-        Assert.Contains("typeof(UserProfile)", result);
+        Assert.Contains("typeof(global::Test.Api.Models.UserProfile)", result);
         Assert.Contains("CreateUserProfileTypeInfo", result);
-        Assert.Contains("((UserProfile)obj).FirstName", result);
-        Assert.Contains("((UserProfile)obj).LastName", result);
+        Assert.Contains("((global::Test.Api.Models.UserProfile)obj).FirstName", result);
+        Assert.Contains("((global::Test.Api.Models.UserProfile)obj).LastName", result);
         // JSON property names preserve original OpenAPI casing
         Assert.Contains("PropertyName = \"first_name\"", result);
         Assert.Contains("PropertyName = \"last-name\"", result);
@@ -562,8 +562,8 @@ public class JsonTypeInfoEmitterTests {
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // Neither array nor primitive schemas produce type dispatch
-        Assert.DoesNotContain("typeof(StringArray)", result);
-        Assert.DoesNotContain("typeof(MyString)", result);
+        Assert.DoesNotContain("typeof(global::Test.Api.Models.StringArray)", result);
+        Assert.DoesNotContain("typeof(global::Test.Api.Models.MyString)", result);
     }
 
     [Fact]
@@ -615,9 +615,9 @@ public class JsonTypeInfoEmitterTests {
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // Optional object ref is a reference type — no change to generic param
-        Assert.Contains("CreatePropertyInfo<Address>(options", result);
+        Assert.Contains("CreatePropertyInfo<global::Test.Api.Models.Address>(options", result);
         // But constructor cast uses nullable
-        Assert.Contains("(Address?)args[1]", result);
+        Assert.Contains("(global::Test.Api.Models.Address?)args[1]", result);
     }
 
     [Fact]
@@ -641,8 +641,8 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("if (type == typeof(long))", result);
         Assert.Contains("if (type == typeof(float))", result);
         Assert.Contains("if (type == typeof(double))", result);
-        Assert.Contains("if (type == typeof(DateTime))", result);
-        Assert.Contains("if (type == typeof(DateOnly))", result);
+        Assert.Contains("if (type == typeof(global::System.DateTime))", result);
+        Assert.Contains("if (type == typeof(global::System.DateOnly))", result);
         Assert.Contains("if (type == typeof(byte[]))", result);
         Assert.Contains("BooleanConverter", result);
         Assert.Contains("Int32Converter", result);
@@ -659,15 +659,15 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("if (type == typeof(long?))", result);
         Assert.Contains("if (type == typeof(float?))", result);
         Assert.Contains("if (type == typeof(double?))", result);
-        Assert.Contains("if (type == typeof(DateTime?))", result);
-        Assert.Contains("if (type == typeof(DateOnly?))", result);
+        Assert.Contains("if (type == typeof(global::System.DateTime?))", result);
+        Assert.Contains("if (type == typeof(global::System.DateOnly?))", result);
         Assert.Contains("GetNullableConverter<bool>", result);
         Assert.Contains("GetNullableConverter<int>", result);
         Assert.Contains("GetNullableConverter<long>", result);
         Assert.Contains("GetNullableConverter<float>", result);
         Assert.Contains("GetNullableConverter<double>", result);
-        Assert.Contains("GetNullableConverter<DateTime>", result);
-        Assert.Contains("GetNullableConverter<DateOnly>", result);
+        Assert.Contains("GetNullableConverter<global::System.DateTime>", result);
+        Assert.Contains("GetNullableConverter<global::System.DateOnly>", result);
 
         // using directive
         Assert.Contains("using System.Text.Json.Serialization;", result);
@@ -718,16 +718,16 @@ public class JsonTypeInfoEmitterTests {
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // List dispatch entries
-        Assert.Contains("if (type == typeof(List<Pet>)) return JsonMetadataServices.CreateListInfo<List<Pet>, Pet>(", result);
-        Assert.Contains("if (type == typeof(List<string>)) return JsonMetadataServices.CreateListInfo<List<string>, string>(", result);
-        Assert.Contains("ObjectCreator = static () => new List<Pet>()", result);
-        Assert.Contains("ObjectCreator = static () => new List<string>()", result);
+        Assert.Contains("if (type == typeof(global::System.Collections.Generic.List<global::Test.Api.Models.Pet>)) return JsonMetadataServices.CreateListInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Pet>, global::Test.Api.Models.Pet>(", result);
+        Assert.Contains("if (type == typeof(global::System.Collections.Generic.List<string>)) return JsonMetadataServices.CreateListInfo<global::System.Collections.Generic.List<string>, string>(", result);
+        Assert.Contains("ObjectCreator = static () => new global::System.Collections.Generic.List<global::Test.Api.Models.Pet>()", result);
+        Assert.Contains("ObjectCreator = static () => new global::System.Collections.Generic.List<string>()", result);
 
         // Dictionary dispatch entries
-        Assert.Contains("if (type == typeof(Dictionary<string, string>)) return JsonMetadataServices.CreateDictionaryInfo<Dictionary<string, string>, string, string>(", result);
-        Assert.Contains("ObjectCreator = static () => new Dictionary<string, string>()", result);
-        Assert.Contains("if (type == typeof(Dictionary<string, Pet>)) return JsonMetadataServices.CreateDictionaryInfo<Dictionary<string, Pet>, string, Pet>(", result);
-        Assert.Contains("ObjectCreator = static () => new Dictionary<string, Pet>()", result);
+        Assert.Contains("if (type == typeof(global::System.Collections.Generic.Dictionary<string,string>)) return JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,string>, string, string>(", result);
+        Assert.Contains("ObjectCreator = static () => new global::System.Collections.Generic.Dictionary<string,string>()", result);
+        Assert.Contains("if (type == typeof(global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>)) return JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>, string, global::Test.Api.Models.Pet>(", result);
+        Assert.Contains("ObjectCreator = static () => new global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>()", result);
     }
 
     [Fact]
@@ -746,9 +746,9 @@ public class JsonTypeInfoEmitterTests {
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // Untyped property maps to JsonElement (value type), optional => nullable
-        Assert.Contains("CreatePropertyInfo<JsonElement?>(options", result);
-        Assert.Contains("(JsonElement?)args[1]", result);
-        Assert.Contains("ParameterType = typeof(JsonElement?)", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Text.Json.JsonElement?>(options", result);
+        Assert.Contains("(global::System.Text.Json.JsonElement?)args[1]", result);
+        Assert.Contains("ParameterType = typeof(global::System.Text.Json.JsonElement?)", result);
     }
 
     [Fact]
@@ -769,9 +769,9 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<Dictionary<string, JsonElement>>(options", result);
-        Assert.Contains("(Dictionary<string, JsonElement>)args[0]", result);
-        Assert.Contains("if (type == typeof(Dictionary<string, JsonElement>))", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,global::System.Text.Json.JsonElement>>(options", result);
+        Assert.Contains("(global::System.Collections.Generic.Dictionary<string,global::System.Text.Json.JsonElement>)args[0]", result);
+        Assert.Contains("if (type == typeof(global::System.Collections.Generic.Dictionary<string,global::System.Text.Json.JsonElement>))", result);
     }
 
     [Fact]
@@ -792,9 +792,9 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<List<JsonElement>>(options", result);
-        Assert.Contains("(List<JsonElement>)args[0]", result);
-        Assert.Contains("if (type == typeof(List<JsonElement>))", result);
+        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>>(options", result);
+        Assert.Contains("(global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>)args[0]", result);
+        Assert.Contains("if (type == typeof(global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>))", result);
     }
 
     [Fact]
@@ -811,8 +811,8 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("if (type == typeof(JsonElement)) return JsonMetadataServices.CreateValueInfo<JsonElement>(options, JsonMetadataServices.JsonElementConverter);", result);
-        Assert.Contains("if (type == typeof(JsonElement?)) return JsonMetadataServices.CreateValueInfo<JsonElement?>(options, JsonMetadataServices.GetNullableConverter<JsonElement>(options));", result);
+        Assert.Contains("if (type == typeof(global::System.Text.Json.JsonElement)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement>(options, JsonMetadataServices.JsonElementConverter);", result);
+        Assert.Contains("if (type == typeof(global::System.Text.Json.JsonElement?)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement?>(options, JsonMetadataServices.GetNullableConverter<global::System.Text.Json.JsonElement>(options));", result);
     }
 
     [Fact]
@@ -865,8 +865,8 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<DateOnly?>(options", result);
-        Assert.Contains("(DateOnly?)args[1]", result);
-        Assert.Contains("ParameterType = typeof(DateOnly?)", result);
+        Assert.Contains("CreatePropertyInfo<global::System.DateOnly?>(options", result);
+        Assert.Contains("(global::System.DateOnly?)args[1]", result);
+        Assert.Contains("ParameterType = typeof(global::System.DateOnly?)", result);
     }
 }

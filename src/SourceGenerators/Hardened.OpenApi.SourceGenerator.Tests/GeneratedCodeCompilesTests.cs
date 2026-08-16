@@ -214,10 +214,10 @@ public class GeneratedCodeCompilesTests {
         var resolver = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public sealed class PetstoreJsonTypeInfoResolver : global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver", resolver);
-        Assert.Contains("if (type == typeof(Widget)) return CreateWidgetTypeInfo(options);", resolver);
-        Assert.Contains("if (type == typeof(WidgetStatus)) return CreateWidgetStatusTypeInfo(options);", resolver);
-        Assert.Contains("CreateListInfo<List<Part>, Part>", resolver);
-        Assert.Contains("CreateDictionaryInfo<Dictionary<string, string>, string, string>", resolver);
+        Assert.Contains("if (type == typeof(global::TestNamespace.Models.Widget)) return CreateWidgetTypeInfo(options);", resolver);
+        Assert.Contains("if (type == typeof(global::TestNamespace.Models.WidgetStatus)) return CreateWidgetStatusTypeInfo(options);", resolver);
+        Assert.Contains("CreateListInfo<global::System.Collections.Generic.List<global::TestNamespace.Models.Part>, global::TestNamespace.Models.Part>", resolver);
+        Assert.Contains("CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,string>, string, string>", resolver);
     }
 
     /// <summary>
@@ -756,8 +756,8 @@ public class GeneratedCodeCompilesTests {
 
         Assert.Contains("typeInfo.PolymorphismOptions = new JsonPolymorphismOptions", generated);
         Assert.Contains("""TypeDiscriminatorPropertyName = "petType",""", generated);
-        Assert.Contains("""new JsonDerivedType(typeof(Dog), "dog"),""", generated);
-        Assert.Contains("""new JsonDerivedType(typeof(Cat), "cat"),""", generated);
+        Assert.Contains("""new JsonDerivedType(typeof(global::TestNamespace.Models.Dog), "dog"),""", generated);
+        Assert.Contains("""new JsonDerivedType(typeof(global::TestNamespace.Models.Cat), "cat"),""", generated);
 
         // An unrecognised runtime type fails loudly rather than silently writing the base shape.
         Assert.Contains("JsonUnknownDerivedTypeHandling.FailSerialization", generated);

@@ -186,7 +186,8 @@
                             ApplyServerBasePath="$(HardenedOpenApiApplyServerBasePath)"
                             EmbedDocument="$(HardenedOpenApiEmbedDocument)"
                             GroupUntaggedByPath="$(HardenedOpenApiGroupUntaggedByPath)"
-                            LoadExternalRefs="$(HardenedOpenApiLoadExternalRefs)">
+                            LoadExternalRefs="$(HardenedOpenApiLoadExternalRefs)"
+                            EmitUnreferencedSchemas="$(HardenedOpenApiEmitUnreferencedSchemas)">
             <Output TaskParameter="ModelFiles" ItemName="_HardenedOpenApiModelWritten"/>
             <Output TaskParameter="GeneratedSources" ItemName="_HardenedOpenApiSourceWritten"/>
         </ExtractOpenApiSpec>

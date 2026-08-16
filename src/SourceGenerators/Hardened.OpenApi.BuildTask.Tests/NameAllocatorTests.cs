@@ -85,6 +85,86 @@ public class NameAllocatorTests {
         Assert.Equal(forward, reversed);
     }
 
+    /// <summary>
+    /// Renaming, not dropping.
+    /// </summary>
+    /// <remarks>
+    /// Every test below asserts that some name is <em>not</em> present, and a schema the parser
+    /// silently discarded would satisfy all of them. This is the one that says the document still
+    /// produces everything it declares - eight schemas, and the six that had to move are still
+    /// reachable under the name they were given.
+    /// </remarks>
+    [Fact]
+    public void CollidingDeclarationsAreRenamedRatherThanDropped() {
+        var model = Parse(Colliding);
+
+        Assert.Equal(8, model.Schemas.Count);
+
+        foreach (var declared in new[] { "Monitor", "NullTime", "Commit", "Column" }) {
+            Assert.Contains(model.Schemas, schema => schema.Name == declared);
+        }
+
+        // The ones that had to move carry the document's name and then their own, so a reader can
+        // still tell which declaration a renamed type came from - see SpecNameQualifiesATypeThatHadToMove.
+        foreach (var moved in new[] { "MonitorValidator", "DateTime", "JsonElement" }) {
+            Assert.Contains(model.Schemas, schema => schema.Name == "Spec" + moved);
+        }
+    }
+
+    /// <summary>
+    /// What a moved name is called, rather than merely that it moved.
+    /// </summary>
+    /// <remarks>
+    /// The first version of this hashed the same information and produced
+    /// <c>DateTimeN9bec7490</c>. It was stable and it was unreadable, and stability was never the
+    /// part that was hard - so a name that has to move is qualified by the scope that owns it,
+    /// which is the thing that distinguishes it from whatever it collided with.
+    /// </remarks>
+    [Fact]
+    public void ANameThatHadToMoveIsQualifiedByTheScopeThatOwnsIt() {
+        var model = Parse(Colliding);
+
+        // A schema is qualified by the document. Zoom's DateTime becomes ZoomDateTime; here the
+        // document is called "spec".
+        Assert.Contains(model.Schemas, schema => schema.Name == "SpecDateTime");
+
+        var commit = Assert.Single(model.Schemas, schema => schema.Name == "Commit");
+
+        // A property is qualified by the type that declares it. Bitbucket's repository.clone
+        // becomes RepositoryClone; Jira's toString and GitHub's self-named property likewise.
+        var members = commit.Properties.ConvertAll(property => property.MemberName);
+
+        Assert.Contains("CommitClone", members);
+        Assert.Contains("CommitToString", members);
+        Assert.Contains("CommitCommit", members);
+
+        // An enum member is qualified by its enum.
+        var column = Assert.Single(model.Schemas, schema => schema.Name == "Column");
+
+        Assert.Contains("ColumnBucketsCount", column.EnumMembers);
+
+        // A parameter is qualified by where it travels - Kubernetes' two called path.
+        var operation = Assert.Single(
+            model.Services[0].Operations, candidate => candidate.OperationId == "getThing");
+
+        Assert.Contains("queryPath", operation.Parameters.ConvertAll(p => p.MemberName));
+
+        // An operation is the one exception: two ids that collide share a tag, so the tag
+        // distinguishes nothing and the route does. This is the name it would have had with no id.
+        Assert.Contains(model.Services[0].Operations,
+            candidate => candidate.MethodName == "DeleteThingsByPath");
+    }
+
+    /// <summary>Nothing carries a hash, which is what this replaced.</summary>
+    [Fact]
+    public void NoAllocatedNameIsAHash() {
+        var model = Parse(Colliding);
+
+        foreach (var name in AllNames(model)) {
+            Assert.DoesNotMatch("N[0-9a-f]{8}$", name);
+        }
+    }
+
     [Fact]
     public void EveryNameIsUniqueWithinItsScope() {
         var model = Parse(Colliding);
@@ -234,12 +314,60 @@ public class NameAllocatorTests {
               properties:
                 commit: { type: string }
                 toString: { type: string }
+                clone: { type: string }
                 name: { type: string }
                 Name: { type: string }
+            DateTime:
+              type: object
+              properties:
+                from: { type: string }
+                to: { type: string }
+            JsonElement:
+              type: object
+              properties: { raw: { type: string } }
             Column:
               type: string
               enum: ["buckets.count", "buckets_count", "", "bc"]
         """;
+
+    /// <summary>
+    /// <c>Clone</c> is not merely taken, it is forbidden: a record may not declare a member of that
+    /// name at all (CS8859). Bitbucket declares a property called <c>clone</c>.
+    /// </summary>
+    [Fact]
+    public void NoPropertyIsNamedAfterAMemberARecordReserves() {
+        var model = Parse(Colliding);
+
+        foreach (var schema in model.Schemas) {
+            foreach (var property in schema.Properties) {
+                Assert.NotEqual("Clone", property.MemberName);
+                Assert.NotEqual("Deconstruct", property.MemberName);
+                Assert.NotEqual("PrintMembers", property.MemberName);
+                Assert.NotEqual("EqualityContract", property.MemberName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A schema may not keep a name the type mapper resolves by spelling.
+    /// </summary>
+    /// <remarks>
+    /// The mapper answers to the rendered name, so a schema called <c>DateTime</c> became
+    /// <c>System.DateTime</c> everywhere it was referenced and the record it generated was
+    /// unreachable. Zoom declares one - and it is a date <em>range</em>, with <c>from</c> and
+    /// <c>to</c>, so binding it to the BCL type would have been wrong as well as unbuildable.
+    /// </remarks>
+    [Theory]
+    [InlineData("DateTime")]
+    [InlineData("DateOnly")]
+    [InlineData("JsonElement")]
+    public void NoSchemaKeepsANameThePrimitiveMapperAnswersTo(string reserved) {
+        var model = Parse(Colliding);
+
+        foreach (var schema in model.Schemas) {
+            Assert.NotEqual(reserved, schema.Name);
+        }
+    }
 
     /// <summary>The same document with everything listed the other way round.</summary>
     private const string CollidingReordered = """
@@ -271,11 +399,20 @@ public class NameAllocatorTests {
             Column:
               type: string
               enum: ["buckets.count", "buckets_count", "", "bc"]
+            JsonElement:
+              type: object
+              properties: { raw: { type: string } }
+            DateTime:
+              type: object
+              properties:
+                to: { type: string }
+                from: { type: string }
             Commit:
               type: object
               properties:
                 Name: { type: string }
                 name: { type: string }
+                clone: { type: string }
                 toString: { type: string }
                 commit: { type: string }
             nullTime:

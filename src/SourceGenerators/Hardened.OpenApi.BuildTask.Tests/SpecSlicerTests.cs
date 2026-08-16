@@ -79,14 +79,119 @@ public class SpecSlicerTests {
         new() { IncludePaths = globs };
 
     [Fact]
-    public void AnEmptyFilterKeepsEverything() {
+    public void AnEmptyFilterKeepsEveryOperation() {
         var model = Parse();
 
         var result = SpecSlicer.Apply(model, new SpecSlicer.Filter());
 
         Assert.Equal(2, result.OperationsKept);
         Assert.Equal(0, result.OperationsDropped);
+        Assert.False(result.MatchedNothing);
+    }
+
+    /// <summary>
+    /// A schema nothing reaches is not generated, filter or no filter.
+    /// </summary>
+    /// <remarks>
+    /// A description declares component schemas; it does not promise an operation uses them. Zoom
+    /// declares a <c>DateTime</c> object that nothing in the document references, and generating it
+    /// produced a type that had to be renamed away from the BCL name in order to compile - a name
+    /// collision, and a type, over something no caller could reach.
+    /// </remarks>
+    [Fact]
+    public void AnUnreferencedSchemaIsDroppedEvenWithNoFilter() {
+        var model = Parse();
+
+        var result = SpecSlicer.Apply(model, new SpecSlicer.Filter());
+
+        Assert.Equal(1, result.SchemasDropped);
+        Assert.DoesNotContain(model.Schemas, schema => schema.Name == "Unreferenced");
+
+        // Everything an operation reaches is still there.
+        Assert.Equal(3, model.Schemas.Count);
+    }
+
+    /// <summary>
+    /// A subtype of a discriminated base survives, though nothing names it.
+    /// </summary>
+    /// <remarks>
+    /// Every other edge in the closure runs from a use to what it names, and this is the one thing
+    /// nothing names: an operation returns <c>Pet</c>, the wire carries a <c>Dog</c>, and the only
+    /// trace of <c>Dog</c> is its own <c>allOf</c> pointing back. Dropping it would compile and
+    /// then fail to deserialize the response it was told to expect.
+    /// </remarks>
+    [Fact]
+    public void ASubtypeOfADiscriminatedBaseIsReachedThroughTheBase() {
+        var model = OpenApiSpecParser.Parse(Polymorphic, "spec", CancellationToken.None)!;
+
+        SpecSlicer.Apply(model, new SpecSlicer.Filter());
+
+        var names = model.Schemas.ConvertAll(schema => schema.Name);
+
+        Assert.Contains("Pet", names);
+        Assert.Contains("Dog", names);
+        Assert.Contains("Cat", names);
+
+        // Reuse is not substitution: nothing says an Address arrives where a Contact was asked for.
+        Assert.DoesNotContain("Employee", names);
+    }
+
+    /// <summary>
+    /// A base with a discriminator whose subtypes point back at it with <c>allOf</c>, beside a plain
+    /// <c>allOf</c> that is only reuse.
+    /// </summary>
+    private const string Polymorphic = """
+        openapi: "3.0.3"
+        info: { title: T, version: "1.0" }
+        paths:
+          /pets:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Pet' }
+        components:
+          schemas:
+            Pet:
+              type: object
+              required: [petType]
+              discriminator: { propertyName: petType }
+              properties:
+                petType: { type: string }
+            Dog:
+              allOf:
+                - $ref: '#/components/schemas/Pet'
+                - type: object
+                  properties: { bark: { type: string } }
+            Cat:
+              allOf:
+                - $ref: '#/components/schemas/Pet'
+                - type: object
+                  properties: { meow: { type: string } }
+            Contact:
+              type: object
+              properties: { email: { type: string } }
+            Employee:
+              allOf:
+                - $ref: '#/components/schemas/Contact'
+                - type: object
+                  properties: { badge: { type: string } }
+        """;
+
+    /// <summary>The escape hatch, for a project that uses a declared type the document never does.</summary>
+    [Fact]
+    public void KeepingUnreferencedSchemasIsAvailable() {
+        var model = Parse();
+
+        var result = SpecSlicer.Apply(model, new SpecSlicer.Filter(), keepUnreferenced: true);
+
+        Assert.Equal(0, result.SchemasDropped);
         Assert.Equal(4, model.Schemas.Count);
+        Assert.Contains(model.Schemas, schema => schema.Name == "Unreferenced");
     }
 
     [Fact]

@@ -103,7 +103,7 @@ public class ReadOnlyWriteOnlyTests {
 
         // Serialized: a response carries the server-assigned id.
         Assert.Contains("PropertyName = \"id\"", generated);
-        Assert.Contains("Getter = static obj => ((Pet)obj).Id,", generated);
+        Assert.Contains("Getter = static obj => ((global::TestNamespace.Models.Pet)obj).Id,", generated);
 
         // Never serialized: the secret does not come back.
         Assert.Contains("Getter = null,", Between(generated, "PropertyName = \"secret\"", "}),"));
@@ -120,7 +120,7 @@ public class ReadOnlyWriteOnlyTests {
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
 
         var creator = Between(
-            generated, "ObjectWithParameterizedConstructorCreator = static args => new Pet(", "),");
+            generated, "ObjectWithParameterizedConstructorCreator = static args => new global::TestNamespace.Models.Pet(", "),");
 
         Assert.DoesNotContain("Id", creator);
 
@@ -184,10 +184,10 @@ public class ReadOnlyWriteOnlyTests {
     public void ASchemaOfOnlyReadOnlyPropertiesGetsAParameterlessCreator() {
         var generated = Generated(Specs.ReadOnlyOnly);
 
-        Assert.Contains("ObjectCreator = static () => new Receipt(),", generated);
-        Assert.DoesNotContain("ObjectWithParameterizedConstructorCreator = static args => new Receipt(", generated);
+        Assert.Contains("ObjectCreator = static () => new global::TestNamespace.Models.Receipt(),", generated);
+        Assert.DoesNotContain("ObjectWithParameterizedConstructorCreator = static args => new global::TestNamespace.Models.Receipt(", generated);
 
         // Still serialized - the property exists, it just cannot be sent.
-        Assert.Contains("Getter = static obj => ((Receipt)obj).Id,", generated);
+        Assert.Contains("Getter = static obj => ((global::TestNamespace.Models.Receipt)obj).Id,", generated);
     }
 }

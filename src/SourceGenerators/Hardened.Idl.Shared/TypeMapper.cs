@@ -240,6 +240,25 @@ internal static class TypeMapper {
     public static bool IsStringLike(string csType) =>
         csType == "string";
 
+    /// <summary>
+    /// A C# type name, fully qualified.
+    /// </summary>
+    /// <remarks>
+    /// For emitters that build source as text and so never pass through the output context that
+    /// qualifies everything else. Zoom declares a schema named <c>DateTime</c>, and the generated
+    /// file imports the models namespace - so an unqualified <c>typeof(DateTime?)</c> bound to the
+    /// record rather than to <c>System.DateTime</c>, and a nullable reference type is not something
+    /// <c>typeof</c> accepts (CS8639). Generated code should not depend on what happens to be in
+    /// scope.
+    /// </remarks>
+    public static string QualifiedName(string ns, string csType, bool nullable) {
+        var builder = new System.Text.StringBuilder();
+
+        GetTypeDefinition(ns, csType, nullable).WriteTypeName(builder, TypeOutputMode.Global);
+
+        return builder.ToString();
+    }
+
     public static string GetRefName(string refPath) {
         var lastSlash = refPath.LastIndexOf('/');
         return lastSlash >= 0 ? refPath.Substring(lastSlash + 1) : refPath;

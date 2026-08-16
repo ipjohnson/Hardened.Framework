@@ -95,6 +95,18 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     public bool LoadExternalRefs { get; set; }
 
     /// <summary>
+    /// Whether schemas nothing in the document reaches are generated anyway.
+    /// </summary>
+    /// <remarks>
+    /// Off. A description declares component schemas; it does not promise any operation uses them.
+    /// Zoom declares a <c>DateTime</c> object nothing references, and emitting it produced a type
+    /// that had to be renamed away from the BCL name to compile - cost with no reader. Turn this on
+    /// where a project hand-writes calls against types the description declares but never reaches
+    /// from an operation.
+    /// </remarks>
+    public bool EmitUnreferencedSchemas { get; set; }
+
+    /// <summary>
     /// Whether the path of the first <c>servers</c> entry prefixes every route.
     /// </summary>
     /// <remarks>
@@ -145,11 +157,13 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             LoadExternalRefs ? Path.GetDirectoryName(Path.GetFullPath(specPath)) : null);
 
     /// <summary>
-    /// Narrows a document to the operations one service implements. Returns true if that failed.
+    /// Narrows a document to what one service implements. Returns true if that failed.
     /// </summary>
     /// <remarks>
     /// The filter is per-spec metadata rather than a task property, because one description is
     /// routinely sliced differently by several projects - which is the point of slicing it at all.
+    /// It runs even with no filter, because dropping what nothing references is not filtering: an
+    /// unreferenced schema is not part of the description any operation describes.
     /// </remarks>
     private bool Slice(ITaskItem spec, string path, ServiceSpecModel model, out bool failed) {
         failed = false;
@@ -159,11 +173,11 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             Tags = SplitMetadata(spec, "Tags")
         };
 
-        if (filter.IsEmpty) {
+        if (filter.IsEmpty && EmitUnreferencedSchemas) {
             return false;
         }
 
-        var result = SpecSlicer.Apply(model, filter);
+        var result = SpecSlicer.Apply(model, filter, EmitUnreferencedSchemas);
 
         if (result.MatchedNothing) {
             failed = true;
@@ -185,10 +199,21 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
                 "degrades to JsonElement.", path, dangling);
         }
 
-        Log.LogMessage(MessageImportance.Normal,
-            "Sliced '{0}' to {1} operations ({2} dropped) and {3} schemas ({4} dropped).",
-            path, result.OperationsKept, result.OperationsDropped,
-            result.SchemasKept, result.SchemasDropped);
+        // Said out loud rather than done quietly: a type someone expected and did not get is the
+        // failure mode here, and the count is the first thing they would want to see.
+        if (filter.IsEmpty) {
+            if (result.SchemasDropped > 0) {
+                Log.LogMessage(MessageImportance.Normal,
+                    "'{0}' declares {1} schemas no operation references; they were not generated. " +
+                    "Set HardenedOpenApiEmitUnreferencedSchemas=true to generate them.",
+                    path, result.SchemasDropped);
+            }
+        } else {
+            Log.LogMessage(MessageImportance.Normal,
+                "Sliced '{0}' to {1} operations ({2} dropped) and {3} schemas ({4} dropped).",
+                path, result.OperationsKept, result.OperationsDropped,
+                result.SchemasKept, result.SchemasDropped);
+        }
 
         return true;
     }

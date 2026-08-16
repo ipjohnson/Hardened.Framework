@@ -46,15 +46,15 @@ internal static class JsonTypeInfoEmitter {
         resolver.AddUsingNamespace("System.Text.Json.Serialization");
         resolver.AddUsingNamespace("System.Text.Json.Serialization.Metadata");
 
-        AddGetTypeInfo(resolver, schemas);
+        AddGetTypeInfo(resolver, schemas, modelsNamespace);
 
         foreach (var schema in schemas) {
             switch (schema.Kind) {
                 case SchemaKind.Object:
-                    AddObjectTypeInfo(resolver, schema, schemas);
+                    AddObjectTypeInfo(resolver, schema, schemas, modelsNamespace);
                     break;
                 case SchemaKind.Enum:
-                    AddEnumTypeInfo(resolver, schema);
+                    AddEnumTypeInfo(resolver, schema, modelsNamespace);
                     break;
             }
         }
@@ -98,7 +98,8 @@ internal static class JsonTypeInfoEmitter {
         }
     }
 
-    private static void AddGetTypeInfo(ClassDefinition resolver, List<SchemaModel> schemas) {
+    private static void AddGetTypeInfo(
+        ClassDefinition resolver, List<SchemaModel> schemas, string modelsNamespace) {
         var method = resolver.AddMethod("GetTypeInfo");
 
         method.Modifiers |= ComponentModifier.Public;
@@ -111,12 +112,14 @@ internal static class JsonTypeInfoEmitter {
 
         foreach (var schema in schemas) {
             if (schema.Kind != SchemaKind.Object && schema.Kind != SchemaKind.Enum) continue;
-            var typeName = NamingHelper.ToPascalCase(schema.Name);
-            sb.AppendLine($"        if (type == typeof({typeName})) return Create{typeName}TypeInfo(options);");
+            var name = NamingHelper.ToPascalCase(schema.Name);
+            var typeName = TypeMapper.QualifiedName(modelsNamespace, name, false);
+
+            sb.AppendLine($"        if (type == typeof({typeName})) return Create{name}TypeInfo(options);");
         }
 
         EmitPrimitiveTypeEntries(sb);
-        EmitCollectionTypeEntries(sb, schemas);
+        EmitCollectionTypeEntries(sb, schemas, modelsNamespace);
 
         sb.AppendLine("        return null;");
 
@@ -133,10 +136,10 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        if (type == typeof(long)) return JsonMetadataServices.CreateValueInfo<long>(options, JsonMetadataServices.Int64Converter);");
         sb.AppendLine("        if (type == typeof(float)) return JsonMetadataServices.CreateValueInfo<float>(options, JsonMetadataServices.SingleConverter);");
         sb.AppendLine("        if (type == typeof(double)) return JsonMetadataServices.CreateValueInfo<double>(options, JsonMetadataServices.DoubleConverter);");
-        sb.AppendLine("        if (type == typeof(DateTime)) return JsonMetadataServices.CreateValueInfo<DateTime>(options, JsonMetadataServices.DateTimeConverter);");
-        sb.AppendLine("        if (type == typeof(DateOnly)) return JsonMetadataServices.CreateValueInfo<DateOnly>(options, JsonMetadataServices.DateOnlyConverter);");
+        sb.AppendLine("        if (type == typeof(global::System.DateTime)) return JsonMetadataServices.CreateValueInfo<global::System.DateTime>(options, JsonMetadataServices.DateTimeConverter);");
+        sb.AppendLine("        if (type == typeof(global::System.DateOnly)) return JsonMetadataServices.CreateValueInfo<global::System.DateOnly>(options, JsonMetadataServices.DateOnlyConverter);");
         sb.AppendLine("        if (type == typeof(byte[])) return JsonMetadataServices.CreateValueInfo<byte[]>(options, JsonMetadataServices.ByteArrayConverter);");
-        sb.AppendLine("        if (type == typeof(JsonElement)) return JsonMetadataServices.CreateValueInfo<JsonElement>(options, JsonMetadataServices.JsonElementConverter);");
+        sb.AppendLine("        if (type == typeof(global::System.Text.Json.JsonElement)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement>(options, JsonMetadataServices.JsonElementConverter);");
         sb.AppendLine();
         sb.AppendLine("        // Nullable value types");
         sb.AppendLine("        if (type == typeof(bool?)) return JsonMetadataServices.CreateValueInfo<bool?>(options, JsonMetadataServices.GetNullableConverter<bool>(options));");
@@ -145,15 +148,17 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        if (type == typeof(long?)) return JsonMetadataServices.CreateValueInfo<long?>(options, JsonMetadataServices.GetNullableConverter<long>(options));");
         sb.AppendLine("        if (type == typeof(float?)) return JsonMetadataServices.CreateValueInfo<float?>(options, JsonMetadataServices.GetNullableConverter<float>(options));");
         sb.AppendLine("        if (type == typeof(double?)) return JsonMetadataServices.CreateValueInfo<double?>(options, JsonMetadataServices.GetNullableConverter<double>(options));");
-        sb.AppendLine("        if (type == typeof(DateTime?)) return JsonMetadataServices.CreateValueInfo<DateTime?>(options, JsonMetadataServices.GetNullableConverter<DateTime>(options));");
-        sb.AppendLine("        if (type == typeof(DateOnly?)) return JsonMetadataServices.CreateValueInfo<DateOnly?>(options, JsonMetadataServices.GetNullableConverter<DateOnly>(options));");
-        sb.AppendLine("        if (type == typeof(JsonElement?)) return JsonMetadataServices.CreateValueInfo<JsonElement?>(options, JsonMetadataServices.GetNullableConverter<JsonElement>(options));");
+        sb.AppendLine("        if (type == typeof(global::System.DateTime?)) return JsonMetadataServices.CreateValueInfo<global::System.DateTime?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateTime>(options));");
+        sb.AppendLine("        if (type == typeof(global::System.DateOnly?)) return JsonMetadataServices.CreateValueInfo<global::System.DateOnly?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateOnly>(options));");
+        sb.AppendLine("        if (type == typeof(global::System.Text.Json.JsonElement?)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement?>(options, JsonMetadataServices.GetNullableConverter<global::System.Text.Json.JsonElement>(options));");
     }
 
     private static void AddObjectTypeInfo(
-        ClassDefinition resolver, SchemaModel schema, List<SchemaModel> allSchemas) {
-        var typeName = NamingHelper.ToPascalCase(schema.Name);
-        var method = CreateTypeInfoMethod(resolver, typeName);
+        ClassDefinition resolver, SchemaModel schema, List<SchemaModel> allSchemas, string ns) {
+        // The bare name identifies the method; the qualified one is what a type reference needs.
+        var name = NamingHelper.ToPascalCase(schema.Name);
+        var typeName = TypeMapper.QualifiedName(ns, name, false);
+        var method = CreateTypeInfoMethod(resolver, name);
         var sb = new StringBuilder();
 
         // The same split SchemaEmitter writes the record from. The constructor list drives both the
@@ -172,7 +177,7 @@ internal static class JsonTypeInfoEmitter {
             sb.AppendLine($"            ObjectWithParameterizedConstructorCreator = static args => new {typeName}(");
             for (var i = 0; i < parameters.Count; i++) {
                 var prop = parameters[i];
-                var castType = GetFullCSharpType(prop, allSchemas);
+                var castType = GetFullCSharpType(prop, allSchemas, ns);
                 var comma = i < parameters.Count - 1 ? "," : "),";
                 sb.AppendLine($"                ({castType})args[{i}]{comma}");
             }
@@ -184,7 +189,7 @@ internal static class JsonTypeInfoEmitter {
             sb.AppendLine("            PropertyMetadataInitializer = _ => new JsonPropertyInfo[]");
             sb.AppendLine("            {");
             foreach (var prop in schema.Properties.OrderByDescending(p => p.IsRequired)) {
-                EmitPropertyInfo(sb, prop, typeName, allSchemas);
+                EmitPropertyInfo(sb, prop, typeName, allSchemas, ns);
             }
             sb.AppendLine("            },");
         }
@@ -194,14 +199,14 @@ internal static class JsonTypeInfoEmitter {
             sb.AppendLine("            ConstructorParameterMetadataInitializer = static () => new JsonParameterInfoValues[]");
             sb.AppendLine("            {");
             for (var i = 0; i < parameters.Count; i++) {
-                EmitParameterInfo(sb, parameters[i], i, allSchemas);
+                EmitParameterInfo(sb, parameters[i], i, allSchemas, ns);
             }
             sb.AppendLine("            },");
         }
 
         sb.AppendLine("        });");
 
-        EmitPolymorphism(sb, schema, allSchemas);
+        EmitPolymorphism(sb, schema, allSchemas, ns);
 
         sb.AppendLine("        return typeInfo;");
 
@@ -229,7 +234,7 @@ internal static class JsonTypeInfoEmitter {
     /// </para>
     /// </remarks>
     private static void EmitPolymorphism(
-        StringBuilder sb, SchemaModel schema, List<SchemaModel> allSchemas) {
+        StringBuilder sb, SchemaModel schema, List<SchemaModel> allSchemas, string ns) {
         if (!schema.IsPolymorphicBase || schema.DiscriminatorMapping.Count == 0) {
             return;
         }
@@ -245,7 +250,8 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("            {");
 
         foreach (var mapping in schema.DiscriminatorMapping) {
-            var derivedName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(mapping.Ref));
+            var derivedName = TypeMapper.QualifiedName(
+                ns, NamingHelper.ToPascalCase(TypeMapper.GetRefName(mapping.Ref)), false);
 
             sb.AppendLine(
                 $"                new JsonDerivedType(typeof({derivedName}), \"{mapping.Value}\"),");
@@ -278,8 +284,8 @@ internal static class JsonTypeInfoEmitter {
     /// </para>
     /// </remarks>
     private static void EmitPropertyInfo(StringBuilder sb, PropertyModel prop, string declaringTypeName,
-        List<SchemaModel> allSchemas) {
-        var genericType = GetPropertyInfoGenericType(prop, allSchemas);
+        List<SchemaModel> allSchemas, string ns) {
+        var genericType = GetPropertyInfoGenericType(prop, allSchemas, ns);
         var propName = prop.MemberName;
 
         var getter = prop.IsWriteOnly
@@ -298,8 +304,8 @@ internal static class JsonTypeInfoEmitter {
     }
 
     private static void EmitParameterInfo(StringBuilder sb, PropertyModel prop, int position,
-        List<SchemaModel> allSchemas) {
-        var paramType = GetPropertyInfoGenericType(prop, allSchemas);
+        List<SchemaModel> allSchemas, string ns) {
+        var paramType = GetPropertyInfoGenericType(prop, allSchemas, ns);
         var propName = prop.MemberName;
 
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
@@ -316,9 +322,10 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("                },");
     }
 
-    private static void AddEnumTypeInfo(ClassDefinition resolver, SchemaModel schema) {
-        var typeName = NamingHelper.ToPascalCase(schema.Name);
-        var method = CreateTypeInfoMethod(resolver, typeName);
+    private static void AddEnumTypeInfo(ClassDefinition resolver, SchemaModel schema, string ns) {
+        var name = NamingHelper.ToPascalCase(schema.Name);
+        var typeName = TypeMapper.QualifiedName(ns, name, false);
+        var method = CreateTypeInfoMethod(resolver, name);
         var sb = new StringBuilder();
 
         sb.AppendLine($"        return JsonMetadataServices.CreateValueInfo<{typeName}>(options, JsonMetadataServices.GetEnumConverter<{typeName}>(options));");
@@ -348,12 +355,15 @@ internal static class JsonTypeInfoEmitter {
     /// Returns the full C# type including nullable suffix for optional properties.
     /// Used for constructor cast expressions.
     /// </summary>
-    private static string GetFullCSharpType(PropertyModel prop, List<SchemaModel> allSchemas) {
+    private static string GetFullCSharpType(
+        PropertyModel prop, List<SchemaModel> allSchemas, string ns) {
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
-        if (prop.IsCSharpNullable) {
-            return baseType + "?";
-        }
-        return baseType;
+
+        // Qualified for the same reason the property infos are: a cast is a type reference, and an
+        // unqualified one binds to whatever the consumer has in scope.
+        var qualified = TypeMapper.QualifiedName(ns, baseType, false);
+
+        return prop.IsCSharpNullable ? qualified + "?" : qualified;
     }
 
     /// <summary>
@@ -361,15 +371,18 @@ internal static class JsonTypeInfoEmitter {
     /// Reference types: always non-nullable (string, not string?).
     /// Value types: nullable if optional (int? for optional int).
     /// </summary>
-    private static string GetPropertyInfoGenericType(PropertyModel prop, List<SchemaModel> allSchemas) {
+    private static string GetPropertyInfoGenericType(
+        PropertyModel prop, List<SchemaModel> allSchemas, string ns) {
         var baseType = TypeMapper.MapPropertyToCSharpType(prop);
-        if (prop.IsCSharpNullable && IsValueType(baseType, prop, allSchemas)) {
-            return baseType + "?";
-        }
-        return baseType;
+
+        // Qualified, because this emitter writes text rather than going through the output
+        // context - see TypeMapper.QualifiedName.
+        return TypeMapper.QualifiedName(
+            ns, baseType, prop.IsCSharpNullable && IsValueType(baseType, prop, allSchemas));
     }
 
-    private static void EmitCollectionTypeEntries(StringBuilder sb, List<SchemaModel> schemas) {
+    private static void EmitCollectionTypeEntries(
+        StringBuilder sb, List<SchemaModel> schemas, string modelsNamespace) {
         var listTypes = new HashSet<string>();
         var dictTypes = new HashSet<string>();
 
@@ -377,10 +390,10 @@ internal static class JsonTypeInfoEmitter {
             if (schema.Properties == null) continue;
             foreach (var prop in schema.Properties) {
                 if (prop.IsArray) {
-                    listTypes.Add(GetArrayElementType(prop));
+                    listTypes.Add(GetArrayElementType(prop, modelsNamespace));
                 }
                 if (prop.IsDictionary) {
-                    dictTypes.Add(GetDictionaryValueType(prop));
+                    dictTypes.Add(GetDictionaryValueType(prop, modelsNamespace));
                 }
             }
         }
@@ -390,25 +403,35 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine();
         sb.AppendLine("        // Collection types");
         foreach (var elementType in listTypes) {
-            sb.AppendLine($"        if (type == typeof(List<{elementType}>)) return JsonMetadataServices.CreateListInfo<List<{elementType}>, {elementType}>(options, new JsonCollectionInfoValues<List<{elementType}>> {{ ObjectCreator = static () => new List<{elementType}>() }});");
+            sb.AppendLine($"        if (type == typeof(global::System.Collections.Generic.List<{elementType}>)) return JsonMetadataServices.CreateListInfo<global::System.Collections.Generic.List<{elementType}>, {elementType}>(options, new JsonCollectionInfoValues<global::System.Collections.Generic.List<{elementType}>> {{ ObjectCreator = static () => new global::System.Collections.Generic.List<{elementType}>() }});");
         }
         foreach (var valueType in dictTypes) {
-            sb.AppendLine($"        if (type == typeof(Dictionary<string, {valueType}>)) return JsonMetadataServices.CreateDictionaryInfo<Dictionary<string, {valueType}>, string, {valueType}>(options, new JsonCollectionInfoValues<Dictionary<string, {valueType}>> {{ ObjectCreator = static () => new Dictionary<string, {valueType}>() }});");
+            sb.AppendLine($"        if (type == typeof(global::System.Collections.Generic.Dictionary<string,{valueType}>)) return JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,{valueType}>, string, {valueType}>(options, new JsonCollectionInfoValues<global::System.Collections.Generic.Dictionary<string,{valueType}>> {{ ObjectCreator = static () => new global::System.Collections.Generic.Dictionary<string,{valueType}>() }});");
         }
     }
 
-    private static string GetArrayElementType(PropertyModel prop) {
+    /// <remarks>
+    /// Qualified, because the element type is written into the collection table as text. The entry
+    /// has to name the same type the property info asks for, and the property info is qualified.
+    /// </remarks>
+    private static string GetArrayElementType(PropertyModel prop, string ns) {
         if (prop.ArrayItemsRef != null) {
-            return NamingHelper.ToPascalCase(TypeMapper.GetRefName(prop.ArrayItemsRef));
+            return TypeMapper.QualifiedName(
+                ns, NamingHelper.ToPascalCase(TypeMapper.GetRefName(prop.ArrayItemsRef)), false);
         }
-        return TypeMapper.MapToCSharpType(prop.ArrayItemsType, prop.ArrayItemsFormat);
+
+        return TypeMapper.QualifiedName(
+            ns, TypeMapper.MapToCSharpType(prop.ArrayItemsType, prop.ArrayItemsFormat), false);
     }
 
-    private static string GetDictionaryValueType(PropertyModel prop) {
+    private static string GetDictionaryValueType(PropertyModel prop, string ns) {
         if (prop.DictionaryValueRef != null) {
-            return NamingHelper.ToPascalCase(TypeMapper.GetRefName(prop.DictionaryValueRef));
+            return TypeMapper.QualifiedName(
+                ns, NamingHelper.ToPascalCase(TypeMapper.GetRefName(prop.DictionaryValueRef)), false);
         }
-        return TypeMapper.MapToCSharpType(prop.DictionaryValueType, null);
+
+        return TypeMapper.QualifiedName(
+            ns, TypeMapper.MapToCSharpType(prop.DictionaryValueType, null), false);
     }
 
     private static bool IsValueType(string csType, PropertyModel prop, List<SchemaModel> allSchemas) {

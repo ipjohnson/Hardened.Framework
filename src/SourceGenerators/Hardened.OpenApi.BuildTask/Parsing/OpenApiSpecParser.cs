@@ -374,11 +374,12 @@ internal static class OpenApiSpecParser {
     private static string ServerBasePath(OpenApiDocument document) {
         var server = document.Servers?.FirstOrDefault();
 
-        if (server == null || string.IsNullOrWhiteSpace(server.Url)) {
+        // Pattern-matched rather than a null check on Url: .NET Framework's reference assemblies
+        // do not carry the NotNullWhen annotation on string.IsNullOrWhiteSpace, so guarding with it
+        // alone leaves url nullable on that leg and the build warns where the other does not.
+        if (server?.Url is not { } url || string.IsNullOrWhiteSpace(url)) {
             return "";
         }
-
-        var url = server.Url;
 
         if (server.Variables != null) {
             foreach (var variable in server.Variables) {
@@ -980,7 +981,13 @@ internal static class OpenApiSpecParser {
     private static void ParsePath(string path, IOpenApiPathItem pathItem,
         Dictionary<string, List<OperationModel>> operationsByTag, SchemaCollector collector,
         bool groupUntaggedByPath) {
-        foreach (var opKvp in pathItem.Operations ?? Enumerable.Empty<KeyValuePair<HttpMethod, OpenApiOperation>>()) {
+        if (pathItem.Operations == null) {
+            return;
+        }
+
+        // Guarded rather than coalesced to an empty sequence: naming the element type would mean
+        // naming System.Net.Http.HttpMethod, which .NET Framework does not have in scope here.
+        foreach (var opKvp in pathItem.Operations) {
             var operation = opKvp.Value;
             var httpMethod = opKvp.Key.ToString().ToUpperInvariant();
 
@@ -1149,7 +1156,11 @@ internal static class OpenApiSpecParser {
     /// <c>DELETE /v2/droplets</c> and <c>DELETE /v2/droplets/{droplet_id}</c> both became
     /// <c>deleteV2Droplets</c>, which is one interface method declared twice.
     /// </remarks>
-    private static string GenerateOperationId(string method, string path) {
+    /// <remarks>
+    /// Internal because the allocator uses it too: an operation whose declared id collides falls
+    /// back to the name it would have had with no id at all, so both paths produce one convention.
+    /// </remarks>
+    internal static string GenerateOperationId(string method, string path) {
         var name = new StringBuilder(method.ToLowerInvariant());
 
         foreach (var segment in path.Split('/')) {

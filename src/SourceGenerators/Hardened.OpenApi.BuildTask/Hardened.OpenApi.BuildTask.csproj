@@ -89,6 +89,14 @@
         <Compile Include="IsExternalInit.cs" Condition="'$(TargetFramework)' == 'net472'"/>
     </ItemGroup>
 
+    <!--
+        Microsoft.OpenApi 3.x keys an operation by System.Net.Http.HttpMethod, which .NET Framework
+        does not reference by default. This is the leg that runs under Visual Studio's MSBuild.
+    -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http"/>
+    </ItemGroup>
+
     <!-- Shared with the generator. See Hardened.Idl.Shared for why this is source and not a reference. -->
     <ItemGroup>
         <Compile Include="../Hardened.Idl.Shared/**/*.cs"

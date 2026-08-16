@@ -66,6 +66,26 @@ internal static class SchemaShape {
             .ToList();
     }
 
+    /// <summary>
+    /// The properties this type declares itself, rather than forwarding to a base.
+    /// </summary>
+    /// <remarks>
+    /// A positional record passes an inherited property straight to the base constructor, so it
+    /// never becomes a member of the derived type - and a constraint on it is the base's to check.
+    /// Bitbucket's <c>DeploymentEnvironment</c> derives from a schema carrying the only constrained
+    /// property, which made it look constrained here and unconstrained to the validation generator:
+    /// one emitted a [ValidateNested] and the other declined to generate the validator it named.
+    /// </remarks>
+    public static List<PropertyModel> Declared(
+        SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas) {
+        var inherited = Base(schema, allSchemas);
+
+        return schema.Properties
+            .Where(property => inherited?.Properties.Any(
+                declared => declared.Name == property.Name) != true)
+            .ToList();
+    }
+
     /// <summary>The schema this one derives from, where it declares one and it is resolvable.</summary>
     public static SchemaModel? Base(SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas) {
         if (schema.BaseRef == null) {
