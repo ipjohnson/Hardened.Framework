@@ -40,6 +40,33 @@ jobs:
       # The solution builds warning-free; this is what stops that drifting back.
       - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
+      # The document the code-first generator emits, checked by a linter rather than only by a
+      # reader. Microsoft.OpenApi already proves the specification-first side parses, and that is a
+      # weaker claim than it sounds: path templating is prose in the OpenAPI specification rather
+      # than schema, so a template naming a parameter that no `parameters` entry declares parses
+      # fine and is a 404 for every generated client. That is what shipped until the emitter
+      # stopped leaking route constraints into it.
+      #
+      # The integration SUT is the subject because it is the one application here carrying the
+      # whole route surface: constrained tokens, catch-alls, every verb, validated bodies.
+      - name: Lint the generated OpenAPI document
+        run: |
+          set -o pipefail
+
+          generated=$(find src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/obj/Release \
+            -name 'Application.OpenApiDocument.cs' | head -1)
+
+          if [ -z "$generated" ]; then
+            echo "::error::No generated OpenAPI document found. EmitCompilerGeneratedFiles may be off on the integration SUT."
+            exit 1
+          fi
+
+          python3 scripts/extract-openapi.py "$generated" openapi.json
+
+          npx --yes @stoplight/spectral-cli lint openapi.json \
+            --ruleset .spectral.yaml \
+            --fail-severity=error
+
       - name: Test with coverage
         run: |
           set -o pipefail
