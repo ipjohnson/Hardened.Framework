@@ -10,7 +10,6 @@ namespace Hardened.Requests.Testing;
 public class TestExecutionResponse : IExecutionResponse {
     public TestExecutionResponse(Stream body) {
         Body = body;
-        Cookies = new CookieSetCollectionImpl();
     }
 
     public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
@@ -50,6 +49,29 @@ public class TestExecutionResponse : IExecutionResponse {
 
     public bool IsBinary { get; set; }
 
-    public ICookieSetCollection Cookies { get; }
+    /// <summary>
+    /// Header backed, and lazily, so a cookie is observable to a test the same way it is to a
+    /// client.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This used to be a <see cref="CookieSetCollectionImpl"/>, which only records: it stores into
+    /// a dictionary and something else is expected to serialise it. That is right on API Gateway,
+    /// whose proxy response carries a <c>cookies</c> array beside its headers and whose processor
+    /// reads the dictionary. Nothing read it here, so <c>Response.Cookies.Append(...)</c> compiled,
+    /// ran, and left <c>TestWebResponse.Headers</c> with no <c>Set-Cookie</c> — a cookie that
+    /// worked in production could not be asserted at all.
+    /// </para>
+    /// <para>
+    /// Lazy rather than built in the constructor because <see cref="Headers"/> is settable and
+    /// <c>Clone</c> may replace it; binding on first use means the cookies land wherever the
+    /// headers are now. The same shape the ASP.NET and Kestrel responses use, which is the point —
+    /// <c>ExecutionResponseConformanceTests</c> holds all three to it.
+    /// </para>
+    /// </remarks>
+    public ICookieSetCollection Cookies => _cookies ??= new HeaderCookieSetCollection(Headers);
+
+    private ICookieSetCollection? _cookies;
+
     public bool ShouldSerialize { get; set; } = true;
 }
