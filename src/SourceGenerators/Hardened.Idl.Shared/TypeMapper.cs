@@ -192,6 +192,18 @@ internal static class TypeMapper {
         csType.StartsWith("Dictionary<", System.StringComparison.Ordinal) ||
         csType.EndsWith("[]", System.StringComparison.Ordinal);
 
+    /// <summary>Whether numeric bounds can be compared against this type.</summary>
+    public static bool IsNumeric(string csType) =>
+        csType switch {
+            "int" or "uint" or "long" or "ulong" or "short" or "ushort" or "byte" or "sbyte" or
+            "float" or "double" or "decimal" => true,
+            _ => false
+        };
+
+    /// <summary>Whether a length can be read off this type.</summary>
+    public static bool IsStringLike(string csType) =>
+        csType == "string";
+
     public static string GetRefName(string refPath) {
         var lastSlash = refPath.LastIndexOf('/');
         return lastSlash >= 0 ? refPath.Substring(lastSlash + 1) : refPath;

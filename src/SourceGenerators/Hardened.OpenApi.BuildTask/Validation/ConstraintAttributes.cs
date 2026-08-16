@@ -49,9 +49,8 @@ internal static class ConstraintAttributes {
     /// struct that has no such member.
     /// </param>
     public static IReadOnlyList<Model> ForParameter(
-        ParameterModel parameter, bool required, bool allowedValues, bool itemCount,
-        PatternRegistry patterns) =>
-        Build(parameter, required, patterns, allowedValues, itemCount);
+        ParameterModel parameter, bool required, string csType, PatternRegistry patterns) =>
+        Build(parameter, required, patterns, csType);
 
     /// <param name="required">
     /// From the caller rather than the model: it also knows whether the C# type makes
@@ -62,13 +61,21 @@ internal static class ConstraintAttributes {
     /// <see cref="ForParameter"/>.
     /// </param>
     public static IReadOnlyList<Model> ForProperty(
-        PropertyModel property, bool required, PatternRegistry patterns,
-        bool allowedValues = true, bool itemCount = true) =>
-        Build(property, required, patterns, allowedValues, itemCount);
+        PropertyModel property, bool required, PatternRegistry patterns, string csType) =>
+        Build(property, required, patterns, csType);
 
+    /// <param name="csType">
+    /// The type the member will have. Every constraint below is a comparison the validation
+    /// generator emits against that type, so a bound the type cannot carry is not a stricter rule -
+    /// it is code that does not compile. Box puts `minimum` on a string, Vercel puts an `enum` on a
+    /// member that fell back to JsonElement, and OpenAI types parameters as generated enums; all
+    /// three produced CS0019 on an operator that does not exist for the operands.
+    /// </param>
     private static IReadOnlyList<Model> Build(
-        IConstraintFacets facets, bool required, PatternRegistry patterns,
-        bool allowedValues = true, bool itemCount = true) {
+        IConstraintFacets facets, bool required, PatternRegistry patterns, string csType) {
+        var numeric = TypeMapper.IsNumeric(csType);
+        var stringLike = TypeMapper.IsStringLike(csType);
+        var counted = TypeMapper.HasItemCount(csType);
         var minLength = facets.MinLength;
         var maxLength = facets.MaxLength;
         var minimum = facets.Minimum;
@@ -88,11 +95,11 @@ internal static class ConstraintAttributes {
 
         // Named arguments, because a spec may set one bound and not the other while the positional
         // constructors take both. Min and Max default to unbounded.
-        if (minLength.HasValue || maxLength.HasValue) {
+        if (stringLike && (minLength.HasValue || maxLength.HasValue)) {
             attributes.Add(new Model(Attribute("StringLengthAttribute"), Bounds(minLength, maxLength)));
         }
 
-        if (minimum.HasValue || maximum.HasValue) {
+        if (numeric && (minimum.HasValue || maximum.HasValue)) {
             // Range has no partially-bounded constructor, and its double overload takes the widest
             // set of spec values - so an absent bound becomes the extreme rather than being omitted.
             var arguments = new List<string> {
@@ -111,15 +118,15 @@ internal static class ConstraintAttributes {
             attributes.Add(new Model(Attribute("RangeAttribute"), arguments));
         }
 
-        if (!string.IsNullOrEmpty(pattern)) {
+        if (stringLike && !string.IsNullOrEmpty(pattern)) {
             attributes.Add(new Model(Attribute("PatternAttribute"), patterns.AttributeArguments(pattern!)));
         }
 
-        if (itemCount && (minItems.HasValue || maxItems.HasValue)) {
+        if (counted && (minItems.HasValue || maxItems.HasValue)) {
             attributes.Add(new Model(Attribute("ItemCountAttribute"), Bounds(minItems, maxItems)));
         }
 
-        if (allowedValues && enumValues is { Count: > 0 }) {
+        if (stringLike && enumValues is { Count: > 0 }) {
             attributes.Add(new Model(
                 Attribute("AllowedValuesAttribute"), enumValues.Select(Quote).ToList()));
         }
