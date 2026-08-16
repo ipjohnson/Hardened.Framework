@@ -60,7 +60,7 @@ internal static class OperationParameters {
                                !TypeMapper.IsNonNullableValueType(csType, spec.Schemas);
 
             var attributes = ConstraintAttributes.ForParameter(
-                parameter, emitRequired, !isEnumType, patterns);
+                parameter, emitRequired, !isEnumType, TypeMapper.HasItemCount(csType), patterns);
 
             constrained |= attributes.Count > 0;
 
@@ -118,7 +118,8 @@ internal static class OperationParameters {
             property,
             property.ConstrainedAsRequired && !TypeMapper.IsNonNullableValueType(csType, spec.Schemas),
             patterns,
-            !TypeMapper.IsGeneratedEnum(csType, spec.Schemas));
+            !TypeMapper.IsGeneratedEnum(csType, spec.Schemas),
+            TypeMapper.HasItemCount(csType));
     }
 
     private static SchemaModel? BodySchema(OperationModel operation, ServiceSpecModel spec) {

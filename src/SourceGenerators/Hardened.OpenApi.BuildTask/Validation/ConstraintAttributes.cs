@@ -43,9 +43,15 @@ internal static class ConstraintAttributes {
     /// is a <c>$ref</c> to an enum is typed as the generated enum, and <c>[AllowedValues]</c> then
     /// compares that enum against string literals - CS0019, once per member.
     /// </param>
+    /// <param name="itemCount">
+    /// False where the C# type has no count. An array whose element type cannot be named degrades
+    /// to <c>JsonElement</c>, and <c>[ItemCount]</c> then draws <c>value.X.Count</c> against a
+    /// struct that has no such member.
+    /// </param>
     public static IReadOnlyList<Model> ForParameter(
-        ParameterModel parameter, bool required, bool allowedValues, PatternRegistry patterns) =>
-        Build(parameter, required, patterns, allowedValues);
+        ParameterModel parameter, bool required, bool allowedValues, bool itemCount,
+        PatternRegistry patterns) =>
+        Build(parameter, required, patterns, allowedValues, itemCount);
 
     /// <param name="required">
     /// From the caller rather than the model: it also knows whether the C# type makes
@@ -57,12 +63,12 @@ internal static class ConstraintAttributes {
     /// </param>
     public static IReadOnlyList<Model> ForProperty(
         PropertyModel property, bool required, PatternRegistry patterns,
-        bool allowedValues = true) =>
-        Build(property, required, patterns, allowedValues);
+        bool allowedValues = true, bool itemCount = true) =>
+        Build(property, required, patterns, allowedValues, itemCount);
 
     private static IReadOnlyList<Model> Build(
         IConstraintFacets facets, bool required, PatternRegistry patterns,
-        bool allowedValues = true) {
+        bool allowedValues = true, bool itemCount = true) {
         var minLength = facets.MinLength;
         var maxLength = facets.MaxLength;
         var minimum = facets.Minimum;
@@ -109,7 +115,7 @@ internal static class ConstraintAttributes {
             attributes.Add(new Model(Attribute("PatternAttribute"), patterns.AttributeArguments(pattern!)));
         }
 
-        if (minItems.HasValue || maxItems.HasValue) {
+        if (itemCount && (minItems.HasValue || maxItems.HasValue)) {
             attributes.Add(new Model(Attribute("ItemCountAttribute"), Bounds(minItems, maxItems)));
         }
 

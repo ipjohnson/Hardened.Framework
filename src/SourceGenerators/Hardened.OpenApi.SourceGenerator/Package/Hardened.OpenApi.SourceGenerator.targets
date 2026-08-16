@@ -94,17 +94,27 @@
         the compilation, rather than leaving whatever an earlier build wrote to be picked up.
     -->
     <ItemGroup Condition="'@(HardenedOpenApiSpec)' != ''">
+        <!--
+            One document is routinely sliced differently by several projects, and can be sliced more
+            than once within one - so the output is keyed on the slice as well as the file, or two
+            slices of github.yaml would both write github.g.cs. Empty for an unsliced spec, which
+            keeps every existing path exactly as it was.
+        -->
+        <HardenedOpenApiSpec Update="@(HardenedOpenApiSpec)">
+            <SliceSuffix Condition="'%(HardenedOpenApiSpec.Slice)' != ''">.%(HardenedOpenApiSpec.Slice)</SliceSuffix>
+        </HardenedOpenApiSpec>
+
         <_HardenedOpenApiModel Condition="'$(HardenedOpenApiModelDir)' == ''"
-                               Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/%(Filename).openapi-model.txt')"/>
+                               Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/%(Filename)%(SliceSuffix).openapi-model.txt')"/>
         <_HardenedOpenApiModel Condition="'$(HardenedOpenApiModelDir)' != ''"
-                               Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename).openapi-model.txt')"/>
+                               Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)%(Filename)%(SliceSuffix).openapi-model.txt')"/>
 
         <_HardenedOpenApiSource Condition="'$(HardenedOpenApiGeneratedDir)' == '' And '$(HardenedOpenApiModelDir)' == ''"
-                                Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/generated/%(Filename).g.cs')"/>
+                                Include="@(HardenedOpenApiSpec->'$(IntermediateOutputPath)openapi/generated/%(Filename)%(SliceSuffix).g.cs')"/>
         <_HardenedOpenApiSource Condition="'$(HardenedOpenApiGeneratedDir)' == '' And '$(HardenedOpenApiModelDir)' != ''"
-                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)generated/%(Filename).g.cs')"/>
+                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiModelDir)generated/%(Filename)%(SliceSuffix).g.cs')"/>
         <_HardenedOpenApiSource Condition="'$(HardenedOpenApiGeneratedDir)' != ''"
-                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename).g.cs')"/>
+                                Include="@(HardenedOpenApiSpec->'$(HardenedOpenApiGeneratedDir)%(Filename)%(SliceSuffix).g.cs')"/>
 
         <AdditionalFiles Include="@(_HardenedOpenApiModel)"/>
         <Compile Include="@(_HardenedOpenApiSource)" Visible="false"/>
@@ -142,11 +152,30 @@
         running it, which is the whole reason the task emits one file per spec rather than one per
         type.
     -->
+    <!--
+        The filter is item metadata, so changing it does not touch the spec file, and the
+        up-to-date check below would skip the target and leave the previous slice's output in place.
+        Writing it to a stamp gives the check something whose timestamp moves when the filter
+        changes - and only then, which is what WriteOnlyWhenDifferent is for.
+
+        A dependency rather than a BeforeTargets, because a target's Inputs are read after its
+        DependsOnTargets have run: the stamp has to exist before it is compared against.
+    -->
+    <Target Name="HardenedOpenApiFilterStamp" DependsOnTargets="HardenedOpenApiResolveModelDir">
+        <MakeDir Directories="$(HardenedOpenApiModelDir)"/>
+
+        <WriteLinesToFile
+            File="$(HardenedOpenApiModelDir)filters.stamp"
+            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)')"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true"/>
+    </Target>
+
     <Target Name="HardenedOpenApiExtractSpecs"
-            DependsOnTargets="HardenedOpenApiResolveModelDir"
+            DependsOnTargets="HardenedOpenApiResolveModelDir;HardenedOpenApiFilterStamp"
             BeforeTargets="CoreCompile"
             Condition="'@(HardenedOpenApiSpec)' != ''"
-            Inputs="@(HardenedOpenApiSpec)"
+            Inputs="@(HardenedOpenApiSpec);$(HardenedOpenApiModelDir)filters.stamp"
             Outputs="@(_HardenedOpenApiModel);@(_HardenedOpenApiSource)">
 
         <ExtractOpenApiSpec Specs="@(HardenedOpenApiSpec)"
@@ -154,7 +183,8 @@
                             GeneratedSourceDirectory="$(HardenedOpenApiGeneratedDir)"
                             Namespace="$(HardenedOpenApiNamespace)"
                             ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)"
-                            ApplyServerBasePath="$(HardenedOpenApiApplyServerBasePath)">
+                            ApplyServerBasePath="$(HardenedOpenApiApplyServerBasePath)"
+                            EmbedDocument="$(HardenedOpenApiEmbedDocument)">
             <Output TaskParameter="ModelFiles" ItemName="_HardenedOpenApiModelWritten"/>
             <Output TaskParameter="GeneratedSources" ItemName="_HardenedOpenApiSourceWritten"/>
         </ExtractOpenApiSpec>

@@ -47,7 +47,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <HardenedOpenApiSpec Include="Specs\petstore.yaml" />
+        <!--
+            Opted in, because this fixture asserts the document reaches the wire verbatim -
+            comments included. Embedding is off by default: it publishes the whole description, and
+            a large one exceeds the metadata limit on user strings all by itself.
+        -->
+        <HardenedOpenApiSpec Include="Specs\petstore.yaml">
+            <EmbedDocument>true</EmbedDocument>
+        </HardenedOpenApiSpec>
     </ItemGroup>
 
     <!--

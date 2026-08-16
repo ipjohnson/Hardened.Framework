@@ -177,6 +177,21 @@ internal static class TypeMapper {
         return false;
     }
 
+    /// <summary>
+    /// Whether the type has a <c>Count</c> for <c>[ItemCount]</c> to check.
+    /// </summary>
+    /// <remarks>
+    /// Both <c>minItems</c> on an array and <c>minProperties</c> on a dictionary become
+    /// <c>[ItemCount]</c>, and both of those types have a count. A schema carrying those bounds
+    /// that did not map to either - an array whose element type could not be named, say - lands on
+    /// <c>JsonElement</c>, and the emitted validator then reads <c>.Count</c> off a struct with no
+    /// such member.
+    /// </remarks>
+    public static bool HasItemCount(string csType) =>
+        csType.StartsWith("List<", System.StringComparison.Ordinal) ||
+        csType.StartsWith("Dictionary<", System.StringComparison.Ordinal) ||
+        csType.EndsWith("[]", System.StringComparison.Ordinal);
+
     public static string GetRefName(string refPath) {
         var lastSlash = refPath.LastIndexOf('/');
         return lastSlash >= 0 ? refPath.Substring(lastSlash + 1) : refPath;

@@ -106,7 +106,8 @@ internal static class SchemaEmitter {
 
         foreach (var constraint in ConstraintAttributes.ForProperty(
                      property, emitRequired, patterns,
-                     !TypeMapper.IsGeneratedEnum(csType, allSchemas))) {
+                     !TypeMapper.IsGeneratedEnum(csType, allSchemas),
+                     TypeMapper.HasItemCount(csType))) {
             ValidationEmitter.Apply(parameter, constraint).Target = "property";
         }
     }

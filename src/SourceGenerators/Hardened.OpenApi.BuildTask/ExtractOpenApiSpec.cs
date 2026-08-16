@@ -1,3 +1,4 @@
+using Hardened.OpenApi.BuildTask.Filtering;
 using Hardened.OpenApi.SourceGenerator;
 using Hardened.OpenApi.SourceGenerator.Emitters;
 using Hardened.Idl.Models;
@@ -55,6 +56,25 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     public bool ExcludeFromCoverage { get; set; } = true;
 
     /// <summary>
+    /// Whether the source document is embedded so the application can serve it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Off unless asked for, and per-spec <c>EmbedDocument</c> metadata overrides it either way.
+    /// Serving your own description is a decision about public surface, not a default worth
+    /// inheriting: it publishes every path, schema, example and vendor extension the document
+    /// carries, including whatever is in there that was never meant to leave the building.
+    /// </para>
+    /// <para>
+    /// The cost is invisible and unbounded. The document goes in as one string literal, so GitHub's
+    /// 9.4 MB lands in the assembly's user string heap and exceeds its limit on its own - CS8103,
+    /// from a project whose own models are a few kilobytes, with nothing in the message to connect
+    /// it to a setting nobody chose.
+    /// </para>
+    /// </remarks>
+    public bool EmbedDocument { get; set; }
+
+    /// <summary>
     /// Whether the path of the first <c>servers</c> entry prefixes every route.
     /// </summary>
     /// <remarks>
@@ -102,6 +122,107 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
         OpenApiSpecParser.Parse(
             document, fileName, CancellationToken.None, ApplyServerBasePath, diagnostics);
 
+    /// <summary>
+    /// Narrows a document to the operations one service implements. Returns true if that failed.
+    /// </summary>
+    /// <remarks>
+    /// The filter is per-spec metadata rather than a task property, because one description is
+    /// routinely sliced differently by several projects - which is the point of slicing it at all.
+    /// </remarks>
+    private bool Slice(ITaskItem spec, string path, ServiceSpecModel model, out bool failed) {
+        failed = false;
+        var filter = new SpecSlicer.Filter {
+            IncludePaths = SplitMetadata(spec, "IncludePaths"),
+            ExcludePaths = SplitMetadata(spec, "ExcludePaths"),
+            Tags = SplitMetadata(spec, "Tags")
+        };
+
+        if (filter.IsEmpty) {
+            return false;
+        }
+
+        var result = SpecSlicer.Apply(model, filter);
+
+        if (result.MatchedNothing) {
+            failed = true;
+
+            Log.LogError(null, "HOAT007", null, path, 0, 0, 0, 0,
+                "The slice of '{0}' selected no operations, so nothing would be generated. " +
+                "IncludePaths='{1}' ExcludePaths='{2}' Tags='{3}'.",
+                path, spec.GetMetadata("IncludePaths"), spec.GetMetadata("ExcludePaths"),
+                spec.GetMetadata("Tags"));
+
+            return true;
+        }
+
+        // Should be unreachable: the closure keeps everything a surviving operation reaches. A hole
+        // in it would otherwise degrade to JsonElement without saying so.
+        foreach (var dangling in result.DanglingReferences) {
+            Log.LogWarning(null, "HOAT008", null, path, 0, 0, 0, 0,
+                "The slice of '{0}' removed a schema that is still referenced: {1}. The reference " +
+                "degrades to JsonElement.", path, dangling);
+        }
+
+        Log.LogMessage(MessageImportance.Normal,
+            "Sliced '{0}' to {1} operations ({2} dropped) and {3} schemas ({4} dropped).",
+            path, result.OperationsKept, result.OperationsDropped,
+            result.SchemasKept, result.SchemasDropped);
+
+        return true;
+    }
+
+    /// <summary>
+    /// The document the application will serve, or nothing.
+    /// </summary>
+    /// <remarks>
+    /// Embedding the source text verbatim is what makes a served contract exact - see
+    /// <c>SpecificationDocumentEmitter</c>. That argument holds while the application implements
+    /// the whole document; a slice implements part of it, so the original would advertise
+    /// operations that answer 404 and schemas no handler can produce. Asked for anyway, it is
+    /// emitted and said out loud.
+    /// </remarks>
+    private string ServedDocument(ITaskItem spec, string path, string document, bool sliced) {
+        var declared = spec.GetMetadata("EmbedDocument");
+
+        var embed = string.IsNullOrWhiteSpace(declared)
+            ? EmbedDocument
+            : string.Equals(declared, "true", System.StringComparison.OrdinalIgnoreCase);
+
+        if (!embed) {
+            return "";
+        }
+
+        if (sliced) {
+            Log.LogWarning(null, "HOAT009", null, path, 0, 0, 0, 0,
+                "'{0}' is sliced but its document is embedded whole, so the application will serve " +
+                "a description of operations it does not implement.", path);
+        }
+
+        return document;
+    }
+
+    /// <summary>Semicolon-separated metadata, as MSBuild lists are written.</summary>
+    private static IReadOnlyList<string> SplitMetadata(ITaskItem spec, string name) {
+        var value = spec.GetMetadata(name);
+
+        if (string.IsNullOrWhiteSpace(value)) {
+            return System.Array.Empty<string>();
+        }
+
+        var parts = value.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+        var trimmed = new List<string>(parts.Length);
+
+        foreach (var part in parts) {
+            var candidate = part.Trim();
+
+            if (candidate.Length > 0) {
+                trimmed.Add(candidate);
+            }
+        }
+
+        return trimmed;
+    }
+
     public override bool Execute() {
         var models = new List<ITaskItem>();
         var sources = new List<ITaskItem>();
@@ -118,7 +239,13 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
                 continue;
             }
 
-            var fileName = Path.GetFileNameWithoutExtension(path);
+            // The slice is part of the identity, matching what the targets file declared as
+            // this spec's outputs. Two slices of one document otherwise write over each
+            // other, and their generated helper types would collide on one name.
+            var slice = spec.GetMetadata("Slice");
+
+            var fileName = Path.GetFileNameWithoutExtension(path) +
+                           (string.IsNullOrWhiteSpace(slice) ? "" : "." + slice.Trim());
             var document = File.ReadAllText(path);
             ServiceSpecModel model;
 
@@ -154,6 +281,14 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
                 continue;
             }
 
+            // Narrowed before anything is inspected, so the diagnostics below describe the code
+            // that will actually be emitted rather than the whole document.
+            var sliced = Slice(spec, path, model, out var sliceFailed);
+
+            if (sliceFailed) {
+                continue;
+            }
+
             // Checked before anything is written. These describe C# that will not compile, and
             // emitting it anyway turns a fixable spec problem into a compiler error in a generated
             // file the author cannot edit.
@@ -180,7 +315,7 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             model.JsonTypeInfoResolverName = JsonTypeInfoEmitter.ResolverNameFor(fileName);
 
             var sourcePath = Path.Combine(GeneratedSourceDirectory, fileName + SourceSuffix);
-            WriteIfChanged(sourcePath, Emit(model, document, path));
+            WriteIfChanged(sourcePath, Emit(model, ServedDocument(spec, path, document, sliced), path));
             sources.Add(new TaskItem(sourcePath));
 
             var modelPath = Path.Combine(OutputDirectory, fileName + ModelSuffix);
