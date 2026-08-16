@@ -51,7 +51,36 @@ internal static class TypeMapper {
             return "string";
         }
 
-        return MapToCSharpType(property.Type, property.Format);
+        return WidenForBounds(
+            MapToCSharpType(property.Type, property.Format), property.Minimum, property.Maximum);
+    }
+
+    /// <summary>
+    /// Widens an integer whose declared bounds do not fit the type its format implies.
+    /// </summary>
+    /// <remarks>
+    /// <c>type: integer</c> with no format maps to <c>int</c>, which is right until the document
+    /// says otherwise. DigitalOcean declares <c>eq_range_index_dive_limit</c> as an integer with a
+    /// maximum of 4294967295 - a value an <c>int</c> cannot hold, so the generated model would
+    /// overflow on a payload the specification calls valid. The bound is part of the type.
+    /// </remarks>
+    private static string WidenForBounds(string csType, decimal? minimum, decimal? maximum) {
+        if (csType != "int" && csType != "long") {
+            return csType;
+        }
+
+        var low = minimum ?? 0m;
+        var high = maximum ?? 0m;
+
+        // int to long only. A bound beyond long would need decimal, and decimal is not a type the
+        // JSON type-info emitter carries nullability for - so a document declaring one keeps the
+        // type its format implies, and the bound stays on the attribute rather than in the type.
+        if (csType == "int" && (low < int.MinValue || high > int.MaxValue) &&
+            low >= long.MinValue && high <= long.MaxValue) {
+            return "long";
+        }
+
+        return csType;
     }
 
     public static string MapParameterToCSharpType(ParameterModel parameter) {
@@ -67,7 +96,8 @@ internal static class TypeMapper {
             return $"List<{itemType}>";
         }
 
-        return MapToCSharpType(parameter.Type, parameter.Format);
+        return WidenForBounds(
+            MapToCSharpType(parameter.Type, parameter.Format), parameter.Minimum, parameter.Maximum);
     }
 
     public static ITypeDefinition GetTypeDefinition(string ns, string csType, bool nullable) {
@@ -109,6 +139,12 @@ internal static class TypeMapper {
             "float" => TypeDefinition.Get(typeof(float)),
             "double" => TypeDefinition.Get(typeof(double)),
             "bool" => TypeDefinition.Get(typeof(bool)),
+            "decimal" => TypeDefinition.Get(typeof(decimal)),
+            "short" => TypeDefinition.Get(typeof(short)),
+            "ushort" => TypeDefinition.Get(typeof(ushort)),
+            "ulong" => TypeDefinition.Get(typeof(ulong)),
+            "byte" => TypeDefinition.Get(typeof(byte)),
+            "sbyte" => TypeDefinition.Get(typeof(sbyte)),
             "DateTime" => TypeDefinition.Get(typeof(DateTime)),
             "DateOnly" => TypeDefinition.Get("System", "DateOnly"),
             "JsonElement" => TypeDefinition.Get("System.Text.Json", "JsonElement"),
