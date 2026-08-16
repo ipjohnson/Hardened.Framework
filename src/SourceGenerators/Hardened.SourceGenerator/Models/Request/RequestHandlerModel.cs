@@ -22,6 +22,42 @@ public class RequestHandlerModel {
         Filters = filters;
     }
 
+    /// <summary>
+    /// The same handler with a different filter list, and everything else carried across.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Exists so that adding a filter cannot silently drop anything. The validation generator used
+    /// to rebuild the model by hand and carried two of the eight settable properties, so every
+    /// handler that gained a validator lost its request schema, its response schema, its
+    /// <c>[Tag]</c>, its summary, its description and its deprecation flag. In the served document
+    /// that read as a write operation with no <c>requestBody</c> and no response content — the two
+    /// things a client most needs — on exactly the operations whose models were best described.
+    /// </para>
+    /// <para>
+    /// The defect was in the shape rather than in the line: a hand-rolled copy has to be revisited
+    /// every time a property is added, and nothing fails when it is not. Adding a property here is
+    /// now the only place that has to change.
+    /// </para>
+    /// </remarks>
+    public RequestHandlerModel WithFilters(IReadOnlyList<AttributeModel> filters) =>
+        new(Name,
+            ControllerType,
+            HandlerMethod,
+            InvokeHandlerType,
+            RequestParameterInformationList,
+            ResponseInformation,
+            filters) {
+            ParametersInterface = ParametersInterface,
+            ParametersValidator = ParametersValidator,
+            ResponseSchema = ResponseSchema,
+            RequestSchema = RequestSchema,
+            Tag = Tag,
+            Summary = Summary,
+            Description = Description,
+            IsDeprecated = IsDeprecated
+        };
+
     public RequestHandlerNameModel Name { get; }
 
     public ITypeDefinition ControllerType { get; }
