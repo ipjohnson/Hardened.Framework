@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
         <Description>RazorBlade template rendering for the Hardened execution pipeline. Compiles .cshtml at build time with no dependency on ASP.NET, so it runs on Lambda as well as Kestrel.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

@@ -59,8 +59,11 @@ public class StaticContentHandler : IStaticContentHandler {
         _pathExists = Directory.Exists(_rootPath);
 
         if (!_pathExists) {
-            _rootPath =
-                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
+            // AppContext.BaseDirectory rather than Assembly.Location, which is an empty string for
+            // an assembly inside a single-file or AOT-published application. So the fallback that
+            // exists for a process whose working directory is not its deployment directory was the
+            // one thing that stopped working in the deployments most likely to have one.
+            _rootPath = AppContext.BaseDirectory;
 
             if (!string.IsNullOrEmpty(_rootPath)) {
                 _rootPath = Path.GetFullPath(Path.Combine(_rootPath, _configuration.Path));

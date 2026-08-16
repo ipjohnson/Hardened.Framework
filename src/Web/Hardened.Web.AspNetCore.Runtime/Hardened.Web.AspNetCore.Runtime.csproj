@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
         <Description>ASP.NET Core hosting bridge for Hardened. Maps HttpContext onto the Hardened execution pipeline through UseHardened().</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

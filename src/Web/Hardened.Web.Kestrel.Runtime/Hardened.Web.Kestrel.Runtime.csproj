@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
         <Description>Kestrel hosting for Hardened. Implements IHttpApplication directly so requests run on Kestrel without the ASP.NET Core middleware pipeline or HttpContext.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

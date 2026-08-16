@@ -461,6 +461,12 @@ namespace Hardened.Requests.Runtime.Serializer
         protected virtual T StandardConverter<T>(string value) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Reads the model\'s shape by reflection. Import AotSerializerModule for a trimmed o" +
+        "r AOT-published application, which registers the source-generated serializers in" +
+        "stead.")]
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Reads the model\'s shape by reflection. Import AotSerializerModule for a trimmed o" +
+        "r AOT-published application, which registers the source-generated serializers in" +
+        "stead.")]
     public class SystemTextJsonRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
     {
         public SystemTextJsonRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.SystemTextJsonRequestDeserializer> logger) { }
@@ -469,6 +475,12 @@ namespace Hardened.Requests.Runtime.Serializer
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
+    [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Reads the model\'s shape by reflection. Import AotSerializerModule for a trimmed o" +
+        "r AOT-published application, which registers the source-generated serializers in" +
+        "stead.")]
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Reads the model\'s shape by reflection. Import AotSerializerModule for a trimmed o" +
+        "r AOT-published application, which registers the source-generated serializers in" +
+        "stead.")]
     public class SystemTextJsonResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
     {
         public SystemTextJsonResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration) { }
