@@ -80,6 +80,36 @@ public class JsonSerializerImplTests {
         }
     }
 
+    /// <summary>
+    /// The string overload, which has no stream to own and so was never part of the ownership
+    /// story the rest of this file is about.
+    /// </summary>
+    /// <remarks>
+    /// It had no test of its own. Its only coverage came from <c>Hardened.Commands</c>, whose
+    /// argument converter called it to turn a command-line value into a typed option — so deleting
+    /// that package took the last caller with it and dropped this assembly below its coverage
+    /// floor. The method is still shipped on <see cref="IJsonSerializer"/>; it was the coverage
+    /// that was incidental, not the API.
+    /// </remarks>
+    [Fact]
+    public void DeserializeReadsAString() {
+        var payload = Serializer().Deserialize<Payload>("""{"name":"from-string","count":7}""");
+
+        Assert.Equal("from-string", payload.Name);
+        Assert.Equal(7, payload.Count);
+    }
+
+    /// <summary>
+    /// A literal <c>null</c> is valid JSON that deserializes to null, which the method turns into
+    /// an exception rather than handing back a null it declared non-nullable.
+    /// </summary>
+    [Fact]
+    public void DeserializingALiteralNullThrows() {
+        var exception = Assert.Throws<Exception>(() => Serializer().Deserialize<Payload>("null"));
+
+        Assert.Equal("Deserialized to null instance", exception.Message);
+    }
+
     [Fact]
     public async Task SerializeLeavesTheStreamOpen() {
         var stream = new MemoryStream();
