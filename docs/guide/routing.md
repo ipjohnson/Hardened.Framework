@@ -181,6 +181,19 @@ That is what makes a route's shape mean something: an API serves the paths it de
 else, so a client can tell a real endpoint from a typo, and a generated OpenAPI document describes
 the same set of paths the router accepts.
 
+**And exactly one segment means at least one character.** `/users/` does not answer `/users/{id}`,
+because the empty string after a trailing slash is not a segment. Neither is the nothing between
+the two slashes of `//`.
+
+**Changed 2026-08-16.** Both used to match, binding the token to `""`. The request reached the
+handler's binder, which rejected the empty value and answered `400` — telling a client it had
+addressed a real endpoint incorrectly, about a URL that addresses no endpoint at all. `404` is the
+truthful answer, and the distinction matters beyond tidiness: API Gateway and CloudFront cache the
+two differently, and a generated client reads them differently.
+
+This is also why `{id?}` is a build error rather than a token that may match nothing — an optional
+segment is two routes.
+
 ### Matching the rest of the path
 
 Prefix a token with `*` to take everything that remains, separators included. It has to be the last
@@ -246,6 +259,33 @@ public class BindingController {
     public string FromPath(string id) => id;
 }
 ```
+
+A route of `/` is the base path itself, which is how a collection is served from its own address:
+
+```csharp
+[BasePath("/orders")]
+public class OrderController {
+    [Get("/")]                 // → /orders
+    public IReadOnlyList<Order> List() => _orders.All();
+
+    [Post("/")]                // → /orders
+    public Order Create(OrderModel model) => _orders.Add(model);
+
+    [Get("/{id}")]             // → /orders/{id}
+    public Order ById(string id) => _orders.Find(id);
+}
+```
+
+**Changed 2026-08-16.** The base path and the route were concatenated, so `[Get("/")]` under
+`[BasePath("/orders")]` produced `/orders/` — and since a path is matched as written and strict is
+the default, the collection did not answer at the address its own controller declares. The same
+composition fed the generated links and the served OpenAPI document, so a generated client called
+`/orders/` and a `@Links` expression built it, which is why nothing looked wrong from inside. A base
+path written with a trailing slash also produced `//` in the middle of every route under it.
+
+Both are now collapsed at the boundary. A trailing slash you write on a real segment is still
+yours — `[Get("/items/")]` is `/orders/items/` — because that is a URL you chose; `/` alone means
+"no segment of my own".
 
 Applied to the assembly, it prefixes every route in that assembly — which is what makes a
 [library module](/guide/modules#splitting-an-application-into-libraries) able to own its own URL
@@ -350,9 +390,18 @@ app.UseHardened();
 app.Run();
 ```
 
-`[AspNetCoreRuntime]` brings `[HardenedWebModule]` with it. A library that carries routes but is not
-itself the host imports `[HardenedWebModule]` directly, which is also what the
-[Lambda web runtime](/aws/lambda-web) sits on.
+`[AspNetCoreRuntime]` brings `[HardenedWebModule]` with it, and so does `[KestrelRuntime]`. A library
+that carries routes but is not itself the host imports `[HardenedWebModule]` directly, which is also
+what the [Lambda web runtime](/aws/lambda-web) sits on.
+
+**Changed 2026-08-16.** Neither host module actually carried the import, so an application shaped
+like the snippet above — the shape this page and the README both document — threw on its first
+request with `No service for type 'IWebExecutionHandlerService' has been registered`, naming a
+framework internal rather than the missing module. Both in-repo web samples hid it: one declares
+`[HardenedWebModule]` explicitly, the other inherits it from a library referenced for unrelated
+reasons, so a green integration suite never covered the documented shape. `[LambdaWebModule]` had
+the same omission, fixed the day before. Declaring the module yourself as well remains correct and
+costs nothing — modules deduplicate by equality.
 
 ## Links to your own routes
 

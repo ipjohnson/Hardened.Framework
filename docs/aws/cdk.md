@@ -15,7 +15,7 @@ alongside this page.
 
 ## The deployment application
 
-A deployment is a [console application](/guide/console) importing `[HardenedCdk]`. It is handed the
+A deployment is a console application importing `[HardenedCdk]`. It is handed the
 CDK `App` through the environment's custom data:
 
 ```csharp

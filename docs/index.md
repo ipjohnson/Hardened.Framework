@@ -62,13 +62,6 @@ features:
       the pipeline that ships.
     link: /guide/testing
     linkText: Testing
-
-  - title: Command line tools too
-    details: >-
-      A command is a class describing its arguments and a handler that runs it. The parser, the
-      help text and the argument binding are generated from the same module system.
-    link: /guide/console
-    linkText: Console commands
 ---
 
 <div class="hd-sample">

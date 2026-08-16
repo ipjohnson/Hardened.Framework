@@ -74,7 +74,6 @@ export default defineConfig({
           items: [
             { text: 'Configuration', link: '/guide/configuration' },
             { text: 'Environments', link: '/guide/environments' },
-            { text: 'Console commands', link: '/guide/console' },
           ],
         },
         {
