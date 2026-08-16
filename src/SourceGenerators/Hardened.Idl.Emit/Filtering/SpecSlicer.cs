@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Hardened.Idl;
 using Hardened.Idl.Models;
 
-namespace Hardened.OpenApi.BuildTask.Filtering;
+namespace Hardened.Idl.Filtering;
 
 /// <summary>
 /// The part of a description one service implements.
@@ -189,7 +189,7 @@ internal static class SpecSlicer {
             if (!string.IsNullOrEmpty(schema.DiscriminatorPropertyName) &&
                 derived.TryGetValue(schema.Name, out var subtypes)) {
                 foreach (var subtype in subtypes) {
-                    Reach("#/components/schemas/" + subtype);
+                    Reach(TypeMapper.MakeRef(subtype));
                 }
             }
 
@@ -197,6 +197,13 @@ internal static class SpecSlicer {
                 Reach(property.Ref);
                 Reach(property.ArrayItemsRef);
                 Reach(property.DictionaryValueRef);
+
+                // The property is typed JsonElement, so nothing emitted names these - but they are
+                // what the payload is allowed to be, and a caller deserializing into one needs the
+                // type to exist.
+                foreach (var branch in property.OneOfRefs) {
+                    Reach(branch);
+                }
             }
         }
 

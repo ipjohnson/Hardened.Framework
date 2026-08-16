@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
-using Hardened.OpenApi.BuildTask.Filtering;
+using Hardened.Idl.Filtering;
 using Hardened.OpenApi.SourceGenerator;
 using Hardened.Idl.Models;
 using Xunit;
@@ -180,6 +180,76 @@ public class SpecSlicerTests {
                 - $ref: '#/components/schemas/Contact'
                 - type: object
                   properties: { badge: { type: string } }
+        """;
+
+    /// <summary>
+    /// The branches of a <c>oneOf</c> survive, though the property lands on <c>JsonElement</c>.
+    /// </summary>
+    /// <remarks>
+    /// Nothing emitted names them - the property is typed loosely - so a reachability pass reading
+    /// only the emitted shape drops them, and the caller who was going to deserialize the payload
+    /// into one finds the type does not exist. They are what the document says the payload is
+    /// allowed to be, which makes them part of the contract whatever the property is typed as.
+    /// </remarks>
+    [Fact]
+    public void TheBranchesOfAOneOfSurviveThoughThePropertyIsTypedLoosely() {
+        var model = OpenApiSpecParser.Parse(Branching, "spec", CancellationToken.None)!;
+
+        SpecSlicer.Apply(model, new SpecSlicer.Filter());
+
+        var names = model.Schemas.ConvertAll(schema => schema.Name);
+
+        Assert.Contains("Holder", names);
+        Assert.Contains("Cat", names);
+        Assert.Contains("Dog", names);
+
+        // And anyOf, which is the same argument.
+        Assert.Contains("Sparrow", names);
+
+        // A schema that is nobody's branch and nobody's reference still goes.
+        Assert.DoesNotContain("Unused", names);
+    }
+
+    private const string Branching = """
+        openapi: "3.0.3"
+        info: { title: T, version: "1.0" }
+        paths:
+          /holders:
+            get:
+              tags: [Holder]
+              operationId: getHolder
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Holder' }
+        components:
+          schemas:
+            Holder:
+              type: object
+              properties:
+                payload:
+                  oneOf:
+                    - $ref: '#/components/schemas/Cat'
+                    - $ref: '#/components/schemas/Dog'
+                  discriminator: { propertyName: kind }
+                other:
+                  anyOf:
+                    - $ref: '#/components/schemas/Sparrow'
+                    - type: string
+            Cat:
+              type: object
+              properties: { kind: { type: string }, meow: { type: boolean } }
+            Dog:
+              type: object
+              properties: { kind: { type: string }, bark: { type: boolean } }
+            Sparrow:
+              type: object
+              properties: { song: { type: string } }
+            Unused:
+              type: object
+              properties: { nothing: { type: string } }
         """;
 
     /// <summary>The escape hatch, for a project that uses a declared type the document never does.</summary>

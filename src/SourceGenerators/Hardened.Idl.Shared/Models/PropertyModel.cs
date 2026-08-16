@@ -97,6 +97,18 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public string? DictionaryValueRef { get; set; }
     public List<string>? EnumValues { get; set; }
 
+    /// <summary>
+    /// The schemas a <c>oneOf</c> or <c>anyOf</c> property may hold.
+    /// </summary>
+    /// <remarks>
+    /// The property itself is typed <c>JsonElement</c> for now, so nothing in the emitted code
+    /// names these - and that is exactly why they are recorded. They are what the payload is
+    /// allowed to be, so they are part of the contract and have to be generated for a caller to
+    /// deserialize into or switch over. Without this the reachability pass sees a property nothing
+    /// points from, and the branch types are not emitted at all.
+    /// </remarks>
+    public List<string> OneOfRefs { get; set; } = new();
+
     // Validation constraints
     public int? MinLength { get; set; }
     public int? MaxLength { get; set; }

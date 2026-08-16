@@ -323,6 +323,7 @@ internal static class SpecModelSerializer {
         record.Add("DictionaryValueType", property.DictionaryValueType);
         record.Add("DictionaryValueRef", property.DictionaryValueRef);
         record.Add("EnumValues", property.EnumValues);
+        record.Add("OneOfRefs", property.OneOfRefs);
         record.Add("MinLength", property.MinLength);
         record.Add("MaxLength", property.MaxLength);
         record.Add("Minimum", property.Minimum);
@@ -354,6 +355,7 @@ internal static class SpecModelSerializer {
         DictionaryValueType = record.String("DictionaryValueType"),
         DictionaryValueRef = record.String("DictionaryValueRef"),
         EnumValues = record.Strings("EnumValues"),
+        OneOfRefs = record.Strings("OneOfRefs") ?? new List<string>(),
         MinLength = record.Int("MinLength"),
         MaxLength = record.Int("MaxLength"),
         Minimum = record.Decimal("Minimum"),

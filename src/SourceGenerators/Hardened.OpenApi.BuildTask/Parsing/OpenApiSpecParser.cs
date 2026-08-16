@@ -699,6 +699,27 @@ internal static class OpenApiSpecParser {
         return "#/components/schemas/" + name;
     }
 
+    /// <summary>
+    /// The named schemas among a <c>oneOf</c> or <c>anyOf</c>'s branches.
+    /// </summary>
+    /// <remarks>
+    /// Only the ones written as a <c>$ref</c>: an inline branch has no component to keep alive, and
+    /// a branch that is a bare primitive never had a type of its own.
+    /// </remarks>
+    private static void CollectBranchRefs(IList<IOpenApiSchema>? branches, PropertyModel model) {
+        if (branches == null) {
+            return;
+        }
+
+        foreach (var branch in branches) {
+            var reference = GetNonPrimitiveRef(branch);
+
+            if (reference != null && !model.OneOfRefs.Contains(reference)) {
+                model.OneOfRefs.Add(reference);
+            }
+        }
+    }
+
     private static PropertyModel ParseProperty(
         string name, IOpenApiSchema prop, bool isRequired, string parentName, SchemaCollector collector) {
         var model = new PropertyModel {
@@ -711,6 +732,12 @@ internal static class OpenApiSpecParser {
 
         // Extract validation constraints
         ExtractValidationConstraints(prop, model);
+
+        // What the payload is allowed to be. Recorded before the type is decided, because the
+        // property lands on JsonElement either way and the branches would otherwise leave no trace
+        // in the model at all - and a type nothing in the model points at is not generated.
+        CollectBranchRefs(prop.OneOf, model);
+        CollectBranchRefs(prop.AnyOf, model);
 
         // Only keep $ref when it points to an object or enum that gets a generated C# type.
         // Primitive refs (e.g. CustomId → string) are inlined to their underlying type.
@@ -1160,24 +1187,8 @@ internal static class OpenApiSpecParser {
     /// Internal because the allocator uses it too: an operation whose declared id collides falls
     /// back to the name it would have had with no id at all, so both paths produce one convention.
     /// </remarks>
-    internal static string GenerateOperationId(string method, string path) {
-        var name = new StringBuilder(method.ToLowerInvariant());
-
-        foreach (var segment in path.Split('/')) {
-            if (segment.Length == 0) {
-                continue;
-            }
-
-            if (segment[0] == '{') {
-                name.Append("By");
-                name.Append(NamingHelper.ToPascalCase(segment.Trim('{', '}')));
-            } else {
-                name.Append(NamingHelper.ToPascalCase(segment));
-            }
-        }
-
-        return name.ToString();
-    }
+    private static string GenerateOperationId(string method, string path) =>
+        NamingHelper.OperationIdFromRoute(method, path);
 
     /// <summary>
     /// The service an untagged operation belongs to.

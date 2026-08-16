@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using Hardened.Idl.Models;
 
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl;
 
 /// <summary>
 /// Every place a model holds a <c>$ref</c>, in one list.
 /// </summary>
 /// <remarks>
 /// <para>
-/// There are eleven of them, and every pass that walks references needs all eleven. Two passes used
+/// There are twelve of them, and every pass that walks references needs all twelve. Two passes used
 /// to enumerate them by hand and one listed five: Cloudflare and PagerDuty reference hundreds of
 /// schemas that produce no type, and the references the incomplete pass never visited - parameters,
 /// declared error responses, base types, discriminator branches - each became a CS0234 naming
@@ -58,6 +58,14 @@ internal static class ModelRefs {
                     property.ArrayItemsRef, value => propertyCaptured.ArrayItemsRef = value);
                 yield return new Handle(
                     property.DictionaryValueRef, value => propertyCaptured.DictionaryValueRef = value);
+
+                for (var index = 0; index < property.OneOfRefs.Count; index++) {
+                    var position = index;
+
+                    yield return new Handle(
+                        property.OneOfRefs[position],
+                        value => propertyCaptured.OneOfRefs[position] = value ?? "");
+                }
             }
         }
 
