@@ -5,6 +5,7 @@ using Hardened.Requests.Abstract.RequestFilter;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using Hardened.Shared.Runtime.Metrics;
 
 namespace Hardened.Amz.Function.DDB.Runtime.Tests.Impl;
 
@@ -21,6 +22,7 @@ public class FilterStartupTests {
             TestJson.Pool,
             new BatchProcessorExceptionHandler(),
             new CurrentDdbRecordContext(),
+            new NullMetricLoggerProvider(),
             NullLogger<DynamoDbExecutionFilter>.Instance);
     }
 

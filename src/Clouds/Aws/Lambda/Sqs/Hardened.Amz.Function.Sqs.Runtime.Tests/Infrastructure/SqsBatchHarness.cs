@@ -3,6 +3,7 @@ using Hardened.Amz.Function.Lambda.Runtime.Filter;
 using Hardened.Amz.Function.Sqs.Runtime.Impl;
 using Hardened.Requests.Abstract.Execution;
 using Microsoft.Extensions.Logging.Abstractions;
+using Hardened.Shared.Runtime.Metrics;
 
 namespace Hardened.Amz.Function.Sqs.Runtime.Tests.Infrastructure;
 
@@ -39,6 +40,7 @@ public static class SqsBatchHarness {
             TestJson.Serializer,
             TestJson.Pool,
             exceptionHandler ?? new BatchProcessorExceptionHandler(),
+            new NullMetricLoggerProvider(),
             NullLogger<SqsBatchFilter>.Instance);
 
         var chain = new TestExecutionChain(context, forked => {

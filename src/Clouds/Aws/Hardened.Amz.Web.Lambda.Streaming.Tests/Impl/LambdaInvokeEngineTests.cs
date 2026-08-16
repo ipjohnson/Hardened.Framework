@@ -6,6 +6,8 @@ using Amazon.Lambda.Core;
 using Hardened.Amz.Shared.Lambda.Runtime.Execution;
 using Hardened.Amz.Web.Lambda.Streaming.Impl;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Logging;
+using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +24,9 @@ public class LambdaInvokeEngineTests {
     private readonly IMiddlewareService _middlewareService;
     private readonly IStreamingRequestMapper _requestMapper;
     private readonly IMetricLoggerProvider _metricLoggerProvider;
+    private readonly IMetricLogger _metricLogger;
     private readonly ILambdaContextAccessor _lambdaContextAccessor;
+    private readonly IRequestLogger _requestLogger;
     private readonly LambdaInvokeEngine _engine;
 
     public LambdaInvokeEngineTests() {
@@ -31,10 +35,12 @@ public class LambdaInvokeEngineTests {
         _middlewareService = Substitute.For<IMiddlewareService>();
         _requestMapper = Substitute.For<IStreamingRequestMapper>();
         _metricLoggerProvider = Substitute.For<IMetricLoggerProvider>();
+        _metricLogger = Substitute.For<IMetricLogger>();
         _lambdaContextAccessor = Substitute.For<ILambdaContextAccessor>();
+        _requestLogger = Substitute.For<IRequestLogger>();
 
         _metricLoggerProvider.CreateLogger(Arg.Any<string>())
-            .Returns(Substitute.For<IMetricLogger>());
+            .Returns(_metricLogger);
 
         _engine = new LambdaInvokeEngine(
             _serviceProvider,
@@ -42,8 +48,54 @@ public class LambdaInvokeEngineTests {
             _middlewareService,
             _requestMapper,
             _metricLoggerProvider,
-            _lambdaContextAccessor);
+            _lambdaContextAccessor,
+            _requestLogger);
     }
+
+    /// <summary>
+    /// One invocation, then a cancellation so the loop exits. Returns the context the mapper will
+    /// hand the engine, which is what the assertions are written against.
+    /// </summary>
+    private IExecutionContext ArrangeSingleInvocation(Task chainResult) {
+        var cts = new CancellationTokenSource();
+        var invocation = CreateInvocationData();
+        var callCount = 0;
+
+        _serverProxy.GetNextInvocation(Arg.Any<CancellationToken>())
+            .Returns(_ => {
+                callCount++;
+
+                if (callCount > 1) {
+                    cts.Cancel();
+
+                    throw new OperationCanceledException(cts.Token);
+                }
+
+                return Task.FromResult(invocation);
+            });
+
+        var executionContext = Substitute.For<IExecutionContext>();
+        executionContext.Response.Returns(Substitute.For<IExecutionResponse>());
+
+        _requestMapper.CreateExecutionContext(
+            Arg.Any<IServiceProvider>(),
+            Arg.Any<IServiceProvider>(),
+            Arg.Any<APIGatewayHttpApiV2ProxyRequest>(),
+            Arg.Any<ResponseStream>(),
+            Arg.Any<MemoryStream>(),
+            Arg.Any<IMetricLogger>()
+        ).Returns(executionContext);
+
+        var chain = Substitute.For<IExecutionChain>();
+        chain.Next().Returns(chainResult);
+        _middlewareService.GetExecutionChain(executionContext).Returns(chain);
+
+        _cancellation = cts;
+
+        return executionContext;
+    }
+
+    private CancellationTokenSource _cancellation = new();
 
     private static IServiceProvider CreateServiceProvider() {
         var services = new ServiceCollection();
@@ -198,6 +250,50 @@ public class LambdaInvokeEngineTests {
 
         // Engine should still process (it logged the error and continued the loop)
         Assert.Equal(2, callCount);
+    }
+
+    /// <summary>
+    /// The engine ran requests without telling <see cref="IRequestLogger"/> anything at all. Every
+    /// web transport calls it, and it is the seam the request lifecycle is observed through — so
+    /// the streaming runtime produced no request logging whatsoever.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_ReportsTheRequestLifecycle() {
+        var executionContext = ArrangeSingleInvocation(Task.CompletedTask);
+
+        await _engine.InvokeAsync(_cancellation.Token);
+
+        _requestLogger.Received(1).RequestBegin(executionContext);
+        _requestLogger.Received(1).RequestEnd(executionContext);
+    }
+
+    /// <summary>
+    /// A failed request is still a request: it gets an end, and its exception is reported against
+    /// the context it belongs to rather than swallowed into the retry loop.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_ReportsAFailedRequestAgainstItsContext() {
+        var failure = new InvalidOperationException("handler error");
+        var executionContext = ArrangeSingleInvocation(Task.FromException(failure));
+
+        await _engine.InvokeAsync(_cancellation.Token);
+
+        _requestLogger.Received(1).RequestFailed(executionContext, failure);
+        _requestLogger.Received(1).RequestEnd(executionContext);
+    }
+
+    /// <summary>
+    /// Dispose is what writes the EMF line. Recording and disposing only on the success path meant
+    /// a failed invocation emitted no metrics at all.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_FlushesMetricsWhenTheRequestFails() {
+        ArrangeSingleInvocation(Task.FromException(new InvalidOperationException("handler error")));
+
+        await _engine.InvokeAsync(_cancellation.Token);
+
+        _metricLogger.Received(1).Record(RequestMetrics.TotalRequestDuration, Arg.Any<double>());
+        _metricLogger.Received(1).Dispose();
     }
 
     [Fact]

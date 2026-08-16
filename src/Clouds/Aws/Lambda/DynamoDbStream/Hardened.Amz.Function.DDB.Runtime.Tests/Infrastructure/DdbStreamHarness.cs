@@ -3,6 +3,7 @@ using Hardened.Amz.Function.DDB.Runtime.Impl;
 using Hardened.Amz.Function.Lambda.Runtime.Filter;
 using Hardened.Requests.Abstract.Execution;
 using Microsoft.Extensions.Logging.Abstractions;
+using Hardened.Shared.Runtime.Metrics;
 
 namespace Hardened.Amz.Function.DDB.Runtime.Tests.Infrastructure;
 
@@ -80,6 +81,7 @@ public static class DdbStreamHarness {
             TestJson.Pool,
             exceptionHandler ?? new BatchProcessorExceptionHandler(),
             recordContext,
+            new NullMetricLoggerProvider(),
             NullLogger<DynamoDbExecutionFilter>.Instance);
 
         var chain = new TestExecutionChain(

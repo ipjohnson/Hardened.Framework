@@ -7,6 +7,7 @@ using Hardened.Requests.Runtime.Headers;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Json;
+using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Function.Sqs.Runtime.Impl;
@@ -20,11 +21,13 @@ public class SqsBatchFilter : BaseBatchExecutionFilter<SQSEvent, SQSEvent.SQSMes
         IJsonSerializer jsonSerializer,
         IMemoryStreamPool memoryStreamPool,
         IBatchProcessorExceptionHandler batchProcessorExceptionHandler,
+        IMetricLoggerProvider metricLoggerProvider,
         ILogger<SqsBatchFilter> logger) :
         base(
             jsonSerializer,
             memoryStreamPool,
             batchProcessorExceptionHandler,
+            metricLoggerProvider,
             logger) {
     }
 

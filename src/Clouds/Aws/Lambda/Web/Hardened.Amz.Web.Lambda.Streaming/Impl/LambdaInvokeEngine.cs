@@ -4,6 +4,7 @@ using DependencyModules.Runtime.Attributes;
 using Hardened.Amz.Shared.Lambda.Runtime.Execution;
 using Hardened.Amz.Web.Lambda.Streaming.Serializer;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Collections;
@@ -25,6 +26,7 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
     private readonly IStreamingRequestMapper _requestMapper;
     private readonly IMetricLoggerProvider _metricLoggerProvider;
     private readonly ILambdaContextAccessor _lambdaContextAccessor;
+    private readonly IRequestLogger _requestLogger;
 
     public LambdaInvokeEngine(
         IServiceProvider serviceProvider,
@@ -32,13 +34,15 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
         IMiddlewareService middlewareService,
         IStreamingRequestMapper requestMapper,
         IMetricLoggerProvider metricLoggerProvider,
-        ILambdaContextAccessor lambdaContextAccessor) {
+        ILambdaContextAccessor lambdaContextAccessor,
+        IRequestLogger requestLogger) {
         _serviceProvider = serviceProvider;
         _serverProxy = serverProxy;
         _middlewareService = middlewareService;
         _requestMapper = requestMapper;
         _metricLoggerProvider = metricLoggerProvider;
         _lambdaContextAccessor = lambdaContextAccessor;
+        _requestLogger = requestLogger;
     }
 
     public async Task InvokeAsync(CancellationToken ct) {
@@ -46,12 +50,21 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
 
         while (!ct.IsCancellationRequested) {
             Task? responseTask = null;
-                string? requestId = null;
+            string? requestId = null;
+
+            // Hoisted so the catch can report the failure against the request it belongs to, and
+            // the finally can close the request out on both paths.
+            IExecutionContext? executionContext = null;
+            IMetricLogger? metricLogger = null;
+            MachineTimestamp? requestStartTimestamp = null;
 
             try {
                 var invocation = await _serverProxy.GetNextInvocation(ct);
                 requestId = invocation.RequestId;
-                var requestStartTimestamp = MachineTimestamp.Now;
+
+                // After GetNextInvocation, which blocks until there is work. Taking it earlier
+                // would bill the idle wait to the request.
+                requestStartTimestamp = MachineTimestamp.Now;
 
                 _lambdaContextAccessor.Context = invocation.LambdaContext;
 
@@ -67,8 +80,9 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                                 invocation.RequestId, pipe.Reader, ct), ct);
                     });
 
-                var metricLogger = _metricLoggerProvider.CreateLogger("HardenedRequests");
-                var executionContext = _requestMapper.CreateExecutionContext(
+                metricLogger = _metricLoggerProvider.CreateLogger("HardenedRequests");
+
+                executionContext = _requestMapper.CreateExecutionContext(
                     _serviceProvider,
                     scope.ServiceProvider,
                     invocation.Request,
@@ -77,6 +91,8 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                     metricLogger);
 
                 responseStream.SetExecutionResponse(executionContext.Response);
+
+                _requestLogger.RequestBegin(executionContext);
 
                 var chain = _middlewareService.GetExecutionChain(executionContext);
                 await chain.Next();
@@ -101,15 +117,15 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                     _lambdaContextAccessor.Context?.Logger.LogLine(
                         $"No response was sent for invocation {requestId}: the response stream never started.");
                 }
-
-                metricLogger.Record(RequestMetrics.TotalRequestDuration,
-                    requestStartTimestamp.GetElapsedMilliseconds());
-                metricLogger.Dispose();
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) {
                 break;
             }
             catch (Exception ex) {
+                if (executionContext != null) {
+                    _requestLogger.RequestFailed(executionContext, ex);
+                }
+
                 if (responseTask == null) {
                     // Response not started yet — complete pipe and report error to Lambda runtime
                     try {
@@ -140,6 +156,23 @@ public class LambdaInvokeEngine : ILambdaInvokeEngine {
                 }
             }
             finally {
+                // Both paths. Dispose is what writes the EMF line, so recording and disposing only
+                // on the success path meant a failed request reported no metrics at all - and a
+                // failed request is the one whose duration is worth having.
+                if (metricLogger != null) {
+                    if (requestStartTimestamp.HasValue) {
+                        metricLogger.Record(
+                            RequestMetrics.TotalRequestDuration,
+                            requestStartTimestamp.Value.GetElapsedMilliseconds());
+                    }
+
+                    metricLogger.Dispose();
+                }
+
+                if (executionContext != null) {
+                    _requestLogger.RequestEnd(executionContext);
+                }
+
                 try {
                     await pipe.Writer.CompleteAsync();
                 }

@@ -2,6 +2,8 @@ using System.Text;
 using Hardened.Amz.Function.Lambda.Runtime.Filter;
 using Hardened.Amz.Function.Lambda.Runtime.Tests.Infrastructure;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Metrics;
+using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
@@ -24,7 +26,8 @@ public class BaseBatchExecutionFilterTests {
     private static async Task<IReadOnlyList<Result<TestRecord>>> RunBatch(
         IEnumerable<string> recordIds,
         Func<IExecutionContext, TestRecord, Task> perRecord,
-        IBatchProcessorExceptionHandler? exceptionHandler = null) {
+        IBatchProcessorExceptionHandler? exceptionHandler = null,
+        IMetricLoggerProvider? metricLoggerProvider = null) {
 
         var records = recordIds.Select(id => new TestRecord { Id = id, Payload = "payload-" + id }).ToList();
 
@@ -34,7 +37,8 @@ public class BaseBatchExecutionFilterTests {
         var context = TestExecutionContext.Create(requestBody, responseBody);
 
         var filter = new TestBatchExecutionFilter(
-            exceptionHandler ?? new BatchProcessorExceptionHandler());
+            exceptionHandler ?? new BatchProcessorExceptionHandler(),
+            metricLoggerProvider);
 
         var chain = new TestExecutionChain(context, async forked => {
             var body = TestExecutionContext.ReadAll(forked.Request.Body);
@@ -239,6 +243,73 @@ public class BaseBatchExecutionFilterTests {
         Assert.Contains("\"a\"", TestExecutionContext.ReadAll(responseBody));
     }
 
+    /// <summary>
+    /// The forked context carries a metric sink of its own, for the same reason it carries its own
+    /// response.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="IExecutionContext.Clone"/> falls back to the batch's logger when it is not handed
+    /// one, and every filter inside the chain records through whatever the context carries. That
+    /// fallback is not a shared accumulator: <c>EmbeddedMetricLogger</c> writes its values into a
+    /// dictionary keyed by metric name, so ten records sharing a sink emit one value — the last
+    /// one — under an EMF header that declares the metric ten times. Percentiles across a batch
+    /// need one line per record.
+    /// </remarks>
+    [Fact]
+    public async Task EachRecordRecordsIntoItsOwnMetricLogger() {
+        using var requestBody = TestJson.ToStream(new TestEvent {
+            Items = [
+                new TestRecord { Id = "a", Payload = "one" },
+                new TestRecord { Id = "b", Payload = "two" },
+                new TestRecord { Id = "c", Payload = "three" }
+            ]
+        });
+        using var responseBody = new MemoryStream();
+
+        var context = TestExecutionContext.Create(requestBody, responseBody);
+        var provider = new RecordingMetricLoggerProvider();
+        var filter = new TestBatchExecutionFilter(new BatchProcessorExceptionHandler(), provider);
+
+        var seen = new List<IMetricLogger>();
+
+        var chain = new TestExecutionChain(context, forked => {
+            forked.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, 1);
+            seen.Add(forked.RequestMetrics);
+
+            return Task.CompletedTask;
+        });
+
+        await filter.Execute(chain);
+
+        Assert.Equal(3, seen.Distinct().Count());
+        Assert.DoesNotContain(context.RequestMetrics, seen);
+
+        Assert.Equal(3, provider.Created.Count);
+        Assert.All(provider.Created, logger => Assert.Single(logger.Recorded));
+    }
+
+    /// <summary>
+    /// Dispose is what writes the EMF line. A record that failed and reported nothing is precisely
+    /// the record whose timings were worth having.
+    /// </summary>
+    [Fact]
+    public async Task ARecordThatThrewStillFlushesItsMetrics() {
+        var provider = new RecordingMetricLoggerProvider();
+
+        await RunBatch(new[] { "a", "b" }, (forked, record) => {
+            forked.RequestMetrics.Record(RequestMetrics.HandlerInvokeDuration, 1);
+
+            if (record.Id == "b") {
+                throw new InvalidOperationException("poison");
+            }
+
+            return Task.CompletedTask;
+        }, metricLoggerProvider: provider);
+
+        Assert.Equal(2, provider.Created.Count);
+        Assert.All(provider.Created, logger => Assert.True(logger.Disposed));
+    }
+
     public class TestEvent {
         public List<TestRecord> Items { get; set; } = [];
     }
@@ -254,8 +325,15 @@ public class BaseBatchExecutionFilterTests {
     /// and how to write a record into a stream, which is all the engine asks of SQS and DynamoDB.
     /// </summary>
     private sealed class TestBatchExecutionFilter : BaseBatchExecutionFilter<TestEvent, TestRecord> {
-        public TestBatchExecutionFilter(IBatchProcessorExceptionHandler exceptionHandler)
-            : base(TestJson.Serializer, TestJson.Pool, exceptionHandler, NullLogger.Instance) { }
+        public TestBatchExecutionFilter(
+            IBatchProcessorExceptionHandler exceptionHandler,
+            IMetricLoggerProvider? metricLoggerProvider = null)
+            : base(
+                TestJson.Serializer,
+                TestJson.Pool,
+                exceptionHandler,
+                metricLoggerProvider ?? new NullMetricLoggerProvider(),
+                NullLogger.Instance) { }
 
         public IReadOnlyList<Result<TestRecord>>? Results { get; private set; }
 
@@ -279,5 +357,43 @@ public class BaseBatchExecutionFilterTests {
         protected override IEnumerable<TestRecord> ReadRecords(TestEvent tEvent) {
             return tEvent.Items;
         }
+    }
+
+    /// <summary>
+    /// Hands out a logger that remembers what it was given, so a test can ask which sink a record's
+    /// measurements actually landed in rather than trusting that they landed anywhere.
+    /// </summary>
+    private sealed class RecordingMetricLoggerProvider : IMetricLoggerProvider {
+        public List<RecordingMetricLogger> Created { get; } = [];
+
+        public IMetricLogger CreateLogger(string loggerName) {
+            var logger = new RecordingMetricLogger();
+
+            Created.Add(logger);
+
+            return logger;
+        }
+    }
+
+    private sealed class RecordingMetricLogger : IMetricLogger {
+        public List<(string Name, double Value)> Recorded { get; } = [];
+
+        public bool Disposed { get; private set; }
+
+        public void Dispose() {
+            Disposed = true;
+        }
+
+        public Task Flush() {
+            return Task.CompletedTask;
+        }
+
+        public void Record(IMetricDefinition metric, double value) {
+            Recorded.Add((metric.Name, value));
+        }
+
+        public void Tag(string tagName, object tagValue) { }
+
+        public void Data(string dataName, object dataValue) { }
     }
 }

@@ -4,6 +4,7 @@ using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Json;
+using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Amz.Function.DDB.Runtime.Impl;
@@ -18,11 +19,13 @@ public class DynamoDbExecutionFilter : BaseBatchExecutionFilter<DynamoDBEvent, D
         IJsonSerializer jsonSerializer,
         IMemoryStreamPool memoryStreamPool, 
         IBatchProcessorExceptionHandler batchProcessorExceptionHandler,
-        CurrentDdbRecordContext currentDdbRecordContext, 
+        CurrentDdbRecordContext currentDdbRecordContext,
+        IMetricLoggerProvider metricLoggerProvider,
         ILogger<DynamoDbExecutionFilter> logger) : base(
-        jsonSerializer, 
+        jsonSerializer,
         memoryStreamPool,
-        batchProcessorExceptionHandler, 
+        batchProcessorExceptionHandler,
+        metricLoggerProvider,
         logger) {
         _currentDdbRecordContext = currentDdbRecordContext;
     }

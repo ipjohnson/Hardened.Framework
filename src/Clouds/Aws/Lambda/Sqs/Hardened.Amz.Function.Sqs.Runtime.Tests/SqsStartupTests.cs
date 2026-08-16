@@ -7,6 +7,7 @@ using Hardened.Requests.Abstract.RequestFilter;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using Hardened.Shared.Runtime.Metrics;
 
 namespace Hardened.Amz.Function.Sqs.Runtime.Tests;
 
@@ -22,6 +23,7 @@ public class SqsStartupTests {
             TestJson.Serializer,
             TestJson.Pool,
             new BatchProcessorExceptionHandler(),
+            new NullMetricLoggerProvider(),
             NullLogger<SqsBatchFilter>.Instance);
     }
 
