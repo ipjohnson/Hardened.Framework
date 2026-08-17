@@ -156,9 +156,17 @@ internal static class OneOfConverterEmitter {
         var plan = ChoiceResolution.Resolve(schema.OneOf, allSchemas);
 
         var tag = 0;
+        var fallback = (ChoiceResolution.Branch?)null;
 
         foreach (var branch in plan.Branches) {
             if (!branch.Proved) {
+                continue;
+            }
+
+            // Accepts everything a narrower branch of its kind does, so a test for it would claim
+            // that branch's payloads too. Emitted last, after those have had their turn.
+            if (branch.IsWiderFallback) {
+                fallback = branch;
                 continue;
             }
 
@@ -173,6 +181,16 @@ internal static class OneOfConverterEmitter {
                     : $"element.ValueKind == global::System.Text.Json.JsonValueKind.{branch.ValueKind}";
 
                 lines.Add($"if ({test})");
+            } else if (branch.ValueSet != null) {
+                // A membership test rather than a trial read: the values are known here, so this
+                // decides the branch outright instead of leaning on a failed parse.
+                var values = new List<string>();
+
+                foreach (var value in branch.ValueSet) {
+                    values.Add($"\"{Escape(value)}\"");
+                }
+
+                lines.Add($"if (element.GetString() is {string.Join(" or ", values)})");
             } else if (branch.ConstProperty != null) {
                 // Numbered, because several branches in one method each declare one and C# scopes
                 // an out variable to the whole method body rather than to its if.
@@ -190,6 +208,15 @@ internal static class OneOfConverterEmitter {
             lines.Add($"    return new(Read<{type}>(element, options));");
             lines.Add("}");
             lines.Add("");
+        }
+
+        if (fallback != null) {
+            var type = TypeMapper.QualifiedName(
+                modelsNamespace, ChoiceResolution.CSharpType(fallback.Model), false);
+
+            lines.Add($"return new(Read<{type}>(element, options));");
+
+            return;
         }
 
         if (plan.Overlapping.Count == 0) {

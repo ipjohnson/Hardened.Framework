@@ -243,18 +243,6 @@ internal static class OpenApiSpecParser {
     /// churns the file and recompiles every consumer. Derived from provenance rather than from the
     /// order things were parsed in, so reordering a document cannot rename a type.
     /// </remarks>
-    private static string StableSuffix(string provenance) {
-        unchecked {
-            var hash = 2166136261;
-
-            foreach (var character in provenance) {
-                hash = (hash ^ character) * 16777619;
-            }
-
-            return hash.ToString("x8", System.Globalization.CultureInfo.InvariantCulture);
-        }
-    }
-
 
     /// <summary>
     /// Rewrites references to top-level array schemas into the array they stand for.
@@ -717,6 +705,28 @@ internal static class OpenApiSpecParser {
     /// cannot find in their specification.
     /// </para>
     /// </remarks>
+    /// <summary>A name nothing has taken, numbered where the plain one is gone.</summary>
+    /// <remarks>
+    /// Numbered rather than qualified, and that is the whole of what can be said: two provenances
+    /// that collide here differ only in where the boundary between parent and property falls, so
+    /// they spell the same words in the same order and nothing readable separates them. Same rule
+    /// as NameAllocator - a number appears only where the scope distinguishes nothing.
+    /// </remarks>
+    private static string Unique(string name, SchemaCollector collector) {
+        if (!collector.IsTaken(name)) {
+            return name;
+        }
+
+        for (var suffix = 2; ; suffix++) {
+            var candidate =
+                name + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            if (!collector.IsTaken(candidate)) {
+                return candidate;
+            }
+        }
+    }
+
     private static string SynthesizeSchema(
         string parentName, string propertyName, IOpenApiSchema schema, SchemaCollector collector) {
         // `title` is OpenAPI's own way to name a schema and would give far better names than this
@@ -730,10 +740,15 @@ internal static class OpenApiSpecParser {
         // on one name: Stripe's POST .../financial_account with `features.card_issuing` collides
         // with POST .../financial_account/features with `card_issuing`, 28 times over. Nothing in
         // the document is wrong and neither name is declared, so there is nothing an author could
-        // rename. Qualify by where it came from instead - the provenance is what actually differs.
-        if (collector.IsTaken(name)) {
-            name += "_" + StableSuffix(parentName + "/" + propertyName);
-        }
+        // rename.
+        //
+        // Numbered rather than qualified, and that is the whole of what can be said: the two
+        // provenances differ only in where the boundary between parent and property falls, so they
+        // spell the same words in the same order and nothing human-readable separates them. This
+        // used to carry a hash of the provenance, which was stable and unreadable - and stable was
+        // never the hard part. Same rule as NameAllocator: a number appears only where the scope
+        // distinguishes nothing.
+        name = Unique(name, collector);
 
         // Claimed before the children are read, since they are lifted during that read.
         collector.Reserve(name);
@@ -860,11 +875,9 @@ internal static class OpenApiSpecParser {
         SchemaCollector collector) {
         var discriminator = prop.Discriminator;
 
-        var name = NamingHelper.ToPascalCase(parentName) + NamingHelper.ToPascalCase(propertyName);
-
-        if (collector.IsTaken(name)) {
-            name += "_" + StableSuffix(parentName + "/" + propertyName);
-        }
+        var name = Unique(
+            NamingHelper.ToPascalCase(parentName) + NamingHelper.ToPascalCase(propertyName),
+            collector);
 
         collector.Reserve(name);
 
@@ -941,6 +954,21 @@ internal static class OpenApiSpecParser {
         if (nonPrimitiveRef != null) {
             model.Ref = nonPrimitiveRef;
             return model;
+        }
+
+        // JSON Schema's const is an enum of one, and 3.1 descriptions use it where 3.0 wrote a
+        // single-member enum. Read as neither, a property pinned to one value looked unconstrained -
+        // and the choice resolution that uses a pinned value to tell branches apart could never
+        // fire, because nothing ever put one in the model.
+        if (prop.Const is { } constant && prop.Enum is not { Count: > 0 }) {
+            var value = EnumMember(constant);
+
+            if (value != null) {
+                model.Type = SchemaType(prop) ?? "string";
+                model.EnumValues = new List<string> { value };
+
+                return model;
+            }
         }
 
         if (prop.Enum is { Count: > 0 }) {

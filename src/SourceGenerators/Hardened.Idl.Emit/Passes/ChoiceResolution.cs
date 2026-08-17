@@ -60,11 +60,30 @@ internal static class ChoiceResolution {
         public string? ConstValue { get; set; }
 
         /// <summary>
+        /// The values this branch accepts, where they are a strict subset of what another branch of
+        /// the same kind accepts.
+        /// </summary>
+        /// <remarks>
+        /// <c>oneOf: [string, SomeEnum]</c> is common and both branches are strings, so nothing
+        /// above separates them and every payload matches both. But an enum accepts strictly fewer
+        /// values than an open string, so testing its members decides it - not a guess about which
+        /// branch was meant, a fact about which schemas the value satisfies.
+        /// </remarks>
+        public List<string>? ValueSet { get; set; }
+
+        /// <summary>
+        /// Whether this branch accepts everything a narrower one of the same kind does, so it
+        /// answers only after those have been tested.
+        /// </summary>
+        public bool IsWiderFallback { get; set; }
+
+        /// <summary>
         /// Whether the schemas prove this branch apart from every other. False means the branch is
         /// still generated and decided by counting matches on the payload.
         /// </summary>
         public bool Proved =>
-            ValueKind != null || DistinctProperty != null || ConstProperty != null;
+            ValueKind != null || DistinctProperty != null || ConstProperty != null ||
+            ValueSet != null || IsWiderFallback;
     }
 
     internal sealed class Plan {
@@ -108,6 +127,7 @@ internal static class ChoiceResolution {
         AssignValueKinds(plan, resolved);
         AssignDistinctProperties(plan, resolved);
         AssignConstProperties(plan, resolved);
+        AssignValueSets(plan, resolved);
 
         foreach (var branch in plan.Branches) {
             if (!branch.Proved) {
@@ -199,6 +219,71 @@ internal static class ChoiceResolution {
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Separates an enum from the open type it shares a kind with, most constrained first.
+    /// </summary>
+    /// <remarks>
+    /// The alternative was to call them ambiguous and count matches, which throws on every value
+    /// the enum permits - <c>oneOf: [string, AssistantSupportedModels]</c> appears three times in
+    /// OpenAI's description and would have refused every model name it names. One branch accepting
+    /// strictly fewer values than another is an ordering, not an ambiguity.
+    /// </remarks>
+    private static void AssignValueSets(Plan plan, List<SchemaModel?> resolved) {
+        for (var index = 0; index < resolved.Count; index++) {
+            var branch = plan.Branches[index];
+
+            if (branch.Proved || resolved[index]?.Kind != SchemaKind.Enum) {
+                continue;
+            }
+
+            var values = resolved[index]!.EnumValues;
+
+            if (values is not { Count: > 0 }) {
+                continue;
+            }
+
+            // Only where something else of the same kind would also accept these - otherwise the
+            // kind already separated it and this adds nothing.
+            var wider = WiderOfSameKind(plan, resolved, index);
+
+            if (wider == null) {
+                continue;
+            }
+
+            branch.ValueSet = new List<string>(values);
+            wider.IsWiderFallback = true;
+        }
+    }
+
+    /// <summary>
+    /// A branch of the same JSON kind that constrains nothing, and so accepts everything the branch
+    /// at <paramref name="index"/> does.
+    /// </summary>
+    private static Branch? WiderOfSameKind(Plan plan, List<SchemaModel?> resolved, int index) {
+        var kind = ValueKindOf(plan.Branches[index].Model, resolved[index]);
+
+        for (var other = 0; other < resolved.Count; other++) {
+            if (other == index) {
+                continue;
+            }
+
+            if (ValueKindOf(plan.Branches[other].Model, resolved[other]) != kind) {
+                continue;
+            }
+
+            var schema = resolved[other];
+
+            // Unconstrained: an inline type, or a named schema that is neither an enum nor an
+            // object with a shape of its own.
+            if (schema == null ||
+                (schema.Kind != SchemaKind.Enum && schema.Properties.Count == 0)) {
+                return plan.Branches[other];
+            }
+        }
+
+        return null;
     }
 
     private static bool DeclaredElsewhere(string property, List<SchemaModel?> resolved, int skip) {
