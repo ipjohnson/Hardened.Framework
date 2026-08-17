@@ -5,22 +5,26 @@ using Hardened.Requests.Abstract.RequestFilter;
 namespace Hardened.Requests.Runtime.Authorization;
 
 /// <summary>
-/// Reads a handler's attributes once and decides what, if anything, guards it.
+/// Reads a handler's requirements once and decides what, if anything, guards it.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <b>Registered as a global filter rather than making the attributes
 /// <see cref="IRequestFilterProvider"/>s</b>, which is the more obvious route and the wrong one. An
-/// attribute only ever sees itself, and the rules here are about the whole set: repeating
-/// <c>[AuthorizeGrants]</c> means <em>or</em>, <c>[AllowAnonymous]</c> cancels everything, and a
-/// handler carrying nothing at all still needs an answer once the application has opted in. Attribute
-/// providers would also yield one filter each, so a handler with three attributes would evaluate
-/// three times and refuse on the first.
+/// attribute only ever sees itself, and two of the rules here are about the whole handler:
+/// <c>[AllowAnonymous]</c> cancels everything, and a handler carrying nothing at all still needs an
+/// answer once the application has opted in. Attribute providers would also yield one filter each,
+/// so a handler with three attributes would evaluate three times and refuse on the first.
 /// </para>
 /// <para>
-/// The registry hands this the handler and its whole metadata array exactly once, which is the shape
-/// the problem actually has - and the backstop for an unannotated handler falls out of the same
-/// pass instead of needing a second mechanism.
+/// The registry hands this the handler exactly once, which is the shape the problem actually has -
+/// and the backstop for an unannotated handler falls out of the same pass instead of needing a
+/// second mechanism.
+/// </para>
+/// <para>
+/// It reads <see cref="IExecutionRequestHandlerInfo.Requirements"/> rather than walking metadata
+/// itself, so a requirement a convention added while the handler was built is honoured exactly like
+/// one an attribute declared.
 /// </para>
 /// </remarks>
 public class AuthorizationFilterProvider {
@@ -34,20 +38,18 @@ public class AuthorizationFilterProvider {
     }
 
     public RequestFilterInfo? GetFilter(IExecutionRequestHandlerInfo handlerInfo) {
-        var metadata = handlerInfo.Metadata;
-
-        var requirement = Fold(metadata);
+        var requirement = handlerInfo.Requirement;
 
         if (requirement == null) {
             // Nothing said anything about this handler. Public unless the application has said
             // otherwise, in which case being unannotated is the thing being guarded against.
-            if (!_requireAuthorization || IsAnonymous(metadata)) {
+            if (!_requireAuthorization || IsAnonymous(handlerInfo.Metadata)) {
                 return null;
             }
 
             requirement = Requirement.Authenticated();
         }
-        else if (IsAnonymous(metadata)) {
+        else if (IsAnonymous(handlerInfo.Metadata)) {
             // Both a requirement and an opt-out. The opt-out wins, because it is the more explicit
             // statement - somebody wrote it on this handler on purpose - and because the alternative
             // is a route that looks public in the source and refuses in production.
@@ -74,54 +76,5 @@ public class AuthorizationFilterProvider {
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Folds every authorization attribute on a handler into one requirement.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Repeated <c>[AuthorizeGrants]</c> is <b>or</b>, because that attribute is what a specification
-    /// becomes and the outer list of OpenAPI's <c>security</c> is a list of alternatives.
-    /// </para>
-    /// <para>
-    /// Everything else is <b>and</b>. Two hand-written policies on one handler read as two things
-    /// that must both hold - it is the stricter reading of an ambiguous one, and it matches what
-    /// stacking authorization attributes means everywhere else. A generated <c>[AuthorizeGrants]</c>
-    /// alongside a hand-written <c>[Authorize&lt;T&gt;]</c> therefore requires both: the
-    /// specification's answer, and the extra condition somebody added on top of it.
-    /// </para>
-    /// </remarks>
-    private static Requirement? Fold(IReadOnlyList<object> metadata) {
-        List<Requirement>? alternatives = null;
-        List<Requirement>? conjuncts = null;
-
-        foreach (var item in metadata) {
-            switch (item) {
-                case AuthorizeGrantsAttribute grants:
-                    (alternatives ??= []).Add(grants.Requirement);
-                    break;
-
-                case IAuthorizeAttribute authorize:
-                    (conjuncts ??= []).Add(authorize.Requirement);
-                    break;
-            }
-        }
-
-        if (alternatives == null && conjuncts == null) {
-            return null;
-        }
-
-        var parts = new List<Requirement>();
-
-        if (alternatives != null) {
-            parts.Add(Requirement.AnyOf(alternatives.ToArray()));
-        }
-
-        if (conjuncts != null) {
-            parts.AddRange(conjuncts);
-        }
-
-        return Requirement.AllOf(parts.ToArray());
     }
 }

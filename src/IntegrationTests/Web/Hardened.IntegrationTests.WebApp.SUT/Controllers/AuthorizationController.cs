@@ -34,10 +34,34 @@ public class AuthorizationController {
     public string Manage() => "managed";
 
     /// <summary>
-    /// Two alternatives, which is what the outer list of a specification's <c>security</c> means.
+    /// Two attributes, which conjoin - so this needs everything both of them named.
     /// </summary>
-    [Get("/either")]
+    /// <remarks>
+    /// Stacking narrows and never widens. Exercised end to end because the rule is only worth
+    /// anything if it survives the whole path: the generator putting both attributes in metadata,
+    /// the handler info conjoining them, and the filter refusing a caller holding one.
+    /// </remarks>
+    [Get("/stacked")]
     [AuthorizeGrants("pets:read")]
     [AuthorizeGrants("admin:*")]
-    public string Either() => "either";
+    public string Stacked() => "stacked";
+
+    /// <summary>
+    /// An attribute of the application's own, deriving from <c>[AuthorizeGrants]</c>.
+    /// </summary>
+    /// <remarks>
+    /// The hand-authored form. It reaches the pipeline the same way the framework's own attributes
+    /// do - recognised by the interface it inherits rather than by its name - and it is the case a
+    /// name-matching build diagnostic used to warn about while the runtime guarded it correctly.
+    /// </remarks>
+    [Get("/derived")]
+    [RequiresPetWrite]
+    public string Derived() => "derived";
+}
+
+/// <summary>
+/// A grant named once and spelled as a type everywhere it is required.
+/// </summary>
+public sealed class RequiresPetWriteAttribute : AuthorizeGrantsAttribute {
+    public RequiresPetWriteAttribute() : base("pets:read", "pets:write") { }
 }

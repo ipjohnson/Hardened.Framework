@@ -144,7 +144,7 @@ public class ShortCircuitTests {
             context.RequestServices,
             new ExecutionRequestHandlerInfo("/orders", "GET", typeof(Controller), "Get"),
             (_, _) => log.Add("invoke"),
-            Array.Empty<IRequestFilterProvider>());
+            Array.Empty<IRequestFilterProvider>()).Filters;
 
         await new ExecutionChain(filters, context).Next();
 

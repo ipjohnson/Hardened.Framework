@@ -330,7 +330,7 @@ public class InvokeFilterTests {
             context.RequestServices,
             new ExecutionRequestHandlerInfo("/orders", "GET", typeof(Controller), "Get"),
             invoke,
-            Array.Empty<IRequestFilterProvider>());
+            Array.Empty<IRequestFilterProvider>()).Filters;
 
         return (context, filters);
     }

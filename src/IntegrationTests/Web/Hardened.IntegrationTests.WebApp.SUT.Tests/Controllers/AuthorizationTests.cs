@@ -101,26 +101,40 @@ public class AuthorizationTests {
     }
 
     /// <summary>
-    /// Repeated attributes are alternatives, so either branch admits the request - the shape a
-    /// specification's <c>security</c> list has, exercised end to end.
+    /// Stacked attributes conjoin, so the caller needs everything all of them named.
     /// </summary>
     [HardenedTest]
-    public async Task EitherAlternativeAdmitsTheRequest(ITestWebApp testWebApp) {
-        var viaPets = await testWebApp.Get("/authorization/either", Holding("pets:read"));
-        var viaAdmin = await testWebApp.Get("/authorization/either", Holding("admin:*"));
+    public async Task StackedAttributesAdmitOnlyTheCallerHoldingEverything(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get(
+            "/authorization/stacked", Holding("pets:read admin:*"));
 
-        viaPets.Assert.Ok();
-        viaAdmin.Assert.Ok();
+        response.Assert.Ok();
     }
 
     /// <summary>
-    /// And neither branch does not.
+    /// Holding what one of them named is not enough, which is the whole point: writing the second
+    /// attribute restricted the route rather than opening it.
     /// </summary>
     [HardenedTest]
-    public async Task NeitherAlternativeIsRefused(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/authorization/either", Holding("pets:write"));
+    public async Task StackedAttributesRefuseACallerHoldingOnlyOne(ITestWebApp testWebApp) {
+        var viaPets = await testWebApp.Get("/authorization/stacked", Holding("pets:read"));
+        var viaAdmin = await testWebApp.Get("/authorization/stacked", Holding("admin:*"));
 
-        response.Assert.Forbidden();
+        viaPets.Assert.Forbidden();
+        viaAdmin.Assert.Forbidden();
+    }
+
+    /// <summary>
+    /// An application's own attribute, deriving from <c>[AuthorizeGrants]</c>, guards its route.
+    /// </summary>
+    [HardenedTest]
+    public async Task ADerivedAttributeGuardsItsRoute(ITestWebApp testWebApp) {
+        var holding = await testWebApp.Get(
+            "/authorization/derived", Holding("pets:read pets:write"));
+        var lacking = await testWebApp.Get("/authorization/derived", Holding("pets:read"));
+
+        holding.Assert.Ok();
+        lacking.Assert.Forbidden();
     }
 
     #endregion
