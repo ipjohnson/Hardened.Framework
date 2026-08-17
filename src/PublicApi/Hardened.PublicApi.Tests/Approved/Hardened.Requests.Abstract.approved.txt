@@ -360,13 +360,17 @@ namespace Hardened.Requests.Abstract.Headers
     public class KnownContentType
     {
         public const string Css = "text/css";
+        public const string EventStream = "text/event-stream";
         public const string Html = "text/html";
         public const string Js = "text/js";
         public const string Json = "application/json";
+        public const string NdJson = "application/x-ndjson";
         public static Microsoft.Extensions.Primitives.StringValues CssStringValues;
+        public static Microsoft.Extensions.Primitives.StringValues EventStreamStringValues;
         public static Microsoft.Extensions.Primitives.StringValues HtmlStringValues;
         public static Microsoft.Extensions.Primitives.StringValues JsStringValues;
         public static Microsoft.Extensions.Primitives.StringValues JsonStringValues;
+        public static Microsoft.Extensions.Primitives.StringValues NdJsonStringValues;
         public KnownContentType() { }
     }
     public static class KnownEncoding
