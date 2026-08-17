@@ -314,17 +314,22 @@ namespace Hardened.Requests.Runtime.Filters
         public IoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
     public class RetryAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {
         public RetryAttribute() { }
+        public bool AllowNonIdempotent { get; set; }
+        public int Attempts { get; set; }
         public int Retries { get; set; }
         public int SleepTime { get; set; }
+        public int TotalBudget { get; set; }
         public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
     public class RetryFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
-        public RetryFilter(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, int retryCount, int retrySleepTime) { }
+        public RetryFilter(int attempts, int baseDelayMilliseconds, int totalBudgetMilliseconds, bool allowNonIdempotent, System.Func<System.Exception, bool>? shouldRetry = null) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+        public static bool IsTransient(System.Exception exception) { }
     }
     public class SingleFilterProvider : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {

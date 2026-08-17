@@ -468,6 +468,7 @@ namespace Hardened.Requests.Abstract.RequestFilter
         public const int EndPointHandlers = 2000;
         public const int EndPointInvoke = 2000;
         public const int HandlerCreation = -1000;
+        public const int Retry = 8;
         public const int Serialization = 5;
         public const int Validation = 6;
     }

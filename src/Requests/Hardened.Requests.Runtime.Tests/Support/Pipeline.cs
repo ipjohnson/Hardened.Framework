@@ -28,7 +28,8 @@ public static class Pipeline {
         string path = "/",
         string? accept = "application/json",
         byte[]? body = null,
-        Action<ServiceCollection>? configureServices = null) {
+        Action<ServiceCollection>? configureServices = null,
+        CancellationToken cancellationToken = default) {
 
         var services = new ServiceCollection();
 
@@ -49,7 +50,7 @@ public static class Pipeline {
             Substitute.For<IKnownServices>(),
             request,
             new TestExecutionResponse(new MemoryStream()),
-            CancellationToken.None);
+            cancellationToken);
     }
 
     /// <summary>
