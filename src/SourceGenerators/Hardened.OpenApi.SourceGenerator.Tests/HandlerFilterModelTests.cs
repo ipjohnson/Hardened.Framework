@@ -232,7 +232,7 @@ public class HandlerFilterModelTests {
             new Dictionary<string, string> {
                 ["Test.cs"] = HandlerWithAMethodFilter + Environment.NewLine + "// unrelated"
             },
-            [new OpenApiSourceGenerator()],
+            [new SpecSourceGenerator()],
             null,
             new Dictionary<string, string> { ["petstore.yaml"] = Specs.Minimal });
 

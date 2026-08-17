@@ -34,7 +34,20 @@
           emits binds against them, so GeneratorTestHarness cannot compile its output without
           them loaded.
         -->
-        <ProjectReference Include="..\Hardened.OpenApi.SourceGenerator\Hardened.OpenApi.SourceGenerator.csproj" />
+        <!--
+            The generator types used to resolve without a using, because this namespace was nested
+            under theirs. They are neutral now and live in Hardened.Idl.SourceGenerator, so the
+            tests say so once here rather than in every file.
+        -->
+        <Using Include="Hardened.Idl.SourceGenerator"/>
+
+        <!--
+            The generator half, which is where ServiceSpecModel and the routing table now live.
+            Hardened.OpenApi.SourceGenerator is not referenced: it compiles no source of its own -
+            it is the OpenAPI task plus its targets - and this project compiles the parser in
+            directly below.
+        -->
+        <ProjectReference Include="..\Hardened.Idl.SourceGenerator\Hardened.Idl.SourceGenerator.csproj" />
 
         <!--
             The parser is compiled in rather than referenced from Hardened.OpenApi.BuildTask.

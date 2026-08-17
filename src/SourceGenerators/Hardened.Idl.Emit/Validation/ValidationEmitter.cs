@@ -81,7 +81,7 @@ internal static class ValidationEmitter {
     /// declarations with no body - the regex generator supplies the implementation - and
     /// <c>MethodDefinition</c> always writes a body, so <c>ComponentModifier.Partial</c> on a method
     /// produces <c>static Regex P_x() { }</c> and SYSLIB1043. The same escape hatch
-    /// OpenApiRoutingTableGenerator uses for statements CSharpAuthor has no construct for.
+    /// SpecRoutingTableGenerator uses for statements CSharpAuthor has no construct for.
     /// </remarks>
     public static void EmitPatterns(NamespaceDefinition validation, PatternRegistry patterns) {
         if (patterns.IsEmpty) {

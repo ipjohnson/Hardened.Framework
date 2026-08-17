@@ -77,7 +77,7 @@ internal static class GeneratorOutputAssertions {
     }
 
     /// <summary>
-    /// Every hint name emitted except <c>_OpenApiDiagnostic.g.cs</c>, which is written on every run
+    /// Every hint name emitted except <c>_SpecModelDiagnostic.g.cs</c>, which is written on every run
     /// whatever the input and so churns any assertion that counts or snapshots the output.
     /// </summary>
     internal static IReadOnlyList<string> HintNamesExceptDiagnostic(this GeneratorResult result) =>

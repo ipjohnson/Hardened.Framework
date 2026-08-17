@@ -88,7 +88,7 @@ public class GeneratorConfigurationTests {
 
         Assert.Contains(
             "global::Contoso.Petstore.Generated.Models.PetstoreJsonTypeInfoResolver.Instance",
-            result.SourceContaining("OpenApiRouting"));
+            result.SourceContaining("SpecRouting"));
     }
 
     // ── coverage exclusion ────────────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ public class GeneratorConfigurationTests {
     public void TheGeneratedRoutingTableIsExcludedFromCoverageByDefault() {
         var result = OpenApiGenerator.Run(Specs.Minimal).AssertNoErrors();
 
-        Assert.Contains("[ExcludeFromCodeCoverage]", result.SourceContaining("OpenApiRouting"));
+        Assert.Contains("[ExcludeFromCodeCoverage]", result.SourceContaining("SpecRouting"));
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public class GeneratorConfigurationTests {
         var result = OpenApiGenerator.Run(Specs.Minimal, buildProperties: NoCoverageExclusion)
             .AssertNoErrors();
 
-        Assert.DoesNotContain("ExcludeFromCodeCoverage", result.SourceContaining("OpenApiRouting"));
+        Assert.DoesNotContain("ExcludeFromCodeCoverage", result.SourceContaining("SpecRouting"));
     }
 
     [Fact]

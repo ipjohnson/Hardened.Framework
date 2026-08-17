@@ -104,6 +104,18 @@
         </Compile>
     </ItemGroup>
 
+    <!--
+        The task shell, shared with any other front end. Its own files only - not its links, which
+        are the same Idl.Shared and Idl.Emit sources already included above. Non-recursive for that
+        reason.
+    -->
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.BuildTask/*.cs"
+                 Exclude="../Hardened.Idl.BuildTask/IsExternalInit.cs">
+            <Link>Task\%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
     <!-- Shared with the generator. See Hardened.Idl.Shared for why this is source and not a reference. -->
     <ItemGroup>
         <Compile Include="../Hardened.Idl.Shared/**/*.cs"

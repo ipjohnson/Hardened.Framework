@@ -66,7 +66,7 @@ internal static class JsonTypeInfoEmitter {
     /// The method bodies here are object initialisers and lambdas - <c>JsonObjectInfoValues&lt;T&gt;
     /// { ObjectWithParameterizedConstructorCreator = static args =&gt; ... }</c> - which CSharpAuthor
     /// has no construct for. The type, its members and their signatures are built properly; the
-    /// bodies are statements, the same arrangement OpenApiRoutingTableGenerator uses.
+    /// bodies are statements, the same arrangement SpecRoutingTableGenerator uses.
     /// </summary>
     private static void AddStatements(MethodDefinition method, StringBuilder body) {
         var lines = body.ToString().TrimEnd('\n').Split('\n');

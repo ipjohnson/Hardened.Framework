@@ -138,7 +138,8 @@ internal static class SpecModelSerializer {
                 case "service":
                     service = new ServiceModel {
                         Tag = record.String("Tag") ?? "",
-                        TypeBaseName = record.String("TypeBaseName") ?? ""
+                        TypeBaseName = record.String("TypeBaseName") ?? "",
+                        DispatchHeader = record.String("DispatchHeader")
                     };
                     model.Services.Add(service);
                     break;
@@ -395,6 +396,7 @@ internal static class SpecModelSerializer {
         var record = new Record("service");
         record.Add("Tag", service.Tag);
         record.Add("TypeBaseName", service.TypeBaseName);
+        record.Add("DispatchHeader", service.DispatchHeader);
         record.WriteTo(builder);
 
         foreach (var operation in service.Operations) {
@@ -408,6 +410,7 @@ internal static class SpecModelSerializer {
         record.Add("MethodName", operation.MethodName);
         record.Add("Path", operation.Path);
         record.Add("HttpMethod", operation.HttpMethod);
+        record.Add("DispatchKey", operation.DispatchKey);
         record.Add("Tag", operation.Tag);
         record.Add("Description", operation.Description);
         record.Add("IsDeprecated", operation.IsDeprecated);
@@ -467,6 +470,7 @@ internal static class SpecModelSerializer {
         OperationId = record.String("OperationId") ?? "",
         Path = record.String("Path") ?? "",
         HttpMethod = record.String("HttpMethod") ?? "",
+        DispatchKey = record.String("DispatchKey"),
         Tag = record.String("Tag"),
         Description = record.String("Description"),
         IsDeprecated = record.Bool("IsDeprecated"),

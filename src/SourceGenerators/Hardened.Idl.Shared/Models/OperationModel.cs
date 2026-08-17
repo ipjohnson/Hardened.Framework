@@ -20,6 +20,25 @@ internal class OperationModel : IEquatable<OperationModel> {
     private string _methodName = "";
     public string Path { get; set; } = "";
     public string HttpMethod { get; set; } = "";
+
+    /// <summary>
+    /// The exact token this operation is dispatched on, or null to route by path and method.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An RPC protocol wearing HTTP as an envelope does not route: every operation is one method on
+    /// one path, and which operation it is comes from somewhere else. awsJson1_0 is POST / with an
+    /// <c>X-Amz-Target</c> header naming <c>Service.Operation</c>, and the header value is this.
+    /// </para>
+    /// <para>
+    /// It is deliberately not a protocol enum. What the routing table needs to know is whether an
+    /// operation is selected by an exact token and what that token is - not which specification
+    /// invented the idea. <see cref="Path"/> and <see cref="HttpMethod"/> keep their values either
+    /// way, because a request still has to arrive at POST / for anything to dispatch at all.
+    /// </para>
+    /// </remarks>
+    public string? DispatchKey { get; set; }
+
     public string? Tag { get; set; }
 
     /// <summary>The spec's <c>deprecated</c>, which becomes <c>[Obsolete]</c>.</summary>
@@ -115,7 +134,8 @@ internal class OperationModel : IEquatable<OperationModel> {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return OperationId == other.OperationId && Path == other.Path &&
-               HttpMethod == other.HttpMethod && Tag == other.Tag &&
+               HttpMethod == other.HttpMethod && DispatchKey == other.DispatchKey &&
+               Tag == other.Tag &&
                Description == other.Description && IsDeprecated == other.IsDeprecated &&
                SuccessStatusCode == other.SuccessStatusCode &&
                RequestBodyContentType == other.RequestBodyContentType &&

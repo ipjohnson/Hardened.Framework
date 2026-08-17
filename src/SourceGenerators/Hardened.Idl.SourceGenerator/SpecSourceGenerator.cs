@@ -9,27 +9,39 @@ using Hardened.SourceGenerator.Web;
 using Microsoft.CodeAnalysis;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl.SourceGenerator;
 
 /// <summary>
-/// Turns normalised OpenAPI models into handlers and a routing table.
+/// Turns a normalised service model into handlers and a routing table.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>This generator does not read yaml.</b> <c>Hardened.OpenApi.BuildTask</c> parses each spec
-/// before the compiler runs and writes a normalised model into <c>obj/</c>, which arrives here as an
-/// <c>AdditionalFile</c>. That is why there is no Microsoft.OpenApi, no SharpYaml, no embedded
+/// <b>This generator reads no description of any kind.</b> A front end's MSBuild task - the OpenAPI
+/// one, the Smithy one, or another - parses before the compiler runs and writes a
+/// <see cref="ServiceSpecModel"/> into <c>obj/</c>, which arrives here as an
+/// <c>AdditionalFile</c>. That is why there is no Microsoft.OpenApi, no YAML reader, no embedded
 /// dependency assemblies, no <c>AssemblyResolve</c> hook and no RS1035 suppression - an analyzer is
 /// not allowed to touch the file system, and none of this needs to.
 /// </para>
 /// <para>
+/// It is therefore shared rather than owned. This generator ships in
+/// <c>Hardened.Idl.SourceGenerator</c>, which every front-end package depends on, so a new
+/// description language is a sibling of the OpenAPI package rather than something built on top of
+/// it - and a project using two front ends at once resolves one copy of this rather than two.
+/// </para>
+/// <para>
 /// What stays here is what needs the semantic model: handler classes, which are matched against
 /// <c>[Handler]</c> declarations, and the routing table, which is anchored on the entry point.
-/// Everything else is a pure spec-to-C# transformation and belongs in the task.
+/// Everything else follows from the model alone and belongs in the task.
+/// </para>
+/// <para>
+/// The <c>HOAG</c> diagnostic codes and the <c>.openapi-model.txt</c> suffix keep their original
+/// spelling. Both are consumer-visible - the suffix is matched here, written by every task and
+/// declared in every targets file - and renaming them would break projects to fix a name.
 /// </para>
 /// </remarks>
 [Generator]
-public class OpenApiSourceGenerator : IIncrementalGenerator {
+public class SpecSourceGenerator : IIncrementalGenerator {
 
     public void Initialize(IncrementalGeneratorInitializationContext context) {
         // Read the models the build task wrote, keeping both successes and errors for diagnostics
@@ -52,7 +64,7 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
             var errorLines = errors.Count > 0
                 ? "\n// Parse errors:\n" + string.Join("\n", errors.Select(e => $"//   {e.Error}"))
                 : "";
-            ctx.AddSource("_OpenApiDiagnostic.g.cs",
+            ctx.AddSource("_SpecModelDiagnostic.g.cs",
                 $@"// OpenAPI Generator Diagnostic
 // Total AdditionalTexts: {allTexts.Length}
 // OpenAPI files parsed: {results.Count(r => r.Model != null)}
@@ -74,7 +86,14 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
         });
 
         var configProvider = context.AnalyzerConfigOptionsProvider.Select((options, _) => {
-            options.GlobalOptions.TryGetValue("build_property.HardenedOpenApiNamespace", out var ns);
+            // Every front end names the namespace its task emitted into, and this generator has to
+            // agree with whichever one ran - the emitted types live in X.Models and this addresses
+            // them. $(HardenedIdlNamespace) is the neutral spelling a new front end sets;
+            // $(HardenedOpenApiNamespace) is consumer-visible and stays working unchanged.
+            options.GlobalOptions.TryGetValue("build_property.HardenedIdlNamespace", out var ns);
+            if (string.IsNullOrEmpty(ns)) {
+                options.GlobalOptions.TryGetValue("build_property.HardenedOpenApiNamespace", out ns);
+            }
             if (string.IsNullOrEmpty(ns)) {
                 options.GlobalOptions.TryGetValue("build_property.RootNamespace", out ns);
             }
@@ -174,7 +193,7 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
 
         context.RegisterSourceOutput(routeProvider,
             SourceGeneratorWrapper.Wrap<((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<string> Right) Left, bool Right)>(
-                (ctx, pair) => OpenApiRoutingTableGenerator.GenerateRoute(
+                (ctx, pair) => SpecRoutingTableGenerator.GenerateRoute(
                     ctx, pair.Left.Left.Left, pair.Left.Left.Right!, pair.Left.Right, pair.Right)));
 
         // One abstract template base per [Enable<T>] marker, the same registration the attribute
