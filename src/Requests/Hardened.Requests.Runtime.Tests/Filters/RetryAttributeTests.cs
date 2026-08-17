@@ -2,10 +2,6 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
-using Hardened.Requests.Runtime.Tests.Support;
-using Hardened.Shared.Runtime.Collections;
-using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Xunit;
 
 namespace Hardened.Requests.Runtime.Tests.Filters;
@@ -19,94 +15,75 @@ public class RetryAttributeTests {
     private static readonly IExecutionRequestHandlerInfo HandlerInfo =
         new ExecutionRequestHandlerInfo("/orders", "POST", typeof(RetryAttributeTests), "Post");
 
-    private static IExecutionContext ContextWithPool(IMemoryStreamPool pool) =>
-        Pipeline.Context(configureServices: services => services.AddSingleton(pool));
-
     /// <summary>
-    /// An unconfigured <c>[Retry]</c> retries three times with half a second between attempts.
-    /// These defaults are the shipped contract - a change to either alters the behaviour of
-    /// every handler that wrote the attribute bare.
+    /// An unconfigured <c>[Retry]</c> allows three attempts, backs off from half a second, and
+    /// gives up after ten. These defaults are the shipped contract - a change to any of them alters
+    /// the behaviour of every handler that wrote the attribute bare.
     /// </summary>
     [Fact]
-    public void AnUnconfiguredRetryAllowsThreeAttemptsHalfASecondApart() {
+    public void Defaults_AreThreeAttemptsHalfASecondApartWithinTenSeconds() {
         var attribute = new RetryAttribute();
 
-        Assert.Equal(3, attribute.Retries);
+        Assert.Equal(3, attribute.Attempts);
         Assert.Equal(500, attribute.SleepTime);
+        Assert.Equal(10_000, attribute.TotalBudget);
+        Assert.False(attribute.AllowNonIdempotent);
     }
 
     /// <summary>
-    /// The attribute orders its filter ahead of controller creation, so a retried attempt gets
-    /// a fresh controller and an unread body. Ordering it any later would retry against
-    /// whatever state the failed attempt left on the controller.
+    /// <c>Retries</c> is the older spelling of <c>Attempts</c> and still sets the same value, so
+    /// every <c>[Retry(Retries = n)]</c> already written keeps meaning what it meant.
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public void Retries_IsTheSameValueAsAttempts(int value) {
+        Assert.Equal(value, new RetryAttribute { Retries = value }.Attempts);
+        Assert.Equal(value, new RetryAttribute { Attempts = value }.Retries);
+    }
+
+    /// <summary>
+    /// The filter is ordered behind the one that turns a failure into a response, which is the
+    /// whole reason it works. Ahead of it - where this attribute used to put it - every attempt
+    /// looks like a success, because that filter catches the failure and returns normally.
     /// </summary>
     [Fact]
-    public void RetryIsOrderedAheadOfControllerCreation() {
+    public void GetFilters_OrdersTheFilterBehindSerialization() {
         var filterInfo = Assert.Single(new RetryAttribute().GetFilters(HandlerInfo));
 
-        Assert.Equal(FilterOrder.HandlerCreation - 10, filterInfo.Order);
+        Assert.Equal(FilterOrder.Retry, filterInfo.Order);
+        Assert.True(filterInfo.Order > FilterOrder.Serialization);
     }
 
     /// <summary>
-    /// One filter per handler, not one per attribute evaluation - the filter array is built
-    /// once and a duplicate would double every retry budget.
+    /// Behind authorization too, so a refusal is not retried. A denial is not transient and
+    /// re-deriving it spends the whole budget on the same answer.
     /// </summary>
     [Fact]
-    public void RetryContributesExactlyOneFilter() {
+    public void GetFilters_OrdersTheFilterBehindAuthorization() {
+        var filterInfo = Assert.Single(new RetryAttribute().GetFilters(HandlerInfo));
+
+        Assert.True(filterInfo.Order > FilterOrder.Authorization);
+    }
+
+    /// <summary>
+    /// One filter per handler, not one per attribute evaluation - the filter array is built once
+    /// and a duplicate would square every retry budget.
+    /// </summary>
+    [Fact]
+    public void GetFilters_ContributesExactlyOneFilter() {
         Assert.Single(new RetryAttribute().GetFilters(HandlerInfo));
     }
 
     /// <summary>
-    /// The replay buffer is resolved from the request's own service provider rather than
-    /// captured at registration, so each request draws from the pool it was given.
+    /// The filter needs nothing from the request's services. It used to resolve a memory stream
+    /// pool to buffer the body for replay; sitting behind serialization, the parameters are already
+    /// bound before it runs and there is nothing left to replay.
     /// </summary>
     [Fact]
-    public void TheFilterTakesItsReplayBufferFromTheRequestsServiceProvider() {
-        var pool = Substitute.For<IMemoryStreamPool>();
+    public void GetFilters_BuildsTheFilterWithoutResolvingAnyService() {
         var filterInfo = Assert.Single(new RetryAttribute().GetFilters(HandlerInfo));
 
-        var filter = filterInfo.FilterFunc(ContextWithPool(pool));
-
-        Assert.IsType<RetryFilter>(filter);
-    }
-
-    /// <summary>
-    /// A request whose services have no memory stream pool fails loudly at filter construction
-    /// rather than silently skipping the replay and retrying against a consumed body.
-    /// </summary>
-    [Fact]
-    public void AMissingMemoryStreamPoolFailsRatherThanRetryingWithoutReplay() {
-        var filterInfo = Assert.Single(new RetryAttribute().GetFilters(HandlerInfo));
-
-        Assert.Throws<InvalidOperationException>(() => filterInfo.FilterFunc(Pipeline.Context()));
-    }
-
-    /// <summary>
-    /// The configured retry count reaches the filter, so <c>[Retry(Retries = n)]</c> means n
-    /// attempts and not the default three.
-    /// </summary>
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(4)]
-    public async Task TheConfiguredRetryCountIsTheNumberOfAttempts(int retries) {
-        var attribute = new RetryAttribute { Retries = retries, SleepTime = 0 };
-        var context = ContextWithPool(new MemoryStreamPool());
-
-        var filter = Assert.Single(attribute.GetFilters(HandlerInfo)).FilterFunc(context);
-
-        var attempts = 0;
-        var chain = Substitute.For<IExecutionChain>();
-
-        chain.Context.Returns(context);
-        chain.Next().Returns(_ => {
-            attempts++;
-
-            throw new InvalidOperationException("always fails");
-        });
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => filter.Execute(chain));
-
-        Assert.Equal(retries, attempts);
+        Assert.IsType<RetryFilter>(filterInfo.FilterFunc(null!));
     }
 }

@@ -15,6 +15,69 @@ namespace Hardened.Requests.Runtime
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
 }
+namespace Hardened.Requests.Runtime.Authorization
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ActivityAuthorizationService : Hardened.Requests.Abstract.Authorization.IActivityAuthorizationService
+    {
+        public ActivityAuthorizationService() { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants) { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.GrantResolution> Resolve(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<string> grants) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public sealed class AllowAnonymousAttribute : System.Attribute
+    {
+        public AllowAnonymousAttribute() { }
+    }
+    public class AuthorizationConfiguration : Hardened.Requests.Runtime.Authorization.IAuthorizationConfiguration
+    {
+        public AuthorizationConfiguration() { }
+        public bool RequireAuthorization { get; set; }
+    }
+    public class AuthorizationFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public AuthorizationFilter(Hardened.Requests.Abstract.Authorization.Requirement requirement, bool beforeSerialization) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public class AuthorizationFilterProvider
+    {
+        public AuthorizationFilterProvider(bool requireAuthorization) { }
+        public Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo? GetFilter(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    public static class AuthorizationServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection RequireAuthorization(this Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public sealed class AuthorizeAttribute<TPolicy> : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute
+        where TPolicy : Hardened.Requests.Abstract.Authorization.IAuthorizationPolicy, new ()
+    {
+        public AuthorizeAttribute() { }
+        public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=true)]
+    public sealed class AuthorizeGrantsAttribute : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute
+    {
+        public AuthorizeGrantsAttribute(params string[] grants) { }
+        public System.Collections.Generic.IReadOnlyList<string> Grants { get; }
+        public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
+    }
+    public interface IAuthorizationConfiguration
+    {
+        bool RequireAuthorization { get; }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class PrincipalGrantAuthorizationHandler : Hardened.Requests.Abstract.Authorization.IActivityAuthorizationHandler
+    {
+        public PrincipalGrantAuthorizationHandler() { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.GrantResolution> Resolve(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<string> grants) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public class RequireAuthorizationAttribute : System.Attribute
+    {
+        public RequireAuthorizationAttribute() { }
+    }
+}
 namespace Hardened.Requests.Runtime.Configuration
 {
     public interface IJsonSerializerConfiguration
@@ -251,17 +314,22 @@ namespace Hardened.Requests.Runtime.Filters
         public IoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
     public class RetryAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {
         public RetryAttribute() { }
+        public bool AllowNonIdempotent { get; set; }
+        public int Attempts { get; set; }
         public int Retries { get; set; }
         public int SleepTime { get; set; }
+        public int TotalBudget { get; set; }
         public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
     public class RetryFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
-        public RetryFilter(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, int retryCount, int retrySleepTime) { }
+        public RetryFilter(int attempts, int baseDelayMilliseconds, int totalBudgetMilliseconds, bool allowNonIdempotent, System.Func<System.Exception, bool>? shouldRetry = null) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+        public static bool IsTransient(System.Exception exception) { }
     }
     public class SingleFilterProvider : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {
@@ -369,6 +437,11 @@ namespace Hardened.Requests.Runtime.Middleware
         public Hardened.Requests.Abstract.Execution.IExecutionChain GetExecutionChain(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public void Use(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> middlewareFunc) { }
     }
+    public class ResponseFinalizerFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public ResponseFinalizerFilter() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
 }
 namespace Hardened.Requests.Runtime.PathTokens
 {
@@ -398,6 +471,82 @@ namespace Hardened.Requests.Runtime.QueryString
         public SimpleQueryStringCollection(System.Collections.Generic.IDictionary<string, string>? queryParameters) { }
         public int Count { get; }
         public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
+    }
+}
+namespace Hardened.Requests.Runtime.RateLimiting
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class DefaultRateLimitPartitioner : Hardened.Requests.Runtime.RateLimiting.IRateLimitPartitioner
+    {
+        public const string Anonymous = "anonymous";
+        public DefaultRateLimitPartitioner(Hardened.Requests.Runtime.RateLimiting.RateLimitConfiguration configuration) { }
+        public string Partition(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public interface IRateLimitPartitioner
+    {
+        string Partition(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IRateLimitStore
+    {
+        System.Threading.Tasks.ValueTask<Hardened.Requests.Runtime.RateLimiting.RateLimitDecision> Acquire(string partition, Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy, System.Threading.CancellationToken cancellationToken);
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class InProcessRateLimitStore : Hardened.Requests.Runtime.RateLimiting.IRateLimitStore, System.IDisposable
+    {
+        public InProcessRateLimitStore(Hardened.Requests.Runtime.RateLimiting.RateLimitConfiguration configuration) { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Runtime.RateLimiting.RateLimitDecision> Acquire(string partition, Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy, System.Threading.CancellationToken cancellationToken) { }
+        public void Dispose() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=true)]
+    public class RateLimitAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+    {
+        public RateLimitAttribute() { }
+        public string Name { get; set; }
+        public int PermitLimit { get; set; }
+        public Hardened.Requests.Runtime.RateLimiting.RateLimitScope Scope { get; set; }
+        public int WindowSeconds { get; set; }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class RateLimitConfiguration
+    {
+        public RateLimitConfiguration() { }
+        public int DefaultPermitLimit { get; set; }
+        public System.TimeSpan DefaultWindow { get; set; }
+        public int MaxTrackedPartitions { get; set; }
+        public string PartitionHeader { get; set; }
+    }
+    public readonly struct RateLimitDecision : System.IEquatable<Hardened.Requests.Runtime.RateLimiting.RateLimitDecision>
+    {
+        public RateLimitDecision(bool Allowed, int Limit, int Remaining, System.TimeSpan RetryAfter) { }
+        public bool Allowed { get; init; }
+        public int Limit { get; init; }
+        public int Remaining { get; init; }
+        public System.TimeSpan RetryAfter { get; init; }
+        public static Hardened.Requests.Runtime.RateLimiting.RateLimitDecision Allow(int limit, int remaining) { }
+        public static Hardened.Requests.Runtime.RateLimiting.RateLimitDecision Refuse(int limit, System.TimeSpan retryAfter) { }
+    }
+    public class RateLimitExceededException : Hardened.Requests.Abstract.Errors.StatusCodeException
+    {
+        public RateLimitExceededException(Hardened.Requests.Runtime.RateLimiting.RateLimitDecision decision) { }
+        public override void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
+    public class RateLimitFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public RateLimitFilter(Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy, bool beforeSerialization) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public readonly struct RateLimitPolicy : System.IEquatable<Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy>
+    {
+        public RateLimitPolicy(int PermitLimit, System.TimeSpan Window, string Name = "default") { }
+        public string Name { get; init; }
+        public int PermitLimit { get; init; }
+        public System.TimeSpan Window { get; init; }
+    }
+    public enum RateLimitScope
+    {
+        Transport = 0,
+        Principal = 1,
     }
 }
 namespace Hardened.Requests.Runtime.Serializer

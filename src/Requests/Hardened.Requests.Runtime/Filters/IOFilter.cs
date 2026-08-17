@@ -21,22 +21,36 @@ public class IoFilter : IExecutionFilter {
 
     public async Task Execute(IExecutionChain chain) {
         var context = chain.Context;
-        var bindParameterStartTimestamp = MachineTimestamp.Now;
 
-        try {
-            if (context.Request.Parameters == null) {
-                context.Request.Parameters = await _deserializeRequest(chain.Context);
+        // A request that is already decided does not have its body read.
+        //
+        // Nothing ahead of this filter could fail before authorization existed, so this was
+        // previously unreachable and the body was read unconditionally. It is reachable now: a
+        // requirement over grants alone is settled before serialization, and the entire reason for
+        // putting it there is that a request presenting no credential must not cost a 10 MB
+        // deserialization before it is rejected. Reading the body here would give that position
+        // back for nothing.
+        //
+        // No bind duration is recorded either, because no bind was attempted - a zero would read as
+        // a very fast deserialization rather than none.
+        if (context.Response.ExceptionValue == null) {
+            var bindParameterStartTimestamp = MachineTimestamp.Now;
+
+            try {
+                if (context.Request.Parameters == null) {
+                    context.Request.Parameters = await _deserializeRequest(chain.Context);
+                }
             }
-        }
-        catch (Exception exp) {
-            chain.Context.RequestServices.GetRequiredService<IRequestLogger>()
-                .RequestParameterBindFailed(chain.Context, exp);
+            catch (Exception exp) {
+                chain.Context.RequestServices.GetRequiredService<IRequestLogger>()
+                    .RequestParameterBindFailed(chain.Context, exp);
 
-            chain.Context.Response.ExceptionValue = exp;
-        }
-        finally {
-            context.RequestMetrics.Record(RequestMetrics.ParameterBindDuration,
-                bindParameterStartTimestamp.GetElapsedMilliseconds());
+                chain.Context.Response.ExceptionValue = exp;
+            }
+            finally {
+                context.RequestMetrics.Record(RequestMetrics.ParameterBindDuration,
+                    bindParameterStartTimestamp.GetElapsedMilliseconds());
+            }
         }
 
         if (chain.Context.Response.ExceptionValue == null) {
@@ -55,6 +69,11 @@ public class IoFilter : IExecutionFilter {
 
             if (chain.Context.Response.ShouldSerialize) {
                 await _serializeResponse(chain.Context);
+
+                // Answered. The flag reads as "this response still needs writing", which is what
+                // lets ResponseFinalizerFilter cover a middleware that answered without ever
+                // reaching a handler chain, and not write this one a second time on the way out.
+                chain.Context.Response.ShouldSerialize = false;
             }
         }
         finally {

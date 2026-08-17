@@ -23,12 +23,45 @@ public static class Pipeline {
     /// A context whose request and response are the in-memory transport implementations, with
     /// a service provider carrying the services the pipeline resolves at run time.
     /// </summary>
+    /// <remarks>
+    /// Deliberately takes no <c>CancellationToken</c>. Adding one with a default value made
+    /// xUnit1051 fire at every one of the two hundred call sites in this project, because the rule
+    /// reports a token parameter left at its default rather than set to
+    /// <c>TestContext.Current.CancellationToken</c>. A test that needs a cancellable context builds
+    /// one directly - see <see cref="Cancellable"/>.
+    /// </remarks>
     public static IExecutionContext Context(
         string method = "GET",
         string path = "/",
         string? accept = "application/json",
         byte[]? body = null,
         Action<ServiceCollection>? configureServices = null) {
+        return Build(method, path, accept, body, configureServices, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// A context whose <c>CancellationToken</c> is one the test controls.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="Context"/> so that the token is always passed explicitly at the one
+    /// or two places that want it, rather than defaulted at every place that does not.
+    /// </remarks>
+    public static IExecutionContext Cancellable(
+        CancellationToken cancellationToken,
+        string method = "GET",
+        string path = "/",
+        byte[]? body = null,
+        Action<ServiceCollection>? configureServices = null) {
+        return Build(method, path, "application/json", body, configureServices, cancellationToken);
+    }
+
+    private static IExecutionContext Build(
+        string method,
+        string path,
+        string? accept,
+        byte[]? body,
+        Action<ServiceCollection>? configureServices,
+        CancellationToken cancellationToken) {
 
         var services = new ServiceCollection();
 
@@ -49,7 +82,7 @@ public static class Pipeline {
             Substitute.For<IKnownServices>(),
             request,
             new TestExecutionResponse(new MemoryStream()),
-            CancellationToken.None);
+            cancellationToken);
     }
 
     /// <summary>

@@ -34,6 +34,7 @@ namespace Hardened.Web.AspNetCore.Runtime.Impl
     public class AspNetExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
     {
         public AspNetExecutionContext(Microsoft.AspNetCore.Http.HttpContext httpContext, Hardened.Shared.Runtime.Metrics.IMetricLogger logger) { }
+        public Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
         public System.Threading.CancellationToken CancellationToken { get; }
         public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }

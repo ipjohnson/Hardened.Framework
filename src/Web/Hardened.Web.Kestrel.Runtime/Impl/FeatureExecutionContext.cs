@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
@@ -81,7 +82,9 @@ public sealed class FeatureExecutionContext : IExecutionContext {
             serviceProvider ?? RequestServices,
             metricLogger ?? RequestMetrics) {
             HandlerInstance = HandlerInstance,
-            HandlerInfo = HandlerInfo
+            HandlerInfo = HandlerInfo,
+            // The reference, not a copy: a fork is the same caller.
+            CallerPrincipal = CallerPrincipal
         };
     }
 
@@ -94,6 +97,8 @@ public sealed class FeatureExecutionContext : IExecutionContext {
     public IExecutionRequest Request { get; }
 
     public IExecutionResponse Response { get; }
+
+    public ICallerPrincipal CallerPrincipal { get; set; } = AnonymousCallerPrincipal.Instance;
 
     public object? HandlerInstance { get; set; }
 

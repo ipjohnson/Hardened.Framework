@@ -34,10 +34,19 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         // An exception that names its own status, which is how a specification's declared error
         // responses reach the wire. Checked before the type-based classification below, because a
         // declared 404 is more specific than "not a BadRequestException, so 500".
-        if (exp is StatusCodeException statusCodeException) {
+        //
+        // Matched on the interface rather than on StatusCodeException, so that a status carrying a
+        // header - a 401 and its WWW-Authenticate challenge - gets to add one. The body still comes
+        // from StatusCodeException.Value when the exception is one, which keeps a declared payload
+        // working exactly as it did.
+        if (exp is IStatusCodeException statusCodeException) {
+            statusCodeException.ApplyHeaders(context.Response.Headers);
+
+            var declaredValue = exp is StatusCodeException { Value: { } value } ? value : null;
+
             return (
                 statusCodeException.StatusCode,
-                statusCodeException.Value ?? new ErrorModel {
+                declaredValue ?? new ErrorModel {
                     Type = exp.GetType().Name, Message = exp.Message
                 });
         }

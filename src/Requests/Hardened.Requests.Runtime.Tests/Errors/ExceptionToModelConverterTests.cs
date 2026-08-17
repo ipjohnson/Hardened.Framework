@@ -2,6 +2,7 @@ using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Validation;
+using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
 
@@ -15,7 +16,19 @@ public class ExceptionToModelConverterTests {
 
     private static readonly ExceptionToModelConverter Converter = new();
 
-    private static IExecutionContext Context() => Substitute.For<IExecutionContext>();
+    /// <summary>
+    /// Carries a real header dictionary, because an exception that names its own status may also
+    /// name headers to send with it.
+    /// </summary>
+    private static IExecutionContext Context() {
+        var response = Substitute.For<IExecutionResponse>();
+        response.Headers.Returns(new Dictionary<string, StringValues>());
+
+        var context = Substitute.For<IExecutionContext>();
+        context.Response.Returns(response);
+
+        return context;
+    }
 
     [Fact]
     public void ValidationExceptionMapsTo400WithFieldErrors() {
@@ -176,4 +189,138 @@ public class ExceptionToModelConverterTests {
         Assert.Equal("connection string 'Server=db;Password=hunter2' failed",
             Assert.IsType<ErrorModel>(model).Message);
     }
+
+    #region status and headers
+
+    /// <summary>
+    /// An exception naming a status it does not derive <see cref="StatusCodeException"/> for. Some
+    /// statuses are not well-formed without a header - a 401 with no <c>WWW-Authenticate</c> tells a
+    /// client to authenticate without saying how - and the interface is what lets one say so.
+    /// </summary>
+    private class ChallengeException : Exception, IStatusCodeException {
+        public int StatusCode => 401;
+
+        public void ApplyHeaders(IDictionary<string, StringValues> headers) {
+            headers["WWW-Authenticate"] = "Bearer realm=\"pets\"";
+        }
+    }
+
+    private class RetryLaterException : StatusCodeException {
+        public RetryLaterException() : base(429, value: null, message: "slow down") { }
+
+        public override void ApplyHeaders(IDictionary<string, StringValues> headers) {
+            headers["Retry-After"] = "30";
+        }
+    }
+
+    [Fact]
+    public void StatusCodeExceptionCarriesItsOwnStatus() {
+        var (status, _) = Converter.ConvertExceptionToModel(Context(), new StatusCodeException(404));
+
+        Assert.Equal(404, status);
+    }
+
+    [Fact]
+    public void StatusCodeExceptionCarriesItsDeclaredBody() {
+        var declared = new { Detail = "no such pet" };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(), new StatusCodeException(404, declared));
+
+        Assert.Equal(404, status);
+        Assert.Same(declared, model);
+    }
+
+    /// <summary>
+    /// Without a declared body the pipeline still answers with its usual error model, so an
+    /// undocumented status produces a sensible response rather than an empty one.
+    /// </summary>
+    [Fact]
+    public void StatusCodeExceptionWithoutABodyFallsBackToTheErrorModel() {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(), new StatusCodeException(409, value: null, message: "already exists"));
+
+        Assert.Equal(409, status);
+        Assert.Equal("already exists", Assert.IsType<ErrorModel>(model).Message);
+    }
+
+    /// <summary>
+    /// Matched on the interface, not on the class. An exception implementing it directly - which is
+    /// what an authentication package would ship rather than deriving from a type in another
+    /// assembly - has to reach the same place.
+    /// </summary>
+    [Fact]
+    public void AnExceptionImplementingTheInterfaceDirectlyNamesItsStatus() {
+        var (status, model) = Converter.ConvertExceptionToModel(Context(), new ChallengeException());
+
+        Assert.Equal(401, status);
+        Assert.Equal(nameof(ChallengeException), Assert.IsType<ErrorModel>(model).Type);
+    }
+
+    [Fact]
+    public void AnExceptionThatNamesAHeaderHasItAppliedToTheResponse() {
+        var context = Context();
+
+        Converter.ConvertExceptionToModel(context, new ChallengeException());
+
+        Assert.Equal("Bearer realm=\"pets\"", context.Response.Headers["WWW-Authenticate"]);
+    }
+
+    [Fact]
+    public void DerivingFromStatusCodeExceptionAlsoGetsHeadersApplied() {
+        var context = Context();
+
+        var (status, _) = Converter.ConvertExceptionToModel(context, new RetryLaterException());
+
+        Assert.Equal(429, status);
+        Assert.Equal("30", context.Response.Headers["Retry-After"]);
+    }
+
+    /// <summary>
+    /// Assigned rather than appended. A retried or forked request that produces the same failure
+    /// twice must not send the challenge twice.
+    /// </summary>
+    [Fact]
+    public void ApplyingHeadersTwiceDoesNotDuplicateTheValue() {
+        var context = Context();
+
+        Converter.ConvertExceptionToModel(context, new ChallengeException());
+        Converter.ConvertExceptionToModel(context, new ChallengeException());
+
+        Assert.Equal(
+            new StringValues("Bearer realm=\"pets\""),
+            context.Response.Headers["WWW-Authenticate"]);
+    }
+
+    /// <summary>
+    /// The default adds nothing. Most statuses need no header, and one appearing on a plain 404
+    /// would be a surprise.
+    /// </summary>
+    [Fact]
+    public void AStatusCodeExceptionThatNamesNoHeaderAddsNone() {
+        var context = Context();
+
+        Converter.ConvertExceptionToModel(context, new StatusCodeException(404));
+
+        Assert.Empty(context.Response.Headers);
+    }
+
+    /// <summary>
+    /// A validation failure is still a 400 and still carries field errors. The status branch is
+    /// checked after it, so adding the interface did not reorder the mapping.
+    /// </summary>
+    [Fact]
+    public void ValidationStillWinsOverTheStatusBranch() {
+        var result = ValidationModules.ValidationResult.FromErrors(new[] {
+            new ValidationModules.ValidationError("email", "Required", "email is required"),
+        });
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(), new ValidationException(result));
+
+        Assert.Equal(400, status);
+        Assert.IsType<RequestValidationError>(model);
+    }
+
+    #endregion
 }

@@ -5,6 +5,8 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Cors;
+using Hardened.Web.Runtime.Handlers;
+using Hardened.Web.Runtime.Health;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -38,5 +40,14 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
         });
         services.AddSingleton<CorsFilter>();
         services.AddSingleton<IStartupService, CorsStartupService>();
+
+        services.TryAddSingleton<HealthCheckConfiguration>();
+
+        // Registered ahead of anything an application adds, because providers are consulted in
+        // reverse registration order - so an application declaring its own route at either health
+        // path shadows this rather than colliding with it.
+        services.AddSingleton<IWebExecutionRequestHandlerProvider>(
+            serviceProvider => new HealthCheckProvider(
+                serviceProvider.GetRequiredService<HealthCheckConfiguration>(), serviceProvider));
     }
 }

@@ -151,18 +151,26 @@ namespace Hardened.Web.Runtime.Cors
     {
         public const string DefaultEnvironmentVariable = "CORS_ALLOWED_ORIGINS";
         public CorsConfiguration() { }
-        public string AllowedHeaders { get; set; }
-        public string AllowedMethods { get; set; }
+        public bool AllowAnyOrigin { get; set; }
+        public bool AllowCredentials { get; set; }
+        public System.Collections.Generic.IReadOnlyCollection<string> AllowedHeaders { get; }
         public System.Collections.Generic.IReadOnlySet<string> AllowedOrigins { get; }
         public string EnvironmentVariable { get; set; }
+        public System.Collections.Generic.IReadOnlyCollection<string> ExposedHeaders { get; }
+        public string FallbackMethods { get; set; }
+        public bool IsConfigured { get; }
         public int MaxAgeSec { get; set; }
+        public void AllowHeader(string header) { }
         public void AllowOrigin(string origin) { }
+        public void AllowOriginSuffix(string domain) { }
+        public bool AreHeadersAllowed(System.Collections.Generic.IEnumerable<string> requested) { }
+        public void ExposeHeader(string header) { }
         public bool IsOriginAllowed(string origin) { }
         public void LoadFromEnvironment() { }
     }
     public class CorsFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
-        public CorsFilter(Hardened.Web.Runtime.Cors.CorsConfiguration config) { }
+        public CorsFilter(Hardened.Web.Runtime.Cors.CorsConfiguration config, System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider>? routing = null) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }
@@ -221,6 +229,43 @@ namespace Hardened.Web.Runtime.Handlers
     {
         public WebExecutionHandlerService(System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider> handlers, Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler resourceNotFoundHandler, Hardened.Web.Runtime.Handlers.IMethodNotAllowedHandler methodNotAllowedHandler, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Hardened.Web.Runtime.StaticContent.IStaticContentHandler staticContentHandler, Microsoft.Extensions.Options.IOptions<Hardened.Web.Runtime.Configuration.IWebRoutingConfiguration> routing) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+}
+namespace Hardened.Web.Runtime.Health
+{
+    public class HealthCheckConfiguration
+    {
+        public HealthCheckConfiguration() { }
+        public System.TimeSpan CheckTimeout { get; set; }
+        public bool IncludeDetail { get; set; }
+        public string LivePath { get; set; }
+        public string ReadyPath { get; set; }
+        public System.TimeSpan TotalTimeout { get; set; }
+    }
+    public class HealthCheckProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
+    {
+        public HealthCheckProvider(Hardened.Web.Runtime.Health.HealthCheckConfiguration config, System.IServiceProvider rootProvider) { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public readonly struct HealthCheckResult : System.IEquatable<Hardened.Web.Runtime.Health.HealthCheckResult>
+    {
+        public HealthCheckResult(Hardened.Web.Runtime.Health.HealthStatus Status, string? Description = null) { }
+        public string? Description { get; init; }
+        public Hardened.Web.Runtime.Health.HealthStatus Status { get; init; }
+        public static Hardened.Web.Runtime.Health.HealthCheckResult Degraded(string? description = null) { }
+        public static Hardened.Web.Runtime.Health.HealthCheckResult Healthy(string? description = null) { }
+        public static Hardened.Web.Runtime.Health.HealthCheckResult Unhealthy(string? description = null) { }
+    }
+    public enum HealthStatus
+    {
+        Healthy = 0,
+        Degraded = 1,
+        Unhealthy = 2,
+    }
+    public interface IHealthCheck
+    {
+        string Name { get; }
+        System.Threading.Tasks.Task<Hardened.Web.Runtime.Health.HealthCheckResult> Check(System.Threading.CancellationToken cancellationToken);
     }
 }
 namespace Hardened.Web.Runtime.OpenApi
