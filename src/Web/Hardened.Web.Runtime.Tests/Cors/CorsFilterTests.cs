@@ -386,6 +386,98 @@ public class CorsFilterTests {
             context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString());
     }
 
+    /// <summary>
+    /// Two tables can both recognise a path - one under other verbs, one under the requested one -
+    /// and the preflight must advertise both, or a client is told a verb it may call is
+    /// unavailable. The same case <c>WebExecutionHandlerService</c> merges <c>Allow</c> for on a
+    /// 405.
+    /// </summary>
+    [Fact]
+    public async Task Execute_MergesTheVerbsFromEveryTableThatRecognisesThePath() {
+        var context = Context("OPTIONS", Allowed, requestMethod: "POST");
+
+        await Run(
+            new CorsFilter(
+                ConfigAllowing(Allowed),
+                new IWebExecutionRequestHandlerProvider[] {
+                    new Routes("/orders", "GET"),
+                    new Routes("/orders", "POST")
+                }),
+            context);
+
+        var methods = context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString();
+
+        Assert.Contains("GET", methods);
+        Assert.Contains("POST", methods);
+    }
+
+    /// <summary>
+    /// A table that recognises the path but reports nothing allowed contributes nothing, rather
+    /// than an empty entry in the advertised list.
+    /// </summary>
+    [Fact]
+    public async Task Execute_IgnoresATableThatNamesNoAllowedVerbs() {
+        var context = Context("OPTIONS", Allowed, requestMethod: "GET");
+
+        await Run(
+            new CorsFilter(
+                ConfigAllowing(Allowed),
+                new IWebExecutionRequestHandlerProvider[] {
+                    new SilentRoutes("/orders"),
+                    new Routes("/orders", "GET")
+                }),
+            context);
+
+        Assert.Equal(
+            "GET", context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString());
+    }
+
+    /// <summary>
+    /// A preflight naming no verb is malformed and is refused rather than answered with the
+    /// configured list, which would advertise verbs nobody asked about.
+    /// </summary>
+    [Fact]
+    public async Task Execute_RefusesAPreflightThatNamesNoVerb() {
+        var context = Context("OPTIONS", Allowed, requestMethod: "");
+
+        await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
+
+        Assert.Equal(204, context.Response.Status);
+        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin));
+    }
+
+    /// <summary>
+    /// A blank <c>Access-Control-Request-Headers</c> is no headers, not one header named "". A
+    /// browser sends the header empty rather than omitting it in some cases, and treating that as a
+    /// request for an unnamed header would fail every such preflight.
+    /// </summary>
+    [Fact]
+    public async Task Execute_TreatsABlankRequestHeadersListAsNone() {
+        var context = Context(
+            "OPTIONS", Allowed, requestMethod: "GET", requestHeaders: "   ");
+
+        await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
+
+        Assert.Equal(
+            Allowed,
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString());
+        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowHeaders));
+    }
+
+    /// <summary>Recognises a path and reports no allowed verbs.</summary>
+    private sealed class SilentRoutes : IWebExecutionRequestHandlerProvider {
+        private readonly string _path;
+
+        public SilentRoutes(string path) {
+            _path = path;
+        }
+
+        public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context) =>
+            string.Equals(context.Request.Path, _path, StringComparison.Ordinal)
+                ? new RequestHandlerInfo(null, PathTokenCollection.Empty)
+                : null;
+    }
+
     // ----------------------------------------------------------- credentials
 
     [Fact]
@@ -395,6 +487,26 @@ public class CorsFilterTests {
         config.AllowCredentials = true;
 
         var context = Context("GET", Allowed);
+
+        await Run(new CorsFilter(config), context);
+
+        Assert.Equal(
+            "true",
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowCredentials].ToString());
+    }
+
+    /// <summary>
+    /// The preflight has to say so too. A browser that is told credentials are allowed only on the
+    /// actual response has already decided not to send them, so omitting it here defeats the
+    /// setting entirely.
+    /// </summary>
+    [Fact]
+    public async Task Execute_EmitsAllowCredentialsOnThePreflightAsWell() {
+        var config = ConfigAllowing(Allowed);
+
+        config.AllowCredentials = true;
+
+        var context = Context("OPTIONS", Allowed, requestMethod: "GET");
 
         await Run(new CorsFilter(config), context);
 
