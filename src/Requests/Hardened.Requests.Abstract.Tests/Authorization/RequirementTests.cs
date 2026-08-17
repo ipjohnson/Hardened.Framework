@@ -72,6 +72,37 @@ public class RequirementTests {
 
     #endregion
 
+    #region authenticated
+
+    [Fact]
+    public void Authenticated_IsSatisfiedByAnyAuthenticatedCaller() {
+        Assert.True(Requirement.Authenticated().IsSatisfiedBy(Holding(), Context));
+    }
+
+    [Fact]
+    public void Authenticated_IsNotSatisfiedByTheAnonymousPrincipal() {
+        Assert.False(
+            Requirement.Authenticated().IsSatisfiedBy(AnonymousCallerPrincipal.Instance, Context));
+    }
+
+    /// <summary>
+    /// The reason this is a combinator rather than a predicate over
+    /// <see cref="ICallerPrincipal.IsAuthenticated"/>, which would evaluate identically: a predicate
+    /// cannot be known to ignore the context, so it would move the requirement to the later pipeline
+    /// position and read a body for a request that presented no credential at all.
+    /// </summary>
+    [Fact]
+    public void Authenticated_DoesNotNeedTheContext() {
+        Assert.False(Requirement.Authenticated().RequiresContext);
+    }
+
+    [Fact]
+    public void Authenticated_NamesNoGrants() {
+        Assert.Empty(Requirement.Authenticated().RequiredGrants);
+    }
+
+    #endregion
+
     #region composition
 
     [Fact]

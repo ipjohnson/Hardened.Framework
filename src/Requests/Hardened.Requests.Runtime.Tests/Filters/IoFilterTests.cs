@@ -57,6 +57,46 @@ public class IoFilterTests {
     }
 
     /// <summary>
+    /// A request that something ahead of this filter already refused does not have its body read.
+    ///
+    /// <para>
+    /// Nothing could fail ahead of this filter before authorization existed, so this branch was
+    /// unreachable and the body was read unconditionally. It is reachable now: a requirement over
+    /// grants alone is settled before serialization, and the entire reason for putting it there is
+    /// that a request presenting no credential must not cost a large deserialization before it is
+    /// rejected.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task ARequestAlreadyRefusedIsNeitherBoundNorHandled() {
+        var log = new List<string>();
+        var context = Pipeline.Context();
+        var bound = false;
+
+        context.Response.ExceptionValue = new InvalidOperationException("refused upstream");
+
+        var filter = Filter(
+            deserialize: _ => {
+                bound = true;
+
+                return Task.FromResult(EmptyParameters.Instance);
+            },
+            serialize: _ => {
+                log.Add("serialize");
+
+                return Task.CompletedTask;
+            });
+
+        await Pipeline.Chain(context, filter, new Pipeline.Recording(log, "handler")).Next();
+
+        Assert.False(bound);
+        Assert.DoesNotContain("handler", log);
+
+        // Still serialized, so the refusal reaches the caller rather than dying in the pipeline.
+        Assert.Contains("serialize", log);
+    }
+
+    /// <summary>
     /// Parameters already bound - by a fork, or by a transport that bound them itself - are
     /// left alone rather than deserialized a second time off a stream that has been consumed.
     /// </summary>

@@ -46,6 +46,24 @@ namespace Hardened.Requests.Abstract.Authorization
         public string? Subject { get; }
         public bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value) { }
     }
+    public sealed class AuthorizationChallenge
+    {
+        public const string BearerScheme = "Bearer";
+        public const string HeaderName = "WWW-Authenticate";
+        public string? Description { get; }
+        public string? Error { get; }
+        public string HeaderValue { get; }
+        public string? Realm { get; }
+        public string Scheme { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Scope { get; }
+        public int StatusCode { get; }
+        public void Apply(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public override string ToString() { }
+        public static Hardened.Requests.Abstract.Authorization.AuthorizationChallenge AuthenticationRequired(string? realm = null) { }
+        public static Hardened.Requests.Abstract.Authorization.AuthorizationChallenge InsufficientAuthentication(string? realm = null, string? description = null) { }
+        public static Hardened.Requests.Abstract.Authorization.AuthorizationChallenge InsufficientScope(System.Collections.Generic.IEnumerable<string> requiredGrants, string? realm = null) { }
+        public static Hardened.Requests.Abstract.Authorization.AuthorizationChallenge InvalidToken(string? realm = null, string? description = null) { }
+    }
     public enum AuthorizationDecision
     {
         Abstain = 0,
@@ -58,6 +76,12 @@ namespace Hardened.Requests.Abstract.Authorization
         public static Hardened.Requests.Abstract.Authorization.AuthorizationDecision Combine(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> decisions) { }
         public static Hardened.Requests.Abstract.Authorization.AuthorizationDecision Combine(Hardened.Requests.Abstract.Authorization.AuthorizationDecision left, Hardened.Requests.Abstract.Authorization.AuthorizationDecision right) { }
         public static bool Permits(this Hardened.Requests.Abstract.Authorization.AuthorizationDecision decision) { }
+    }
+    public class AuthorizationException : Hardened.Requests.Abstract.Errors.StatusCodeException
+    {
+        public AuthorizationException(Hardened.Requests.Abstract.Authorization.AuthorizationChallenge challenge, string? message = null) { }
+        public Hardened.Requests.Abstract.Authorization.AuthorizationChallenge Challenge { get; }
+        public override void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
     public abstract class AuthorizationPolicy : Hardened.Requests.Abstract.Authorization.IAuthorizationPolicy
     {
@@ -111,6 +135,7 @@ namespace Hardened.Requests.Abstract.Authorization
         public abstract bool IsSatisfiedBy(Hardened.Requests.Abstract.Authorization.ICallerPrincipal principal, Hardened.Requests.Abstract.Execution.IExecutionContext context);
         public static Hardened.Requests.Abstract.Authorization.Requirement AllOf(params Hardened.Requests.Abstract.Authorization.Requirement[] requirements) { }
         public static Hardened.Requests.Abstract.Authorization.Requirement AnyOf(params Hardened.Requests.Abstract.Authorization.Requirement[] requirements) { }
+        public static Hardened.Requests.Abstract.Authorization.Requirement Authenticated() { }
         public static Hardened.Requests.Abstract.Authorization.Requirement Grant(string grant) { }
         public static Hardened.Requests.Abstract.Authorization.Requirement Predicate(System.Func<Hardened.Requests.Abstract.Authorization.ICallerPrincipal, Hardened.Requests.Abstract.Execution.IExecutionContext, bool> predicate, string? description = null) { }
         public static Hardened.Requests.Abstract.Authorization.Requirement operator &(Hardened.Requests.Abstract.Authorization.Requirement left, Hardened.Requests.Abstract.Authorization.Requirement right) { }

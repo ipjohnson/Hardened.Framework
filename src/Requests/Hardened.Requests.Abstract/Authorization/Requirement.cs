@@ -59,6 +59,19 @@ public abstract class Requirement {
         return new GrantRequirement(grant);
     }
 
+    /// <summary>
+    /// Requires only that the caller authenticated at all, whatever grants they hold.
+    /// </summary>
+    /// <remarks>
+    /// What a handler carrying no policy falls back to once the application has opted in to
+    /// requiring authorization, and what <c>[Authorize]</c> means with no policy named. Deliberately
+    /// not a <see cref="Predicate"/> over <see cref="ICallerPrincipal.IsAuthenticated"/>, even though
+    /// that would evaluate identically: a predicate cannot be known to ignore the context, so it
+    /// would move the whole requirement to the later pipeline position and read a body for a request
+    /// that has presented no credential at all.
+    /// </remarks>
+    public static Requirement Authenticated() => AuthenticatedRequirement.Instance;
+
     /// <summary>Requires all of <paramref name="requirements"/>.</summary>
     public static Requirement AllOf(params Requirement[] requirements) =>
         Combine(requirements, all: true);
@@ -144,6 +157,19 @@ public abstract class Requirement {
             principal.Grants.Contains(_grant);
 
         public override string ToString() => _grant;
+    }
+
+    private sealed class AuthenticatedRequirement : Requirement {
+        public static readonly Requirement Instance = new AuthenticatedRequirement();
+
+        public override bool RequiresContext => false;
+
+        public override IEnumerable<string> RequiredGrants => [];
+
+        public override bool IsSatisfiedBy(ICallerPrincipal principal, IExecutionContext context) =>
+            principal.IsAuthenticated;
+
+        public override string ToString() => "authenticated";
     }
 
     private sealed class CompositeRequirement : Requirement {

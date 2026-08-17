@@ -1,5 +1,6 @@
 ﻿using Hardened.IntegrationTests.Web.SUT;
 using DependencyModules.Runtime.Interfaces;
+using Hardened.IntegrationTests.WebApp.SUT.Filters;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.AspNetCore.Runtime;
@@ -24,6 +25,10 @@ public partial class Application : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         services.AddSingleton<IWebExecutionRequestHandlerProvider>(
             new OpenApiDocumentProvider(OpenApiDocument));
+
+        // Stands in for authentication until the framework ships it, so the authorization tests can
+        // exercise a caller who holds grants rather than only one who holds none.
+        services.AddSingleton<IStartupService, TestPrincipalStartupService>();
     }
 
     public static WebApplicationBuilder CreateBuilder(string[] args) {

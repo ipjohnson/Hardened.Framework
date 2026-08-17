@@ -2,8 +2,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Links;
+using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Runtime.DependencyInjection;
 using Hardened.Requests.Abstract.Serializer;
@@ -24,7 +26,8 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
             new SimpleConfigurationPackage(new IConfigurationValueProvider[] {
                 new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(null),
                 new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null),
-                new NewConfigurationValueProvider<ILinkConfiguration, LinkConfiguration>(null)
+                new NewConfigurationValueProvider<ILinkConfiguration, LinkConfiguration>(null),
+                new NewConfigurationValueProvider<IAuthorizationConfiguration, AuthorizationConfiguration>(null)
             }));
         services.AddSingleton(
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
@@ -37,6 +40,15 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         services.AddSingleton(
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
                 .GetConfiguration<ILinkConfiguration>()));
+
+        services.AddSingleton(
+            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
+                .GetConfiguration<IAuthorizationConfiguration>()));
+
+        // Always installed. It costs one call per handler at startup and returns null for a handler
+        // that carries no authorization attribute, so an application that has not opted in to
+        // anything pays nothing per request.
+        services.AddSingleton<IStartupService, AuthorizationStartupService>();
     }
 
     /// <summary>

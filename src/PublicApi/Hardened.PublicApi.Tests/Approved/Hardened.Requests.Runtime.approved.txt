@@ -17,10 +17,31 @@ namespace Hardened.Requests.Runtime
 }
 namespace Hardened.Requests.Runtime.Authorization
 {
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ActivityAuthorizationService : Hardened.Requests.Abstract.Authorization.IActivityAuthorizationService
+    {
+        public ActivityAuthorizationService() { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants) { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
     public sealed class AllowAnonymousAttribute : System.Attribute
     {
         public AllowAnonymousAttribute() { }
+    }
+    public class AuthorizationConfiguration : Hardened.Requests.Runtime.Authorization.IAuthorizationConfiguration
+    {
+        public AuthorizationConfiguration() { }
+        public bool RequireAuthorization { get; set; }
+    }
+    public class AuthorizationFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public AuthorizationFilter(Hardened.Requests.Abstract.Authorization.Requirement requirement, bool beforeSerialization) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public class AuthorizationFilterProvider
+    {
+        public AuthorizationFilterProvider(bool requireAuthorization) { }
+        public Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo? GetFilter(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
     public sealed class AuthorizeAttribute<TPolicy> : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute
@@ -35,6 +56,16 @@ namespace Hardened.Requests.Runtime.Authorization
         public AuthorizeGrantsAttribute(params string[] grants) { }
         public System.Collections.Generic.IReadOnlyList<string> Grants { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
+    }
+    public interface IAuthorizationConfiguration
+    {
+        bool RequireAuthorization { get; }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class PrincipalGrantAuthorizationHandler : Hardened.Requests.Abstract.Authorization.IActivityAuthorizationHandler
+    {
+        public PrincipalGrantAuthorizationHandler() { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants) { }
     }
 }
 namespace Hardened.Requests.Runtime.Configuration
