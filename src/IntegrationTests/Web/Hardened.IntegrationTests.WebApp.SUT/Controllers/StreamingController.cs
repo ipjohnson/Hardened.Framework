@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
@@ -21,11 +22,10 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// leave the path that used to work uncovered.
 /// </para>
 /// <para>
-/// <b>No <c>CancellationToken</c> parameter, deliberately.</b> The filter already passes
-/// <c>context.CancellationToken</c> to <c>WithCancellation</c> at the enumeration site, so a
-/// handler gets cancellation without asking for it. Writing the idiomatic
-/// <c>[EnumeratorCancellation] CancellationToken</c> here compiles and then throws at run time -
-/// see STREAMING-PLAN.md item 9.
+/// <see cref="Cancellable"/> covers the signature every C# author writes on an async iterator. A
+/// handler does not need it - the filter already passes <c>context.CancellationToken</c> to
+/// <c>WithCancellation</c> at the enumeration site, so a handler is cancellable without asking -
+/// but it is what people write, and until <c>CancellationToken</c> bound by type it answered 500.
 /// </para>
 /// </remarks>
 [BasePath("/streaming")]
@@ -55,6 +55,25 @@ public class StreamingController {
         await Task.Yield();
 
         yield return "beta";
+    }
+
+    /// <summary>
+    /// The signature the C# compiler expects on a cancellable async iterator.
+    /// </summary>
+    /// <remarks>
+    /// Two things had to be true for this to bind, and neither was: <c>CancellationToken</c> is a
+    /// struct, so it fell past every branch to <c>Body</c> and the pipeline tried to deserialize a
+    /// request body into it; and <c>[EnumeratorCancellation]</c> was unrecognised, so it was emitted
+    /// as a custom binder and threw "does not implement ICustomBindingAttribute" before that.
+    /// </remarks>
+    [Get("/cancellable")]
+    public async IAsyncEnumerable<Measurement> Cancellable(
+        [EnumeratorCancellation] CancellationToken cancellationToken) {
+        yield return new Measurement("west", 7, true);
+
+        await Task.Yield();
+
+        yield return new Measurement("centre", 19, false);
     }
 
     /// <summary>

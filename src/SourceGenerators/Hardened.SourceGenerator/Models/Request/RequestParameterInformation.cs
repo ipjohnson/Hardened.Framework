@@ -111,6 +111,19 @@ public enum ParameterBindType {
     ExecutionContext,
     ExecutionRequest,
     ExecutionResponse,
+
+    /// <summary>
+    /// The request's <c>CancellationToken</c>, taken off the context.
+    /// </summary>
+    /// <remarks>
+    /// A handler does not have to ask for this to be cancellable - the pipeline already passes
+    /// <c>context.CancellationToken</c> to <c>WithCancellation</c> where it enumerates a streamed
+    /// response, and hands it to filters. Binding it exists because a handler that wants to pass it
+    /// on to something else has to be able to name it, and because
+    /// <c>[EnumeratorCancellation] CancellationToken</c> is what every C# author writes on an async
+    /// iterator - which, without this, bound as a body parameter and failed at run time.
+    /// </remarks>
+    CancellationToken,
     CustomAttribute,
 
     /// <summary>

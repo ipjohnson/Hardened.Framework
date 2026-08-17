@@ -52,6 +52,7 @@ public static class BindRequestParametersMethodGenerator {
                 case ParameterBindType.ExecutionContext:
                 case ParameterBindType.ExecutionRequest:
                 case ParameterBindType.ExecutionResponse:
+                case ParameterBindType.CancellationToken:
                     BindExecutionSpecialType(parameterInformation, invokeMethod, context, parametersVar);
                     break;
 
@@ -144,6 +145,9 @@ public static class BindRequestParametersMethodGenerator {
         }
         else if (parameterInformation.BindingType == ParameterBindType.ExecutionResponse) {
             invokeStatement = context.Property("Response");
+        }
+        else if (parameterInformation.BindingType == ParameterBindType.CancellationToken) {
+            invokeStatement = context.Property("CancellationToken");
         }
 
         invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));

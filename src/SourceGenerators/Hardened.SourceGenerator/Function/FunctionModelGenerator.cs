@@ -63,10 +63,10 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
         ParameterSyntax parameter, int parameterIndex) {
         foreach (var attributeList in parameter.AttributeLists) {
             foreach (var attribute in attributeList.Attributes) {
-                // See WebRequestHandlerModelGenerator: a constraint is not a binding attribute, and
-                // letting it reach the default branch below binds the parameter as a custom
+                // See WebRequestHandlerModelGenerator: these are not binding attributes, and
+                // letting one reach the default branch below binds the parameter as a custom
                 // attribute instead of from the payload.
-                if (ConstraintAttributeFacts.IsConstraint(generatorSyntaxContext, attribute)) {
+                if (NonBindingAttributeFacts.IsNonBinding(generatorSyntaxContext, attribute)) {
                     continue;
                 }
 

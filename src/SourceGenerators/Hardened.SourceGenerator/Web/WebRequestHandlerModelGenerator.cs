@@ -163,11 +163,11 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         int parameterIndex) {
         foreach (var attributeList in parameter.AttributeLists) {
             foreach (var attribute in attributeList.Attributes) {
-                // A constraint says something about the value, not about where it comes from.
-                // Without this it falls to the default branch below and is emitted as a custom
-                // binder, so [StringLength(3)] on a route parameter stops the parameter binding at
-                // all rather than merely failing to be validated.
-                if (ConstraintAttributeFacts.IsConstraint(generatorSyntaxContext, attribute)) {
+                // Some attributes say something other than where the value comes from - a
+                // constraint describes the value, [EnumeratorCancellation] is compiler machinery.
+                // Without this they fall to the default branch below and are emitted as custom
+                // binders, which takes the parameter out of the binding path it was written for.
+                if (NonBindingAttributeFacts.IsNonBinding(generatorSyntaxContext, attribute)) {
                     continue;
                 }
 
