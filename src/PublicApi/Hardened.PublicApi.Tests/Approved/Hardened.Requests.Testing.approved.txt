@@ -14,6 +14,16 @@ namespace Hardened.Requests.Testing.Conformance
     {
         protected ExecutionRequestConformanceTests() { }
         protected abstract Hardened.Requests.Testing.Conformance.IExecutionRequestConformanceAdapter Adapter { get; }
+        [Xunit.InlineData(new object[] {
+                "CONTENT-TYPE",
+                "Content-Type"})]
+        [Xunit.InlineData(new object[] {
+                "Content-Type",
+                "content-type"})]
+        [Xunit.InlineData(new object[] {
+                "content-type",
+                "Content-Type"})]
+        public void AHeaderIsFoundUnderAnySpelling(string written, string read) { }
         public void AcceptComesFromTheAcceptHeader() { }
         public void AcceptReflectsANonJsonValue() { }
         public void BodyIsReadable() { }
@@ -26,6 +36,7 @@ namespace Hardened.Requests.Testing.Conformance
         public void CloneReplacesHeadersWhenHeadersAreProvided() { }
         public void CloneReplacesMethodWhenMethodIsProvided() { }
         public void CloneReplacesPathWhenPathIsProvided() { }
+        public void ContentTypeAndAcceptIgnoreTheCaseTheyArriveIn() { }
         public void ContentTypeComesFromTheContentTypeHeader() { }
         public void CookiesAreEmptyRatherThanNullWhenNoneWereSent() { }
         public void CookiesAreSurfaced() { }
@@ -77,6 +88,11 @@ namespace Hardened.Requests.Testing.Conformance
         System.Threading.Tasks.Task<Hardened.Requests.Testing.Conformance.ObservedResponse> Complete(Hardened.Requests.Abstract.Execution.IExecutionResponse response);
         Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse();
     }
+    public interface IRequestTelemetryConformanceAdapter
+    {
+        string TransportName { get; }
+        System.Threading.Tasks.Task Dispatch(Hardened.Requests.Testing.Conformance.TelemetryConformanceRequest request);
+    }
     public class ObservedResponse : System.IEquatable<Hardened.Requests.Testing.Conformance.ObservedResponse>
     {
         public ObservedResponse(int StatusCode, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IReadOnlyList<string>> Headers, System.Collections.Generic.IReadOnlyList<string> SetCookies, byte[] Body) { }
@@ -86,6 +102,33 @@ namespace Hardened.Requests.Testing.Conformance
         public int StatusCode { get; init; }
         public string BodyAsText() { }
         public string? Header(string name) { }
+    }
+    public abstract class RequestTelemetryConformanceTests
+    {
+        protected RequestTelemetryConformanceTests() { }
+        protected abstract Hardened.Requests.Testing.Conformance.IRequestTelemetryConformanceAdapter Adapter { get; }
+        [Xunit.InlineData(new object[] {
+                400})]
+        [Xunit.InlineData(new object[] {
+                404})]
+        public System.Threading.Tasks.Task AClientErrorLeavesTheSpanUnset(int status) { }
+        public System.Threading.Tasks.Task ARequestProducesAServerSpan() { }
+        public System.Threading.Tasks.Task ARequestWithNoTraceparentStartsANewTrace() { }
+        public System.Threading.Tasks.Task AServerErrorMarksTheSpanErrored() { }
+        public System.Threading.Tasks.Task AStatusSetByTheHandlerIsRecorded() { }
+        public System.Threading.Tasks.Task ASuccessThatSetNoStatusIsRecordedAsTwoHundred() { }
+        public System.Threading.Tasks.Task TheSpanCarriesTheMethod() { }
+        public System.Threading.Tasks.Task TheSpanIsStopped() { }
+        public System.Threading.Tasks.Task TheSpanJoinsTheTraceItsCallerSent() { }
+        public System.Threading.Tasks.Task TheTraceparentIsFoundWhateverCaseItArrivedIn() { }
+    }
+    public sealed class TelemetryConformanceRequest
+    {
+        public TelemetryConformanceRequest() { }
+        public System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? Handler { get; init; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; init; }
+        public required string Method { get; init; }
+        public required string Path { get; init; }
     }
 }
 namespace Hardened.Requests.Testing

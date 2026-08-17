@@ -5,13 +5,35 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Runtime.Headers;
 
+/// <summary>
+/// An <see cref="IHeaderCollection"/> over a dictionary, looked up the way HTTP defines header
+/// names: without regard to case.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Every lookup here used to run against a dictionary built with the default, case-sensitive
+/// comparer, while <c>KnownHeaders</c> asks for canonical spellings - <c>Content-Type</c>,
+/// <c>Accept</c>, <c>Cookie</c>. API Gateway's HTTP API delivers header names lowercased, so on
+/// Lambda those two never met: every request was read as <c>application/json</c> whatever its
+/// content type, and <c>Accept</c> was ignored, which meant content negotiation did not work on
+/// that transport at all.
+/// </para>
+/// <para>
+/// It was invisible because every header test wrote canonical casing, so the harnesses were kinder
+/// than the transports they stood in for. ASP.NET and Kestrel were unaffected on the ordinary path -
+/// they hand over their own <c>IHeaderDictionary</c>, which is already case-insensitive - but a
+/// forked request there took an override dictionary and lost the property.
+/// </para>
+/// </remarks>
 public class HeaderCollectionStringValues : IHeaderCollection {
     private readonly IDictionary<string, StringValues> _headers;
 
-    public HeaderCollectionStringValues() : this(new Dictionary<string, StringValues>()) { }
+    public HeaderCollectionStringValues() {
+        _headers = NewCaseInsensitive();
+    }
 
     public HeaderCollectionStringValues(IDictionary<string, string>? values) {
-        _headers = new Dictionary<string, StringValues>();
+        _headers = NewCaseInsensitive();
 
         if (values != null) {
             foreach (var pair in values) {
@@ -20,8 +42,58 @@ public class HeaderCollectionStringValues : IHeaderCollection {
         }
     }
 
+    /// <summary>
+    /// Wraps <paramref name="headers"/> when it already compares names without regard to case, and
+    /// copies it when it does not.
+    /// </summary>
+    /// <remarks>
+    /// Wrapping by reference is deliberate where it is safe: a caller that hands over a dictionary
+    /// and then reads its own copy back - which is how the Lambda transports collect response
+    /// headers - depends on writes landing in it. Copying unconditionally would have taken that
+    /// away, so the reference survives for a dictionary that was built correctly and the copy is the
+    /// fallback for one that was not.
+    /// </remarks>
     public HeaderCollectionStringValues(IDictionary<string, StringValues> headers) {
-        _headers = headers;
+        _headers = EnsureCaseInsensitive(headers);
+    }
+
+    /// <summary>
+    /// <paramref name="headers"/> if it already compares names without regard to case, otherwise a
+    /// case-insensitive copy of it.
+    /// </summary>
+    /// <remarks>
+    /// Public because a transport holding a raw dictionary needs the same guarantee without wrapping
+    /// it in a collection - the header override a forked request carries on ASP.NET and Kestrel is
+    /// exactly that case.
+    /// </remarks>
+    public static IDictionary<string, StringValues> EnsureCaseInsensitive(
+        IDictionary<string, StringValues> headers) {
+        if (IsCaseInsensitive(headers)) {
+            return headers;
+        }
+
+        var copy = NewCaseInsensitive();
+
+        foreach (var pair in headers) {
+            copy[pair.Key] = pair.Value;
+        }
+
+        return copy;
+    }
+
+    private static Dictionary<string, StringValues> NewCaseInsensitive() {
+        return new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Only a <see cref="Dictionary{TKey,TValue}"/> exposes the comparer it was built with, so
+    /// anything else - including ASP.NET's own header dictionary, which is case-insensitive but not
+    /// a <c>Dictionary</c> - is copied rather than trusted. Those transports do not construct this
+    /// type on the path that matters, so the copy lands where it is affordable.
+    /// </summary>
+    private static bool IsCaseInsensitive(IDictionary<string, StringValues> headers) {
+        return headers is Dictionary<string, StringValues> dictionary &&
+               ReferenceEquals(dictionary.Comparer, StringComparer.OrdinalIgnoreCase);
     }
 
     public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() {

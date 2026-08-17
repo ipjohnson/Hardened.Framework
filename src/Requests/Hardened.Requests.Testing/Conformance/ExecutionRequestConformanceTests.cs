@@ -94,6 +94,50 @@ public abstract class ExecutionRequestConformanceTests {
         Assert.DoesNotContain("application/json", request.Accept!);
     }
 
+    /// <summary>
+    /// Header names are case-insensitive, and no two transports agree on how to spell them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// API Gateway's HTTP API lowercases every name it delivers. Kestrel and ASP.NET pass through
+    /// whatever arrived. <c>KnownHeaders</c> — which is what the framework itself looks up with —
+    /// spells them canonically: <c>Content-Type</c>, <c>Accept</c>, <c>Cookie</c>.
+    /// </para>
+    /// <para>
+    /// Every test above this one writes canonical casing, which is why a case-sensitive header store
+    /// on the Lambda transports went unnoticed: it made <c>ContentType</c> come back as
+    /// <c>application/json</c> for every request whatever it actually carried, and disabled content
+    /// negotiation entirely on that transport. Asserting the spelling a transport does not use is the
+    /// only version of this test that could have caught it.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData("content-type", "Content-Type")]
+    [InlineData("Content-Type", "content-type")]
+    [InlineData("CONTENT-TYPE", "Content-Type")]
+    public void AHeaderIsFoundUnderAnySpelling(string written, string read) {
+        var request = Create(s => s.Headers[written] = "text/csv");
+
+        Assert.True(request.Headers.TryGetValue(read, out var value),
+            Because($"a header written as '{written}' has to answer to '{read}'"));
+        Assert.Equal("text/csv", value.ToString());
+    }
+
+    /// <summary>
+    /// And the derived properties have to agree, because they are what the pipeline actually reads.
+    /// </summary>
+    [Fact]
+    public void ContentTypeAndAcceptIgnoreTheCaseTheyArriveIn() {
+        var request = Create(s => {
+            s.Headers["content-type"] = "text/csv";
+            s.Headers["accept"] = "text/html";
+        });
+
+        Assert.Equal("text/csv", request.ContentType);
+        Assert.NotNull(request.Accept);
+        Assert.Contains("text/html", request.Accept!);
+    }
+
     [Fact]
     public void QueryStringIsSurfaced() {
         var request = Create(s => {

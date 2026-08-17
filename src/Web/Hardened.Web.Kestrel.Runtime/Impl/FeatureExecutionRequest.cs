@@ -7,6 +7,7 @@ using Hardened.Requests.Runtime.QueryString;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
+using Hardened.Requests.Runtime.Headers;
 
 namespace Hardened.Web.Kestrel.Runtime.Impl;
 
@@ -47,7 +48,13 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
         _feature = feature;
         _methodOverride = methodOverride;
         _pathOverride = pathOverride;
-        _headersOverride = headersOverride;
+
+        // A fork is handed a plain dictionary, which is very likely case-sensitive, while the
+        // request it forked from was reading the feature's own case-insensitive collection. Left
+        // alone the override silently changes how header names resolve for the rest of that chain.
+        _headersOverride = headersOverride is null
+            ? null
+            : HeaderCollectionStringValues.EnsureCaseInsensitive(headersOverride);
         _queryStringOverride = queryStringOverride;
         _cookiesOverride = cookiesOverride;
     }
