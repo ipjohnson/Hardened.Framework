@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.OpenApi.SourceGenerator;
 
-internal static class OpenApiRoutingTableGenerator {
+internal static class SpecRoutingTableGenerator {
     private static readonly IOutputComponent EmptyTokens =
         Property(KnownTypes.Requests.PathTokenCollection, "Empty");
 

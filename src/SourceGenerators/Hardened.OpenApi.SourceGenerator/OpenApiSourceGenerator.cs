@@ -174,7 +174,7 @@ public class OpenApiSourceGenerator : IIncrementalGenerator {
 
         context.RegisterSourceOutput(routeProvider,
             SourceGeneratorWrapper.Wrap<((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<string> Right) Left, bool Right)>(
-                (ctx, pair) => OpenApiRoutingTableGenerator.GenerateRoute(
+                (ctx, pair) => SpecRoutingTableGenerator.GenerateRoute(
                     ctx, pair.Left.Left.Left, pair.Left.Left.Right!, pair.Left.Right, pair.Right)));
 
         // One abstract template base per [Enable<T>] marker, the same registration the attribute
