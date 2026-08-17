@@ -11,6 +11,7 @@ using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Json;
+using Hardened.Shared.Runtime.Metrics;
 using Hardened.Shared.Testing.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -63,12 +64,14 @@ public class TestWebApp : TestContext, ITestWebApp {
 
         var middlewareService = _applicationRoot.Provider.GetRequiredService<IMiddlewareService>();
         var requestLogger = _applicationRoot.Provider.GetRequiredService<IRequestLogger>();
+        var metricLoggerProvider = _applicationRoot.Provider.GetRequiredService<IMetricLoggerProvider>();
 
         var responseBody = new MemoryStream();
         var scope = _applicationRoot.Provider.CreateScope();
 
         var context = CreateContext(
-            httpMethod, path, webRequest, responseBody, scope);
+            httpMethod, path, webRequest, responseBody, scope,
+            metricLoggerProvider.CreateLogger("test-session"));
 
         context.Request.Headers[KnownHeaders.AcceptEncoding]= KnownEncoding.GZip;
 
@@ -89,13 +92,23 @@ public class TestWebApp : TestContext, ITestWebApp {
             Console.WriteLine(e);
             throw;
         }
+        finally {
+            // In a finally because these ran as straight-line statements after the chain, so a
+            // request that threw closed out nothing: no duration, no end, and the scope leaked.
+            context.RequestMetrics.Record(
+                RequestMetrics.TotalRequestDuration, startTimestamp.GetElapsedMilliseconds());
 
-        scope.Dispose();
+            requestLogger.RequestEnd(context);
+
+            // The logger is per request and nothing else owns it. Disposal is how a provider learns
+            // the request finished, so a harness assertion about what a request emitted has nothing
+            // to read without it.
+            context.RequestMetrics.Dispose();
+
+            scope.Dispose();
+        }
 
         responseBody.Position = 0;
-
-        context.RequestMetrics.Record(RequestMetrics.TotalRequestDuration, startTimestamp.GetElapsedMilliseconds());
-        requestLogger.RequestEnd(context);
 
         return new TestWebResponse(context.Response);
     }
@@ -123,7 +136,8 @@ public class TestWebApp : TestContext, ITestWebApp {
         string path,
         Action<TestWebRequest>? webRequest,
         MemoryStream responseBody,
-        IServiceScope serviceScope) {
+        IServiceScope serviceScope,
+        IMetricLogger metricLogger) {
         var header = new Dictionary<string, StringValues>();
 
         var testWebRequest = new TestWebRequest { Headers = header };
@@ -177,7 +191,8 @@ public class TestWebApp : TestContext, ITestWebApp {
             serviceScope.ServiceProvider.GetRequiredService<IKnownServices>(),
             request,
             response,
-            testWebRequest.Token.Value);
+            testWebRequest.Token.Value,
+            metricLogger);
     }
 
     private IQueryStringCollection ParseQueryStringFromPath(string path) {
