@@ -50,9 +50,10 @@ public class GeneratedCodeCompilesTests {
     }
 
     /// <summary>
-    /// The enum emitter's output. A generated enum has to carry
-    /// <c>JsonStringEnumConverter</c> or a spec value like <c>available</c> round-trips as an
-    /// integer.
+    /// The enum emitter's output. A generated enum has to name a converter or a spec value round
+    /// trips as an integer - and it has to be the generated one, because
+    /// <c>JsonStringEnumConverter</c> writes the C# member name rather than the value the
+    /// description declares.
     /// </summary>
     [Fact]
     public void GeneratedEnumsCompile() {
@@ -61,7 +62,8 @@ public class GeneratedCodeCompilesTests {
         var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public enum WidgetStatus", generated);
-        Assert.Contains("JsonStringEnumConverter", generated);
+        Assert.Contains("WidgetStatusConverter", generated);
+        Assert.DoesNotContain("JsonStringEnumConverter", generated);
     }
 
     /// <summary>
@@ -119,7 +121,7 @@ public class GeneratedCodeCompilesTests {
                     """))
             .AssertNoErrors();
 
-        var routing = result.SourceContaining("OpenApiRouting");
+        var routing = result.SourceContaining("SpecRouting");
 
         foreach (var verb in new[] { "GET", "POST", "PUT", "PATCH", "DELETE" }) {
             Assert.Contains($"case \"{verb}\":", routing);
@@ -151,7 +153,7 @@ public class GeneratedCodeCompilesTests {
                     '200': { description: ok }
             """).AssertNoErrors();
 
-        Assert.Contains($"case \"{expected}\":", result.SourceContaining("OpenApiRouting"));
+        Assert.Contains($"case \"{expected}\":", result.SourceContaining("SpecRouting"));
     }
 
     /// <summary>
@@ -546,7 +548,7 @@ public class GeneratedCodeCompilesTests {
                     """))
             .AssertNoErrors();
 
-        var routing = result.SourceContaining("OpenApiRouting");
+        var routing = result.SourceContaining("SpecRouting");
 
         Assert.Contains("IPetService,", routing);
         Assert.Contains("IStoreService,", routing);
@@ -633,7 +635,7 @@ public class GeneratedCodeCompilesTests {
             .AssertNoErrors();
 
         Assert.Contains("public partial record Pet", result.GeneratedSources["petstore.g.cs"]);
-        Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("OpenApiRouting"));
+        Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("SpecRouting"));
     }
 
     /// <summary>

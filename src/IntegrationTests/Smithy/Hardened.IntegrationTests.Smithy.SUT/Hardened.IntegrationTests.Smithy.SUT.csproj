@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- A test fixture, not a shipped package. -->
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.Smithy.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+
+        <!--
+            The same generator the OpenAPI fixture uses, unchanged and unaware of Smithy. That is
+            what this project exists to prove: a second front end supplies a reader and inherits
+            every emitter, the routing table and the handler generation.
+        -->
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Idl.SourceGenerator\Hardened.Idl.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+        In-repo wiring for the build task, which the package does through build/*.targets. The
+        flavour is selected on $(MSBuildRuntimeType) exactly as the package's targets select between
+        tasks/net472 and tasks/net8.0, and the ProjectReference tracks the same flavour so the
+        assembly the host is about to load is the one built first.
+    -->
+    <PropertyGroup>
+        <_HardenedSmithyTaskTfm Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_HardenedSmithyTaskTfm>
+        <_HardenedSmithyTaskTfm Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_HardenedSmithyTaskTfm>
+        <HardenedSmithyTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.Smithy.BuildTask\bin\$(Configuration)\$(_HardenedSmithyTaskTfm)\Hardened.Smithy.BuildTask.dll</HardenedSmithyTaskAssembly>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Smithy.BuildTask\Hardened.Smithy.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          SetTargetFramework="TargetFramework=$(_HardenedSmithyTaskTfm)"/>
+    </ItemGroup>
+
+    <!--
+        A committed JSON AST, produced by the Smithy CLI's ast command with its flatten option over
+        Specs/petstore.smithy. That .smithy source sits beside it for reading, and nothing in this
+        build reads it: no CLI is resolved,
+        nothing is downloaded, and the build works offline. That is the point of the AST being the
+        input rather than the IDL.
+    -->
+    <ItemGroup>
+        <HardenedSmithyAst Include="Specs\petstore.json"/>
+        <None Include="Specs\petstore.smithy"/>
+    </ItemGroup>
+
+    <!--
+        Imported after the AST is declared. The targets file puts generated sources into @(Compile)
+        from a top-level ItemGroup so the IDE sees them without a build, and top-level item groups
+        are evaluated in document order - so an import above @(HardenedSmithyAst) reads it as empty
+        and contributes nothing.
+    -->
+    <Import Project="..\..\..\SourceGenerators\Hardened.Smithy.SourceGenerator\Package\Hardened.Smithy.SourceGenerator.targets"/>
+
+</Project>

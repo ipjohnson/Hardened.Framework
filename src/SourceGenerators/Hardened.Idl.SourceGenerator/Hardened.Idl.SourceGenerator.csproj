@@ -1,0 +1,102 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../CSharpAuthor.props"/>
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Description>Roslyn generator that turns a normalised service model into Hardened handlers and a routing table. Shared by every description language front end; reference a front end package rather than this one directly.</Description>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Idl.SourceGenerator</PackageId>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+
+        <!--
+            Deliberately NOT a DevelopmentDependency, unlike the front-end packages that depend on
+            it. A development dependency is not carried into a consumer's graph, and this package's
+            whole job is to arrive there transitively - a project referencing
+            Hardened.OpenApi.SourceGenerator or Hardened.Smithy.SourceGenerator must end up with
+            exactly one copy of this analyzer, which is what makes referencing both at once work.
+        -->
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Idl.SourceGenerator.Tests"/>
+
+        <!--
+            The OpenAPI generator suite still drives this generator end to end - it parses a
+            document with the OpenAPI reader and asserts on what comes out of here.
+        -->
+        <InternalsVisibleTo Include="Hardened.OpenApi.SourceGenerator.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0"/>
+        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0"/>
+        <PackageReference Include="System.Memory" Version="4.5.5"/>
+    </ItemGroup>
+
+    <!--
+        The analyzer DLL, which carries no dependencies of its own. Every description reader lives in
+        an MSBuild task instead, where dependencies resolve normally - Roslyn hosts do not reliably
+        resolve co-located analyzer dependencies, which is what an AppDomain.AssemblyResolve hook
+        used to work around here.
+    -->
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+    </ItemGroup>
+
+    <!-- Shared with every build task. See Hardened.Idl.Shared for why this is source and not a reference. -->
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
+                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
+            <Link>Shared\Idl\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <!-- Link shared code from Hardened.SourceGenerator -->
+    <ItemGroup>
+        <Compile Include="../Hardened.SourceGenerator/Shared/**/*">
+            <Link>Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Links/**/*">
+            <Link>Links\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Models/**/*">
+            <Link>Models\Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/OpenApiDocument/**/*">
+            <Link>OpenApiDocument\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Requests/**/*">
+            <Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Templates/**/*">
+            <Link>Templates\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/Routing/**/*">
+            <Link>Web\Routing\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/WebExecutionHandlerCodeGenerator.cs">
+            <Link>Web\WebExecutionHandlerCodeGenerator.cs</Link>
+        </Compile>
+    </ItemGroup>
+
+    <!--
+        CSharpAuthor ships as source and is compiled in, so its files are analysed as if they were
+        ours - and it predates nullable reference types. Under ContinuousIntegrationBuild every
+        warning is an error, so its eight would fail the build.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
+    </PropertyGroup>
+
+</Project>

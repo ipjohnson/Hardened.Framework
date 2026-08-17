@@ -4,7 +4,7 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.Idl;
 
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl.SourceGenerator;
 
 internal static class RequestModelBuilder {
     public static List<RequestHandlerModel> BuildModels(

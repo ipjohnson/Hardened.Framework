@@ -9,7 +9,7 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 ///
 /// <para>
 /// <see cref="ServiceSpecModel"/> and everything it holds sit inside Roslyn's incremental pipeline:
-/// <c>OpenApiSourceGenerator</c> parses each <c>AdditionalFiles</c> entry into one, and Roslyn
+/// <c>SpecSourceGenerator</c> parses each <c>AdditionalFiles</c> entry into one, and Roslyn
 /// compares the new value against the cached one to decide whether the downstream emit runs again.
 /// Equality that is too loose serves stale generated code after a real edit; equality that is too
 /// tight regenerates every type in the project on every keystroke.
@@ -584,7 +584,7 @@ public class SpecModelEqualityTests {
             new Dictionary<string, string> {
                 ["Test.cs"] = OpenApiGenerator.MinimalEntryPoint + Environment.NewLine + "// a comment"
             },
-            [new OpenApiSourceGenerator()],
+            [new SpecSourceGenerator()],
             null,
             new Dictionary<string, string> { ["petstore.yaml"] = Specs.EverySchemaShape });
 

@@ -5,7 +5,7 @@ using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl.SourceGenerator;
 
 internal static class HandlerSelector {
     private const string HandlerAttributeName = "Handler";

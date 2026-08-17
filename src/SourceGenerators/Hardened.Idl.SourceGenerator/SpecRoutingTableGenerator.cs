@@ -8,7 +8,7 @@ using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 
-namespace Hardened.OpenApi.SourceGenerator;
+namespace Hardened.Idl.SourceGenerator;
 
 internal static class SpecRoutingTableGenerator {
     private static readonly IOutputComponent EmptyTokens =
@@ -29,7 +29,7 @@ internal static class SpecRoutingTableGenerator {
         ImmutableArray<string> jsonTypeInfoResolvers,
         bool excludeFromCoverage = false) {
         var outputString = GenerateCSharpRouteFile(models.Left, models.Right, handlerInfos, jsonTypeInfoResolvers, context.CancellationToken, excludeFromCoverage);
-        var fileName = models.Left.EntryPointType.Name + ".OpenApiRouting";
+        var fileName = models.Left.EntryPointType.Name + ".SpecRouting";
         context.AddSource(fileName, outputString);
 
         // The same links an attribute-routed application gets, from the same models. A document
@@ -75,7 +75,7 @@ internal static class SpecRoutingTableGenerator {
         var appClass = applicationFile.AddClass(appModel.EntryPointType.Name);
         appClass.Modifiers |= ComponentModifier.Partial;
 
-        var routingClass = appClass.AddClass("OpenApiRoutingTable");
+        var routingClass = appClass.AddClass("SpecRoutingTable");
         routingClass.Modifiers |= ComponentModifier.Private;
         routingClass.AddBaseType(KnownTypes.Web.IWebExecutionRequestHandlerProvider);
 
@@ -89,7 +89,7 @@ internal static class SpecRoutingTableGenerator {
 
         var routingType = TypeDefinition.Get(
             appModel.EntryPointType.Namespace,
-            appModel.EntryPointType.Name + ".OpenApiRoutingTable");
+            appModel.EntryPointType.Name + ".SpecRoutingTable");
 
         GenerateDependencyInjection(appClass, routingType, appModel, endPointModels, handlerInfos, jsonTypeInfoResolvers, cancellationToken);
     }
@@ -114,10 +114,10 @@ internal static class SpecRoutingTableGenerator {
         var templateField = classDefinition.AddField(typeof(int), "_openApiRoutingTableDependencies");
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime.Helpers);
-        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add(OpenApiRoutingTableDI)");
-        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(OpenApiRoutingTableDI)");
+        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add(SpecRoutingTableDI)");
+        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(SpecRoutingTableDI)");
 
-        var diMethod = classDefinition.AddMethod("OpenApiRoutingTableDI");
+        var diMethod = classDefinition.AddMethod("SpecRoutingTableDI");
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");

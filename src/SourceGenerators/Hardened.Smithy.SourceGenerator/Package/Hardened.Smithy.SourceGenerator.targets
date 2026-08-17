@@ -1,0 +1,191 @@
+<Project>
+    <PropertyGroup>
+        <ExcludeGeneratedCodeFromCoverage Condition="'$(ExcludeGeneratedCodeFromCoverage)' == ''">true</ExcludeGeneratedCodeFromCoverage>
+        <!-- Write generated files to disk so IDEs that struggle with AdditionalText-only generators can index them -->
+        <EmitCompilerGeneratedFiles Condition="'$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <!--
+        The generator that reads the model this task writes is Hardened.Idl.SourceGenerator, shared
+        with every other front end, and it is told the namespace through the neutral property. Set
+        from $(HardenedSmithyNamespace) below so a project only ever spells the Smithy one.
+    -->
+    <ItemGroup>
+        <CompilerVisibleProperty Include="ExcludeGeneratedCodeFromCoverage"/>
+        <CompilerVisibleProperty Include="HardenedIdlNamespace"/>
+    </ItemGroup>
+
+    <!--
+        This task ingests a Smithy JSON AST, never a .smithy file. Given a .json on disk nothing is
+        resolved, downloaded or executed, so the build is hermetic and works offline - which is why
+        running the Smithy CLI's ast command with its flatten option, redirecting stdout to a file
+        and committing the result, is a supported way to use this rather than a workaround.
+
+        The Smithy CLI writes the AST to stdout and creates no file, and writes nothing at all when
+        validation fails. A target that runs it therefore has to redirect stdout into a file itself
+        and must not treat a zero-byte result as an empty model; the task reports that case rather
+        than parsing it.
+    -->
+    <PropertyGroup>
+        <_HardenedSmithyTasksDir Condition="'$(MSBuildRuntimeType)' == 'Core'">$(MSBuildThisFileDirectory)../tasks/net8.0/</_HardenedSmithyTasksDir>
+        <_HardenedSmithyTasksDir Condition="'$(MSBuildRuntimeType)' != 'Core'">$(MSBuildThisFileDirectory)../tasks/net472/</_HardenedSmithyTasksDir>
+        <HardenedSmithyTaskAssembly Condition="'$(HardenedSmithyTaskAssembly)' == ''">$(_HardenedSmithyTasksDir)Hardened.Smithy.BuildTask.dll</HardenedSmithyTaskAssembly>
+
+        <HardenedSmithyNetTaskAssembly Condition="'$(HardenedSmithyNetTaskAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/net8.0/Hardened.Smithy.BuildTask.dll</HardenedSmithyNetTaskAssembly>
+        <_HardenedSmithyUseNetTaskHost>false</_HardenedSmithyUseNetTaskHost>
+        <_HardenedSmithyUseNetTaskHost
+            Condition="'$(MSBuildRuntimeType)' != 'Core' And '$(MSBuildVersion)' != '' And $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">true</_HardenedSmithyUseNetTaskHost>
+    </PropertyGroup>
+
+    <!--
+        Out of process, always, for the same reason the OpenAPI task is: a task assembly loads into
+        MSBuild itself, and on .NET Framework that is the default AppDomain where assembly identity
+        is global. Visual Studio has already loaded a System.Text.Json by the time this runs and this
+        task wants its own, which in process is a FileLoadException at task execution. A task host is
+        a fresh process with none of that in it, and the launch is not measurable against parsing an
+        AST.
+    -->
+    <UsingTask TaskName="Hardened.Smithy.BuildTask.ExtractSmithySpec"
+               Condition="'$(_HardenedSmithyUseNetTaskHost)' == 'true'"
+               Runtime="NET"
+               AssemblyFile="$(HardenedSmithyNetTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.Smithy.BuildTask.ExtractSmithySpec"
+               Condition="'$(_HardenedSmithyUseNetTaskHost)' != 'true' And '$(HardenedSmithyInProcessTask)' != 'true'"
+               TaskFactory="TaskHostFactory"
+               AssemblyFile="$(HardenedSmithyTaskAssembly)"/>
+
+    <!--
+        In process, for the case the task host cannot serve: a build that produces the task assembly
+        it is about to run. Expect the assembly to stay locked afterwards.
+    -->
+    <UsingTask TaskName="Hardened.Smithy.BuildTask.ExtractSmithySpec"
+               Condition="'$(_HardenedSmithyUseNetTaskHost)' != 'true' And '$(HardenedSmithyInProcessTask)' == 'true'"
+               AssemblyFile="$(HardenedSmithyTaskAssembly)"/>
+
+    <!--
+        Declared at the top level and NOT inside the target that writes them, because an IDE builds
+        its project model out of MSBuild evaluation rather than out of a build. A file that only
+        becomes a @(Compile) item while a target is running is a file the editor never hears about,
+        so every reference to a generated type reddens in a project that builds clean.
+
+        The model files keep the .openapi-model.txt suffix on purpose. The file holds a
+        ServiceSpecModel rather than any particular description, and Hardened.Idl.SourceGenerator
+        matches that one suffix - so sharing it is what lets this front end reuse the whole generator
+        half for no code. The name lies; changing it in three agreeing places to fix that costs more
+        than it buys.
+    -->
+    <ItemGroup Condition="'@(HardenedSmithyAst)' != ''">
+        <HardenedSmithyAst Update="@(HardenedSmithyAst)">
+            <SliceSuffix Condition="'%(HardenedSmithyAst.Slice)' != ''">.%(HardenedSmithyAst.Slice)</SliceSuffix>
+        </HardenedSmithyAst>
+
+        <_HardenedSmithyModel Condition="'$(HardenedSmithyModelDir)' == ''"
+                              Include="@(HardenedSmithyAst->'$(IntermediateOutputPath)smithy/%(Filename)%(SliceSuffix).openapi-model.txt')"/>
+        <_HardenedSmithyModel Condition="'$(HardenedSmithyModelDir)' != ''"
+                              Include="@(HardenedSmithyAst->'$(HardenedSmithyModelDir)%(Filename)%(SliceSuffix).openapi-model.txt')"/>
+
+        <_HardenedSmithySource Condition="'$(HardenedSmithyGeneratedDir)' == '' And '$(HardenedSmithyModelDir)' == ''"
+                               Include="@(HardenedSmithyAst->'$(IntermediateOutputPath)smithy/generated/%(Filename)%(SliceSuffix).g.cs')"/>
+        <_HardenedSmithySource Condition="'$(HardenedSmithyGeneratedDir)' == '' And '$(HardenedSmithyModelDir)' != ''"
+                               Include="@(HardenedSmithyAst->'$(HardenedSmithyModelDir)generated/%(Filename)%(SliceSuffix).g.cs')"/>
+        <_HardenedSmithySource Condition="'$(HardenedSmithyGeneratedDir)' != ''"
+                               Include="@(HardenedSmithyAst->'$(HardenedSmithyGeneratedDir)%(Filename)%(SliceSuffix).g.cs')"/>
+
+        <AdditionalFiles Include="@(_HardenedSmithyModel)"/>
+        <Compile Include="@(_HardenedSmithySource)" Visible="false"/>
+    </ItemGroup>
+
+    <!--
+        Resolved inside a target because $(IntermediateOutputPath) is empty at the point a csproj
+        body imports this file. Empty meant the models were written beside the project instead of
+        into obj/, and because that directory survived every clean the Inputs/Outputs check reported
+        the target up to date while the compiler saw no models at all.
+    -->
+    <Target Name="HardenedSmithyResolveModelDir">
+        <PropertyGroup>
+            <HardenedSmithyModelDir Condition="'$(HardenedSmithyModelDir)' == ''">$(IntermediateOutputPath)smithy/</HardenedSmithyModelDir>
+            <HardenedSmithyGeneratedDir Condition="'$(HardenedSmithyGeneratedDir)' == ''">$(HardenedSmithyModelDir)generated/</HardenedSmithyGeneratedDir>
+            <HardenedSmithyNamespace Condition="'$(HardenedSmithyNamespace)' == ''">$(RootNamespace)</HardenedSmithyNamespace>
+            <HardenedSmithyNamespace Condition="'$(HardenedSmithyNamespace)' == ''">Generated</HardenedSmithyNamespace>
+        </PropertyGroup>
+    </Target>
+
+    <!--
+        The neutral property the shared generator reads. Set at evaluation rather than in the target
+        above, because CompilerVisibleProperty is resolved for the compilation before any target
+        runs - a value assigned inside a target arrives too late for the generator to see it.
+    -->
+    <PropertyGroup>
+        <HardenedIdlNamespace Condition="'$(HardenedIdlNamespace)' == '' And '$(HardenedSmithyNamespace)' != ''">$(HardenedSmithyNamespace)</HardenedIdlNamespace>
+    </PropertyGroup>
+
+    <!--
+        The filter is item metadata, so changing it does not touch the AST file and the up-to-date
+        check below would skip the target and leave the previous slice's output in place. A stamp
+        gives the check something whose timestamp moves when the filter changes, and only then.
+    -->
+    <Target Name="HardenedSmithyFilterStamp" DependsOnTargets="HardenedSmithyResolveModelDir">
+        <MakeDir Directories="$(HardenedSmithyModelDir)"/>
+
+        <WriteLinesToFile
+            File="$(HardenedSmithyModelDir)filters.stamp"
+            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)');$(HardenedSmithyServiceShapeId)"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true"/>
+    </Target>
+
+    <Target Name="HardenedSmithyExtractModels"
+            DependsOnTargets="HardenedSmithyResolveModelDir;HardenedSmithyFilterStamp"
+            BeforeTargets="CoreCompile"
+            Condition="'@(HardenedSmithyAst)' != ''"
+            Inputs="@(HardenedSmithyAst);$(HardenedSmithyModelDir)filters.stamp"
+            Outputs="@(_HardenedSmithyModel);@(_HardenedSmithySource)">
+
+        <ExtractSmithySpec Specs="@(HardenedSmithyAst)"
+                           OutputDirectory="$(HardenedSmithyModelDir)"
+                           GeneratedSourceDirectory="$(HardenedSmithyGeneratedDir)"
+                           Namespace="$(HardenedSmithyNamespace)"
+                           ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)"
+                           EmbedDocument="$(HardenedSmithyEmbedDocument)"
+                           EmitUnreferencedSchemas="$(HardenedSmithyEmitUnreferencedSchemas)"
+                           ServiceShapeId="$(HardenedSmithyServiceShapeId)">
+            <Output TaskParameter="ModelFiles" ItemName="_HardenedSmithyModelWritten"/>
+            <Output TaskParameter="GeneratedSources" ItemName="_HardenedSmithySourceWritten"/>
+        </ExtractSmithySpec>
+    </Target>
+
+    <!--
+        Runs even when the target above is skipped as up to date, because that is the case worth
+        catching: a model or generated source that is not on disk means the up-to-date check was
+        made against files that are not there. Either way the compiler is about to open a file that
+        does not exist, and silence would surface as a project full of missing types.
+    -->
+    <Target Name="HardenedSmithyVerifyModels"
+            DependsOnTargets="HardenedSmithyExtractModels"
+            BeforeTargets="CoreCompile"
+            Condition="'@(HardenedSmithyAst)' != ''">
+
+        <Error Condition="'@(_HardenedSmithySource)' == ''"
+               Code="HSMT005"
+               Text="Hardened.Smithy.SourceGenerator.targets was imported before these models were declared: @(HardenedSmithyAst). No generated source reached the compilation. Move the &lt;Import&gt; below the &lt;HardenedSmithyAst&gt; item group."/>
+
+        <Error Condition="!Exists('%(_HardenedSmithyModel.FullPath)')"
+               Code="HSMT004"
+               Text="The Smithy model '%(_HardenedSmithyModel.Identity)' was not written. Delete $(HardenedSmithyModelDir) and rebuild."/>
+
+        <Error Condition="!Exists('%(_HardenedSmithySource.FullPath)')"
+               Code="HSMT004"
+               Text="The generated Smithy source '%(_HardenedSmithySource.Identity)' was not written. Delete $(HardenedSmithyModelDir) and rebuild."/>
+    </Target>
+
+    <!--
+        A .smithy file is not what this reads. Said out loud rather than left as an empty obj folder,
+        because the mistake is an easy one and the symptom is silence.
+    -->
+    <Target Name="HardenedSmithyWarnOnIdlItems" BeforeTargets="HardenedSmithyExtractModels">
+        <Error Condition="'@(HardenedSmithyAst)' != '' And '%(HardenedSmithyAst.Extension)' == '.smithy'"
+               Code="HSMT003"
+               Text="@(HardenedSmithyAst) is a Smithy IDL file; this build reads a JSON AST. Run &quot;smithy ast --flatten &lt;model&gt; &gt; model.json&quot; and point HardenedSmithyAst at the result."/>
+    </Target>
+</Project>

@@ -37,7 +37,7 @@ internal static class SchemaEmitter {
     /// </summary>
     private static IOutputComponent EmitEnumWithConverter(
         IConstructContainer container, SchemaModel schema, string modelsNamespace) {
-        var type = EmitEnum(container, schema);
+        var type = EmitEnum(container, schema, modelsNamespace);
 
         EnumConverterEmitter.Emit(container, schema, modelsNamespace);
 
@@ -286,7 +286,8 @@ internal static class SchemaEmitter {
             TypeDefinition.Get("System.Text.Json.Serialization", "JsonPropertyNameAttribute"),
             new CodeOutputComponent($"\"{property.Name}\"") { Indented = false });
 
-    private static EnumDefinition EmitEnum(IConstructContainer container, SchemaModel schema) {
+    private static EnumDefinition EmitEnum(
+        IConstructContainer container, SchemaModel schema, string modelsNamespace) {
         var enumDefinition = container.AddEnum(NamingHelper.ToPascalCase(schema.Name));
 
         enumDefinition.Modifiers |= ComponentModifier.Public;
@@ -296,12 +297,23 @@ internal static class SchemaEmitter {
             Deprecation.Apply(enumDefinition);
         }
 
-        // The wire values are the spec's; the member names are C#. The converter is what keeps the
-        // two in step, so it is not optional decoration.
+        // The wire values are the description's; the member names are C#. The generated converter is
+        // what keeps the two in step, so it is not optional decoration.
+        //
+        // It names that converter rather than JsonStringEnumConverter, which was here before and is
+        // wrong whenever the two differ: JsonStringEnumConverter writes the C# member name, so a
+        // value declared as "dog" left as "Dog". The generated converter was already emitted beside
+        // every enum and registered in the resolver - but an attribute on the type wins over a
+        // converter the resolver supplies, so the resolver's was never consulted.
+        //
+        // Unexercised until a Smithy model arrived: an OpenAPI enum declared inline on a property
+        // maps to string and generates no enum at all, and the OpenAPI fixture has only those. Every
+        // Smithy enum is a named shape, so every one of them hit it.
         enumDefinition.AddAttribute(
             TypeDefinition.Get("System.Text.Json.Serialization", "JsonConverterAttribute"),
             new CodeOutputComponent(
-                "typeof(System.Text.Json.Serialization.JsonStringEnumConverter)") { Indented = false });
+                    $"typeof(global::{modelsNamespace}.{EnumConverterEmitter.ConverterName(schema.Name)})")
+                { Indented = false });
 
         // Allocated, not derived - see NameAllocator. Two wire values can reach C# as one member
         // name, and deciding that here would be deciding it in one of the places that used to.

@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Description>Generates Hardened models, service interfaces, handlers and routing from a Smithy JSON AST at build time.</Description>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+
+        <!-- NuGet only auto-imports build/$(PackageId).targets, so these two names are one decision. -->
+        <PackageId>Hardened.Smithy.SourceGenerator</PackageId>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+
+        <!--
+            A front end: the Smithy AST reader, as an MSBuild task, plus the targets that run it.
+            The Roslyn generator is Hardened.Idl.SourceGenerator, shared with every other front end
+            and depended on rather than copied - so this package is a sibling of
+            Hardened.OpenApi.SourceGenerator, not something built on top of it.
+
+            Compiles no source of its own and produces an empty assembly that is not packed.
+        -->
+        <DevelopmentDependency>true</DevelopmentDependency>
+    </PropertyGroup>
+
+    <!--
+        The generator half. Both front ends depend on this same package, so a project using Smithy
+        and OpenAPI together resolves exactly one analyzer - which packing the DLL into each front
+        end would not give.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Idl.SourceGenerator\Hardened.Idl.SourceGenerator.csproj"
+                          ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+        Built before anything can consume it, and packed into tasks/ below. Nothing here binds
+        against it: the task runs in MSBuild, the generator runs in Roslyn, and they share source
+        rather than an assembly.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Smithy.BuildTask\Hardened.Smithy.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all"
+                          SetTargetFramework="TargetFramework=net8.0"/>
+    </ItemGroup>
+
+    <!--
+        PackagePath must use a forward slash. A trailing backslash packs to "build//" on Linux and
+        macOS, where NuGet never imports it - the failure that shipped once already on the OpenAPI
+        package and is silent until a consumer finds no generated types.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Smithy.SourceGenerator.*">
+            <Pack>true</Pack>
+            <PackagePath>build/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <!--
+        Pack both task flavours. The targets file selects between them on $(MSBuildRuntimeType), so
+        the same package serves Visual Studio's .NET Framework MSBuild and the CLI's .NET one.
+    -->
+    <ItemGroup>
+        <None Include="..\Hardened.Smithy.BuildTask\bin\$(Configuration)\net472\**\*.dll"
+              Pack="true" PackagePath="tasks/net472" Visible="false"/>
+        <None Include="..\Hardened.Smithy.BuildTask\bin\$(Configuration)\net8.0\**\*.dll"
+              Pack="true" PackagePath="tasks/net8.0" Visible="false"/>
+    </ItemGroup>
+
+</Project>

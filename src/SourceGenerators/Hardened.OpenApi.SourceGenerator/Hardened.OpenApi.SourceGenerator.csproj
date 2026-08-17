@@ -1,45 +1,49 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <Import Project="../CSharpAuthor.props"/>
-
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <Description>Source generator that produces Hardened models, service interfaces, handlers and routing from an OpenAPI document at build time.</Description>
+        <Description>Generates Hardened models, service interfaces, handlers and routing from an OpenAPI document at build time.</Description>
         <LangVersion>10</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <IsRoslynComponent>true</IsRoslynComponent>
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsPackable>True</IsPackable>
+
+        <!--
+            Unchanged, and it cannot change: NuGet only auto-imports build/$(PackageId).targets, so
+            the package id and the targets file name are one decision. Every $(HardenedOpenApi*)
+            property, @(HardenedOpenApiSpec), the HOAT/HOAG diagnostic codes and the
+            .openapi-model.txt suffix are consumer-visible for the same reason and stay as they are.
+        -->
         <PackageId>Hardened.OpenApi.SourceGenerator</PackageId>
         <IncludeBuildOutput>false</IncludeBuildOutput>
 
         <!--
-          Build-only. This does not stop the package flowing to consumers on its own - only
-          PrivateAssets on the reference does that - but it is what makes `dotnet add package`
-          write PrivateAssets for you, so the next reference starts out right.
+            This package is now a front end: the OpenAPI reader, as an MSBuild task, plus the targets
+            that run it. The Roslyn generator it used to carry moved to Hardened.Idl.SourceGenerator,
+            which reads the normalised model this task writes and knows nothing about OpenAPI - so a
+            second description language is a sibling of this package rather than something that has
+            to inherit from it.
+
+            The project therefore compiles no source of its own and produces an empty assembly that
+            is not packed.
         -->
         <DevelopmentDependency>true</DevelopmentDependency>
     </PropertyGroup>
 
+    <!--
+        The generator half, as a real dependency rather than a copy. Both this package and
+        Hardened.Smithy.SourceGenerator depend on it, so a project using both gets exactly one
+        analyzer - which packing the DLL into each front end would not give.
+    -->
     <ItemGroup>
-        <InternalsVisibleTo Include="Hardened.OpenApi.SourceGenerator.Tests" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
-        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
-        <PackageReference Include="System.Memory" Version="4.5.5" />
+        <ProjectReference Include="..\Hardened.Idl.SourceGenerator\Hardened.Idl.SourceGenerator.csproj"
+                          ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
     <!--
         The build task is built before anything can consume it, and packed into tasks/ below.
         ReferenceOutputAssembly is false because nothing here binds against it: the task runs in
-        MSBuild, this runs in Roslyn, and they share source rather than an assembly.
+        MSBuild, the generator runs in Roslyn, and they share source rather than an assembly.
     -->
     <ItemGroup>
         <ProjectReference Include="..\Hardened.OpenApi.BuildTask\Hardened.OpenApi.BuildTask.csproj"
@@ -64,17 +68,6 @@
     </ItemGroup>
 
     <!--
-        The analyzer DLL, which now carries no dependencies of its own. Microsoft.OpenApi,
-        Microsoft.OpenApi.Readers and SharpYaml used to be embedded here as resources and loaded
-        through an AppDomain.AssemblyResolve hook, because Roslyn hosts do not reliably resolve
-        co-located analyzer dependencies. All of that moved to the build task, where dependencies
-        resolve normally.
-    -->
-    <ItemGroup>
-        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
-    </ItemGroup>
-
-    <!--
         Pack both task flavours. The targets file selects between them on $(MSBuildRuntimeType), so
         the same package serves Visual Studio's .NET Framework MSBuild and the CLI's .NET one.
     -->
@@ -84,53 +77,5 @@
         <None Include="..\Hardened.OpenApi.BuildTask\bin\$(Configuration)\net8.0\**\*.dll"
               Pack="true" PackagePath="tasks/net8.0" Visible="false"/>
     </ItemGroup>
-
-    <!-- Shared with the build task. See Hardened.Idl.Shared for why this is source and not a reference. -->
-    <ItemGroup>
-        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
-                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
-            <Link>Shared\Idl\%(RecursiveDir)%(FileName)%(Extension)</Link>
-        </Compile>
-    </ItemGroup>
-
-    <!-- Link shared code from Hardened.SourceGenerator -->
-    <ItemGroup>
-        <Compile Include="../Hardened.SourceGenerator/Shared/**/*">
-            <Link>Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.SourceGenerator/Links/**/*">
-            <Link>Links\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.SourceGenerator/Models/**/*">
-            <Link>Models\Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.SourceGenerator/OpenApiDocument/**/*">
-            <Link>OpenApiDocument\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
-        <Compile Include="../Hardened.SourceGenerator/Requests/**/*">
-            <Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.SourceGenerator/Templates/**/*">
-            <Link>Templates\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.SourceGenerator/Web/Routing/**/*">
-            <Link>Web\Routing\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.SourceGenerator/Web/WebExecutionHandlerCodeGenerator.cs">
-            <Link>Web\WebExecutionHandlerCodeGenerator.cs</Link>
-        </Compile>
-    </ItemGroup>
-
-
-    <!--
-        CSharpAuthor ships as source and is compiled in, so its files are analysed as if they were
-        ours - and it predates nullable reference types. Under ContinuousIntegrationBuild every
-        warning is an error, so its eight would fail the build. Scoped to the exact IDs rather than
-        disabling nullable analysis, which would take our own code with it.
-    -->
-    <PropertyGroup>
-        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
-    </PropertyGroup>
 
 </Project>

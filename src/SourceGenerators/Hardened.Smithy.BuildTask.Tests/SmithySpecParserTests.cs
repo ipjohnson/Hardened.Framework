@@ -497,6 +497,49 @@ public class SmithySpecParserTests {
     }
 
     /// <summary>
+    /// A shape that reaches itself terminates.
+    /// </summary>
+    /// <remarks>
+    /// The reference walk builds a schema the first time it reaches a shape, and recursion is
+    /// ordinary in a description - a tree node holding its own children. It terminates because the
+    /// shape is marked as built before its members are walked rather than after; the other order
+    /// hangs the build with no diagnostic, which is the worst way for this to fail.
+    /// </remarks>
+    [Fact]
+    public void Parse_TerminatesOnASelfReferencingShape() {
+        var diagnostics = new List<string>();
+
+        var ast = """
+                  { "smithy": "2.0", "shapes": {
+                      "com.example#Svc": {
+                        "type": "service", "version": "1",
+                        "operations": [ { "target": "com.example#Op" } ] },
+                      "com.example#Op": {
+                        "type": "operation",
+                        "output": { "target": "com.example#Node" },
+                        "traits": { "smithy.api#http": { "method": "GET", "uri": "/n", "code": 200 } } },
+                      "com.example#Node": {
+                        "type": "structure",
+                        "members": {
+                          "name": { "target": "smithy.api#String" },
+                          "parent": { "target": "com.example#Node" },
+                          "children": { "target": "com.example#NodeList" } } },
+                      "com.example#NodeList": {
+                        "type": "list", "member": { "target": "com.example#Node" } } } }
+                  """;
+
+        var model = SmithySpecParser.Parse(ast, "recursive", diagnostics);
+
+        Assert.NotNull(model);
+
+        var node = Assert.Single(model!.Schemas, s => s.Name == "Node");
+
+        Assert.Equal("Node", TypeMapper.GetRefName(
+            Assert.Single(node.Properties, p => p.Name == "parent").Ref!));
+        Assert.True(Assert.Single(node.Properties, p => p.Name == "children").IsArray);
+    }
+
+    /// <summary>
     /// The model file is byte-compared to decide whether to rewrite it, so a reordered AST must
     /// still produce identical output or every build looks dirty.
     /// </summary>

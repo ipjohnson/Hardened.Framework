@@ -10,7 +10,7 @@ using Hardened.Idl;
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
 /// <summary>
-/// Drives <see cref="OpenApiSourceGenerator"/> the way a real project does: the build task parses
+/// Drives <see cref="SpecSourceGenerator"/> the way a real project does: the build task parses
 /// the specification and writes a normalised model, and that model — not the yaml — arrives as an
 /// <c>AdditionalFiles</c> entry alongside the C# declaring the entry point and the
 /// <c>[Handler]</c> implementations.
@@ -34,7 +34,7 @@ internal static class OpenApiGenerator {
     ];
 
     /// <summary>The hint name the generator emits on every run whatever the input.</summary>
-    internal const string DiagnosticHintName = "_OpenApiDiagnostic.g.cs";
+    internal const string DiagnosticHintName = "_SpecModelDiagnostic.g.cs";
 
     /// <summary>Runs the generator over one specification and the supplied C#.</summary>
     internal static GeneratorResult Run(
@@ -95,7 +95,7 @@ internal static class OpenApiGenerator {
             models[ModelFileNameFor(spec.Key)] = SpecModelSerializer.Write(model);
         }
 
-        var result = GeneratorTestHarness.Run(sources, [new OpenApiSourceGenerator()], Anchors, models, buildProperties);
+        var result = GeneratorTestHarness.Run(sources, [new SpecSourceGenerator()], Anchors, models, buildProperties);
 
         // GeneratedSources carries both halves, because that is what the project ends up compiling.
         // Splitting them would make every assertion depend on which side of the task/generator line
@@ -155,7 +155,7 @@ internal static class OpenApiGenerator {
                 ["GlobalUsings.cs"] = ImplicitUsings,
                 ["Test.cs"] = source
             },
-            [new OpenApiSourceGenerator()],
+            [new SpecSourceGenerator()],
             Anchors,
             additionalFiles,
             buildProperties);

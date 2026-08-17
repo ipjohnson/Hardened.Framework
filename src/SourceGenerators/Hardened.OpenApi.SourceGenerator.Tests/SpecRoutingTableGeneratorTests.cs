@@ -64,7 +64,7 @@ public class SpecRoutingTableGeneratorTests {
             appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
 
         Assert.Contains("partial class TestApp", result);
-        Assert.Contains("OpenApiRoutingTable", result);
+        Assert.Contains("SpecRoutingTable", result);
         Assert.Contains("IWebExecutionRequestHandlerProvider", result);
         Assert.Contains("GetExecutionRequestHandler", result);
     }
@@ -126,6 +126,6 @@ public class SpecRoutingTableGeneratorTests {
             appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
 
         Assert.Contains("DependencyRegistry<TestApp>", result);
-        Assert.Contains("OpenApiRoutingTableDI", result);
+        Assert.Contains("SpecRoutingTableDI", result);
     }
 }

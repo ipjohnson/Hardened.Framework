@@ -78,7 +78,7 @@ public class MultipleSpecificationTests {
     public void BothSpecificationsRoutesReachTheSameRoutingTable() {
         var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
 
-        var routing = result.SourceContaining("OpenApiRouting");
+        var routing = result.SourceContaining("SpecRouting");
 
         Assert.Contains("PetController_ListPets", routing);
         Assert.Contains("StoreController_ListStores", routing);
