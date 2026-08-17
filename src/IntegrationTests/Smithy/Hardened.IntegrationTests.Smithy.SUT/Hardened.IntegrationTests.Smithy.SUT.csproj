@@ -55,6 +55,15 @@
     <ItemGroup>
         <HardenedSmithyAst Include="Specs\petstore.json"/>
         <None Include="Specs\petstore.smithy"/>
+
+        <!--
+            A second model in the same application, and a second protocol. petstore.json routes by
+            path; bank.json declares @awsJson1_0, so every one of its operations is POST / told apart
+            by an X-Amz-Target header. One routing table serves both, which is the case the dispatch
+            ordering exists for.
+        -->
+        <HardenedSmithyAst Include="Specs\bank.json"/>
+        <None Include="Specs\bank.smithy"/>
     </ItemGroup>
 
     <!--

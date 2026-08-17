@@ -131,13 +131,39 @@ internal static class SmithyTraits {
         "aws.protocols#restJson1"
     };
 
+    /// <summary>
+    /// Protocols that dispatch on a header rather than routing, and the header each uses.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// These are RPC protocols wearing HTTP as an envelope: every operation is <c>POST /</c> and
+    /// which one it is comes from <c>X-Amz-Target</c>, carrying <c>Service.Operation</c>. Both
+    /// versions differ only in their content type and in how errors are shaped, which is why one
+    /// entry each is enough here.
+    /// </para>
+    /// <para>
+    /// They are supported rather than refused because they cost less than restJson1, not more:
+    /// dispatch is an exact-match switch instead of a route tree, and binding is one body
+    /// deserialize instead of a path, query, header and body split. The specification says HTTP
+    /// binding traits "MUST be ignored if they are present", so there is nothing to reconcile.
+    /// </para>
+    /// </remarks>
+    internal static readonly Dictionary<string, string> DispatchProtocols =
+        new(StringComparer.Ordinal) {
+            ["aws.protocols#awsJson1_0"] = "X-Amz-Target",
+            ["aws.protocols#awsJson1_1"] = "X-Amz-Target"
+        };
+
+    /// <summary>The content type each dispatch protocol sends and answers with.</summary>
+    internal static readonly Dictionary<string, string> DispatchContentTypes =
+        new(StringComparer.Ordinal) {
+            ["aws.protocols#awsJson1_0"] = "application/x-amz-json-1.0",
+            ["aws.protocols#awsJson1_1"] = "application/x-amz-json-1.1"
+        };
+
     /// <summary>Protocol traits that are recognised and refused, with the reason.</summary>
     internal static readonly Dictionary<string, string> RefusedProtocols =
         new(StringComparer.Ordinal) {
-            ["aws.protocols#awsJson1_0"] =
-                "every operation is POST / dispatched on an X-Amz-Target header, not a REST route",
-            ["aws.protocols#awsJson1_1"] =
-                "every operation is POST / dispatched on an X-Amz-Target header, not a REST route",
             ["aws.protocols#restXml"] =
                 "XML bodies need a serializer this generator does not emit",
             ["aws.protocols#awsQuery"] =

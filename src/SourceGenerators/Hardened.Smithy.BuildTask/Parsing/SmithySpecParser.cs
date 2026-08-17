@@ -76,11 +76,11 @@ internal static class SmithySpecParser {
         var context = new ParseContext(ast, model, diagnostics);
 
         foreach (var service in services) {
-            if (!CheckProtocol(service.Key, service.Value, diagnostics)) {
+            if (!TryReadProtocol(service.Key, service.Value, diagnostics, out var protocol)) {
                 return null;
             }
 
-            ParseService(context, service.Key, service.Value);
+            ParseService(context, service.Key, service.Value, protocol);
         }
 
         if (model.Services.Count == 0 || model.Services.TrueForAll(s => s.Operations.Count == 0)) {
@@ -123,16 +123,37 @@ internal static class SmithySpecParser {
     }
 
     /// <summary>
-    /// Refuses a protocol whose wire format this does not serve.
+    /// How a service's operations are selected, and what they exchange.
+    /// </summary>
+    /// <remarks>
+    /// Two shapes only: routed, where the request's path and verb name the operation, and
+    /// dispatched, where every request goes to one route and a header names it. Nothing else about
+    /// a protocol reaches the model, which is what keeps a third one a table entry.
+    /// </remarks>
+    private readonly struct ProtocolBinding {
+        internal string? DispatchHeader { get; init; }
+
+        internal string? ContentType { get; init; }
+
+        internal bool Dispatches => DispatchHeader != null;
+    }
+
+    /// <summary>
+    /// Reads the service's protocol, or refuses one whose wire format this does not serve.
     /// </summary>
     /// <remarks>
     /// Absence is fine - a model using only <c>@http</c> declares no protocol and is exactly what a
-    /// hand-written service looks like. A named protocol that is not restJson1 is refused rather
-    /// than ignored, because the generated server would be confidently wrong rather than merely
-    /// incomplete.
+    /// hand-written service looks like. A named protocol that is neither restJson1 nor an awsJson
+    /// version is refused rather than ignored, because the generated server would be confidently
+    /// wrong rather than merely incomplete.
     /// </remarks>
-    private static bool CheckProtocol(
-        string serviceId, JsonElement service, ICollection<string> diagnostics) {
+    private static bool TryReadProtocol(
+        string serviceId,
+        JsonElement service,
+        ICollection<string> diagnostics,
+        out ProtocolBinding protocol) {
+        protocol = default;
+
         foreach (var trait in SmithyAst.Traits(service)) {
             if (SmithyTraits.RefusedProtocols.TryGetValue(trait.Key, out var reason)) {
                 diagnostics.Add(
@@ -141,12 +162,20 @@ internal static class SmithySpecParser {
 
                 return false;
             }
+
+            if (SmithyTraits.DispatchProtocols.TryGetValue(trait.Key, out var header)) {
+                protocol = new ProtocolBinding {
+                    DispatchHeader = header,
+                    ContentType = SmithyTraits.DispatchContentTypes[trait.Key]
+                };
+            }
         }
 
         return true;
     }
 
-    private static void ParseService(ParseContext context, string serviceId, JsonElement service) {
+    private static void ParseService(
+        ParseContext context, string serviceId, JsonElement service, ProtocolBinding protocol) {
         var tag = SmithyPrelude.LocalName(serviceId);
         var operations = new List<OperationModel>();
 
@@ -159,7 +188,7 @@ internal static class SmithySpecParser {
                 continue;
             }
 
-            var parsed = ParseOperation(context, operationId, operation, tag);
+            var parsed = ParseOperation(context, operationId, operation, tag, protocol);
 
             if (parsed != null) {
                 operations.Add(parsed);
@@ -169,7 +198,11 @@ internal static class SmithySpecParser {
         operations.Sort((left, right) =>
             string.CompareOrdinal(left.OperationId, right.OperationId));
 
-        context.Model.Services.Add(new ServiceModel { Tag = tag, Operations = operations });
+        context.Model.Services.Add(new ServiceModel {
+            Tag = tag,
+            DispatchHeader = protocol.DispatchHeader,
+            Operations = operations
+        });
     }
 
     /// <summary>
@@ -221,7 +254,11 @@ internal static class SmithySpecParser {
     }
 
     private static OperationModel? ParseOperation(
-        ParseContext context, string operationId, JsonElement operation, string tag) {
+        ParseContext context,
+        string operationId,
+        JsonElement operation,
+        string tag,
+        ProtocolBinding protocol) {
         Note(context, operation);
 
         var name = SmithyPrelude.LocalName(operationId);
@@ -233,25 +270,44 @@ internal static class SmithySpecParser {
             return null;
         }
 
-        if (!SmithyAst.TryGetTrait(operation, SmithyTraits.Http, out var http)) {
-            context.Diagnostics.Add(
-                $"operation '{name}' has no @http trait, so it has no route and was skipped.");
+        OperationModel model;
 
-            return null;
+        if (protocol.Dispatches) {
+            // The protocol decides all of this, and the operation has no say. An @http trait here is
+            // not an error and not a conflict: the specification says HTTP binding traits "MUST be
+            // ignored if they are present", so a model that carries both is well formed and this is
+            // what ignoring them means.
+            model = new OperationModel {
+                OperationId = name,
+                Tag = tag,
+                Path = "/",
+                HttpMethod = "POST",
+                DispatchKey = tag + "." + name,
+                RequestBodyContentType = protocol.ContentType,
+                ResponseContentType = protocol.ContentType
+            };
+        } else {
+            if (!SmithyAst.TryGetTrait(operation, SmithyTraits.Http, out var http)) {
+                context.Diagnostics.Add(
+                    $"operation '{name}' has no @http trait, so it has no route and was skipped.");
+
+                return null;
+            }
+
+            model = new OperationModel {
+                OperationId = name,
+                Tag = tag,
+                Path = String(http, "uri") ?? "/",
+                HttpMethod = (String(http, "method") ?? "GET").ToUpperInvariant(),
+                SuccessStatusCode = Int(http, "code") ?? 200
+            };
         }
 
-        var model = new OperationModel {
-            OperationId = name,
-            Tag = tag,
-            Path = String(http, "uri") ?? "/",
-            HttpMethod = (String(http, "method") ?? "GET").ToUpperInvariant(),
-            SuccessStatusCode = Int(http, "code") ?? 200,
-            Description = Text(operation, SmithyTraits.Documentation),
-            IsDeprecated = SmithyAst.HasTrait(operation, SmithyTraits.Deprecated)
-        };
+        model.Description = Text(operation, SmithyTraits.Documentation);
+        model.IsDeprecated = SmithyAst.HasTrait(operation, SmithyTraits.Deprecated);
 
-        ParseInput(context, operation, model, name);
-        ParseOutput(context, operation, model, name);
+        ParseInput(context, operation, model, name, protocol);
+        ParseOutput(context, operation, model, name, protocol);
         ParseErrors(context, operation, model);
 
         return model;
@@ -267,7 +323,11 @@ internal static class SmithySpecParser {
     /// and a member carrying no binding trait at all is part of the JSON body.
     /// </remarks>
     private static void ParseInput(
-        ParseContext context, JsonElement operation, OperationModel model, string operationName) {
+        ParseContext context,
+        JsonElement operation,
+        OperationModel model,
+        string operationName,
+        ProtocolBinding protocol) {
         if (!operation.TryGetProperty("input", out var inputRef)) {
             return;
         }
@@ -292,7 +352,12 @@ internal static class SmithySpecParser {
         foreach (var member in SmithyAst.Members(input)) {
             Note(context, member.Value);
 
-            if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpLabel, out _)) {
+            // Under a dispatch protocol there is nowhere for a binding to put anything: the request
+            // is POST / with the input structure as its body, and the specification requires the
+            // binding traits to be ignored rather than honoured.
+            if (protocol.Dispatches) {
+                bodyMembers.Add(member);
+            } else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpLabel, out _)) {
                 AddParameter(context, model, member, "path", member.Key);
             } else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpQuery, out var query)) {
                 AddParameter(context, model, member, "query",
@@ -304,7 +369,7 @@ internal static class SmithySpecParser {
                 var target = SmithyAst.Target(member.Value);
 
                 if (target != null) {
-                    model.RequestBodyContentType = "application/json";
+                    model.RequestBodyContentType ??= "application/json";
                     model.RequestBodyRef = ReferenceTo(context, target);
                 }
             } else {
@@ -319,7 +384,9 @@ internal static class SmithySpecParser {
         // Members with no binding trait are the JSON body. The input structure already names them
         // as a group, so the body is that shape - there is nothing to synthesise, which is the case
         // OpenAPI needs SynthesizeSchema for.
-        model.RequestBodyContentType = "application/json";
+        // Left alone when the protocol already named one - awsJson sends
+        // application/x-amz-json-1.0, not application/json.
+        model.RequestBodyContentType ??= "application/json";
         model.RequestBodyRef = ReferenceTo(context, inputId);
 
         foreach (var member in bodyMembers) {
@@ -334,7 +401,11 @@ internal static class SmithySpecParser {
     }
 
     private static void ParseOutput(
-        ParseContext context, JsonElement operation, OperationModel model, string operationName) {
+        ParseContext context,
+        JsonElement operation,
+        OperationModel model,
+        string operationName,
+        ProtocolBinding protocol) {
         if (!operation.TryGetProperty("output", out var outputRef)) {
             return;
         }
@@ -354,11 +425,13 @@ internal static class SmithySpecParser {
 
         Note(context, output);
 
-        model.ResponseContentType = "application/json";
+        model.ResponseContentType ??= "application/json";
 
         // An @httpPayload member is the whole response body; otherwise the output structure is.
+        // Under a dispatch protocol the trait is ignored, so the structure always is.
         foreach (var member in SmithyAst.Members(output)) {
-            if (!SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpPayload, out _)) {
+            if (protocol.Dispatches ||
+                !SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpPayload, out _)) {
                 continue;
             }
 

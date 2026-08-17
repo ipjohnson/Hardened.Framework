@@ -325,23 +325,34 @@ public class SmithySpecParserTests {
     }
 
     /// <summary>
-    /// A model that names a protocol whose wire format this does not serve is refused rather than
-    /// ignored: generating REST routes for awsJson1_1 would be confidently wrong, not merely
-    /// incomplete.
+    /// awsJson1_1 dispatches the same way 1_0 does and differs only in content type.
     /// </summary>
+    /// <remarks>
+    /// The two versions are one table entry apart, which is the point of carrying a header name and
+    /// a content type rather than a protocol enum. See <c>AwsJsonProtocolTests</c> for the rest.
+    /// </remarks>
     [Fact]
-    public void Parse_RefusesAProtocolItCannotServe() {
+    public void Parse_SupportsTheOtherAwsJsonVersion() {
         var diagnostics = new List<string>();
 
         var ast = """
                   { "smithy": "2.0", "shapes": {
                       "com.example#Svc": {
                         "type": "service", "version": "1",
-                        "traits": { "aws.protocols#awsJson1_1": {} } } } }
+                        "operations": [ { "target": "com.example#Op" } ],
+                        "traits": { "aws.protocols#awsJson1_1": {} } },
+                      "com.example#Op": { "type": "operation" } } }
                   """;
 
-        Assert.Null(SmithySpecParser.Parse(ast, "awsjson", diagnostics));
-        Assert.Contains(diagnostics, d => d.Contains("X-Amz-Target"));
+        var model = SmithySpecParser.Parse(ast, "awsjson11", diagnostics);
+
+        Assert.NotNull(model);
+        Assert.Equal("X-Amz-Target", Assert.Single(model!.Services).DispatchHeader);
+
+        var operation = Assert.Single(model.Services[0].Operations);
+
+        Assert.Equal("Svc.Op", operation.DispatchKey);
+        Assert.Equal("application/x-amz-json-1.1", operation.ResponseContentType);
     }
 
     /// <summary>

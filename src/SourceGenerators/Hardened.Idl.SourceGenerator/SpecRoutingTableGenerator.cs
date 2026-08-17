@@ -168,10 +168,95 @@ internal static class SpecRoutingTableGenerator {
         handlerMethod.SetReturnType(KnownTypes.Web.RequestHandlerInfo.MakeNullable());
 
         var context = handlerMethod.AddParameter(KnownTypes.Requests.IExecutionContext, "context");
+
+        // Two ways a request can name an operation, and an application may serve both.
+        var dispatched = new List<RequestHandlerModel>();
+        var routed = new List<RequestHandlerModel>();
+
+        foreach (var model in endPointModels) {
+            (model.Name.IsDispatched ? dispatched : routed).Add(model);
+        }
+
+        // Header dispatch first, and that order is a decision rather than an accident: an awsJson
+        // service sends every operation to POST /, so a path tree consulted first would match that
+        // route for one of them and answer the wrong handler for all the others.
+        if (dispatched.Count > 0) {
+            WriteDispatchTable(routingClass, handlerMethod, context, dispatched);
+        }
+
+        if (routed.Count == 0) {
+            handlerMethod.Return(Null());
+
+            return;
+        }
+
         handlerMethod.Assign(context.Property("Request").Property("Path").Invoke("AsSpan")).ToVar("pathSpan");
 
-        WriteRoutingTable(appModel, routingClass, handlerMethod, endPointModels,
+        WriteRoutingTable(appModel, routingClass, handlerMethod, routed,
             context.Property("Request").Property("Method"), cancellationToken);
+    }
+
+    /// <summary>
+    /// Selects a handler by an exact token carried in a request header.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the whole of RPC-style routing, and it is cheaper than the route tree rather than an
+    /// addition to it: a switch over string literals is compiled to a computed hash and a jump, with
+    /// no span slicing, no wildcard nodes, no ambiguity to diagnose and no verb fallback. The
+    /// existing tree exists because a path has structure; a target does not.
+    /// </para>
+    /// <para>
+    /// Grouped by header because the header is a property of the protocol and an application may
+    /// serve two, which is the same reason the header is carried on the model rather than assumed to
+    /// be X-Amz-Target.
+    /// </para>
+    /// </remarks>
+    private static void WriteDispatchTable(
+        ClassDefinition routingClass,
+        MethodDefinition handlerMethod,
+        ParameterDefinition context,
+        IReadOnlyList<RequestHandlerModel> dispatched) {
+        var headers = new List<string>();
+
+        foreach (var model in dispatched) {
+            if (!headers.Contains(model.Name.DispatchHeader!)) {
+                headers.Add(model.Name.DispatchHeader!);
+            }
+        }
+
+        for (var i = 0; i < headers.Count; i++) {
+            var header = headers[i];
+            var values = "dispatchValues" + (i == 0 ? "" : i.ToString());
+
+            var ifHeader = handlerMethod.If(
+                $"{context.Name}.Request.Headers.TryGetValue(\"{header}\", out var {values})");
+
+            var switchBlock = ifHeader.Switch(
+                new CodeOutputComponent($"{values}.ToString()") { Indented = false });
+
+            foreach (var model in dispatched) {
+                if (model.Name.DispatchHeader != header) {
+                    continue;
+                }
+
+                var caseStatement = switchBlock.AddCase(QuoteString(model.Name.DispatchKey!));
+
+                // The same lazily constructed singleton the route leaves use, so a dispatched
+                // handler and a routed one are built and reused identically.
+                var field = routingClass.AddField(
+                    model.InvokeHandlerType.MakeNullable(),
+                    "_field" + model.InvokeHandlerType.Name);
+
+                var coalesceHandler = NullCoalesceEqual(field.Instance,
+                    New(model.InvokeHandlerType, "_rootServiceProvider"));
+                coalesceHandler.PrintParentheses = false;
+
+                // No path tokens by construction: the route carries no template.
+                caseStatement.Return(
+                    New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, EmptyTokens));
+            }
+        }
     }
 
     private static void WriteRoutingTable(

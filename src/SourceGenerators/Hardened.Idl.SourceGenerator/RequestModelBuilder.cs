@@ -29,7 +29,7 @@ internal static class RequestModelBuilder {
             foreach (var operation in service.Operations) {
                 var model = BuildHandlerModel(operation, serviceType, handlerClassPrefix,
                     modelsNamespace, generatedNamespace, validationNamespace,
-                    spec.ValidatedOperations, filterTypeLookup);
+                    spec.ValidatedOperations, filterTypeLookup, service.DispatchHeader);
                 models.Add(model);
             }
         }
@@ -133,12 +133,17 @@ internal static class RequestModelBuilder {
         string generatedNamespace,
         string validationNamespace,
         IReadOnlyList<ValidatedOperationModel> validatedOperations,
-        Dictionary<string, FilterTypeModel> filterTypeLookup) {
+        Dictionary<string, FilterTypeModel> filterTypeLookup,
+        string? dispatchHeader = null) {
         var methodName = operation.MethodName;
         var handlerTypeName = $"{handlerClassPrefix}_{methodName}";
         var invokeHandlerType = TypeDefinition.Get(generatedNamespace, handlerTypeName);
 
-        var nameModel = new RequestHandlerNameModel(operation.Path, operation.HttpMethod);
+        // The header comes from the service and the token from the operation, because that is where
+        // each is declared - a protocol names the header once and every operation carries its own
+        // target. Both null is ordinary path routing.
+        var nameModel = new RequestHandlerNameModel(
+            operation.Path, operation.HttpMethod, dispatchHeader, operation.DispatchKey);
 
         var parameters = BuildParameters(operation, modelsNamespace);
         var responseInfo = BuildResponseInfo(operation, modelsNamespace);

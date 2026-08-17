@@ -55,6 +55,82 @@ public class SpecRoutingTableGeneratorTests {
         };
     }
 
+    /// <summary>
+    /// An RPC service: every operation at POST /, told apart by a header.
+    /// </summary>
+    private static List<RequestHandlerModel> CreateDispatchedHandlers() {
+        var bankServiceType = TypeDefinition.Get("Test.Api.Services", "IBankService");
+
+        return new List<RequestHandlerModel> {
+            new(new RequestHandlerNameModel("/", "POST", "X-Amz-Target", "Bank.GetBalance"),
+                bankServiceType, "GetBalance",
+                TypeDefinition.Get("Test.Api.Generated", "BankController_GetBalance"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel { IsAsync = true },
+                Array.Empty<AttributeModel>()),
+            new(new RequestHandlerNameModel("/", "POST", "X-Amz-Target", "Bank.Transfer"),
+                bankServiceType, "Transfer",
+                TypeDefinition.Get("Test.Api.Generated", "BankController_Transfer"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel { IsAsync = true },
+                Array.Empty<AttributeModel>())
+        };
+    }
+
+    /// <summary>
+    /// A dispatched handler is selected by an exact token, so the table is a switch over string
+    /// literals rather than a route tree - no span slicing, no wildcard node, no verb fallback.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_DispatchesOnTheDeclaredHeader() {
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreateDispatchedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        Assert.Contains("Headers.TryGetValue(\"X-Amz-Target\"", result);
+        Assert.Contains("case \"Bank.GetBalance\":", result);
+        Assert.Contains("case \"Bank.Transfer\":", result);
+    }
+
+    /// <summary>
+    /// With nothing left to route, the table does not build a tree over an empty list - it says so
+    /// and returns.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_EmitsNoRouteTreeWhenEveryHandlerIsDispatched() {
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreateDispatchedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        Assert.DoesNotContain("pathSpan", result);
+    }
+
+    /// <summary>
+    /// Both kinds in one application, with header dispatch consulted first.
+    /// </summary>
+    /// <remarks>
+    /// The order is the point. An awsJson service sends every operation to POST /, so a path tree
+    /// consulted first would match that route for whichever handler happened to own it and answer
+    /// the wrong one for all the others.
+    /// </remarks>
+    [Fact]
+    public void GenerateCSharpRouteFile_ChecksDispatchBeforeRouting() {
+        var handlers = new List<RequestHandlerModel>(CreateDispatchedHandlers());
+
+        handlers.AddRange(CreatePetstoreHandlers());
+
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), handlers, ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        var dispatch = result.IndexOf("X-Amz-Target", StringComparison.Ordinal);
+        var routing = result.IndexOf("pathSpan", StringComparison.Ordinal);
+
+        Assert.True(dispatch >= 0, "the dispatch table was not emitted");
+        Assert.True(routing >= 0, "the route tree was not emitted");
+        Assert.True(dispatch < routing, "the route tree is consulted before the dispatch table");
+    }
+
     [Fact]
     public void GenerateCSharpRouteFile_ProducesCompilableCSharp() {
         var appModel = CreateAppModel();
