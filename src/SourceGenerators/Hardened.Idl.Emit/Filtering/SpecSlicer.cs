@@ -201,8 +201,8 @@ internal static class SpecSlicer {
                 // The property is typed JsonElement, so nothing emitted names these - but they are
                 // what the payload is allowed to be, and a caller deserializing into one needs the
                 // type to exist.
-                foreach (var branch in property.OneOfRefs) {
-                    Reach(branch);
+                foreach (var branch in property.OneOf) {
+                    Reach(branch.Ref);
                 }
             }
         }

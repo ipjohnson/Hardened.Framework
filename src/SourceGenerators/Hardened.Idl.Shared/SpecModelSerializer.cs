@@ -323,7 +323,7 @@ internal static class SpecModelSerializer {
         record.Add("DictionaryValueType", property.DictionaryValueType);
         record.Add("DictionaryValueRef", property.DictionaryValueRef);
         record.Add("EnumValues", property.EnumValues);
-        record.Add("OneOfRefs", property.OneOfRefs);
+        record.Add("OneOf", Encode(property.OneOf));
         record.Add("MinLength", property.MinLength);
         record.Add("MaxLength", property.MaxLength);
         record.Add("Minimum", property.Minimum);
@@ -334,6 +334,30 @@ internal static class SpecModelSerializer {
         record.Add("MinItems", property.MinItems);
         record.Add("MaxItems", property.MaxItems);
         record.WriteTo(builder);
+    }
+
+    private static List<string> Encode(List<ChoiceBranchModel> branches) {
+        var encoded = new List<string>(branches.Count);
+
+        foreach (var branch in branches) {
+            encoded.Add(branch.Encoded);
+        }
+
+        return encoded;
+    }
+
+    private static List<ChoiceBranchModel> Decode(List<string>? encoded) {
+        var branches = new List<ChoiceBranchModel>();
+
+        if (encoded == null) {
+            return branches;
+        }
+
+        foreach (var value in encoded) {
+            branches.Add(ChoiceBranchModel.Decode(value));
+        }
+
+        return branches;
     }
 
     private static PropertyModel ReadProperty(Record record) => new() {
@@ -355,7 +379,7 @@ internal static class SpecModelSerializer {
         DictionaryValueType = record.String("DictionaryValueType"),
         DictionaryValueRef = record.String("DictionaryValueRef"),
         EnumValues = record.Strings("EnumValues"),
-        OneOfRefs = record.Strings("OneOfRefs") ?? new List<string>(),
+        OneOf = Decode(record.Strings("OneOf")),
         MinLength = record.Int("MinLength"),
         MaxLength = record.Int("MaxLength"),
         Minimum = record.Decimal("Minimum"),

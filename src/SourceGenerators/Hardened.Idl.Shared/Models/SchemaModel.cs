@@ -10,6 +10,17 @@ internal class SchemaModel : IEquatable<SchemaModel> {
     /// <summary>The schema's <c>description</c>, as the generated type's doc comment.</summary>
     public string? Description { get; set; }
     public List<PropertyModel> Properties { get; set; } = new();
+
+    /// <summary>
+    /// The schemas a <see cref="SchemaKind.OneOf"/> may hold, in declaration order.
+    /// </summary>
+    /// <remarks>
+    /// The document says a payload is exactly one of these, so the generated type says the same: it
+    /// carries the value as <c>object</c> and refuses anything that is not one of them. Order is the
+    /// document's, because it decides the order branches are tried when there is no discriminator to
+    /// key on.
+    /// </remarks>
+    public List<ChoiceBranchModel> OneOf { get; set; } = new();
     public List<string> EnumValues { get; set; } = new();
 
     /// <summary>
@@ -99,5 +110,11 @@ internal enum SchemaKind {
     Enum,
     Array,
     Primitive,
-    Dictionary
+    Dictionary,
+
+    /// <summary>
+    /// A choice between named schemas - a <c>oneOf</c>, which becomes a type holding exactly one of
+    /// them. See <see cref="SchemaModel.OneOf"/>.
+    /// </summary>
+    OneOf
 }

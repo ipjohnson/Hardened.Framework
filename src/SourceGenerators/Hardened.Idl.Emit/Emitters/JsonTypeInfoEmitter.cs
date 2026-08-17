@@ -111,9 +111,24 @@ internal static class JsonTypeInfoEmitter {
         var sb = new StringBuilder();
 
         foreach (var schema in schemas) {
-            if (schema.Kind != SchemaKind.Object && schema.Kind != SchemaKind.Enum) continue;
             var name = NamingHelper.ToPascalCase(schema.Name);
             var typeName = TypeMapper.QualifiedName(modelsNamespace, name, false);
+
+            if (schema.Kind == SchemaKind.OneOf) {
+                var converter = TypeMapper.QualifiedName(
+                    modelsNamespace, OneOfEmitter.ConverterName(schema.Name), false);
+
+                // A value type like the generated enums, so both forms are answered: the nullable
+                // one is what an optional payload lands on, and GetNullableConverter finds the
+                // converter through the entry above.
+                sb.AppendLine(
+                    $"        if (type == typeof({typeName})) return JsonMetadataServices.CreateValueInfo<{typeName}>(options, {converter}.Instance);");
+                sb.AppendLine(
+                    $"        if (type == typeof({typeName}?)) return JsonMetadataServices.CreateValueInfo<{typeName}?>(options, JsonMetadataServices.GetNullableConverter<{typeName}>(options));");
+                continue;
+            }
+
+            if (schema.Kind != SchemaKind.Object && schema.Kind != SchemaKind.Enum) continue;
 
             sb.AppendLine($"        if (type == typeof({typeName})) return Create{name}TypeInfo(options);");
         }
@@ -455,7 +470,10 @@ internal static class JsonTypeInfoEmitter {
                 string.Equals(s.Name, refName, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(NamingHelper.ToPascalCase(s.Name), NamingHelper.ToPascalCase(refName),
                     StringComparison.OrdinalIgnoreCase));
-            if (refSchema != null && refSchema.Kind == SchemaKind.Enum) {
+            // A choice type is a struct for the same reason a generated enum is - see
+            // TypeMapper.IsGeneratedChoice - so an optional one is T? here too.
+            if (refSchema != null &&
+                (refSchema.Kind == SchemaKind.Enum || refSchema.Kind == SchemaKind.OneOf)) {
                 return true;
             }
         }

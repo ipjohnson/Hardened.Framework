@@ -176,6 +176,12 @@ internal static class NameAllocator {
 
             scope.Reserve(allocated + "Validator");
 
+            // Same argument for a choice type: the converter is named after it and has nowhere
+            // else to go. See OneOfConverterEmitter.
+            if (schema.Kind == SchemaKind.OneOf) {
+                scope.Reserve(allocated + "Converter");
+            }
+
             if (allocated != schema.Name) {
                 renamed[schema.Name] = allocated;
                 schema.Name = allocated;
