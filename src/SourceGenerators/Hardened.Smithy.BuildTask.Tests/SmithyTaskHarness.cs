@@ -97,7 +97,7 @@ internal sealed class SmithyTaskHarness : IDisposable {
             string.Join("\n", Warnings.Select(warning => $"{warning.Code}: {warning.Message}"));
     }
 
-    private sealed class RecordingBuildEngine : IBuildEngine {
+    internal sealed class RecordingBuildEngine : IBuildEngine {
         public List<BuildErrorEventArgs> Errors { get; } = new();
 
         public List<BuildWarningEventArgs> Warnings { get; } = new();
