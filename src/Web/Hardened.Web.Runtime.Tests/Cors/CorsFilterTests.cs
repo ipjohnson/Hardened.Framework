@@ -2,6 +2,7 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Runtime.Execution;
+using Hardened.Requests.Runtime.Middleware;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
@@ -209,6 +210,7 @@ public class CorsFilterTests {
     public async Task Execute_ExposesTheConfiguredResponseHeaders() {
         var config = ConfigAllowing(Allowed);
 
+        config.ClearExposedHeaders();
         config.ExposeHeader("X-Request-Id");
         config.ExposeHeader("X-Total-Count");
 
@@ -219,6 +221,37 @@ public class CorsFilterTests {
         Assert.Equal(
             "X-Request-Id, X-Total-Count",
             context.Response.Headers[KnownHeaders.Cors.AccessControlExposeHeaders].ToString());
+    }
+
+    /// <summary>
+    /// The correlation header is exposed out of the box. The pipeline puts it on every response, and
+    /// it is not CORS-safelisted - so without this it would come back on every response and be
+    /// unreadable to exactly the browser client most likely to want to report it.
+    /// </summary>
+    [Fact]
+    public async Task Execute_ExposesTheCorrelationHeaderByDefault() {
+        var context = Context("GET", Allowed);
+
+        await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
+
+        Assert.Contains(
+            CorrelationHeaderFilter.HeaderName,
+            context.Response.Headers[KnownHeaders.Cors.AccessControlExposeHeaders].ToString());
+    }
+
+    /// <summary>An application that wants none of it can say so.</summary>
+    [Fact]
+    public async Task Execute_ExposesNothingOnceTheListIsCleared() {
+        var config = ConfigAllowing(Allowed);
+
+        config.ClearExposedHeaders();
+
+        var context = Context("GET", Allowed);
+
+        await Run(new CorsFilter(config), context);
+
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlExposeHeaders));
     }
 
     // ------------------------------------------------------------- preflight

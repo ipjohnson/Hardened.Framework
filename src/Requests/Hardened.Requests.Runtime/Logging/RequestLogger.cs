@@ -43,6 +43,25 @@ public partial class RequestLogger : IRequestLogger {
     /// </remarks>
     private static readonly ConditionalWeakTable<IExecutionContext, Activity> _spans = new();
 
+    /// <summary>
+    /// The logging scope carrying this request's correlation id, keyed the same way as the span.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A scope rather than a parameter on each message, because the point is the lines this class
+    /// does <em>not</em> write: a handler logging "charging card" should carry the id without
+    /// knowing there is one. Every provider that renders scopes picks it up - Serilog and the
+    /// OpenTelemetry logger natively, the console with <c>IncludeScopes = true</c>.
+    /// </para>
+    /// <para>
+    /// The other half of this arrives for free and is worth knowing about: <c>StartActivity</c> sets
+    /// <c>Activity.Current</c>, so a trace-aware provider already stamps TraceId and SpanId on every
+    /// line without a scope at all. The scope is what covers the case that one does not - no
+    /// collector attached, so no span, which is exactly when there is no trace id to stamp.
+    /// </para>
+    /// </remarks>
+    private static readonly ConditionalWeakTable<IExecutionContext, IDisposable> _scopes = new();
+
     private readonly ILogger<RequestLogger> _logger;
 
     public RequestLogger(ILogger<RequestLogger> logger) {
@@ -50,14 +69,12 @@ public partial class RequestLogger : IRequestLogger {
     }
 
     public void RequestBegin(IExecutionContext context) {
-        LogRequestStarted(context.Request.Method, context.Request.Path);
-
-        // A dimension for whatever provider is behind IMetricLogger, independent of tracing. What
-        // becomes of it is the provider's decision: the Meter bridge makes it a histogram dimension,
-        // and EMF promotes nothing unless the application opted the tag in, because a CloudWatch
-        // dimension is billed per distinct value.
-        context.RequestMetrics.Tag("http.request.method", context.Request.Method);
-
+        // The span is started before anything else here, and the order is load-bearing rather than
+        // stylistic. Starting it sets Activity.Current, and the context's correlation id reads from
+        // there on first access - so opening the scope first would realize an id with no trace to
+        // read, and the span created a moment later would carry a different one. A log line and a
+        // span for the same request would then disagree, which is the one thing this is for.
+        //
         // Null when nothing is listening - no allocation, no work - which is why this is
         // unconditional and lives in the runtime rather than behind a flag or an opt-in package.
         //
@@ -72,14 +89,102 @@ public partial class RequestLogger : IRequestLogger {
             : HardenedDiagnostics.ActivitySource.StartActivity(
                 context.Request.Method, ActivityKind.Server);
 
-        if (span is null) {
+        if (span is not null) {
+            span.SetTag("http.request.method", context.Request.Method);
+            span.SetTag("url.path", context.Request.Path);
+
+            _spans.AddOrUpdate(context, span);
+        }
+
+        // After the span, so the id is that span's trace id when there is one; before the first
+        // line, so the framework's own lifecycle messages are not the only ones without it.
+        OpenCorrelationScope(context);
+
+        LogRequestStarted(context.Request.Method, context.Request.Path);
+
+        // A dimension for whatever provider is behind IMetricLogger, independent of tracing. What
+        // becomes of it is the provider's decision: the Meter bridge makes it a histogram dimension,
+        // and EMF promotes nothing unless the application opted the tag in, because a CloudWatch
+        // dimension is billed per distinct value.
+        context.RequestMetrics.Tag("http.request.method", context.Request.Method);
+    }
+
+    /// <summary>
+    /// Puts this request's correlation id on every log line written while it runs.
+    /// </summary>
+    /// <remarks>
+    /// Read from the context rather than from <c>Activity.Current</c>, because the context is what
+    /// guarantees an id exists at all: with no collector attached there is no span, and the context
+    /// generates one of the same shape instead.
+    /// </remarks>
+    private void OpenCorrelationScope(IExecutionContext context) {
+        var correlationId = context.CorrelationId;
+
+        // Substituted contexts in a test hand back null for a property they were never set up with.
+        // A scope keyed to nothing is worse than no scope.
+        if (string.IsNullOrEmpty(correlationId)) {
             return;
         }
 
-        span.SetTag("http.request.method", context.Request.Method);
-        span.SetTag("url.path", context.Request.Path);
+        var scope = _logger.BeginScope(new CorrelationScope(correlationId));
 
-        _spans.AddOrUpdate(context, span);
+        if (scope is not null) {
+            _scopes.AddOrUpdate(context, scope);
+        }
+    }
+
+    /// <summary>
+    /// Closes the scope opened at the start of the request.
+    /// </summary>
+    /// <remarks>
+    /// Every host calls <c>RequestEnd</c> from a <c>finally</c>, so a request that threw still
+    /// closes its scope. Leaking one matters more than leaking a span: the scope stacks are
+    /// <c>AsyncLocal</c> in every provider that implements them, and an undisposed scope can leave
+    /// the id attached to whatever the thread does next.
+    /// </remarks>
+    private void CloseCorrelationScope(IExecutionContext context) {
+        if (!_scopes.TryGetValue(context, out var scope)) {
+            return;
+        }
+
+        _scopes.Remove(context);
+
+        scope.Dispose();
+    }
+
+    /// <summary>
+    /// One key and one value, shaped the way structured providers expect a scope to be.
+    /// </summary>
+    /// <remarks>
+    /// <c>IReadOnlyList&lt;KeyValuePair&lt;string, object&gt;&gt;</c> is what Serilog, the
+    /// OpenTelemetry logger and the console's <c>IncludeScopes</c> all look for; a provider that
+    /// finds anything else falls back to <c>ToString</c>, which is why that is overridden rather
+    /// than left to print a type name.
+    /// </remarks>
+    private sealed class CorrelationScope : IReadOnlyList<KeyValuePair<string, object>> {
+        public const string Key = "CorrelationId";
+
+        private readonly string _correlationId;
+
+        public CorrelationScope(string correlationId) {
+            _correlationId = correlationId;
+        }
+
+        public int Count => 1;
+
+        public KeyValuePair<string, object> this[int index] =>
+            index == 0
+                ? new KeyValuePair<string, object>(Key, _correlationId)
+                : throw new ArgumentOutOfRangeException(nameof(index));
+
+        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() {
+            yield return new KeyValuePair<string, object>(Key, _correlationId);
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
+            GetEnumerator();
+
+        public override string ToString() => Key + ":" + _correlationId;
     }
 
     /// <summary>
@@ -161,22 +266,25 @@ public partial class RequestLogger : IRequestLogger {
         // every host records TotalRequestDuration and only then calls this.
         context.RequestMetrics.Tag("http.response.status_code", status);
 
-        if (!_spans.TryGetValue(context, out var span)) {
-            return;
+        if (_spans.TryGetValue(context, out var span)) {
+            _spans.Remove(context);
+
+            span.SetTag("http.response.status_code", status);
+
+            // 4xx is the caller's mistake, not the server's. The conventions leave a server span
+            // Unset for those and reserve Error for 5xx, so that a trace backend's error rate means
+            // "this service failed" rather than "someone sent a bad request".
+            if (status >= 500) {
+                span.SetStatus(ActivityStatusCode.Error);
+            }
+
+            span.Stop();
         }
 
-        _spans.Remove(context);
-
-        span.SetTag("http.response.status_code", status);
-
-        // 4xx is the caller's mistake, not the server's. The conventions leave a server span Unset
-        // for those and reserve Error for 5xx, so that a trace backend's error rate means "this
-        // service failed" rather than "someone sent a bad request".
-        if (status >= 500) {
-            span.SetStatus(ActivityStatusCode.Error);
-        }
-
-        span.Stop();
+        // Last, so every line above is still written inside it - and outside the span check, which
+        // used to return early here. A request with no span is the uninstrumented path, and that is
+        // the one whose scope most needs closing, because it is the one that has one.
+        CloseCorrelationScope(context);
     }
 
     public void RequestParameterBindFailed(IExecutionContext context, Exception? exp) {

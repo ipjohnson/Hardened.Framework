@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Abstract.Diagnostics;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
@@ -84,7 +85,9 @@ public sealed class FeatureExecutionContext : IExecutionContext {
             HandlerInstance = HandlerInstance,
             HandlerInfo = HandlerInfo,
             // The reference, not a copy: a fork is the same caller.
-            CallerPrincipal = CallerPrincipal
+            CallerPrincipal = CallerPrincipal,
+            // And the same request, so it reports one id rather than two.
+            CorrelationId = CorrelationId
         };
     }
 
@@ -99,6 +102,14 @@ public sealed class FeatureExecutionContext : IExecutionContext {
     public IExecutionResponse Response { get; }
 
     public ICallerPrincipal CallerPrincipal { get; set; } = AnonymousCallerPrincipal.Instance;
+
+    private string? _correlationId;
+
+    /// <inheritdoc />
+    public string CorrelationId {
+        get => _correlationId ??= CorrelationIdentifier.ForCurrentTrace();
+        init => _correlationId = value;
+    }
 
     public object? HandlerInstance { get; set; }
 

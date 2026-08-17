@@ -164,6 +164,13 @@ namespace Hardened.Requests.Abstract.Authorization
         public static Hardened.Requests.Abstract.Authorization.Requirement operator |(Hardened.Requests.Abstract.Authorization.Requirement left, Hardened.Requests.Abstract.Authorization.Requirement right) { }
     }
 }
+namespace Hardened.Requests.Abstract.Diagnostics
+{
+    public static class CorrelationIdentifier
+    {
+        public static string ForCurrentTrace() { }
+    }
+}
 namespace Hardened.Requests.Abstract.Errors
 {
     public class ErrorModel
@@ -222,6 +229,7 @@ namespace Hardened.Requests.Abstract.Execution
     {
         Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
         System.Threading.CancellationToken CancellationToken { get; }
+        string CorrelationId { get; }
         Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
         object? HandlerInstance { get; set; }
