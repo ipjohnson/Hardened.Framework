@@ -4,6 +4,18 @@ public static class FilterOrder {
     public const int HandlerCreation = -1000;
 
     /// <summary>
+    /// Refusing a request on volume, before anyone has asked who is making it - 1.
+    /// </summary>
+    /// <remarks>
+    /// Ahead of <see cref="Authentication"/>, because a limiter meant to blunt a credential-stuffing
+    /// flood cannot wait for the credential to be examined, and ahead of
+    /// <see cref="Serialization"/> for the reason <see cref="Authentication"/> is: a request about
+    /// to be refused must not cost a 10 MB deserialization first. Being on that side of the line
+    /// means a filter here refuses by recording the failure and continuing, not by returning.
+    /// </remarks>
+    public const int RateLimitTransport = Authentication - 1;
+
+    /// <summary>
     /// Establishing who the caller is - 2.
     /// </summary>
     /// <remarks>
@@ -57,6 +69,25 @@ public static class FilterOrder {
     /// </para>
     /// </remarks>
     public const int Retry = Authorization + 1;
+
+    /// <summary>
+    /// Refusing a request on volume, once it is known whose volume it is - 9.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// After <see cref="Authentication"/> for the obvious reason: a limit keyed on the caller needs
+    /// a caller. There is no room for it between authentication and
+    /// <see cref="Serialization"/> - 3 and 4 are taken and a tie sorts unpredictably - so it sits
+    /// here, which means the body has already been read by the time it refuses. That is the cost of
+    /// the position and the reason <see cref="RateLimitTransport"/> exists: a limiter that must
+    /// refuse before reading a body keys on the transport instead.
+    /// </para>
+    /// <para>
+    /// Behind <see cref="Serialization"/>, so a filter here refuses by returning rather than by
+    /// recording and continuing.
+    /// </para>
+    /// </remarks>
+    public const int RateLimitPrincipal = Retry + 1;
 
     public const int DefaultValue = 1000;
 

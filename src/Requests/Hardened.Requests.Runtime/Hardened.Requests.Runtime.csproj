@@ -16,6 +16,15 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+
+        <!--
+            The rate limiting primitives. Microsoft-published, no transitive dependencies, and the
+            same package ASP.NET's own rate limiting middleware is built on - so a token bucket
+            written here would be a second implementation of something already in the box, with
+            fewer eyes on it. It is a separate package rather than part of the shared framework,
+            which is the only reason this line exists.
+        -->
+        <PackageReference Include="System.Threading.RateLimiting" Version="8.0.0" />
     </ItemGroup>
 
     <ItemGroup>

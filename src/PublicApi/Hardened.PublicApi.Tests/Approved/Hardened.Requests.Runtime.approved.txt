@@ -473,6 +473,82 @@ namespace Hardened.Requests.Runtime.QueryString
         public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
     }
 }
+namespace Hardened.Requests.Runtime.RateLimiting
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class DefaultRateLimitPartitioner : Hardened.Requests.Runtime.RateLimiting.IRateLimitPartitioner
+    {
+        public const string Anonymous = "anonymous";
+        public DefaultRateLimitPartitioner(Hardened.Requests.Runtime.RateLimiting.RateLimitConfiguration configuration) { }
+        public string Partition(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public interface IRateLimitPartitioner
+    {
+        string Partition(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IRateLimitStore
+    {
+        System.Threading.Tasks.ValueTask<Hardened.Requests.Runtime.RateLimiting.RateLimitDecision> Acquire(string partition, Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy, System.Threading.CancellationToken cancellationToken);
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class InProcessRateLimitStore : Hardened.Requests.Runtime.RateLimiting.IRateLimitStore, System.IDisposable
+    {
+        public InProcessRateLimitStore(Hardened.Requests.Runtime.RateLimiting.RateLimitConfiguration configuration) { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Runtime.RateLimiting.RateLimitDecision> Acquire(string partition, Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy, System.Threading.CancellationToken cancellationToken) { }
+        public void Dispose() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=true)]
+    public class RateLimitAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+    {
+        public RateLimitAttribute() { }
+        public string Name { get; set; }
+        public int PermitLimit { get; set; }
+        public Hardened.Requests.Runtime.RateLimiting.RateLimitScope Scope { get; set; }
+        public int WindowSeconds { get; set; }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class RateLimitConfiguration
+    {
+        public RateLimitConfiguration() { }
+        public int DefaultPermitLimit { get; set; }
+        public System.TimeSpan DefaultWindow { get; set; }
+        public int MaxTrackedPartitions { get; set; }
+        public string PartitionHeader { get; set; }
+    }
+    public readonly struct RateLimitDecision : System.IEquatable<Hardened.Requests.Runtime.RateLimiting.RateLimitDecision>
+    {
+        public RateLimitDecision(bool Allowed, int Limit, int Remaining, System.TimeSpan RetryAfter) { }
+        public bool Allowed { get; init; }
+        public int Limit { get; init; }
+        public int Remaining { get; init; }
+        public System.TimeSpan RetryAfter { get; init; }
+        public static Hardened.Requests.Runtime.RateLimiting.RateLimitDecision Allow(int limit, int remaining) { }
+        public static Hardened.Requests.Runtime.RateLimiting.RateLimitDecision Refuse(int limit, System.TimeSpan retryAfter) { }
+    }
+    public class RateLimitExceededException : Hardened.Requests.Abstract.Errors.StatusCodeException
+    {
+        public RateLimitExceededException(Hardened.Requests.Runtime.RateLimiting.RateLimitDecision decision) { }
+        public override void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
+    public class RateLimitFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public RateLimitFilter(Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy, bool beforeSerialization) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public readonly struct RateLimitPolicy : System.IEquatable<Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy>
+    {
+        public RateLimitPolicy(int PermitLimit, System.TimeSpan Window, string Name = "default") { }
+        public string Name { get; init; }
+        public int PermitLimit { get; init; }
+        public System.TimeSpan Window { get; init; }
+    }
+    public enum RateLimitScope
+    {
+        Transport = 0,
+        Principal = 1,
+    }
+}
 namespace Hardened.Requests.Runtime.Serializer
 {
     public class AotJsonSerializer : Hardened.Shared.Runtime.Json.IJsonSerializer
