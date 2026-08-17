@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../CSharpAuthor.props"/>
+
+    <PropertyGroup>
+        <!--
+            The same two TFMs as the front ends that link this, because it becomes part of their
+            assemblies rather than being referenced by them. A file that compiled here but not there
+            would be found by the front end's build, which is later and noisier.
+        -->
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!--
+            Nothing binds against this assembly's output. It exists so the shared task shell compiles
+            standalone, which is what catches a dependency creeping in that a front end would then
+            fail to load at task execution - the same guard Hardened.Idl.Shared provides for the IR.
+        -->
+        <IsPackable>false</IsPackable>
+
+        <ExcludeAssets>runtime</ExcludeAssets>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- See Hardened.OpenApi.BuildTask for why these are pinned and why runtime is excluded. -->
+        <PackageReference Include="Microsoft.Build.Framework" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="IsExternalInit.cs"/>
+        <Compile Include="IsExternalInit.cs" Condition="'$(TargetFramework)' == 'net472'"/>
+    </ItemGroup>
+
+    <!--
+        CSharpAuthor is compiled in from source and its ClassDefinition references System.Net.Http,
+        which .NET Framework does not reference by default. This is the leg that runs under Visual
+        Studio's MSBuild, and it is the first thing this project caught that a front end would
+        otherwise have hit later and noisier.
+    -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http"/>
+    </ItemGroup>
+
+    <!--
+        Linked, not referenced. ServiceSpecModel is internal, so every front end compiles its own
+        copy of the IR into its own assembly - which is what lets the shell name it in an abstract
+        member without the model becoming public surface on a shipped MSBuild task.
+    -->
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.Emit/**/*.cs"
+                 Exclude="../Hardened.Idl.Emit/obj/**/*;../Hardened.Idl.Emit/bin/**/*;../Hardened.Idl.Emit/IsExternalInit.cs">
+            <Link>Emit\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
+                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
+            <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <!-- CSharpAuthor ships as source and predates nullable reference types. -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
+    </PropertyGroup>
+
+</Project>
