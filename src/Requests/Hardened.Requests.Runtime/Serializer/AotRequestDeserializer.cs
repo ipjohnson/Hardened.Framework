@@ -49,11 +49,22 @@ public class AotRequestDeserializer : IRequestDeserializer {
                         _serializerOptions.Converters.Add(converter);
                     }
                 }
-
-        // Reflection last, and only where it is available - see WithReflectionFallback.
-        Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(_serializerOptions);
             }
         }
+
+        // Reflection last, and only where it is available - see WithReflectionFallback.
+        //
+        // This call used to sit inside the `resolver is JsonSerializerContext` branch above, nested
+        // in the loop. That put it two mistakes deep: it ran only when a resolver happened to be a
+        // JsonSerializerContext, and by then the chain was non-empty, so its `TypeInfoResolver is
+        // null` guard was already false. It could never install anything. Out here it runs once,
+        // after the chain is built, which is what the guard is written for - reflection only when
+        // nothing else was registered at all.
+        Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(_serializerOptions);
+
+        // After that call, because it is guarded on the chain being empty and this would fill it.
+        _serializerOptions.TypeInfoResolverChain.Add(
+            Hardened.Shared.Runtime.Json.PrimitiveJsonTypeInfoResolver.Instance);
     }
 
     public bool IsDefaultSerializer => true;
