@@ -19,6 +19,13 @@ public class AotJsonSerializer : IJsonSerializer {
             _serializerOptions.TypeInfoResolverChain.Add(resolver);
             _prettyOptions.TypeInfoResolverChain.Add(resolver);
         }
+
+        // Last, so a registered context still answers first for anything it knows. Without it the
+        // chain cannot answer typeof(string), and a generated resolver's every string property
+        // throws - the property infos resolve their converter by asking the options, which walks
+        // this chain. See PrimitiveJsonTypeInfoResolver.
+        _serializerOptions.TypeInfoResolverChain.Add(PrimitiveJsonTypeInfoResolver.Instance);
+        _prettyOptions.TypeInfoResolverChain.Add(PrimitiveJsonTypeInfoResolver.Instance);
     }
 
     public async Task<T> DeserializeAsync<T>(Stream jsonStream, CancellationToken cancellationToken = default) {

@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Shared.Runtime.Diagnostics;
@@ -60,8 +61,16 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
                 chain.Context.Response.ShouldSerialize = false;
             }
             else if (chain.Context.Response.ResponseValue is IAsyncEnumerable<TItem> asyncEnumerable) {
-                context.Response.ContentType = "application/x-ndjson";
+                context.Response.ContentType = KnownContentType.NdJson;
                 context.Response.ShouldSerialize = false;
+
+                // Off for the whole stream, not per item. The buffered serializers open a
+                // GZipStream per SerializeResponse call, so leaving this on would put a separate
+                // gzip member on the wire for every item - legal concatenated gzip that no
+                // streaming reader unpacks incrementally, which is the opposite of what a caller
+                // reading a stream wants. Compressing a stream properly means one compressor
+                // around the whole body, which is a different change.
+                context.Response.ShouldCompress = false;
 
                 await foreach (var item in asyncEnumerable.WithCancellation(context.CancellationToken)) {
                     context.Response.ResponseValue = item;

@@ -143,41 +143,19 @@ internal static class JsonTypeInfoEmitter {
             }
         }
 
-        EmitPrimitiveTypeEntries(sb);
         EmitCollectionTypeEntries(sb, schemas, modelsNamespace);
 
+        // No primitive entries. The BCL leaf types every property info bottoms out in - string, int,
+        // DateTimeOffset, their nullable forms - are answered once by
+        // Hardened.Shared.Runtime.Json.PrimitiveJsonTypeInfoResolver, which the serializers put at
+        // the end of the chain. They are still required (a chain that cannot answer typeof(string)
+        // throws on every string property); they were simply emitted once per specification file
+        // into a chain that already holds one resolver per specification file, and each copy pinned
+        // JsonMetadataServices.StringConverter and friends in a way that silently discarded a
+        // converter the application had registered.
         sb.AppendLine("        return null;");
 
         AddStatements(method, sb);
-    }
-
-    private static void EmitPrimitiveTypeEntries(StringBuilder sb) {
-        sb.AppendLine();
-        sb.AppendLine("        // Primitive types");
-        sb.AppendLine("        if (type == typeof(string)) return JsonMetadataServices.CreateValueInfo<string>(options, JsonMetadataServices.StringConverter);");
-        sb.AppendLine("        if (type == typeof(bool)) return JsonMetadataServices.CreateValueInfo<bool>(options, JsonMetadataServices.BooleanConverter);");
-        sb.AppendLine("        if (type == typeof(int)) return JsonMetadataServices.CreateValueInfo<int>(options, JsonMetadataServices.Int32Converter);");
-        sb.AppendLine("        if (type == typeof(uint)) return JsonMetadataServices.CreateValueInfo<uint>(options, JsonMetadataServices.UInt32Converter);");
-        sb.AppendLine("        if (type == typeof(long)) return JsonMetadataServices.CreateValueInfo<long>(options, JsonMetadataServices.Int64Converter);");
-        sb.AppendLine("        if (type == typeof(float)) return JsonMetadataServices.CreateValueInfo<float>(options, JsonMetadataServices.SingleConverter);");
-        sb.AppendLine("        if (type == typeof(double)) return JsonMetadataServices.CreateValueInfo<double>(options, JsonMetadataServices.DoubleConverter);");
-        sb.AppendLine("        if (type == typeof(global::System.DateTime)) return JsonMetadataServices.CreateValueInfo<global::System.DateTime>(options, JsonMetadataServices.DateTimeConverter);");
-        sb.AppendLine("        if (type == typeof(global::System.DateTimeOffset)) return JsonMetadataServices.CreateValueInfo<global::System.DateTimeOffset>(options, JsonMetadataServices.DateTimeOffsetConverter);");
-        sb.AppendLine("        if (type == typeof(global::System.DateOnly)) return JsonMetadataServices.CreateValueInfo<global::System.DateOnly>(options, JsonMetadataServices.DateOnlyConverter);");
-        sb.AppendLine("        if (type == typeof(byte[])) return JsonMetadataServices.CreateValueInfo<byte[]>(options, JsonMetadataServices.ByteArrayConverter);");
-        sb.AppendLine("        if (type == typeof(global::System.Text.Json.JsonElement)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement>(options, JsonMetadataServices.JsonElementConverter);");
-        sb.AppendLine();
-        sb.AppendLine("        // Nullable value types");
-        sb.AppendLine("        if (type == typeof(bool?)) return JsonMetadataServices.CreateValueInfo<bool?>(options, JsonMetadataServices.GetNullableConverter<bool>(options));");
-        sb.AppendLine("        if (type == typeof(int?)) return JsonMetadataServices.CreateValueInfo<int?>(options, JsonMetadataServices.GetNullableConverter<int>(options));");
-        sb.AppendLine("        if (type == typeof(uint?)) return JsonMetadataServices.CreateValueInfo<uint?>(options, JsonMetadataServices.GetNullableConverter<uint>(options));");
-        sb.AppendLine("        if (type == typeof(long?)) return JsonMetadataServices.CreateValueInfo<long?>(options, JsonMetadataServices.GetNullableConverter<long>(options));");
-        sb.AppendLine("        if (type == typeof(float?)) return JsonMetadataServices.CreateValueInfo<float?>(options, JsonMetadataServices.GetNullableConverter<float>(options));");
-        sb.AppendLine("        if (type == typeof(double?)) return JsonMetadataServices.CreateValueInfo<double?>(options, JsonMetadataServices.GetNullableConverter<double>(options));");
-        sb.AppendLine("        if (type == typeof(global::System.DateTime?)) return JsonMetadataServices.CreateValueInfo<global::System.DateTime?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateTime>(options));");
-        sb.AppendLine("        if (type == typeof(global::System.DateTimeOffset?)) return JsonMetadataServices.CreateValueInfo<global::System.DateTimeOffset?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateTimeOffset>(options));");
-        sb.AppendLine("        if (type == typeof(global::System.DateOnly?)) return JsonMetadataServices.CreateValueInfo<global::System.DateOnly?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateOnly>(options));");
-        sb.AppendLine("        if (type == typeof(global::System.Text.Json.JsonElement?)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement?>(options, JsonMetadataServices.GetNullableConverter<global::System.Text.Json.JsonElement>(options));");
     }
 
     private static void AddObjectTypeInfo(
