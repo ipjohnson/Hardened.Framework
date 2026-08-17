@@ -41,7 +41,9 @@ public sealed class FeatureExecutionContext : IExecutionContext {
 
         _featureResponse = new FeatureExecutionResponse(responseFeature, responseBodyFeature);
 
-        Request = new FeatureExecutionRequest(requestFeature);
+        // Optional: a server that supplies no connection feature - and an in-process harness is
+        // one - leaves the transport with nothing to answer rather than failing to start.
+        Request = new FeatureExecutionRequest(requestFeature, features.Get<IHttpConnectionFeature>());
         Response = _featureResponse;
 
         // Without this a client disconnect never reaches the handler and the application keeps

@@ -39,6 +39,9 @@ public class TestExecutionRequest : IExecutionRequest {
             Headers = headers ?? Headers,
             PathTokens = PathTokens,
             Cookies = cookies ?? Cookies,
+            // Shared with the fork rather than reset: a forked chain is the same request on the
+            // same connection, which is what the conformance suite asserts.
+            Transport = Transport,
         };
     }
 
@@ -65,4 +68,37 @@ public class TestExecutionRequest : IExecutionRequest {
     }
 
     public IReadOnlyList<string> Cookies { get; set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// What a test says the transport knows, defaulting to nothing.
+    /// </summary>
+    /// <remarks>
+    /// Settable, because that is what makes a test of a forwarded-headers filter or of an
+    /// address-partitioned rate limiter possible without a socket. Empty by default rather than
+    /// null, so a test that does not care about the transport never has to set it - which is nearly
+    /// all of them.
+    /// </remarks>
+    public ITransportInfo Transport { get; set; } = EmptyTransportInfo.Instance;
+}
+
+/// <summary>
+/// Transport facts a test states outright.
+/// </summary>
+/// <remarks>
+/// A dictionary rather than the lazy lookup the real transports use, because a test knows every
+/// answer up front and there is no connection to avoid touching.
+/// </remarks>
+public class TestTransportInfo : ITransportInfo {
+    private readonly IDictionary<string, string> _values;
+
+    public TestTransportInfo(IDictionary<string, string> values) {
+        _values = values;
+    }
+
+    public TestTransportInfo(params (string Key, string Value)[] values)
+        : this(values.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal)) { }
+
+    public string? Get(string key) => _values.TryGetValue(key, out var value) ? value : null;
+
+    public IReadOnlyList<string> Keys => _values.Keys.ToArray();
 }

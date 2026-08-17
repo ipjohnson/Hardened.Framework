@@ -33,4 +33,26 @@ public interface IExecutionRequest {
     IPathTokenCollection PathTokens { get; set; }
 
     IReadOnlyList<string> Cookies { get; }
+
+    /// <summary>
+    /// What the transport knows about the connection this arrived on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Never null. A transport with nothing to say - an in-memory harness, a queue record - answers
+    /// <c>EmptyTransportInfo.Instance</c>, so a caller asks for a fact and gets null rather than
+    /// asking whether there is a transport to ask.
+    /// </para>
+    /// <para>
+    /// <b>Deliberately not properties.</b> Every transport knows a different subset, and a property
+    /// per fact would grow this interface every time a host is added while being null on most of
+    /// them. The keys are OpenTelemetry's, so the same fact reads the same under Lambda as under
+    /// Kestrel - see <see cref="KnownTransportKeys"/>.
+    /// </para>
+    /// <para>
+    /// <b>Carried through <see cref="Clone"/> unchanged.</b> A forked chain is the same request on
+    /// the same connection; rebinding its method or path says nothing about where it came from.
+    /// </para>
+    /// </remarks>
+    ITransportInfo Transport { get; }
 }

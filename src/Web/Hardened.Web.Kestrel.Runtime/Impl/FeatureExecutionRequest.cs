@@ -21,6 +21,7 @@ namespace Hardened.Web.Kestrel.Runtime.Impl;
 /// </summary>
 public sealed class FeatureExecutionRequest : IExecutionRequest {
     private readonly IHttpRequestFeature _feature;
+    private readonly ITransportInfo _transport;
 
     // Values supplied by Clone. Null means "read through to the feature", which is what keeps
     // Clone(x: null) preserving the current value.
@@ -34,8 +35,17 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
     private IReadOnlyList<string>? _cookies;
     private IPathTokenCollection? _pathTokens;
 
-    public FeatureExecutionRequest(IHttpRequestFeature feature) {
+    public FeatureExecutionRequest(IHttpRequestFeature feature)
+        : this(feature, null) { }
+
+    /// <param name="connection">
+    /// The connection feature, or null when the server did not supply one. Optional rather than
+    /// required because a request feature is all a test needs to construct one of these, and the
+    /// conformance suite does exactly that.
+    /// </param>
+    public FeatureExecutionRequest(IHttpRequestFeature feature, IHttpConnectionFeature? connection) {
         _feature = feature;
+        _transport = new FeatureTransportInfo(connection, feature);
     }
 
     private FeatureExecutionRequest(
@@ -44,8 +54,10 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
         string? pathOverride,
         IDictionary<string, StringValues>? headersOverride,
         IQueryStringCollection? queryStringOverride,
-        IReadOnlyList<string>? cookiesOverride) {
+        IReadOnlyList<string>? cookiesOverride,
+        ITransportInfo transport) {
         _feature = feature;
+        _transport = transport;
         _methodOverride = methodOverride;
         _pathOverride = pathOverride;
 
@@ -74,7 +86,10 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
             path ?? _pathOverride,
             headers ?? _headersOverride,
             queryString ?? _queryStringOverride,
-            cookies ?? _cookiesOverride) {
+            cookies ?? _cookiesOverride,
+            // Shared, not cloned: a fork is the same request on the same connection, and rebinding
+            // its method or path says nothing about where it came from.
+            _transport) {
             // Cloned, not shared: a forked chain must be able to rebind without writing through
             // to the request it was forked from. See the conformance suite.
             Parameters = Parameters?.Clone(),
@@ -139,6 +154,8 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
     /// </summary>
     public IReadOnlyList<string> Cookies =>
         _cookiesOverride ?? (_cookies ??= ParseCookies(Headers));
+
+    public ITransportInfo Transport => _transport;
 
     private static IQueryStringCollection ParseQueryString(string? rawQueryString) {
         if (string.IsNullOrEmpty(rawQueryString) || rawQueryString == "?") {

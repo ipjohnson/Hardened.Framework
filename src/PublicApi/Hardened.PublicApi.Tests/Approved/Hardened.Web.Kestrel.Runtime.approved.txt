@@ -70,6 +70,7 @@ namespace Hardened.Web.Kestrel.Runtime.Impl
     public sealed class FeatureExecutionRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
     {
         public FeatureExecutionRequest(Microsoft.AspNetCore.Http.Features.IHttpRequestFeature feature) { }
+        public FeatureExecutionRequest(Microsoft.AspNetCore.Http.Features.IHttpRequestFeature feature, Microsoft.AspNetCore.Http.Features.IHttpConnectionFeature? connection) { }
         public string? Accept { get; }
         public System.IO.Stream Body { get; set; }
         public string? ContentType { get; }
@@ -80,6 +81,7 @@ namespace Hardened.Web.Kestrel.Runtime.Impl
         public string Path { get; }
         public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
         public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
     }
     public sealed class FeatureExecutionResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
@@ -100,6 +102,12 @@ namespace Hardened.Web.Kestrel.Runtime.Impl
         public int? Status { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null) { }
         public System.Threading.Tasks.ValueTask CompleteAsync() { }
+    }
+    public sealed class FeatureTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    {
+        public FeatureTransportInfo(Microsoft.AspNetCore.Http.Features.IHttpConnectionFeature? connection, Microsoft.AspNetCore.Http.Features.IHttpRequestFeature request) { }
+        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        public string? Get(string key) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService]
     public class HardenedHttpApplication : Microsoft.AspNetCore.Hosting.Server.IHttpApplication<Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication.RequestContext>
