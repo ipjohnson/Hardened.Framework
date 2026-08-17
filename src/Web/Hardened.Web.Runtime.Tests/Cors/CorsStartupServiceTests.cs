@@ -63,16 +63,24 @@ public class CorsStartupServiceTests {
     }
 
     /// <summary>
-    /// No allowed origin, no filter. Installing it anyway would turn every preflight into a 204
-    /// that never reaches a handler, in an application that never asked for CORS.
+    /// The filter is installed whether or not an origin is configured.
+    ///
+    /// <para>
+    /// It used to be conditional, which combined badly with the configuration being loaded from an
+    /// environment variable inside the DI factory: a misspelled <c>CORS_ALLOWED_ORIGINS</c> meant
+    /// not "CORS allows nothing" but "CORS is not installed", and those look identical from outside
+    /// until a browser disagrees. Installing always is safe now that a request with no
+    /// <c>Origin</c> header is passed straight through and an <c>OPTIONS</c> is only intercepted
+    /// when it carries <c>Access-Control-Request-Method</c>.
+    /// </para>
     /// </summary>
     [Fact]
-    public async Task NoAllowedOriginInstallsNoMiddleware() {
+    public async Task NoAllowedOriginStillInstallsTheMiddleware() {
         var (provider, middleware) = Application(new CorsConfiguration());
 
         await RunStartup(provider);
 
-        middleware.DidNotReceive().Use(Arg.Any<Func<IExecutionContext, IExecutionFilter>>());
+        middleware.Received(1).Use(Arg.Any<Func<IExecutionContext, IExecutionFilter>>());
     }
 
     [Fact]

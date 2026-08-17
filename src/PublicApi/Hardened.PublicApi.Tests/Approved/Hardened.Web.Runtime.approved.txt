@@ -151,18 +151,26 @@ namespace Hardened.Web.Runtime.Cors
     {
         public const string DefaultEnvironmentVariable = "CORS_ALLOWED_ORIGINS";
         public CorsConfiguration() { }
-        public string AllowedHeaders { get; set; }
-        public string AllowedMethods { get; set; }
+        public bool AllowAnyOrigin { get; set; }
+        public bool AllowCredentials { get; set; }
+        public System.Collections.Generic.IReadOnlyCollection<string> AllowedHeaders { get; }
         public System.Collections.Generic.IReadOnlySet<string> AllowedOrigins { get; }
         public string EnvironmentVariable { get; set; }
+        public System.Collections.Generic.IReadOnlyCollection<string> ExposedHeaders { get; }
+        public string FallbackMethods { get; set; }
+        public bool IsConfigured { get; }
         public int MaxAgeSec { get; set; }
+        public void AllowHeader(string header) { }
         public void AllowOrigin(string origin) { }
+        public void AllowOriginSuffix(string domain) { }
+        public bool AreHeadersAllowed(System.Collections.Generic.IEnumerable<string> requested) { }
+        public void ExposeHeader(string header) { }
         public bool IsOriginAllowed(string origin) { }
         public void LoadFromEnvironment() { }
     }
     public class CorsFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
-        public CorsFilter(Hardened.Web.Runtime.Cors.CorsConfiguration config) { }
+        public CorsFilter(Hardened.Web.Runtime.Cors.CorsConfiguration config, System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider>? routing = null) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }
