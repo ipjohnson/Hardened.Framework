@@ -35,14 +35,119 @@ public class HeaderCollectionStringValuesTests {
         Assert.Empty(new HeaderCollectionStringValues());
     }
 
+    /// <summary>
+    /// A dictionary that already compares names without regard to case is wrapped by reference, so a
+    /// caller that hands one over and reads its own copy back — which is how the Lambda transports
+    /// collect response headers — still sees the writes.
+    /// </summary>
     [Fact]
-    public void WrapsAnExistingStringValuesDictionaryByReference() {
-        var backing = new Dictionary<string, StringValues> { { "X-Trace", "abc" } };
+    public void WrapsACaseInsensitiveDictionaryByReference() {
+        var backing = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) {
+            { "X-Trace", "abc" }
+        };
+
         var headers = new HeaderCollectionStringValues(backing);
 
         headers.Set("X-Extra", "value");
 
         Assert.True(backing.ContainsKey("X-Extra"));
+    }
+
+    /// <summary>
+    /// One that does not is copied, and the reference is deliberately given up to get the lookups
+    /// right. A case-sensitive store is how <c>content-type</c> from API Gateway failed to answer to
+    /// <c>Content-Type</c>, which is what <c>KnownHeaders</c> asks for.
+    /// </summary>
+    [Fact]
+    public void CopiesACaseSensitiveDictionaryRatherThanInheritingIt() {
+        var backing = new Dictionary<string, StringValues> { { "content-type", "text/csv" } };
+
+        var headers = new HeaderCollectionStringValues(backing);
+
+        Assert.Equal("text/csv", headers.Get("Content-Type").ToString());
+
+        headers.Set("X-Extra", "value");
+
+        Assert.False(backing.ContainsKey("X-Extra"));
+    }
+
+    /// <summary>
+    /// HTTP header names are case-insensitive, and every transport spells them differently: API
+    /// Gateway lowercases, Kestrel preserves what arrived, a hand-written test writes whatever reads
+    /// best. Every accessor has to agree.
+    /// </summary>
+    [Theory]
+    [InlineData("content-type")]
+    [InlineData("Content-Type")]
+    [InlineData("CONTENT-TYPE")]
+    [InlineData("cOnTeNt-TyPe")]
+    public void EveryAccessorIgnoresCase(string spelling) {
+        var headers = new HeaderCollectionStringValues(new Dictionary<string, string> {
+            { "content-type", "text/csv" }
+        });
+
+        Assert.Equal("text/csv", headers.Get(spelling).ToString());
+        Assert.Equal("text/csv", headers[spelling].ToString());
+        Assert.True(headers.ContainsKey(spelling));
+        Assert.True(headers.TryGet(spelling, out var viaTryGet));
+        Assert.Equal("text/csv", viaTryGet.ToString());
+        Assert.True(headers.TryGetValue(spelling, out var viaTryGetValue));
+        Assert.Equal("text/csv", viaTryGetValue.ToString());
+    }
+
+    [Fact]
+    public void AppendingIgnoresCase() {
+        var headers = new HeaderCollectionStringValues(new Dictionary<string, string> {
+            { "accept", "text/csv" }
+        });
+
+        headers.Append("Accept", "text/html");
+
+        Assert.Equal("text/csv,text/html", headers.Get("ACCEPT").ToString());
+        Assert.Single(headers);
+    }
+
+    [Fact]
+    public void RemovingIgnoresCase() {
+        var headers = new HeaderCollectionStringValues(new Dictionary<string, string> {
+            { "x-gone", "here" }
+        });
+
+        Assert.True(headers.Remove("X-Gone"));
+        Assert.Empty(headers);
+    }
+
+    [Fact]
+    public void SettingAnExistingHeaderInAnotherCaseReplacesIt() {
+        var headers = new HeaderCollectionStringValues(new Dictionary<string, string> {
+            { "accept", "text/csv" }
+        });
+
+        headers.Set("Accept", "text/html");
+
+        Assert.Single(headers);
+        Assert.Equal("text/html", headers.Get("accept").ToString());
+    }
+
+    /// <summary>
+    /// The helper the transports use when they hold a raw dictionary rather than this collection —
+    /// the header override a forked request carries on ASP.NET and Kestrel.
+    /// </summary>
+    [Fact]
+    public void EnsureCaseInsensitiveKeepsADictionaryThatAlreadyIs() {
+        var backing = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+
+        Assert.Same(backing, HeaderCollectionStringValues.EnsureCaseInsensitive(backing));
+    }
+
+    [Fact]
+    public void EnsureCaseInsensitiveCopiesOneThatIsNot() {
+        var backing = new Dictionary<string, StringValues> { { "content-type", "text/csv" } };
+
+        var ensured = HeaderCollectionStringValues.EnsureCaseInsensitive(backing);
+
+        Assert.NotSame(backing, ensured);
+        Assert.Equal("text/csv", ensured["Content-Type"].ToString());
     }
 
     [Fact]

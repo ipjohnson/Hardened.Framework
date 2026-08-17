@@ -14,6 +14,16 @@ namespace Hardened.Requests.Testing.Conformance
     {
         protected ExecutionRequestConformanceTests() { }
         protected abstract Hardened.Requests.Testing.Conformance.IExecutionRequestConformanceAdapter Adapter { get; }
+        [Xunit.InlineData(new object[] {
+                "CONTENT-TYPE",
+                "Content-Type"})]
+        [Xunit.InlineData(new object[] {
+                "Content-Type",
+                "content-type"})]
+        [Xunit.InlineData(new object[] {
+                "content-type",
+                "Content-Type"})]
+        public void AHeaderIsFoundUnderAnySpelling(string written, string read) { }
         public void AcceptComesFromTheAcceptHeader() { }
         public void AcceptReflectsANonJsonValue() { }
         public void BodyIsReadable() { }
@@ -26,6 +36,7 @@ namespace Hardened.Requests.Testing.Conformance
         public void CloneReplacesHeadersWhenHeadersAreProvided() { }
         public void CloneReplacesMethodWhenMethodIsProvided() { }
         public void CloneReplacesPathWhenPathIsProvided() { }
+        public void ContentTypeAndAcceptIgnoreTheCaseTheyArriveIn() { }
         public void ContentTypeComesFromTheContentTypeHeader() { }
         public void CookiesAreEmptyRatherThanNullWhenNoneWereSent() { }
         public void CookiesAreSurfaced() { }
