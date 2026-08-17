@@ -160,7 +160,7 @@ internal static class NameAllocator {
             // not a moment. The keyword forms (int, string) cannot collide because a pascal-cased
             // name never produces one, and reserving ordinary words like Type or Object would
             // rename a great many schemas to no purpose.
-            "DateTime", "DateOnly", "JsonElement"
+            "DateTime", "DateTimeOffset", "DateOnly", "JsonElement"
         });
 
         var ordered = new List<SchemaModel>(model.Schemas);
@@ -178,7 +178,7 @@ internal static class NameAllocator {
 
             // Same argument for a choice type: the converter is named after it and has nowhere
             // else to go. See OneOfConverterEmitter.
-            if (schema.Kind == SchemaKind.OneOf) {
+            if (schema.Kind is SchemaKind.OneOf or SchemaKind.Enum) {
                 scope.Reserve(allocated + "Converter");
             }
 

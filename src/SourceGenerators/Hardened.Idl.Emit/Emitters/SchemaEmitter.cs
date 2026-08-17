@@ -27,10 +27,22 @@ internal static class SchemaEmitter {
         IReadOnlyList<SchemaModel>? allSchemas = null) =>
         schema.Kind switch {
             SchemaKind.Object => EmitRecord(container, schema, modelsNamespace, patterns, allSchemas),
-            SchemaKind.Enum => EmitEnum(container, schema),
+            SchemaKind.Enum => EmitEnumWithConverter(container, schema, modelsNamespace),
             SchemaKind.OneOf => EmitOneOf(container, schema, modelsNamespace, allSchemas),
             _ => null,
         };
+
+    /// <summary>
+    /// The enum and the converter that maps it to the values the description declares.
+    /// </summary>
+    private static IOutputComponent EmitEnumWithConverter(
+        IConstructContainer container, SchemaModel schema, string modelsNamespace) {
+        var type = EmitEnum(container, schema);
+
+        EnumConverterEmitter.Emit(container, schema, modelsNamespace);
+
+        return type;
+    }
 
     /// <summary>
     /// The choice type and the converter that resolves it, which are one thing in two declarations.
@@ -115,6 +127,9 @@ internal static class SchemaEmitter {
         // syntactic position. Without the target the attribute stays on the parameter, where a
         // generator reading properties never sees it - which is what VM0051 warns about.
         EmitJsonPropertyName(parameter, property).Target = "property";
+        if (EmitDirection(parameter, property) is { } direction) {
+            direction.Target = "property";
+        }
 
         // Required, except where the type already guarantees it - see
         // TypeMapper.IsNonNullableValueType.
@@ -164,6 +179,7 @@ internal static class SchemaEmitter {
         }
 
         EmitJsonPropertyName(member, property);
+        EmitDirection(member, property);
     }
 
     /// <summary>
@@ -243,6 +259,27 @@ internal static class SchemaEmitter {
     /// The caller sets <c>Target</c>: a positional record parameter needs <c>property:</c> to reach
     /// the property it declares, while a member declared in the body is already the property.
     /// </remarks>
+    /// <summary>
+    /// Which direction the description says the value travels, where it says so.
+    /// </summary>
+    /// <remarks>
+    /// Documentation rather than a missing accessor. Withholding one was how this used to be
+    /// expressed, and it made the value unreachable in the direction the contract does allow - a
+    /// response's <c>created_at</c> was dropped on the way in, a request's password could not be
+    /// written on the way out. See <c>ResponseOnlyAttribute</c>.
+    /// </remarks>
+    private static AttributeDefinition? EmitDirection(
+        BaseOutputComponent target, PropertyModel property) {
+        if (!property.IsReadOnly && !property.IsWriteOnly) {
+            return null;
+        }
+
+        return target.AddAttribute(
+            TypeDefinition.Get(
+                "Hardened.Requests.Abstract.Attributes",
+                property.IsReadOnly ? "ResponseOnlyAttribute" : "RequestOnlyAttribute"));
+    }
+
     private static AttributeDefinition EmitJsonPropertyName(
         BaseOutputComponent parameter, PropertyModel property) =>
         parameter.AddAttribute(

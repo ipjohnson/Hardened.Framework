@@ -35,7 +35,11 @@ internal static class SchemaShape {
     public static List<PropertyModel> Constructor(SchemaModel schema) =>
         schema.Properties
             .Where(property => property.IsConstructorParameter)
-            .OrderByDescending(property => property.IsRequired)
+            // Ordered by whether the parameter carries a default, not by whether the description
+            // calls the property required. A read-only property is required in a response and
+            // optional in C#, so ordering by the description put an optional parameter before a
+            // required one - CS1737, and a generated file that does not compile.
+            .OrderByDescending(property => !property.HasDefault)
             .ToList();
 
     /// <summary>

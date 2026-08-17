@@ -74,7 +74,7 @@ public class DefaultValueTests {
         var generated = OpenApiGenerator.Run(Specs.DeclaredDefaults).AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
-        Assert.Contains("DateTime? Since = default", generated);
+        Assert.Contains("DateTimeOffset? Since = default", generated);
     }
 
     /// <summary>

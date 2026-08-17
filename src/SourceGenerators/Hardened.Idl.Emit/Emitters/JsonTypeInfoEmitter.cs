@@ -131,6 +131,16 @@ internal static class JsonTypeInfoEmitter {
             if (schema.Kind != SchemaKind.Object && schema.Kind != SchemaKind.Enum) continue;
 
             sb.AppendLine($"        if (type == typeof({typeName})) return Create{name}TypeInfo(options);");
+
+            // A generated enum is a value type, so an optional property of one is T? - and the
+            // property info asks the resolver for exactly that. Without this line it answers null
+            // and the payload cannot be read at all: every optional enum property in every
+            // description, which compiled, passed every test, and refused 339 of Square's 453
+            // published examples the first time any of them was replayed.
+            if (schema.Kind == SchemaKind.Enum) {
+                sb.AppendLine(
+                    $"        if (type == typeof({typeName}?)) return JsonMetadataServices.CreateValueInfo<{typeName}?>(options, JsonMetadataServices.GetNullableConverter<{typeName}>(options));");
+            }
         }
 
         EmitPrimitiveTypeEntries(sb);
@@ -152,6 +162,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        if (type == typeof(float)) return JsonMetadataServices.CreateValueInfo<float>(options, JsonMetadataServices.SingleConverter);");
         sb.AppendLine("        if (type == typeof(double)) return JsonMetadataServices.CreateValueInfo<double>(options, JsonMetadataServices.DoubleConverter);");
         sb.AppendLine("        if (type == typeof(global::System.DateTime)) return JsonMetadataServices.CreateValueInfo<global::System.DateTime>(options, JsonMetadataServices.DateTimeConverter);");
+        sb.AppendLine("        if (type == typeof(global::System.DateTimeOffset)) return JsonMetadataServices.CreateValueInfo<global::System.DateTimeOffset>(options, JsonMetadataServices.DateTimeOffsetConverter);");
         sb.AppendLine("        if (type == typeof(global::System.DateOnly)) return JsonMetadataServices.CreateValueInfo<global::System.DateOnly>(options, JsonMetadataServices.DateOnlyConverter);");
         sb.AppendLine("        if (type == typeof(byte[])) return JsonMetadataServices.CreateValueInfo<byte[]>(options, JsonMetadataServices.ByteArrayConverter);");
         sb.AppendLine("        if (type == typeof(global::System.Text.Json.JsonElement)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement>(options, JsonMetadataServices.JsonElementConverter);");
@@ -164,6 +175,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        if (type == typeof(float?)) return JsonMetadataServices.CreateValueInfo<float?>(options, JsonMetadataServices.GetNullableConverter<float>(options));");
         sb.AppendLine("        if (type == typeof(double?)) return JsonMetadataServices.CreateValueInfo<double?>(options, JsonMetadataServices.GetNullableConverter<double>(options));");
         sb.AppendLine("        if (type == typeof(global::System.DateTime?)) return JsonMetadataServices.CreateValueInfo<global::System.DateTime?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateTime>(options));");
+        sb.AppendLine("        if (type == typeof(global::System.DateTimeOffset?)) return JsonMetadataServices.CreateValueInfo<global::System.DateTimeOffset?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateTimeOffset>(options));");
         sb.AppendLine("        if (type == typeof(global::System.DateOnly?)) return JsonMetadataServices.CreateValueInfo<global::System.DateOnly?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateOnly>(options));");
         sb.AppendLine("        if (type == typeof(global::System.Text.Json.JsonElement?)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement?>(options, JsonMetadataServices.GetNullableConverter<global::System.Text.Json.JsonElement>(options));");
     }
@@ -198,16 +210,18 @@ internal static class JsonTypeInfoEmitter {
             }
         }
 
-        if (schema.Properties.Count > 0) {
-            // Every property, including the readOnly ones the constructor does not take: they are
-            // serialized, and the property list is what carries a getter for them.
-            sb.AppendLine("            PropertyMetadataInitializer = _ => new JsonPropertyInfo[]");
-            sb.AppendLine("            {");
-            foreach (var prop in schema.Properties.OrderByDescending(p => p.IsRequired)) {
-                EmitPropertyInfo(sb, prop, typeName, allSchemas, ns);
-            }
-            sb.AppendLine("            },");
+        // Always, even for a schema that declares none. System.Text.Json requires the initializer
+        // to be present and refuses the type outright without it - "did not provide property
+        // metadata" - so a free-form `type: object` could not be deserialized at all. Cloudflare
+        // declares 57 of those, and every one of them threw.
+        sb.AppendLine("            PropertyMetadataInitializer = _ => new JsonPropertyInfo[]");
+        sb.AppendLine("            {");
+
+        foreach (var prop in schema.Properties.OrderByDescending(p => !p.HasDefault)) {
+            EmitPropertyInfo(sb, prop, typeName, allSchemas, ns);
         }
+
+        sb.AppendLine("            },");
 
         if (parameters.Count > 0) {
             // ConstructorParameterMetadataInitializer
@@ -303,9 +317,9 @@ internal static class JsonTypeInfoEmitter {
         var genericType = GetPropertyInfoGenericType(prop, allSchemas, ns);
         var propName = prop.MemberName;
 
-        var getter = prop.IsWriteOnly
-            ? "null"
-            : $"static obj => (({declaringTypeName})obj).{propName}";
+        // Both directions read and write. A writeOnly property used to have no getter, which made
+        // the request body it describes unserializable; see ResponseOnlyAttribute.
+        var getter = $"static obj => (({declaringTypeName})obj).{propName}";
 
         sb.AppendLine($"                JsonMetadataServices.CreatePropertyInfo<{genericType}>(options, new JsonPropertyInfoValues<{genericType}>");
         sb.AppendLine("                {");
@@ -343,7 +357,12 @@ internal static class JsonTypeInfoEmitter {
         var method = CreateTypeInfoMethod(resolver, name);
         var sb = new StringBuilder();
 
-        sb.AppendLine($"        return JsonMetadataServices.CreateValueInfo<{typeName}>(options, JsonMetadataServices.GetEnumConverter<{typeName}>(options));");
+        // Not GetEnumConverter: that is the numeric one, and an OpenAPI enum travels as the string
+        // the description declares. See EnumConverterEmitter.
+        var converter = TypeMapper.QualifiedName(
+            ns, EnumConverterEmitter.ConverterName(schema.Name), false);
+
+        sb.AppendLine($"        return JsonMetadataServices.CreateValueInfo<{typeName}>(options, {converter}.Instance);");
 
         AddStatements(method, sb);
     }
@@ -457,6 +476,7 @@ internal static class JsonTypeInfoEmitter {
             case "float":
             case "double":
             case "bool":
+            case "DateTimeOffset":
             case "DateTime":
             case "DateOnly":
             case "JsonElement":

@@ -186,6 +186,13 @@ internal static class SpecSlicer {
                 Reach(mapping.Ref);
             }
 
+            // A choice type's own branches. Without this the choice survives and the schemas it
+            // reads into do not, so the generated converter names types nothing declares - CS0234
+            // from a file the generator wrote.
+            foreach (var branch in schema.OneOf) {
+                Reach(branch.Ref);
+            }
+
             if (!string.IsNullOrEmpty(schema.DiscriminatorPropertyName) &&
                 derived.TryGetValue(schema.Name, out var subtypes)) {
                 foreach (var subtype in subtypes) {
