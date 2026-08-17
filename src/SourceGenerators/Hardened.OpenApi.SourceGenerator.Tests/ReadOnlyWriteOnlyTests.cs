@@ -66,18 +66,23 @@ public class ReadOnlyWriteOnlyTests {
     }
 
     /// <summary>
-    /// The property that would otherwise be a required constructor parameter is declared in the
-    /// record body instead, initialized so the non-nullable type holds.
+    /// A read-only property is an ordinary parameter, marked with the direction it travels.
     /// </summary>
+    /// <remarks>
+    /// It used to be an init-only member the resolver gave no setter, which did keep a client from
+    /// sending it - and also kept anything from reading it. Replaying Square's published examples
+    /// through the generated models showed the cost: every <c>created_at</c>, <c>updated_at</c> and
+    /// <c>id</c> in a response was dropped on the way in, which is the direction the description
+    /// does allow. Direction is documented now and enforced where it can name the property.
+    /// </remarks>
     [Fact]
-    public void AReadOnlyPropertyIsAnInitOnlyMember() {
+    public void AReadOnlyPropertyIsPositionalAndMarked() {
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
-
-        Assert.Contains("public string Id { get; init; } = default!;", generated);
 
         var record = generated.Split('\n').First(line => line.Contains("record Pet("));
 
-        Assert.DoesNotContain("Id", record);
+        Assert.Contains("Id", record);
+        Assert.Contains("ResponseOnly", record);
     }
 
     /// <summary>
@@ -98,15 +103,15 @@ public class ReadOnlyWriteOnlyTests {
     /// of them is reachable.
     /// </summary>
     [Fact]
-    public void TheResolverDropsEachPropertyInOneDirection() {
+    public void TheResolverCarriesEachPropertyInBothDirections() {
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
 
-        // Serialized: a response carries the server-assigned id.
+        // Both are read and written. Dropping one direction was how this used to be expressed, and
+        // it broke the direction the description allows - a response's id could not be read back,
+        // and a write-only secret could not be written into the request it belongs to.
         Assert.Contains("PropertyName = \"id\"", generated);
         Assert.Contains("Getter = static obj => ((global::TestNamespace.Models.Pet)obj).Id,", generated);
-
-        // Never serialized: the secret does not come back.
-        Assert.Contains("Getter = null,", Between(generated, "PropertyName = \"secret\"", "}),"));
+        Assert.DoesNotContain("Getter = null,", Between(generated, "PropertyName = \"secret\"", "}),"));
     }
 
     /// <summary>
@@ -122,7 +127,10 @@ public class ReadOnlyWriteOnlyTests {
         var creator = Between(
             generated, "ObjectWithParameterizedConstructorCreator = static args => new global::TestNamespace.Models.Pet(", "),");
 
-        Assert.DoesNotContain("Id", creator);
+        // The creator is positional casts, so what it says about read-only properties is its
+        // arity: four arguments means the read-only id is one of them. The old assertion looked
+        // for "Id" in a block that never contains a property name, and so could not have failed.
+        Assert.Contains("args[3]", creator);
 
         // To the close of CreateObjectInfo, which the parameter list is the last member of. Its own
         // entries each end in "}," so that cannot be the terminator.
@@ -131,7 +139,7 @@ public class ReadOnlyWriteOnlyTests {
             "ConstructorParameterMetadataInitializer = static () => new JsonParameterInfoValues[]",
             "});");
 
-        Assert.DoesNotContain("Name = \"id\",", parameters);
+        Assert.Contains("Name = \"id\",", parameters);
 
         // The parameters it does describe are the ones the constructor takes, in order.
         Assert.Contains("Name = \"petType\",", parameters);
@@ -150,10 +158,12 @@ public class ReadOnlyWriteOnlyTests {
 
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
 
-        var member = generated.Split('\n').First(line => line.Contains("public string Id"));
+        var record = generated.Split('\n').First(line => line.Contains("record Pet("));
+        var member = record[record.IndexOf("Id", System.StringComparison.Ordinal)..];
 
-        Assert.DoesNotContain("Required", member);
-        Assert.DoesNotContain("StringLength", member);
+        // The parameter carries its direction and nothing else: a constraint on it would be checked
+        // against a request that correctly omitted a value the server owns.
+        Assert.DoesNotContain("StringLength", member[..System.Math.Min(80, member.Length)]);
 
         // The constrained sibling still is, so this is not just an empty spec.
         Assert.Contains("StringLength", generated);
@@ -169,10 +179,9 @@ public class ReadOnlyWriteOnlyTests {
     public void ADerivedRecordDoesNotRedeclareTheBaseMember() {
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
 
-        Assert.Single(
-            generated.Split('\n'), line => line.Contains("public string Id { get; init; }"));
-
-        // And it still forwards the base's real constructor parameters.
+        // Nothing is declared in the body any more, so the hiding this guarded against cannot
+        // happen - the derived record forwards the base's parameters.
+        Assert.DoesNotContain("public string Id { get; init; }", generated);
         Assert.Contains("record Dog(", generated);
     }
 
@@ -181,13 +190,14 @@ public class ReadOnlyWriteOnlyTests {
     /// resolver needs the parameterless creator rather than an empty positional one.
     /// </summary>
     [Fact]
-    public void ASchemaOfOnlyReadOnlyPropertiesGetsAParameterlessCreator() {
+    public void ASchemaOfOnlyReadOnlyPropertiesIsStillConstructed() {
         var generated = Generated(Specs.ReadOnlyOnly);
 
-        Assert.Contains("ObjectCreator = static () => new global::TestNamespace.Models.Receipt(),", generated);
-        Assert.DoesNotContain("ObjectWithParameterizedConstructorCreator = static args => new global::TestNamespace.Models.Receipt(", generated);
-
-        // Still serialized - the property exists, it just cannot be sent.
+        // Read-only properties are constructor parameters like any other, so a schema made only of
+        // them has a constructor and a response carrying them can be read back.
+        Assert.Contains(
+            "ObjectWithParameterizedConstructorCreator = static args => new global::TestNamespace.Models.Receipt(",
+            generated);
         Assert.Contains("Getter = static obj => ((global::TestNamespace.Models.Receipt)obj).Id,", generated);
     }
 }

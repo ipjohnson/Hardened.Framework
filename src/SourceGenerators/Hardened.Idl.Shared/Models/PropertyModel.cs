@@ -69,11 +69,14 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     /// Whether the generated record declares this positionally.
     /// </summary>
     /// <remarks>
-    /// A <c>readOnly</c> property is declared as an init-only member instead, which is what keeps it
-    /// out of deserialization: it is not a constructor parameter, and the resolver gives it no
-    /// setter, so a client sending it has the value discarded rather than honoured.
+    /// Every property, including the <c>readOnly</c> ones. They used to be init-only members the
+    /// resolver gave no setter, which kept a client from sending them - and also kept anything from
+    /// reading them, so a response's <c>created_at</c> and <c>id</c> were dropped on the way in.
+    /// Direction is a fact about the contract rather than about the type, so it is documented with
+    /// <c>[ResponseOnly]</c> and enforced where it can name the property, not by withholding an
+    /// accessor.
     /// </remarks>
-    public bool IsConstructorParameter => !IsReadOnly;
+    public bool IsConstructorParameter => true;
 
     /// <summary>
     /// Whether validation constraints are emitted for this property at all.

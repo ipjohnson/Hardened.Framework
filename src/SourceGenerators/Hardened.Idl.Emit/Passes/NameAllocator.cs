@@ -178,7 +178,7 @@ internal static class NameAllocator {
 
             // Same argument for a choice type: the converter is named after it and has nowhere
             // else to go. See OneOfConverterEmitter.
-            if (schema.Kind == SchemaKind.OneOf) {
+            if (schema.Kind is SchemaKind.OneOf or SchemaKind.Enum) {
                 scope.Reserve(allocated + "Converter");
             }
 

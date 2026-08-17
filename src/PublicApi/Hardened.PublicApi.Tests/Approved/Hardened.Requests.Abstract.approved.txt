@@ -39,6 +39,16 @@ namespace Hardened.Requests.Abstract.Attributes
         public RawResponseAttribute(string contentType = "text/plain") { }
         public string ContentType { get; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Parameter)]
+    public sealed class RequestOnlyAttribute : System.Attribute
+    {
+        public RequestOnlyAttribute() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Parameter)]
+    public sealed class ResponseOnlyAttribute : System.Attribute
+    {
+        public ResponseOnlyAttribute() { }
+    }
 }
 namespace Hardened.Requests.Abstract.Authorization
 {

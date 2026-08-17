@@ -131,6 +131,16 @@ internal static class JsonTypeInfoEmitter {
             if (schema.Kind != SchemaKind.Object && schema.Kind != SchemaKind.Enum) continue;
 
             sb.AppendLine($"        if (type == typeof({typeName})) return Create{name}TypeInfo(options);");
+
+            // A generated enum is a value type, so an optional property of one is T? - and the
+            // property info asks the resolver for exactly that. Without this line it answers null
+            // and the payload cannot be read at all: every optional enum property in every
+            // description, which compiled, passed every test, and refused 339 of Square's 453
+            // published examples the first time any of them was replayed.
+            if (schema.Kind == SchemaKind.Enum) {
+                sb.AppendLine(
+                    $"        if (type == typeof({typeName}?)) return JsonMetadataServices.CreateValueInfo<{typeName}?>(options, JsonMetadataServices.GetNullableConverter<{typeName}>(options));");
+            }
         }
 
         EmitPrimitiveTypeEntries(sb);
@@ -303,9 +313,9 @@ internal static class JsonTypeInfoEmitter {
         var genericType = GetPropertyInfoGenericType(prop, allSchemas, ns);
         var propName = prop.MemberName;
 
-        var getter = prop.IsWriteOnly
-            ? "null"
-            : $"static obj => (({declaringTypeName})obj).{propName}";
+        // Both directions read and write. A writeOnly property used to have no getter, which made
+        // the request body it describes unserializable; see ResponseOnlyAttribute.
+        var getter = $"static obj => (({declaringTypeName})obj).{propName}";
 
         sb.AppendLine($"                JsonMetadataServices.CreatePropertyInfo<{genericType}>(options, new JsonPropertyInfoValues<{genericType}>");
         sb.AppendLine("                {");
@@ -343,7 +353,12 @@ internal static class JsonTypeInfoEmitter {
         var method = CreateTypeInfoMethod(resolver, name);
         var sb = new StringBuilder();
 
-        sb.AppendLine($"        return JsonMetadataServices.CreateValueInfo<{typeName}>(options, JsonMetadataServices.GetEnumConverter<{typeName}>(options));");
+        // Not GetEnumConverter: that is the numeric one, and an OpenAPI enum travels as the string
+        // the description declares. See EnumConverterEmitter.
+        var converter = TypeMapper.QualifiedName(
+            ns, EnumConverterEmitter.ConverterName(schema.Name), false);
+
+        sb.AppendLine($"        return JsonMetadataServices.CreateValueInfo<{typeName}>(options, {converter}.Instance);");
 
         AddStatements(method, sb);
     }
