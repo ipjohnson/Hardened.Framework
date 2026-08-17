@@ -21,12 +21,17 @@ namespace Hardened.SourceGenerator.Web.Authorization;
 /// A <b>warning</b> by default, so that adopting the attribute does not break a large application on
 /// day one. <c>TreatWarningsAsErrors</c> is on when <c>ContinuousIntegrationBuild</c> is, so an
 /// unannotated handler already cannot merge while still not blocking a refactor in progress. It can
-/// be raised permanently, or lowered per file, through the mechanism every .NET developer already
-/// knows:
+/// be raised through the mechanism every .NET developer already knows:
 /// </para>
 /// <code>
 /// dotnet_diagnostic.HAUTH001.severity = error
 /// </code>
+/// <para>
+/// <b>Per project, not per file.</b> This is reported without a syntax location - deliberately, for
+/// the reason given below - so there is no file for a scoped <c>.editorconfig</c> section or a
+/// <c>#pragma</c> to attach to. A severity entry in a global section applies, and
+/// <c>&lt;NoWarn&gt;</c> works; a rule under <c>[SomeController.cs]</c> does not.
+/// </para>
 /// <para>
 /// <b>The runtime backstop is the authoritative check, not this.</b> A generator only sees the
 /// assembly being compiled, so handlers arriving from a referenced assembly are guarded without ever
@@ -50,8 +55,9 @@ public static class RequireAuthorizationDiagnostics {
     /// <para>
     /// The consequence is the other way round for an application that writes its own
     /// <c>IAuthorizeAttribute</c>: the pipeline honours it, this does not recognise it, and the
-    /// handler is reported anyway. <c>[AllowAnonymous]</c> is the wrong answer there; an
-    /// <c>.editorconfig</c> entry for the file is the right one.
+    /// handler is reported anyway. <c>[AllowAnonymous]</c> is emphatically the wrong answer there -
+    /// it would make the route genuinely public - so the answer is to lower the severity for the
+    /// project.
     /// </para>
     /// </remarks>
     private const string AuthorizationNamespace = "Hardened.Requests.Runtime.Authorization";
