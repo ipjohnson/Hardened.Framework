@@ -518,6 +518,7 @@ namespace Hardened.Requests.Abstract.RequestFilter
     public interface IIOFilterProvider
     {
         Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest);
+        Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing);
         Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest);
     }
     public interface IInstanceFilterProvider
@@ -574,6 +575,19 @@ namespace Hardened.Requests.Abstract.Serializer
         Hardened.Requests.Abstract.Serializer.IRequestDeserializer FindRequestDeserializer(Hardened.Requests.Abstract.Execution.IExecutionContext context);
         Hardened.Requests.Abstract.Serializer.IResponseSerializer FindResponseSerializer(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
+    public interface ISseEvent
+    {
+        object? Data { get; }
+        string? Event { get; }
+        string? Id { get; }
+        int? Retry { get; }
+    }
+    public interface IStreamFraming
+    {
+        string ContentType { get; }
+        System.Threading.Tasks.ValueTask WriteCompletion(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize);
+    }
     public interface IStringConverter
     {
         System.Type ConvertType { get; }
@@ -596,6 +610,14 @@ namespace Hardened.Requests.Abstract.Serializer
         Specialized = -100,
         Normal = 0,
         Deferred = 1000,
+    }
+    public class SseItem<T> : Hardened.Requests.Abstract.Serializer.ISseEvent, System.IEquatable<Hardened.Requests.Abstract.Serializer.SseItem<T>>
+    {
+        public SseItem(T Data, string? Id = null, string? Event = null, int? Retry = default) { }
+        public T Data { get; init; }
+        public string? Event { get; init; }
+        public string? Id { get; init; }
+        public int? Retry { get; init; }
     }
 }
 namespace Hardened.Requests.Abstract.Templates

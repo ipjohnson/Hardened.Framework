@@ -130,6 +130,108 @@ public class StreamingTests {
         Assert.Equal(new StreamingController.Measurement("west", 7, true), measurements[0]);
     }
 
+    #region server-sent events
+
+    private static async Task<string> BodyOf(TestWebResponse response) {
+        response.Body.Position = 0;
+
+        using var reader = new StreamReader(response.Body, leaveOpen: true);
+
+        return await reader.ReadToEndAsync();
+    }
+
+    /// <summary>
+    /// Each event is <c>data:</c> and a blank line, under <c>text/event-stream</c>.
+    /// </summary>
+    /// <remarks>
+    /// The content type is half the assertion. A browser <c>EventSource</c> refuses a response
+    /// whose content type is anything else, so a stream that framed correctly and answered
+    /// <c>application/json</c> would be rejected before a single event was read.
+    /// </remarks>
+    [HardenedTest]
+    public async Task EventsAreDataLinesSeparatedByBlankLines(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/streaming/events");
+
+        response.Assert.Ok();
+
+        Assert.Equal(
+            KnownContentType.EventStream, response.Headers[KnownHeaders.ContentType].ToString());
+
+        Assert.Equal(
+            """
+            data: {"sensor":"north","reading":12,"settled":false}
+
+            data: {"sensor":"south","reading":41,"settled":true}
+
+
+            """.ReplaceLineEndings("\n"),
+            await BodyOf(response));
+    }
+
+    /// <summary>
+    /// <c>id</c>, <c>event</c> and <c>retry</c> are written ahead of the payload, and the payload
+    /// is what the handler wrapped rather than the wrapper.
+    /// </summary>
+    /// <remarks>
+    /// Serializing the wrapper would put the id and the event name inside <c>data:</c> as well as
+    /// beside it, which reads as working right up until a client dispatches on the event name and
+    /// finds it in two places.
+    /// </remarks>
+    [HardenedTest]
+    public async Task EventFieldsAreWrittenBesideThePayloadNotInsideIt(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/streaming/events-with-ids");
+
+        response.Assert.Ok();
+
+        Assert.Equal(
+            """
+            id: 1
+            event: reading
+            retry: 5000
+            data: {"sensor":"north","reading":12,"settled":false}
+
+            id: 2
+            data: {"sensor":"south","reading":41,"settled":true}
+
+
+            """.ReplaceLineEndings("\n"),
+            await BodyOf(response));
+    }
+
+    /// <summary>
+    /// An empty event stream is a comment line, not an empty body.
+    /// </summary>
+    /// <remarks>
+    /// The protocol has no way to say "nothing happened", and a zero-byte body is the case Lambda
+    /// Function URLs do not close promptly - a reader waiting on one hangs. A comment is the one
+    /// thing every client is required to discard, so it costs three bytes and nothing else.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnEmptyEventStreamSendsAComment(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/streaming/events-empty");
+
+        response.Assert.Ok();
+
+        Assert.Equal(":\n\n", await BodyOf(response));
+    }
+
+    /// <summary>
+    /// A stream that produced events does not get a trailing anything.
+    /// </summary>
+    /// <remarks>
+    /// Every event already ends with a blank line, so the stream is complete when the last one is
+    /// written. Appending the empty-stream comment unconditionally would dispatch a spurious event
+    /// at the end of every stream.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ANonEmptyEventStreamHasNoTrailingComment(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/streaming/events");
+
+        Assert.DoesNotContain(":\n\n", await BodyOf(response));
+    }
+
+    #endregion
+
     /// <summary>
     /// A stream that produces nothing is a newline, not an empty body.
     /// </summary>

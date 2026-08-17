@@ -40,24 +40,50 @@ def extract(source: str) -> dict:
     return json.loads(match.group(1).encode().decode("unicode_escape"))
 
 
-def relabel_for_linting(document: dict) -> dict:
-    """Declare a version Spectral can validate, so its other rules still run.
+def downgrade_for_linting(document: dict) -> dict:
+    """Reduce the document to what Spectral can validate, so its rules still run.
 
-    Only the `openapi` field is touched, and only downward. What the lint is here for is
-    structural - path-params caught route constraints leaking into paths ten times against a real
-    application - and every one of those rules is version-independent. Refusing to lint at all
-    because the linter cannot read the version banner would trade a real check for a cosmetic one.
+    Two things are removed, and only when the document declares a version above what the linter
+    understands. The version banner, downward. And `itemSchema`, which is the construct OpenAPI 3.2
+    added for streamed responses: under a 3.1 banner Spectral rejects it as an unevaluated property,
+    once per streaming operation.
 
-    Nothing is hidden by this today: the emitter produces no 3.2-only construct yet. `itemSchema`
-    is the first one, and when it lands this has to be revisited rather than extended - a 3.1
-    document carrying `itemSchema` is not something Spectral should be asked to bless. See
-    STREAMING-PLAN.md item 6.
+    What survives is everything the lint is actually here for. path-params caught route constraints
+    leaking into paths ten times against a real application; operation-tag-defined and the rest of
+    oas3-schema still run over every operation, streaming ones included - their media type, path,
+    parameters and tags are all still checked. The one thing Spectral does not see is the shape of a
+    streamed item.
+
+    That shape is not unchecked, it is checked by a reader that understands the version it is
+    written in: OpenApiRoundTripTests parses the emitted document with Microsoft.OpenApi, and
+    OpenApiReverseRoundTripTests feeds it back through the specification-first build task and
+    requires the application's shape to come back out. Both know 3.2. Spectral does not, yet.
+
+    Delete this whole function when it does.
     """
     declared = document.get("openapi", "")
 
-    if declared and declared > LINTABLE_VERSION:
-        document["openapi"] = LINTABLE_VERSION
-        print(f"linting as OpenAPI {LINTABLE_VERSION}; the document declares {declared}")
+    if not declared or declared <= LINTABLE_VERSION:
+        return document
+
+    document["openapi"] = LINTABLE_VERSION
+
+    removed = 0
+
+    for path in document.get("paths", {}).values():
+        for operation in path.values():
+            if not isinstance(operation, dict):
+                continue
+
+            for response in operation.get("responses", {}).values():
+                for media_type in response.get("content", {}).values():
+                    if isinstance(media_type, dict) and media_type.pop("itemSchema", None):
+                        removed += 1
+
+    print(
+        f"linting as OpenAPI {LINTABLE_VERSION}; the document declares {declared}"
+        f" ({removed} itemSchema removed, which {LINTABLE_VERSION} has no spelling for)"
+    )
 
     return document
 
@@ -71,7 +97,7 @@ def main() -> None:
     if not source.is_file():
         raise SystemExit(f"no generated document at {source}")
 
-    document = relabel_for_linting(extract(source.read_text()))
+    document = downgrade_for_linting(extract(source.read_text()))
 
     pathlib.Path(sys.argv[2]).write_text(json.dumps(document, indent=2))
 

@@ -286,7 +286,15 @@ public abstract class BaseRequestModelGenerator {
                 "text/plain";
         }
 
+        // Framing is named here and validated where a diagnostic can be reported - a syntax
+        // transform cannot report one, so an attribute on a handler that streams nothing has to be
+        // carried forward rather than rejected in place.
+        var framing = context.Node.GetAttribute("ServerSentEvents") != null
+            ? StreamFramingNames.ServerSentEvents
+            : null;
+
         return new ResponseInformationModel {
+            StreamFraming = framing,
             IsAsync = isAsync,
             IsAsyncEnumerable = isAsyncEnumerable,
             AsyncEnumerableItemType = asyncEnumerableItemType,

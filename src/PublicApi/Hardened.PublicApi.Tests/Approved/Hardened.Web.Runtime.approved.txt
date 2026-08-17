@@ -71,6 +71,11 @@ namespace Hardened.Web.Runtime.Attributes
         public string? Description { get; }
         public string Url { get; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public class ServerSentEventsAttribute : System.Attribute
+    {
+        public ServerSentEventsAttribute() { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
     public class TagAttribute : System.Attribute
     {

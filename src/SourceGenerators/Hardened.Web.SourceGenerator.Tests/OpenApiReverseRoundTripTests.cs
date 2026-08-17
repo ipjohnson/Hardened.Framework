@@ -64,6 +64,25 @@ public class OpenApiReverseRoundTripTests {
             [Post("/")]
             public Product Add(Product product) => new();
         }
+
+        [BasePath("/feeds")]
+        public class FeedController {
+
+            [Get("/ndjson")]
+            public async IAsyncEnumerable<Product> Ndjson() {
+                await System.Threading.Tasks.Task.Yield();
+
+                yield return new Product();
+            }
+
+            [Get("/events")]
+            [ServerSentEvents]
+            public async IAsyncEnumerable<Product> Events() {
+                await System.Threading.Tasks.Task.Yield();
+
+                yield return new Product();
+            }
+        }
         """;
 
     /// <summary>
@@ -101,7 +120,7 @@ public class OpenApiReverseRoundTripTests {
             .Select(service => NamingHelper.ToInterfaceName(service.Tag))
             .OrderBy(name => name, StringComparer.Ordinal);
 
-        Assert.Equal(new[] { "ICartService", "IProductService" }, interfaces);
+        Assert.Equal(new[] { "ICartService", "IFeedService", "IProductService" }, interfaces);
     }
 
     /// <summary>
@@ -154,8 +173,65 @@ public class OpenApiReverseRoundTripTests {
 
         Assert.Equal(
             new[] {
-                "GET /baskets/{id}", "GET /products", "GET /products/{id}", "POST /baskets"
+                "GET /baskets/{id}", "GET /feeds/events", "GET /feeds/ndjson",
+                "GET /products", "GET /products/{id}", "POST /baskets"
             },
             paths);
+    }
+
+
+    /// <summary>
+    /// A streamed handler comes back as a stream, not as one of what it streams.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the assertion the whole streaming-document change exists to satisfy.</b> The two
+    /// halves are separately plausible and only useful together: the emitter writes
+    /// <c>itemSchema</c> under the framing's media type, and the specification-first reader has to
+    /// turn that back into <c>IAsyncEnumerable&lt;T&gt;</c>. Ship one without the other and the
+    /// document says something nothing reads, or the reader looks for something nothing writes.
+    /// </para>
+    /// <para>
+    /// Before <c>itemSchema</c> the emitter put the item's schema under <c>schema</c>, which claims
+    /// the response <em>is</em> one item. That round-tripped without complaint and produced
+    /// <c>Task&lt;Product&gt;</c> - a client that reads one product and stops, from a route that
+    /// streams them. Nothing errored; the interface was simply wrong, which is the failure this
+    /// file was written for.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void AStreamedHandlerComesBackAsAStream() {
+        var operations = Reparsed().Services
+            .SelectMany(service => service.Operations)
+            .Where(operation => operation.Path.StartsWith("/feeds"))
+            .ToDictionary(operation => operation.Path);
+
+        Assert.Equal(2, operations.Count);
+
+        foreach (var operation in operations.Values) {
+            Assert.NotNull(operation.ItemSchemaRef);
+            Assert.Contains("Product", operation.ItemSchemaRef!);
+
+            // The item schema is what a stream has instead of a response schema, not as well as.
+            Assert.Null(operation.ResponseRef);
+        }
+    }
+
+    /// <summary>
+    /// The framing survives as the media type, so the two streams are distinguishable.
+    /// </summary>
+    /// <remarks>
+    /// A document that described both as the same content type would generate one client for two
+    /// wire formats, and the one that got it wrong would fail on the first byte.
+    /// </remarks>
+    [Fact]
+    public void TheFramingSurvivesAsTheMediaType() {
+        var operations = Reparsed().Services
+            .SelectMany(service => service.Operations)
+            .Where(operation => operation.Path.StartsWith("/feeds"))
+            .ToDictionary(operation => operation.Path);
+
+        Assert.Equal("application/x-ndjson", operations["/feeds/ndjson"].ResponseContentType);
+        Assert.Equal("text/event-stream", operations["/feeds/events"].ResponseContentType);
     }
 }

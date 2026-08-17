@@ -184,24 +184,44 @@ public class ModelComparisonTests {
     }
 
     /// <summary>
-    /// Both response annotations appear, not whichever one was added most recently.
+    /// Every response annotation appears, not whichever one was added most recently.
     /// </summary>
     /// <remarks>
     /// This string is what a caching failure gets read through, and it has silently dropped one of
-    /// the two twice - once each way - as a side effect of removing and re-adding the template
+    /// them twice - once each way - as a side effect of removing and re-adding the template
     /// annotation. A model that reports the same text for two different responses is the thing that
-    /// makes such a failure unreadable.
+    /// makes such a failure unreadable. Streaming framing is the third, and adding it here is what
+    /// this test is for.
     /// </remarks>
     [Fact]
-    public void AResponseModelDescribesBothOfItsResponseAnnotations() {
+    public void AResponseModelDescribesAllOfItsResponseAnnotations() {
         var model = new ResponseInformationModel {
             IsAsync = true,
             OutputType = Type("Fortunes"),
             RawResponseContentType = "text/csv",
+            StreamFraming = "sse",
             ReturnType = Type("String")
         };
 
-        Assert.Equal("True:System.Fortunes:text/csv:System.String", model.ToString());
+        Assert.Equal("True:System.Fortunes:text/csv:sse:System.String", model.ToString());
+    }
+
+    /// <summary>
+    /// Two streams differing only in their framing are two different responses.
+    /// </summary>
+    /// <remarks>
+    /// The failure this prevents is specific: the same handler, edited from newline-delimited JSON
+    /// to server-sent events, keeping its cached output and continuing to answer as NDJSON. The
+    /// framing is the whole of the difference between them, so it has to be the whole of the
+    /// difference here too.
+    /// </remarks>
+    [Fact]
+    public void TwoStreamsDifferingOnlyInFramingDescribeThemselvesDifferently() {
+        var baseline = new ResponseInformationModel { ReturnType = Type("String") };
+
+        Assert.NotEqual(
+            (baseline with { StreamFraming = "sse" }).ToString(),
+            (baseline with { StreamFraming = null }).ToString());
     }
 
     /// <summary>

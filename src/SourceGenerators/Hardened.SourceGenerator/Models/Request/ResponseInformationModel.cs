@@ -49,6 +49,16 @@ public record ResponseInformationModel {
     public string? RawResponseContentType { get; set; }
 
     /// <summary>
+    /// How a streamed response is framed on the wire, or null for newline-delimited JSON.
+    /// </summary>
+    /// <remarks>
+    /// Named rather than typed, because the generator emits a reference to a runtime type it does
+    /// not link. Only meaningful when <see cref="IsAsyncEnumerable"/> is true; the generator
+    /// reports it as a build error otherwise, since there is no stream to frame.
+    /// </remarks>
+    public string? StreamFraming { get; set; }
+
+    /// <summary>
     /// Both ways a handler can say something about its response, not one of them.
     /// </summary>
     /// <remarks>
@@ -57,6 +67,6 @@ public record ResponseInformationModel {
     /// times as a side effect of adding or removing the template annotation.
     /// </remarks>
     public override string ToString() {
-        return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{ReturnType}";
+        return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}";
     }
 }

@@ -2,6 +2,7 @@
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Requests.Abstract.Serializer;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Execution;
@@ -140,12 +141,14 @@ AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(
             IExecutionRequestHandlerInfo handlerInfo,
             Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
             InvokeWithParameters<TController, TParameter> invokeMethod,
-            IEnumerable<IRequestFilterProvider> filterProviders) where TController : class {
+            IEnumerable<IRequestFilterProvider> filterProviders,
+            IStreamFraming? framing = null) where TController : class {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
         var ioFilter = ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(
             handlerInfo,
-            deserializeRequestFunc
+            deserializeRequestFunc,
+            framing
         );
 
         var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
@@ -165,12 +168,14 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
             IServiceProvider serviceProvider,
             IExecutionRequestHandlerInfo handlerInfo,
             InvokeNoParameters<TController> invokeMethod,
-            IEnumerable<IRequestFilterProvider> filterProviders) {
+            IEnumerable<IRequestFilterProvider> filterProviders,
+            IStreamFraming? framing = null) {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
         var ioFilter = ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(
             handlerInfo,
-            _emptyDeserializeRequest
+            _emptyDeserializeRequest,
+            framing
         );
 
         var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);

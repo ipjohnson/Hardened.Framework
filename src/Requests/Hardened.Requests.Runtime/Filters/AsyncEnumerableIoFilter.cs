@@ -2,6 +2,7 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Shared.Runtime.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,14 +12,21 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
     private readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> _deserializeRequest;
     private readonly Func<IExecutionContext, Task> _serializeResponse;
     private readonly Action<IExecutionContext>? _headerActions;
+    private readonly IStreamFraming _framing;
 
+    /// <param name="framing">
+    /// What goes around each item. Defaults to newline-delimited JSON, which is what every
+    /// streamed handler answered as before there was a choice.
+    /// </param>
     public AsyncEnumerableIoFilter(
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
         Func<IExecutionContext, Task> serializeResponse,
-        Action<IExecutionContext>? headerActions) {
+        Action<IExecutionContext>? headerActions,
+        IStreamFraming? framing = null) {
         _deserializeRequest = deserializeRequest;
         _serializeResponse = serializeResponse;
         _headerActions = headerActions;
+        _framing = framing ?? NdjsonFraming.Instance;
     }
 
     public async Task Execute(IExecutionChain chain) {
@@ -61,7 +69,7 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
                 chain.Context.Response.ShouldSerialize = false;
             }
             else if (chain.Context.Response.ResponseValue is IAsyncEnumerable<TItem> asyncEnumerable) {
-                context.Response.ContentType = KnownContentType.NdJson;
+                context.Response.ContentType = _framing.ContentType;
                 context.Response.ShouldSerialize = false;
 
                 // Off for the whole stream, not per item. The buffered serializers open a
@@ -74,15 +82,16 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
 
                 await foreach (var item in asyncEnumerable.WithCancellation(context.CancellationToken)) {
                     context.Response.ResponseValue = item;
-                    await _serializeResponse(context);
-                    context.Response.Body.WriteByte((byte)'\n');
+
+                    await _framing.WriteItem(context, _serializeResponse);
+
+                    // Per item, which is the whole point of streaming: a caller reads the first
+                    // result while the handler is still producing the rest.
                     await context.Response.Body.FlushAsync(context.CancellationToken);
                 }
 
-                // Write a trailing newline so the streaming response body is never
-                // empty. Lambda Function URLs don't close the body stream promptly
-                // for zero-byte responses, causing downstream readers to hang.
-                context.Response.Body.WriteByte((byte)'\n');
+                await _framing.WriteCompletion(context);
+
                 await context.Response.Body.FlushAsync(context.CancellationToken);
             }
             else if (chain.Context.Response.ShouldSerialize) {
