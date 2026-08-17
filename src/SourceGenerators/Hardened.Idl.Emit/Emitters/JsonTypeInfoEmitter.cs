@@ -217,7 +217,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("            PropertyMetadataInitializer = _ => new JsonPropertyInfo[]");
         sb.AppendLine("            {");
 
-        foreach (var prop in schema.Properties.OrderByDescending(p => p.IsRequired)) {
+        foreach (var prop in schema.Properties.OrderByDescending(p => !p.HasDefault)) {
             EmitPropertyInfo(sb, prop, typeName, allSchemas, ns);
         }
 

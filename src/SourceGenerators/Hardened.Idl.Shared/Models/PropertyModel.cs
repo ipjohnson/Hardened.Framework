@@ -38,20 +38,31 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     /// <summary>
     /// Whether the generated C# type is nullable — required-and-nullable is <c>string?</c> too.
     /// </summary>
-    public bool IsCSharpNullable => !IsRequired || IsNullable;
+    /// <remarks>
+    /// A <c>readOnly</c> property is nullable whatever the description says about it, because
+    /// <c>required</c> there means "always present in a response" and the same type is what a client
+    /// sends in a request. Non-nullable, it became a positional parameter with no default and a
+    /// create call that correctly omitted the server-owned id was answered 400.
+    /// </remarks>
+    public bool IsCSharpNullable => !IsRequired || IsNullable || IsReadOnly;
 
     /// <summary>
     /// Whether the generated parameter carries <c>= default</c>. Requiredness alone decides this:
     /// a required-but-nullable value still has to be supplied.
     /// </summary>
-    public bool HasDefault => !IsRequired;
+    public bool HasDefault => !IsRequired || IsReadOnly;
 
     /// <summary>
     /// Whether a <c>[Required]</c> constraint applies. It does not when the spec permits null —
     /// ValidationModules' <c>[Required]</c> rejects null, which would refuse a value the spec
     /// allows.
     /// </summary>
-    public bool ConstrainedAsRequired => IsRequired && !IsNullable;
+    /// <remarks>
+    /// Never for a <c>readOnly</c> property. <c>required</c> on one means "always present in a
+    /// response", and validation runs on request binding - so demanding it rejects the create call
+    /// of a client that correctly omitted a value the server assigns.
+    /// </remarks>
+    public bool ConstrainedAsRequired => IsRequired && !IsNullable && !IsReadOnly;
 
     /// <summary>
     /// The schema's <c>readOnly</c>: the property appears in responses and must not be sent in a
