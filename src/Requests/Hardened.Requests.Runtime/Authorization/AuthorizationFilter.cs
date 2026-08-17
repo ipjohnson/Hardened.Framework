@@ -23,6 +23,17 @@ public class AuthorizationFilter : IExecutionFilter {
     private readonly Requirement _requirement;
     private readonly bool _beforeSerialization;
 
+    /// <summary>
+    /// Every grant the requirement names, materialised once.
+    /// </summary>
+    /// <remarks>
+    /// The requirement is immutable, so this is the same list on every request through this handler.
+    /// Walking the tree for it per request would allocate on the path taken by requests that are
+    /// about to be refused - which is the path most worth not making expensive, since it is the one
+    /// an unauthenticated flood arrives on.
+    /// </remarks>
+    private readonly string[] _requiredGrants;
+
     /// <param name="beforeSerialization">
     /// Whether this filter sits ahead of the filter that turns a failure into a response. It decides
     /// how a refusal is delivered, and it must agree with the order the filter was registered at -
@@ -32,6 +43,7 @@ public class AuthorizationFilter : IExecutionFilter {
     public AuthorizationFilter(Requirement requirement, bool beforeSerialization) {
         _requirement = requirement;
         _beforeSerialization = beforeSerialization;
+        _requiredGrants = requirement.RequiredGrants.ToArray();
     }
 
     public async Task Execute(IExecutionChain chain) {
@@ -53,55 +65,52 @@ public class AuthorizationFilter : IExecutionFilter {
     }
 
     /// <summary>
-    /// Asks whether any grant the requirement wants can be resolved from somewhere other than the
+    /// Asks once which of the requirement's grants can be resolved from somewhere other than the
     /// credential, then re-evaluates against what came back.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// One grant per question, deliberately. The service answers "does this caller hold these
-    /// grants", which is a conjunction - asking it about a requirement's whole grant set would turn
-    /// <c>a | b</c> into <c>a &amp; b</c> and refuse a caller who legitimately holds one of them.
-    /// Resolving grant by grant and re-walking the tree preserves whatever structure the requirement
-    /// actually has.
+    /// One call for the whole list, so a contributor backed by a table or a service makes a single
+    /// round trip. That it returns the <em>subset</em> held rather than a yes or no is what makes
+    /// one call correct: a single verdict over several grants can only mean "all of them", which
+    /// would turn a requirement of <c>a | b</c> into <c>a &amp; b</c> and refuse a caller who holds
+    /// one of them. The tree is re-walked against the union, so whatever structure it has survives.
     /// </para>
     /// <para>
-    /// The refusals are kept as well as the permits, because a handler saying the credential is too
-    /// weak is what turns the eventual answer from a 403 into a 401.
+    /// A verdict on the resolution outranks the grants entirely, which is how a contributor says the
+    /// credential is too weak whatever the caller holds - and what turns the eventual answer from a
+    /// 403 into a 401.
     /// </para>
     /// </remarks>
     private async ValueTask<(bool Satisfied, AuthorizationDecision Refusal)> Resolve(
         IExecutionContext context) {
-        var principal = context.CallerPrincipal;
+        // Nothing to look up. A requirement naming no grants - being authenticated, or a predicate
+        // over the request - has already been decided by the walk that got us here.
+        if (_requiredGrants.Length == 0) {
+            return (false, AuthorizationDecision.Abstain);
+        }
+
         var service = context.RequestServices.GetService<IActivityAuthorizationService>();
 
         if (service == null) {
             return (false, AuthorizationDecision.Abstain);
         }
 
-        HashSet<string>? resolved = null;
-        var refusal = AuthorizationDecision.Abstain;
+        var resolution = await service.Resolve(context, _requiredGrants);
 
-        foreach (var grant in _requirement.RequiredGrants) {
-            // Already held, so there is nothing to resolve and the tree has already accounted for it.
-            if (principal.Grants.Contains(grant)) {
-                continue;
-            }
-
-            var decision = await service.Authorize(context, grant);
-
-            if (decision.Permits()) {
-                (resolved ??= new HashSet<string>(StringComparer.Ordinal)).Add(grant);
-            }
-            else {
-                refusal = AuthorizationDecisions.Combine(refusal, decision);
-            }
+        if (resolution.Decision == AuthorizationDecision.Allow) {
+            return (true, resolution.Decision);
         }
 
-        if (resolved == null) {
-            return (false, refusal);
+        if (resolution.Decision != AuthorizationDecision.Abstain || resolution.Granted.Count == 0) {
+            return (false, resolution.Decision);
         }
 
-        return (_requirement.IsSatisfiedBy(new ResolvedPrincipal(principal, resolved), context), refusal);
+        var principal = context.CallerPrincipal;
+
+        return (
+            _requirement.IsSatisfiedBy(new ResolvedPrincipal(principal, resolution.Granted), context),
+            resolution.Decision);
     }
 
     /// <summary>
@@ -123,7 +132,7 @@ public class AuthorizationFilter : IExecutionFilter {
                 ? AuthorizationChallenge.AuthenticationRequired()
                 : refusal == AuthorizationDecision.DenyInsufficientAuthentication
                     ? AuthorizationChallenge.InsufficientAuthentication()
-                    : AuthorizationChallenge.InsufficientScope(_requirement.RequiredGrants);
+                    : AuthorizationChallenge.InsufficientScope(_requiredGrants);
 
         context.Response.ExceptionValue = new AuthorizationException(challenge);
 

@@ -15,36 +15,33 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// additive, not <c>Try</c>, because contributors are a set.
 /// </para>
 /// <para>
-/// <b>It abstains rather than denying when a grant is missing</b>, and that distinction is the whole
-/// reason contributors have three answers. "This grant is not in the credential" is not "this caller
-/// does not have this grant" - the next handler along may resolve it from a permissions table, and a
-/// deny here would outrank that and make every resolver useless.
+/// <b>It vouches for what it finds and says nothing about the rest.</b> A grant missing from the
+/// credential is not a grant the caller lacks - the next handler along may resolve it from a
+/// permissions table - so leaving it out of the set is the whole of this handler's answer, and a
+/// refusal here would outrank that and make every resolver useless.
 /// </para>
 /// </remarks>
 [SingletonService]
 public class PrincipalGrantAuthorizationHandler : IActivityAuthorizationHandler {
-    private static readonly ValueTask<AuthorizationDecision> Allow =
-        new(AuthorizationDecision.Allow);
+    private static readonly ValueTask<GrantResolution> Abstained = new(GrantResolution.Abstained);
 
-    private static readonly ValueTask<AuthorizationDecision> Abstain =
-        new(AuthorizationDecision.Abstain);
-
-    public ValueTask<AuthorizationDecision> Authorize(
-        IExecutionContext context, params string[] grants) {
-        // Nothing was asked, so there is nothing to affirm. Reading this as "all zero grants are
-        // held, therefore allow" would turn an empty question into a permit.
-        if (grants.Length == 0) {
-            return Abstain;
-        }
-
+    public ValueTask<GrantResolution> Resolve(IExecutionContext context, IReadOnlyList<string> grants) {
         var held = context.CallerPrincipal.Grants;
 
+        if (held.Count == 0 || grants.Count == 0) {
+            return Abstained;
+        }
+
+        HashSet<string>? found = null;
+
         foreach (var grant in grants) {
-            if (!held.Contains(grant)) {
-                return Abstain;
+            if (held.Contains(grant)) {
+                (found ??= new HashSet<string>(StringComparer.Ordinal)).Add(grant);
             }
         }
 
-        return Allow;
+        return found == null
+            ? Abstained
+            : new ValueTask<GrantResolution>(new GrantResolution(found));
     }
 }

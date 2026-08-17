@@ -22,6 +22,7 @@ namespace Hardened.Requests.Runtime.Authorization
     {
         public ActivityAuthorizationService() { }
         public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants) { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.GrantResolution> Resolve(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<string> grants) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
     public sealed class AllowAnonymousAttribute : System.Attribute
@@ -65,7 +66,7 @@ namespace Hardened.Requests.Runtime.Authorization
     public class PrincipalGrantAuthorizationHandler : Hardened.Requests.Abstract.Authorization.IActivityAuthorizationHandler
     {
         public PrincipalGrantAuthorizationHandler() { }
-        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants) { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.GrantResolution> Resolve(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<string> grants) { }
     }
 }
 namespace Hardened.Requests.Runtime.Configuration

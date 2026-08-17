@@ -14,19 +14,25 @@ public class AuthorizationServiceTests {
 
     /// <summary>Answers whatever it was told to, and records that it was asked.</summary>
     private sealed class StubHandler : IActivityAuthorizationHandler {
-        private readonly AuthorizationDecision _decision;
+        private readonly GrantResolution _resolution;
 
-        public StubHandler(AuthorizationDecision decision) {
-            _decision = decision;
+        public StubHandler(AuthorizationDecision decision)
+            : this(new GrantResolution(new HashSet<string>(), decision)) { }
+
+        public StubHandler(GrantResolution resolution) {
+            _resolution = resolution;
         }
 
         public int Calls { get; private set; }
 
-        public ValueTask<AuthorizationDecision> Authorize(
-            IExecutionContext context, params string[] grants) {
-            Calls++;
+        public IReadOnlyList<string>? LastAsked { get; private set; }
 
-            return new ValueTask<AuthorizationDecision>(_decision);
+        public ValueTask<GrantResolution> Resolve(
+            IExecutionContext context, IReadOnlyList<string> grants) {
+            Calls++;
+            LastAsked = grants;
+
+            return new ValueTask<GrantResolution>(_resolution);
         }
     }
 
@@ -49,34 +55,90 @@ public class AuthorizationServiceTests {
     #region the default contributor
 
     [Fact]
-    public async Task PrincipalGrants_AllowsWhenTheCredentialCarriesEveryGrant() {
+    public async Task PrincipalGrants_VouchesForEveryGrantTheCredentialCarries() {
+        var context = ContextHolding("pets:read", "pets:write");
+
+        var resolution = await new PrincipalGrantAuthorizationHandler()
+            .Resolve(context, ["pets:read", "pets:write"]);
+
+        Assert.Equal(["pets:read", "pets:write"], resolution.Granted.Order());
+        Assert.Equal(AuthorizationDecision.Abstain, resolution.Decision);
+    }
+
+    /// <summary>
+    /// It leaves out what it does not find rather than refusing, and that distinction is the whole
+    /// reason a resolution carries a set. "Not in the credential" is not "the caller does not have
+    /// it" - the next handler may resolve it from a permissions table, and a refusal here would
+    /// outrank that and make every resolver useless.
+    /// </summary>
+    [Fact]
+    public async Task PrincipalGrants_OmitsWhatItDoesNotFindRatherThanRefusing() {
+        var context = ContextHolding("pets:read");
+
+        var resolution = await new PrincipalGrantAuthorizationHandler()
+            .Resolve(context, ["pets:read", "pets:write"]);
+
+        Assert.Equal(["pets:read"], resolution.Granted);
+        Assert.Equal(AuthorizationDecision.Abstain, resolution.Decision);
+    }
+
+    /// <summary>
+    /// Answering a partial subset is the point: a requirement of <c>read | write</c> is satisfied by
+    /// the one grant that came back, and a contributor that had to answer yes or no could not say so.
+    /// </summary>
+    [Fact]
+    public async Task PrincipalGrants_AnswersAboutSeveralGrantsInOneCall() {
+        var context = ContextHolding("b");
+
+        var resolution = await new PrincipalGrantAuthorizationHandler()
+            .Resolve(context, ["a", "b", "c"]);
+
+        Assert.Equal(["b"], resolution.Granted);
+    }
+
+    [Fact]
+    public async Task PrincipalGrants_VouchesForNothingForAnAnonymousCaller() {
+        var resolution = await new PrincipalGrantAuthorizationHandler()
+            .Resolve(Pipeline.Context(), ["pets:read"]);
+
+        Assert.Empty(resolution.Granted);
+    }
+
+    [Fact]
+    public async Task PrincipalGrants_NeverVouchesForAGrantItWasNotAskedAbout() {
+        var context = ContextHolding("pets:read", "admin:*");
+
+        var resolution = await new PrincipalGrantAuthorizationHandler()
+            .Resolve(context, ["pets:read"]);
+
+        Assert.Equal(["pets:read"], resolution.Granted);
+        Assert.DoesNotContain("admin:*", resolution.Granted);
+    }
+
+    #endregion
+
+    #region the imperative form
+
+    [Fact]
+    public async Task Authorize_PermitsWhenEveryGrantIsHeld() {
         var context = ContextHolding("pets:read", "pets:write");
 
         Assert.Equal(
             AuthorizationDecision.Allow,
-            await new PrincipalGrantAuthorizationHandler().Authorize(context, "pets:read", "pets:write"));
+            await new ActivityAuthorizationService().Authorize(context, "pets:read", "pets:write"));
     }
 
     /// <summary>
-    /// Abstains rather than denying, and that distinction is the whole reason contributors have three
-    /// answers. "Not in the credential" is not "the caller does not have it" - the next handler may
-    /// resolve it from a permissions table, and a deny here would outrank that and make every
-    /// resolver useless.
+    /// A conjunction: this asks "may the caller do this specific thing", so every grant named is
+    /// part of it and holding some of them is not an answer.
     /// </summary>
     [Fact]
-    public async Task PrincipalGrants_AbstainsRatherThanDenyingWhenAGrantIsMissing() {
+    public async Task Authorize_DoesNotPermitOnAPartialMatch() {
         var context = ContextHolding("pets:read");
 
         Assert.Equal(
             AuthorizationDecision.Abstain,
-            await new PrincipalGrantAuthorizationHandler().Authorize(context, "pets:read", "pets:write"));
-    }
-
-    [Fact]
-    public async Task PrincipalGrants_AbstainsForAnAnonymousCaller() {
-        Assert.Equal(
-            AuthorizationDecision.Abstain,
-            await new PrincipalGrantAuthorizationHandler().Authorize(Pipeline.Context(), "pets:read"));
+            await new ActivityAuthorizationService().Authorize(context, "pets:read", "pets:write"));
     }
 
     /// <summary>
@@ -84,12 +146,30 @@ public class AuthorizationServiceTests {
     /// grants are held, therefore allow" would turn it into a permit.
     /// </summary>
     [Fact]
-    public async Task PrincipalGrants_AbstainsWhenAskedAboutNothing() {
+    public async Task Authorize_AbstainsWhenAskedAboutNothing() {
         var context = ContextHolding("pets:read");
 
         Assert.Equal(
             AuthorizationDecision.Abstain,
-            await new PrincipalGrantAuthorizationHandler().Authorize(context));
+            await new ActivityAuthorizationService().Authorize(context));
+    }
+
+    /// <summary>
+    /// A verdict stands whatever the grants say, so a contributor demanding a stronger credential is
+    /// not overridden by one that vouched for the grant.
+    /// </summary>
+    [Fact]
+    public async Task Authorize_LetsAVerdictOverrideHeldGrants() {
+        var context = Pipeline.Context(configureServices: services => {
+            services.AddSingleton<IActivityAuthorizationHandler>(
+                new StubHandler(GrantResolution.Granting("pets:read")));
+            services.AddSingleton<IActivityAuthorizationHandler>(
+                new StubHandler(AuthorizationDecision.DenyInsufficientAuthentication));
+        });
+
+        Assert.Equal(
+            AuthorizationDecision.DenyInsufficientAuthentication,
+            await new ActivityAuthorizationService().Authorize(context, "pets:read"));
     }
 
     #endregion

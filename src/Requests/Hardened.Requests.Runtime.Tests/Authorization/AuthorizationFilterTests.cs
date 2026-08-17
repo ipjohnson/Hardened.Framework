@@ -20,23 +20,30 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// </summary>
 public class AuthorizationFilterTests {
 
-    /// <summary>Resolves a grant that is not in the credential - a permissions table stands in.</summary>
+    /// <summary>Resolves grants that are not in the credential - a permissions table stands in.</summary>
     private sealed class ResolvingHandler : IActivityAuthorizationHandler {
         private readonly HashSet<string> _resolvable;
-        private readonly AuthorizationDecision _otherwise;
+        private readonly AuthorizationDecision _verdict;
 
         public ResolvingHandler(
             IEnumerable<string> resolvable,
-            AuthorizationDecision otherwise = AuthorizationDecision.Abstain) {
+            AuthorizationDecision verdict = AuthorizationDecision.Abstain) {
             _resolvable = new HashSet<string>(resolvable, StringComparer.Ordinal);
-            _otherwise = otherwise;
+            _verdict = verdict;
         }
 
-        public ValueTask<AuthorizationDecision> Authorize(
-            IExecutionContext context, params string[] grants) =>
-            new(grants.Length > 0 && grants.All(_resolvable.Contains)
-                ? AuthorizationDecision.Allow
-                : _otherwise);
+        /// <summary>How many times the table was consulted.</summary>
+        public int Calls { get; private set; }
+
+        public ValueTask<GrantResolution> Resolve(
+            IExecutionContext context, IReadOnlyList<string> grants) {
+            Calls++;
+
+            return new ValueTask<GrantResolution>(
+                new GrantResolution(
+                    grants.Where(_resolvable.Contains).ToHashSet(StringComparer.Ordinal),
+                    _verdict));
+        }
     }
 
     private static IExecutionContext Context(
@@ -235,9 +242,31 @@ public class AuthorizationFilterTests {
     }
 
     /// <summary>
-    /// The correctness case for asking about one grant at a time. The service answers a conjunction
-    /// - "does this caller hold these grants" - so asking it about a whole <c>a | b</c> requirement
-    /// at once would turn the or into an and and refuse a caller who legitimately holds one branch.
+    /// One call, however many grants the requirement names. A contributor backed by a table gets to
+    /// make a single round trip with the whole list rather than one per grant, which is why the
+    /// resolution returns the subset held rather than a yes or no.
+    /// </summary>
+    [Fact]
+    public async Task EveryGrantIsResolvedInOneCall() {
+        var handler = new ResolvingHandler(["a", "b", "c"]);
+        var context = Context(Holding(), handler);
+
+        var requirement = Requirement.Grant("a") & Requirement.Grant("b") & Requirement.Grant("c");
+
+        await Pipeline.Chain(
+            context,
+            new AuthorizationFilter(requirement, beforeSerialization: true),
+            new Pipeline.Recording([], "handler")).Next();
+
+        Assert.Equal(1, handler.Calls);
+        Assert.Null(context.Response.ExceptionValue);
+    }
+
+    /// <summary>
+    /// The correctness case that one bulk call has to preserve. A contributor is asked which of the
+    /// grants the caller holds, not whether it holds all of them - a single verdict over several
+    /// grants could only mean "all", which would turn <c>a | b</c> into <c>a &amp; b</c> and refuse
+    /// a caller who legitimately holds one branch.
     /// </summary>
     [Fact]
     public async Task ResolvingOneBranchOfAnOrIsEnough() {

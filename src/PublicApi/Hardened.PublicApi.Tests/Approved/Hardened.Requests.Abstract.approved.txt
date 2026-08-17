@@ -102,13 +102,25 @@ namespace Hardened.Requests.Abstract.Authorization
         public string? Subject { get; }
         public bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value) { }
     }
+    public sealed class GrantResolution
+    {
+        public static readonly Hardened.Requests.Abstract.Authorization.GrantResolution Abstained;
+        public GrantResolution(System.Collections.Generic.IReadOnlySet<string> granted, Hardened.Requests.Abstract.Authorization.AuthorizationDecision decision = 0) { }
+        public Hardened.Requests.Abstract.Authorization.AuthorizationDecision Decision { get; }
+        public System.Collections.Generic.IReadOnlySet<string> Granted { get; }
+        public static Hardened.Requests.Abstract.Authorization.GrantResolution Combine(Hardened.Requests.Abstract.Authorization.GrantResolution left, Hardened.Requests.Abstract.Authorization.GrantResolution right) { }
+        public static Hardened.Requests.Abstract.Authorization.GrantResolution Granting(System.Collections.Generic.IEnumerable<string> granted) { }
+        public static Hardened.Requests.Abstract.Authorization.GrantResolution Granting(params string[] granted) { }
+        public static Hardened.Requests.Abstract.Authorization.GrantResolution Refusing(Hardened.Requests.Abstract.Authorization.AuthorizationDecision decision) { }
+    }
     public interface IActivityAuthorizationHandler
     {
-        System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants);
+        System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.GrantResolution> Resolve(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<string> grants);
     }
     public interface IActivityAuthorizationService
     {
         System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants);
+        System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.GrantResolution> Resolve(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<string> grants);
     }
     public interface IAuthorizationPolicy
     {
