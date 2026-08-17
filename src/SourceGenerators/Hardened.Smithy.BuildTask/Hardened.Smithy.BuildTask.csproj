@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../CSharpAuthor.props"/>
+
+    <PropertyGroup>
+        <!--
+            Two TFMs for the same reason the OpenAPI task has them: MSBuild runs on .NET Framework
+            under Visual Studio and on .NET everywhere else, and the targets file picks between them
+            on $(MSBuildRuntimeType).
+        -->
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+
+        <ExcludeAssets>runtime</ExcludeAssets>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Smithy.BuildTask.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- See Hardened.OpenApi.BuildTask for why these are pinned and why runtime is excluded. -->
+        <PackageReference Include="Microsoft.Build.Framework" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <!--
+        The AST is JSON and nothing else, so this front end needs no document reader at all - the
+        whole of Microsoft.OpenApi and its YAML reader have no equivalent here. net8.0 has
+        System.Text.Json in the box; .NET Framework does not.
+    -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <PackageReference Include="System.Text.Json" Version="8.0.5"/>
+        <Reference Include="System.Net.Http"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="IsExternalInit.cs"/>
+        <Compile Include="IsExternalInit.cs" Condition="'$(TargetFramework)' == 'net472'"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.Emit/**/*.cs"
+                 Exclude="../Hardened.Idl.Emit/obj/**/*;../Hardened.Idl.Emit/bin/**/*;../Hardened.Idl.Emit/IsExternalInit.cs">
+            <Link>Emit\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
+                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
+            <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <!-- The task shell. Its own files only - not its links, which are the two above. -->
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.BuildTask/*.cs"
+                 Exclude="../Hardened.Idl.BuildTask/IsExternalInit.cs">
+            <Link>Task\%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
+    </PropertyGroup>
+
+</Project>
