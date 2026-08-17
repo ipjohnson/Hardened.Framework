@@ -6,6 +6,7 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Web.Authorization;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 using System.CodeDom.Compiler;
@@ -64,6 +65,13 @@ public static class RoutingTableGenerator {
             routable,
             GetBasePath(models.Left),
             AmbiguousRouteDiagnostics.Severity(ambiguousRoutes));
+
+        // Every handler that is about to start refusing requests, named while there is still
+        // somewhere useful to say it. The runtime denies these either way; this is the difference
+        // between learning that at build and learning it from a 403 in staging.
+        if (RequireAuthorizationDiagnostics.IsRequired(models.Left)) {
+            RequireAuthorizationDiagnostics.ReportUnauthorizedHandlers(context, routable);
+        }
 
         var outputString = GenerateCSharpRouteFile(models.Left, routable, context.CancellationToken);
 
@@ -167,8 +175,33 @@ public static class RoutingTableGenerator {
 
         RegisterEnabledModules(diMethod, serviceCollection, applicationModel);
 
+        RegisterAuthorizationPosture(diMethod, serviceCollection, applicationModel);
+
         Validation.ParameterValidatorRegistration.Write(
             diMethod, serviceCollection, webEndPointModels, cancellationToken);
+    }
+
+    /// <summary>
+    /// Turns on the default-deny posture when the application asked for it.
+    /// </summary>
+    /// <remarks>
+    /// The other half of <c>[RequireAuthorization]</c>. The diagnostic reports what the generator can
+    /// see; this makes the runtime deny what it cannot - a handler from a referenced assembly was
+    /// never analysed here, and is still guarded.
+    /// </remarks>
+    private static void RegisterAuthorizationPosture(
+        MethodDefinition diMethod,
+        ParameterDefinition serviceCollection,
+        EntryPointSelector.Model applicationModel) {
+        if (!RequireAuthorizationDiagnostics.IsRequired(applicationModel)) {
+            return;
+        }
+
+        // The extension called statically, because generated code carries none of the consumer's
+        // using directives - the same reason RegisterEnabledModules spells its call out in full.
+        diMethod.AddIndentedStatement(CodeOutputComponent.Get(
+            "global::Hardened.Requests.Runtime.Authorization.AuthorizationServiceCollectionExtensions" +
+            ".RequireAuthorization(" + serviceCollection.Name + ")"));
     }
 
     /// <summary>
