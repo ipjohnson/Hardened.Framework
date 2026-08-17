@@ -1,7 +1,7 @@
 using Hardened.SourceGenerator.OpenApiDocument;
 using Xunit;
 
-namespace Hardened.Web.SourceGenerator.Tests;
+namespace Hardened.SourceGenerator.Tests;
 
 /// <summary>
 /// <c>&lt;HardenedOpenApiVersion&gt;</c>, and what each version changes about the document.
@@ -13,6 +13,12 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// matters is not "the wrong version was emitted" but "a version other than the one asked for was
 /// emitted, quietly" - which is why an unrecognised value is an error rather than a fallback, and
 /// why that is asserted here rather than left to a reviewer.
+/// </para>
+/// <para>
+/// Here rather than beside the generator tests because this is where the code lives:
+/// <c>OpenApiVersionFacts</c> is in <c>Hardened.SourceGenerator</c>, which ships as source and is
+/// compiled into several generator projects. A test in one consumer covers the copy in that
+/// consumer and nothing else, which is a coverage gate away from being noticed.
 /// </para>
 /// </remarks>
 public class OpenApiVersionTests {

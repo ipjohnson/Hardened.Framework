@@ -8,71 +8,75 @@
     "branch": 19.1
   },
   "Hardened.OpenApi.BuildTask": {
-    "line": 10.7,
-    "branch": 10.7
+    "line": 13.8,
+    "branch": 11.9
   },
   "Hardened.OpenApi.SourceGenerator": {
-    "line": 58.0,
-    "branch": 48.7
+    "line": 57.9,
+    "branch": 50.4
   },
   "Hardened.Requests.Abstract": {
-    "line": 82.2,
-    "branch": 90.0
+    "line": 91.0,
+    "branch": 93.1
   },
   "Hardened.Requests.Runtime": {
-    "line": 82.7,
-    "branch": 83.9
+    "line": 88.5,
+    "branch": 87.1
   },
   "Hardened.Requests.Serializers.Newtonsoft": {
     "line": 0.0,
     "branch": 0.0
   },
   "Hardened.Requests.Testing": {
-    "line": 93.8,
-    "branch": 91.6
+    "line": 99.4,
+    "branch": 94.7
   },
   "Hardened.Shared.Runtime": {
-    "line": 90.4,
-    "branch": 85.2
+    "line": 91.5,
+    "branch": 86.9
   },
   "Hardened.Shared.Testing": {
-    "line": 75.9,
-    "branch": 56.5
+    "line": 76.4,
+    "branch": 57.6
   },
   "Hardened.SourceGeneration.Testing": {
     "line": 80.9,
     "branch": 74.1
   },
   "Hardened.SourceGenerator": {
-    "line": 73.0,
-    "branch": 57.6
+    "line": 72.3,
+    "branch": 57.8
   },
   "Hardened.Templates.RazorBlade": {
     "line": 100.0,
     "branch": 100.0
   },
   "Hardened.Validation.SourceGenerator": {
-    "line": 12.4,
-    "branch": 3.2
+    "line": 12.2,
+    "branch": 3.1
   },
   "Hardened.Web.AspNetCore.Runtime": {
-    "line": 66.2,
-    "branch": 80.9
+    "line": 68.9,
+    "branch": 86.5
   },
   "Hardened.Web.Kestrel.Runtime": {
-    "line": 96.6,
-    "branch": 84.6
+    "line": 97.3,
+    "branch": 85.3
   },
   "Hardened.Web.Runtime": {
-    "line": 99.2,
-    "branch": 99.0
+    "line": 99.5,
+    "branch": 98.9
   },
   "Hardened.Web.SourceGenerator": {
-    "line": 71.7,
-    "branch": 64.7
+    "line": 74.4,
+    "branch": 66.3
   },
   "Hardened.Web.Testing": {
-    "line": 98.0,
+    "line": 98.1,
     "branch": 88.8
+  },
+  "ValidationModules.Runtime": {
+    "line": 15.5,
+    "branch": 12.4
   }
 }

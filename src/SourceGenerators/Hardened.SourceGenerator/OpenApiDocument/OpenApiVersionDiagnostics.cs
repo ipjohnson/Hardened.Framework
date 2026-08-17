@@ -18,7 +18,14 @@ public static class OpenApiVersionDiagnostics {
     /// <c>AmbiguousRouteDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor UnknownVersionDescriptor() => new(
+    /// <remarks>
+    /// <c>internal</c> rather than <c>private</c> so a test can construct one without a
+    /// <c>SourceProductionContext</c>, which only a running generator has. Worth reaching for: a
+    /// descriptor that threw on construction would fail every build that reported the diagnostic,
+    /// and the projects this file is linked into as source do not all run a generator that reports
+    /// it.
+    /// </remarks>
+    internal static DiagnosticDescriptor UnknownVersionDescriptor() => new(
         id: UnknownVersionId,
         title: "Unrecognised OpenAPI document version",
         messageFormat:
@@ -28,7 +35,7 @@ public static class OpenApiVersionDiagnostics {
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private static DiagnosticDescriptor StreamNeedsItemSchemaDescriptor() => new(
+    internal static DiagnosticDescriptor StreamNeedsItemSchemaDescriptor() => new(
         id: StreamNeedsItemSchemaId,
         title: "Streamed response cannot be described at this document version",
         messageFormat:
