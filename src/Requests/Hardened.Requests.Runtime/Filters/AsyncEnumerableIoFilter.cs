@@ -56,6 +56,8 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
 
             if (chain.Context.Response.ExceptionValue != null) {
                 await _serializeResponse(chain.Context);
+
+                chain.Context.Response.ShouldSerialize = false;
             }
             else if (chain.Context.Response.ResponseValue is IAsyncEnumerable<TItem> asyncEnumerable) {
                 context.Response.ContentType = "application/x-ndjson";
@@ -76,6 +78,8 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
             }
             else if (chain.Context.Response.ShouldSerialize) {
                 await _serializeResponse(chain.Context);
+
+                chain.Context.Response.ShouldSerialize = false;
             }
         }
         finally {

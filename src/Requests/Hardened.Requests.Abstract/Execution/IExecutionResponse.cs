@@ -53,5 +53,19 @@ public interface IExecutionResponse {
 
     ICookieSetCollection Cookies { get; }
 
+    /// <summary>
+    /// Whether this response still needs turning into bytes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Set false to opt out - a 405 whose whole answer is a status and a header, a handler that
+    /// wrote the body itself - and cleared by whatever serializes the response once it has.
+    /// </para>
+    /// <para>
+    /// The "once it has" half is what lets <c>ResponseFinalizerFilter</c> cover a middleware that
+    /// answered without ever entering a handler chain, without writing an ordinary response a
+    /// second time on the way back out. Anything that serializes must clear it.
+    /// </para>
+    /// </remarks>
     bool ShouldSerialize { get; set; }
 }

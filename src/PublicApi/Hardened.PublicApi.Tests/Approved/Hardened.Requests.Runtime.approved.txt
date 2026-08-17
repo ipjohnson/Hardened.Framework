@@ -437,6 +437,11 @@ namespace Hardened.Requests.Runtime.Middleware
         public Hardened.Requests.Abstract.Execution.IExecutionChain GetExecutionChain(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public void Use(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> middlewareFunc) { }
     }
+    public class ResponseFinalizerFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public ResponseFinalizerFilter() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
 }
 namespace Hardened.Requests.Runtime.PathTokens
 {

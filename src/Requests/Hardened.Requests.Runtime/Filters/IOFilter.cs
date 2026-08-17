@@ -69,6 +69,11 @@ public class IoFilter : IExecutionFilter {
 
             if (chain.Context.Response.ShouldSerialize) {
                 await _serializeResponse(chain.Context);
+
+                // Answered. The flag reads as "this response still needs writing", which is what
+                // lets ResponseFinalizerFilter cover a middleware that answered without ever
+                // reaching a handler chain, and not write this one a second time on the way out.
+                chain.Context.Response.ShouldSerialize = false;
             }
         }
         finally {
