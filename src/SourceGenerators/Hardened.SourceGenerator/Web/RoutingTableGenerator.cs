@@ -66,13 +66,6 @@ public static class RoutingTableGenerator {
             GetBasePath(models.Left),
             AmbiguousRouteDiagnostics.Severity(ambiguousRoutes));
 
-        // Every handler that is about to start refusing requests, named while there is still
-        // somewhere useful to say it. The runtime denies these either way; this is the difference
-        // between learning that at build and learning it from a 403 in staging.
-        if (RequireAuthorizationDiagnostics.IsRequired(models.Left)) {
-            RequireAuthorizationDiagnostics.ReportUnauthorizedHandlers(context, routable);
-        }
-
         var outputString = GenerateCSharpRouteFile(models.Left, routable, context.CancellationToken);
 
         var fileName = models.Left.EntryPointType.Name + ".Routing";

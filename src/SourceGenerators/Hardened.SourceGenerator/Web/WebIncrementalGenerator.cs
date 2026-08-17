@@ -4,6 +4,7 @@ using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Templates;
 using Hardened.SourceGenerator.Validation;
+using Hardened.SourceGenerator.Web.Authorization;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 
@@ -44,6 +45,31 @@ public static class WebIncrementalGenerator {
             SourceGeneratorWrapper.Wrap<ImmutableArray<RouteConstraintModel>>(
                 (context, declared) =>
                     RouteConstraintSelector.ReportInvalidSignatures(context, declared)));
+
+        // Authorization diagnostics run on their own provider, carrying a location, and feed nothing
+        // that emits source.
+        //
+        // The alternative - a location on RequestHandlerModel - was measured: a comment above twenty
+        // handlers took recomputed outputs from 0 of 23 to 21 of 23, and a genuine route change from
+        // 2 to 14, because a span is an offset and every offset below an edit shifts. That model
+        // builds a class per handler, the routing table and the OpenAPI document, so it has to stay
+        // insensitive to where things sit in a file. This one does not.
+        var authorizationRequired = entryPointProvider
+            .Collect()
+            .Select((entryPoints, _) =>
+                entryPoints.Any(RequireAuthorizationDiagnostics.IsRequired));
+
+        var handlerAuthorization = initializationContext.SyntaxProvider.CreateSyntaxProvider(
+            requestModelGenerator.SelectWebRequestMethods,
+            HandlerAuthorizationSelector.Transform);
+
+        // Per handler rather than over the collected set, so an edit invalidates only the handlers
+        // it moved.
+        initializationContext.RegisterSourceOutput(
+            handlerAuthorization.Combine(authorizationRequired),
+            SourceGeneratorWrapper.Wrap<(HandlerAuthorizationModel Left, bool Right)>(
+                (context, pair) =>
+                    RequireAuthorizationDiagnostics.Report(context, pair.Left, pair.Right)));
 
         var invokeGenerator = new WebExecutionHandlerCodeGenerator();
 

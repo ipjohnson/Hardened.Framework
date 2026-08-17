@@ -31,11 +31,10 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// <para>
 /// The diagnostic is a warning by default so that adopting this does not break a large application
 /// on day one. <c>TreatWarningsAsErrors</c> is on in CI, so an unannotated handler cannot merge
-/// while still not blocking a refactor in progress. Raise it permanently with:
+/// while still not blocking a refactor in progress. <c>&lt;NoWarn&gt;</c> is what silences it where
+/// that is genuinely wanted; <c>#pragma</c> and <c>.editorconfig</c> severity do not apply to a
+/// diagnostic a source generator reports.
 /// </para>
-/// <code>
-/// dotnet_diagnostic.HAUTH001.severity = error
-/// </code>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = false, Inherited = false)]
 public class RequireAuthorizationAttribute : Attribute;

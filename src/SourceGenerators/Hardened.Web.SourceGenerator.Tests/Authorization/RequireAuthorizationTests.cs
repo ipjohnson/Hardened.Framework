@@ -193,6 +193,103 @@ public class RequireAuthorizationTests {
 
     #endregion
 
+    #region where it points
+
+    /// <summary>
+    /// Reported against the handler's own name, not against nothing.
+    /// </summary>
+    /// <remarks>
+    /// A diagnostic with no location is a line of build output a developer scrolls past. With one,
+    /// the build prints a file and a line and an editor can put it where the handler is written -
+    /// which for a rule whose whole content is "you forgot to annotate <em>this</em>" is most of its
+    /// value.
+    /// </remarks>
+    [Fact]
+    public void TheDiagnosticPointsAtTheHandlerThatSaidNothing() {
+        var reported = Assert.Single(Reported("[RequireAuthorization]", OneUnguardedHandler));
+
+        Assert.NotEqual(Location.None, reported.Location);
+
+        // Rebuilt from a path and a span rather than from the tree, so it is an external-file
+        // location. It carries the same path, line and column a source location would, which is what
+        // the build output and an editor read.
+        Assert.Equal(LocationKind.ExternalFile, reported.Location.Kind);
+
+        var span = reported.Location.GetLineSpan();
+
+        Assert.EndsWith("Test.cs", span.Path);
+
+        // The identifier, so an editor underlines the name rather than the whole method.
+        Assert.Equal(
+            "All".Length,
+            span.EndLinePosition.Character - span.StartLinePosition.Character);
+    }
+
+    #endregion
+
+    #region caching
+
+    /// <summary>
+    /// Reporting this must not cost the generated output its caching.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The obvious way to give a diagnostic a location is to put one on the handler model, and it
+    /// was measured before being rejected: a comment above twenty handlers took recomputed outputs
+    /// from none to 21 of 23, and a genuine route change from 2 to 14. A span is an offset, so every
+    /// offset below an edit shifts, and that model is what builds a class per handler, the routing
+    /// table and the OpenAPI document.
+    /// </para>
+    /// <para>
+    /// So the location rides on a separate provider that feeds diagnostics and emits nothing. This
+    /// pins the property that buys: an edit that changes no generated file still recomputes none of
+    /// them, even with the posture on and the diagnostic being reported.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ReportingDoesNotCostTheGeneratedOutputItsCaching() {
+        string App(string extra) => $$"""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+            using Hardened.Requests.Runtime.Authorization;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            [RequireAuthorization]
+            public partial class TestApplication { }
+
+            public class UserController {
+                {{extra}}
+
+                [Get("/users")]
+                public string All() => "";
+
+                [Get("/users/{id}")]
+                public string ById(string id) => id;
+            }
+            """;
+
+        var result = GeneratorTestHarness.RunIncremental(
+            new Dictionary<string, string> { ["Test.cs"] = App("") },
+            new Dictionary<string, string> { ["Test.cs"] = App("// a comment") },
+            new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
+            Anchors);
+
+        // Nothing the generator emitted changed.
+        Assert.Equal(result.FirstRun, result.SecondRun);
+
+        // And nothing it emitted was rebuilt to find that out: as many outputs were served from
+        // cache as there are generated files. The steps that did run are the diagnostic ones, which
+        // emit no source.
+        var cached = result.OutputReasons.Count(
+            reason => reason == IncrementalStepRunReason.Cached);
+
+        Assert.Equal(result.FirstRun.Count, cached);
+    }
+
+    #endregion
+
     #region the runtime half
 
     /// <summary>

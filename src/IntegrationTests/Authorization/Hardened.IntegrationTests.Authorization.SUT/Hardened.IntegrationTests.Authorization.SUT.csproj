@@ -8,16 +8,14 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <DependencyModules_AutoGenerateModule>false</DependencyModules_AutoGenerateModule>
 
-        <!-- This application carries [RequireAuthorization], so HAUTH001 fires for every handler
-             that says nothing about authorization - and one handler here says nothing on purpose,
-             because whether the runtime denies it is the thing this fixture exists to prove. CI
-             builds with TreatWarningsAsErrors, so without this the fixture could not contain the
-             case it was created for.
+        <!-- One handler here says nothing about authorization on purpose, because whether the
+             runtime denies it is what this fixture exists to prove. CI builds with
+             TreatWarningsAsErrors, so it has to be suppressed.
 
-             Suppressed for the project rather than the file: the diagnostic is reported without a
-             syntax location, deliberately - a location would travel with the handler model through
-             the incremental caches, which compare models to decide whether to regenerate - so there
-             is no file for a scoped .editorconfig rule to attach to.
+             Project-wide, and not for want of a location: HAUTH001 is reported against the
+             handler's own name. A diagnostic a source generator reports is not subject to #pragma
+             or to .editorconfig severity - measured, both are inert for generator diagnostics
+             whether or not they carry a location, and <NoWarn> is the only lever that works.
 
              That HAUTH001 fires at all is covered by RequireAuthorizationTests in
              Hardened.Web.SourceGenerator.Tests. What is covered here is the other half. -->

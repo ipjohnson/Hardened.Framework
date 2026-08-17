@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Linq;
-using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
@@ -20,17 +18,15 @@ namespace Hardened.SourceGenerator.Web.Authorization;
 /// <para>
 /// A <b>warning</b> by default, so that adopting the attribute does not break a large application on
 /// day one. <c>TreatWarningsAsErrors</c> is on when <c>ContinuousIntegrationBuild</c> is, so an
-/// unannotated handler already cannot merge while still not blocking a refactor in progress. It can
-/// be raised through the mechanism every .NET developer already knows:
+/// unannotated handler already cannot merge while still not blocking a refactor in progress.
 /// </para>
-/// <code>
-/// dotnet_diagnostic.HAUTH001.severity = error
-/// </code>
 /// <para>
-/// <b>Per project, not per file.</b> This is reported without a syntax location - deliberately, for
-/// the reason given below - so there is no file for a scoped <c>.editorconfig</c> section or a
-/// <c>#pragma</c> to attach to. A severity entry in a global section applies, and
-/// <c>&lt;NoWarn&gt;</c> works; a rule under <c>[SomeController.cs]</c> does not.
+/// <b><c>&lt;NoWarn&gt;</c> is the only lever that works on it.</b> Measured: neither
+/// <c>#pragma warning disable</c> nor a <c>dotnet_diagnostic</c> severity in <c>.editorconfig</c>
+/// has any effect, scoped to a file or applied globally, and whether or not the diagnostic carries a
+/// location - a diagnostic a source generator reports does not pass through the filtering those two
+/// mechanisms drive. It is why <c>AmbiguousRouteDiagnostics</c> takes its severity from an MSBuild
+/// property instead, and this should grow the same lever when something needs it.
 /// </para>
 /// <para>
 /// <b>The runtime backstop is the authoritative check, not this.</b> A generator only sees the
@@ -39,34 +35,15 @@ namespace Hardened.SourceGenerator.Web.Authorization;
 /// does not warn about is still denied, and this warning being silenced never makes anything
 /// reachable.
 /// </para>
+/// <para>
+/// An application writing its own <c>IAuthorizeAttribute</c> is reported even though the pipeline
+/// honours it, because only the framework's own attributes are recognised here. <c>[AllowAnonymous]</c>
+/// is emphatically the wrong answer to that - it would make the route genuinely public - so the
+/// answer is <c>&lt;NoWarn&gt;</c> for the project.
+/// </para>
 /// </remarks>
 public static class RequireAuthorizationDiagnostics {
     public const string DiagnosticId = "HAUTH001";
-
-    /// <summary>
-    /// The attributes that count as having said something about authorization.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Matched by namespace as well as name. Matching on the name alone would accept another
-    /// framework's <c>[Authorize]</c> - which Hardened does not honour - and silence the warning on
-    /// a handler that is genuinely unguarded, turning a false positive into a false negative.
-    /// </para>
-    /// <para>
-    /// The consequence is the other way round for an application that writes its own
-    /// <c>IAuthorizeAttribute</c>: the pipeline honours it, this does not recognise it, and the
-    /// handler is reported anyway. <c>[AllowAnonymous]</c> is emphatically the wrong answer there -
-    /// it would make the route genuinely public - so the answer is to lower the severity for the
-    /// project.
-    /// </para>
-    /// </remarks>
-    private const string AuthorizationNamespace = "Hardened.Requests.Runtime.Authorization";
-
-    private static readonly string[] SpeaksForItself = {
-        "AuthorizeAttribute",
-        "AuthorizeGrantsAttribute",
-        "AllowAnonymousAttribute"
-    };
 
     /// <summary>
     /// Built per call rather than held in a static field, for the reason
@@ -85,49 +62,43 @@ public static class RequireAuthorizationDiagnostics {
         isEnabledByDefault: true);
 
     /// <summary>
-    /// Whether the entry point turned on the default-deny posture.
+    /// Whether an entry point turned on the default-deny posture.
     /// </summary>
     /// <remarks>
-    /// Read off the entry point's attributes, which carry both the class's and the assembly's -
-    /// the same place <c>[BasePath]</c> is read from, and for the same reason: a module class can
-    /// live in a project other than the one the attribute is convenient to write in.
+    /// Read off the entry point's attributes, which carry both the class's and the assembly's - the
+    /// same place <c>[BasePath]</c> is read from, and for the same reason: a module class can live in
+    /// a project other than the one the attribute is convenient to write in.
     /// </remarks>
     public static bool IsRequired(EntryPointSelector.Model applicationModel) =>
         applicationModel.AttributeModels?.Any(
             attribute => attribute.TypeDefinition.Name is "RequireAuthorizationAttribute") ?? false;
 
     /// <summary>
-    /// Reports every handler that will be denied for want of an attribute.
+    /// Reports one handler, if it needs reporting.
     /// </summary>
-    public static void ReportUnauthorizedHandlers(
-        SourceProductionContext context, IReadOnlyList<RequestHandlerModel> handlers) {
-        foreach (var handler in handlers) {
-            if (SaysSomethingAboutAuthorization(handler)) {
-                continue;
-            }
-
-            // Location.None, as everywhere else models are reported from: a syntax location would
-            // travel with the model through the incremental caches, which compare models for
-            // equality to decide whether to regenerate.
-            context.ReportDiagnostic(Diagnostic.Create(
-                Descriptor(),
-                Location.None,
-                handler.ControllerType.Name + "." + handler.HandlerMethod));
-        }
-    }
-
     /// <remarks>
-    /// The handler's filters carry the attributes written on the method <em>and</em> on its
-    /// controller, so a policy declared once for a whole controller counts for every handler in it.
+    /// <para>
+    /// One handler at a time rather than over the collected set, so an edit invalidates only the
+    /// handlers it actually moved. Reporting off the collected array would make every keystroke in
+    /// any controller rebuild one step covering all of them - cheap, but pointlessly so.
+    /// </para>
+    /// <para>
+    /// The location is rebuilt from plain data the model carried, which is what puts this on the
+    /// handler's own name: an editor squiggles it where it is written and the build prints a file
+    /// and line rather than a bare message. It buys nothing for suppression - see the type's
+    /// remarks - but a warning a developer sees while writing the handler is a different thing from
+    /// one they scroll past in build output.
+    /// </para>
     /// </remarks>
-    private static bool SaysSomethingAboutAuthorization(RequestHandlerModel handler) {
-        foreach (var filter in handler.Filters) {
-            if (filter.TypeDefinition.Namespace == AuthorizationNamespace &&
-                SpeaksForItself.Contains(filter.TypeDefinition.Name)) {
-                return true;
-            }
+    public static void Report(
+        SourceProductionContext context, HandlerAuthorizationModel handler, bool required) {
+        if (!required || handler.SaysSomethingAboutAuthorization) {
+            return;
         }
 
-        return false;
+        context.ReportDiagnostic(Diagnostic.Create(
+            Descriptor(),
+            handler.DeclaredAt?.ToLocation() ?? Location.None,
+            handler.Handler));
     }
 }

@@ -15,6 +15,12 @@ public class GuardedController {
     /// and no unit test can show that the whole chain - attribute, generated registration, amended
     /// configuration, startup service, filter provider, filter - actually reaches that answer.
     /// </summary>
+    /// <remarks>
+    /// HAUTH001 is suppressed for the whole project rather than here, and not for want of a
+    /// location - it is reported against this handler's own name. A diagnostic reported by a source
+    /// generator is not subject to <c>#pragma</c> or to <c>.editorconfig</c> severity at all;
+    /// measured, both are inert and only <c>&lt;NoWarn&gt;</c> takes effect.
+    /// </remarks>
     [Get("/implicit")]
     public string Implicit() => "implicit";
 
