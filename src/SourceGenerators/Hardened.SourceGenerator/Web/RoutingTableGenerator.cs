@@ -45,9 +45,11 @@ public static class RoutingTableGenerator {
 
     public static void GenerateRoute(SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
-        string? ambiguousRoutes = null,
+        WebGeneratorOptions? options = null,
         IReadOnlyList<RouteConstraintModel>? constraints = null) {
         _constraints = constraints;
+
+        options ??= WebGeneratorOptions.Default;
 
         // Handlers that were not generated must not be routed to. Routing to one would emit a
         // table referencing a handler class that does not exist - uncompilable output, which is
@@ -64,7 +66,15 @@ public static class RoutingTableGenerator {
             context,
             routable,
             GetBasePath(models.Left),
-            AmbiguousRouteDiagnostics.Severity(ambiguousRoutes));
+            AmbiguousRouteDiagnostics.Severity(options.AmbiguousRoutes));
+
+        // Before the document is written, because an unrecognised version has no answer to fall
+        // back to - see OpenApiVersionDiagnostics.ReportUnknownVersion.
+        var version = OpenApiVersionFacts.Parse(options.OpenApiVersion);
+
+        if (version == null) {
+            OpenApiVersionDiagnostics.ReportUnknownVersion(context, options.OpenApiVersion!);
+        }
 
         var outputString = GenerateCSharpRouteFile(models.Left, routable, context.CancellationToken);
 
@@ -72,9 +82,24 @@ public static class RoutingTableGenerator {
 
         context.AddSource(fileName, outputString);
 
+        var documentVersion = version ?? OpenApiVersionFacts.Default;
+
+        // A streamed response has no spelling before 3.2, so the document is emitted without one
+        // and the handler is named rather than the omission being silent.
+        if (!OpenApiVersionFacts.SupportsItemSchema(documentVersion)) {
+            foreach (var handler in routable) {
+                if (handler.ResponseInformation.IsAsyncEnumerable) {
+                    OpenApiVersionDiagnostics.ReportStreamNeedsItemSchema(
+                        context,
+                        handler.ControllerType.Name + "." + handler.HandlerMethod,
+                        documentVersion);
+                }
+            }
+        }
+
         context.AddSource(
             models.Left.EntryPointType.Name + ".OpenApiDocument",
-            OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left)));
+            OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left), documentVersion));
 
         // From the same models the table came from, and unconditionally: links have no third-party
         // dependency, and the common case is an API with no views that still wants them for

@@ -370,5 +370,8 @@ public static class KnownTypes {
 
         public static ITypeDefinition IAsyncDisposable =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, "System", "IAsyncDisposable");
+
+        public static ITypeDefinition CancellationToken =
+            TypeDefinition.Get("System.Threading", "CancellationToken");
     }
 }

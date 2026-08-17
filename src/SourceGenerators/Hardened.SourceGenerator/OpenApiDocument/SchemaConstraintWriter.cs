@@ -26,8 +26,20 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// reflected in the schema, which is what happened to every constraint before this existed.
 /// </para>
 /// <para>
-/// Written against OpenAPI 3.0, which the document declares: <c>exclusiveMinimum</c> is a boolean
-/// beside <c>minimum</c> there, not a number as in later JSON Schema drafts.
+/// <b>Written against OpenAPI 3.0, which the document no longer always declares.</b> 3.0 spells an
+/// exclusive bound as a boolean beside <c>minimum</c>; from 3.1, JSON Schema 2020-12 spells it as
+/// the number itself, with no <c>minimum</c>. Only the 3.0 form is emitted here, so an application
+/// setting <c>&lt;HardenedOpenApiVersion&gt;</c> to 3.1.0 or 3.2.0 <em>and</em> using an exclusive
+/// bound gets a document whose header and whose bound disagree.
+/// </para>
+/// <para>
+/// Not fixed with the version selection it came in with, because of where this runs. A schema is
+/// built inside the syntax transform - <c>BaseRequestModelGenerator</c> calls
+/// <c>JsonSchemaWriter.Write</c> while producing the handler model - and the MSBuild property is
+/// only combined at the output stage, so the version genuinely is not known here. Threading it in
+/// means combining the options provider into the model provider, which rebuilds every handler model
+/// whenever any property changes. That is the right change and it is not a one-line one; see
+/// STREAMING-PLAN.md item 10.
 /// </para>
 /// </remarks>
 internal static class SchemaConstraintWriter {
