@@ -50,7 +50,6 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[FromServices]` | Parameter | Binds from the container |
 | `[Output<T>]` | Method | Hands the response to a [view or other output](/guide/templates) instead of serialising it. Takes the response out of negotiation: unsupported `Accept` is a `406` |
 | `[RawResponse(contentType?)]` | Method | [Commits](/guide/content-negotiation#forcing-a-content-type) the response to a content type and writes the value unstructured. Defaults to `text/plain` |
-| `[AuthorizeActivities]` | Method, class | Names the activities a caller must be authorised for |
 
 `ICustomBindingAttribute` is the interface an attribute implements to bind a parameter itself — see
 [Parameter binding](/guide/parameter-binding#custom-binding).
@@ -60,6 +59,31 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | Attribute | Target | Purpose |
 |---|---|---|
 | `[Retry(Retries, SleepTime)]` | Method | Retries the handler. Defaults: 3 retries, 500 ms |
+
+## Authorization
+
+`Hardened.Requests.Runtime.Authorization`
+
+| Attribute | Target | Purpose |
+|---|---|---|
+| `[AuthorizeGrants(grants)]` | Class, method | Requires every grant named. What a generator emits from a specification |
+| `[AuthorizeGrants<T>]` | Class, method | Requires every grant in the [`IGrantProvider`](/guide/authorization#typed-grant-sets) `T` names. The typed spelling |
+| `[Authorize<TPolicy>]` | Class, method | Requires the [policy](/guide/authorization#policies)'s requirement. The only form that can express *or* |
+| `[AllowAnonymous]` | Class, method | Makes an operation public on purpose. Beats every requirement on the same handler, including a convention |
+| `[RequireAuthorization]` | Class, assembly | On the module: a handler declaring nothing is denied rather than public, and reported as `HAUTH001` at build |
+
+**Every one of these stacks as *and*.** Attributes on a method, attributes on its controller,
+attributes inherited from a base attribute and requirements added by an
+[`IAuthorizationConvention`](/guide/authorization#conventions) are all conjoined into the single
+`Requirement` the pipeline reads. Adding one can only narrow what is admitted. Alternatives are
+expressible only inside a single policy.
+
+`[AuthorizeGrants]` is not sealed — deriving from it is [one of the two ways](/guide/authorization#named-attributes)
+to require grants without writing strings. `IAuthorizeAttribute` is the interface anything the
+pipeline honours implements, including attributes of your own; it is also what the `HAUTH001`
+diagnostic tests, so your own attribute never needs `<NoWarn>`.
+
+See [Authorization](/guide/authorization) for the whole picture.
 
 ## Web
 
