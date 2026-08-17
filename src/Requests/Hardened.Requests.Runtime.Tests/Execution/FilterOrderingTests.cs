@@ -70,7 +70,7 @@ public class FilterOrderingTests {
             context.RequestServices,
             handlerInfo,
             (_, _) => log.Add(Invoke),
-            filterProviders);
+            filterProviders).Filters;
 
         await new ExecutionChain(filters, context).Next();
 

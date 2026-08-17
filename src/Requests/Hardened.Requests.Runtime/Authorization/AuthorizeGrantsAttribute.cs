@@ -4,29 +4,45 @@ using Combinator = Hardened.Requests.Abstract.Authorization.Requirement;
 namespace Hardened.Requests.Runtime.Authorization;
 
 /// <summary>
-/// Requires the grants named. The form a generator emits from a specification.
+/// Requires the grants named.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Grants within one attribute are <b>AND</b>; repeating the attribute is <b>OR</b>, which is
-/// exactly the shape OpenAPI's <c>security</c> has - a list of requirement objects, any of which
-/// admits the request.
+/// Every grant named here is required, and every authorization attribute on a handler is required.
+/// Writing more of them can only narrow what is admitted, never widen it - which is what makes the
+/// attribute safe to inherit, safe to write on a controller and a method at once, and safe for a
+/// convention to add to.
 /// </para>
 /// <example>
 /// <code>
 /// [AuthorizeGrants("pets:read", "pets:write")]   // both required
-/// [AuthorizeGrants("admin:*")]                   // ...or this instead
+/// [AuthorizeGrants("tenant:member")]             // ...and this as well
 /// </code>
 /// </example>
 /// <para>
-/// <b>Strings are acceptable here precisely because a human never writes them.</b> The generator
-/// read them out of the specification, so they cannot be a typo the way a hand-written one can. The
-/// hand-authored form is <c>[Authorize&lt;T&gt;]</c>, which is typed and rename-safe; this one
-/// trades that for being able to carry arbitrary structure that nobody has to read.
+/// <b>Not sealed, because deriving from it is the hand-authored form.</b> A named attribute reads
+/// better at the call site than a string does, is found by "go to references", and is renamed by a
+/// refactor - so the grant vocabulary can be written once and spelled everywhere as a type:
+/// </para>
+/// <example>
+/// <code>
+/// public sealed class RequiresPetWriteAttribute : AuthorizeGrantsAttribute {
+///     public RequiresPetWriteAttribute() : base(Grants.Pets.Read, Grants.Pets.Write) { }
+/// }
+/// </code>
+/// </example>
+/// <para>
+/// The string form remains what a generator emits from a specification, where a human never reads
+/// the attribute and the values cannot be a typo because the generator read them out of the spec.
+/// </para>
+/// <para>
+/// Alternatives - "this grant <em>or</em> that one" - are not expressible by stacking attributes,
+/// deliberately. They belong inside a single <see cref="IAuthorizationPolicy"/>, where one author
+/// writes one expression, rather than emerging from how many attributes happen to be present.
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public sealed class AuthorizeGrantsAttribute : Attribute, IAuthorizeAttribute {
+public class AuthorizeGrantsAttribute : Attribute, IAuthorizeAttribute {
     public AuthorizeGrantsAttribute(params string[] grants) {
         if (grants is null || grants.Length == 0) {
             throw new ArgumentException(
@@ -41,7 +57,7 @@ public sealed class AuthorizeGrantsAttribute : Attribute, IAuthorizeAttribute {
         Requirement = Combinator.AllOf(Array.ConvertAll(grants, Combinator.Grant));
     }
 
-    /// <summary>The grants named, in the order the specification listed them.</summary>
+    /// <summary>The grants named, in the order they were written.</summary>
     public IReadOnlyList<string> Grants { get; }
 
     public Requirement Requirement { get; }

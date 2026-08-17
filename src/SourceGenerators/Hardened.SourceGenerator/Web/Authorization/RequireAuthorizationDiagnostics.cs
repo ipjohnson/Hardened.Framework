@@ -36,10 +36,11 @@ namespace Hardened.SourceGenerator.Web.Authorization;
 /// reachable.
 /// </para>
 /// <para>
-/// An application writing its own <c>IAuthorizeAttribute</c> is reported even though the pipeline
-/// honours it, because only the framework's own attributes are recognised here. <c>[AllowAnonymous]</c>
-/// is emphatically the wrong answer to that - it would make the route genuinely public - so the
-/// answer is <c>&lt;NoWarn&gt;</c> for the project.
+/// An application's own attribute silences this as long as it implements <c>IAuthorizeAttribute</c>,
+/// directly or by deriving from an attribute that does. That is deliberately the same test the
+/// pipeline applies, so the set of handlers this reports and the set the runtime refuses cannot
+/// disagree - and an attribute written to give a grant a name never has to be excused with
+/// <c>&lt;NoWarn&gt;</c>.
 /// </para>
 /// </remarks>
 public static class RequireAuthorizationDiagnostics {

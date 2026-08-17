@@ -132,6 +132,10 @@ namespace Hardened.Requests.Abstract.Authorization
         System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants);
         System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.GrantResolution> Resolve(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<string> grants);
     }
+    public interface IAuthorizationConvention
+    {
+        Hardened.Requests.Abstract.Authorization.Requirement? Apply(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo);
+    }
     public interface IAuthorizationPolicy
     {
         Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
@@ -275,7 +279,9 @@ namespace Hardened.Requests.Abstract.Execution
         int? NullResponseStatus { get; }
         System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         string Path { get; }
+        Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         int? SuccessStatus { get; }
+        Hardened.Requests.Abstract.Authorization.Requirement? RequirementFrom(System.Collections.Generic.IReadOnlyList<object> metadata);
     }
     public interface IExecutionRequestParameter
     {

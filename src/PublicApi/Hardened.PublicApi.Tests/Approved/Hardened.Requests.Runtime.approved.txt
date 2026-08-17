@@ -56,7 +56,7 @@ namespace Hardened.Requests.Runtime.Authorization
         public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
     }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=true)]
-    public sealed class AuthorizeGrantsAttribute : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute
+    public class AuthorizeGrantsAttribute : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute
     {
         public AuthorizeGrantsAttribute(params string[] grants) { }
         public System.Collections.Generic.IReadOnlyList<string> Grants { get; }
@@ -179,8 +179,8 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public abstract class BaseExecutionHandler<TController> : Hardened.Requests.Abstract.Execution.IExecutionRequestHandler
     {
-        protected BaseExecutionHandler(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] filters, Hardened.Requests.Abstract.Execution.DefaultOutputFunc? outputFunc = null) { }
-        public abstract Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo HandlerInfo { get; }
+        protected BaseExecutionHandler(Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup setup, Hardened.Requests.Abstract.Execution.DefaultOutputFunc? outputFunc = null) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo HandlerInfo { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionChain GetExecutionChain(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     public static class CookieCollectionExtensions
@@ -206,20 +206,26 @@ namespace Hardened.Requests.Runtime.Execution
         public Hardened.Requests.Abstract.Execution.IExecutionChain Fork(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task Next() { }
     }
+    public readonly struct ExecutionHandlerSetup
+    {
+        public ExecutionHandlerSetup(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] filters) { }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] Filters { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo HandlerInfo { get; }
+    }
     public static class ExecutionHelper
     {
-        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] AsyncEnumerableFilterEmptyParameters<TController, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders) { }
-        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
+        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncEnumerableFilterEmptyParameters<TController, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders) { }
+        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
             where TController :  class { }
-        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] AsyncStandardFilterEmptyParameters<TController>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncInvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
+        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncStandardFilterEmptyParameters<TController>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncInvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
             where TController :  class { }
-        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] AsyncStandardFilterWithParameters<TController, TParameter>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncInvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
+        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncStandardFilterWithParameters<TController, TParameter>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncInvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
             where TController :  class
             where TParameter :  class { }
         public static System.Threading.Tasks.ValueTask<T> CustomAttributeData<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, object attribute, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter) { }
         public static System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> GetFilterInfo(params object[] attributes) { }
-        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] StandardFilterEmptyParameters<TController>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders) { }
-        public static System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter>[] StandardFilterWithParameters<TController, TParameter>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
+        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup StandardFilterEmptyParameters<TController>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders) { }
+        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup StandardFilterWithParameters<TController, TParameter>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
             where TController :  class { }
         public delegate System.Threading.Tasks.Task AsyncInvokeNoParameters<TController>(Hardened.Requests.Abstract.Execution.IExecutionContext context, TController controller);
         public delegate System.Threading.Tasks.Task AsyncInvokeWithParameters<TController, TParameter>(Hardened.Requests.Abstract.Execution.IExecutionContext context, TController controller, TParameter parameter);
@@ -228,13 +234,14 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public class ExecutionRequestHandlerInfo : Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo
     {
-        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null) { }
+        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null) { }
         public System.Type HandlerType { get; }
         public string InvokeMethod { get; }
         public System.Collections.Generic.IReadOnlyList<object> Metadata { get; }
         public string Method { get; }
         public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         public string Path { get; }
+        public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
     }
     public class ExecutionRequestParameter : Hardened.Requests.Abstract.Execution.IExecutionRequestParameter
     {

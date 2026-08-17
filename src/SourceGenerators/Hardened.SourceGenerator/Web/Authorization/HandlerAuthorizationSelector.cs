@@ -32,13 +32,11 @@ public record HandlerAuthorizationModel(
 }
 
 public static class HandlerAuthorizationSelector {
-    private const string AuthorizationNamespace = "Hardened.Requests.Runtime.Authorization";
+    private const string AuthorizeInterface =
+        "Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute";
 
-    private static readonly string[] SpeaksForItself = {
-        "AuthorizeAttribute",
-        "AuthorizeGrantsAttribute",
-        "AllowAnonymousAttribute"
-    };
+    private const string AllowAnonymous =
+        "Hardened.Requests.Runtime.Authorization.AllowAnonymousAttribute";
 
     /// <summary>
     /// Reads a handler method and its controller, and nothing else.
@@ -67,6 +65,30 @@ public static class HandlerAuthorizationSelector {
             LocationInfo.From(method.Identifier));
     }
 
+    /// <summary>
+    /// Whether any of these attributes is one the authorization pipeline honours.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Matched by interface rather than by type name.</b> The pipeline honours anything
+    /// implementing <c>IAuthorizeAttribute</c>, so that is what has to be asked about here - a name
+    /// list only recognises the framework's own two attributes and reports <c>HAUTH001</c> against
+    /// a handler guarded by an application's own, which is a false positive on the one diagnostic
+    /// whose job is to prevent false negatives. Deriving from <c>[AuthorizeGrants]</c> to give a
+    /// grant a name is the expected way to write authorization, and it must not warn.
+    /// </para>
+    /// <para>
+    /// It is also the only check that works uniformly. An attribute from a referenced assembly
+    /// exposes its interfaces in metadata, so this sees them; its constructor body is not there to
+    /// be read, which is why nothing here tries to learn <em>which</em> grants an attribute names.
+    /// The runtime asks the attribute instance for that.
+    /// </para>
+    /// <para>
+    /// Still exact about what it accepts. Another framework's <c>[Authorize]</c> implements nothing
+    /// of Hardened's and is not honoured by the pipeline, so recognising it by name would silence
+    /// the warning on a handler that is genuinely unguarded.
+    /// </para>
+    /// </remarks>
     private static bool Speaks(
         GeneratorSyntaxContext context,
         SyntaxList<AttributeListSyntax> attributeLists,
@@ -81,14 +103,17 @@ public static class HandlerAuthorizationSelector {
                     continue;
                 }
 
-                // Matched by namespace as well as name. Accepting another framework's [Authorize] -
-                // which Hardened does not honour - would silence the warning on a handler that is
-                // genuinely unguarded, turning a false positive into a false negative.
-                var name = type.Name.EndsWith("Attribute") ? type.Name : type.Name + "Attribute";
-
-                if (SpeaksForItself.Contains(name) &&
-                    type.ContainingNamespace?.ToDisplayString() == AuthorizationNamespace) {
+                if (type.ToDisplayString() == AllowAnonymous) {
                     return true;
+                }
+
+                // AllInterfaces rather than Interfaces, so an attribute that derives from one
+                // implementing it - which is the whole point of the base attribute not being
+                // sealed - is recognised as well as one implementing it directly.
+                foreach (var contract in type.AllInterfaces) {
+                    if (contract.ToDisplayString() == AuthorizeInterface) {
+                        return true;
+                    }
                 }
             }
         }

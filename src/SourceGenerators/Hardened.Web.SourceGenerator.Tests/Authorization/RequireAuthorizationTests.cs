@@ -122,6 +122,80 @@ public class RequireAuthorizationTests {
     }
 
     /// <summary>
+    /// An attribute of the application's own, deriving from <c>[AuthorizeGrants]</c>, says as much as
+    /// the attribute it derives from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is why the check is by interface rather than by type name. A name list recognises only
+    /// the framework's own two attributes, so it reported every handler guarded by a derived one -
+    /// a false positive on the diagnostic whose entire purpose is to prevent false negatives, and
+    /// one whose obvious fix, <c>[AllowAnonymous]</c>, would genuinely open the route.
+    /// </para>
+    /// <para>
+    /// Naming a grant once and spelling it as a type is the expected way to write authorization by
+    /// hand, so warning about it would make the diagnostic something to switch off.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void AHandlerGuardedByADerivedAttributeIsNotReported() {
+        Assert.Empty(Reported(
+            "[RequireAuthorization]",
+            """
+                public sealed class RequiresUserReadAttribute : AuthorizeGrantsAttribute {
+                    public RequiresUserReadAttribute() : base("users:read") { }
+                }
+
+                [Get("/users")]
+                [RequiresUserRead]
+                public string All() => "";
+            """));
+    }
+
+    /// <summary>
+    /// So does an attribute implementing <c>IAuthorizeAttribute</c> directly, which the pipeline
+    /// honours without it deriving from anything of the framework's.
+    /// </summary>
+    [Fact]
+    public void AHandlerGuardedByACustomAuthorizeAttributeIsNotReported() {
+        Assert.Empty(Reported(
+            "[RequireAuthorization]",
+            """
+                public sealed class TenantMemberAttribute
+                    : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute {
+                    public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; } =
+                        Hardened.Requests.Abstract.Authorization.Requirement.Grant("tenant:member");
+                }
+
+                [Get("/users")]
+                [TenantMember]
+                public string All() => "";
+            """));
+    }
+
+    /// <summary>
+    /// And an attribute that merely looks like one is still reported.
+    /// </summary>
+    /// <remarks>
+    /// Matching by interface has to stay exact about what it accepts. Another framework's
+    /// <c>[Authorize]</c> imposes nothing the pipeline evaluates, so recognising it would silence the
+    /// warning on a handler that is genuinely unguarded - trading a false positive for the false
+    /// negative this exists to prevent.
+    /// </remarks>
+    [Fact]
+    public void AHandlerCarryingAnUnrelatedAuthorizeAttributeIsStillReported() {
+        Assert.Single(Reported(
+            "[RequireAuthorization]",
+            """
+                public sealed class SomeOtherFrameworksAuthorizeAttribute : System.Attribute { }
+
+                [Get("/users")]
+                [SomeOtherFrameworksAuthorize]
+                public string All() => "";
+            """));
+    }
+
+    /// <summary>
     /// Saying a route is public on purpose is saying something. It is the opt-out, so it has to
     /// silence this as surely as a policy does.
     /// </summary>

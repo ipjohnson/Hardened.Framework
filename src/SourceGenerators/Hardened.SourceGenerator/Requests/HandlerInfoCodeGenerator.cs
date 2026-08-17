@@ -80,14 +80,10 @@ public static class HandlerInfoCodeGenerator {
         handlerInfoField.InitializeValue =
             new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField}{metadataArg})");
 
-        var handlerProperty =
-            classDefinition.AddProperty(KnownTypes.Requests.IExecutionRequestHandlerInfo, "HandlerInfo");
-
-        handlerProperty.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
-        handlerProperty.Get.LambdaSyntax = true;
-        handlerProperty.Set = null;
-
-        handlerProperty.Get.AddCode("_handlerInfo;");
+        // No HandlerInfo property is emitted, deliberately. The field above is the handler as
+        // written; BaseExecutionHandler exposes the one the chain was actually built from, which is
+        // that plus whatever conventions contributed. A property here would return the wrong one and
+        // shadow the right one - see BaseExecutionHandler.HandlerInfo.
     }
 
     private static void CreateMetadataField(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {

@@ -2,9 +2,9 @@ using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.Authorization;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Tests.Support;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Xunit;
 
 namespace Hardened.Requests.Runtime.Tests.Authorization;
@@ -28,12 +28,25 @@ public class AuthorizationFilterProviderTests {
         protected override Requirement Define() => Predicate((_, _) => true, "owns it");
     }
 
-    private static IExecutionRequestHandlerInfo Handler(params object[] metadata) {
-        var info = Substitute.For<IExecutionRequestHandlerInfo>();
-        info.Metadata.Returns(metadata);
-
-        return info;
+    /// <summary>
+    /// The hand-authored form: a grant named once, spelled as a type everywhere it is required.
+    /// </summary>
+    private sealed class RequiresPetWriteAttribute : AuthorizeGrantsAttribute {
+        public RequiresPetWriteAttribute() : base("pets:read", "pets:write") { }
     }
+
+    /// <summary>
+    /// A real handler rather than a substitute.
+    /// </summary>
+    /// <remarks>
+    /// The requirement is derived from metadata by the handler info itself, so a substitute has to
+    /// be told the answer to the very thing under test - and NSubstitute auto-substitutes an
+    /// unconfigured <c>Requirement</c>, which silently guards a handler the test declared nothing
+    /// on. The real type costs nothing here and cannot disagree with what production builds.
+    /// </remarks>
+    private static IExecutionRequestHandlerInfo Handler(params object[] metadata) =>
+        new ExecutionRequestHandlerInfo(
+            "/orders", "GET", typeof(AuthorizationFilterProviderTests), "Handler", null, metadata);
 
     private static RequestFilterInfo? Filter(bool requireAuthorization, params object[] metadata) =>
         new AuthorizationFilterProvider(requireAuthorization).GetFilter(Handler(metadata));
@@ -105,23 +118,65 @@ public class AuthorizationFilterProviderTests {
     }
 
     /// <summary>
-    /// Repeated <c>[AuthorizeGrants]</c> is <em>or</em>, because that attribute is what a
-    /// specification becomes and the outer list of OpenAPI's <c>security</c> is a list of
-    /// alternatives. Either branch admits the request; neither branch does not.
+    /// Repeated <c>[AuthorizeGrants]</c> is <em>and</em>, like every other pair of authorization
+    /// attributes. Writing a second one can only narrow what is admitted.
     /// </summary>
+    /// <remarks>
+    /// This is the rule the whole design rests on. Under the alternative - repeating means
+    /// <em>or</em> - the second attribute here would admit a caller holding only <c>admin:*</c>,
+    /// which means adding a line to a handler granted access rather than restricting it. That makes
+    /// a method-level attribute weaken its controller's, a derived attribute weaken its base, and a
+    /// convention weaken every handler it touched.
+    /// </remarks>
     [Fact]
-    public async Task RepeatedGrantAttributesAreAlternatives() {
+    public async Task RepeatedGrantAttributesMustAllHold() {
         object[] metadata = [
             new AuthorizeGrantsAttribute("pets:read", "pets:write"),
             new AuthorizeGrantsAttribute("admin:*"),
         ];
 
-        Assert.True(await Admits(metadata, "pets:read", "pets:write"));
-        Assert.True(await Admits(metadata, "admin:*"));
+        Assert.True(await Admits(metadata, "pets:read", "pets:write", "admin:*"));
 
-        // Half of one branch is not a branch.
-        Assert.False(await Admits(metadata, "pets:read"));
+        Assert.False(await Admits(metadata, "pets:read", "pets:write"));
+        Assert.False(await Admits(metadata, "admin:*"));
         Assert.False(await Admits(metadata));
+    }
+
+    /// <summary>
+    /// An attribute deriving from <c>[AuthorizeGrants]</c> is honoured as itself, and conjoins with
+    /// everything else exactly like the attribute it derives from.
+    /// </summary>
+    /// <remarks>
+    /// The reason the base attribute is not sealed. Naming a grant once and spelling it as a type
+    /// everywhere is the hand-authored form, and it only works if the pipeline recognises the
+    /// derived type - which it does by interface, not by name.
+    /// </remarks>
+    [Fact]
+    public async Task ADerivedGrantAttributeIsHonoured() {
+        object[] metadata = [new RequiresPetWriteAttribute()];
+
+        Assert.True(await Admits(metadata, "pets:read", "pets:write"));
+        Assert.False(await Admits(metadata, "pets:read"));
+    }
+
+    /// <summary>
+    /// A controller's attribute and a method's conjoin, because a handler's metadata carries both
+    /// and both are requirements like any other.
+    /// </summary>
+    /// <remarks>
+    /// The case the old rule got backwards: a controller-wide guard plus a method-level one meant
+    /// either sufficed, so writing a narrower attribute on one route opened it up.
+    /// </remarks>
+    [Fact]
+    public async Task AControllerAndAMethodRequirementBothApply() {
+        object[] metadata = [
+            new AuthorizeGrantsAttribute("tenant:member"),  // written on the controller
+            new RequiresPetWriteAttribute(),                // written on the method
+        ];
+
+        Assert.True(await Admits(metadata, "tenant:member", "pets:read", "pets:write"));
+        Assert.False(await Admits(metadata, "pets:read", "pets:write"));
+        Assert.False(await Admits(metadata, "tenant:member"));
     }
 
     /// <summary>
