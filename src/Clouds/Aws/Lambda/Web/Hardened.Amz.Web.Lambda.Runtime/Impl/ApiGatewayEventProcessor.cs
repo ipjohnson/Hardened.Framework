@@ -76,38 +76,57 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
 
         _requestLogger.RequestBegin(executionContext);
 
-        var chain = _middlewareService.GetExecutionChain(executionContext);
+        try {
+            var chain = _middlewareService.GetExecutionChain(executionContext);
 
-        await chain.Next();
+            await chain.Next();
 
-        // Null means "handled, no opinion" — nothing sets a status on an ordinary success path — and
-        // becomes a 200. It no longer means "unmatched": ResourceNotFoundHandler has run by this
-        // point and set a 404 if the routing table did not match, which it could not do while the
-        // response reported an unset status as 0.
-        //
-        // Zero is kept as a separate case because it is not a status a handler can have meant and
-        // API Gateway renders it as a 502. It is now reachable only by a handler assigning it.
-        if (executionContext.Response.Status is null or 0) {
-            executionContext.Response.Status = 200;
+            // Null means "handled, no opinion" — nothing sets a status on an ordinary success path — and
+            // becomes a 200. It no longer means "unmatched": ResourceNotFoundHandler has run by this
+            // point and set a 404 if the routing table did not match, which it could not do while the
+            // response reported an unset status as 0.
+            //
+            // Zero is kept as a separate case because it is not a status a handler can have meant and
+            // API Gateway renders it as a 502. It is now reachable only by a handler assigning it.
+            if (executionContext.Response.Status is null or 0) {
+                executionContext.Response.Status = 200;
+            }
+
+            CopyHeadersAndCookies(executionContext, response);
+
+            if (executionContext.Response.IsBinary) {
+                response.IsBase64Encoded = true;
+                response.Body = Convert.ToBase64String(memoryStreamReservation.Item.ToArray());
+            }
+            else {
+                response.Body = Encoding.UTF8.GetString(memoryStreamReservation.Item.ToArray());
+            }
+
+            return response;
         }
+        catch (Exception exception) {
+            // The host-level failure signal, as on Kestrel and both streaming engines.
+            // ControllerErrorHelper already reports a handler that threw and stops it escaping, so
+            // what reaches here is a filter outside that handling, or the response encoding above -
+            // the cases nothing else was reporting.
+            //
+            // Rethrown deliberately: the Lambda runtime marking the invocation failed is the
+            // existing contract, and inventing a 500 here would hide it from retries and the DLQ.
+            _requestLogger.RequestFailed(executionContext, exception);
 
-        CopyHeadersAndCookies(executionContext, response);
-
-        if (executionContext.Response.IsBinary) {
-            response.IsBase64Encoded = true;
-            response.Body = Convert.ToBase64String(memoryStreamReservation.Item.ToArray());
+            throw;
         }
-        else {
-            response.Body = Encoding.UTF8.GetString(memoryStreamReservation.Item.ToArray());
+        finally {
+            // In a finally because these were straight-line statements after the response was
+            // encoded, so anything thrown above took the whole close-out with it. Dispose is what
+            // writes the EMF line, so a failed invocation reported no duration and no metrics at
+            // all - on the main production path, and for exactly the requests worth measuring.
+            executionContext.RequestMetrics.Record(RequestMetrics.TotalRequestDuration,
+                requestStartTimestamp.GetElapsedMilliseconds());
+
+            _requestLogger.RequestEnd(executionContext);
+            executionContext.RequestMetrics.Dispose();
         }
-
-        executionContext.RequestMetrics.Record(RequestMetrics.TotalRequestDuration,
-            requestStartTimestamp.GetElapsedMilliseconds());
-
-        _requestLogger.RequestEnd(executionContext);
-        executionContext.RequestMetrics.Dispose();
-
-        return response;
     }
 
     private void CopyHeadersAndCookies(IExecutionContext executionContext, APIGatewayHttpApiV2ProxyResponse response) {

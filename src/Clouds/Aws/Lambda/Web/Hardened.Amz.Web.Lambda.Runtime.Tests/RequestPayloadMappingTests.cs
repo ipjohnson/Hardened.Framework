@@ -397,6 +397,62 @@ public class RequestPayloadMappingTests {
     }
 
     /// <summary>
+    /// The close-out ran as straight-line statements after the response was encoded, so anything
+    /// thrown above took all of it with it. Dispose is what writes the EMF line, so a failed
+    /// invocation reported no duration and no metrics at all — on the main production path, and for
+    /// exactly the invocations worth measuring.
+    /// </summary>
+    /// <remarks>
+    /// What reaches here is a filter outside <c>ControllerErrorHelper</c>'s handling, or the
+    /// response encoding itself; a handler that throws is reported and absorbed inside the chain.
+    /// </remarks>
+    [Fact]
+    public async Task AnInvocationThatThrewIsStillClosedOut() {
+        var harness = new ApiGatewayHarness();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.Process(
+                ApiGatewayHarness.Event(), _ => throw new InvalidOperationException("filter blew up")));
+
+        harness.MetricLogger.Received(1).Record(
+            Hardened.Requests.Abstract.Metrics.RequestMetrics.TotalRequestDuration,
+            Arg.Any<double>());
+        harness.RequestLogger.Received(1).RequestEnd(harness.ExecutionContext);
+        harness.MetricLogger.Received(1).Dispose();
+    }
+
+    /// <summary>
+    /// The host-level failure signal, as on Kestrel and both streaming engines. Nothing else was
+    /// reporting an exception that escaped the chain.
+    /// </summary>
+    [Fact]
+    public async Task AnInvocationThatThrewIsReportedAgainstItsContext() {
+        var harness = new ApiGatewayHarness();
+        var failure = new InvalidOperationException("filter blew up");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.Process(ApiGatewayHarness.Event(), _ => throw failure));
+
+        harness.RequestLogger.Received(1).RequestFailed(harness.ExecutionContext, failure);
+    }
+
+    /// <summary>
+    /// Rethrown rather than turned into a 200 with an empty body: the Lambda runtime marking the
+    /// invocation failed is the existing contract, and answering anyway would hide the failure from
+    /// retries and the dead-letter queue.
+    /// </summary>
+    [Fact]
+    public async Task AnInvocationThatThrewStillFailsTheInvocation() {
+        var harness = new ApiGatewayHarness();
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.Process(
+                ApiGatewayHarness.Event(), _ => throw new InvalidOperationException("filter blew up")));
+
+        Assert.Equal("filter blew up", thrown.Message);
+    }
+
+    /// <summary>
     /// Two invocations of the same warm function must not see each other's bodies. The processor
     /// leases its buffers from a pool, and a lease returned without being cleared is how one
     /// request ends up answering with another's data.
