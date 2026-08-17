@@ -73,11 +73,22 @@ every hosted option — see `src/Benchmarks/README.md` for why that boundary was
 This is additive. `Hardened.Web.AspNetCore.Runtime` remains the right choice when any of the
 following matter — and the first one matters more often than teams expect.
 
-- **Hosting diagnostics.** `Activity`, `DiagnosticSource` and `EventSource` events are not raised.
-  The standard OpenTelemetry instrumentation subscribes to the `Microsoft.AspNetCore.Hosting`
-  names, so an existing OTel setup observes **nothing** from an application hosted this way.
-  Hardened's own `IRequestLogger` and `IMetricLogger` are called, so per-request logging and
-  metrics still work; distributed tracing does not.
+- **ASP.NET's own hosting diagnostics.** The `Microsoft.AspNetCore.Hosting` `DiagnosticSource` and
+  `EventSource` events are not raised, so instrumentation packages that subscribe to *those names*
+  see nothing.
+
+  Tracing itself does work, and has since the request pipeline began reporting spans. Hardened
+  publishes its own `ActivitySource` and `Meter`, both named `Hardened.Requests` — a server span per
+  request, parented on an inbound `traceparent`, tagged with route and status, plus a correlation id
+  on every response. Point a collector at that name rather than at the ASP.NET one:
+
+  ```csharp
+  builder.AddSource("Hardened.Requests");   // and .AddMeter("Hardened.Requests")
+  ```
+
+  This bullet used to say distributed tracing did not work at all. It was written before the spans
+  existed and outlived them, which is worth knowing because it sends people to
+  `Hardened.Web.AspNetCore.Runtime` for a reason that no longer holds.
 - **ASP.NET authentication and authorization** middleware.
 - **General response compression.** Hardened's `GZipStaticContentCompressor` covers static content
   only, so dynamic responses have no equivalent.
