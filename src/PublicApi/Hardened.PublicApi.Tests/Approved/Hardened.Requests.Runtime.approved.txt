@@ -15,6 +15,28 @@ namespace Hardened.Requests.Runtime
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
 }
+namespace Hardened.Requests.Runtime.Authorization
+{
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public sealed class AllowAnonymousAttribute : System.Attribute
+    {
+        public AllowAnonymousAttribute() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public sealed class AuthorizeAttribute<TPolicy> : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute
+        where TPolicy : Hardened.Requests.Abstract.Authorization.IAuthorizationPolicy, new ()
+    {
+        public AuthorizeAttribute() { }
+        public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=true)]
+    public sealed class AuthorizeGrantsAttribute : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute
+    {
+        public AuthorizeGrantsAttribute(params string[] grants) { }
+        public System.Collections.Generic.IReadOnlyList<string> Grants { get; }
+        public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
+    }
+}
 namespace Hardened.Requests.Runtime.Configuration
 {
     public interface IJsonSerializerConfiguration

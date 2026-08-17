@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
@@ -57,6 +58,8 @@ public class AspNetExecutionContext : IExecutionContext {
             StartTime) {
             HandlerInstance = HandlerInstance,
             HandlerInfo = HandlerInfo,
+            // The reference, not a copy: a fork is the same caller.
+            CallerPrincipal = CallerPrincipal,
         };
     }
 
@@ -66,6 +69,14 @@ public class AspNetExecutionContext : IExecutionContext {
     public IServiceProvider RequestServices => _httpContext.RequestServices;
     public IExecutionRequest Request { get; }
     public IExecutionResponse Response { get; }
+
+    /// <summary>
+    /// Hardened's own principal, not <c>HttpContext.User</c>. Bridging the two is an opt-in adapter
+    /// rather than the default, so moving a handler between this host and another does not change
+    /// how it authenticates.
+    /// </summary>
+    public ICallerPrincipal CallerPrincipal { get; set; } = AnonymousCallerPrincipal.Instance;
+
     public object? HandlerInstance { get; set; }
     public IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
     public DefaultOutputFunc? DefaultOutput { get; set; }

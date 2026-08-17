@@ -1,4 +1,5 @@
-﻿using Hardened.Shared.Runtime.Diagnostics;
+﻿using Hardened.Requests.Abstract.Authorization;
+using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
 
 namespace Hardened.Requests.Abstract.Execution;
@@ -40,6 +41,23 @@ public interface IExecutionContext {
     /// Response output
     /// </summary>
     IExecutionResponse Response { get; }
+
+    /// <summary>
+    /// The caller this request is running as.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Never null. A request starts as <see cref="AnonymousCallerPrincipal.Instance"/> and whatever
+    /// validates a credential replaces it, so "no credential was presented" is a value rather than
+    /// an absence and no reader needs a null check.
+    /// </para>
+    /// <para>
+    /// The slot is settable; the value it holds is immutable. <c>Clone</c> copies the reference, so
+    /// a forked chain observes the same caller - which is correct, because a retry is the same
+    /// caller, and a retry after a revocation should fail.
+    /// </para>
+    /// </remarks>
+    ICallerPrincipal CallerPrincipal { get; set; }
 
     /// <summary>
     /// Handler for the call, will be null for middleware handlers

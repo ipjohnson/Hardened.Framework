@@ -1,10 +1,5 @@
 namespace Hardened.Requests.Abstract.Attributes
 {
-    public class AuthorizeActivitiesAttribute : System.Attribute
-    {
-        public AuthorizeActivitiesAttribute(params string[] activities) { }
-        public string[] Activities { get; }
-    }
     public class FromBodyAttribute : System.Attribute
     {
         public FromBodyAttribute() { }
@@ -42,6 +37,34 @@ namespace Hardened.Requests.Abstract.Attributes
 }
 namespace Hardened.Requests.Abstract.Authorization
 {
+    public sealed class AnonymousCallerPrincipal : Hardened.Requests.Abstract.Authorization.ICallerPrincipal
+    {
+        public static readonly Hardened.Requests.Abstract.Authorization.ICallerPrincipal Instance;
+        public string? AuthenticationScheme { get; }
+        public System.Collections.Generic.IReadOnlySet<string> Grants { get; }
+        public string? Issuer { get; }
+        public string? Subject { get; }
+        public bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value) { }
+    }
+    public abstract class AuthorizationPolicy : Hardened.Requests.Abstract.Authorization.IAuthorizationPolicy
+    {
+        protected AuthorizationPolicy() { }
+        public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
+        protected abstract Hardened.Requests.Abstract.Authorization.Requirement Define();
+        protected static Hardened.Requests.Abstract.Authorization.Requirement AllOf(params Hardened.Requests.Abstract.Authorization.Requirement[] requirements) { }
+        protected static Hardened.Requests.Abstract.Authorization.Requirement AnyOf(params Hardened.Requests.Abstract.Authorization.Requirement[] requirements) { }
+        protected static Hardened.Requests.Abstract.Authorization.Requirement Grant(string grant) { }
+        protected static Hardened.Requests.Abstract.Authorization.Requirement Predicate(System.Func<Hardened.Requests.Abstract.Authorization.ICallerPrincipal, Hardened.Requests.Abstract.Execution.IExecutionContext, bool> predicate, string? description = null) { }
+    }
+    public sealed class CallerPrincipal : Hardened.Requests.Abstract.Authorization.ICallerPrincipal
+    {
+        public CallerPrincipal(string authenticationScheme, System.Collections.Generic.IEnumerable<string>? grants = null, string? subject = null, string? issuer = null, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string>>? claims = null) { }
+        public string? AuthenticationScheme { get; }
+        public System.Collections.Generic.IReadOnlySet<string> Grants { get; }
+        public string? Issuer { get; }
+        public string? Subject { get; }
+        public bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value) { }
+    }
     public interface IActivityAuthorizationHandler
     {
         System.Threading.Tasks.ValueTask<bool?> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] actions);
@@ -49,6 +72,36 @@ namespace Hardened.Requests.Abstract.Authorization
     public interface IActivityAuthorizationService
     {
         System.Threading.Tasks.ValueTask<bool?> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] actions);
+    }
+    public interface IAuthorizationPolicy
+    {
+        Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
+    }
+    public interface IAuthorizeAttribute
+    {
+        Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
+    }
+    public interface ICallerPrincipal
+    {
+        string? AuthenticationScheme { get; }
+        System.Collections.Generic.IReadOnlySet<string> Grants { get; }
+        bool IsAuthenticated { get; }
+        string? Issuer { get; }
+        string? Subject { get; }
+        bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value);
+    }
+    public abstract class Requirement
+    {
+        protected Requirement() { }
+        public abstract System.Collections.Generic.IEnumerable<string> RequiredGrants { get; }
+        public abstract bool RequiresContext { get; }
+        public abstract bool IsSatisfiedBy(Hardened.Requests.Abstract.Authorization.ICallerPrincipal principal, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        public static Hardened.Requests.Abstract.Authorization.Requirement AllOf(params Hardened.Requests.Abstract.Authorization.Requirement[] requirements) { }
+        public static Hardened.Requests.Abstract.Authorization.Requirement AnyOf(params Hardened.Requests.Abstract.Authorization.Requirement[] requirements) { }
+        public static Hardened.Requests.Abstract.Authorization.Requirement Grant(string grant) { }
+        public static Hardened.Requests.Abstract.Authorization.Requirement Predicate(System.Func<Hardened.Requests.Abstract.Authorization.ICallerPrincipal, Hardened.Requests.Abstract.Execution.IExecutionContext, bool> predicate, string? description = null) { }
+        public static Hardened.Requests.Abstract.Authorization.Requirement operator &(Hardened.Requests.Abstract.Authorization.Requirement left, Hardened.Requests.Abstract.Authorization.Requirement right) { }
+        public static Hardened.Requests.Abstract.Authorization.Requirement operator |(Hardened.Requests.Abstract.Authorization.Requirement left, Hardened.Requests.Abstract.Authorization.Requirement right) { }
     }
 }
 namespace Hardened.Requests.Abstract.Errors
@@ -68,12 +121,18 @@ namespace Hardened.Requests.Abstract.Errors
     {
         System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionChain chain);
     }
-    public class StatusCodeException : System.Exception
+    public interface IStatusCodeException
+    {
+        int StatusCode { get; }
+        void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers);
+    }
+    public class StatusCodeException : System.Exception, Hardened.Requests.Abstract.Errors.IStatusCodeException
     {
         public StatusCodeException(int statusCode, object? value = null, string? message = null) { }
         public StatusCodeException(int statusCode, object? value, string message, System.Exception inner) { }
         public int StatusCode { get; }
         public object? Value { get; }
+        public virtual void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
 }
 namespace Hardened.Requests.Abstract.Execution
@@ -101,6 +160,7 @@ namespace Hardened.Requests.Abstract.Execution
     }
     public interface IExecutionContext
     {
+        Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
         System.Threading.CancellationToken CancellationToken { get; }
         Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
@@ -351,6 +411,8 @@ namespace Hardened.Requests.Abstract.RequestFilter
 {
     public static class FilterOrder
     {
+        public const int Authentication = 2;
+        public const int Authorization = 7;
         public const int BeforeSerialization = 4;
         public const int DefaultValue = 1000;
         public const int EndPointHandlers = 2000;

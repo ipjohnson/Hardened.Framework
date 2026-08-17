@@ -51,6 +51,7 @@ namespace Hardened.Web.Kestrel.Runtime.Impl
     public sealed class FeatureExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
     {
         public FeatureExecutionContext(System.IServiceProvider rootServiceProvider, System.IServiceProvider requestServices, Microsoft.AspNetCore.Http.Features.IFeatureCollection features, Hardened.Shared.Runtime.Metrics.IMetricLogger metricLogger) { }
+        public Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
         public System.Threading.CancellationToken CancellationToken { get; }
         public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
