@@ -1,0 +1,29 @@
+<Project>
+    <!--
+        The properties the web generator reads.
+
+        A generator sees an MSBuild property only if something declares it CompilerVisibleProperty -
+        AnalyzerConfigOptionsProvider.GlobalOptions holds exactly the declared ones and nothing else.
+        This package shipped no build assets at all until now, which is why
+        <HardenedAmbiguousRoutes> has never had any effect: WebIncrementalGenerator has read
+        build_property.HardenedAmbiguousRoutes since it was added, and the lookup has always missed.
+
+        Declared here rather than in each consuming project so that setting the property in a csproj
+        is enough, which is what an author will expect and what the documentation says.
+    -->
+    <ItemGroup>
+        <!--
+            The default severity for HRDR001, layered on top of the per-file .editorconfig
+            mechanism. Values: error (the default), warning, info, suggestion, none, hidden.
+        -->
+        <CompilerVisibleProperty Include="HardenedAmbiguousRoutes"/>
+
+        <!--
+            Which OpenAPI version the emitted document declares: 3.0.0, 3.1.0 or 3.2.0. Unset takes
+            3.2.0, which is the only version able to describe a streamed response and which Kiota
+            has parsed since v1.30.0. An unrecognised value is HRDOA001, a build error, rather than
+            a silent fallback to the default.
+        -->
+        <CompilerVisibleProperty Include="HardenedOpenApiVersion"/>
+    </ItemGroup>
+</Project>

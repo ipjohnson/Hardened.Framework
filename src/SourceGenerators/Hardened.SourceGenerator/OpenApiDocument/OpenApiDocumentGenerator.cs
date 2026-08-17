@@ -35,10 +35,13 @@ public static class OpenApiDocumentGenerator {
     /// The document for one entry point.
     /// </summary>
     public static string Write(
-        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath) {
+        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath,
+        OpenApiVersion version = OpenApiVersionFacts.Default) {
         var builder = new StringBuilder();
 
-        builder.Append("{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"")
+        builder.Append("{\"openapi\":\"")
+            .Append(OpenApiVersionFacts.VersionString(version))
+            .Append("\",\"info\":{\"title\":\"")
             .Append(JsonSchemaWriter.Escape(appModel.EntryPointType.Name))
             .Append("\",\"version\":\"1.0.0\"}");
 

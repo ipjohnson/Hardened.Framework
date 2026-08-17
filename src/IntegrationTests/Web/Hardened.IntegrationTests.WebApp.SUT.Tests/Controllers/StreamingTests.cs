@@ -96,6 +96,41 @@ public class StreamingTests {
     }
 
     /// <summary>
+    /// The signature every C# author writes on a cancellable async iterator binds.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// It did not. <c>[EnumeratorCancellation] CancellationToken</c> answered 500 -
+    /// "does not implement ICustomBindingAttribute" out of <c>ExecutionHelper</c> - because an
+    /// unrecognised parameter attribute is emitted as a custom binder, and because
+    /// <c>CancellationToken</c> is a struct that otherwise falls all the way through to being
+    /// deserialized from the request body.
+    /// </para>
+    /// <para>
+    /// A handler does not need the parameter to be cancellable; the filter passes
+    /// <c>context.CancellationToken</c> at the enumeration site either way. This is here because
+    /// the signature is the idiomatic one, and a streaming handler is exactly where somebody
+    /// reaches for it.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task ACancellableIteratorSignatureBinds(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/streaming/cancellable");
+
+        response.Assert.Ok();
+
+        var measurements = new List<StreamingController.Measurement>();
+
+        await foreach (var measurement in
+                       response.DeserializeAsyncEnumerable<StreamingController.Measurement>()) {
+            measurements.Add(measurement);
+        }
+
+        Assert.Equal(2, measurements.Count);
+        Assert.Equal(new StreamingController.Measurement("west", 7, true), measurements[0]);
+    }
+
+    /// <summary>
     /// A stream that produces nothing is a newline, not an empty body.
     /// </summary>
     /// <remarks>

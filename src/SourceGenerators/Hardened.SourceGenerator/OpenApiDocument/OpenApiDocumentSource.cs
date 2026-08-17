@@ -16,7 +16,8 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 internal static class OpenApiDocumentSource {
 
     public static string Write(
-        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath) {
+        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath,
+        OpenApiVersion version = OpenApiVersionFacts.Default) {
         var file = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
         var entryPoint = file.AddClass(appModel.EntryPointType.Name);
@@ -27,9 +28,10 @@ internal static class OpenApiDocumentSource {
 
         field.Modifiers |= ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
         field.Comment =
-            "The routes this application declares, as an OpenAPI 3.0 document.";
+            "The routes this application declares, as an OpenAPI "
+            + OpenApiVersionFacts.VersionString(version) + " document.";
         field.InitializeValue = new CodeOutputComponent(
-            Quote(OpenApiDocumentGenerator.Write(appModel, handlers, basePath))) { Indented = false };
+            Quote(OpenApiDocumentGenerator.Write(appModel, handlers, basePath, version))) { Indented = false };
 
         var outputContext = new OutputContext(new OutputContextOptions {
             TypeOutputMode = TypeOutputMode.Global

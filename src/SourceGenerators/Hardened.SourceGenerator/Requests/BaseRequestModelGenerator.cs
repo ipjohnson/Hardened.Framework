@@ -178,6 +178,16 @@ public abstract class BaseRequestModelGenerator {
                 ParameterBindType.ServiceProvider,parameterIndex);
         }
 
+        // Ahead of the interface and body branches, because CancellationToken is a struct and would
+        // otherwise fall all the way through to Body - deserializing a request body into a
+        // CancellationToken, which fails at run time on a signature that reads as ordinary C#.
+        if (KnownTypes.System.CancellationToken.Equals(parameterType)) {
+            return CreateRequestParameterInformation(parameter, parameterType,
+                ParameterBindType.CancellationToken,
+                parameterIndex,
+                true);
+        }
+
         if (parameterType.TypeDefinitionEnum == TypeDefinitionEnum.InterfaceDefinition) {
             return CreateRequestParameterInformation(parameter, parameterType,
                 ParameterBindType.FromServiceProvider,parameterIndex);
