@@ -35,6 +35,20 @@ public class AuthorizationFilterProviderTests {
         public RequiresPetWriteAttribute() : base("pets:read", "pets:write") { }
     }
 
+    /// <summary>The other hand-authored form: a set of grants named as a type.</summary>
+    private sealed class PetsReadWrite : IGrantProvider {
+        public string[] Grants => ["pets:read", "pets:write"];
+    }
+
+    private sealed class TenantMember : IGrantProvider {
+        public string[] Grants => ["tenant:member"];
+    }
+
+    /// <summary>A provider that names nothing, which is the one thing it must not do.</summary>
+    private sealed class NamesNothing : IGrantProvider {
+        public string[] Grants => [];
+    }
+
     /// <summary>
     /// A real handler rather than a substitute.
     /// </summary>
@@ -157,6 +171,76 @@ public class AuthorizationFilterProviderTests {
 
         Assert.True(await Admits(metadata, "pets:read", "pets:write"));
         Assert.False(await Admits(metadata, "pets:read"));
+    }
+
+    /// <summary>
+    /// A grant set named as a type is honoured exactly like the grants written inline.
+    /// </summary>
+    [Fact]
+    public async Task ATypedGrantSetIsHonoured() {
+        object[] metadata = [new AuthorizeGrantsAttribute<PetsReadWrite>()];
+
+        Assert.True(await Admits(metadata, "pets:read", "pets:write"));
+        Assert.False(await Admits(metadata, "pets:read"));
+    }
+
+    /// <summary>
+    /// Two sets on one handler require both, like every other pair of authorization attributes.
+    /// </summary>
+    /// <remarks>
+    /// Worth pinning because these are two closed generic types rather than two instances of one,
+    /// so nothing about <c>AllowMultiple</c> is doing the work - the conjunction is the pipeline's
+    /// one rule applying to them like anything else.
+    /// </remarks>
+    [Fact]
+    public async Task TwoTypedGrantSetsMustBothHold() {
+        object[] metadata = [
+            new AuthorizeGrantsAttribute<PetsReadWrite>(),
+            new AuthorizeGrantsAttribute<TenantMember>(),
+        ];
+
+        Assert.True(await Admits(metadata, "pets:read", "pets:write", "tenant:member"));
+        Assert.False(await Admits(metadata, "pets:read", "pets:write"));
+        Assert.False(await Admits(metadata, "tenant:member"));
+    }
+
+    /// <summary>
+    /// Every spelling reaches the same place, so they conjoin with each other.
+    /// </summary>
+    /// <remarks>
+    /// The point of there being several forms: the variety is at the point of declaration, and by
+    /// the time anything enforces there is one requirement whatever wrote it.
+    /// </remarks>
+    [Fact]
+    public async Task TheDifferentSpellingsConjoinWithEachOther() {
+        object[] metadata = [
+            new AuthorizeGrantsAttribute("tenant:member"),
+            new AuthorizeGrantsAttribute<PetsReadWrite>(),
+            new AuthorizeAttribute<CanManagePets>(),
+        ];
+
+        Assert.True(await Admits(
+            metadata, "tenant:member", "pets:read", "pets:write", "pets:manage"));
+
+        Assert.False(await Admits(metadata, "tenant:member", "pets:read", "pets:write"));
+        Assert.False(await Admits(metadata, "pets:read", "pets:write", "pets:manage"));
+    }
+
+    /// <summary>
+    /// A provider naming no grants throws, rather than producing an attribute that requires nothing
+    /// while looking like it requires something.
+    /// </summary>
+    /// <remarks>
+    /// The message has to name the provider. This runs inside a generated handler's static
+    /// initializer, so what a developer sees is a <c>TypeInitializationException</c> wrapping it -
+    /// and the inner message is the only part that says which type was at fault.
+    /// </remarks>
+    [Fact]
+    public void AGrantProviderNamingNothingThrows() {
+        var exception = Assert.Throws<ArgumentException>(
+            () => new AuthorizeGrantsAttribute<NamesNothing>());
+
+        Assert.Contains(nameof(NamesNothing), exception.Message);
     }
 
     /// <summary>
