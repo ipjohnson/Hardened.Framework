@@ -1,3 +1,5 @@
+using Hardened.Requests.Runtime.Middleware;
+
 namespace Hardened.Web.Runtime.Cors;
 
 /// <summary>
@@ -12,7 +14,16 @@ public class CorsConfiguration {
         new(StringComparer.OrdinalIgnoreCase) {
             "Authorization", "Content-Type", "Accept", "x-auth-token", "x-amz-content-sha256"
         };
-    private readonly List<string> _exposedHeaders = new();
+    /// <summary>
+    /// Seeded with the correlation header, which the pipeline puts on every response.
+    /// </summary>
+    /// <remarks>
+    /// Without this a cross-origin script cannot read it - the CORS-safelisted response headers are
+    /// a short list and this is not on it - so the id would come back on every response and be
+    /// invisible to exactly the browser client most likely to want to report it. Remove it with
+    /// <see cref="ClearExposedHeaders"/> if that is not wanted.
+    /// </remarks>
+    private readonly List<string> _exposedHeaders = new() { CorrelationHeaderFilter.HeaderName };
 
     public string EnvironmentVariable { get; set; } = DefaultEnvironmentVariable;
 
@@ -72,6 +83,13 @@ public class CorsConfiguration {
 
     public void AllowHeader(string header) {
         _allowedHeaders.Add(header);
+    }
+
+    /// <summary>
+    /// Stop exposing anything, including the correlation header this starts with.
+    /// </summary>
+    public void ClearExposedHeaders() {
+        _exposedHeaders.Clear();
     }
 
     /// <summary>

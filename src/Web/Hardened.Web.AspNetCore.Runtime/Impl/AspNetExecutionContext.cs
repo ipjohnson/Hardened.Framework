@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Abstract.Diagnostics;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
@@ -60,6 +61,8 @@ public class AspNetExecutionContext : IExecutionContext {
             HandlerInfo = HandlerInfo,
             // The reference, not a copy: a fork is the same caller.
             CallerPrincipal = CallerPrincipal,
+            // And the same request, so it reports one id rather than two.
+            CorrelationId = CorrelationId,
         };
     }
 
@@ -76,6 +79,20 @@ public class AspNetExecutionContext : IExecutionContext {
     /// how it authenticates.
     /// </summary>
     public ICallerPrincipal CallerPrincipal { get; set; } = AnonymousCallerPrincipal.Instance;
+
+    private string? _correlationId;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Reads the trace id rather than <c>HttpContext.TraceIdentifier</c>. ASP.NET's hosting layer
+    /// has already started an activity by the time this is built, so the trace id is both available
+    /// and the one the rest of the trace is filed under - where TraceIdentifier is a
+    /// connection-scoped string in a different shape that nothing else here would recognise.
+    /// </remarks>
+    public string CorrelationId {
+        get => _correlationId ??= CorrelationIdentifier.ForCurrentTrace();
+        init => _correlationId = value;
+    }
 
     public object? HandlerInstance { get; set; }
     public IExecutionRequestHandlerInfo? HandlerInfo { get; set; }

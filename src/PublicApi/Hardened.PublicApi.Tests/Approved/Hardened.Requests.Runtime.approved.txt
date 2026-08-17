@@ -430,6 +430,12 @@ namespace Hardened.Requests.Runtime.Logging
 }
 namespace Hardened.Requests.Runtime.Middleware
 {
+    public class CorrelationHeaderFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public const string HeaderName = "X-Correlation-Id";
+        public CorrelationHeaderFilter(string? headerName = null) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class MiddlewareService : Hardened.Requests.Abstract.Middleware.IMiddlewareService
     {

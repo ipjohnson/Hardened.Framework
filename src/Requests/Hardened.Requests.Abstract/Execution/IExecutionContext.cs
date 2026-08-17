@@ -60,6 +60,30 @@ public interface IExecutionContext {
     ICallerPrincipal CallerPrincipal { get; set; }
 
     /// <summary>
+    /// One id for this request, for grouping everything it produced.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Never null and never empty. It is the trace id when anything is collecting traces - so a log
+    /// line and a span line up without anyone correlating two different identifiers - and a freshly
+    /// generated value of the same shape when nothing is, because
+    /// <c>ActivitySource.StartActivity</c> returns null with no listener and an id that only exists
+    /// under a collector is missing exactly when it is most wanted.
+    /// See <see cref="Diagnostics.CorrelationIdentifier"/>.
+    /// </para>
+    /// <para>
+    /// Realized on first read rather than at construction: the host builds the context and only then
+    /// calls <c>RequestBegin</c>, which is where the span starts.
+    /// </para>
+    /// <para>
+    /// <c>Clone</c> carries it, for the same reason it carries
+    /// <see cref="CallerPrincipal"/> - a fork is the same request, and a retried or forked chain
+    /// that reported a second id would split one request's logs in two.
+    /// </para>
+    /// </remarks>
+    string CorrelationId { get; }
+
+    /// <summary>
     /// Handler for the call, will be null for middleware handlers
     /// </summary>
     object? HandlerInstance { get; set; }

@@ -164,6 +164,7 @@ namespace Hardened.Web.Runtime.Cors
         public void AllowOrigin(string origin) { }
         public void AllowOriginSuffix(string domain) { }
         public bool AreHeadersAllowed(System.Collections.Generic.IEnumerable<string> requested) { }
+        public void ClearExposedHeaders() { }
         public void ExposeHeader(string header) { }
         public bool IsOriginAllowed(string origin) { }
         public void LoadFromEnvironment() { }
