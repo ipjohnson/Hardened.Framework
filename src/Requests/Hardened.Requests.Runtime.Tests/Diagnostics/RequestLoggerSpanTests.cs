@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Logging;
+using Hardened.Requests.Runtime.Headers;
+using Hardened.Shared.Runtime.Metrics;
+using Microsoft.Extensions.Primitives;
 using Hardened.Shared.Runtime.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
@@ -25,11 +28,17 @@ public class RequestLoggerSpanTests {
         string method = "GET",
         string path = "/orders/42",
         int? status = null,
-        string? route = null) {
+        string? route = null,
+        IDictionary<string, StringValues>? headers = null) {
 
         var request = Substitute.For<IExecutionRequest>();
         request.Method.Returns(method);
         request.Path.Returns(path);
+
+        // A real header collection rather than a substitute, so lookups behave the way they do on a
+        // transport - case-insensitively.
+        request.Headers.Returns(new HeaderCollectionStringValues(
+            headers ?? new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)));
 
         var response = Substitute.For<IExecutionResponse>();
         response.Status.Returns(status);
@@ -37,6 +46,7 @@ public class RequestLoggerSpanTests {
         var context = Substitute.For<IExecutionContext>();
         context.Request.Returns(request);
         context.Response.Returns(response);
+        context.RequestMetrics.Returns(Substitute.For<IMetricLogger>());
         context.StartTime.Returns(MachineTimestamp.Now);
 
         if (route != null) {
@@ -287,5 +297,157 @@ public class RequestLoggerSpanTests {
         Assert.Equal(
             [201, 200],
             listening.Stopped.Select(s => s.GetTagItem("http.response.status_code")));
+    }
+
+    // ---- metric dimensions -------------------------------------------------------------------
+
+    /// <summary>
+    /// Without these, <c>http.server.request.duration</c> is one histogram for the whole service.
+    /// </summary>
+    /// <remarks>
+    /// Attached whether or not anything is tracing, because metrics and traces are collected
+    /// independently — a service exporting metrics and no traces still needs to group by route.
+    /// Safe to attach unconditionally because a provider decides what becomes of a tag: the Meter
+    /// bridge makes it a histogram dimension, and EMF promotes nothing unless the application opted
+    /// the tag in, since a CloudWatch dimension is billed per distinct value.
+    /// </remarks>
+    [Fact]
+    public void TheDimensionsAreTaggedWithNothingListening() {
+        var logger = Logger();
+        var context = Context(method: "POST", route: "/orders/{id}", status: 201);
+
+        logger.RequestBegin(context);
+        logger.RequestMapped(context);
+        logger.RequestEnd(context);
+
+        context.RequestMetrics.Received(1).Tag("http.request.method", "POST");
+        context.RequestMetrics.Received(1).Tag("http.route", "/orders/{id}");
+        context.RequestMetrics.Received(1).Tag("http.response.status_code", 201);
+    }
+
+    [Fact]
+    public void ARequestThatSetNoStatusIsTaggedAsTwoHundred() {
+        var logger = Logger();
+        var context = Context(status: null);
+
+        logger.RequestBegin(context);
+        logger.RequestEnd(context);
+
+        context.RequestMetrics.Received(1).Tag("http.response.status_code", 200);
+    }
+
+    // ---- trace context propagation -----------------------------------------------------------
+
+    private const string CallerTraceId = "0af7651916cd43dd8448eb211c80319c";
+    private const string CallerSpanId = "b7ad6b7169203331";
+    private const string CallerTraceparent = "00-" + CallerTraceId + "-" + CallerSpanId + "-01";
+
+    private static Dictionary<string, StringValues> Headers(params (string Name, string Value)[] headers) {
+        var dictionary = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (name, value) in headers) {
+            dictionary[name] = value;
+        }
+
+        return dictionary;
+    }
+
+    /// <summary>
+    /// The span joins the caller's trace rather than starting a second one that looks unrelated.
+    /// </summary>
+    [Fact]
+    public void ASpanJoinsTheTraceItsCallerSent() {
+        using var listening = new Listening();
+
+        Logger().RequestBegin(Context(headers: Headers(("traceparent", CallerTraceparent))));
+
+        var span = Assert.Single(listening.Started);
+
+        Assert.Equal(CallerTraceId, span.TraceId.ToHexString());
+        Assert.Equal(CallerSpanId, span.ParentSpanId.ToHexString());
+    }
+
+    /// <summary>
+    /// Header names are case-insensitive and no two transports spell them alike, so the lookup has to
+    /// be too — API Gateway lowercases, and a hand-written client may not.
+    /// </summary>
+    [Theory]
+    [InlineData("traceparent")]
+    [InlineData("Traceparent")]
+    [InlineData("TRACEPARENT")]
+    public void TheTraceparentIsFoundUnderAnySpelling(string spelling) {
+        using var listening = new Listening();
+
+        Logger().RequestBegin(Context(headers: Headers((spelling, CallerTraceparent))));
+
+        Assert.Equal(CallerTraceId, Assert.Single(listening.Started).TraceId.ToHexString());
+    }
+
+    [Fact]
+    public void TracestateRidesAlongUnparsed() {
+        using var listening = new Listening();
+
+        Logger().RequestBegin(Context(headers: Headers(
+            ("traceparent", CallerTraceparent),
+            ("tracestate", "vendor=opaque-value"))));
+
+        Assert.Equal("vendor=opaque-value", Assert.Single(listening.Started).TraceStateString);
+    }
+
+    /// <summary>
+    /// A caller that sends nothing gets a root span, which is the ordinary case for a public
+    /// endpoint.
+    /// </summary>
+    [Fact]
+    public void NoTraceparentStartsANewTrace() {
+        using var listening = new Listening();
+
+        Logger().RequestBegin(Context());
+
+        var span = Assert.Single(listening.Started);
+
+        Assert.Equal(default(ActivitySpanId).ToHexString(), span.ParentSpanId.ToHexString());
+    }
+
+    /// <summary>
+    /// And so does a caller that sends nonsense. ActivityContext.TryParse validates rather than
+    /// trusts, so a span never claims a parent it does not have — anything else would attach this
+    /// request to a trace that does not exist, or to somebody else's.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("not-a-traceparent")]
+    [InlineData("00-0af7651916cd43dd8448eb211c80319c")]
+    [InlineData("00-00000000000000000000000000000000-b7ad6b7169203331-01")]
+    [InlineData("ff-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")]
+    public void AMalformedTraceparentStartsANewTrace(string traceparent) {
+        using var listening = new Listening();
+
+        Logger().RequestBegin(Context(headers: Headers(("traceparent", traceparent))));
+
+        var span = Assert.Single(listening.Started);
+
+        Assert.Equal(default(ActivitySpanId).ToHexString(), span.ParentSpanId.ToHexString());
+        Assert.NotEqual(CallerTraceId, span.TraceId.ToHexString());
+    }
+
+    /// <summary>
+    /// A version this code has never heard of is still honoured. W3C trace context is deliberately
+    /// forward-compatible — an implementation that meets a higher version parses the fields it knows
+    /// rather than discarding the trace — and only <c>ff</c> is reserved as invalid. Worth an
+    /// assertion because the obvious reading is that an unknown version is malformed, and dropping
+    /// the parent would quietly break tracing against any future caller.
+    /// </summary>
+    [Fact]
+    public void AFutureTraceContextVersionIsStillHonoured() {
+        using var listening = new Listening();
+
+        Logger().RequestBegin(Context(headers: Headers(
+            ("traceparent", "99-" + CallerTraceId + "-" + CallerSpanId + "-01"))));
+
+        var span = Assert.Single(listening.Started);
+
+        Assert.Equal(CallerTraceId, span.TraceId.ToHexString());
+        Assert.Equal(CallerSpanId, span.ParentSpanId.ToHexString());
     }
 }

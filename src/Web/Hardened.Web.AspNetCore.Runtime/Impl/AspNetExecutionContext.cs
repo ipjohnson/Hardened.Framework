@@ -103,7 +103,13 @@ public class AspNetExecutionRequest : IExecutionRequest {
         _httpRequest = httpRequest;
         _methodOverride = methodOverride;
         _pathOverride = pathOverride;
-        _headersOverride = headersOverride;
+
+        // A fork is handed a plain dictionary, which is very likely case-sensitive, while the
+        // request it forked from was reading ASP.NET's own case-insensitive header collection. Left
+        // alone the override silently changes how header names resolve for the rest of that chain.
+        _headersOverride = headersOverride is null
+            ? null
+            : HeaderCollectionStringValues.EnsureCaseInsensitive(headersOverride);
         _queryStringOverride = queryStringOverride;
         _cookiesOverride = cookiesOverride;
     }

@@ -303,6 +303,7 @@ namespace Hardened.Requests.Runtime.Headers
         public System.Collections.Generic.IDictionary<string, string> ToStringDictionary() { }
         public bool TryGet(string key, out Microsoft.Extensions.Primitives.StringValues value) { }
         public bool TryGetValue(string key, out Microsoft.Extensions.Primitives.StringValues value) { }
+        public static System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> EnsureCaseInsensitive(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
     public class HeaderCookieSetCollection : Hardened.Requests.Abstract.Headers.ICookieSetCollection
     {

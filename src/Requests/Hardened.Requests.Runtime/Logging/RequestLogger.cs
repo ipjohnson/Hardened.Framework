@@ -52,13 +52,25 @@ public partial class RequestLogger : IRequestLogger {
     public void RequestBegin(IExecutionContext context) {
         LogRequestStarted(context.Request.Method, context.Request.Path);
 
+        // A dimension for whatever provider is behind IMetricLogger, independent of tracing. What
+        // becomes of it is the provider's decision: the Meter bridge makes it a histogram dimension,
+        // and EMF promotes nothing unless the application opted the tag in, because a CloudWatch
+        // dimension is billed per distinct value.
+        context.RequestMetrics.Tag("http.request.method", context.Request.Method);
+
         // Null when nothing is listening - no allocation, no work - which is why this is
         // unconditional and lives in the runtime rather than behind a flag or an opt-in package.
         //
         // Named for the method alone: the route is not known yet, and the semantic conventions are
         // explicit that a raw path must not become a span name. RequestMapped renames it below.
-        var span = HardenedDiagnostics.ActivitySource.StartActivity(
-            context.Request.Method, ActivityKind.Server);
+        //
+        // Parented on the caller's traceparent when there is one, so this span joins their trace
+        // rather than starting a second one that looks unrelated.
+        var span = TryGetParent(context.Request, out var parent)
+            ? HardenedDiagnostics.ActivitySource.StartActivity(
+                context.Request.Method, ActivityKind.Server, parent)
+            : HardenedDiagnostics.ActivitySource.StartActivity(
+                context.Request.Method, ActivityKind.Server);
 
         if (span is null) {
             return;
@@ -70,18 +82,56 @@ public partial class RequestLogger : IRequestLogger {
         _spans.AddOrUpdate(context, span);
     }
 
+    /// <summary>
+    /// The W3C trace context the caller sent, if it sent a usable one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Extraction only. Hardened issues no outbound requests, so there is nothing here to inject a
+    /// context into - which is the whole of the propagation story on this side.
+    /// </para>
+    /// <para>
+    /// ActivityContext.TryParse does the parsing and the validating, so a malformed traceparent - a
+    /// wrong version, a zero trace id, a truncated field - is rejected rather than turned into a span
+    /// that claims a parent it does not have. A caller that sends nothing, or sends nonsense, gets a
+    /// root span.
+    /// </para>
+    /// </remarks>
+    private static bool TryGetParent(IExecutionRequest request, out ActivityContext parent) {
+        parent = default;
+
+        if (!request.Headers.TryGetValue("traceparent", out var traceparent)) {
+            return false;
+        }
+
+        var value = traceparent.ToString();
+
+        if (string.IsNullOrEmpty(value)) {
+            return false;
+        }
+
+        // tracestate is vendor data that rides along unparsed. Absent is normal and not a failure.
+        request.Headers.TryGetValue("tracestate", out var tracestate);
+
+        return ActivityContext.TryParse(value, tracestate.ToString(), out parent);
+    }
+
     public void RequestMapped(IExecutionContext context) {
         LogRequestMapped(context.Request.Method, context.Request.Path, context.HandlerInfo!.HandlerType.Name,
              context.HandlerInfo!.InvokeMethod);
-
-        if (!_spans.TryGetValue(context, out var span)) {
-            return;
-        }
 
         // The low-cardinality template, not the path that arrived. Attached here, before the handler
         // runs, because this is the moment routing decided - where ASP.NET has to go back and rename
         // its span after the fact.
         var route = context.HandlerInfo!.Path;
+
+        // Outside the span check: a metric dimension is wanted whether or not anything is tracing,
+        // and without it http.server.request.duration is one histogram for the whole service.
+        context.RequestMetrics.Tag("http.route", route);
+
+        if (!_spans.TryGetValue(context, out var span)) {
+            return;
+        }
 
         span.SetTag("http.route", route);
         span.DisplayName = context.Request.Method + " " + route;
@@ -95,12 +145,6 @@ public partial class RequestLogger : IRequestLogger {
             context.StartTime.GetElapsedTime()
         );
 
-        if (!_spans.TryGetValue(context, out var span)) {
-            return;
-        }
-
-        _spans.Remove(context);
-
         // Null means "handled, no opinion": nothing assigns a status on an ordinary success path,
         // and every transport renders that as 200 when it writes the response. Leaving the tag off
         // instead would strip a required attribute from every successful span, which is what an
@@ -111,6 +155,17 @@ public partial class RequestLogger : IRequestLogger {
         // already the real code, including one that ASP.NET's own pipeline produced after Hardened
         // declined the request.
         var status = context.Response.Status ?? 200;
+
+        // Tagged whether or not anything is tracing. Buffered by the Meter provider until the logger
+        // is disposed, which is what lets a dimension be attached after the measurement it describes -
+        // every host records TotalRequestDuration and only then calls this.
+        context.RequestMetrics.Tag("http.response.status_code", status);
+
+        if (!_spans.TryGetValue(context, out var span)) {
+            return;
+        }
+
+        _spans.Remove(context);
 
         span.SetTag("http.response.status_code", status);
 
