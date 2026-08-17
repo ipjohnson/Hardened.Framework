@@ -34,11 +34,16 @@ public class OpenApiDocumentTests {
     }
 
     /// <summary>It is a document, not a JSON-encoded string of one.</summary>
+    /// <remarks>
+    /// 3.2.0 is the default, and this application sets no <c>&lt;HardenedOpenApiVersion&gt;</c>, so
+    /// what is asserted here is the default reaching the document rather than a value being
+    /// honoured - <c>OpenApiVersionTests</c> covers that.
+    /// </remarks>
     [HardenedTest]
     public async Task TheDocumentIsValidOpenApi(ITestWebApp testWebApp) {
         using var document = await Fetch(testWebApp);
 
-        Assert.Equal("3.0.0", document.RootElement.GetProperty("openapi").GetString());
+        Assert.Equal("3.2.0", document.RootElement.GetProperty("openapi").GetString());
         Assert.True(document.RootElement.TryGetProperty("paths", out _));
     }
 

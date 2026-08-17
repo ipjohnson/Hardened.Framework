@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Templates;
@@ -7,6 +8,7 @@ using Hardened.SourceGenerator.Validation;
 using Hardened.SourceGenerator.Web.Authorization;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Hardened.SourceGenerator.Web;
 
@@ -91,25 +93,34 @@ public static class WebIncrementalGenerator {
 
         var collection = modelProvider.Collect();
 
-        // <HardenedAmbiguousRoutes> layers on top of the per-file .editorconfig mechanism, setting
-        // the default severity for HRDR001. Selected to a string so the pipeline caches on the
-        // value rather than on the options object, which is a new instance every run.
-        var ambiguousRoutes = initializationContext.AnalyzerConfigOptionsProvider.Select(
-            (options, _) =>
-                options.GlobalOptions.TryGetValue("build_property.HardenedAmbiguousRoutes", out var value)
-                    ? value
-                    : null);
+        // Every MSBuild property this generator reads, selected once into a value.
+        //
+        // Selected to a record of strings rather than kept as the options object, so the pipeline
+        // caches on the values: AnalyzerConfigOptionsProvider hands back a new instance every run,
+        // and combining it directly would rebuild the routing table on every keystroke.
+        //
+        // One value rather than one provider each, because each provider costs a .Combine and the
+        // tuple SourceGeneratorWrapper.Wrap<> has to name grows a level with it. At two properties
+        // that type was already three deep and near-unreadable; the next one would have made it
+        // four.
+        var options = initializationContext.AnalyzerConfigOptionsProvider.Select(
+            (provider, _) => new WebGeneratorOptions(
+                Value(provider, "HardenedAmbiguousRoutes"),
+                Value(provider, OpenApiVersionFacts.PropertyName)));
 
         var routeProvider = entryPointProvider.Combine(collection).WithComparer(new CombinedComparer());
 
         initializationContext.RegisterSourceOutput(
-            routeProvider.Combine(ambiguousRoutes).Combine(constraints),
+            routeProvider.Combine(options).Combine(constraints),
             SourceGeneratorWrapper.Wrap<
                 (((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left,
-                    string? Right) Left, ImmutableArray<RouteConstraintModel> Right)>((context, pair) =>
+                    WebGeneratorOptions Right) Left, ImmutableArray<RouteConstraintModel> Right)>((context, pair) =>
                 RoutingTableGenerator.GenerateRoute(
                     context, pair.Left.Left, pair.Left.Right, pair.Right)));
     }
+
+    private static string? Value(AnalyzerConfigOptionsProvider provider, string property) =>
+        provider.GlobalOptions.TryGetValue("build_property." + property, out var value) ? value : null;
 
     public class CombinedComparer : IEqualityComparer<(EntryPointSelector.Model Left,
         ImmutableArray<RequestHandlerModel> Right)> {
