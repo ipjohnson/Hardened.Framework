@@ -202,7 +202,7 @@ public class ResponseFinalizerFilterTests {
     /// there are five hosts and one that forgot would answer refusals with an empty body.
     /// </summary>
     [Fact]
-    public void GetExecutionChain_IncludesTheFinalizerWithoutAnyHostRegisteringIt() {
+    public async Task GetExecutionChain_IncludesTheFinalizerWithoutAnyHostRegisteringIt() {
         var log = new List<string>();
         var service = new MiddlewareService();
 
@@ -214,7 +214,7 @@ public class ResponseFinalizerFilterTests {
         // Two filters: the seeded finalizer, then the one registered above.
         Assert.False(chain.IsLastFilter);
 
-        chain.Next().GetAwaiter().GetResult();
+        await chain.Next();
 
         Assert.Equal(new[] { "host" }, log);
     }

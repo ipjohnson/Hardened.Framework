@@ -279,7 +279,7 @@ public class RateLimitFilterTests {
     }
 
     [Fact]
-    public void RateLimitAttribute_PassesItsConfigurationToThePolicy() {
+    public async Task RateLimitAttribute_PassesItsConfigurationToThePolicy() {
         var attribute = new RateLimitAttribute {
             PermitLimit = 5, WindowSeconds = 30, Name = "burst"
         };
@@ -289,7 +289,7 @@ public class RateLimitFilterTests {
 
         var filter = Assert.Single(attribute.GetFilters(null!)).FilterFunc(context);
 
-        filter.Execute(Pipeline.Chain(context, filter)).GetAwaiter().GetResult();
+        await filter.Execute(Pipeline.Chain(context, filter));
 
         Assert.Equal(5, store.LastPolicy.PermitLimit);
         Assert.Equal(TimeSpan.FromSeconds(30), store.LastPolicy.Window);

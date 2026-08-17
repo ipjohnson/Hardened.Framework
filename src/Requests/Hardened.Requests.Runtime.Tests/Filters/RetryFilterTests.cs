@@ -348,7 +348,7 @@ public class RetryFilterTests {
     public async Task Execute_StopsAttemptingWhenTheRequestIsCancelled() {
         using var cancellation = new CancellationTokenSource();
 
-        var context = Pipeline.Context(cancellationToken: cancellation.Token);
+        var context = Pipeline.Cancellable(cancellation.Token);
         var attempts = 0;
 
         var downstream = new Pipeline.Inline(chain => {
