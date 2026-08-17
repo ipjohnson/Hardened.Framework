@@ -231,6 +231,43 @@ namespace Hardened.Web.Runtime.Handlers
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }
+namespace Hardened.Web.Runtime.Health
+{
+    public class HealthCheckConfiguration
+    {
+        public HealthCheckConfiguration() { }
+        public System.TimeSpan CheckTimeout { get; set; }
+        public bool IncludeDetail { get; set; }
+        public string LivePath { get; set; }
+        public string ReadyPath { get; set; }
+        public System.TimeSpan TotalTimeout { get; set; }
+    }
+    public class HealthCheckProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
+    {
+        public HealthCheckProvider(Hardened.Web.Runtime.Health.HealthCheckConfiguration config, System.IServiceProvider rootProvider) { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public readonly struct HealthCheckResult : System.IEquatable<Hardened.Web.Runtime.Health.HealthCheckResult>
+    {
+        public HealthCheckResult(Hardened.Web.Runtime.Health.HealthStatus Status, string? Description = null) { }
+        public string? Description { get; init; }
+        public Hardened.Web.Runtime.Health.HealthStatus Status { get; init; }
+        public static Hardened.Web.Runtime.Health.HealthCheckResult Degraded(string? description = null) { }
+        public static Hardened.Web.Runtime.Health.HealthCheckResult Healthy(string? description = null) { }
+        public static Hardened.Web.Runtime.Health.HealthCheckResult Unhealthy(string? description = null) { }
+    }
+    public enum HealthStatus
+    {
+        Healthy = 0,
+        Degraded = 1,
+        Unhealthy = 2,
+    }
+    public interface IHealthCheck
+    {
+        string Name { get; }
+        System.Threading.Tasks.Task<Hardened.Web.Runtime.Health.HealthCheckResult> Check(System.Threading.CancellationToken cancellationToken);
+    }
+}
 namespace Hardened.Web.Runtime.OpenApi
 {
     public class OpenApiDocumentProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
