@@ -64,6 +64,56 @@ public class BankDispatchTests {
         Assert.Equal("a->b:42", response.Deserialize<TransferOutput>()!.TransferId);
     }
 
+    /// <summary>
+    /// A declared error, on the wire, carrying the field the protocol identifies it by.
+    /// </summary>
+    /// <remarks>
+    /// awsJson serializes an error exactly like a success, so <c>__type</c> is the only thing that
+    /// says which one it is. The specification asks for the full shape id and specifies that a
+    /// client takes what follows the <c>#</c>, so the qualified form is what is sent.
+    /// </remarks>
+    [HardenedTest]
+    public async Task GetBalance_SendsTheDeclaredErrorWithItsTypeDiscriminator(ITestWebApp app) {
+        var response = await app.Post(
+            new { accountId = "missing" }, "/", Target("Bank.GetBalance"));
+
+        Assert.Equal(400, response.StatusCode);
+
+        response.Body.Position = 0;
+        var body = await new StreamReader(response.Body).ReadToEndAsync();
+
+        Assert.Contains("\"__type\":\"com.example.bank#AccountNotFound\"", body);
+        Assert.Contains("No account missing.", body);
+    }
+
+    /// <summary>
+    /// The error's own members are still there - <c>__type</c> is an extra field beside them, not an
+    /// envelope wrapping them.
+    /// </summary>
+    [HardenedTest]
+    public async Task GetBalance_ErrorBodyIsTheShapeItselfNotAWrapper(ITestWebApp app) {
+        var response = await app.Post(
+            new { accountId = "missing" }, "/", Target("Bank.GetBalance"));
+
+        var error = response.Deserialize<AccountNotFound>();
+
+        Assert.NotNull(error);
+        Assert.Equal("No account missing.", error.Message);
+        Assert.Equal("com.example.bank#AccountNotFound", error.Type);
+    }
+
+    /// <summary>
+    /// The status comes from <c>@error("client")</c>, because <c>@httpError</c> is an HTTP binding
+    /// trait and a dispatch protocol requires those be ignored.
+    /// </summary>
+    [HardenedTest]
+    public async Task GetBalance_ErrorStatusComesFromTheErrorTrait(ITestWebApp app) {
+        var response = await app.Post(
+            new { accountId = "missing" }, "/", Target("Bank.GetBalance"));
+
+        Assert.Equal(400, response.StatusCode);
+    }
+
     [HardenedTest]
     public async Task UnknownTarget_IsNotDispatched(ITestWebApp app) {
         var response = await app.Post(new { accountId = "acct-1" }, "/", Target("Bank.NoSuchThing"));

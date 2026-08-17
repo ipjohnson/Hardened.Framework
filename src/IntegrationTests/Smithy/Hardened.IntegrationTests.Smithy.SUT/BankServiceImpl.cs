@@ -28,9 +28,23 @@ public class BankServiceImpl : IBankService {
         ["acct-2"] = 4_250_00
     };
 
-    public Task<GetBalanceOutput> GetBalance(GetBalanceInput body) =>
-        Task.FromResult(new GetBalanceOutput(
-            Balances.TryGetValue(body.AccountId, out var cents) ? cents : 0, "USD"));
+    /// <summary>
+    /// Throws the error the model declares, which is how a declared failure reaches the wire.
+    /// </summary>
+    /// <remarks>
+    /// The signature still returns a balance. <c>GetBalanceBadRequestException</c> is generated from
+    /// the operation's <c>errors</c> list, and its payload is the <c>AccountNotFound</c> record - to
+    /// which the reader added the <c>__type</c> field the protocol identifies errors by, so nothing
+    /// here has to know that awsJson wants one.
+    /// </remarks>
+    public Task<GetBalanceOutput> GetBalance(GetBalanceInput body) {
+        if (!Balances.TryGetValue(body.AccountId, out var cents)) {
+            throw new GetBalanceBadRequestException(
+                new AccountNotFound($"No account {body.AccountId}."));
+        }
+
+        return Task.FromResult(new GetBalanceOutput(cents, "USD"));
+    }
 
     public Task<TransferOutput> Transfer(TransferInput body) =>
         Task.FromResult(new TransferOutput($"{body.FromAccount}->{body.ToAccount}:{body.AmountCents}"));

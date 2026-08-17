@@ -170,6 +170,91 @@ public class AwsJsonProtocolTests {
         Assert.All(model.Services[0].Operations, o => Assert.Null(o.DispatchKey));
     }
 
+    /// <summary>
+    /// awsJson serializes an error exactly like a success and distinguishes it by one body field,
+    /// so the error shape carries it.
+    /// </summary>
+    /// <remarks>
+    /// The specification says a server should send the <em>full</em> shape id, and that a client
+    /// takes only what follows a <c>#</c> - so the qualified form is what both halves agree on.
+    /// </remarks>
+    [Fact]
+    public void Parse_GivesErrorShapesATypeDiscriminator() {
+        var notFound = Assert.Single(Parse().Schemas, s => s.Name == "AccountNotFound");
+
+        var discriminator = Assert.Single(notFound.Properties, p => p.Name == "__type");
+
+        Assert.Equal("com.example.bank#AccountNotFound", discriminator.Default);
+        Assert.Equal("string", discriminator.Type);
+        Assert.False(discriminator.IsRequired);
+    }
+
+    /// <summary>
+    /// It has a default, so it lands after every required member - which is what keeps the record's
+    /// positional constructor and the resolver's parameter metadata agreeing by index.
+    /// </summary>
+    [Fact]
+    public void Parse_PutsTheDiscriminatorAfterTheRequiredMembers() {
+        var notFound = Assert.Single(Parse().Schemas, s => s.Name == "AccountNotFound");
+
+        Assert.True(notFound.Properties.Find(p => p.Name == "__type")!.HasDefault);
+        Assert.False(notFound.Properties.Find(p => p.Name == "message")!.HasDefault);
+    }
+
+    /// <summary>One error shape is routinely thrown by several operations; each reaches this.</summary>
+    [Fact]
+    public void Parse_AddsTheDiscriminatorOnlyOnce() {
+        var notFound = Assert.Single(Parse().Schemas, s => s.Name == "AccountNotFound");
+
+        Assert.Single(notFound.Properties, p => p.Name == "__type");
+    }
+
+    /// <summary>
+    /// A routed protocol says which error it is with a status code, so the field would be noise.
+    /// </summary>
+    [Fact]
+    public void Parse_LeavesRoutedErrorShapesAlone() {
+        var diagnostics = new List<string>();
+        var model = SmithySpecParser.Parse(Fixture("petstore.json"), "petstore", diagnostics);
+
+        var notFound = Assert.Single(model!.Schemas, s => s.Name == "PetNotFound");
+
+        Assert.DoesNotContain(notFound.Properties, p => p.Name == "__type");
+    }
+
+    /// <summary>
+    /// @httpError is an HTTP binding trait, and a dispatch protocol requires those be ignored - so
+    /// @error's client/server is what decides the status.
+    /// </summary>
+    [Fact]
+    public void Parse_IgnoresHttpErrorUnderADispatchProtocol() {
+        var diagnostics = new List<string>();
+
+        var ast = """
+                  { "smithy": "2.0", "shapes": {
+                      "com.example#Svc": {
+                        "type": "service", "version": "1",
+                        "operations": [ { "target": "com.example#Op" } ],
+                        "traits": { "aws.protocols#awsJson1_0": {} } },
+                      "com.example#Op": {
+                        "type": "operation",
+                        "errors": [ { "target": "com.example#Boom" } ] },
+                      "com.example#Boom": {
+                        "type": "structure", "members": {},
+                        "traits": {
+                          "smithy.api#error": "client",
+                          "smithy.api#httpError": 418 } } } }
+                  """;
+
+        var model = SmithySpecParser.Parse(ast, "httperror", diagnostics);
+
+        Assert.NotNull(model);
+
+        var error = Assert.Single(model!.Services[0].Operations[0].ErrorResponses);
+
+        Assert.Equal(400, error.StatusCode);
+    }
+
     [Fact]
     public void Parse_StillRefusesAProtocolItCannotSerialise() {
         var diagnostics = new List<string>();

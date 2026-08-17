@@ -308,7 +308,7 @@ internal static class SmithySpecParser {
 
         ParseInput(context, operation, model, name, protocol);
         ParseOutput(context, operation, model, name, protocol);
-        ParseErrors(context, operation, model);
+        ParseErrors(context, operation, model, protocol);
 
         return model;
     }
@@ -448,7 +448,7 @@ internal static class SmithySpecParser {
     }
 
     private static void ParseErrors(
-        ParseContext context, JsonElement operation, OperationModel model) {
+        ParseContext context, JsonElement operation, OperationModel model, ProtocolBinding protocol) {
         foreach (var errorId in SmithyAst.TargetList(operation, "errors")) {
             if (!context.Ast.TryGetShape(errorId, out var error)) {
                 continue;
@@ -458,7 +458,10 @@ internal static class SmithySpecParser {
 
             var status = 500;
 
-            if (SmithyAst.TryGetTrait(error, SmithyTraits.HttpError, out var httpError) &&
+            // @httpError is an HTTP binding trait, which a dispatch protocol requires be ignored -
+            // so under one, @error's client/server is the only thing that decides the status.
+            if (!protocol.Dispatches &&
+                SmithyAst.TryGetTrait(error, SmithyTraits.HttpError, out var httpError) &&
                 httpError.ValueKind == JsonValueKind.Number) {
                 status = httpError.GetInt32();
             } else if (SmithyAst.TryGetTrait(error, SmithyTraits.Error, out var kind) &&
@@ -468,15 +471,69 @@ internal static class SmithySpecParser {
                 status = kind.GetString() == "client" ? 400 : 500;
             }
 
+            var reference = ReferenceTo(context, errorId);
+
+            if (protocol.Dispatches) {
+                AddTypeDiscriminator(context, errorId);
+            }
+
             model.ErrorResponses.Add(new ErrorResponseModel {
                 StatusCode = status,
-                Ref = ReferenceTo(context, errorId),
+                Ref = reference,
                 Description = Text(error, SmithyTraits.Documentation)
             });
         }
 
         model.ErrorResponses.Sort((left, right) => left.StatusCode.CompareTo(right.StatusCode));
     }
+
+    /// <summary>
+    /// The <c>__type</c> field that tells a caller which error a dispatch protocol's response is.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// awsJson serializes an error exactly like a success and distinguishes it by one extra body
+    /// field, so there is no status code to read it from and no envelope wrapping it. The
+    /// specification says a server should send the error shape's <em>full</em> shape id, which is
+    /// why this carries <c>com.example#NotFound</c> rather than <c>NotFound</c> - a client is
+    /// specified to strip everything before a <c>#</c>, so the qualified form is what both halves
+    /// agree on.
+    /// </para>
+    /// <para>
+    /// <b>Added to the schema rather than emitted specially.</b> A property with a constant default
+    /// is what this is, and expressing it that way means the record, the constructor's positional
+    /// order and the JSON type info all follow from <c>SchemaShape.Constructor</c> exactly as they
+    /// do for a declared property - which is the coupling that file exists to keep. An emitter that
+    /// wrote <c>__type</c> itself would have to be taught to the resolver a second time, and the two
+    /// would drift by index.
+    /// </para>
+    /// <para>
+    /// Idempotent, because one error shape is routinely thrown by several operations and each of
+    /// them reaches this.
+    /// </para>
+    /// </remarks>
+    private static void AddTypeDiscriminator(ParseContext context, string errorId) {
+        var name = SmithyPrelude.LocalName(errorId);
+        var schema = context.Model.Schemas.Find(s => s.Name == name);
+
+        if (schema == null || schema.Properties.Exists(p => p.Name == TypeDiscriminator)) {
+            return;
+        }
+
+        schema.Properties.Add(new PropertyModel {
+            Name = TypeDiscriminator,
+            Type = "string",
+
+            // Optional, which is what gives the parameter its default - and the default is the
+            // whole point: nothing constructs this, it is a constant the wire needs.
+            IsRequired = false,
+            Default = errorId,
+            Description = "The shape id identifying this error, as the protocol requires."
+        });
+    }
+
+    /// <summary>The body field an awsJson error is recognised by.</summary>
+    private const string TypeDiscriminator = "__type";
 
     private static void AddParameter(
         ParseContext context,
