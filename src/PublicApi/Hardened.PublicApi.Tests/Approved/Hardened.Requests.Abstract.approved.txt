@@ -46,6 +46,19 @@ namespace Hardened.Requests.Abstract.Authorization
         public string? Subject { get; }
         public bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value) { }
     }
+    public enum AuthorizationDecision
+    {
+        Abstain = 0,
+        Allow = 1,
+        DenyInsufficientAuthentication = 2,
+        Deny = 3,
+    }
+    public static class AuthorizationDecisions
+    {
+        public static Hardened.Requests.Abstract.Authorization.AuthorizationDecision Combine(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> decisions) { }
+        public static Hardened.Requests.Abstract.Authorization.AuthorizationDecision Combine(Hardened.Requests.Abstract.Authorization.AuthorizationDecision left, Hardened.Requests.Abstract.Authorization.AuthorizationDecision right) { }
+        public static bool Permits(this Hardened.Requests.Abstract.Authorization.AuthorizationDecision decision) { }
+    }
     public abstract class AuthorizationPolicy : Hardened.Requests.Abstract.Authorization.IAuthorizationPolicy
     {
         protected AuthorizationPolicy() { }
@@ -67,11 +80,11 @@ namespace Hardened.Requests.Abstract.Authorization
     }
     public interface IActivityAuthorizationHandler
     {
-        System.Threading.Tasks.ValueTask<bool?> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] actions);
+        System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants);
     }
     public interface IActivityAuthorizationService
     {
-        System.Threading.Tasks.ValueTask<bool?> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] actions);
+        System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants);
     }
     public interface IAuthorizationPolicy
     {
