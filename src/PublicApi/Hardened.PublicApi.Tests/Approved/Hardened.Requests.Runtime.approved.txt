@@ -71,6 +71,11 @@ namespace Hardened.Requests.Runtime.Diagnostics
         public static readonly System.Diagnostics.ActivitySource ActivitySource;
         public static readonly System.Diagnostics.Metrics.Meter Meter;
     }
+    public class MeterMetricLoggerProvider : Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider
+    {
+        public MeterMetricLoggerProvider() { }
+        public Hardened.Shared.Runtime.Metrics.IMetricLogger CreateLogger(string loggerName) { }
+    }
 }
 namespace Hardened.Requests.Runtime.Errors
 {
