@@ -62,9 +62,21 @@ namespace Hardened.Requests.Runtime.Authorization
         public System.Collections.Generic.IReadOnlyList<string> Grants { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=true)]
+    public class AuthorizeGrantsAttribute<T> : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute
+        where T : Hardened.Requests.Runtime.Authorization.IGrantProvider, new ()
+    {
+        public AuthorizeGrantsAttribute() { }
+        public System.Collections.Generic.IReadOnlyList<string> Grants { get; }
+        public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
+    }
     public interface IAuthorizationConfiguration
     {
         bool RequireAuthorization { get; }
+    }
+    public interface IGrantProvider
+    {
+        string[] Grants { get; }
     }
     [DependencyModules.Runtime.Attributes.SingletonService]
     public class PrincipalGrantAuthorizationHandler : Hardened.Requests.Abstract.Authorization.IActivityAuthorizationHandler
