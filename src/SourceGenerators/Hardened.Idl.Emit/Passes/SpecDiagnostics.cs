@@ -37,10 +37,48 @@ internal static class SpecDiagnostics {
         public bool Fatal { get; }
     }
 
+    /// <summary>
+    /// A <c>oneOf</c> that could not become a type, and why.
+    /// </summary>
+    /// <remarks>
+    /// The property lands on <c>JsonElement</c>, which works and is the weakest thing that does -
+    /// the caller gets unparsed JSON and no help deciding what is in it. Worth saying out loud
+    /// rather than leaving to be discovered: the fix is a discriminator in the document, or
+    /// ShapeMatchOneOf if the branches really can be told apart by shape.
+    /// </remarks>
+    private static void FindUnresolvableChoices(ServiceSpecModel model, List<Problem> problems) {
+        foreach (var schema in model.Schemas) {
+            if (schema.Kind != SchemaKind.OneOf || schema.DiscriminatorPropertyName != null) {
+                continue;
+            }
+
+            var plan = ChoiceResolution.Resolve(schema.OneOf, model.Schemas);
+
+            if (plan.FullyProved) {
+                continue;
+            }
+
+            var names = new List<string>();
+
+            foreach (var branch in plan.Overlapping) {
+                names.Add(ChoiceResolution.CSharpType(branch.Model));
+            }
+
+            problems.Add(new Problem(
+                "HOAT010",
+                $"'{schema.Name}' declares no discriminator and nothing in the schemas separates " +
+                $"{string.Join(" from ", names)}, so those are told apart by reading the payload " +
+                "into each and requiring exactly one to fit. A payload matching several is an " +
+                "error at that point. Declaring a discriminator would decide it here instead.",
+                fatal: false));
+        }
+    }
+
     public static IReadOnlyList<Problem> Find(ServiceSpecModel model) {
         var problems = new List<Problem>();
 
         FindDuplicateSchemaNames(model, problems);
+        FindUnresolvableChoices(model, problems);
 
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);

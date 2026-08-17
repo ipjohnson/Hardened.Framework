@@ -156,6 +156,15 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
             GroupUntaggedByPath,
             LoadExternalRefs ? Path.GetDirectoryName(Path.GetFullPath(specPath)) : null);
 
+    /// <summary>A task-level default a spec item may override either way.</summary>
+    private static bool Overridden(ITaskItem spec, string name, bool fallback) {
+        var declared = spec.GetMetadata(name);
+
+        return string.IsNullOrWhiteSpace(declared)
+            ? fallback
+            : string.Equals(declared, "true", System.StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// Narrows a document to what one service implements. Returns true if that failed.
     /// </summary>
@@ -229,13 +238,7 @@ public sealed class ExtractOpenApiSpec : Microsoft.Build.Utilities.Task {
     /// emitted and said out loud.
     /// </remarks>
     private string ServedDocument(ITaskItem spec, string path, string document, bool sliced) {
-        var declared = spec.GetMetadata("EmbedDocument");
-
-        var embed = string.IsNullOrWhiteSpace(declared)
-            ? EmbedDocument
-            : string.Equals(declared, "true", System.StringComparison.OrdinalIgnoreCase);
-
-        if (!embed) {
+        if (!Overridden(spec, "EmbedDocument", EmbedDocument)) {
             return "";
         }
 

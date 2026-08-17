@@ -28,8 +28,24 @@ internal static class SchemaEmitter {
         schema.Kind switch {
             SchemaKind.Object => EmitRecord(container, schema, modelsNamespace, patterns, allSchemas),
             SchemaKind.Enum => EmitEnum(container, schema),
+            SchemaKind.OneOf => EmitOneOf(container, schema, modelsNamespace, allSchemas),
             _ => null,
         };
+
+    /// <summary>
+    /// The choice type and the converter that resolves it, which are one thing in two declarations.
+    /// </summary>
+    private static IOutputComponent EmitOneOf(
+        IConstructContainer container, SchemaModel schema, string modelsNamespace,
+        IReadOnlyList<SchemaModel>? allSchemas) {
+        var type = OneOfEmitter.Emit(container, schema, modelsNamespace);
+
+        OneOfConverterEmitter.Emit(
+            container, schema, modelsNamespace,
+            allSchemas ?? System.Array.Empty<SchemaModel>());
+
+        return type;
+    }
 
     /// <summary>
     /// A positional record, or a declaration-only one when the schema carries no properties.

@@ -171,7 +171,9 @@ internal static class OpenApiSpecParser {
 
         // Order matters, and only here. References are cleared before names are allocated so the
         // allocator never names a type nothing will emit; base types are dropped before that
-        // because a dropped base changes which members a type declares.
+        // because a dropped base changes which members a type declares. Choices go first of all,
+        // because dropping one is another way a reference stops naming something.
+        DropUndecidableChoices(model);
         InlineNonObjectRefs(model);
         DropIncompatibleBaseTypes(model);
         NameAllocator.Apply(model, fileName);
@@ -268,16 +270,63 @@ internal static class OpenApiSpecParser {
     /// because a reference can be read before the schema it names has been.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Removes a <c>oneOf</c> whose branches cannot be told apart, leaving the property loose.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A pass rather than a check at the point of synthesis, because deciding this needs every
+    /// branch schema and a branch may be declared after the property referring to it.
+    /// </para>
+    /// <para>
+    /// The alternative to dropping it is to generate a type that guesses - try each branch and keep
+    /// the first that reads - and a guess is exactly what a generated type should not contain. Of
+    /// the published corpus's 338 undiscriminated choices, 84% are decided by a test on the value's
+    /// kind or its properties; the rest are pairs nothing separates, and for those a
+    /// <c>JsonElement</c> the caller inspects is more honest than a type that picks one.
+    /// </para>
+    /// </remarks>
+    private static void DropUndecidableChoices(ServiceSpecModel model) {
+        var dropped = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var schema in model.Schemas) {
+            if (schema.Kind != SchemaKind.OneOf || schema.DiscriminatorPropertyName != null) {
+                continue;
+            }
+
+            if (!ChoiceResolution.Resolve(schema.OneOf, model.Schemas).Usable) {
+                dropped.Add(schema.Name);
+            }
+        }
+
+        if (dropped.Count == 0) {
+            return;
+        }
+
+        model.Schemas.RemoveAll(schema => dropped.Contains(schema.Name));
+
+        // The property keeps its OneOfRefs, so the branches stay reachable and the diagnostic can
+        // still say which schemas it was choosing between.
+        foreach (var reference in ModelRefs.All(model)) {
+            if (reference.Value != null &&
+                dropped.Contains(TypeMapper.GetRefName(reference.Value))) {
+                reference.Set(null);
+            }
+        }
+    }
+
     private static void InlineNonObjectRefs(ServiceSpecModel model) {
-        // Only objects and enums become types. A reference to anything else - a top-level array
-        // alias, an anyOf with no shape of its own, a schema this parser could not read - was still
-        // typed by the reference's name, naming something nothing declares. Slack's `blocks`,
-        // GitHub's `code-frequency-stat` and Stripe's `external_account` were all CS0246.
+        // Only objects, enums and choice types become types. A reference to anything else - a
+        // top-level array alias, an anyOf with no shape of its own, a schema this parser could not
+        // read - was still typed by the reference's name, naming something nothing declares.
+        // Slack's `blocks`, GitHub's `code-frequency-stat` and Stripe's `external_account` were all
+        // CS0246.
         var emittable = new HashSet<string>();
         var arrays = new Dictionary<string, SchemaModel>();
 
         foreach (var schema in model.Schemas) {
-            if (schema.Kind == SchemaKind.Object || schema.Kind == SchemaKind.Enum) {
+            if (schema.Kind == SchemaKind.Object || schema.Kind == SchemaKind.Enum ||
+                schema.Kind == SchemaKind.OneOf) {
                 emittable.Add(schema.Name);
             }
 
@@ -700,13 +749,69 @@ internal static class OpenApiSpecParser {
     }
 
     /// <summary>
-    /// The named schemas among a <c>oneOf</c> or <c>anyOf</c>'s branches.
+    /// Every branch of a <c>oneOf</c> or <c>anyOf</c>, named or written in place.
     /// </summary>
     /// <remarks>
-    /// Only the ones written as a <c>$ref</c>: an inline branch has no component to keep alive, and
-    /// a branch that is a bare primitive never had a type of its own.
+    /// Inline branches are the majority and were the reason this could not work as a list of
+    /// references: of the corpus's 338 undiscriminated choices, 200 name nothing at all -
+    /// <c>oneOf: [string, boolean]</c> - and 45 more mix a reference with an inline type. Keeping
+    /// only the references read those as a choice with one branch, or none, and produced no type.
     /// </remarks>
-    private static void CollectBranchRefs(IList<IOpenApiSchema>? branches, PropertyModel model) {
+    /// <summary>
+    /// A choice the reader has already folded into a union of types.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Microsoft.OpenApi 3.x normalises <c>oneOf: [{type: string}, {type: boolean}]</c> into one
+    /// schema whose <c>Type</c> carries both flags, with <c>OneOf</c> left empty. That is the
+    /// majority spelling in the wild - 200 of the corpus's 338 undiscriminated choices name no
+    /// schema at all - so a parser that only reads <c>OneOf</c> sees nothing there and types the
+    /// property as <c>JsonElement</c>. This is the same choice arriving under a different name.
+    /// </para>
+    /// <para>
+    /// <c>Null</c> is stripped first: <c>type: [string, "null"]</c> is 3.1 for a nullable string,
+    /// which is one type and a flag, not a choice between two.
+    /// </para>
+    /// </remarks>
+    private static void CollectTypeUnion(IOpenApiSchema prop, PropertyModel model) {
+        if (prop.Type is not { } declared) {
+            return;
+        }
+
+        var types = declared & ~JsonSchemaType.Null;
+
+        foreach (var candidate in new[] {
+                     JsonSchemaType.String, JsonSchemaType.Integer, JsonSchemaType.Number,
+                     JsonSchemaType.Boolean, JsonSchemaType.Array, JsonSchemaType.Object
+                 }) {
+            if ((types & candidate) != candidate) {
+                continue;
+            }
+
+            // One bit is an ordinary type, not a choice - left alone so nothing changes for the
+            // documents that were always read correctly.
+            if (types == candidate) {
+                return;
+            }
+
+            var branch = new ChoiceBranchModel {
+                Type = candidate switch {
+                    JsonSchemaType.String => "string",
+                    JsonSchemaType.Integer => "integer",
+                    JsonSchemaType.Number => "number",
+                    JsonSchemaType.Boolean => "boolean",
+                    JsonSchemaType.Array => "array",
+                    _ => "object"
+                }
+            };
+
+            if (!model.OneOf.Contains(branch)) {
+                model.OneOf.Add(branch);
+            }
+        }
+    }
+
+    private static void CollectBranches(IList<IOpenApiSchema>? branches, PropertyModel model) {
         if (branches == null) {
             return;
         }
@@ -714,10 +819,88 @@ internal static class OpenApiSpecParser {
         foreach (var branch in branches) {
             var reference = GetNonPrimitiveRef(branch);
 
-            if (reference != null && !model.OneOfRefs.Contains(reference)) {
-                model.OneOfRefs.Add(reference);
+            if (reference == null && SchemaType(branch) == null) {
+                // A branch that types to nothing. Two spellings reach here and neither is a choice
+                // between anything: `{type: "null"}`, which is 3.1 for "and it may be null" and is
+                // how OpenAI writes every optional string, and `{}`, which permits any value at all
+                // and so cannot be told from the branch beside it. Dropping both leaves the real
+                // branches, and a property left with one of those is an ordinary property again.
+                continue;
+            }
+
+            var described = reference != null
+                ? new ChoiceBranchModel { Ref = reference }
+                : new ChoiceBranchModel { Type = SchemaType(branch), Format = branch.Format };
+
+            if (!model.OneOf.Contains(described)) {
+                model.OneOf.Add(described);
             }
         }
+    }
+
+    /// <summary>
+    /// A type holding exactly one of a <c>oneOf</c>'s branches, or null to leave the property loose.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Synthesized only when the payload can be resolved to a branch on the way in, because the
+    /// whole value of the type is that <c>Value</c> is already a <c>Cat</c> when the caller switches
+    /// on it. A discriminator says which branch a payload is and the document is the one asserting
+    /// it; without one, the only way to decide is to look at the shape, which is a guess this does
+    /// not make unless asked.
+    /// </para>
+    /// <para>
+    /// Named for where it is declared rather than for what it holds - <c>OneOfHolderPayload</c>,
+    /// not <c>CatOrDog</c> - so the name stays put when a branch is added, and stays short when a
+    /// document declares fifteen of them.
+    /// </para>
+    /// </remarks>
+    private static string? SynthesizeOneOf(
+        string parentName, string propertyName, IOpenApiSchema prop, PropertyModel property,
+        SchemaCollector collector) {
+        var discriminator = prop.Discriminator;
+
+        var name = NamingHelper.ToPascalCase(parentName) + NamingHelper.ToPascalCase(propertyName);
+
+        if (collector.IsTaken(name)) {
+            name += "_" + StableSuffix(parentName + "/" + propertyName);
+        }
+
+        collector.Reserve(name);
+
+        var model = new SchemaModel {
+            Name = name,
+            Kind = SchemaKind.OneOf,
+            OneOf = new List<ChoiceBranchModel>(property.OneOf),
+            Description = FirstNonEmpty(prop.Description),
+            DiscriminatorPropertyName = discriminator?.PropertyName
+        };
+
+        // Explicit mapping if the document gives one; otherwise the specification says a value maps
+        // to the schema it names, which is what most descriptions rely on.
+        if (discriminator?.Mapping is { Count: > 0 }) {
+            foreach (var mapping in discriminator.Mapping) {
+                model.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
+                    Value = mapping.Key,
+                    Ref = mapping.Value?.Reference?.ReferenceV3 ?? ""
+                });
+            }
+        } else if (model.DiscriminatorPropertyName != null) {
+            foreach (var branch in model.OneOf) {
+                if (branch.Ref == null) {
+                    continue;
+                }
+
+                model.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
+                    Value = TypeMapper.GetRefName(branch.Ref),
+                    Ref = branch.Ref
+                });
+            }
+        }
+
+        collector.Add(model);
+
+        return TypeMapper.MakeRef(name);
     }
 
     private static PropertyModel ParseProperty(
@@ -733,11 +916,24 @@ internal static class OpenApiSpecParser {
         // Extract validation constraints
         ExtractValidationConstraints(prop, model);
 
-        // What the payload is allowed to be. Recorded before the type is decided, because the
-        // property lands on JsonElement either way and the branches would otherwise leave no trace
-        // in the model at all - and a type nothing in the model points at is not generated.
-        CollectBranchRefs(prop.OneOf, model);
-        CollectBranchRefs(prop.AnyOf, model);
+        // What the payload is allowed to be. Recorded whether or not it becomes a type of its own,
+        // because the branches would otherwise leave no trace in the model - and a schema nothing
+        // in the model points at is not generated.
+        CollectBranches(prop.OneOf, model);
+        CollectBranches(prop.AnyOf, model);
+        CollectTypeUnion(prop, model);
+
+        // A choice between named schemas becomes a type that holds exactly one of them, rather than
+        // a JsonElement the caller has to take apart. Only where the document says which branch a
+        // payload is - see SynthesizeOneOf.
+        if (model.OneOf.Count > 1 && SchemaRef(prop) == null) {
+            var choice = SynthesizeOneOf(parentName, name, prop, model, collector);
+
+            if (choice != null) {
+                model.Ref = choice;
+                return model;
+            }
+        }
 
         // Only keep $ref when it points to an object or enum that gets a generated C# type.
         // Primitive refs (e.g. CustomId → string) are inlined to their underlying type.

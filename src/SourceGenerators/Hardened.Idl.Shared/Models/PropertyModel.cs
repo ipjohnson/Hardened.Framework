@@ -107,7 +107,7 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     /// deserialize into or switch over. Without this the reachability pass sees a property nothing
     /// points from, and the branch types are not emitted at all.
     /// </remarks>
-    public List<string> OneOfRefs { get; set; } = new();
+    public List<ChoiceBranchModel> OneOf { get; set; } = new();
 
     // Validation constraints
     public int? MinLength { get; set; }

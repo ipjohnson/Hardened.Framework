@@ -59,12 +59,10 @@ internal static class ModelRefs {
                 yield return new Handle(
                     property.DictionaryValueRef, value => propertyCaptured.DictionaryValueRef = value);
 
-                for (var index = 0; index < property.OneOfRefs.Count; index++) {
-                    var position = index;
+                foreach (var branch in property.OneOf) {
+                    var branchCaptured = branch;
 
-                    yield return new Handle(
-                        property.OneOfRefs[position],
-                        value => propertyCaptured.OneOfRefs[position] = value ?? "");
+                    yield return new Handle(branch.Ref, value => branchCaptured.Ref = value);
                 }
             }
         }

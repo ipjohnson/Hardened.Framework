@@ -189,7 +189,32 @@ internal static class TypeMapper {
     /// </remarks>
     public static bool IsNonNullableValueType(
         string csType, IEnumerable<SchemaModel>? schemas) =>
-        IsNonNullableValueType(csType) || IsGeneratedEnum(csType, schemas);
+        IsNonNullableValueType(csType) ||
+        IsGeneratedEnum(csType, schemas) ||
+        IsGeneratedChoice(csType, schemas);
+
+    /// <summary>
+    /// Whether the type names a <c>oneOf</c> wrapper this specification generates.
+    /// </summary>
+    /// <remarks>
+    /// A struct, for the same reason a generated enum is one: an optional payload is then <c>T?</c>
+    /// and a required one cannot be null, which is what the schema says either way. Every caller
+    /// that had to know an enum was a value type has to know this too, and there is exactly one
+    /// place that answers the question.
+    /// </remarks>
+    public static bool IsGeneratedChoice(string csType, IEnumerable<SchemaModel>? schemas) {
+        if (schemas == null) {
+            return false;
+        }
+
+        foreach (var schema in schemas) {
+            if (schema.Kind == SchemaKind.OneOf && NamingHelper.ToPascalCase(schema.Name) == csType) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Whether the type names an enum this specification generates.
