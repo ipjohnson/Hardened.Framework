@@ -117,6 +117,14 @@ public class TestWebApp : TestContext, ITestWebApp {
         if (bodyValue == null)
             return Stream.Null;
 
+        // A string goes on the wire as itself. Serializing it would produce a quoted JSON string,
+        // which is right for a JSON body and wrong for every other content type a test wants to
+        // send - a form body, plain text, anything hand-written. RawResponseSerializer makes the
+        // same call in the other direction: a string is text, not a document about a string.
+        if (bodyValue is string raw) {
+            return new MemoryStream(System.Text.Encoding.UTF8.GetBytes(raw));
+        }
+
         // Resolve IJsonSerializer first so its constructor populates the
         // shared JsonSerializerConfiguration.Options TypeInfoResolverChain
         // with the source-gen contexts the application has registered. The

@@ -37,6 +37,12 @@ public class WebExecutionHandlerCodeGenerator {
         // what is actually wrong. The build fails either way; this way it fails legibly.
         requestHandlerModel.ReportUnsupportedTokens(sourceProductionContext, constraints);
 
+        // Same treatment as an unsupported token: an error, and emit anyway. The handler compiles
+        // and routes correctly - one of its two readings of the body just comes back empty - so
+        // skipping it would replace one legible diagnostic with a routing table pointing at a
+        // class that was never written.
+        FormAndBodyDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 
         sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, sourceFile);

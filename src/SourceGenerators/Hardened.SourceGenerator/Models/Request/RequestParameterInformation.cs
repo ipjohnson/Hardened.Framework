@@ -105,6 +105,16 @@ public enum ParameterBindType {
     QueryString,
     Header,
     Cookie,
+
+    /// <summary>
+    /// A field of an <c>application/x-www-form-urlencoded</c> body, named by <c>[FromForm]</c>.
+    /// </summary>
+    /// <remarks>
+    /// Explicit rather than inferred. A parameter the route does not declare falls to
+    /// <see cref="Body"/>, and quietly changing that to a form field when the content type happens
+    /// to be a form would make a handler's binding depend on what the caller sent.
+    /// </remarks>
+    Form,
     Body,
     ServiceProvider,
     FromServiceProvider,
