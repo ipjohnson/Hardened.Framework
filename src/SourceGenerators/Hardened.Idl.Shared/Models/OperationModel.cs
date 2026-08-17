@@ -41,6 +41,16 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// </summary>
     public string? ResponseContentType { get; set; }
 
+    /// <summary>
+    /// The schema of one item of a streamed response, from OpenAPI 3.2's <c>itemSchema</c>.
+    /// </summary>
+    /// <remarks>
+    /// Set instead of <see cref="ResponseRef"/> rather than beside it, because the two say
+    /// different things: <c>schema</c> describes the whole body, <c>itemSchema</c> describes one of
+    /// many. A generator reading both would have to guess which the response actually is.
+    /// </remarks>
+    public string? ItemSchemaRef { get; set; }
+
     public string? ResponseRef { get; set; }
     public string? ResponseType { get; set; }
     public string? ResponseFormat { get; set; }

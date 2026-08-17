@@ -66,10 +66,26 @@ public class IOFilterProvider : IIOFilterProvider {
     public IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(
         IExecutionRequestHandlerInfo handlerInfo,
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest) {
+        return ProvideAsyncEnumerableFilter<TItem>(handlerInfo, deserializeRequest, null);
+    }
+
+    /// <summary>
+    /// The streamed filter, framed the way the handler asked for.
+    /// </summary>
+    /// <remarks>
+    /// An overload rather than a changed signature: <c>IIOFilterProvider</c> is public, and a
+    /// generator emitting the three-argument call is the shape every already-generated application
+    /// carries. The generator emits this one when a handler names a framing.
+    /// </remarks>
+    public IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(
+        IExecutionRequestHandlerInfo handlerInfo,
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
+        IStreamFraming? framing) {
         return new AsyncEnumerableIoFilter<TItem>(
             deserializeRequest,
             _contextSerializationService.SerializeResponse,
-            _headerActions
+            _headerActions,
+            framing
         );
     }
 }

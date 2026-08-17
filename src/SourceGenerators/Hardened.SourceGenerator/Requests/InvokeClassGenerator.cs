@@ -179,7 +179,8 @@ public static class InvokeClassGenerator {
             "serviceProvider",
             "_handlerInfo",
             "InvokeMethod",
-            GenerateFilterEnumerable(handlerModel, classDefinition)
+            GenerateFilterEnumerable(handlerModel, classDefinition),
+            FramingArgument(handlerModel)
         );
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
@@ -199,11 +200,28 @@ public static class InvokeClassGenerator {
             "_handlerInfo",
             "BindRequestParameters",
             "InvokeMethod",
-            GenerateFilterEnumerable(handlerModel, classDefinition)
+            GenerateFilterEnumerable(handlerModel, classDefinition),
+            FramingArgument(handlerModel)
         );
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+    }
+
+    /// <summary>
+    /// The framing the handler asked for, as the singleton that writes it.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> for the default rather than naming <c>NdjsonFraming</c>, so a handler that says
+    /// nothing emits exactly the call it emitted before framing existed - the parameter is optional
+    /// on the runtime side and the filter falls back to newline-delimited JSON itself.
+    /// </remarks>
+    private static string FramingArgument(RequestHandlerModel handlerModel) {
+        var framing = handlerModel.ResponseInformation.StreamFraming;
+
+        return framing == null
+            ? "null"
+            : StreamFramingNames.FramingTypeName(framing) + ".Instance";
     }
 
     private static IOutputComponent GenerateFilterEnumerable(RequestHandlerModel handlerModel,

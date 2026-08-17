@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.OpenApiDocument;
@@ -75,7 +76,7 @@ public static class OpenApiDocumentGenerator {
                     builder.Append(',');
                 }
 
-                WriteOperation(builder, handler, components, operationIds);
+                WriteOperation(builder, handler, components, operationIds, version);
 
                 firstOperation = false;
             }
@@ -113,7 +114,8 @@ public static class OpenApiDocumentGenerator {
         StringBuilder builder,
         RequestHandlerModel handler,
         SortedDictionary<string, string> components,
-        IReadOnlyDictionary<string, string> operationIds) {
+        IReadOnlyDictionary<string, string> operationIds,
+        OpenApiVersion version) {
         builder.Append('"').Append(handler.Name.Method.ToLowerInvariant()).Append("\":{");
 
         builder.Append("\"tags\":[\"")
@@ -133,7 +135,7 @@ public static class OpenApiDocumentGenerator {
 
         WriteParameters(builder, handler);
         WriteRequestBody(builder, handler, components);
-        WriteResponses(builder, handler, components);
+        WriteResponses(builder, handler, components, version);
 
         builder.Append('}');
     }
@@ -284,10 +286,14 @@ public static class OpenApiDocumentGenerator {
     }
 
     private static void WriteResponses(
-        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components) {
+        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components,
+        OpenApiVersion version) {
         builder.Append(",\"responses\":{\"200\":{\"description\":\"OK\"");
 
-        if (handler.ResponseSchema != null) {
+        if (handler.ResponseInformation.IsAsyncEnumerable) {
+            WriteStreamedResponse(builder, handler, components, version);
+        }
+        else if (handler.ResponseSchema != null) {
             Merge(components, handler.ResponseSchema);
 
             var contentType = string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
@@ -296,6 +302,39 @@ public static class OpenApiDocumentGenerator {
 
             builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(contentType))
                 .Append("\":{\"schema\":").Append(handler.ResponseSchema.Schema).Append("}}");
+        }
+
+        builder.Append("}}");
+    }
+
+    /// <summary>
+    /// A streamed response: the media type it is framed as, and the shape of one item.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>itemSchema</c> rather than <c>schema</c>, which is the distinction OpenAPI 3.2 added for
+    /// exactly this: <c>schema</c> describes the whole body, and the body here is many documents one
+    /// after another. Putting the item under <c>schema</c> - which is what this emitted before -
+    /// tells a client the response is a single one of them, and a generator built from that document
+    /// produces a client that reads one and stops.
+    /// </para>
+    /// <para>
+    /// Below 3.2 the media type is written and the schema is not. That says "a body of this type,
+    /// contents unspecified", which is true where the alternative is false; the handler is named in
+    /// a build warning by <c>RoutingTableGenerator</c> so the omission is not silent.
+    /// </para>
+    /// </remarks>
+    private static void WriteStreamedResponse(
+        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components,
+        OpenApiVersion version) {
+        var contentType = StreamFramingNames.ContentType(handler.ResponseInformation.StreamFraming);
+
+        builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(contentType)).Append("\":{");
+
+        if (handler.ResponseSchema != null && OpenApiVersionFacts.SupportsItemSchema(version)) {
+            Merge(components, handler.ResponseSchema);
+
+            builder.Append("\"itemSchema\":").Append(handler.ResponseSchema.Schema);
         }
 
         builder.Append("}}");

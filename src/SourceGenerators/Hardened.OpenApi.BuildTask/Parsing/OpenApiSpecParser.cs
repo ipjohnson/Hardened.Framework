@@ -1378,7 +1378,15 @@ internal static class OpenApiSpecParser {
                     if (response.Content != null) {
                         var responseContent = SelectMediaType(response.Content);
 
-                        if (responseContent.Value?.Schema != null) {
+                        // itemSchema first, because it and schema answer different questions and a
+                        // media type carrying itemSchema is a stream whatever else it says. OpenAPI
+                        // 3.2 added it for exactly this; Microsoft.OpenApi surfaces it directly, so
+                        // there is nothing to hand-parse.
+                        if (responseContent.Value?.ItemSchema != null) {
+                            opModel.ResponseContentType = responseContent.Key;
+                            opModel.ItemSchemaRef = SchemaRef(responseContent.Value.ItemSchema);
+                        }
+                        else if (responseContent.Value?.Schema != null) {
                             var responseSchema = responseContent.Value.Schema;
                             opModel.ResponseContentType = responseContent.Key;
                             opModel.ResponseRef = SchemaRef(responseSchema);

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
@@ -74,6 +75,44 @@ public class StreamingController {
         await Task.Yield();
 
         yield return new Measurement("centre", 19, false);
+    }
+
+    /// <summary>Server-sent events, framed rather than newline-delimited.</summary>
+    [Get("/events")]
+    [ServerSentEvents]
+    public async IAsyncEnumerable<Measurement> Events() {
+        yield return new Measurement("north", 12, false);
+
+        await Task.Yield();
+
+        yield return new Measurement("south", 41, true);
+    }
+
+    /// <summary>
+    /// Events carrying the fields the protocol lets you send beside the payload.
+    /// </summary>
+    /// <remarks>
+    /// The <c>id</c> is the one that matters: a browser <c>EventSource</c> reconnects on its own
+    /// and sends the last one back as <c>Last-Event-ID</c>, so a stream that sets ids can resume.
+    /// </remarks>
+    [Get("/events-with-ids")]
+    [ServerSentEvents]
+    public async IAsyncEnumerable<SseItem<Measurement>> EventsWithIds() {
+        yield return new SseItem<Measurement>(
+            new Measurement("north", 12, false), Id: "1", Event: "reading", Retry: 5000);
+
+        await Task.Yield();
+
+        yield return new SseItem<Measurement>(new Measurement("south", 41, true), Id: "2");
+    }
+
+    /// <summary>An event stream that produces nothing.</summary>
+    [Get("/events-empty")]
+    [ServerSentEvents]
+    public async IAsyncEnumerable<Measurement> EventsEmpty() {
+        await Task.CompletedTask;
+
+        yield break;
     }
 
     /// <summary>

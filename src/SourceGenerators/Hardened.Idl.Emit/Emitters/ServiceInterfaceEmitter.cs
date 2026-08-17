@@ -48,6 +48,23 @@ internal static class ServiceInterfaceEmitter {
             return Task(TypeDefinition.Get(typeof(byte[])));
         }
 
+        // Ahead of ResponseRef for the same reason RawBytesResponse is: it overrides what a schema
+        // alone would say. itemSchema means the body is many of these one after another, which is
+        // IAsyncEnumerable<T> and not Task<T> - and a Task<T> here would generate a client that
+        // reads one item and stops.
+        if (operation.ItemSchemaRef != null) {
+            // By name rather than typeof(IAsyncEnumerable<>). This assembly targets netstandard2.0
+            // and declares no package references at all, which is the property that keeps the IDL
+            // layer unable to reference an OpenAPI reader - IAsyncEnumerable<> would need
+            // Microsoft.Bcl.AsyncInterfaces, and buying one type with the first package reference
+            // here would be a poor trade.
+            return new GenericTypeDefinition(
+                TypeDefinitionEnum.InterfaceDefinition,
+                "System.Collections.Generic",
+                "IAsyncEnumerable",
+                new[] { Model(operation.ItemSchemaRef, modelsNamespace) });
+        }
+
         if (operation.ResponseRef != null) {
             return Task(Model(operation.ResponseRef, modelsNamespace));
         }

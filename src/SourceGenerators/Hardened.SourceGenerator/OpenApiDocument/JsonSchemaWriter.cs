@@ -48,12 +48,22 @@ public static class JsonSchemaWriter {
     /// The type a handler actually produces. <c>Task&lt;T&gt;</c> is how it is returned, not what it
     /// is - and the handler model records the wrapper rather than the result, so unwrapping here is
     /// what keeps a document from describing every response as a task.
+    ///
+    /// <para>
+    /// <c>IAsyncEnumerable&lt;T&gt;</c> unwraps for a different reason: the response is many of them
+    /// rather than one, and what the document needs is the shape of an item. Since OpenAPI 3.2 that
+    /// is spelled <c>itemSchema</c>, which is where the caller puts it.
+    /// </para>
     /// </summary>
     private static ITypeSymbol Unwrap(ITypeSymbol type) {
         while (type is INamedTypeSymbol { IsGenericType: true } named) {
             var name = named.ConstructedFrom.Name;
 
-            if (name != "Task" && name != "ValueTask" && name != "IAsyncEnumerable") {
+            // SseItem<T> alongside the awaitables, because it is a wrapper in the same sense: the
+            // wire carries T under data:, and the id and event name sit beside the payload rather
+            // than inside it. Documenting SseItem<T> would describe a shape no client ever parses.
+            if (name != "Task" && name != "ValueTask" &&
+                name != "IAsyncEnumerable" && name != "SseItem") {
                 break;
             }
 

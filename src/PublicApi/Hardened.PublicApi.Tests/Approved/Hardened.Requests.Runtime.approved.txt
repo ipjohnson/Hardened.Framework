@@ -226,8 +226,8 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public static class ExecutionHelper
     {
-        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncEnumerableFilterEmptyParameters<TController, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders) { }
-        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
+        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncEnumerableFilterEmptyParameters<TController, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing = null) { }
+        public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing = null)
             where TController :  class { }
         public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncStandardFilterEmptyParameters<TController>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncInvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders)
             where TController :  class { }
@@ -282,6 +282,7 @@ namespace Hardened.Requests.Runtime.Execution
     {
         public IOFilterProvider(Hardened.Requests.Abstract.Serializer.IContextSerializationService contextSerializationService, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IResponseHeaderConfiguration> responseHeaderConfiguration) { }
         public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing) { }
         public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest) { }
     }
     public class InvokeNoParametersFilter<TController> : Hardened.Requests.Abstract.Execution.IExecutionFilter
@@ -306,7 +307,7 @@ namespace Hardened.Requests.Runtime.Filters
 {
     public class AsyncEnumerableIoFilter<TItem> : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
-        public AsyncEnumerableIoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions) { }
+        public AsyncEnumerableIoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing = null) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
@@ -333,6 +334,14 @@ namespace Hardened.Requests.Runtime.Filters
         public IoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
+    public class NdjsonFraming : Hardened.Requests.Abstract.Serializer.IStreamFraming
+    {
+        public static readonly Hardened.Requests.Runtime.Filters.NdjsonFraming Instance;
+        public NdjsonFraming() { }
+        public string ContentType { get; }
+        public System.Threading.Tasks.ValueTask WriteCompletion(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
     public class RetryAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {
@@ -354,6 +363,14 @@ namespace Hardened.Requests.Runtime.Filters
     {
         public SingleFilterProvider(System.Func<Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo, Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo?> filterFunc) { }
         public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    public class SseFraming : Hardened.Requests.Abstract.Serializer.IStreamFraming
+    {
+        public static readonly Hardened.Requests.Runtime.Filters.SseFraming Instance;
+        public SseFraming() { }
+        public string ContentType { get; }
+        public System.Threading.Tasks.ValueTask WriteCompletion(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
     }
 }
 namespace Hardened.Requests.Runtime.Headers
