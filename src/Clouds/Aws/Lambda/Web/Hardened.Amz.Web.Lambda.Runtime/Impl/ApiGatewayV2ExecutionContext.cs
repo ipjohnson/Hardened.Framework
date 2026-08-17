@@ -1,4 +1,6 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Abstract.Diagnostics;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
 
@@ -33,7 +35,12 @@ internal class ApiGatewayV2ExecutionContext : IExecutionContext {
             request ?? Request,
             response ?? Response,
             metricLogger ?? RequestMetrics,
-            StartTime);
+            StartTime) {
+            // The reference, not a copy: a fork is the same caller.
+            CallerPrincipal = CallerPrincipal,
+            // And the same request, so it reports one id rather than two.
+            CorrelationId = CorrelationId
+        };
     }
 
     public IServiceProvider RootServiceProvider { get; }
@@ -44,6 +51,21 @@ internal class ApiGatewayV2ExecutionContext : IExecutionContext {
     public IExecutionRequest Request { get; }
 
     public IExecutionResponse Response { get; }
+
+    /// <inheritdoc />
+    public ICallerPrincipal CallerPrincipal { get; set; } = AnonymousCallerPrincipal.Instance;
+
+    private string? _correlationId;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Realized on first read rather than at construction, so it is the trace id when anything is
+    /// collecting traces - the host starts the span after building the context.
+    /// </remarks>
+    public string CorrelationId {
+        get => _correlationId ??= CorrelationIdentifier.ForCurrentTrace();
+        init => _correlationId = value;
+    }
 
     public object? HandlerInstance { get; set; }
 

@@ -19,12 +19,40 @@ public class LambdaStructuredLogger : ILogger {
         _structuredLogLineBuilder = new StructuredLogLineBuilder(jsonSerializer, stringBuilderPool, categoryName);
     }
 
+    /// <remarks>
+    /// <para>
+    /// <b>The accessor is genuinely empty during initialization</b>, which is why this cannot assume
+    /// a context. Startup services run before any invocation arrives, so anything they log reaches
+    /// here with nothing to log to - and the null-forgiving operator that used to be on
+    /// <c>Context</c> turned that into a <c>NullReferenceException</c> out of the logging
+    /// infrastructure, which surfaces as a <c>TypeInitializationException</c> from the application
+    /// constructor and takes the whole cold start down.
+    /// </para>
+    /// <para>
+    /// It stayed latent only because no startup service happened to log. One in the framework then
+    /// did, and every Lambda in the repository failed to start - a dependency this package does not
+    /// control deciding whether it boots.
+    /// </para>
+    /// <para>
+    /// Standard output is the right fallback rather than dropping the line: Lambda captures stdout
+    /// during the init phase and routes it to the same log stream, so an initialization message
+    /// still arrives. It is written unstructured-but-serialized, exactly as the invocation path
+    /// writes it, so a consumer parsing the stream sees one shape.
+    /// </para>
+    /// </remarks>
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter) {
         var serializedData = _structuredLogLineBuilder.Build(
             logLevel, eventId, state, exception, formatter, GetScopeProperties());
 
-        _lambdaContextAccessor.Context!.Logger.LogLine(serializedData);
+        var context = _lambdaContextAccessor.Context;
+
+        if (context == null) {
+            Console.WriteLine(serializedData);
+            return;
+        }
+
+        context.Logger.LogLine(serializedData);
     }
 
     public bool IsEnabled(LogLevel logLevel) {
