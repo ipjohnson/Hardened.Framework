@@ -10,13 +10,23 @@ check: path templating is prose in the OpenAPI specification instead of schema, 
 openapi-spec-validator calls `/boards/{boardId:guid}` valid while Spectral reports it as the
 path-params error it is.
 
-    extract-openapi.py <generated-source.cs> <output.json>
+    extract-openapi.py <generated-source.cs> <output.json> [--lint-as VERSION]
 """
 
 import json
 import pathlib
 import re
 import sys
+
+# The newest version Spectral's oas ruleset can validate.
+#
+# Measured against @stoplight/spectral-cli 6.16.3: a 3.0.0 or 3.1.0 document lints clean, and a
+# 3.2.0 one fails with `oas3-schema: "openapi" property must match pattern "^3\.0\.\d(-.+)?$"` -
+# Spectral does not know 3.2 and falls back to the 3.0 schema for it.
+#
+# That is a gap in the linter rather than in the document. Kiota, which is what the client story
+# points a consumer at, has read 3.2 since v1.30.0.
+LINTABLE_VERSION = "3.1.0"
 
 
 def extract(source: str) -> dict:
@@ -30,6 +40,28 @@ def extract(source: str) -> dict:
     return json.loads(match.group(1).encode().decode("unicode_escape"))
 
 
+def relabel_for_linting(document: dict) -> dict:
+    """Declare a version Spectral can validate, so its other rules still run.
+
+    Only the `openapi` field is touched, and only downward. What the lint is here for is
+    structural - path-params caught route constraints leaking into paths ten times against a real
+    application - and every one of those rules is version-independent. Refusing to lint at all
+    because the linter cannot read the version banner would trade a real check for a cosmetic one.
+
+    Nothing is hidden by this today: the emitter produces no 3.2-only construct yet. `itemSchema`
+    is the first one, and when it lands this has to be revisited rather than extended - a 3.1
+    document carrying `itemSchema` is not something Spectral should be asked to bless. See
+    STREAMING-PLAN.md item 6.
+    """
+    declared = document.get("openapi", "")
+
+    if declared and declared > LINTABLE_VERSION:
+        document["openapi"] = LINTABLE_VERSION
+        print(f"linting as OpenAPI {LINTABLE_VERSION}; the document declares {declared}")
+
+    return document
+
+
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit(__doc__)
@@ -39,7 +71,7 @@ def main() -> None:
     if not source.is_file():
         raise SystemExit(f"no generated document at {source}")
 
-    document = extract(source.read_text())
+    document = relabel_for_linting(extract(source.read_text()))
 
     pathlib.Path(sys.argv[2]).write_text(json.dumps(document, indent=2))
 
