@@ -7,7 +7,7 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 public class TypeMapperTests {
     [Theory]
     [InlineData("string", null, "string")]
-    [InlineData("string", "date-time", "DateTime")]
+    [InlineData("string", "date-time", "DateTimeOffset")]
     [InlineData("string", "date", "DateOnly")]
     [InlineData("string", "uuid", "string")]
     [InlineData("string", "byte", "byte[]")]

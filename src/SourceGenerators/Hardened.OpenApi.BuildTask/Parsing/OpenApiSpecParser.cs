@@ -277,12 +277,34 @@ internal static class OpenApiSpecParser {
     private static void DropUndecidableChoices(ServiceSpecModel model) {
         var dropped = new HashSet<string>(StringComparer.Ordinal);
 
+        // The schemas that will emit a type, which is not every schema in the model: an array
+        // alias or a primitive one is a name for something else and produces no record, so a branch
+        // naming one names nothing the converter can read into.
+        var declared = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var schema in model.Schemas) {
-            if (schema.Kind != SchemaKind.OneOf || schema.DiscriminatorPropertyName != null) {
+            if (schema.Kind is SchemaKind.Object or SchemaKind.Enum or SchemaKind.OneOf) {
+                declared.Add(schema.Name);
+            }
+        }
+
+        foreach (var schema in model.Schemas) {
+            if (schema.Kind != SchemaKind.OneOf) {
                 continue;
             }
 
-            if (!ChoiceResolution.Resolve(schema.OneOf, model.Schemas).Usable) {
+            // A branch naming a schema nothing declares cannot be read into anything, and the
+            // converter would name a type that does not exist - CS0234 in a generated file.
+            // Checked for every choice, discriminated or not: a discriminator says which branch a
+            // payload is, not that the branch was generated.
+            schema.OneOf.RemoveAll(
+                branch => branch.Ref != null && !declared.Contains(TypeMapper.GetRefName(branch.Ref)));
+            schema.DiscriminatorMapping.RemoveAll(
+                mapping => !declared.Contains(TypeMapper.GetRefName(mapping.Ref)));
+
+            if (schema.OneOf.Count < 2 ||
+                (schema.DiscriminatorPropertyName == null &&
+                 !ChoiceResolution.Resolve(schema.OneOf, model.Schemas).Usable)) {
                 dropped.Add(schema.Name);
             }
         }
@@ -589,38 +611,74 @@ internal static class OpenApiSpecParser {
             Required = schema.Required?.ToList() ?? new List<string>()
         };
 
-        foreach (var allOfSchema in schema.AllOf ?? Enumerable.Empty<IOpenApiSchema>()) {
-            if (allOfSchema.Required != null) {
-                foreach (var req in allOfSchema.Required) {
-                    if (!model.Required.Contains(req)) {
-                        model.Required.Add(req);
+        MergeBranches(schema, model, name, collector, new HashSet<string>(StringComparer.Ordinal));
+
+        return model;
+    }
+
+    /// <summary>
+    /// Folds every branch of an <c>allOf</c> into the derived schema, following branches that are
+    /// themselves compositions.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The recursion is the point. A branch that is itself an <c>allOf</c> declares no properties of
+    /// its own - they are in <em>its</em> branches - so reading only the direct ones merges nothing
+    /// from it and loses everything above it. Box builds every resource that way:
+    /// <c>File--Full</c> extends <c>File</c>, which extends <c>File--Mini</c>, which extends
+    /// <c>File--Base</c>, and <c>id</c>, <c>type</c> and <c>etag</c> are declared at the bottom. They
+    /// were absent from the generated type entirely, which replaying Box's own published examples is
+    /// what surfaced.
+    /// </para>
+    /// <para>
+    /// Depth first, so the deepest ancestor is merged before anything that narrows it and
+    /// <see cref="MergeProperty"/> sees them in the order the document layers them.
+    /// </para>
+    /// </remarks>
+    private static void MergeBranches(
+        IOpenApiSchema schema, SchemaModel model, string name, SchemaCollector collector,
+        HashSet<string> visited) {
+        foreach (var branch in schema.AllOf ?? Enumerable.Empty<IOpenApiSchema>()) {
+            // A composition may name itself somewhere up its own chain, and a document is not
+            // required to be acyclic just because a type system is.
+            var reference = SchemaRef(branch);
+
+            if (reference != null && !visited.Add(reference)) {
+                continue;
+            }
+
+            MergeBranches(branch, model, name, collector, visited);
+
+            if (branch.Required != null) {
+                foreach (var required in branch.Required) {
+                    if (!model.Required.Contains(required)) {
+                        model.Required.Add(required);
                     }
                 }
             }
 
-            if (allOfSchema.Properties != null) {
-                foreach (var propKvp in allOfSchema.Properties) {
-                    var isRequired = model.Required.Contains(propKvp.Key) ||
-                                     (allOfSchema.Required?.Contains(propKvp.Key) ?? false);
-                    var parsed =
-                        ParseProperty(propKvp.Key, propKvp.Value, isRequired, name, collector);
+            if (branch.Properties == null) {
+                continue;
+            }
 
-                    // allOf is an intersection, so a property named by more than one branch is one
-                    // property described twice - most often a base declaring it and a later branch
-                    // narrowing a constraint on it. Appending both produced two record parameters
-                    // of the same name: CS0100 and CS0102, from a document that is entirely legal.
-                    var existing = model.Properties.FindIndex(p => p.Name == parsed.Name);
+            foreach (var propKvp in branch.Properties) {
+                var isRequired = model.Required.Contains(propKvp.Key) ||
+                                 (branch.Required?.Contains(propKvp.Key) ?? false);
+                var parsed = ParseProperty(propKvp.Key, propKvp.Value, isRequired, name, collector);
 
-                    if (existing >= 0) {
-                        model.Properties[existing] = MergeProperty(model.Properties[existing], parsed);
-                    } else {
-                        model.Properties.Add(parsed);
-                    }
+                // allOf is an intersection, so a property named by more than one branch is one
+                // property described twice - most often a base declaring it and a later branch
+                // narrowing a constraint on it. Appending both produced two record parameters of
+                // the same name: CS0100 and CS0102, from a document that is entirely legal.
+                var existing = model.Properties.FindIndex(p => p.Name == parsed.Name);
+
+                if (existing >= 0) {
+                    model.Properties[existing] = MergeProperty(model.Properties[existing], parsed);
+                } else {
+                    model.Properties.Add(parsed);
                 }
             }
         }
-
-        return model;
     }
 
     /// <summary>

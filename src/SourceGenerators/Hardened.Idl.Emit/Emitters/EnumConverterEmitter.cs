@@ -111,7 +111,10 @@ internal static class EnumConverterEmitter {
         method.AddParameter(
             TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"), "options");
 
-        var lines = new List<string> { "writer.WriteStringValue(value switch", "{" };
+        // Assigned to a typed local rather than passed straight in: a document may declare an enum
+        // with no values at all, leaving a switch whose only arm throws, and an expression with no
+        // natural type cannot pick between the WriteStringValue overloads - CS0121.
+        var lines = new List<string> { "string text = value switch", "{" };
 
         for (var index = 0; index < schema.EnumValues.Count; index++) {
             lines.Add($"    {qualified}.{Member(schema, index)} => \"{Escape(schema.EnumValues[index])}\",");
@@ -122,7 +125,9 @@ internal static class EnumConverterEmitter {
         lines.Add("    _ => throw new global::System.Text.Json.JsonException(");
         lines.Add(
             $"        \"The value is not one {NamingHelper.ToPascalCase(schema.Name)} declares.\")");
-        lines.Add("});");
+        lines.Add("};");
+        lines.Add("");
+        lines.Add("writer.WriteStringValue(text);");
 
         Write(method, lines);
     }

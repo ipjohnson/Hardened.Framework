@@ -118,7 +118,7 @@ public class ScenarioTests {
 
         Assert.Equal("byte[]", TypeOf(model, "Thing", "avatar"));
         Assert.Equal("byte[]", TypeOf(model, "Thing", "blob"));
-        Assert.Equal("DateTime", TypeOf(model, "Thing", "when"));
+        Assert.Equal("DateTimeOffset", TypeOf(model, "Thing", "when"));
         Assert.Equal("DateOnly", TypeOf(model, "Thing", "day"));
     }
 

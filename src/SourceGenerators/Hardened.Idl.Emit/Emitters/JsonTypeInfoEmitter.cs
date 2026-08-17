@@ -162,6 +162,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        if (type == typeof(float)) return JsonMetadataServices.CreateValueInfo<float>(options, JsonMetadataServices.SingleConverter);");
         sb.AppendLine("        if (type == typeof(double)) return JsonMetadataServices.CreateValueInfo<double>(options, JsonMetadataServices.DoubleConverter);");
         sb.AppendLine("        if (type == typeof(global::System.DateTime)) return JsonMetadataServices.CreateValueInfo<global::System.DateTime>(options, JsonMetadataServices.DateTimeConverter);");
+        sb.AppendLine("        if (type == typeof(global::System.DateTimeOffset)) return JsonMetadataServices.CreateValueInfo<global::System.DateTimeOffset>(options, JsonMetadataServices.DateTimeOffsetConverter);");
         sb.AppendLine("        if (type == typeof(global::System.DateOnly)) return JsonMetadataServices.CreateValueInfo<global::System.DateOnly>(options, JsonMetadataServices.DateOnlyConverter);");
         sb.AppendLine("        if (type == typeof(byte[])) return JsonMetadataServices.CreateValueInfo<byte[]>(options, JsonMetadataServices.ByteArrayConverter);");
         sb.AppendLine("        if (type == typeof(global::System.Text.Json.JsonElement)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement>(options, JsonMetadataServices.JsonElementConverter);");
@@ -174,6 +175,7 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("        if (type == typeof(float?)) return JsonMetadataServices.CreateValueInfo<float?>(options, JsonMetadataServices.GetNullableConverter<float>(options));");
         sb.AppendLine("        if (type == typeof(double?)) return JsonMetadataServices.CreateValueInfo<double?>(options, JsonMetadataServices.GetNullableConverter<double>(options));");
         sb.AppendLine("        if (type == typeof(global::System.DateTime?)) return JsonMetadataServices.CreateValueInfo<global::System.DateTime?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateTime>(options));");
+        sb.AppendLine("        if (type == typeof(global::System.DateTimeOffset?)) return JsonMetadataServices.CreateValueInfo<global::System.DateTimeOffset?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateTimeOffset>(options));");
         sb.AppendLine("        if (type == typeof(global::System.DateOnly?)) return JsonMetadataServices.CreateValueInfo<global::System.DateOnly?>(options, JsonMetadataServices.GetNullableConverter<global::System.DateOnly>(options));");
         sb.AppendLine("        if (type == typeof(global::System.Text.Json.JsonElement?)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement?>(options, JsonMetadataServices.GetNullableConverter<global::System.Text.Json.JsonElement>(options));");
     }
@@ -208,16 +210,18 @@ internal static class JsonTypeInfoEmitter {
             }
         }
 
-        if (schema.Properties.Count > 0) {
-            // Every property, including the readOnly ones the constructor does not take: they are
-            // serialized, and the property list is what carries a getter for them.
-            sb.AppendLine("            PropertyMetadataInitializer = _ => new JsonPropertyInfo[]");
-            sb.AppendLine("            {");
-            foreach (var prop in schema.Properties.OrderByDescending(p => p.IsRequired)) {
-                EmitPropertyInfo(sb, prop, typeName, allSchemas, ns);
-            }
-            sb.AppendLine("            },");
+        // Always, even for a schema that declares none. System.Text.Json requires the initializer
+        // to be present and refuses the type outright without it - "did not provide property
+        // metadata" - so a free-form `type: object` could not be deserialized at all. Cloudflare
+        // declares 57 of those, and every one of them threw.
+        sb.AppendLine("            PropertyMetadataInitializer = _ => new JsonPropertyInfo[]");
+        sb.AppendLine("            {");
+
+        foreach (var prop in schema.Properties.OrderByDescending(p => p.IsRequired)) {
+            EmitPropertyInfo(sb, prop, typeName, allSchemas, ns);
         }
+
+        sb.AppendLine("            },");
 
         if (parameters.Count > 0) {
             // ConstructorParameterMetadataInitializer
@@ -472,6 +476,7 @@ internal static class JsonTypeInfoEmitter {
             case "float":
             case "double":
             case "bool":
+            case "DateTimeOffset":
             case "DateTime":
             case "DateOnly":
             case "JsonElement":

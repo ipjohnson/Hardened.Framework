@@ -160,7 +160,7 @@ internal static class NameAllocator {
             // not a moment. The keyword forms (int, string) cannot collide because a pascal-cased
             // name never produces one, and reserving ordinary words like Type or Object would
             // rename a great many schemas to no purpose.
-            "DateTime", "DateOnly", "JsonElement"
+            "DateTime", "DateTimeOffset", "DateOnly", "JsonElement"
         });
 
         var ordered = new List<SchemaModel>(model.Schemas);

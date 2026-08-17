@@ -10,7 +10,12 @@ internal static class TypeMapper {
         }
 
         return (type?.ToLowerInvariant(), format?.ToLowerInvariant()) switch {
-            ("string", "date-time") => "DateTime",
+            // DateTimeOffset, not DateTime, because RFC 3339 date-time carries an offset and
+            // DateTime cannot hold one. Reading "2020-06-05T22:47:53+00:00" into a DateTime
+            // converts it to the host's local time and writes the host's offset back, so the same
+            // response left a server in New York and a server in Berlin as different bytes -
+            // which replaying Plaid's published examples is what caught.
+            ("string", "date-time") => "DateTimeOffset",
             ("string", "date") => "DateOnly",
             ("string", "uuid") => "string",
             ("string", "byte") => "byte[]",
@@ -146,6 +151,7 @@ internal static class TypeMapper {
             "byte" => TypeDefinition.Get(typeof(byte)),
             "sbyte" => TypeDefinition.Get(typeof(sbyte)),
             "DateTime" => TypeDefinition.Get(typeof(DateTime)),
+            "DateTimeOffset" => TypeDefinition.Get(typeof(DateTimeOffset)),
             "DateOnly" => TypeDefinition.Get("System", "DateOnly"),
             "JsonElement" => TypeDefinition.Get("System.Text.Json", "JsonElement"),
             _ => null

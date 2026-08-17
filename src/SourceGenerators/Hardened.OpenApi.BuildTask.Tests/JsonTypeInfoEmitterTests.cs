@@ -138,11 +138,11 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<global::System.DateTime>(options", result);
+        Assert.Contains("CreatePropertyInfo<global::System.DateTimeOffset>(options", result);
         Assert.Contains("CreatePropertyInfo<global::System.DateOnly>(options", result);
         Assert.Contains("CreatePropertyInfo<global::System.Byte[]>(options", result);
         Assert.Contains("CreatePropertyInfo<string>(options", result);
-        Assert.Contains("(global::System.DateTime)args[0]", result);
+        Assert.Contains("(global::System.DateTimeOffset)args[0]", result);
         Assert.Contains("(global::System.DateOnly)args[1]", result);
         Assert.Contains("(global::System.Byte[])args[2]", result);
     }
@@ -357,8 +357,8 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("(bool?)args[2]", result);
 
         // Optional DateTime: nullable
-        Assert.Contains("CreatePropertyInfo<global::System.DateTime?>(options", result);
-        Assert.Contains("(global::System.DateTime?)args[3]", result);
+        Assert.Contains("CreatePropertyInfo<global::System.DateTimeOffset?>(options", result);
+        Assert.Contains("(global::System.DateTimeOffset?)args[3]", result);
     }
 
     [Fact]

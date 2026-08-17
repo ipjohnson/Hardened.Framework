@@ -9,7 +9,7 @@ namespace Hardened.Idl;
 /// </summary>
 /// <remarks>
 /// <para>
-/// There are twelve of them, and every pass that walks references needs all twelve. Two passes used
+/// There are thirteen of them, and every pass that walks references needs all thirteen. Two passes used
 /// to enumerate them by hand and one listed five: Cloudflare and PagerDuty reference hundreds of
 /// schemas that produce no type, and the references the incomplete pass never visited - parameters,
 /// declared error responses, base types, discriminator branches - each became a CS0234 naming
@@ -43,6 +43,12 @@ internal static class ModelRefs {
 
             yield return new Handle(schema.BaseRef, value => captured.BaseRef = value);
             yield return new Handle(schema.ArrayItemsRef, value => captured.ArrayItemsRef = value);
+
+            foreach (var branch in schema.OneOf) {
+                var branchCaptured = branch;
+
+                yield return new Handle(branch.Ref, value => branchCaptured.Ref = value);
+            }
 
             foreach (var mapping in schema.DiscriminatorMapping) {
                 var mappingCaptured = mapping;
