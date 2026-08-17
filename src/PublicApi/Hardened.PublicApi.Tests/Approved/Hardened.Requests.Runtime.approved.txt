@@ -63,6 +63,15 @@ namespace Hardened.Requests.Runtime.DependencyInjection
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
 }
+namespace Hardened.Requests.Runtime.Diagnostics
+{
+    public static class HardenedDiagnostics
+    {
+        public const string SourceName = "Hardened.Requests";
+        public static readonly System.Diagnostics.ActivitySource ActivitySource;
+        public static readonly System.Diagnostics.Metrics.Meter Meter;
+    }
+}
 namespace Hardened.Requests.Runtime.Errors
 {
     public class BadContentEncodingException : Hardened.Requests.Runtime.Errors.BadRequestException
