@@ -266,6 +266,11 @@ namespace Hardened.Shared.Runtime.Json
             "ranch.")]
         public static System.Text.Json.JsonSerializerOptions WithReflectionFallback(System.Text.Json.JsonSerializerOptions options) { }
     }
+    public sealed class PrimitiveJsonTypeInfoResolver : System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
+    {
+        public static readonly Hardened.Shared.Runtime.Json.PrimitiveJsonTypeInfoResolver Instance;
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type, System.Text.Json.JsonSerializerOptions options) { }
+    }
 }
 namespace Hardened.Shared.Runtime.Logging
 {

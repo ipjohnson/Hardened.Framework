@@ -620,8 +620,19 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("(global::Test.Api.Models.Address?)args[1]", result);
     }
 
+    /// <summary>
+    /// The BCL leaf types are answered by <c>PrimitiveJsonTypeInfoResolver</c> in the runtime, not by
+    /// each generated resolver.
+    /// </summary>
+    /// <remarks>
+    /// One copy per specification file, in a chain that already holds one resolver per specification
+    /// file, is a table that cannot vary duplicated N times - and every copy pinned
+    /// <c>JsonMetadataServices.StringConverter</c> and friends, which discards a converter the
+    /// application registered. Emitting them again would not be wrong so much as unreachable: the
+    /// runtime resolver is last in the chain, so a duplicate here only shadows it.
+    /// </remarks>
     [Fact]
-    public void Emit_IncludesPrimitiveTypeEntries() {
+    public void Emit_OmitsPrimitiveTypeEntries() {
         var schemas = new List<SchemaModel> {
             new() {
                 Name = "Minimal",
@@ -634,40 +645,26 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        // Primitive types
-        Assert.Contains("if (type == typeof(string)) return JsonMetadataServices.CreateValueInfo<string>(options, JsonMetadataServices.StringConverter);", result);
-        Assert.Contains("if (type == typeof(bool))", result);
-        Assert.Contains("if (type == typeof(int))", result);
-        Assert.Contains("if (type == typeof(long))", result);
-        Assert.Contains("if (type == typeof(float))", result);
-        Assert.Contains("if (type == typeof(double))", result);
-        Assert.Contains("if (type == typeof(global::System.DateTime))", result);
-        Assert.Contains("if (type == typeof(global::System.DateOnly))", result);
-        Assert.Contains("if (type == typeof(byte[]))", result);
-        Assert.Contains("BooleanConverter", result);
-        Assert.Contains("Int32Converter", result);
-        Assert.Contains("Int64Converter", result);
-        Assert.Contains("SingleConverter", result);
-        Assert.Contains("DoubleConverter", result);
-        Assert.Contains("DateTimeConverter", result);
-        Assert.Contains("DateOnlyConverter", result);
-        Assert.Contains("ByteArrayConverter", result);
+        Assert.DoesNotContain("if (type == typeof(string))", result);
+        Assert.DoesNotContain("if (type == typeof(bool))", result);
+        Assert.DoesNotContain("if (type == typeof(int))", result);
+        Assert.DoesNotContain("if (type == typeof(long))", result);
+        Assert.DoesNotContain("if (type == typeof(float))", result);
+        Assert.DoesNotContain("if (type == typeof(double))", result);
+        Assert.DoesNotContain("if (type == typeof(byte[]))", result);
+        Assert.DoesNotContain("StringConverter", result);
+        Assert.DoesNotContain("BooleanConverter", result);
+        Assert.DoesNotContain("Int32Converter", result);
+        Assert.DoesNotContain("ByteArrayConverter", result);
 
-        // Nullable value types
-        Assert.Contains("if (type == typeof(bool?))", result);
-        Assert.Contains("if (type == typeof(int?))", result);
-        Assert.Contains("if (type == typeof(long?))", result);
-        Assert.Contains("if (type == typeof(float?))", result);
-        Assert.Contains("if (type == typeof(double?))", result);
-        Assert.Contains("if (type == typeof(global::System.DateTime?))", result);
-        Assert.Contains("if (type == typeof(global::System.DateOnly?))", result);
-        Assert.Contains("GetNullableConverter<bool>", result);
-        Assert.Contains("GetNullableConverter<int>", result);
-        Assert.Contains("GetNullableConverter<long>", result);
-        Assert.Contains("GetNullableConverter<float>", result);
-        Assert.Contains("GetNullableConverter<double>", result);
-        Assert.Contains("GetNullableConverter<global::System.DateTime>", result);
-        Assert.Contains("GetNullableConverter<global::System.DateOnly>", result);
+        Assert.DoesNotContain("if (type == typeof(bool?))", result);
+        Assert.DoesNotContain("if (type == typeof(int?))", result);
+        Assert.DoesNotContain("GetNullableConverter<bool>", result);
+        Assert.DoesNotContain("GetNullableConverter<int>", result);
+
+        // What the resolver is still for: its own schema types, and the fallthrough.
+        Assert.Contains("if (type == typeof(global::Test.Api.Models.Minimal)) return CreateMinimalTypeInfo(options);", result);
+        Assert.Contains("return null;", result);
 
         // using directive
         Assert.Contains("using System.Text.Json.Serialization;", result);
@@ -797,8 +794,12 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("if (type == typeof(global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>))", result);
     }
 
+    /// <summary>
+    /// <c>JsonElement</c> is what an unmapped schema falls to, so it is the leaf type most likely to
+    /// appear without anyone asking for it - and it moved to the runtime resolver with the rest.
+    /// </summary>
     [Fact]
-    public void Emit_IncludesJsonElementPrimitiveEntries() {
+    public void Emit_OmitsJsonElementPrimitiveEntries() {
         var schemas = new List<SchemaModel> {
             new() {
                 Name = "Minimal",
@@ -811,8 +812,9 @@ public class JsonTypeInfoEmitterTests {
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("if (type == typeof(global::System.Text.Json.JsonElement)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement>(options, JsonMetadataServices.JsonElementConverter);", result);
-        Assert.Contains("if (type == typeof(global::System.Text.Json.JsonElement?)) return JsonMetadataServices.CreateValueInfo<global::System.Text.Json.JsonElement?>(options, JsonMetadataServices.GetNullableConverter<global::System.Text.Json.JsonElement>(options));", result);
+        Assert.DoesNotContain("if (type == typeof(global::System.Text.Json.JsonElement))", result);
+        Assert.DoesNotContain("if (type == typeof(global::System.Text.Json.JsonElement?))", result);
+        Assert.DoesNotContain("JsonElementConverter", result);
     }
 
     [Fact]

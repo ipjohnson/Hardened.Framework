@@ -59,6 +59,10 @@ public class StreamingJsonResponseSerializer : IResponseSerializer {
         foreach (var resolver in resolvers) {
             _serializerOptions.TypeInfoResolverChain.Add(resolver);
         }
+
+        // Last, so a registered context still answers first - see PrimitiveJsonTypeInfoResolver.
+        _serializerOptions.TypeInfoResolverChain.Add(
+            Hardened.Shared.Runtime.Json.PrimitiveJsonTypeInfoResolver.Instance);
     }
 
     /// <summary>
