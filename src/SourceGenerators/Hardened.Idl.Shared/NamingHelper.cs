@@ -199,6 +199,17 @@ internal static class NamingHelper {
         return name.ToString();
     }
 
+    /// <summary>
+    /// What the class carrying an embedded specification is called, from the spec's file name.
+    /// </summary>
+    /// <remarks>
+    /// Named in one place because two sides need it and neither can see the other's: the emitter
+    /// writes the class, and the routing generator writes a registration naming it. Deriving it
+    /// twice is how the two would drift.
+    /// </remarks>
+    public static string SpecificationTypeName(string fileName) =>
+        ToPascalCase(fileName) + "Specification";
+
     public static string ToInterfaceName(string tag) {
         var pascal = ToPascalCase(tag);
         if (pascal.StartsWith("I") && pascal.Length > 1 && char.IsUpper(pascal[1])) {

@@ -85,7 +85,7 @@ public class SpecRoutingTableGeneratorTests {
     public void GenerateCSharpRouteFile_DispatchesOnTheDeclaredHeader() {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
             CreateAppModel(), CreateDispatchedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<string>.Empty, CancellationToken.None);
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.Contains("Headers.TryGetValue(\"X-Amz-Target\"", result);
         Assert.Contains("case \"Bank.GetBalance\":", result);
@@ -100,7 +100,7 @@ public class SpecRoutingTableGeneratorTests {
     public void GenerateCSharpRouteFile_EmitsNoRouteTreeWhenEveryHandlerIsDispatched() {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
             CreateAppModel(), CreateDispatchedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<string>.Empty, CancellationToken.None);
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.DoesNotContain("pathSpan", result);
     }
@@ -121,7 +121,7 @@ public class SpecRoutingTableGeneratorTests {
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
             CreateAppModel(), handlers, ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<string>.Empty, CancellationToken.None);
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         var dispatch = result.IndexOf("X-Amz-Target", StringComparison.Ordinal);
         var routing = result.IndexOf("pathSpan", StringComparison.Ordinal);
@@ -137,7 +137,7 @@ public class SpecRoutingTableGeneratorTests {
         var handlers = CreatePetstoreHandlers();
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
+            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.Contains("partial class TestApp", result);
         Assert.Contains("SpecRoutingTable", result);
@@ -151,7 +151,7 @@ public class SpecRoutingTableGeneratorTests {
         var handlers = CreatePetstoreHandlers();
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
+            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         // Without [Handler] implementations, there should be no standalone AddTransient for interfaces
         Assert.DoesNotMatch(@"AddTransient<\s*IPetService\s*>\s*\(\s*\)", result);
@@ -172,7 +172,7 @@ public class SpecRoutingTableGeneratorTests {
         var handlerInfos = ImmutableArray.Create<HandlerInfo?>(handlerInfo);
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, handlerInfos, ImmutableArray<string>.Empty, CancellationToken.None);
+            appModel, handlers, handlerInfos, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.Matches(@"AddTransient<[^>]*IPetService[^>]*,[^>]*PetServiceImpl[^>]*>", result);
     }
@@ -183,7 +183,7 @@ public class SpecRoutingTableGeneratorTests {
         var handlers = CreatePetstoreHandlers();
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
+            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         // Routing should reference handler fields for each endpoint
         Assert.Contains("PetController_ListPets", result);
@@ -199,7 +199,7 @@ public class SpecRoutingTableGeneratorTests {
         var handlers = CreatePetstoreHandlers();
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<string>.Empty, CancellationToken.None);
+            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.Contains("DependencyRegistry<TestApp>", result);
         Assert.Contains("SpecRoutingTableDI", result);

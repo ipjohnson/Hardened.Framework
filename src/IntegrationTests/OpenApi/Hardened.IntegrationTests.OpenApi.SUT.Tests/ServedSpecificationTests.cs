@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Text;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
@@ -21,13 +23,34 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </remarks>
 public class ServedSpecificationTests {
 
+    /// <summary>
+    /// The embedded document, inflated.
+    /// </summary>
+    /// <remarks>
+    /// It is embedded gzipped rather than as a string literal - a C# string literal lives in the
+    /// assembly's #US heap as UTF-16, which cost two bytes per ASCII character and is what kept
+    /// embedding off by default. Compression does not touch fidelity: what inflates is the source
+    /// text, byte for byte, which is the claim below.
+    /// </remarks>
+    private static string SourceDocument {
+        get {
+            using var source = new MemoryStream(PetstoreSpecification.DocumentGZip.ToArray());
+            using var gzip = new GZipStream(source, CompressionMode.Decompress);
+            using var inflated = new MemoryStream();
+
+            gzip.CopyTo(inflated);
+
+            return Encoding.UTF8.GetString(inflated.ToArray());
+        }
+    }
+
     [HardenedTest]
     public async Task TheServedDocumentIsTheSourceSpecification(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/openapi.yaml");
 
         response.Assert.Ok();
 
-        Assert.Equal(PetstoreSpecification.Document, await response.ReadTextAsync());
+        Assert.Equal(SourceDocument, await response.ReadTextAsync());
     }
 
     /// <summary>

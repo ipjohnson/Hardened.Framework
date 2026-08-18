@@ -1,8 +1,6 @@
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Text;
 using CSharpAuthor;
+using Hardened.Idl;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 
@@ -42,13 +40,6 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// </remarks>
 internal static class OpenApiDocumentSource {
 
-    /// <summary>
-    /// Bytes per emitted line. Long enough that the array is not thousands of lines, short enough
-    /// that an editor opening the file under <c>EmitCompilerGeneratedFiles</c> is not asked to
-    /// render one line of six figures.
-    /// </summary>
-    private const int BytesPerLine = 40;
-
     public static string Write(
         EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath,
         OpenApiVersion version = OpenApiVersionFacts.Default) {
@@ -65,7 +56,7 @@ internal static class OpenApiDocumentSource {
         property.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         property.Set = null;
         property.Get.LambdaSyntax = true;
-        property.Get.AddCode(ByteArrayLiteral(Compress(document)));
+        property.Get.AddCode(GZipLiteral.Write(document));
         property.Comment =
             "The routes this application declares, as a gzip-compressed OpenAPI "
             + OpenApiVersionFacts.VersionString(version) + " document.";
@@ -86,44 +77,4 @@ internal static class OpenApiDocumentSource {
         new GenericTypeDefinition(
             TypeDefinitionEnum.ClassDefinition, "System", "ReadOnlySpan",
             new[] { TypeDefinition.Get(typeof(byte)) });
-
-    /// <remarks>
-    /// <c>Optimal</c> rather than <c>SmallestSize</c>, which netstandard2.0 does not have. On a
-    /// document of this shape the two are within a few percent, and this runs inside the compiler.
-    /// </remarks>
-    private static byte[] Compress(string document) {
-        var bytes = Encoding.UTF8.GetBytes(document);
-
-        using var output = new MemoryStream();
-
-        // Disposed before the stream is read: GZipStream writes its footer on dispose, so reading
-        // the buffer while it is still open returns a truncated member that inflates to nothing.
-        using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
-            gzip.Write(bytes, 0, bytes.Length);
-        }
-
-        return output.ToArray();
-    }
-
-    /// <summary>
-    /// The array initializer, wrapped. Decimal rather than hexadecimal because it is shorter for
-    /// most byte values, and this is the largest thing either generator emits.
-    /// </summary>
-    private static string ByteArrayLiteral(byte[] bytes) {
-        var builder = new StringBuilder("new byte[] {");
-
-        for (var index = 0; index < bytes.Length; index++) {
-            if (index > 0) {
-                builder.Append(',');
-            }
-
-            if (index % BytesPerLine == 0) {
-                builder.Append("\n    ");
-            }
-
-            builder.Append(bytes[index]);
-        }
-
-        return builder.Append("\n};").ToString();
-    }
 }

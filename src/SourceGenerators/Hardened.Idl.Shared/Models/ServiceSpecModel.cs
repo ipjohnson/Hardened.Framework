@@ -16,6 +16,26 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public string JsonTypeInfoResolverName { get; set; } = "";
 
     /// <summary>
+    /// Where this specification is served, or empty when it is not.
+    /// </summary>
+    /// <remarks>
+    /// From <c>PublishUrl</c> metadata on the spec item. A specification-first application already
+    /// has its contract as a build input, so where it publishes it is a fact about the file rather
+    /// than about the entry point - which is why it travels with the file rather than being restated
+    /// as an attribute the two could disagree about.
+    /// </remarks>
+    public string PublishUrl { get; set; } = "";
+
+    /// <summary>
+    /// Where the reference page for this specification is served, or empty when there is none.
+    /// </summary>
+    /// <remarks>
+    /// From <c>UiUrl</c> metadata. A page renders exactly one document, so naming it beside the
+    /// document it renders is what keeps the two from drifting.
+    /// </remarks>
+    public string UiUrl { get; set; } = "";
+
+    /// <summary>
     /// What the build task emitted for validation, per operation. Empty when nothing is constrained.
     /// </summary>
     public List<ValidatedOperationModel> ValidatedOperations { get; set; } = new();
@@ -25,6 +45,8 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
         if (ReferenceEquals(this, other)) return true;
         if (FileName != other.FileName) return false;
         if (JsonTypeInfoResolverName != other.JsonTypeInfoResolverName) return false;
+        if (PublishUrl != other.PublishUrl) return false;
+        if (UiUrl != other.UiUrl) return false;
         if (Schemas.Count != other.Schemas.Count) return false;
         if (Services.Count != other.Services.Count) return false;
         if (FilterTypes.Count != other.FilterTypes.Count) return false;

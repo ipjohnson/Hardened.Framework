@@ -153,10 +153,13 @@
         type.
     -->
     <!--
-        The filter is item metadata, so changing it does not touch the spec file, and the
-        up-to-date check below would skip the target and leave the previous slice's output in place.
-        Writing it to a stamp gives the check something whose timestamp moves when the filter
-        changes - and only then, which is what WriteOnlyWhenDifferent is for.
+        Every metadata value the task reads, none of which touches the spec file when it changes -
+        so without this the up-to-date check below skips the target and leaves the previous
+        output in place. Writing them to a stamp gives the check something whose timestamp moves
+        when any of them changes, and only then, which is what WriteOnlyWhenDifferent is for.
+
+        Anything new the task reads off the item belongs in this line. It is a filter stamp by
+        name and history; it is the metadata stamp in fact.
 
         A dependency rather than a BeforeTargets, because a target's Inputs are read after its
         DependsOnTargets have run: the stamp has to exist before it is compared against.
@@ -166,7 +169,7 @@
 
         <WriteLinesToFile
             File="$(HardenedOpenApiModelDir)filters.stamp"
-            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)')"
+            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(EmbedDocument)')"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>

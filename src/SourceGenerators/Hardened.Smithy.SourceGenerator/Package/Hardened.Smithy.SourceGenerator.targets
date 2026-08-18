@@ -130,7 +130,7 @@
 
         <WriteLinesToFile
             File="$(HardenedSmithyModelDir)filters.stamp"
-            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)');$(HardenedSmithyServiceShapeId)"
+            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(EmbedDocument)');$(HardenedSmithyServiceShapeId)"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>

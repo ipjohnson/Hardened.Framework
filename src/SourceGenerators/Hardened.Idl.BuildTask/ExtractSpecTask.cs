@@ -71,11 +71,19 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// Whether the source document is embedded so the application can serve it.
     /// </summary>
     /// <remarks>
-    /// Off unless asked for, and per-spec <c>EmbedDocument</c> metadata overrides it either way.
-    /// Serving your own description is a decision about public surface, not a default worth
-    /// inheriting.
+    /// <para>
+    /// On, and per-spec <c>EmbedDocument</c> metadata overrides it either way. It was off, on the
+    /// grounds that it publishes the whole description and a large one exceeded the metadata limit
+    /// on user strings by itself - which was true while the document was embedded as a UTF-16 string
+    /// literal. It is gzipped into a byte blob now, about an eighth the size and on a different heap,
+    /// so the cost that made off the right default is gone.
+    /// </para>
+    /// <para>
+    /// Embedding is not publishing. Nothing is served until a spec names a <c>PublishUrl</c>; what
+    /// this decides is only whether the document is there to serve.
+    /// </para>
     /// </remarks>
-    public bool EmbedDocument { get; set; }
+    public bool EmbedDocument { get; set; } = true;
 
     /// <summary>
     /// Whether schemas nothing in the description reaches are generated anyway.
@@ -213,7 +221,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// for anyway, it is emitted and said out loud.
     /// </remarks>
     private string ServedDocument(ITaskItem spec, string path, string document, bool sliced) {
-        if (!Overridden(spec, "EmbedDocument", EmbedDocument)) {
+        if (!Embedded(spec)) {
             return "";
         }
 
@@ -225,6 +233,56 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
 
         return document;
     }
+
+    /// <summary>
+    /// Where this spec is served and where its reference page is, from the item that declared it.
+    /// Returns false when the pair is contradictory and the spec should be skipped.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// On the item rather than on an attribute because a specification-first application's contract
+    /// is a build input: publishing it is a fact about that file, and stating it anywhere else means
+    /// naming the file twice with nothing checking the two agree. It sits beside <c>Slice</c>,
+    /// <c>Tags</c> and <c>EmbedDocument</c>, which are facts about the same file for the same reason.
+    /// </para>
+    /// <para>
+    /// Both are absent by default. Embedding a document is not publishing it - what the application
+    /// serves is a decision about public surface, and it stays one.
+    /// </para>
+    /// </remarks>
+    private bool Published(ITaskItem spec, string path, ServiceSpecModel model) {
+        var publishUrl = spec.GetMetadata("PublishUrl").Trim();
+        var uiUrl = spec.GetMetadata("UiUrl").Trim();
+
+        // A page renders exactly one document and fetches it by URL, so a page without one is a
+        // page that renders an error. Said here rather than left to be discovered in a browser.
+        if (uiUrl.Length > 0 && publishUrl.Length == 0) {
+            Log.LogError(null, DiagnosticPrefix + "010", null, path, 0, 0, 0, 0,
+                "'{0}' sets UiUrl but not PublishUrl, so the page at '{1}' would have no document " +
+                "to render. Set PublishUrl to where the document should be served.", path, uiUrl);
+
+            return false;
+        }
+
+        if (publishUrl.Length > 0 && !Embedded(spec)) {
+            Log.LogError(null, DiagnosticPrefix + "011", null, path, 0, 0, 0, 0,
+                "'{0}' sets PublishUrl but EmbedDocument is off, so there is no document to serve. " +
+                "Remove EmbedDocument or drop PublishUrl.", path);
+
+            return false;
+        }
+
+        model.PublishUrl = Absolute(publishUrl);
+        model.UiUrl = Absolute(uiUrl);
+
+        return true;
+    }
+
+    /// <summary>A URL always begins with a slash, so one written without gets one.</summary>
+    private static string Absolute(string url) =>
+        url.Length == 0 || url[0] == '/' ? url : "/" + url;
+
+    private bool Embedded(ITaskItem spec) => Overridden(spec, "EmbedDocument", EmbedDocument);
 
     /// <summary>Semicolon-separated metadata, as MSBuild lists are written.</summary>
     private static IReadOnlyList<string> SplitMetadata(ITaskItem spec, string name) {
@@ -338,6 +396,10 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             // Named here rather than derived independently on both sides. The generator is told
             // what the resolver is called, the same way it is told everything else.
             model.JsonTypeInfoResolverName = JsonTypeInfoEmitter.ResolverNameFor(fileName);
+
+            if (!Published(spec, path, model)) {
+                continue;
+            }
 
             var sourcePath = Path.Combine(GeneratedSourceDirectory, fileName + SourceSuffix);
             WriteIfChanged(sourcePath, Emit(model, ServedDocument(spec, path, document, sliced), path));
