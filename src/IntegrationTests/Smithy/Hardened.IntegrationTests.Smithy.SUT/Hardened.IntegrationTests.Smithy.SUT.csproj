@@ -46,22 +46,21 @@
     </ItemGroup>
 
     <!--
-        A committed JSON AST, produced by the Smithy CLI's ast command with its flatten option over
-        Specs/petstore.smithy. That .smithy source sits beside it for reading, and nothing in this
-        build reads it: no CLI is resolved,
-        nothing is downloaded, and the build works offline. That is the point of the AST being the
-        input rather than the IDL.
-    -->
-    <ItemGroup>
-        <HardenedSmithyAst Include="Specs\petstore.json"/>
-        <None Include="Specs\petstore.smithy"/>
+        Two models, two ways in.
 
-        <!--
-            A second model in the same application, and a second protocol. petstore.json routes by
-            path; bank.json declares @awsJson1_0, so every one of its operations is POST / told apart
-            by an X-Amz-Target header. One routing table serves both, which is the case the dispatch
-            ordering exists for.
-        -->
+        petstore is committed as .smithy and the build runs the Smithy CLI over it, writing the AST
+        into obj/ where nobody sees or reviews it - so it cannot drift from the model, which a
+        committed AST could. bank stays a committed AST, which keeps the hermetic path exercised:
+        that one resolves no tool and would build on a machine with no Smithy CLI at all.
+    -->
+    <PropertyGroup>
+        <!-- Names the generated AST and everything derived from it, rather than the project. -->
+        <HardenedSmithyModelName>petstore</HardenedSmithyModelName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <HardenedSmithyModel Include="Specs\petstore.smithy"/>
+
         <HardenedSmithyAst Include="Specs\bank.json"/>
         <None Include="Specs\bank.smithy"/>
     </ItemGroup>

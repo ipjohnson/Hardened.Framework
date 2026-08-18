@@ -17,6 +17,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      # Must equal $(HardenedSmithyCliVersion); the build fails with HSMT011 if it does not.
+      SMITHY_VERSION: 1.73.0
+
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +37,48 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+
+      # The Smithy CLI turns the .smithy models in the integration fixture into the JSON AST the
+      # build task reads. It is pinned, and the build enforces the pin rather than trusting it:
+      # $(HardenedSmithyCliVersion) in Hardened.Smithy.SourceGenerator.targets must equal
+      # SMITHY_VERSION below, or the build stops with HSMT011 instead of generating against
+      # whatever version happens to be installed. Two versions can produce different ASTs, and
+      # therefore different generated C#, from identical sources.
+      #
+      # Cached because the archive is 27 MB and the download is the only slow part; the CLI itself
+      # runs once per model edit, not once per build.
+      - name: Cache the Smithy CLI
+        id: smithy-cli
+        uses: actions/cache@v4
+        with:
+          path: ~/.smithy-cli
+          key: smithy-cli-${{ env.SMITHY_VERSION }}-linux-x86_64
+
+      # Verified against the checksum the release publishes beside it. A build that downloads and
+      # executes a binary should say which one it expected.
+      - name: Install the Smithy CLI
+        if: steps.smithy-cli.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          ASSET=smithy-cli-linux-x86_64.zip
+          BASE=https://github.com/smithy-lang/smithy/releases/download/$SMITHY_VERSION
+          curl -sSLf -o "$ASSET" "$BASE/$ASSET"
+          curl -sSLf -o "$ASSET.sha256" "$BASE/$ASSET.sha256"
+          echo "$(awk '{print $1}' "$ASSET.sha256")  $ASSET" | sha256sum -c -
+          unzip -q "$ASSET"
+          mkdir -p ~/.smithy-cli
+          mv smithy-cli-linux-x86_64/* ~/.smithy-cli/
+
+      - name: Put the Smithy CLI on PATH
+        run: |
+          echo "$HOME/.smithy-cli/bin" >> "$GITHUB_PATH"
+
+      # Fails here, naming the version, rather than inside a build task three steps later.
+      - name: Check the Smithy CLI version
+        run: |
+          set -euo pipefail
+          test "$(smithy --version)" = "$SMITHY_VERSION"
+          smithy --version
 
       - run: dotnet restore src/Hardened.Framework.sln
 
@@ -52,13 +98,33 @@ jobs:
       # that works today and stops working once something is trimmed away. It is the MSBuild switch
       # rather than TreatWarningsAsErrors, which Directory.Build.props already sets for CI - that
       # one is the C# compiler's and does not cover what ILC reports.
+      #
+      # No apt-get. ILC needs a C compiler and zlib, and the runner image already has both -
+      # zlib1g-dev reported "already the newest version" on every run, and the only package apt
+      # ever installed was the unversioned `clang` meta-package, a symlink whose payload clang-18
+      # was already present. So the step bought an alias at the price of a network round trip to
+      # the Ubuntu mirrors, and on 2026-08-18 that round trip hung: `apt-get update` stalled after
+      # noble-security InRelease and the job was cancelled 25 minutes later, on a step that
+      # normally takes 24 seconds.
+      #
+      # Discovered rather than pinned, because the image's clang major version moves and a pinned
+      # clang-18 becomes a build break the day it does.
       - name: Publish the integration application with Native AOT
         run: |
-          sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+          # The alias if the image has one, otherwise the highest versioned clang on it.
+          CLANG="$(command -v clang || ls /usr/bin/clang-[0-9]* 2>/dev/null | sort -V | tail -1)"
+
+          if [ -z "$CLANG" ]; then
+            echo "::error::No clang on the runner image, and this step no longer installs one."
+            exit 1
+          fi
+
+          echo "using $CLANG ($("$CLANG" --version | head -1))"
 
           dotnet publish src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.SUT/Hardened.IntegrationTests.Aot.SUT.csproj \
             --configuration Release \
             --runtime linux-x64 \
+            -p:CppCompilerAndLinker="$CLANG" \
             -p:ContinuousIntegrationBuild=true \
             -warnaserror
 

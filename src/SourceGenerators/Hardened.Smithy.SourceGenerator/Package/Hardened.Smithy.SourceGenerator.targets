@@ -63,6 +63,59 @@
                Condition="'$(_HardenedSmithyUseNetTaskHost)' != 'true' And '$(HardenedSmithyInProcessTask)' == 'true'"
                AssemblyFile="$(HardenedSmithyTaskAssembly)"/>
 
+    <UsingTask TaskName="Hardened.Smithy.BuildTask.GenerateSmithyAst"
+               Condition="'$(_HardenedSmithyUseNetTaskHost)' == 'true'"
+               Runtime="NET"
+               AssemblyFile="$(HardenedSmithyNetTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.Smithy.BuildTask.GenerateSmithyAst"
+               Condition="'$(_HardenedSmithyUseNetTaskHost)' != 'true' And '$(HardenedSmithyInProcessTask)' != 'true'"
+               TaskFactory="TaskHostFactory"
+               AssemblyFile="$(HardenedSmithyTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.Smithy.BuildTask.GenerateSmithyAst"
+               Condition="'$(_HardenedSmithyUseNetTaskHost)' != 'true' And '$(HardenedSmithyInProcessTask)' == 'true'"
+               AssemblyFile="$(HardenedSmithyTaskAssembly)"/>
+
+    <!--
+        Committing .smithy rather than a generated AST.
+        =============================================
+
+        @(HardenedSmithyModel) is the model's own source. The CLI turns it into an AST under obj/,
+        which then joins @(HardenedSmithyAst) below and is read exactly like a committed one - so
+        everything downstream is unchanged and a project can use either input, or both.
+
+        What this buys is that the AST stops being a reviewed artifact that can silently disagree
+        with the model it came from. What it costs is a Smithy CLI on the build machine, which is
+        why $(HardenedSmithyAst) remains supported and hermetic.
+
+        All @(HardenedSmithyModel) items form ONE model in one CLI invocation, because a Smithy model
+        is routinely several files that only resolve together. A project needing two independent
+        models generates them separately and points @(HardenedSmithyAst) at the results.
+    -->
+    <PropertyGroup>
+        <!-- Names the generated AST, and therefore the model file and the generated source. -->
+        <HardenedSmithyModelName Condition="'$(HardenedSmithyModelName)' == ''">$(MSBuildProjectName)</HardenedSmithyModelName>
+
+        <!--
+            The version this build is pinned to. Empty accepts whatever is installed, which is not
+            what a shared build wants: a different CLI can produce a different AST, and therefore
+            different generated code, from identical sources. Set it, and upgrading becomes a
+            deliberate one-line change rather than whatever the machine happens to have.
+        -->
+        <HardenedSmithyCliVersion Condition="'$(HardenedSmithyCliVersion)' == ''">1.73.0</HardenedSmithyCliVersion>
+    </PropertyGroup>
+
+    <!--
+        Declared at evaluation, and as an ordinary @(HardenedSmithyAst) entry, so the model file and
+        generated source paths below derive from it without knowing it did not exist yet. The IDE
+        therefore sees the generated types before anything has run, which is the same reason every
+        other output here is declared at the top level.
+    -->
+    <ItemGroup Condition="'@(HardenedSmithyModel)' != ''">
+        <HardenedSmithyAst Include="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).json"/>
+    </ItemGroup>
+
     <!--
         Declared at the top level and NOT inside the target that writes them, because an IDE builds
         its project model out of MSBuild evaluation rather than out of a build. A file that only
@@ -125,6 +178,32 @@
         check below would skip the target and leave the previous slice's output in place. A stamp
         gives the check something whose timestamp moves when the filter changes, and only then.
     -->
+    <!--
+        Runs the CLI over @(HardenedSmithyModel) and writes the AST the extract task reads.
+        =================================================================================
+
+        Outputs a stamp rather than the AST itself, and that is deliberate. The task replaces the AST
+        only when its content actually changed, so editing a comment in a .smithy file leaves the
+        file - and therefore everything downstream of it - untouched. Were the AST this target's
+        declared output, an edit that did not change it would leave Inputs newer than Outputs and the
+        CLI would run again on every subsequent build, forever. The stamp moves every time; the AST
+        moves only when it means something.
+    -->
+    <Target Name="HardenedSmithyGenerateAst"
+            Condition="'@(HardenedSmithyModel)' != ''"
+            DependsOnTargets="HardenedSmithyResolveModelDir"
+            Inputs="@(HardenedSmithyModel)"
+            Outputs="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).stamp">
+
+        <GenerateSmithyAst Models="@(HardenedSmithyModel)"
+                           OutputPath="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).json"
+                           ToolPath="$(HardenedSmithyCliPath)"
+                           ExpectedVersion="$(HardenedSmithyCliVersion)"/>
+
+        <Touch Files="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).stamp"
+               AlwaysCreate="true"/>
+    </Target>
+
     <Target Name="HardenedSmithyFilterStamp" DependsOnTargets="HardenedSmithyResolveModelDir">
         <MakeDir Directories="$(HardenedSmithyModelDir)"/>
 
@@ -136,7 +215,7 @@
     </Target>
 
     <Target Name="HardenedSmithyExtractModels"
-            DependsOnTargets="HardenedSmithyResolveModelDir;HardenedSmithyFilterStamp"
+            DependsOnTargets="HardenedSmithyResolveModelDir;HardenedSmithyGenerateAst;HardenedSmithyFilterStamp"
             BeforeTargets="CoreCompile"
             Condition="'@(HardenedSmithyAst)' != ''"
             Inputs="@(HardenedSmithyAst);$(HardenedSmithyModelDir)filters.stamp"
@@ -186,6 +265,6 @@
     <Target Name="HardenedSmithyWarnOnIdlItems" BeforeTargets="HardenedSmithyExtractModels">
         <Error Condition="'@(HardenedSmithyAst)' != '' And '%(HardenedSmithyAst.Extension)' == '.smithy'"
                Code="HSMT003"
-               Text="@(HardenedSmithyAst) is a Smithy IDL file; this build reads a JSON AST. Run &quot;smithy ast --flatten &lt;model&gt; &gt; model.json&quot; and point HardenedSmithyAst at the result."/>
+               Text="@(HardenedSmithyAst) is a Smithy IDL file, and that item takes a JSON AST. Declare it as &lt;HardenedSmithyModel Include=&quot;...&quot; /&gt; to have the build run the Smithy CLI for you, or convert it yourself and point HardenedSmithyAst at the .json."/>
     </Target>
 </Project>
