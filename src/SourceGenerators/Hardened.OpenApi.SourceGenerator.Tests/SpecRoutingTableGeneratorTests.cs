@@ -280,6 +280,69 @@ public class SpecRoutingTableGeneratorTests {
         Assert.Contains("currentIndex > index", result);
     }
 
+    /// <summary>A handler whose path carries a parameterised constraint and a chained one.</summary>
+    private static List<RequestHandlerModel> CreateChainedHandlers(string constraint) {
+        var serviceType = TypeDefinition.Get("Test.Api.Services", "IPetService");
+
+        return new List<RequestHandlerModel> {
+            new(new RequestHandlerNameModel("/pets/{petId:" + constraint + "}", "GET"),
+                serviceType, "GetPet",
+                TypeDefinition.Get("Test.Api.Generated", "PetController_GetPet"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel { IsAsync = true },
+                Array.Empty<AttributeModel>())
+        };
+    }
+
+    private static string Generate(string constraint) =>
+        SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreateChainedHandlers(constraint), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+    /// <summary>Arguments reach the emitted call as literals.</summary>
+    [Theory]
+    [InlineData("length(6)", "IsLength(charSpan.Slice(index), 6)")]
+    [InlineData("length(3,9)", "IsLength(charSpan.Slice(index), 3, 9)")]
+    [InlineData("min(1)", "IsMin(charSpan.Slice(index), 1)")]
+    [InlineData("range(1,500)", "IsRange(charSpan.Slice(index), 1, 500)")]
+    public void GenerateCSharpRouteFile_PassesConstraintArguments(string constraint, string call) {
+        Assert.Contains(call, Generate(constraint));
+    }
+
+    /// <summary>
+    /// A chain is one conjunction, and it is parenthesised because it is negated at a leaf — without
+    /// the brackets <c>!A &amp;&amp; B</c> would negate the first term alone and let the second decide the
+    /// match on its own.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_JoinsAChainIntoOneNegatedConjunction() {
+        var result = Generate("int:min(1)");
+
+        Assert.Contains("!(global::Hardened.Web.Runtime.Routing.RouteConstraints.IsInt(", result);
+        Assert.Contains("&& global::Hardened.Web.Runtime.Routing.RouteConstraints.IsMin(", result);
+    }
+
+    /// <summary>
+    /// A single term needs no brackets, so the generated code keeps the shape it had before chains
+    /// existed rather than churning every route table that already worked.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_DoesNotBracketASingleTerm() {
+        Assert.Contains("!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsInt(", Generate("int"));
+    }
+
+    /// <summary>
+    /// A name at an arity it does not have emits nothing, because the diagnostic has already
+    /// reported it — a call to a method that does not exist would bury that under a CS1501.
+    /// </summary>
+    [Theory]
+    [InlineData("length(1,2,3)")]
+    [InlineData("range(1)")]
+    [InlineData("length(")]
+    public void GenerateCSharpRouteFile_EmitsNothingForAConstraintItCannotCompile(string constraint) {
+        Assert.DoesNotContain("RouteConstraints.", Generate(constraint));
+    }
+
     /// <summary>An unconstrained token emits no test, so the common route pays nothing.</summary>
     [Fact]
     public void GenerateCSharpRouteFile_EmitsNoConstraintWhenTheTokenDeclaresNone() {

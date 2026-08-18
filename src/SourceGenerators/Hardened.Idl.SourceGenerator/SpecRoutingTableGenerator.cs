@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using System.Globalization;
+using System.Text;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.Idl.Models;
@@ -613,13 +615,45 @@ internal static class SpecRoutingTableGenerator {
             return null;
         }
 
-        var test = RouteConstraintFacts.Test(constraint!);
+        var terms = RouteConstraintFacts.Terms(constraint!);
 
-        // Null only for a name no built-in has, which the diagnostic above has already reported.
-        // Emitting a call to nothing would bury that under a CS0103.
-        return test == null
-            ? null
-            : CodeOutputComponent.Get((negate ? "!" : "") + test + "(" + value + ")");
+        if (terms == null) {
+            return null;
+        }
+
+        // A chain is a conjunction, short-circuiting left to right.
+        var calls = new List<string>();
+
+        foreach (var term in terms) {
+            var test = RouteConstraintFacts.Call(term);
+
+            // Null only for a name no built-in has, or one used at an arity it does not have - both
+            // already reported. Emitting a call to nothing would bury that under a CS0103.
+            if (test == null) {
+                return null;
+            }
+
+            var arguments = new StringBuilder();
+
+            foreach (var argument in term.Arguments) {
+                arguments.Append(", ").Append(argument.ToString(CultureInfo.InvariantCulture));
+            }
+
+            calls.Add(test + "(" + value + arguments + ")");
+        }
+
+        if (calls.Count == 0) {
+            return null;
+        }
+
+        var conjunction = string.Join(" && ", calls);
+
+        // Parentheses only where they change the meaning, as in the attribute-routed twin.
+        if (calls.Count == 1) {
+            return CodeOutputComponent.Get((negate ? "!" : "") + conjunction);
+        }
+
+        return CodeOutputComponent.Get((negate ? "!" : "") + "(" + conjunction + ")");
     }
 
     private static void GenerateWildCardLeafNode(

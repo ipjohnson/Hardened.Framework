@@ -115,6 +115,15 @@ public static class RouteTokenSyntax {
 
         switch (finding.Form) {
             case Form.UnknownConstraint:
+                // A name that exists at another arity is a wrong call, not an unknown name, and
+                // saying "nothing declares length" to someone who wrote length(1,2,3) sends them
+                // looking for the wrong thing.
+                var arity = WrongArity(finding.Constraint);
+
+                if (arity != null) {
+                    return arity;
+                }
+
                 return
                     $"Nothing declares a route constraint called '{finding.Constraint}'. Built in: " +
                     $"{string.Join(", ", RouteConstraintFacts.Names)}. Declare your own with " +
@@ -141,6 +150,40 @@ public static class RouteTokenSyntax {
     }
 
     /// <summary>
+    /// The message for a real name used with the wrong number of arguments, or null when that is not
+    /// what went wrong.
+    /// </summary>
+    private static string? WrongArity(string? constraint) {
+        var terms = constraint == null ? null : RouteConstraintFacts.Terms(constraint);
+
+        if (terms == null) {
+            return null;
+        }
+
+        foreach (var term in terms) {
+            if (RouteConstraintFacts.Call(term) != null) {
+                continue;
+            }
+
+            var arities = RouteConstraintFacts.Arities(term.Name);
+
+            if (arities.Count == 0) {
+                continue;
+            }
+
+            var forms = string.Join(
+                " or ",
+                arities.Select(count => $"'{term.Name}({string.Join(",", Enumerable.Repeat("n", count))})'"));
+
+            return
+                $"'{term.Name}' takes {forms}, but was given {term.Arguments.Count} argument" +
+                (term.Arguments.Count == 1 ? "" : "s") + ". Arguments are whole numbers.";
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// A catch-all marker is not punctuation to reject: <c>{*path}</c> is supported syntax, and
     /// the asterisk is stripped before the name is read. A colon is supported too, as long as
     /// something declares what follows it.
@@ -162,13 +205,29 @@ public static class RouteTokenSyntax {
             return Form.Supported;
         }
 
-        if (RouteConstraintFacts.Test(constraint) != null) {
-            return Form.Supported;
+        var terms = RouteConstraintFacts.Terms(constraint);
+
+        // Not a chain at all - an unclosed paren, an empty argument list, a non-integer argument.
+        if (terms == null) {
+            return Form.UnknownConstraint;
         }
 
-        return declaredConstraints != null && declaredConstraints.Contains(constraint)
-            ? Form.Supported
-            : Form.UnknownConstraint;
+        foreach (var term in terms) {
+            if (RouteConstraintFacts.Call(term) != null) {
+                continue;
+            }
+
+            // A [RouteConstraint] takes no arguments, so a declared name used with them is not it.
+            if (term.Arguments.Count == 0 &&
+                declaredConstraints != null &&
+                declaredConstraints.Contains(term.Name)) {
+                continue;
+            }
+
+            return Form.UnknownConstraint;
+        }
+
+        return Form.Supported;
     }
 
     private static string Name(string body) {

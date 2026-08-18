@@ -395,7 +395,14 @@ namespace Hardened.Web.Runtime.Routing
         public static bool IsGuid(System.ReadOnlySpan<char> value) { }
         public static bool IsHex(System.ReadOnlySpan<char> value) { }
         public static bool IsInt(System.ReadOnlySpan<char> value) { }
+        public static bool IsLength(System.ReadOnlySpan<char> value, int length) { }
+        public static bool IsLength(System.ReadOnlySpan<char> value, int min, int max) { }
         public static bool IsLong(System.ReadOnlySpan<char> value) { }
+        public static bool IsMax(System.ReadOnlySpan<char> value, long max) { }
+        public static bool IsMaxLength(System.ReadOnlySpan<char> value, int max) { }
+        public static bool IsMin(System.ReadOnlySpan<char> value, long min) { }
+        public static bool IsMinLength(System.ReadOnlySpan<char> value, int min) { }
+        public static bool IsRange(System.ReadOnlySpan<char> value, long min, long max) { }
         public static bool IsSlug(System.ReadOnlySpan<char> value) { }
     }
 }

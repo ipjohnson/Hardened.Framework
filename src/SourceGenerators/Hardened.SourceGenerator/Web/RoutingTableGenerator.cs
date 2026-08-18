@@ -1,4 +1,6 @@
 ﻿using System.Collections.Immutable;
+using System.Globalization;
+using System.Text;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Links;
@@ -856,14 +858,59 @@ public static class RoutingTableGenerator {
             return null;
         }
 
-        var test = RouteConstraintFacts.Test(constraint!) ?? Custom(constraint!);
+        var terms = RouteConstraintFacts.Terms(constraint!);
 
-        // Null only for a name no built-in and no [RouteConstraint] declares, which
-        // RouteTokenDiagnostics has already reported as a build error. Emitting a call to nothing
-        // would bury that under a CS0103.
-        return test == null
-            ? null
-            : CodeOutputComponent.Get((negate ? "!" : "") + test + "(" + value + ")");
+        if (terms == null) {
+            return null;
+        }
+
+        // A chain is a conjunction, short-circuiting left to right, so the narrower term is written
+        // first and the wider ones never run on a value the first has already rejected.
+        var calls = new List<string>();
+
+        foreach (var term in terms) {
+            var test = RouteConstraintFacts.Call(term) ?? Custom(term.Name);
+
+            // Null only for a name no built-in and no [RouteConstraint] declares, or one used at an
+            // arity it does not have - both already reported by RouteTokenDiagnostics. Emitting a
+            // call to nothing would bury that under a CS0103.
+            if (test == null) {
+                return null;
+            }
+
+            calls.Add(test + "(" + value + Arguments(term) + ")");
+        }
+
+        if (calls.Count == 0) {
+            return null;
+        }
+
+        var conjunction = string.Join(" && ", calls);
+
+        // Parentheses only where they change the meaning: !A && B negates the first term alone, and
+        // a bare conjunction joined into a larger one binds wrong. A single term needs neither, and
+        // the single term is the overwhelmingly common route - so the generated code stays the shape
+        // it was before chains existed.
+        if (calls.Count == 1) {
+            return CodeOutputComponent.Get((negate ? "!" : "") + conjunction);
+        }
+
+        return CodeOutputComponent.Get((negate ? "!" : "") + "(" + conjunction + ")");
+    }
+
+    /// <summary>The literal arguments a term carries, ready to append after the span.</summary>
+    private static string Arguments(RouteConstraintFacts.Term term) {
+        if (term.Arguments.Count == 0) {
+            return "";
+        }
+
+        var builder = new StringBuilder();
+
+        foreach (var argument in term.Arguments) {
+            builder.Append(", ").Append(argument.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return builder.ToString();
     }
 
     /// <summary>

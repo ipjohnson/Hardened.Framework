@@ -153,6 +153,40 @@ public static class RouteConstraints {
         return true;
     }
 
+    // ---- parameterised ------------------------------------------------------
+
+    /// <summary>Exactly <paramref name="length"/> characters.</summary>
+    public static bool IsLength(ReadOnlySpan<char> value, int length) =>
+        value.Length == length;
+
+    /// <summary>Between <paramref name="min"/> and <paramref name="max"/> characters, inclusive.</summary>
+    public static bool IsLength(ReadOnlySpan<char> value, int min, int max) =>
+        value.Length >= min && value.Length <= max;
+
+    public static bool IsMinLength(ReadOnlySpan<char> value, int min) =>
+        value.Length >= min;
+
+    public static bool IsMaxLength(ReadOnlySpan<char> value, int max) =>
+        value.Length <= max;
+
+    /// <summary>An integer no smaller than <paramref name="min"/>.</summary>
+    /// <remarks>
+    /// The parse is part of the constraint rather than something assumed of a chain, so
+    /// <c>{id:min(1)}</c> stands alone and means what it means elsewhere. Written
+    /// <c>{id:int:min(1)}</c> it is the same test with the width stated.
+    /// </remarks>
+    public static bool IsMin(ReadOnlySpan<char> value, long min) =>
+        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+        parsed >= min;
+
+    public static bool IsMax(ReadOnlySpan<char> value, long max) =>
+        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+        parsed <= max;
+
+    public static bool IsRange(ReadOnlySpan<char> value, long min, long max) =>
+        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+        parsed >= min && parsed <= max;
+
     /// <summary>
     /// The formats <see cref="IsDateTime"/> accepts, on a nested type so that only a route declaring
     /// <c>:datetime</c> pays for them.
