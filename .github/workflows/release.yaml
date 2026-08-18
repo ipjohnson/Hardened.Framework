@@ -171,6 +171,37 @@ jobs:
       # same generator in two packages: a consumer referencing both loaded it twice and both
       # copies emitted the module onto the same partial class, failing with CS0111/CS8646. One
       # publishable supplier is what keeps that impossible.
+      # The count check below catches a package removed from the list. It cannot catch one that was
+      # never added: it compares against a literal, so a package nobody listed is a package nobody
+      # misses. That is how Hardened.Idl.SourceGenerator and Hardened.Smithy.SourceGenerator sat
+      # unpublished from #133, and Hardened.Web.StaticContent from #146, while every release since
+      # reported success.
+      #
+      # This asks the other question - is anything packable absent from the list - which is the one
+      # that finds a new project rather than a deleted line.
+      - name: Verify the pack list covers every packable project
+        run: |
+          set -euo pipefail
+
+          # Hardened.DependencyModules.SourceGenerator is packable and deliberately unlisted: its
+          # generator ships inside Hardened.Library.SourceGenerator's analyzers/dotnet/cs, and
+          # publishing it standalone as well - which v0.1.0-rc1 did - puts the same generator in two
+          # packages, so a consumer referencing both fails with CS0111/CS8646.
+          EXEMPT="Hardened.DependencyModules.SourceGenerator"
+
+          MISSING=""
+          while IFS= read -r project; do
+            name=$(basename "$project" .csproj)
+            case " $EXEMPT " in *" $name "*) continue ;; esac
+            grep -qF "$project" .github/workflows/release.yaml || MISSING="$MISSING $name"
+          done < <(grep -rl "<IsPackable>[Tt]rue</IsPackable>" --include='*.csproj' src | sort)
+
+          if [ -n "$MISSING" ]; then
+            echo "::error::These projects are packable but absent from the pack list:$MISSING"
+            exit 1
+          fi
+          echo "The pack list covers every packable project."
+
       - name: Pack
         run: |
           for project in \
@@ -184,12 +215,15 @@ jobs:
             src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj \
             src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.Idl.SourceGenerator/Hardened.Idl.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.OpenApi.SourceGenerator/Hardened.OpenApi.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.Smithy.SourceGenerator/Hardened.Smithy.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Validation.SourceGenerator/Hardened.Validation.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj \
             src/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj \
             src/Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj \
             src/Web/Hardened.Web.Kestrel.Runtime/Hardened.Web.Kestrel.Runtime.csproj \
+            src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
             src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
             src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj; do
             dotnet pack "$project" --configuration Release --no-build --output ./artifacts \
@@ -215,7 +249,12 @@ jobs:
           # line parsing shares nothing with the request pipeline and was dropped to shrink the
           # surface area. The 0.4.0-rc1000 packages of both remain on nuget.org and are
           # deliberately left listed.
-          EXPECTED=18
+          # 21 after the three packable projects this list had drifted from were added:
+          # Hardened.Idl.SourceGenerator and Hardened.Smithy.SourceGenerator, which arrived in #133
+          # and were never listed, and Hardened.Web.StaticContent, which arrived in #146 and was
+          # not either. The check above could not catch any of them - it compares the count against
+          # this number, so a package nobody added is a package nobody misses.
+          EXPECTED=21
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
