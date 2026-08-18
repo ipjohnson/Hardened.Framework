@@ -28,6 +28,11 @@ namespace Hardened.Web.Runtime.Attributes
         public FromCookieAttribute(string? name = null) { }
         public string? Name { get; }
     }
+    public class FromFormAttribute : System.Attribute
+    {
+        public FromFormAttribute(string? name = null) { }
+        public string? Name { get; }
+    }
     public class FromHeaderAttribute : System.Attribute
     {
         public FromHeaderAttribute(string? name = null) { }

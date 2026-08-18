@@ -160,6 +160,60 @@ public abstract class ExecutionRequestConformanceTests {
         Assert.Contains(request.Cookies, c => c.Contains("theme=dark"));
     }
 
+    /// <summary>
+    /// Every transport answers for its connection, even when the answer is nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The property is what makes an address look the same under Lambda as under Kestrel, and the
+    /// value being absent is a legitimate answer - a queue record has no connection, and an
+    /// in-memory harness has whatever a test gave it. What is not legitimate is null, because then
+    /// every caller asks whether there is a transport before asking it anything.
+    /// </para>
+    /// <para>
+    /// Deliberately not asserting a particular key has a value: an adapter constructed from a bare
+    /// request feature, which is what several of these tests do, has no connection to describe.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void TransportInfoIsNeverNull() {
+        var request = Adapter.CreateRequest(new ConformanceRequestSpec());
+
+        Assert.NotNull(request.Transport);
+        Assert.NotNull(request.Transport.Keys);
+    }
+
+    /// <summary>
+    /// An unknown key is null rather than an exception or an empty string.
+    /// </summary>
+    /// <remarks>
+    /// Callers ask for keys a given transport may not publish - that is the point of a bag rather
+    /// than properties - so asking has to be safe on every one of them.
+    /// </remarks>
+    [Fact]
+    public void AnUnansweredTransportKeyIsNull() {
+        var request = Adapter.CreateRequest(new ConformanceRequestSpec());
+
+        Assert.Null(request.Transport.Get("a.key.no.transport.publishes"));
+    }
+
+    /// <summary>
+    /// A fork keeps the transport it was forked from.
+    /// </summary>
+    /// <remarks>
+    /// Rebinding a method or a path says nothing about where the request came from, and a fork that
+    /// lost its connection facts would make an address-partitioned rate limiter or a security
+    /// decision depend on whether a filter happened to fork the chain.
+    /// </remarks>
+    [Fact]
+    public void CloneKeepsTheTransport() {
+        var request = Adapter.CreateRequest(new ConformanceRequestSpec());
+
+        var clone = request.Clone(method: "DELETE");
+
+        Assert.Same(request.Transport, clone.Transport);
+    }
+
     [Fact]
     public void CookiesAreEmptyRatherThanNullWhenNoneWereSent() {
         var request = Create();

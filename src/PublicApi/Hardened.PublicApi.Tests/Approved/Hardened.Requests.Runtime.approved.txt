@@ -298,8 +298,9 @@ namespace Hardened.Requests.Runtime.Execution
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class KnownServices : Hardened.Requests.Abstract.Execution.IKnownServices
     {
-        public KnownServices(Hardened.Requests.Abstract.Serializer.IContextSerializationService contextSerializationService, Hardened.Requests.Abstract.Serializer.IStringConverterService stringConverterService) { }
+        public KnownServices(Hardened.Requests.Abstract.Serializer.IContextSerializationService contextSerializationService, Hardened.Requests.Abstract.Serializer.IStringConverterService stringConverterService, Hardened.Requests.Abstract.Forms.IFormReader formReader) { }
         public Hardened.Requests.Abstract.Serializer.IContextSerializationService ContextSerializationService { get; }
+        public Hardened.Requests.Abstract.Forms.IFormReader FormReader { get; }
         public Hardened.Requests.Abstract.Serializer.IStringConverterService StringConverterService { get; }
     }
 }
@@ -371,6 +372,31 @@ namespace Hardened.Requests.Runtime.Filters
         public string ContentType { get; }
         public System.Threading.Tasks.ValueTask WriteCompletion(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Forms
+{
+    public class EmptyFormCollection : Hardened.Requests.Abstract.Forms.IFormCollection
+    {
+        public static readonly Hardened.Requests.Runtime.Forms.EmptyFormCollection Instance;
+        public int Count { get; }
+        public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class FormReader : Hardened.Requests.Abstract.Forms.IFormReader
+    {
+        public FormReader() { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Forms.IFormCollection> ReadForm(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public class SimpleFormCollection : Hardened.Requests.Abstract.Forms.IFormCollection
+    {
+        public SimpleFormCollection(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> fields) { }
+        public int Count { get; }
+        public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
+    }
+    public static class UrlEncodedParser
+    {
+        public static Hardened.Requests.Abstract.Forms.IFormCollection Parse(string? body) { }
     }
 }
 namespace Hardened.Requests.Runtime.Headers

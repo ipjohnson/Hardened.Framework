@@ -116,6 +116,7 @@ public class AspNetExecutionRequest : IExecutionRequest {
     private IPathTokenCollection? _pathTokens;
     private IQueryStringCollection? _queryString;
     private IReadOnlyList<string>? _cookies;
+    private ITransportInfo? _transport;
 
     public AspNetExecutionRequest(HttpRequest httpRequest) {
         _httpRequest = httpRequest;
@@ -127,8 +128,10 @@ public class AspNetExecutionRequest : IExecutionRequest {
         string? pathOverride,
         IDictionary<string, StringValues>? headersOverride,
         IQueryStringCollection? queryStringOverride,
-        IReadOnlyList<string>? cookiesOverride) {
+        IReadOnlyList<string>? cookiesOverride,
+        ITransportInfo? transport) {
         _httpRequest = httpRequest;
+        _transport = transport;
         _methodOverride = methodOverride;
         _pathOverride = pathOverride;
 
@@ -141,6 +144,12 @@ public class AspNetExecutionRequest : IExecutionRequest {
         _queryStringOverride = queryStringOverride;
         _cookiesOverride = cookiesOverride;
     }
+
+    /// <summary>
+    /// Built once and shared with every fork, because a fork is the same request on the same
+    /// connection.
+    /// </summary>
+    public ITransportInfo Transport => _transport ??= new AspNetTransportInfo(_httpRequest);
 
     /// <summary>
     /// A null argument keeps the current value, a non-null argument replaces it.
@@ -157,7 +166,11 @@ public class AspNetExecutionRequest : IExecutionRequest {
             path ?? _pathOverride,
             headers ?? _headersOverride,
             queryString ?? _queryStringOverride,
-            cookies ?? _cookiesOverride) {
+            cookies ?? _cookiesOverride,
+            // The same instance, not a fresh one over the same request: a fork is the same request
+            // on the same connection, and the conformance suite asserts identity rather than
+            // equality because that is the property callers rely on.
+            Transport) {
             // Cloned, not shared: a forked chain must be able to rebind without writing
             // through to the request it was forked from. See the conformance suite.
             Parameters = Parameters?.Clone(),

@@ -209,6 +209,12 @@ namespace Hardened.Requests.Abstract.Errors
 namespace Hardened.Requests.Abstract.Execution
 {
     public delegate System.Threading.Tasks.Task DefaultOutputFunc(Hardened.Requests.Abstract.Execution.IExecutionContext executionContext);
+    public class EmptyTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    {
+        public static readonly Hardened.Requests.Abstract.Execution.EmptyTransportInfo Instance;
+        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        public string? Get(string key) { }
+    }
     public enum ExecutionFilterOrder
     {
         Init = -10000,
@@ -262,6 +268,7 @@ namespace Hardened.Requests.Abstract.Execution
         string Path { get; }
         Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
         Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
         Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null);
     }
     public interface IExecutionRequestHandler
@@ -323,7 +330,36 @@ namespace Hardened.Requests.Abstract.Execution
     public interface IKnownServices
     {
         Hardened.Requests.Abstract.Serializer.IContextSerializationService ContextSerializationService { get; }
+        Hardened.Requests.Abstract.Forms.IFormReader FormReader { get; }
         Hardened.Requests.Abstract.Serializer.IStringConverterService StringConverterService { get; }
+    }
+    public interface ITransportInfo
+    {
+        System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        string? Get(string key);
+    }
+    public static class KnownTransportKeys
+    {
+        public const string ClientAddress = "client.address";
+        public const string ClientPort = "client.port";
+        public const string NetworkPeerAddress = "network.peer.address";
+        public const string NetworkPeerPort = "network.peer.port";
+        public const string NetworkProtocolVersion = "network.protocol.version";
+        public const string ServerAddress = "server.address";
+        public const string ServerPort = "server.port";
+        public const string UrlScheme = "url.scheme";
+    }
+}
+namespace Hardened.Requests.Abstract.Forms
+{
+    public interface IFormCollection
+    {
+        int Count { get; }
+        Microsoft.Extensions.Primitives.StringValues Get(string key);
+    }
+    public interface IFormReader
+    {
+        System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Forms.IFormCollection> ReadForm(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
 }
 namespace Hardened.Requests.Abstract.Headers
@@ -361,12 +397,14 @@ namespace Hardened.Requests.Abstract.Headers
     {
         public const string Css = "text/css";
         public const string EventStream = "text/event-stream";
+        public const string FormUrlEncoded = "application/x-www-form-urlencoded";
         public const string Html = "text/html";
         public const string Js = "text/js";
         public const string Json = "application/json";
         public const string NdJson = "application/x-ndjson";
         public static Microsoft.Extensions.Primitives.StringValues CssStringValues;
         public static Microsoft.Extensions.Primitives.StringValues EventStreamStringValues;
+        public static Microsoft.Extensions.Primitives.StringValues FormUrlEncodedStringValues;
         public static Microsoft.Extensions.Primitives.StringValues HtmlStringValues;
         public static Microsoft.Extensions.Primitives.StringValues JsStringValues;
         public static Microsoft.Extensions.Primitives.StringValues JsonStringValues;

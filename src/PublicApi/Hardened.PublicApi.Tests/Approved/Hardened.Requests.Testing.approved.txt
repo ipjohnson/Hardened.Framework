@@ -26,9 +26,11 @@ namespace Hardened.Requests.Testing.Conformance
         public void AHeaderIsFoundUnderAnySpelling(string written, string read) { }
         public void AcceptComesFromTheAcceptHeader() { }
         public void AcceptReflectsANonJsonValue() { }
+        public void AnUnansweredTransportKeyIsNull() { }
         public void BodyIsReadable() { }
         public void CloneDoesNotMutateTheOriginal() { }
         public void CloneGivesTheCloneItsOwnParameters() { }
+        public void CloneKeepsTheTransport() { }
         public void CloneLeavesNullParametersNull() { }
         public void ClonePreservesBody() { }
         public void ClonePreservesMethodWhenMethodIsNull() { }
@@ -45,6 +47,7 @@ namespace Hardened.Requests.Testing.Conformance
         public void PathIsSurfaced() { }
         public void PathTokensAreEmptyRatherThanNullBeforeRouting() { }
         public void QueryStringIsSurfaced() { }
+        public void TransportInfoIsNeverNull() { }
     }
     public abstract class ExecutionResponseConformanceTests
     {
@@ -164,6 +167,7 @@ namespace Hardened.Requests.Testing
         public string Path { get; }
         public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
         public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method, string? path, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString, System.Collections.Generic.IReadOnlyList<string>? cookies) { }
     }
     public class TestExecutionResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
@@ -183,5 +187,14 @@ namespace Hardened.Requests.Testing
         public bool ShouldSerialize { get; set; }
         public int? Status { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+    public class TestTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    {
+        public TestTransportInfo(System.Collections.Generic.IDictionary<string, string> values) { }
+        public TestTransportInfo([System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Key",
+                "Value"})] params System.ValueTuple<string, string>[] values) { }
+        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        public string? Get(string key) { }
     }
 }

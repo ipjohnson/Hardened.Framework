@@ -13,7 +13,9 @@ public static class BindRequestParametersMethodGenerator {
         invokeMethod.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
 
         var needsAsync = requestHandlerModel.RequestParameterInformationList.Any(
-            p => p.BindingType == ParameterBindType.Body || p.BindingType == ParameterBindType.CustomAttribute);
+            p => p.BindingType == ParameterBindType.Body ||
+                 p.BindingType == ParameterBindType.CustomAttribute ||
+                 p.BindingType == ParameterBindType.Form);
 
         if (needsAsync) {
             invokeMethod.Modifiers |= ComponentModifier.Async;
@@ -36,6 +38,19 @@ public static class BindRequestParametersMethodGenerator {
         bool needsAsync) {
         var parametersVar = invokeMethod.Assign(New(InvokeClassGenerator.GenericParameters)).ToVar("parameters");
 
+        // Once per handler rather than once per parameter, because reading it reads the body. Two
+        // form parameters on one handler must not read the stream twice, and the local is what
+        // makes that structural rather than something FormReader has to cache against a request it
+        // is not scoped to.
+        InstanceDefinition? formVar = null;
+
+        if (requestHandlerModel.RequestParameterInformationList.Any(
+                p => p.BindingType == ParameterBindType.Form)) {
+            formVar = invokeMethod.Assign(
+                    Await(context.Property("KnownServices").Property("FormReader").Invoke("ReadForm", context)))
+                .ToVar("form");
+        }
+
         foreach (var parameterInformation in requestHandlerModel.RequestParameterInformationList) {
             switch (parameterInformation.BindingType) {
                 case ParameterBindType.Body:
@@ -47,6 +62,11 @@ public static class BindRequestParametersMethodGenerator {
                 case ParameterBindType.Path:
                 case ParameterBindType.Cookie:
                     BindRequestValueToParameter(parameterInformation, invokeMethod, context, parametersVar);
+                    break;
+
+                case ParameterBindType.Form:
+                    BindFormValueToParameter(
+                        parameterInformation, invokeMethod, context, parametersVar, formVar!);
                     break;
 
                 case ParameterBindType.ExecutionContext:
@@ -176,6 +196,56 @@ public static class BindRequestParametersMethodGenerator {
         }
 
         var valueStatement = Bang(context.Property("Request").Property(instance).Invoke("Get", QuoteString(bindingName)));
+
+        var stringInvokeStatement = context.Property("KnownServices").Property("StringConverterService");
+
+        IOutputComponent? invokeStatement;
+
+        if (!string.IsNullOrEmpty(parameterInformation.DefaultValue)) {
+            invokeStatement =
+                stringInvokeStatement.InvokeGeneric("ParseWithDefault", new[] {
+                        parameterInformation.ParameterType
+                    },
+                    valueStatement, QuoteString(bindingName), parameterInformation.DefaultValue!);
+        }
+        else if (parameterInformation.Required) {
+            invokeStatement =
+                stringInvokeStatement.InvokeGeneric("ParseRequired", new[] {
+                        parameterInformation.ParameterType
+                    },
+                    valueStatement, QuoteString(bindingName));
+        }
+        else {
+            invokeStatement =
+                stringInvokeStatement.InvokeGeneric("ParseOptional", new[] {
+                        parameterInformation.ParameterType
+                    },
+                    valueStatement, QuoteString(bindingName));
+        }
+
+        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
+    }
+
+    /// <summary>
+    /// A form field, converted the same way every other string-valued source is.
+    /// </summary>
+    /// <remarks>
+    /// The only difference from <see cref="BindRequestValueToParameter"/> is where the value comes
+    /// from: a local holding the parsed form, rather than a collection hanging off
+    /// <c>context.Request</c>. The conversion, the default handling and the optional handling are
+    /// deliberately identical - a form field is a string that has to become a parameter type, which
+    /// is what <c>IStringConverterService</c> already answers for a query value.
+    /// </remarks>
+    private static void BindFormValueToParameter(RequestParameterInformation parameterInformation,
+        MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar,
+        InstanceDefinition formVar) {
+        var bindingName = parameterInformation.BindingName;
+
+        if (string.IsNullOrEmpty(bindingName)) {
+            bindingName = parameterInformation.Name;
+        }
+
+        var valueStatement = Bang(formVar.Invoke("Get", QuoteString(bindingName)));
 
         var stringInvokeStatement = context.Property("KnownServices").Property("StringConverterService");
 
