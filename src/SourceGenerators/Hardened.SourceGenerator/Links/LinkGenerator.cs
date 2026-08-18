@@ -354,6 +354,59 @@ public static class LinkGenerator {
                 WriteLinkMethod(appModel, groupClass, group.Key, link, "Absolute", link.Name + "Absolute");
             }
         }
+
+        WriteImportedLinks(links, appModel, groups);
+    }
+
+    /// <summary>
+    /// A property per imported module that publishes links, so every route the application serves
+    /// is reachable from the one type a view is handed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Links are generated per module. An application that keeps its routes in a library therefore
+    /// had an empty <c>ApplicationLinks</c> and a <c>CatalogLibraryLinks</c> holding everything it
+    /// serves - and a view's generated <c>Links</c> property is typed as the first, so
+    /// <c>@Links.Book.ById(id)</c> did not compile. The build-time guarantee that a renamed route
+    /// breaks the <c>.cshtml</c> was unavailable to exactly the applications that split into
+    /// libraries.
+    /// </para>
+    /// <para>
+    /// Named for the module rather than for anything shorter - <c>@Links.CatalogLibrary.Book.ById(id)</c>
+    /// - because the module's name is the one thing already written at the import site, and any
+    /// trimming rule would be a second name to learn and to get wrong.
+    /// </para>
+    /// <para>
+    /// Constructed rather than resolved: a links type is a wrapper over <c>ILinkContext</c> and
+    /// takes nothing else, so there is no reason to make this depend on the imported module having
+    /// registered it.
+    /// </para>
+    /// </remarks>
+    private static void WriteImportedLinks(
+        ClassDefinition links,
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<IGrouping<string, Link>> groups) {
+        foreach (var imported in appModel.ImportedLinks) {
+            // A controller group of the same name owns the name: it is declared in this assembly,
+            // and the imported module's links stay reachable by resolving their own type. Emitting
+            // both would be a duplicate member and a confusing error in generated code.
+            if (groups.Any(group => group.Key == imported.PropertyName)) {
+                continue;
+            }
+
+            var property = links.AddProperty(imported.LinksType, imported.PropertyName);
+
+            property.Modifiers |= ComponentModifier.Public;
+            property.Set = null;
+            property.Get.LambdaSyntax = true;
+            property.Get.AddCode(
+                $"_{imported.PropertyName} ??= new {imported.LinksType.Namespace}.{imported.LinksType.Name}(_context);");
+
+            var backing = links.AddField(
+                imported.LinksType.MakeNullable(), "_" + imported.PropertyName);
+
+            backing.Modifiers |= ComponentModifier.Private;
+        }
     }
 
     /// <summary>

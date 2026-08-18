@@ -99,4 +99,40 @@ public class LinkTests {
 
         public string Absolute(string path) => Scheme + "://" + Host + Resolve(path);
     }
+
+    /// <summary>
+    /// The routes a library module declares are reachable from the application's own links type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Links are generated per module, so <c>WebLibrary</c>'s routes live on
+    /// <c>WebLibraryLinks</c> rather than on <c>ApplicationLinks</c>. A generated template base
+    /// hard-types its <c>Links</c> property to the application's, so before this an application
+    /// whose routes all lived in libraries handed its views an empty links type and
+    /// <c>@Links.Something.Route()</c> did not compile - the build-time guarantee was unavailable
+    /// to exactly the applications that split into libraries.
+    /// </para>
+    /// <para>
+    /// This test compiling is most of the assertion, as with the rest of this file: the property
+    /// and the method under it are both generated, and either one going away breaks the build.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public Task AnImportedModulesRoutesAreReachableFromTheApplicationsLinks(ApplicationLinks links) {
+        Assert.Equal(
+            "/web-library/string-methods/concat/a/b",
+            links.WebLibrary.Some.Concat("a", "b"));
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The property is named for the module, which is the name already written at the import site.
+    /// </summary>
+    [HardenedTest]
+    public Task TheImportedPropertyIsNamedForTheModule(ApplicationLinks links) {
+        Assert.IsType<Hardened.IntegrationTests.Web.SUT.WebLibraryLinks>(links.WebLibrary);
+
+        return Task.CompletedTask;
+    }
 }

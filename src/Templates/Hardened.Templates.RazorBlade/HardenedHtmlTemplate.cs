@@ -1,6 +1,8 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Shared.Runtime.Collections;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 
 namespace Hardened.Templates.RazorBlade;
@@ -30,6 +32,8 @@ namespace Hardened.Templates.RazorBlade;
 /// Inheriting the non-generic base and declaring our own <see cref="Model"/> sidesteps both:
 /// parameterless construction is correct, and there is no constructor for anyone to generate.
 /// Verified end to end - <c>@inherits</c>, <c>@Model</c> and a generated links property all render.
+/// Note that "end to end" there means the inheritance shape; the render path itself is covered by
+/// <c>SynchronousWriteRegressionTests</c>, which drives a body that refuses synchronous writes.
 /// </para>
 /// </remarks>
 public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemplate,
@@ -72,6 +76,33 @@ public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemp
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// <b>Rendered into a buffer, then copied to the body in one asynchronous write.</b> The
+    /// obvious implementation - a <c>StreamWriter</c> around <c>Response.Body</c> - cannot work,
+    /// because RazorBlade's <c>WriteLiteral</c> is a synchronous <c>TextWriter.Write</c>. A
+    /// <c>StreamWriter</c> flushes when its character buffer fills, so a view whose output passed
+    /// the default 1 KiB flushed synchronously onto the response stream, and every server that
+    /// refuses synchronous IO - Kestrel and the ASP.NET host both, by default - threw
+    /// <c>Synchronous operations are disallowed</c> from the middle of the render.
+    /// </para>
+    /// <para>
+    /// The status line had already gone out by then, so the client got <c>200</c> with an empty
+    /// body. Views under 1 KiB rendered fine, which is what made it survive: it is a function of
+    /// how much a page emits rather than of anything the application does, so it passes every
+    /// small test and fails on the first real page.
+    /// </para>
+    /// <para>
+    /// Buffering removes the synchronous write rather than tolerating it - flushes to a
+    /// <c>MemoryStream</c> do no IO - and is what ASP.NET Core MVC does for the same reason. The
+    /// buffer comes from <see cref="IMemoryStreamPool"/> where the application registered one, so
+    /// a page costs a pooled stream rather than a fresh allocation per request.
+    /// </para>
+    /// <para>
+    /// The tests that missed this wrote to a <c>MemoryStream</c>, which accepts synchronous writes.
+    /// <c>SynchronousWritesRejectedStream</c> in the test project is the double that does not.
+    /// </para>
+    /// </remarks>
     public async Task WriteOutput(IExecutionContext context) {
         Attach(context.Response.ResponseValue, context);
 
@@ -82,13 +113,21 @@ public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemp
             context.Response.ContentType = ContentType;
         }
 
-        // leaveOpen: the response body outlives this render - headers, trailers and the host's own
-        // completion all still need it.
-        await using var writer = new StreamWriter(context.Response.Body, Utf8NoBom, -1, true);
+        // GetService rather than GetRequiredService: the pool is registered by the shared runtime
+        // module, and a view rendered from a container composed by hand - which the tests do, and
+        // an embedding host may - must still render.
+        using var reservation = context.RequestServices.GetService<IMemoryStreamPool>()?.Get();
 
-        await RenderAsync(writer, context.CancellationToken);
+        var buffer = reservation?.Item ?? new MemoryStream(1024);
 
-        await writer.FlushAsync();
+        // leaveOpen so disposing the writer does not close a stream the pool is about to reclaim.
+        await using (var writer = new StreamWriter(buffer, Utf8NoBom, -1, true)) {
+            await RenderAsync(writer, context.CancellationToken);
+        }
+
+        buffer.Position = 0;
+
+        await buffer.CopyToAsync(context.Response.Body, context.CancellationToken);
     }
 
     /// <summary>
