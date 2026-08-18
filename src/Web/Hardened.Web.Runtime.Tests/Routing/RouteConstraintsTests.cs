@@ -132,6 +132,62 @@ public class RouteConstraintsTests {
     public void IsSlug(string value, bool expected) =>
         Assert.Equal(expected, RouteConstraints.IsSlug(value));
 
+    [Theory]
+    [InlineData("abc123", 6, true)]
+    [InlineData("abc12", 6, false)]
+    [InlineData("", 0, true)]
+    public void IsLengthExact(string value, int length, bool expected) =>
+        Assert.Equal(expected, RouteConstraints.IsLength(value, length));
+
+    [Theory]
+    [InlineData("abcd", 3, 9, true)]
+    [InlineData("ab", 3, 9, false)]
+    [InlineData("abcdefghij", 3, 9, false)]
+    [InlineData("abc", 3, 3, true)]
+    public void IsLengthBounded(string value, int min, int max, bool expected) =>
+        Assert.Equal(expected, RouteConstraints.IsLength(value, min, max));
+
+    [Theory]
+    [InlineData("abcd", 4, true)]
+    [InlineData("abc", 4, false)]
+    public void IsMinLength(string value, int min, bool expected) =>
+        Assert.Equal(expected, RouteConstraints.IsMinLength(value, min));
+
+    [Theory]
+    [InlineData("abcd", 4, true)]
+    [InlineData("abcde", 4, false)]
+    public void IsMaxLength(string value, int max, bool expected) =>
+        Assert.Equal(expected, RouteConstraints.IsMaxLength(value, max));
+
+    /// <summary>
+    /// The parse is part of the constraint, so a non-integer fails the bound rather than throwing.
+    /// </summary>
+    [Theory]
+    [InlineData("1", 1, true)]
+    [InlineData("0", 1, false)]
+    [InlineData("-1", 0, false)]
+    [InlineData("abc", 1, false)]
+    [InlineData("", 1, false)]
+    public void IsMin(string value, long min, bool expected) =>
+        Assert.Equal(expected, RouteConstraints.IsMin(value, min));
+
+    [Theory]
+    [InlineData("10", 10, true)]
+    [InlineData("11", 10, false)]
+    [InlineData("abc", 10, false)]
+    public void IsMax(string value, long max, bool expected) =>
+        Assert.Equal(expected, RouteConstraints.IsMax(value, max));
+
+    [Theory]
+    [InlineData("250", 1, 500, true)]
+    [InlineData("1", 1, 500, true)]
+    [InlineData("500", 1, 500, true)]
+    [InlineData("0", 1, 500, false)]
+    [InlineData("501", 1, 500, false)]
+    [InlineData("abc", 1, 500, false)]
+    public void IsRange(string value, long min, long max, bool expected) =>
+        Assert.Equal(expected, RouteConstraints.IsRange(value, min, max));
+
     /// <summary>
     /// A route is part of a URL, which is the same string in every locale. Parsing under an ambient
     /// culture would make the same request match on one machine and not another.

@@ -95,6 +95,46 @@ public class RouteConstraintTests {
     }
 
     /// <summary>
+    /// A constraint that carries arguments, driven through the compiled table.
+    /// </summary>
+    [Theory]
+    [InlineData("length(6)", "abc123", "abc12")]
+    [InlineData("length(3,9)", "abcd", "ab")]
+    [InlineData("minlength(4)", "abcd", "abc")]
+    [InlineData("maxlength(4)", "abcd", "abcde")]
+    [InlineData("min(1)", "1", "0")]
+    [InlineData("max(10)", "10", "11")]
+    [InlineData("range(1,500)", "250", "501")]
+    public void AParameterisedConstraintMatchesOnlyWhatPasses(
+        string constraint, string passes, string fails) {
+        var routing = Routing("/items/{id:" + constraint + "}");
+
+        Assert.Equal("Item", routing.Handler("GET", "/items/" + passes).InvokeMethod);
+        Assert.Null(routing.Route("GET", "/items/" + fails));
+    }
+
+    /// <summary>
+    /// A chain is a conjunction, short-circuiting left to right, so every term has to pass.
+    /// </summary>
+    [Theory]
+    [InlineData("/items/42", true)]
+    [InlineData("/items/0", false)]      // an int, but below the bound
+    [InlineData("/items/abc", false)]    // not an int at all
+    public void AChainRequiresEveryTerm(string path, bool matches) {
+        var routing = Routing("/items/{id:int:min(1)}");
+
+        Assert.Equal(matches, routing.Route("GET", path) != null);
+    }
+
+    /// <summary>The token still binds under its own name, whatever the chain carries.</summary>
+    [Fact]
+    public void AChainedTokenStillBinds() {
+        var tokens = Routing("/items/{id:int:min(1)}").PathTokens("GET", "/items/42");
+
+        Assert.Equal("42", Assert.Contains("id", tokens));
+    }
+
+    /// <summary>
     /// A 404, not a 405. There is no resource at that URL, so reporting which verbs the path
     /// answers would be describing a resource that does not exist.
     /// </summary>

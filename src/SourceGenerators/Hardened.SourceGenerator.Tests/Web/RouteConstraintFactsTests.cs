@@ -98,6 +98,110 @@ public class RouteConstraintFactsTests {
         }
     }
 
+    /// <summary>
+    /// The reverse of <see cref="NamesTestAndRankAgree"/>, and the check that was missing: every
+    /// ranked name has to be a name the table can actually compile.
+    /// </summary>
+    /// <remarks>
+    /// Ranks for <c>min</c>, <c>max</c>, <c>range</c> and the <c>length</c> family shipped one
+    /// commit before the constraints themselves did, so the table advertised six names that
+    /// <c>Call</c> answered null for and <c>{id:min(1)}</c> was still a build error. Checking only
+    /// that every name has a rank cannot catch that; this direction can.
+    /// </remarks>
+    [Theory]
+    [InlineData("guid")]
+    [InlineData("date")]
+    [InlineData("datetime")]
+    [InlineData("bool")]
+    [InlineData("int")]
+    [InlineData("min")]
+    [InlineData("max")]
+    [InlineData("range")]
+    [InlineData("long")]
+    [InlineData("decimal")]
+    [InlineData("hex")]
+    [InlineData("alpha")]
+    [InlineData("slug")]
+    [InlineData("length")]
+    [InlineData("minlength")]
+    [InlineData("maxlength")]
+    public void EveryRankedNameIsANameTheTableCompiles(string name) {
+        var arities = RouteConstraintFacts.Arities(name);
+
+        if (arities.Count == 0) {
+            Assert.NotNull(RouteConstraintFacts.Test(name));
+            return;
+        }
+
+        foreach (var arity in arities) {
+            var term = new RouteConstraintFacts.Term(name, Enumerable.Repeat(1, arity).ToList());
+
+            Assert.NotNull(RouteConstraintFacts.Call(term));
+        }
+    }
+
+    [Theory]
+    [InlineData("int", 1, 0)]
+    [InlineData("int:min(1)", 2, 1)]
+    [InlineData("length(6)", 1, 1)]
+    [InlineData("length(3,9)", 1, 2)]
+    [InlineData("alpha:length(3)", 2, 1)]
+    public void TermsParsesAChain(string chain, int terms, int lastArgumentCount) {
+        var parsed = RouteConstraintFacts.Terms(chain);
+
+        Assert.NotNull(parsed);
+        Assert.Equal(terms, parsed!.Count);
+        Assert.Equal(lastArgumentCount, parsed[parsed.Count - 1].Arguments.Count);
+    }
+
+    /// <summary>
+    /// Malformed text is null rather than a term list, so the caller reports it instead of the
+    /// generator emitting a call to something that does not exist.
+    /// </summary>
+    [Theory]
+    [InlineData("length(")]
+    [InlineData("length)")]
+    [InlineData("length()")]
+    [InlineData("length(a)")]
+    [InlineData("length(1,)")]
+    [InlineData("(6)")]
+    [InlineData("int::min(1)")]
+    [InlineData("int:")]
+    public void TermsRefusesWhatIsNotAChain(string chain) {
+        Assert.Null(RouteConstraintFacts.Terms(chain));
+    }
+
+    /// <summary>
+    /// <c>length</c> is two different tests — <c>length(6)</c> an equality, <c>length(3,9)</c> a
+    /// pair of bounds — so arity is part of the lookup, not something checked after it.
+    /// </summary>
+    [Theory]
+    [InlineData("length", 1, "IsLength")]
+    [InlineData("length", 2, "IsLength")]
+    [InlineData("minlength", 1, "IsMinLength")]
+    [InlineData("maxlength", 1, "IsMaxLength")]
+    [InlineData("min", 1, "IsMin")]
+    [InlineData("max", 1, "IsMax")]
+    [InlineData("range", 2, "IsRange")]
+    public void AParameterisedNameCompilesAtItsOwnArity(string name, int arity, string method) {
+        var term = new RouteConstraintFacts.Term(name, Enumerable.Repeat(1, arity).ToList());
+
+        Assert.Equal("global::Hardened.Web.Runtime.Routing.RouteConstraints." + method,
+            RouteConstraintFacts.Call(term));
+    }
+
+    [Theory]
+    [InlineData("length", 0)]
+    [InlineData("length", 3)]
+    [InlineData("range", 1)]
+    [InlineData("min", 2)]
+    [InlineData("int", 1)]
+    public void AWrongArityCompilesToNothing(string name, int arity) {
+        var term = new RouteConstraintFacts.Term(name, Enumerable.Repeat(1, arity).ToList());
+
+        Assert.Null(RouteConstraintFacts.Call(term));
+    }
+
     /// <summary>Alphabetical, because this list is read by a person in an error message.</summary>
     [Fact]
     public void NamesAreListedInOrder() {
