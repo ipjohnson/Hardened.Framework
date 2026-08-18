@@ -38,5 +38,12 @@ public class HardenedSourceGenerator : BaseSourceGenerator {
             valuesProvider,
             moduleWriter.GenerateSource
         );
+
+        // On the same collected value, so it is asked once per compilation rather than once per
+        // entry point - which is the only way to see that there is more than one.
+        context.RegisterSourceOutput(
+            valuesProvider,
+            EntryPointDiagnostics.ReportMultipleEntryPoints
+        );
     }
 }

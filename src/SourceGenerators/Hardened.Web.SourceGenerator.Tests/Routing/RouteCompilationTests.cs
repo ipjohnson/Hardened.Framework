@@ -201,6 +201,12 @@ public class RouteCompilationTests {
     /// Two entry points in one assembly. Each gets its own routing table over the same handlers,
     /// and the two tables must not collide on a hint name or on a generated field.
     /// </summary>
+    /// <remarks>
+    /// Compiling is not the same as being a good idea, and it is reported as <c>HRDR004</c> by
+    /// <c>HardenedSourceGenerator</c> - a different generator, which this harness does not run. What
+    /// is asserted here is only that the arrangement an author opts into with <c>NoWarn</c> still
+    /// produces two working tables rather than a collision.
+    /// </remarks>
     [Fact]
     public void TwoModuleEntryPointsEachCompileTheirOwnRoutingTable() {
         var result = GeneratorTestHarness.Run("""
