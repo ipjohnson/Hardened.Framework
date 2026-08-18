@@ -1,5 +1,6 @@
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Web.Runtime.CacheControl;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
@@ -49,6 +50,8 @@ public class StaticContentRangeTests : IDisposable {
 
         configuration.Path.Returns(_staticRoot);
         configuration.CacheContent.Returns(true);
+        configuration.CacheControlType.Returns(
+            CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(true);
         configuration.CompressTextContent.Returns(false);
@@ -66,7 +69,7 @@ public class StaticContentRangeTests : IDisposable {
             new FileSystemContentSource(
                 Options.Create(configuration), mimeHelper,
                 new GZipStaticContentCompressor(new MemoryStreamPool()),
-                new ETagProvider(new TestMD5Pool()),
+                new ETagProvider(new TestHashPool()),
                 NullLogger<FileSystemContentSource>.Instance),
             configuration);
     }
@@ -351,6 +354,79 @@ public class StaticContentRangeTests : IDisposable {
 
         response.Received().Status = 200;
         Assert.Equal(Body, Served(body));
+    }
+
+    /// <summary>
+    /// <c>If-Range</c> given a date rather than a validator. A client that only ever saw a
+    /// <c>Last-Modified</c> has nothing else to send, and the range still has to hold.
+    /// </summary>
+    [Fact]
+    public async Task AnIfRangeDateThatStillMatchesHonoursTheRange() {
+        var handler = Handler();
+
+        var (warm, _, _, warmHeaders) = Context("/clip.bin");
+
+        await handler.Handle(warm);
+
+        var lastModified = warmHeaders[KnownHeaders.LastModified].ToString();
+
+        var (context, body, response, _) = Context(
+            "/clip.bin", (KnownHeaders.Range, "bytes=0-4"), (KnownHeaders.IfRange, lastModified));
+
+        Assert.True(await handler.Handle(context));
+
+        response.Received().Status = 206;
+        Assert.Equal("01234", Served(body));
+    }
+
+    /// <summary>And a date from before the file changed sends the whole entity.</summary>
+    [Fact]
+    public async Task AnIfRangeDateThatNoLongerMatchesSendsTheWholeEntity() {
+        var (context, body, response, _) = Context(
+            "/clip.bin",
+            (KnownHeaders.Range, "bytes=0-4"),
+            (KnownHeaders.IfRange, new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero)
+                .ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
+
+        Assert.True(await Handler().Handle(context));
+
+        response.Received().Status = 200;
+        Assert.Equal(Body, Served(body));
+    }
+
+    /// <summary>
+    /// A weak validator in <c>If-Range</c> does not hold it. Weak says two representations are
+    /// equivalent, not identical, and identical is what splicing bytes into a half-downloaded file
+    /// requires - so this is the one place the comparison is strong.
+    /// </summary>
+    [Fact]
+    public async Task AWeakIfRangeDoesNotHonourTheRange() {
+        var handler = Handler();
+
+        var (warm, _, _, warmHeaders) = Context("/clip.bin");
+
+        await handler.Handle(warm);
+
+        var (context, body, response, _) = Context(
+            "/clip.bin",
+            (KnownHeaders.Range, "bytes=0-4"),
+            (KnownHeaders.IfRange, "W/" + warmHeaders[KnownHeaders.ETag]));
+
+        Assert.True(await handler.Handle(context));
+
+        response.Received().Status = 200;
+        Assert.Equal(Body, Served(body));
+    }
+
+    /// <summary>An empty If-Range says nothing, so the range stands.</summary>
+    [Fact]
+    public async Task AnEmptyIfRangeLeavesTheRangeAlone() {
+        var (context, _, response, _) = Context(
+            "/clip.bin", (KnownHeaders.Range, "bytes=0-4"), (KnownHeaders.IfRange, "   "));
+
+        Assert.True(await Handler().Handle(context));
+
+        response.Received().Status = 206;
     }
 
     #endregion

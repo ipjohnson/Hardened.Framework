@@ -86,6 +86,18 @@ public interface IStaticContentConfiguration {
     /// </para>
     /// </remarks>
     bool EnableRangeRequests { get; }
+
+    /// <summary>
+    /// Whether a path with a hidden segment - <c>.env</c>, <c>.git</c>, <c>.htpasswd</c> - is
+    /// served.
+    /// </summary>
+    /// <remarks>
+    /// Off, because the common case is a build step that copied a directory wholesale and nobody
+    /// looked. <c>.well-known</c> is served either way: ACME challenges and <c>security.txt</c> live
+    /// under it, and refusing it breaks certificate renewal in a way nobody connects back to a
+    /// static content setting.
+    /// </remarks>
+    bool ServeHiddenFiles { get; }
 }
 
 public class StaticContentConfiguration : IStaticContentConfiguration {
@@ -113,4 +125,7 @@ public class StaticContentConfiguration : IStaticContentConfiguration {
 
     /// <inheritdoc />
     public bool EnableRangeRequests { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool ServeHiddenFiles { get; set; }
 }

@@ -57,6 +57,26 @@ public static class StaticContentScan {
     /// <summary>The names a request for a directory resolves to, in order.</summary>
     private static readonly string[] DefaultDocuments = ["index.html", "index.htm"];
 
+    /// <summary>
+    /// The one hidden directory that is meant to be served - ACME challenges and
+    /// <c>security.txt</c> live under it.
+    /// </summary>
+    private const string WellKnown = ".well-known";
+
+    /// <summary>Suffixes a build step adds beside a file it pre-compressed.</summary>
+    private static readonly string[] CompressedSuffixes = [".gz", ".br"];
+
+    /// <summary>
+    /// Below this, a compressed representation is not worth carrying.
+    /// </summary>
+    /// <remarks>
+    /// The same threshold <c>FileSystemContentSource</c> applies, and it has to be: a manifest that
+    /// compressed a 100-byte file would answer <c>Vary</c> and refuse ranges where the other source
+    /// serves it plain and allows them, so the two would disagree about a file neither should have
+    /// touched. Compressing that little costs more than it saves either way.
+    /// </remarks>
+    private const int CompressionThreshold = 1000;
+
     public static ScanResult Scan(
         string rootDirectory,
         string routePrefix,
@@ -94,15 +114,25 @@ public static class StaticContentScan {
                 continue;
             }
 
-            if (IsSensitive(relative)) {
+            // Excluded rather than merely reported, which is what the file system source does with
+            // the same path. A manifest that shipped them would make opting into the build task the
+            // less safe of the two, which is exactly backwards.
+            if (IsHidden(relative) || IsSensitive(relative)) {
                 diagnostics.Add(new ScanDiagnostic(
                     "HSTATIC003",
-                    $"'{relative}' looks like a secret and would be served to anyone who asks for " +
-                    "it. Move it out of the content directory, or silence this with <NoWarn>.",
+                    $"'{relative}' is hidden or looks like a secret, so it is not in the manifest " +
+                    "and will not be served. Move it out of the content directory to silence this, " +
+                    "or use <NoWarn> if it is there on purpose.",
                     IsError: false));
+
+                continue;
             }
 
-            files.Add(Describe(root, fullPath, relative, prefix, embedThreshold));
+            var described = Describe(root, fullPath, relative, prefix, embedThreshold, diagnostics);
+
+            if (described != null) {
+                files.Add(described);
+            }
         }
 
         if (files.Count == 0) {
@@ -213,9 +243,87 @@ public static class StaticContentScan {
         return null;
     }
 
+    /// <summary>
+    /// One file as an entry, or null when it is a pre-compressed copy of another.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>app.js.gz</c> is not a resource at <c>/app.js.gz</c>; it is <c>/app.js</c> stored
+    /// compressed, which is how the file system source has always read it and how a build step that
+    /// emits siblings expects it to be read. Emitting it under its own name would serve the raw
+    /// deflate stream to anyone who asked for that path and leave <c>/app.js</c> answering nothing.
+    /// </para>
+    /// <para>
+    /// A sibling beside its plain twin is dropped, because the twin is authoritative and is
+    /// compressed here anyway. A sibling on its own is decompressed to recover the resource, which
+    /// costs a moment at build and gives the manifest one uniform shape - so Brotli siblings work
+    /// without the manifest needing a field for Brotli.
+    /// </para>
+    /// </remarks>
+    private static ScannedFile? Describe(
+        string root, string fullPath, string relative, string prefix, long embedThreshold,
+        List<ScanDiagnostic> diagnostics) {
+        foreach (var suffix in CompressedSuffixes) {
+            if (!relative.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            var plain = fullPath.Substring(0, fullPath.Length - suffix.Length);
+
+            if (File.Exists(plain)) {
+                return null;
+            }
+
+            var recovered = Decompress(fullPath, suffix, diagnostics);
+
+            if (recovered == null) {
+                return null;
+            }
+
+            return Describe(
+                relative.Substring(0, relative.Length - suffix.Length),
+                recovered, fullPath, prefix, embedThreshold);
+        }
+
+        return Describe(relative, File.ReadAllBytes(fullPath), fullPath, prefix, embedThreshold);
+    }
+
+    private static byte[]? Decompress(
+        string fullPath, string suffix, List<ScanDiagnostic> diagnostics) {
+        try {
+            using var source = File.OpenRead(fullPath);
+            using var decompressor = FrameworkCompat.Decompressor(source, suffix);
+
+            if (decompressor == null) {
+                diagnostics.Add(new ScanDiagnostic(
+                    "HSTATIC009",
+                    $"'{Path.GetFileName(fullPath)}' is a Brotli sibling, which this MSBuild " +
+                    "runtime cannot decompress - BrotliStream is .NET only. Ship the uncompressed " +
+                    "file beside it, or build with the .NET SDK.",
+                    IsError: true));
+
+                return null;
+            }
+
+            using var output = new MemoryStream();
+
+            decompressor.CopyTo(output);
+
+            return output.ToArray();
+        }
+        catch (Exception exception) when (exception is InvalidDataException or IOException) {
+            diagnostics.Add(new ScanDiagnostic(
+                "HSTATIC008",
+                $"'{Path.GetFileName(fullPath)}' has a compressed file's name and does not " +
+                $"decompress: {exception.Message}",
+                IsError: true));
+
+            return null;
+        }
+    }
+
     private static ScannedFile Describe(
-        string root, string fullPath, string relative, string prefix, long embedThreshold) {
-        var bytes = File.ReadAllBytes(fullPath);
+        string relative, byte[] bytes, string fullPath, string prefix, long embedThreshold) {
 
         byte[]? content = null;
         byte[]? gzip = null;
@@ -223,13 +331,15 @@ public static class StaticContentScan {
         if (bytes.LongLength <= embedThreshold) {
             content = bytes;
 
-            var compressed = Compress(bytes);
+            if (bytes.LongLength > CompressionThreshold) {
+                var compressed = Compress(bytes);
 
-            // Kept only when it actually helps. Compressing an already-compressed format - a PNG, a
-            // woff2 - reliably produces something larger, and shipping that costs assembly size to
-            // make the response bigger.
-            if (compressed.Length < bytes.Length) {
-                gzip = compressed;
+                // Kept only when it actually helps. Compressing an already-compressed format - a
+                // PNG, a woff2 - reliably produces something larger, and shipping that costs
+                // assembly size to make the response bigger.
+                if (compressed.Length < bytes.Length) {
+                    gzip = compressed;
+                }
             }
         }
 
@@ -301,6 +411,20 @@ public static class StaticContentScan {
         return relative != ".." &&
                !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
                !Path.IsPathRooted(relative);
+    }
+
+    /// <summary>Whether any segment of the path is a hidden name, <c>.well-known</c> aside.</summary>
+    private static bool IsHidden(string relative) {
+        foreach (var segment in relative.Split(
+                     Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)) {
+            if (segment.Length > 1 &&
+                segment[0] == '.' &&
+                !string.Equals(segment, WellKnown, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsSensitive(string relative) {

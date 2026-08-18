@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using DependencyModules.Runtime.Attributes;
+using Hardened.Shared.Runtime.Collections;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
@@ -70,26 +72,11 @@ public partial class HardenedStaticContent : IServiceCollectionConfiguration {
     /// </summary>
     public string? FallBackFile { get; set; }
 
-    /// <summary>Seconds of <c>max-age</c>, or null to send no <c>Cache-Control</c> at all.</summary>
-    public int? CacheMaxAge { get; set; }
-
-    /// <summary>Appends <c>immutable</c>, for a fingerprinted asset that never changes.</summary>
-    public bool? Immutable { get; set; }
-
-    /// <summary>Whether a validator is sent, and conditional requests answered.</summary>
-    public bool? EnableETag { get; set; }
-
-    /// <summary>Whether text content is compressed on the way into the cache.</summary>
-    public bool? CompressTextContent { get; set; }
-
-    /// <summary>
-    /// Whether a file, once read, is kept. Defaults to off in <c>development</c>, so an edit is
-    /// visible on reload without a watcher or any invalidation machinery.
-    /// </summary>
-    public bool? CacheContent { get; set; }
-
-    /// <summary>Whether byte ranges are served, and advertised. On unless a mount says otherwise.</summary>
-    public bool? EnableRangeRequests { get; set; }
+    // Everything else - the max age, the directives, whether validators, compression, caching or
+    // ranges are on - is set with services.ConfigureStaticContent. It cannot live here: the
+    // generated attribute unwraps Nullable<T>, so a value-typed property is copied onto the module
+    // whether or not the author wrote it, carrying default(T) when they did not. See the remarks on
+    // StaticContentServiceCollectionExtensions.ConfigureStaticContent.
 
     public void ConfigureServices(IServiceCollection services) {
         // An init action rather than a prebuilt instance, so an IConfigurationValueAmender still
@@ -103,17 +90,12 @@ public partial class HardenedStaticContent : IServiceCollectionConfiguration {
                         (environment, configuration) => {
                             configuration.Path = Path ?? DefaultPath;
                             configuration.FallBackFile = FallBackFile;
-                            configuration.CacheMaxAge = CacheMaxAge;
-                            configuration.Immutable = Immutable ?? false;
-                            configuration.EnableETag = EnableETag ?? true;
-                            configuration.CompressTextContent = CompressTextContent ?? true;
 
                             // Defaulted from the environment rather than fixed, so the inner loop
-                            // needs no configuration and a deployed build needs no thought. Stated
-                            // explicitly on the module it wins either way.
+                            // needs no configuration and a deployed build needs no thought.
+                            // ConfigureStaticContent runs after this and wins.
                             configuration.CacheContent =
-                                CacheContent ?? !environment.Matches(DevelopmentEnvironment);
-                            configuration.EnableRangeRequests = EnableRangeRequests ?? true;
+                                !environment.Matches(DevelopmentEnvironment);
                         })
                 },
                 Array.Empty<IConfigurationValueAmender>()));
@@ -122,6 +104,12 @@ public partial class HardenedStaticContent : IServiceCollectionConfiguration {
             serviceProvider => Microsoft.Extensions.Options.Options.Create(
                 serviceProvider.GetRequiredService<IConfigurationManager>()
                     .GetConfiguration<IStaticContentConfiguration>()));
+
+        // The hash behind a validator. SHA-256 rather than the core module's MD5 pool, which
+        // throws outright on a FIPS-enforcing host - and would do so on the first request rather
+        // than at startup.
+        services.TryAddSingleton<IItemPool<SHA256>>(
+            _ => new ItemPool<SHA256>(SHA256.Create, _ => { }, hash => hash.Dispose()));
 
         services.TryAddSingleton<StaticContentController>();
 

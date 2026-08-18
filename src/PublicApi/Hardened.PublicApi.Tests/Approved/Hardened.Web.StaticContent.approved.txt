@@ -3,10 +3,9 @@ namespace Hardened.Web.StaticContent
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class ETagProvider : Hardened.Web.StaticContent.IETagProvider
     {
-        public ETagProvider(Hardened.Shared.Runtime.Collections.IItemPool<System.Security.Cryptography.MD5> md5Pool) { }
+        public ETagProvider(Hardened.Shared.Runtime.Collections.IItemPool<System.Security.Cryptography.SHA256> hashPool) { }
         public string GenerateETag(byte[] content) { }
     }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class FileSystemContentSource : Hardened.Web.StaticContent.IStaticContentSource
     {
         public FileSystemContentSource(Microsoft.Extensions.Options.IOptions<Hardened.Web.StaticContent.IStaticContentConfiguration> configuration, Hardened.Shared.Runtime.Utilities.IFileExtToMimeTypeHelper fileExtToMimeTypeHelper, Hardened.Web.StaticContent.IGZipStaticContentCompressor compressor, Hardened.Web.StaticContent.IETagProvider etagProvider, Microsoft.Extensions.Logging.ILogger<Hardened.Web.StaticContent.FileSystemContentSource> logger) { }
@@ -27,13 +26,7 @@ namespace Hardened.Web.StaticContent
         public const string DefaultPath = "wwwroot";
         public const string DevelopmentEnvironment = "development";
         public HardenedStaticContent() { }
-        public bool? CacheContent { get; set; }
-        public int? CacheMaxAge { get; set; }
-        public bool? CompressTextContent { get; set; }
-        public bool? EnableETag { get; set; }
-        public bool? EnableRangeRequests { get; set; }
         public string? FallBackFile { get; set; }
-        public bool? Immutable { get; set; }
         public string? Path { get; set; }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
@@ -44,13 +37,7 @@ namespace Hardened.Web.StaticContent
     public class HardenedStaticContentAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public HardenedStaticContentAttribute() { }
-        public bool CacheContent { get; set; }
-        public int CacheMaxAge { get; set; }
-        public bool CompressTextContent { get; set; }
-        public bool EnableETag { get; set; }
-        public bool EnableRangeRequests { get; set; }
         public string FallBackFile { get; set; }
-        public bool Immutable { get; set; }
         public string Path { get; set; }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
@@ -75,6 +62,7 @@ namespace Hardened.Web.StaticContent
         System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; }
         string Path { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
+        bool ServeHiddenFiles { get; }
     }
     public interface IStaticContentManifest
     {
@@ -87,7 +75,6 @@ namespace Hardened.Web.StaticContent
         System.Threading.Tasks.ValueTask<Hardened.Web.StaticContent.StaticContentEntry?> Load(Hardened.Web.StaticContent.StaticContentLocation location);
         Hardened.Web.StaticContent.StaticContentLocation? Locate(string requestPath);
     }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class ManifestContentSource : Hardened.Web.StaticContent.IStaticContentSource
     {
         public ManifestContentSource(Hardened.Web.StaticContent.IStaticContentManifest manifest, Microsoft.Extensions.Options.IOptions<Hardened.Web.StaticContent.IStaticContentConfiguration> configuration, Hardened.Shared.Runtime.Utilities.IFileExtToMimeTypeHelper fileExtToMimeTypeHelper, Microsoft.Extensions.Logging.ILogger<Hardened.Web.StaticContent.ManifestContentSource> logger) { }
@@ -109,6 +96,7 @@ namespace Hardened.Web.StaticContent
         public System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; set; }
         public string Path { get; set; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; set; }
+        public bool ServeHiddenFiles { get; set; }
     }
     public class StaticContentController
     {
@@ -156,6 +144,10 @@ namespace Hardened.Web.StaticContent
     {
         public StaticContentMountProvider(System.IServiceProvider serviceProvider) { }
         public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public static class StaticContentServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureStaticContent(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Hardened.Web.StaticContent.StaticContentConfiguration> configure) { }
     }
     public static class StaticContentWriter
     {

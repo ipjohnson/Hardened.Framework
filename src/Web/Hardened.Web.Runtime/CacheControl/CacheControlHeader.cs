@@ -7,12 +7,11 @@ namespace Hardened.Web.Runtime.CacheControl;
 /// </summary>
 /// <remarks>
 /// <para>
-/// One formatter, because there were about to be two. <c>StaticContentHandler</c> builds its own
-/// header inline and ignores the <c>CacheControlType</c> its configuration carries, so the static
-/// content path cannot express <c>no-store</c>, <c>no-cache</c>, <c>public</c>, <c>private</c> or
-/// <c>no-transform</c> at all. Moving it here first means the handler can be retrofitted onto the
-/// same rendering later without inventing a second set of rules - see the note on
-/// <c>StaticContentHandler</c>.
+/// One formatter, because there were about to be two. The static content path built its own header
+/// inline and ignored the <c>CacheControlType</c> its configuration carried, so it could not express
+/// <c>no-store</c>, <c>no-cache</c>, <c>public</c>, <c>private</c> or <c>no-transform</c> at all.
+/// <c>StaticContentWriter.CacheControlFor</c> renders through this now, which is the retrofit this
+/// was moved here to make possible.
 /// </para>
 /// <para>
 /// Every flag the caller set is rendered, including combinations a cache will read as

@@ -166,6 +166,25 @@ public class ManifestEmitterTests : IDisposable {
     }
 
     /// <summary>
+    /// A newline in a file name is legal on every platform this runs on, and would end the string
+    /// literal mid-way through - a syntax error in generated code the author never wrote.
+    /// </summary>
+    [Fact]
+    public void APathContainingANewlineIsEscaped() {
+        try {
+            Write("line\nbreak.txt", "content");
+        }
+        catch (Exception exception) when (exception is IOException or ArgumentException) {
+            return; // The file system will not take the name; nothing to assert.
+        }
+
+        var source = Emit();
+
+        Assert.Contains("\\n", source);
+        Assert.DoesNotContain("\"/line\nbreak.txt\"", source);
+    }
+
+    /// <summary>
     /// Two files whose readable names collide after truncation still get distinct fields. The
     /// readable part is a convenience; the hash suffix is what actually keeps them apart.
     /// </summary>

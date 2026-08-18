@@ -37,6 +37,24 @@ public class StaticContentScanTests : IDisposable {
         File.WriteAllText(path, content);
     }
 
+    private void WriteGZip(string relative, string content) {
+        using var file = File.Create(Path.Combine(_root, relative));
+        using var gzip = new GZipStream(file, CompressionLevel.Fastest);
+
+        var bytes = Encoding.UTF8.GetBytes(content);
+
+        gzip.Write(bytes, 0, bytes.Length);
+    }
+
+    private void WriteBrotli(string relative, string content) {
+        using var file = File.Create(Path.Combine(_root, relative));
+        using var brotli = new BrotliStream(file, CompressionLevel.Fastest);
+
+        var bytes = Encoding.UTF8.GetBytes(content);
+
+        brotli.Write(bytes, 0, bytes.Length);
+    }
+
     private ScanResult Scan(string prefix = "/", string? fallBack = null, long embed = 1024 * 1024) =>
         StaticContentScan.Scan(_root, prefix, fallBack, embed);
 
@@ -301,12 +319,100 @@ public class StaticContentScanTests : IDisposable {
         Assert.False(diagnostic.IsError);
     }
 
-    /// <summary>It is a warning rather than an error, so the file is still served.</summary>
-    [Fact]
-    public void ASecretLookingFileIsStillScanned() {
-        Write(".env", "SECRET_KEY=abc");
+    /// <summary>
+    /// And it is left out of the manifest, not merely reported. The file system source refuses the
+    /// same path, so a manifest that shipped it would make opting into the build task the less safe
+    /// of the two - which is exactly backwards.
+    /// </summary>
+    [Theory]
+    [InlineData(".env")]
+    [InlineData("server.pem")]
+    public void ASecretLookingFileIsNotInTheManifest(string name) {
+        Write(name, "secret");
+        Write("app.js", "console.log('hi');");
 
-        Assert.Equal("/.env", Route(Scan(), "/.env").RoutePath);
+        Assert.DoesNotContain(Scan().Files, file => file.RoutePath.Contains(name));
+    }
+
+    /// <summary>Hidden paths generally, and the one exception.</summary>
+    [Theory]
+    [InlineData(".git/config")]
+    [InlineData(".npmrc")]
+    public void AHiddenPathIsNotInTheManifest(string relative) {
+        Write(relative.Replace('/', Path.DirectorySeparatorChar), "hidden");
+        Write("app.js", "console.log('hi');");
+
+        Assert.DoesNotContain(Scan().Files, file => file.RoutePath.Contains(".git") ||
+                                                     file.RoutePath.Contains(".npmrc"));
+    }
+
+    /// <summary>
+    /// <c>.well-known</c> is served despite being hidden. ACME challenges live under it, so
+    /// excluding it breaks certificate renewal in a way nobody connects back to a content setting.
+    /// </summary>
+    [Fact]
+    public void WellKnownIsInTheManifestDespiteBeingHidden() {
+        Write(Path.Combine(".well-known", "security.txt"), "Contact: mailto:x@example.com");
+
+        Assert.Equal(
+            "/.well-known/security.txt", Route(Scan(), "/.well-known/security.txt").RoutePath);
+    }
+
+    #endregion
+
+    #region pre-compressed siblings
+
+    /// <summary>
+    /// <c>app.js.gz</c> is not a resource at <c>/app.js.gz</c>; it is <c>/app.js</c> stored
+    /// compressed. Emitting it under its own name would serve the raw deflate stream to anyone who
+    /// asked for that path and leave <c>/app.js</c> answering nothing.
+    /// </summary>
+    [Fact]
+    public void ASiblingOnItsOwnBecomesTheResourceItCompresses() {
+        WriteGZip("app.js.gz", "console.log('hi');");
+
+        var scan = Scan();
+
+        Assert.DoesNotContain(scan.Files, file => file.RoutePath.EndsWith(".gz"));
+
+        var file = Route(scan, "/app.js");
+
+        Assert.Equal("console.log('hi');", Encoding.UTF8.GetString(file.Content!));
+    }
+
+    /// <summary>Brotli too, which is why the sibling is decompressed rather than carried.</summary>
+    [Fact]
+    public void ABrotliSiblingIsRecoveredTheSameWay() {
+        WriteBrotli("styles.css.br", "body{color:red}");
+
+        var file = Route(Scan(), "/styles.css");
+
+        Assert.Equal("body{color:red}", Encoding.UTF8.GetString(file.Content!));
+    }
+
+    /// <summary>
+    /// A sibling beside its plain twin is dropped: the twin is authoritative, and it is compressed
+    /// here anyway.
+    /// </summary>
+    [Fact]
+    public void ASiblingBesideItsPlainTwinIsDropped() {
+        Write("app.js", "the real one");
+        WriteGZip("app.js.gz", "a stale copy");
+
+        var scan = Scan();
+
+        Assert.Single(scan.Files);
+        Assert.Equal("the real one", Encoding.UTF8.GetString(Route(scan, "/app.js").Content!));
+    }
+
+    /// <summary>A file that only looks compressed is an error rather than a silent omission.</summary>
+    [Fact]
+    public void ASiblingThatDoesNotDecompressIsAnError() {
+        Write("broken.js.gz", "this is not gzip");
+
+        var diagnostic = Assert.Single(Scan().Diagnostics, d => d.Code == "HSTATIC008");
+
+        Assert.True(diagnostic.IsError);
     }
 
     [Fact]

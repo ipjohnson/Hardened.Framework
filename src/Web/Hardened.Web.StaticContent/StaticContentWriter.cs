@@ -4,6 +4,7 @@ using System.Net;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
+using Hardened.Web.Runtime.CacheControl;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.StaticContent;
@@ -300,8 +301,32 @@ public static class StaticContentWriter {
     /// <summary>
     /// The <c>Cache-Control</c> a mount sends, or null when it sends none. Built once per mount.
     /// </summary>
-    public static string? CacheControlFor(IStaticContentConfiguration configuration) =>
-        configuration.CacheMaxAge.HasValue
-            ? $"max-age={configuration.CacheMaxAge}" + (configuration.Immutable ? ", immutable" : "")
-            : null;
+    /// <remarks>
+    /// <para>
+    /// Rendered by <see cref="CacheControlHeader"/>, which is the retrofit its own remarks describe:
+    /// this used to build the header inline and ignore <c>CacheControlType</c> entirely, so the
+    /// static path could not express <c>no-store</c>, <c>no-cache</c>, <c>public</c>,
+    /// <c>private</c> or <c>no-transform</c> at all - while the configuration carried a property
+    /// that said it could.
+    /// </para>
+    /// <para>
+    /// Null when no directive is set, so a mount that configures nothing sends no header rather
+    /// than an empty one.
+    /// </para>
+    /// </remarks>
+    public static string? CacheControlFor(IStaticContentConfiguration configuration) {
+        // No max age means the mount says nothing about caching at all, which is the contract that
+        // shipped and the one worth keeping: rendering the rest of the directives would put
+        // "public" on a response whose author configured no caching, and "public" with no freshness
+        // is a shared cache storing it under heuristics nobody chose.
+        //
+        // The cost is that no-store alone needs a max age set beside it. That is a smaller gap than
+        // the one this closes, which was every directive but max-age being unreachable.
+        if (!configuration.CacheMaxAge.HasValue) {
+            return null;
+        }
+
+        return CacheControlHeader.Format(
+            configuration.CacheControlType, configuration.CacheMaxAge.Value, configuration.Immutable);
+    }
 }

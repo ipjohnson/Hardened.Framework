@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Web.Runtime.CacheControl;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -51,6 +52,8 @@ public class StaticContentPathTraversalTests : IDisposable {
         var configuration = Substitute.For<IStaticContentConfiguration>();
         configuration.Path.Returns("wwwroot");
         configuration.CacheContent.Returns(true);
+        configuration.CacheControlType.Returns(
+            CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(false);
         configuration.CompressTextContent.Returns(false);

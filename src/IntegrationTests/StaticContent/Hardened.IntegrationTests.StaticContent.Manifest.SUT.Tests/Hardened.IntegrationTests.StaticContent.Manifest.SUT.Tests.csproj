@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="3.2.2" />
+    </ItemGroup>
+
+    <!--
+      The same assertions, against the other source. Linked rather than copied because the whole
+      claim is that the two behave alike, and two copies of the suite would drift into asserting
+      two different contracts - which is the thing this exists to prevent.
+    -->
+    <ItemGroup>
+        <Compile Include="..\Hardened.IntegrationTests.StaticContent.SUT.Tests\StaticContentTests.cs"
+                 Link="StaticContentTests.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
+      <ProjectReference Include="..\Hardened.IntegrationTests.StaticContent.Manifest.SUT\Hardened.IntegrationTests.StaticContent.Manifest.SUT.csproj" />
+    </ItemGroup>
+
+</Project>

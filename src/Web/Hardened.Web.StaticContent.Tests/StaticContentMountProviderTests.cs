@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Web.Runtime.CacheControl;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.DependencyInjection;
@@ -87,8 +88,8 @@ public class StaticContentMountProviderTests : IDisposable {
         services.TryAddSingleton<IGZipStaticContentCompressor, GZipStaticContentCompressor>();
         services.TryAddSingleton<IETagProvider, ETagProvider>();
         services.TryAddSingleton<IMemoryStreamPool, MemoryStreamPool>();
-        services.TryAddSingleton<IItemPool<MD5>>(
-            _ => new ItemPool<MD5>(MD5.Create, _ => { }, md5 => md5.Dispose()));
+        services.TryAddSingleton<IItemPool<SHA256>>(
+            _ => new ItemPool<SHA256>(SHA256.Create, _ => { }, hash => hash.Dispose()));
 
         // Never reached - every response here sets ShouldSerialize false - but IOFilterProvider
         // takes it to construct.
@@ -100,6 +101,8 @@ public class StaticContentMountProviderTests : IDisposable {
 
         configuration.Path.Returns(_staticRoot);
         configuration.CacheContent.Returns(true);
+        configuration.CacheControlType.Returns(
+            CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(true);
         configuration.CompressTextContent.Returns(false);

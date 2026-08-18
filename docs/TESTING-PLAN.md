@@ -867,3 +867,37 @@ building their project model out of evaluation rather than a build - is written 
 `Hardened.OpenApi.SourceGenerator.targets` established and its comments record, but nothing in this
 repository exercises it. It wants a project that consumes the produced package.
 
+### 12.6 Integration coverage, and the parity it exposed
+
+`Hardened.IntegrationTests.StaticContent.SUT` and `...StaticContent.Manifest.SUT` serve the same
+content directory - linked, not copied - through the real pipeline, one from the file system and one
+from a build-time manifest. They share one test file, so a claim that the two sources behave alike
+is asserted rather than assumed. This is §12.3's missing half: nothing else in the repository
+exercised the targets file, the MSBuild task, or the generated manifest reaching a compilation.
+
+Building them found five defects that unit tests could not:
+
+**Every value-typed setting on `[HardenedStaticContent]` was silently ignored.** DependencyModules
+unwraps `Nullable<T>` when it generates the module attribute, so `bool?` became `bool` and the guard
+it emits is `if (value != null)` - always true, which the generator knows, because it emits
+`#pragma warning disable CS0472` above it. `[HardenedStaticContent]` written with no arguments
+therefore turned off validators, compression, caching and ranges. The `HardenedOpenApiUi` remarks
+describe the guard as applying "only for a nullable one", which is true for a reference type and not
+for a value type. Everything but `Path` and `FallBackFile` moved to `ConfigureStaticContent`.
+
+**Both sources auto-registered against `IStaticContentSource`.** `[SingletonService(Try)]` on each
+meant two implementations of one interface with `TryAdd`, and the first emitted won - so the
+manifest was built, compiled in, and never used. Which source answers is a decision made once in
+`ConfigureServices`, not a registration race.
+
+**The manifest served hidden files the file system source refused**, making the build task the less
+safe of the two. **It also emitted `app.js.gz` as a route** rather than as `/app.js` stored
+compressed, so the sibling workflow served a deflate stream at a name nothing asks for and left
+`/app.js` answering nothing. **And it compressed below the threshold the runtime uses**, so a
+100-byte file answered `Vary` and refused ranges in one source and not the other.
+
+The remaining gap in the parity is recorded rather than fixed: neither source streams. Both call
+`File.ReadAllBytesAsync`, and nothing uses `IHttpResponseBodyFeature.SendFileAsync`, so a large
+asset is fully buffered. It needs `StaticContentEntry` to express bytes it does not hold, which the
+writer and the range path both read directly.
+
