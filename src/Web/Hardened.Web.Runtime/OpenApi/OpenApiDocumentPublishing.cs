@@ -7,7 +7,7 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// <code>
 /// [HardenedModule]
 /// [HardenedWebModule]
-/// [Enable&lt;HardenedOpenApiDocument&gt;]
+/// [Enable&lt;OpenApiDocumentPublishing&gt;]
 /// public partial class Application { }
 /// </code>
 ///
@@ -34,4 +34,4 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// </para>
 /// </summary>
 [OpenApiDocumentPath("/openapi.json")]
-public sealed class HardenedOpenApiDocument { }
+public sealed class OpenApiDocumentPublishing { }

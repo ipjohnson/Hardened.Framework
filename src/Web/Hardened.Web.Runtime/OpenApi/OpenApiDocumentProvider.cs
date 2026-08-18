@@ -73,7 +73,14 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
         _handler = new OpenApiDocumentHandler(Compress(document), path, contentType);
     }
 
+    /// <summary>What a request to this path may do, when it did something else.</summary>
+    private const string Allow = "GET, HEAD";
+
     public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context) {
+        if (!string.Equals(context.Request.Path, _path, StringComparison.Ordinal)) {
+            return null;
+        }
+
         // HEAD as well as GET. The table's usual HEAD-to-GET redirection does not reach a provider
         // serving its own chain, but WebExecutionHandlerService.Dispatch still drops the body and
         // reports the length for one - so accepting it here is all that was missing.
@@ -81,11 +88,9 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
 
         if (!string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase)) {
-            return null;
-        }
-
-        if (!string.Equals(context.Request.Path, _path, StringComparison.Ordinal)) {
-            return null;
+            // The path is checked first so a write to the document answers 405 rather than 404: the
+            // resource exists, and that distinction is what a client and a CDN both read.
+            return RequestHandlerInfo.MethodNotAllowed(Allow);
         }
 
         return new RequestHandlerInfo(_handler, PathTokenCollection.Empty);

@@ -10,16 +10,25 @@ using Hardened.Web.Runtime.OpenApi;
 namespace Hardened.IntegrationTests.WebApp.SUT;
 
 /// <remarks>
-/// <c>[Enable&lt;HardenedOpenApiDocument&gt;]</c> is what embeds the document the web generator wrote
+/// <para>
+/// <c>[Enable&lt;OpenApiDocumentPublishing&gt;]</c> is what embeds the document the web generator wrote
 /// from this application's own routes and serves it at <c>/openapi.json</c>. It replaces the
 /// registration this module used to make by hand, which had to live here rather than in
 /// <c>CreateBuilder</c> - that helper is only used by Program.cs, and the test host calls
 /// <c>PopulateServiceCollection</c> directly.
+/// </para>
+/// <para>
+/// The reference page is installed twice, at different paths, because that is the arrangement worth
+/// covering: <c>HardenedOpenApiUi</c> keys its equality on <c>Path</c> so that a service publishing
+/// several specifications gets a page for each, and nothing but a second install proves the module
+/// loads more than once.
+/// </para>
 /// </remarks>
 [HardenedModule]
 [WebLibrary(Test = "test")]
-[Enable<HardenedOpenApiDocument>]
+[Enable<OpenApiDocumentPublishing>]
 [HardenedOpenApiUi(Title = "Integration Tests")]
+[HardenedOpenApiUi(Path = "/docs/internal", Title = "Internal", DocumentPath = "/internal.json")]
 [AspNetCoreRuntime]
 public partial class Application : IServiceCollectionConfiguration {
 

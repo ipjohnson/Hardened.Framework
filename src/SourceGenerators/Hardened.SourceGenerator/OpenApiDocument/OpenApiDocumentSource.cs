@@ -13,7 +13,7 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Emitted only for an entry point that enabled <c>[Enable&lt;HardenedOpenApiDocument&gt;]</c>, so an
+/// Emitted only for an entry point that enabled <c>[Enable&lt;OpenApiDocumentPublishing&gt;]</c>, so an
 /// application that does not serve a document does not carry one. It used to be written
 /// unconditionally on the grounds that the cost was one string - which understated it, because a C#
 /// string literal lives in the assembly's <c>#US</c> heap as UTF-16 and so costs two bytes per ASCII

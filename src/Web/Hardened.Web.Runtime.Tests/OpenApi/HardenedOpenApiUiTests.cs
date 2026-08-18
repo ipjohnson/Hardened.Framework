@@ -1,3 +1,4 @@
+using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -5,31 +6,49 @@ using Xunit;
 namespace Hardened.Web.Runtime.Tests.OpenApi;
 
 /// <summary>
-/// The module's properties are nullable so that an unset one keeps its default, and that is the
-/// thing most likely to be undone by someone tidying the annotations - so it is asserted rather
-/// than commented.
+/// Two things the module has to get right, both of which look like boilerplate and are not: its
+/// properties must survive the generated attribute, and its equality decides how many pages an
+/// application can install.
 /// </summary>
-/// <remarks>
-/// DependencyModules generates the module attribute with every property defaulting to
-/// <c>default(T)</c> and copies each onto the module, guarded by a null check only for the ones
-/// declared nullable. A non-nullable <c>string</c> here would therefore be assigned null by
-/// <c>[HardenedOpenApiUi]</c> written with no arguments, and the page would render with an empty
-/// title, no document URL and no script.
-/// </remarks>
 public class HardenedOpenApiUiTests {
+
+    private static IReadOnlyList<ServiceDescriptor> Register(params HardenedOpenApiUi[] modules) {
+        var services = new ServiceCollection();
+
+        foreach (var module in modules) {
+            module.ConfigureServices(services);
+        }
+
+        return services.ToList();
+    }
 
     private static IOpenApiUiConfiguration Configure(HardenedOpenApiUi module) {
         var services = new ServiceCollection();
 
         module.ConfigureServices(services);
 
-        return services.BuildServiceProvider().GetRequiredService<IOpenApiUiConfiguration>();
+        var provider = services.BuildServiceProvider()
+            .GetServices<IWebExecutionRequestHandlerProvider>()
+            .OfType<OpenApiUiProvider>()
+            .Single();
+
+        return provider.Configuration;
     }
 
+    #region defaults
+
+    /// <remarks>
+    /// DependencyModules generates the module attribute with every property defaulting to
+    /// <c>default(T)</c> and copies each onto the module, guarded by a null check only for the ones
+    /// declared nullable. A non-nullable <c>string</c> here would be assigned null by
+    /// <c>[HardenedOpenApiUi]</c> written with no arguments - so the annotations are load-bearing,
+    /// and this is what says so.
+    /// </remarks>
     [Fact]
     public void ConfigureServices_UsesTheDefaultsWhenNothingIsSet() {
         var configuration = Configure(new HardenedOpenApiUi());
 
+        Assert.Equal(HardenedOpenApiUi.DefaultPath, configuration.Path);
         Assert.Equal(HardenedOpenApiUi.DefaultTitle, configuration.Title);
         Assert.Equal(HardenedOpenApiUi.DefaultDocumentPath, configuration.DocumentPath);
         Assert.Equal(HardenedOpenApiUi.DefaultScriptUrl, configuration.ScriptUrl);
@@ -39,31 +58,117 @@ public class HardenedOpenApiUiTests {
     [Fact]
     public void ConfigureServices_CarriesWhatWasSet() {
         var configuration = Configure(new HardenedOpenApiUi {
-            Title = "Contoso Orders",
-            DocumentPath = "/spec.yaml",
+            Path = "/docs/internal",
+            Title = "Internal",
+            DocumentPath = "/internal.json",
             ScriptUrl = "/assets/ui.js",
             ScriptIntegrity = ""
         });
 
-        Assert.Equal("Contoso Orders", configuration.Title);
-        Assert.Equal("/spec.yaml", configuration.DocumentPath);
+        Assert.Equal("/docs/internal", configuration.Path);
+        Assert.Equal("Internal", configuration.Title);
+        Assert.Equal("/internal.json", configuration.DocumentPath);
         Assert.Equal("/assets/ui.js", configuration.ScriptUrl);
         Assert.Equal("", configuration.ScriptIntegrity);
     }
 
-    /// <summary>
-    /// Null is not a value anyone can mean, because it is what "not set" looks like - so a module
-    /// constructed directly with nulls still produces a usable page rather than an empty one.
-    /// </summary>
     [Fact]
     public void ConfigureServices_FallsBackWhenAPropertyIsNulled() {
         var configuration = Configure(new HardenedOpenApiUi {
-            Title = null, DocumentPath = null, ScriptUrl = null
+            Path = null, Title = null, DocumentPath = null, ScriptUrl = null
         });
 
+        Assert.Equal(HardenedOpenApiUi.DefaultPath, configuration.Path);
         Assert.Equal(HardenedOpenApiUi.DefaultTitle, configuration.Title);
         Assert.Equal(HardenedOpenApiUi.DefaultDocumentPath, configuration.DocumentPath);
         Assert.Equal(HardenedOpenApiUi.DefaultScriptUrl, configuration.ScriptUrl);
+    }
+
+    /// <summary>
+    /// A request path always begins with a slash, so a page configured without one would match
+    /// nothing and say nothing about why.
+    /// </summary>
+    [Fact]
+    public void ConfigureServices_GivesAPathWithoutALeadingSlashOne() {
+        Assert.Equal("/docs/internal", Configure(new HardenedOpenApiUi { Path = "docs/internal" }).Path);
+    }
+
+    #endregion
+
+    #region equality, which is what decides how many pages install
+
+    /// <summary>
+    /// DependencyModules loads a module once per distinct value of its equality, so this is the whole
+    /// mechanism behind installing a page per published specification.
+    /// </summary>
+    [Fact]
+    public void Equals_TellsTwoPathsApart() {
+        Assert.NotEqual(
+            new HardenedOpenApiUi { Path = "/docs" },
+            new HardenedOpenApiUi { Path = "/docs/internal" });
+    }
+
+    /// <summary>
+    /// And treats one path as one page, however differently the two are configured. A second page at
+    /// a path already taken could not be reached in any case - providers are consulted in reverse
+    /// registration order, so it would only shadow the first.
+    /// </summary>
+    [Fact]
+    public void Equals_TreatsOnePathAsOnePageWhateverElseDiffers() {
+        Assert.Equal(
+            new HardenedOpenApiUi { Path = "/docs", Title = "One", DocumentPath = "/a.json" },
+            new HardenedOpenApiUi { Path = "/docs", Title = "Two", DocumentPath = "/b.json" });
+    }
+
+    [Fact]
+    public void Equals_HoldsForTheDefaultPathHoweverItIsSpelled() {
+        Assert.Equal(new HardenedOpenApiUi(), new HardenedOpenApiUi { Path = "docs" });
+        Assert.Equal(new HardenedOpenApiUi(), new HardenedOpenApiUi { Path = null });
+    }
+
+    [Fact]
+    public void GetHashCode_AgreesWithEquals() {
+        Assert.Equal(
+            new HardenedOpenApiUi { Path = "/docs", Title = "One" }.GetHashCode(),
+            new HardenedOpenApiUi { Path = "docs", Title = "Two" }.GetHashCode());
+
+        Assert.NotEqual(
+            new HardenedOpenApiUi { Path = "/docs" }.GetHashCode(),
+            new HardenedOpenApiUi { Path = "/other" }.GetHashCode());
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Each page holds its own configuration rather than resolving one. Several may be installed, so
+    /// a single registered <c>IOpenApiUiConfiguration</c> would be whichever module ran last and
+    /// every page would render it.
+    /// </summary>
+    [Fact]
+    public void ConfigureServices_RegistersNoSharedConfiguration() {
+        var registered = Register(
+            new HardenedOpenApiUi(),
+            new HardenedOpenApiUi { Path = "/docs/internal", Title = "Internal" });
+
+        Assert.DoesNotContain(
+            registered, service => service.ServiceType == typeof(IOpenApiUiConfiguration));
+
+        Assert.Equal(
+            2,
+            registered.Count(
+                service => service.ServiceType == typeof(IWebExecutionRequestHandlerProvider)));
+    }
+
+    /// <summary>
+    /// The controller is shared, and registered once however many pages install.
+    /// </summary>
+    [Fact]
+    public void ConfigureServices_RegistersTheControllerOnce() {
+        var registered = Register(
+            new HardenedOpenApiUi(),
+            new HardenedOpenApiUi { Path = "/docs/internal" });
+
+        Assert.Single(registered, service => service.ServiceType == typeof(OpenApiUiController));
     }
 
     /// <summary>

@@ -26,7 +26,7 @@ internal static class GeneratedOpenApiDocument {
     /// </remarks>
     public const string EnableAttribute =
         "[Hardened.Shared.Runtime.Attributes.Enable<" +
-        "Hardened.Web.Runtime.OpenApi.HardenedOpenApiDocument>]";
+        "Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]";
 
     /// <summary>The JSON the generated source carries.</summary>
     public static string Extract(string generatedSource) {

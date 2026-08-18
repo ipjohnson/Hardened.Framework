@@ -101,4 +101,37 @@ public class OpenApiUiTests {
 
         Assert.Equal(405, response.StatusCode);
     }
+
+    /// <summary>
+    /// A second page, installed alongside the first, at its own path and against its own document.
+    /// </summary>
+    /// <remarks>
+    /// This is what <c>HardenedOpenApiUi.Equals</c> being keyed on <c>Path</c> buys. DependencyModules
+    /// loads a module once per distinct value of its equality, so type-only equality - the generated
+    /// default - would have collapsed these two into one and the second page would not exist. A
+    /// service publishing several specifications wants one page for each.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ASecondPageIsServedAtItsOwnPath(ITestWebApp testWebApp) {
+        var page = await (await testWebApp.Get("/docs/internal")).ReadTextAsync();
+
+        Assert.Contains("<title>Internal</title>", page);
+        Assert.Contains("data-url=\"/internal.json\"", page);
+    }
+
+    /// <summary>
+    /// And the two do not bleed into each other. Each provider holds its own configuration, because
+    /// one registered in the container would be whichever module ran last.
+    /// </summary>
+    [HardenedTest]
+    public async Task EachPageRendersItsOwnConfiguration(ITestWebApp testWebApp) {
+        var first = await (await testWebApp.Get("/docs")).ReadTextAsync();
+        var second = await (await testWebApp.Get("/docs/internal")).ReadTextAsync();
+
+        Assert.Contains("<title>Integration Tests</title>", first);
+        Assert.Contains("data-url=\"/openapi.json\"", first);
+
+        Assert.Contains("<title>Internal</title>", second);
+        Assert.Contains("data-url=\"/internal.json\"", second);
+    }
 }

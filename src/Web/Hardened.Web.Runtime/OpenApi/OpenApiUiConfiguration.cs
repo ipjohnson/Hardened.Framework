@@ -1,9 +1,17 @@
 namespace Hardened.Web.Runtime.OpenApi;
 
 /// <summary>
-/// What the reference page is built from.
+/// One reference page: where it is served, and what it renders.
 /// </summary>
+/// <remarks>
+/// Not a registered service. An application may serve several pages - one per specification it
+/// publishes - so a single <c>IOpenApiUiConfiguration</c> in the container would be whichever module
+/// registered last. Each provider holds its own instead.
+/// </remarks>
 public interface IOpenApiUiConfiguration {
+    /// <summary>Where the page itself is served.</summary>
+    string Path { get; }
+
     /// <summary>The page title.</summary>
     string Title { get; }
 
@@ -14,8 +22,8 @@ public interface IOpenApiUiConfiguration {
     string ScriptUrl { get; }
 
     /// <summary>
-    /// The subresource integrity hash for <see cref="ScriptUrl"/>, or null when there is none to
-    /// state.
+    /// The subresource integrity hash for <see cref="ScriptUrl"/>, or null or empty when there is
+    /// none to state.
     /// </summary>
     string? ScriptIntegrity { get; }
 }
@@ -23,12 +31,15 @@ public interface IOpenApiUiConfiguration {
 /// <inheritdoc />
 public sealed class OpenApiUiConfiguration : IOpenApiUiConfiguration {
     public OpenApiUiConfiguration(
-        string title, string documentPath, string scriptUrl, string? scriptIntegrity) {
+        string path, string title, string documentPath, string scriptUrl, string? scriptIntegrity) {
+        Path = path;
         Title = title;
         DocumentPath = documentPath;
         ScriptUrl = scriptUrl;
         ScriptIntegrity = scriptIntegrity;
     }
+
+    public string Path { get; }
 
     public string Title { get; }
 

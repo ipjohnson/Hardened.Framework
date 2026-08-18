@@ -169,14 +169,22 @@ public class OpenApiDocumentProviderTests {
         Assert.NotNull(provider.GetExecutionRequestHandler(Context(method: "head")));
     }
 
+    /// <summary>
+    /// Another verb at this path is a 405 rather than a 404 - the resource exists, and a client and
+    /// a CDN both read the difference.
+    /// </summary>
     [Theory]
     [InlineData("POST")]
     [InlineData("PUT")]
     [InlineData("DELETE")]
-    public void GetExecutionRequestHandler_IgnoresEveryOtherVerb(string method) {
+    public void GetExecutionRequestHandler_ReportsWhatIsAllowedForEveryOtherVerb(string method) {
         var provider = new OpenApiDocumentProvider(Document);
 
-        Assert.Null(provider.GetExecutionRequestHandler(Context(method: method)));
+        var match = provider.GetExecutionRequestHandler(Context(method: method));
+
+        Assert.NotNull(match);
+        Assert.Null(match!.Handler);
+        Assert.Equal("GET, HEAD", match.Allow);
     }
 
     [Fact]

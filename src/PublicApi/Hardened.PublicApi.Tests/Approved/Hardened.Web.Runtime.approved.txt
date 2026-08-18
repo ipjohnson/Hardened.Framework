@@ -279,85 +279,44 @@ namespace Hardened.Web.Runtime.Health
         System.Threading.Tasks.Task<Hardened.Web.Runtime.Health.HealthCheckResult> Check(System.Threading.CancellationToken cancellationToken);
     }
 }
-namespace Hardened.Web.Runtime.OpenApi.Generated
-{
-    public class OpenApiUiController_Index_1524 : Hardened.Requests.Runtime.Execution.BaseExecutionHandler<Hardened.Web.Runtime.OpenApi.OpenApiUiController>
-    {
-        public OpenApiUiController_Index_1524(System.IServiceProvider serviceProvider) { }
-        public class Parameters : Hardened.Requests.Runtime.Execution.ExecutionRequestParameters
-        {
-            public Parameters() { }
-            public override System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Info { get; }
-            public override object this[int index] { get; set; }
-            public Hardened.Web.Runtime.OpenApi.IOpenApiUiConfiguration configuration { get; set; }
-        }
-    }
-}
 namespace Hardened.Web.Runtime.OpenApi
 {
-    [Hardened.Web.Runtime.OpenApi.OpenApiDocumentPath("/openapi.json")]
-    public sealed class HardenedOpenApiDocument
-    {
-        public HardenedOpenApiDocument() { }
-    }
-    [Hardened.Shared.Runtime.Attributes.HardenedModule]
-    [Hardened.Web.Runtime.Attributes.WebLibrary]
+    [DependencyModules.Runtime.Attributes.DependencyModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class HardenedOpenApiUi : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public const string DefaultDocumentPath = "/openapi.json";
+        public const string DefaultPath = "/docs";
         public const string DefaultScriptIntegrity = "sha384-G6dkutu2k5IYVyNESLoFIpgaHx38IJTZ/HhrwN0fecTle9te75y8Kru3rJEJ0ZJV";
         public const string DefaultScriptUrl = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.65.1/dist/browser/standalone" +
             ".js";
         public const string DefaultTitle = "API Reference";
         public HardenedOpenApiUi() { }
         public string? DocumentPath { get; set; }
+        public string? Path { get; set; }
         public string? ScriptIntegrity { get; set; }
         public string? ScriptUrl { get; set; }
         public string? Title { get; set; }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-        public Microsoft.Extensions.DependencyInjection.ServiceProvider CreateServiceProvider(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? overrideDependencies, System.Action<Microsoft.Extensions.Logging.ILoggingBuilder>? loggingBuilderAction, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? initDependencies = null) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-        public class ConfigurationProvider : Hardened.Shared.Runtime.Configuration.IConfigurationPackage
-        {
-            public ConfigurationProvider() { }
-            public System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueAmender> ConfigurationValueAmenders(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment) { }
-            public System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueProvider> ConfigurationValueProviders(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment) { }
-        }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class HardenedOpenApiUiAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public HardenedOpenApiUiAttribute() { }
         public string DocumentPath { get; set; }
+        public string Path { get; set; }
         public string ScriptIntegrity { get; set; }
         public string ScriptUrl { get; set; }
         public string Title { get; set; }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
-    public sealed class HardenedOpenApiUiLinks
-    {
-        public HardenedOpenApiUiLinks(Hardened.Requests.Abstract.Links.ILinkContext context) { }
-        public Hardened.Web.Runtime.OpenApi.HardenedOpenApiUiLinks.OpenApiUiLinks OpenApiUi { get; }
-        public sealed class OpenApiUiLinks
-        {
-            public OpenApiUiLinks(Hardened.Requests.Abstract.Links.ILinkContext context) { }
-            public string Index() { }
-            public string IndexAbsolute() { }
-        }
-    }
-    public static class HardenedOpenApiUiRoutes
-    {
-        public static class OpenApiUi
-        {
-            public static string Index() { }
-        }
-    }
     public interface IOpenApiUiConfiguration
     {
         string DocumentPath { get; }
+        string Path { get; }
         string? ScriptIntegrity { get; }
         string ScriptUrl { get; }
         string Title { get; }
@@ -374,10 +333,16 @@ namespace Hardened.Web.Runtime.OpenApi
         public OpenApiDocumentProvider(string document, string path = "/openapi.json", string contentType = "application/json") { }
         public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
+    [Hardened.Web.Runtime.OpenApi.OpenApiDocumentPath("/openapi.json")]
+    public sealed class OpenApiDocumentPublishing
+    {
+        public OpenApiDocumentPublishing() { }
+    }
     public sealed class OpenApiUiConfiguration : Hardened.Web.Runtime.OpenApi.IOpenApiUiConfiguration
     {
-        public OpenApiUiConfiguration(string title, string documentPath, string scriptUrl, string? scriptIntegrity) { }
+        public OpenApiUiConfiguration(string path, string title, string documentPath, string scriptUrl, string? scriptIntegrity) { }
         public string DocumentPath { get; }
+        public string Path { get; }
         public string? ScriptIntegrity { get; }
         public string ScriptUrl { get; }
         public string Title { get; }
@@ -385,8 +350,6 @@ namespace Hardened.Web.Runtime.OpenApi
     public class OpenApiUiController
     {
         public OpenApiUiController() { }
-        [Hardened.Requests.Abstract.Attributes.OutputAttribute<Hardened.Web.Runtime.OpenApi.OpenApiUiPage>]
-        [Hardened.Web.Runtime.Attributes.Get("/docs")]
         public Hardened.Web.Runtime.OpenApi.OpenApiUiModel Index(Hardened.Web.Runtime.OpenApi.IOpenApiUiConfiguration configuration) { }
     }
     public sealed class OpenApiUiModel : System.IEquatable<Hardened.Web.Runtime.OpenApi.OpenApiUiModel>
@@ -402,6 +365,12 @@ namespace Hardened.Web.Runtime.OpenApi
         public OpenApiUiPage() { }
         public bool SupportsContentType(string? accept, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task WriteOutput(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public class OpenApiUiProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
+    {
+        public OpenApiUiProvider(Hardened.Web.Runtime.OpenApi.IOpenApiUiConfiguration configuration, System.IServiceProvider serviceProvider) { }
+        public Hardened.Web.Runtime.OpenApi.IOpenApiUiConfiguration Configuration { get; }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
 }
 namespace Hardened.Web.Runtime.Routing

@@ -40,7 +40,7 @@ public class OpenApiRoundTripTests {
         namespace TestApp;
 
         [HardenedModule]
-        [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.HardenedOpenApiDocument>]
+        [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
         [Server("https://api.example.com", "Production")]
         [Server("https://staging.example.com")]
         public partial class TestApplication { }

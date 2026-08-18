@@ -61,7 +61,7 @@ public class OpenApiVersionGeneratorTests {
                     namespace TestApp;
 
                     [HardenedModule]
-                    [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.HardenedOpenApiDocument>]
+                    [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
                     public partial class TestApplication { }
 
                     public class UserController {

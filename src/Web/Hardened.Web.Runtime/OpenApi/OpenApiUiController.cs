@@ -1,31 +1,23 @@
-using Hardened.Requests.Abstract.Attributes;
-using Hardened.Web.Runtime.Attributes;
-
 namespace Hardened.Web.Runtime.OpenApi;
 
 /// <summary>
-/// The reference page.
+/// Turns one page's configuration into its model.
 /// </summary>
+/// <remarks>
+/// <para>
+/// No route attribute: the path is configuration, not a compile-time constant, so
+/// <see cref="OpenApiUiProvider"/> declares the route and hands this the configuration that goes
+/// with it. Stateless, and registered as a singleton for that reason.
+/// </para>
+/// <para>
+/// It is a controller rather than the provider doing this inline so the page has the same shape as
+/// any other handler - a model in, an output writing it - which is what
+/// <c>ExecutionHelper.StandardFilterEmptyParameters</c> is built to run and what makes the filter
+/// chain, conventions included, apply to it unchanged.
+/// </para>
+/// </remarks>
 public class OpenApiUiController {
 
-    /// <summary>
-    /// Renders the reference page for the document this application serves.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// No <c>[AllowAnonymous]</c>, deliberately - see <see cref="HardenedOpenApiUi"/>. It is the one
-    /// declaration an <c>IAuthorizationConvention</c> cannot narrow, and a docs page that cannot be
-    /// gated is the wrong default the first time somebody ships a private API.
-    /// </para>
-    /// <para>
-    /// The path is a constant because a route path has to be. An application's <c>[BasePath]</c>
-    /// still prefixes it, and an application that wants the page somewhere else entirely declares
-    /// its own route there - which shadows this one, because providers are consulted in reverse
-    /// registration order.
-    /// </para>
-    /// </remarks>
-    [Get("/docs")]
-    [Output<OpenApiUiPage>]
     public OpenApiUiModel Index(IOpenApiUiConfiguration configuration) =>
         new(configuration.Title,
             configuration.DocumentPath,

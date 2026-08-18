@@ -5,7 +5,7 @@ The code-first document is emitted into source rather than to a file, because a 
 not touch the file system. That is the right call for the generator and an awkward one for a linter,
 which wants JSON on disk — so this extracts it. It is emitted gzipped, so this inflates it.
 
-Requires the entry point to carry [Enable<HardenedOpenApiDocument>]. Without it no document is
+Requires the entry point to carry [Enable<OpenApiDocumentPublishing>]. Without it no document is
 generated at all, and there is nothing here to extract.
 
 Used by CI to hand the served document to Spectral. Worth doing rather than trusting a schema
@@ -46,7 +46,7 @@ def extract(source: str) -> dict:
     if not match:
         raise SystemExit(
             "no byte-array literal in the generated source — the entry point may not have "
-            "[Enable<HardenedOpenApiDocument>], without which no document is emitted"
+            "[Enable<OpenApiDocumentPublishing>], without which no document is emitted"
         )
 
     try:

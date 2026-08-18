@@ -1,76 +1,86 @@
 using DependencyModules.Runtime.Interfaces;
-using Hardened.Shared.Runtime.Attributes;
-using Hardened.Web.Runtime.Attributes;
+using DependencyModules.Runtime.Attributes;
+using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hardened.Web.Runtime.OpenApi;
 
 /// <summary>
-/// Serves an OpenAPI reference page at <c>/docs</c>.
+/// Serves an OpenAPI reference page.
 ///
 /// <code>
 /// [HardenedModule]
 /// [HardenedWebModule]
-/// [Enable&lt;HardenedOpenApiDocument&gt;]              // embeds and serves /openapi.json
-/// [HardenedOpenApiUi(Title = "Contoso Orders")]   // adds the page that reads it
+/// [Enable&lt;OpenApiDocumentPublishing&gt;]     // embeds and serves /openapi.json
+/// [HardenedOpenApiUi(Title = "Contoso Orders")]
 /// [AspNetCoreRuntime]
 /// public partial class Application { }
 /// </code>
 ///
 /// <para>
 /// Two attributes because they are two decisions. The document is worth serving on its own - it is
-/// what a client generator consumes - and the page is worthless without it. Enabling the document
+/// what a client generator consumes - and the page is worthless without one. Publishing the document
 /// and not the page is an ordinary arrangement; the reverse is not.
 /// </para>
 ///
 /// <para>
-/// <b>A route rather than a provider, which is the whole design.</b> Authorization conventions are
-/// applied in <c>ExecutionHelper.CreateFilterArray</c>, ahead of the global filter registry, and
-/// every generated handler funnels through it. A provider building its own execution chain - which
-/// is what the health endpoints and <see cref="OpenApiDocumentProvider"/> do - never reaches it, so
-/// none of them is visible to an <c>IAuthorizationConvention</c>. This is, so a convention can gate
-/// the page without the framework shipping a switch for it.
+/// <b>Install it more than once for more than one page.</b> <see cref="Equals"/> is keyed on
+/// <see cref="Path"/>, so two installs at different paths both load and two at the same path collapse
+/// into one - which is what a service publishing several specifications needs:
+/// </para>
+///
+/// <code>
+/// [HardenedOpenApiUi(Path = "/docs",          DocumentPath = "/openapi.json")]
+/// [HardenedOpenApiUi(Path = "/docs/internal", DocumentPath = "/internal.json", Title = "Internal")]
+/// public partial class Application { }
+/// </code>
+///
+/// <para>
+/// <b>Conventions apply to it.</b> The page has no generated route - a route path is a compile-time
+/// constant and this one is configuration - but <see cref="OpenApiUiProvider"/> builds its chain
+/// through <c>ExecutionHelper</c> rather than hand-rolling one, which is where authorization
+/// conventions are applied. The health endpoints and <see cref="OpenApiDocumentProvider"/> hand-roll
+/// theirs and are invisible to a convention; this is not.
 /// </para>
 ///
 /// <para>
-/// <b>There is deliberately no <c>[AllowAnonymous]</c> on the handler.</b> That is the one thing a
-/// convention cannot narrow. Without it the page inherits default-deny where default-deny is on,
-/// stays public where no authorization is configured, and is gate-able by convention everywhere
-/// else - three behaviours and nothing to configure.
+/// <b>There is deliberately no <c>[AllowAnonymous]</c>.</b> That is the one thing a convention cannot
+/// narrow. Without it the page inherits default-deny where default-deny is on, stays public where no
+/// authorization is configured, and is gate-able by convention everywhere else - three behaviours and
+/// nothing to configure.
 /// </para>
 ///
 /// <para>
-/// <b>Nothing is registered unless this attribute is applied</b>, which is what lets the page live
-/// in the core web package rather than in one of its own. It is a few hundred bytes of markup and
-/// two small classes; the UI itself is never carried here.
-/// </para>
-///
-/// <para>
-/// <b>The path is fixed.</b> Route paths are compile-time constants read from attributes, so it
-/// cannot be a property. An application's <c>[BasePath]</c> still applies, and one that wants the
-/// page elsewhere declares its own route there - which shadows this, because providers are consulted
-/// in reverse registration order. <see cref="DocumentPath"/> is a property because it is a string
-/// rendered into the page rather than a route.
+/// <b>The UI loads from a CDN under subresource integrity</b>, so no third-party asset is carried
+/// here and a swapped one fails to execute rather than running. A consumer behind a VPC, or with a
+/// <c>script-src</c> policy that will not name a CDN, points <see cref="ScriptUrl"/> at a copy the
+/// application already serves - its own <c>wwwroot</c> is enough - and sets
+/// <see cref="ScriptIntegrity"/> to the empty string.
 /// </para>
 /// </summary>
-[HardenedModule]
-[WebLibrary]
+[DependencyModule]
 public partial class HardenedOpenApiUi : IServiceCollectionConfiguration {
 
-    /// <summary>The page title. Defaults to something true of any API.</summary>
+    /// <summary>
+    /// Where the page is served. Also this module's identity - see <see cref="Equals"/>.
+    /// </summary>
     /// <remarks>
     /// Nullable, and so is every property here, because that is what makes a default survive.
     /// DependencyModules generates the module attribute with every property defaulting to
-    /// <c>default(T)</c> and copies it onto the module - guarded by a null check <em>only for a
-    /// nullable one</em>. A non-nullable <c>string</c> property would therefore be assigned null by
-    /// <c>[HardenedOpenApiUi]</c> written with no arguments, and the initializer written here would
-    /// never be seen.
+    /// <c>default(T)</c> and copies each onto the module, guarded by a null check <em>only for a
+    /// nullable one</em>. A non-nullable <c>string</c> would therefore be assigned null by
+    /// <c>[HardenedOpenApiUi]</c> written with no arguments, and the initializer here never seen.
     /// </remarks>
+    public string? Path { get; set; } = DefaultPath;
+
+    /// <summary>The page title.</summary>
     public string? Title { get; set; } = DefaultTitle;
 
     /// <summary>
-    /// Where the page fetches the document from. Matches what
-    /// <c>[Enable&lt;HardenedOpenApiDocument&gt;]</c> serves.
+    /// Where the page fetches its document from. Matches what
+    /// <c>[Enable&lt;OpenApiDocumentPublishing&gt;]</c> serves, or a specification-first
+    /// application's own registration.
     /// </summary>
     public string? DocumentPath { get; set; } = DefaultDocumentPath;
 
@@ -78,18 +88,9 @@ public partial class HardenedOpenApiUi : IServiceCollectionConfiguration {
     /// The reference UI, version-pinned, loaded by the browser rather than carried here.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Pinned because <see cref="ScriptIntegrity"/> is a hash of exact bytes, so a floating tag
-    /// could not carry one. The cost is that the UI version moves on this package's release cadence;
-    /// the benefit is that a swapped or compromised CDN asset fails to execute rather than running.
+    /// Pinned because <see cref="ScriptIntegrity"/> is a hash of exact bytes, so a floating tag could
+    /// not carry one. The cost is that the UI version moves on this package's release cadence.
     /// Override both together or neither.
-    /// </para>
-    /// <para>
-    /// A consumer behind a VPC, or with a <c>script-src</c> policy that will not name a CDN, points
-    /// this at a copy the application serves itself - its own <c>wwwroot</c> is enough, and
-    /// <c>StaticContentHandler</c> already serves it - and clears <see cref="ScriptIntegrity"/>,
-    /// which same-origin does not need.
-    /// </para>
     /// </remarks>
     public string? ScriptUrl { get; set; } = DefaultScriptUrl;
 
@@ -99,9 +100,11 @@ public partial class HardenedOpenApiUi : IServiceCollectionConfiguration {
     /// <remarks>
     /// Set it to the empty string, not null, to state that there is none - which is the right answer
     /// for a same-origin copy. Null is indistinguishable from "not set", for the reason
-    /// <see cref="Title"/> gives, and so leaves the default in place.
+    /// <see cref="Path"/> gives, and so leaves the default in place.
     /// </remarks>
     public string? ScriptIntegrity { get; set; } = DefaultScriptIntegrity;
+
+    public const string DefaultPath = "/docs";
 
     public const string DefaultTitle = "API Reference";
 
@@ -113,14 +116,61 @@ public partial class HardenedOpenApiUi : IServiceCollectionConfiguration {
     public const string DefaultScriptIntegrity =
         "sha384-G6dkutu2k5IYVyNESLoFIpgaHx38IJTZ/HhrwN0fecTle9te75y8Kru3rJEJ0ZJV";
 
+    /// <summary>
+    /// The page this module installs, as one more request handler provider.
+    /// </summary>
+    /// <remarks>
+    /// The configuration is captured by the provider rather than registered. Several pages may be
+    /// installed, so a single <c>IOpenApiUiConfiguration</c> in the container would be whichever
+    /// module ran last, and every page would render the same one.
+    /// </remarks>
     public void ConfigureServices(IServiceCollection services) {
-        // Coalesced rather than trusted. The properties are nullable so that an unset one keeps its
-        // default, which leaves null reachable here for anyone constructing the module directly.
-        services.AddSingleton<IOpenApiUiConfiguration>(
-            new OpenApiUiConfiguration(
-                Title ?? DefaultTitle,
-                DocumentPath ?? DefaultDocumentPath,
-                ScriptUrl ?? DefaultScriptUrl,
-                ScriptIntegrity));
+        // Stateless, and resolved once per request by the instance filter - so a singleton, and
+        // Try because every installed page shares the one type.
+        services.TryAddSingleton<OpenApiUiController>();
+
+        var configuration = new OpenApiUiConfiguration(
+            NormalisePath(Path ?? DefaultPath),
+            Title ?? DefaultTitle,
+            DocumentPath ?? DefaultDocumentPath,
+            ScriptUrl ?? DefaultScriptUrl,
+            ScriptIntegrity);
+
+        services.AddSingleton<IWebExecutionRequestHandlerProvider>(
+            serviceProvider => new OpenApiUiProvider(configuration, serviceProvider));
     }
+
+    /// <summary>
+    /// A request path always begins with a slash, so a page configured as <c>"docs"</c> would match
+    /// nothing and report nothing.
+    /// </summary>
+    private static string NormalisePath(string path) =>
+        path.StartsWith('/') ? path : "/" + path;
+
+    /// <summary>
+    /// Two installations are the same page when they are served from the same path.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// DependencyModules loads a module once per distinct value of its equality, so this is what
+    /// makes several pages installable - one per specification an application publishes - while
+    /// still collapsing a path installed twice into a single route rather than registering two
+    /// providers that answer it.
+    /// </para>
+    /// <para>
+    /// Keyed on the path alone rather than on the whole configuration, deliberately. Two pages at one
+    /// path differing only in title is a mistake, not a request for two pages, and the second cannot
+    /// be reached in any case: providers are consulted in reverse registration order, so it would
+    /// simply shadow the first.
+    /// </para>
+    /// </remarks>
+    public override bool Equals(object? obj) =>
+        obj is HardenedOpenApiUi other &&
+        string.Equals(
+            NormalisePath(other.Path ?? DefaultPath),
+            NormalisePath(Path ?? DefaultPath),
+            StringComparison.Ordinal);
+
+    public override int GetHashCode() =>
+        NormalisePath(Path ?? DefaultPath).GetHashCode(StringComparison.Ordinal);
 }
