@@ -225,8 +225,33 @@ public class RouteConstraintTests {
     }
 
     /// <summary>
-    /// The ranks that carry an argument. Narrower first, and the ordering that matters is between
-    /// pairs a route can actually put at one position.
+    /// Every arm of the rank table, so a name whose rank was never asserted cannot drift. The
+    /// numbers are the specification — they decide which handler a request reaches once alternatives
+    /// exist — so they are pinned rather than sampled.
+    /// </summary>
+    [Theory]
+    [InlineData("guid", 10)]
+    [InlineData("date", 15)]
+    [InlineData("datetime", 15)]
+    [InlineData("bool", 20)]
+    [InlineData("int", 30)]
+    [InlineData("min", 32)]
+    [InlineData("max", 32)]
+    [InlineData("range", 32)]
+    [InlineData("long", 35)]
+    [InlineData("decimal", 40)]
+    [InlineData("hex", 50)]
+    [InlineData("alpha", 60)]
+    [InlineData("slug", 70)]
+    [InlineData("length", 80)]
+    [InlineData("minlength", 80)]
+    [InlineData("maxlength", 80)]
+    public void TheRankTableIsWhatItSays(string constraint, int rank) {
+        Assert.Equal(rank, RouteConstraintFacts.Rank(constraint));
+    }
+
+    /// <summary>
+    /// The ordering that matters is between pairs a route can actually put at one position.
     /// </summary>
     [Theory]
     [InlineData("guid", "int")]

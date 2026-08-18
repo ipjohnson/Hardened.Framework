@@ -60,8 +60,19 @@ public static class RouteConstraints {
     public static bool IsBool(ReadOnlySpan<char> value) =>
         bool.TryParse(value, out _);
 
+    /// <summary>A sign and a decimal point, and nothing else.</summary>
+    /// <remarks>
+    /// Not <see cref="NumberStyles.Number"/>, which allows thousands separators: under the invariant
+    /// culture that made <c>4,5</c> parse as 45 and <c>1,000</c> as 1000, so a resource had several
+    /// URLs for one value. The same canonicality rule <see cref="IsSlug"/> follows, for the same
+    /// reason.
+    /// </remarks>
     public static bool IsDecimal(ReadOnlySpan<char> value) =>
-        decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out _);
+        decimal.TryParse(
+            value,
+            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+            CultureInfo.InvariantCulture,
+            out _);
 
     /// <summary>An ISO 8601 calendar date - <c>yyyy-MM-dd</c>, and nothing else.</summary>
     /// <remarks>

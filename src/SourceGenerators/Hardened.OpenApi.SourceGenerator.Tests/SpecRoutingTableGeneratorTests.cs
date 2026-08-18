@@ -251,6 +251,35 @@ public class SpecRoutingTableGeneratorTests {
         Assert.DoesNotContain("!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsGuid(", result);
     }
 
+    /// <summary>
+    /// A token names at least one character, so <c>/pets/</c> is not a match for
+    /// <c>/pets/{petId}</c>. The attribute-routed table has guarded this since 2026-08-16; this one
+    /// did not, so an empty segment bound <c>""</c> and came back 400 from the binder — telling a
+    /// client it addressed a real endpoint incorrectly about a URL that addresses no endpoint.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_RejectsAnEmptyTokenAtTheEndOfARoute() {
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreatePetstoreHandlers(), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        Assert.Contains("charSpan.Length <= index", result);
+    }
+
+    /// <summary>
+    /// And mid-path the scan has to have consumed something, or it accepts a boundary at the
+    /// position it started from — which let <c>//tags</c> match <c>/{petId}/tags</c> with the token
+    /// bound to <c>""</c>. The same defect as above, at the other position.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_RejectsAnEmptyTokenInTheMiddleOfARoute() {
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        Assert.Contains("currentIndex > index", result);
+    }
+
     /// <summary>An unconstrained token emits no test, so the common route pays nothing.</summary>
     [Fact]
     public void GenerateCSharpRouteFile_EmitsNoConstraintWhenTheTokenDeclaresNone() {

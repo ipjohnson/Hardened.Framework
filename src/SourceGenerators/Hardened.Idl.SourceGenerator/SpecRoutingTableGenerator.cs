@@ -475,6 +475,15 @@ internal static class SpecRoutingTableGenerator {
 
         var pathCheck = CreatePathIfStatement(span, wildCardNode.Path, cancellationToken, currentIndex.Name);
 
+        // The token has to have consumed something. Without this the scan accepts a boundary at the
+        // position it started from, which is what let //items match /{id}/items with id bound to ""
+        // - the same defect the terminal case had at the end of a path. First in the conjunction
+        // because it is an integer compare and the rest is character work.
+        pathCheck = new[] {
+                (IOutputComponent)CodeOutputComponent.Get($"{currentIndex.Name} > {index.Name}")
+            }
+            .Concat(pathCheck).ToList();
+
         // Part of whether the token matched, not something checked afterwards: failing it has to
         // leave the scan free to try the next boundary, exactly as a literal mismatch does.
         var constraintCheck = ConstraintTest(
@@ -554,6 +563,12 @@ internal static class SpecRoutingTableGenerator {
         ParameterDefinition span,
         ParameterDefinition index) {
         if (wildCardNode.LeafNodes.Count > 0) {
+            // A token names at least one character. Nothing is left to name when the path ended on
+            // the separator, so /collection/ is not a match for /collection/{id}. It bound id to ""
+            // and came back 400 from the binder, which tells a client it addressed a real endpoint
+            // incorrectly about a URL that addresses no endpoint at all. 404 is the truthful answer.
+            wildCardMethod.If($"{span.Name}.Length <= {index.Name}").Return(Null());
+
             // A token that ends the route takes the rest of the path as its value, so without this
             // the route matches paths deeper than the document declares: /users/{id} answered
             // /users/42/anything/at/all. An OpenAPI template means one segment, and this is the
