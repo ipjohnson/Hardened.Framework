@@ -297,7 +297,7 @@ public class SpecRoutingTableGeneratorTests {
     private static string Generate(string constraint) =>
         SpecRoutingTableGenerator.GenerateCSharpRouteFile(
             CreateAppModel(), CreateChainedHandlers(constraint), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<string>.Empty, CancellationToken.None);
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
     /// <summary>Arguments reach the emitted call as literals.</summary>
     [Theory]
