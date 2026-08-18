@@ -27,10 +27,17 @@
         The generator half. Both front ends depend on this same package, so a project using Smithy
         and OpenAPI together resolves exactly one analyzer - which packing the DLL into each front
         end would not give.
+
+        Deliberately without ReferenceOutputAssembly="false", unlike the build task below: pack
+        omits a project reference carrying it from the nuspec dependency group, which is how the
+        OpenAPI front end shipped a release with no generator behind it. PrivateAssets="none"
+        because the default would write exclude="Build,Analyzers" onto the dependency, and an
+        analyzer package whose analyzer assets are excluded is restored and never run. See the note
+        on the same reference in Hardened.OpenApi.SourceGenerator.csproj.
     -->
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Idl.SourceGenerator\Hardened.Idl.SourceGenerator.csproj"
-                          ReferenceOutputAssembly="false"/>
+                          PrivateAssets="none"/>
     </ItemGroup>
 
     <!--

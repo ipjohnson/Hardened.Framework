@@ -54,6 +54,27 @@
             <PackagePath>src\Hardened.SourceGenerator\</PackagePath>
             <PackageCopyToOutput>true</PackageCopyToOutput>
         </Content>
+
+        <!--
+            Packed separately because the glob above cannot reach it: it matches relative to this
+            project directory, and GZipLiteral.cs lives outside it. The <Compile> link above is
+            enough to build this assembly, so the omission is invisible in this repository - but
+            this package ships as source, and OpenApiDocument/OpenApiDocumentSource.cs opens with
+            `using Hardened.Idl;`. A consumer that sets PackageHardenedIncludeSource=true compiles
+            src/**/*.cs from the package and nothing else, so without this the only file defining
+            that namespace is absent and the consumer fails with
+
+              OpenApiDocument/OpenApiDocumentSource.cs(3,16): error CS0234: The type or namespace
+                name 'Idl' does not exist in the namespace 'Hardened'
+
+            Hardened.Amz 0.8.0-rc1000 is where that surfaced. PackagePath matches the <Compile>
+            Link, so the file lands where the shipped source expects it.
+        -->
+        <Content Include="../Hardened.Idl.Shared/GZipLiteral.cs">
+            <Pack>true</Pack>
+            <PackagePath>src\Hardened.SourceGenerator\Shared\</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
     </ItemGroup>
 
     <!--
