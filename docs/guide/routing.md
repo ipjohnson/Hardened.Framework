@@ -102,18 +102,36 @@ public User ById(int id) => _users.Find(id);
 they say different things: `400` means you addressed a real endpoint incorrectly, `404` means there
 is no resource at that URL. The constraint also rejects the value before any filter or binder runs.
 
-| Constraint | Matches |
-|---|---|
-| `int` | a 32-bit integer |
-| `long` | a 64-bit integer |
-| `guid` | a GUID in any of the forms `Guid.TryParse` accepts |
-| `bool` | `true` or `false` |
+| Constraint | Matches | Rank |
+|---|---|---|
+| `guid` | a GUID in any of the forms `Guid.TryParse` accepts | 10 |
+| `date` | an ISO 8601 date — `yyyy-MM-dd` | 15 |
+| `datetime` | an ISO 8601 date and time | 15 |
+| `bool` | `true` or `false` | 20 |
+| `int` | a 32-bit integer | 30 |
+| `long` | a 64-bit integer | 35 |
+| `decimal` | a decimal number | 40 |
+| `hex` | `^[0-9a-fA-F]+$` — a hash, a sha, a request id | 50 |
+| `alpha` | `^[A-Za-z]+$` | 60 |
+| `slug` | `^[a-z0-9]+(-[a-z0-9]+)*$` | 70 |
 
-Parsing is invariant, so the same request matches on every machine.
+Parsing is invariant, so the same request matches on every machine. `date` and `datetime` are ISO
+8601 *only* — not `DateTime.TryParse`, which accepts a large and culture-sensitive grammar. A URL is
+the same string in every locale, and a route that matched `12/06/2026` while disagreeing about which
+number was the month would behave differently on different machines.
+
+A slug is a canonical form, so a leading, trailing or doubled hyphen does not match, and neither does
+upper case. Several URLs for one resource is the thing a slug exists to avoid.
+
+**Rank** decides which constraint is tried first where two could match the same segment — lower is
+narrower. The numbers are declared rather than derived, because this vocabulary mostly overlaps: a
+lower-case GUID is a valid slug, `hex` overlaps both `int` and `alpha`, and `123` is a perfectly good
+slug. An order you can look up beats one you have to work out.
 
 The list is short on purpose. The rule is not "what can we convert" but "what can be tested on a
-`ReadOnlySpan<char>` without allocating" — a constraint runs on every request that reaches the
-position it guards, including the ones it rejects.
+`ReadOnlySpan<char>` without allocating, and expressed in the contract" — a constraint runs on every
+request that reaches the position it guards, including the ones it rejects, and a matching rule the
+served document cannot describe is one a client has no way to know about.
 
 **Use `:int` when the segment is an identifier and a wrong value means "no such URL". Leave it off
 when the value is input being validated and `400` is the honest answer.**
@@ -127,6 +145,26 @@ public static bool IsIsbn(ReadOnlySpan<char> value) => …
 
 and then `[Get("/books/{code:isbn}")]`. The generator emits a direct static call — no allocation, no
 reflection, no registry, nothing to look up per request.
+
+A declared constraint ranks 90 — after every built-in — which is the answer that cannot make an
+existing route unreachable when you add one.
+
+For a shape a character loop cannot express, `[GeneratedRegex]` works here and costs nothing per
+request:
+
+```csharp
+[RouteConstraint("isbn")]
+public static bool IsIsbn(ReadOnlySpan<char> value) => Isbn().IsMatch(value);
+
+[GeneratedRegex(@"^\d{13}$")]
+private static partial Regex Isbn();
+```
+
+The regex is compiled at build time and `IsMatch(ReadOnlySpan<char>)` allocates nothing. There is no
+`{code:regex(...)}` form, deliberately: a source generator cannot emit `[GeneratedRegex]` — its
+output is not in the compilation the regex generator reads — so a regex written in a route template
+could only fall back to a runtime `Regex`, which costs several hundred kilobytes on a native AOT
+publish. Written here, in your own compilation, it is a normal compiled regex.
 
 The signature is the rule rather than a preference, for the same reason the built-in list is short.
 A method that is not a `static bool(ReadOnlySpan<char>)` is a build error, and so is a constraint
