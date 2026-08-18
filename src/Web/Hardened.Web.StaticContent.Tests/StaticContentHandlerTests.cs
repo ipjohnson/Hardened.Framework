@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Web.Runtime.CacheControl;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
@@ -85,6 +86,8 @@ public class StaticContentHandlerTests : IDisposable {
 
         configuration.Path.Returns(path ?? _staticRoot);
         configuration.CacheContent.Returns(true);
+        configuration.CacheControlType.Returns(
+            CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(true);
         configuration.CompressTextContent.Returns(false);
@@ -104,7 +107,7 @@ public class StaticContentHandlerTests : IDisposable {
                 Options.Create(configuration),
                 mimeHelper,
                 new GZipStaticContentCompressor(new MemoryStreamPool()),
-                new ETagProvider(new TestMD5Pool()),
+                new ETagProvider(new TestHashPool()),
                 NullLogger<FileSystemContentSource>.Instance),
             configuration);
     }
@@ -319,19 +322,31 @@ public class StaticContentHandlerTests : IDisposable {
     }
 
     /// <summary>
-    /// A fallback file that does not exist is a configuration error, and it is raised as one on
-    /// the first request rather than recursing. Returning false instead would turn every unknown
-    /// path into a 404 and hide the misconfiguration.
+    /// A fall back file that does not exist is reported once and then disabled, so unknown paths
+    /// answer 404 rather than the application shell.
+    ///
+    /// <para>
+    /// It used to throw, on every request that reached it, forever - so a typo turned every 404
+    /// into a 500 and looked like the application was broken rather than like a setting was wrong.
+    /// The version of this that fails before anything is deployed is HSTATIC005, which the build
+    /// task raises when it cannot find the file.
+    /// </para>
     /// </summary>
     [Fact]
-    public async Task AFallbackFileThatDoesNotExistIsReportedRatherThanIgnored() {
-        var (context, _, _, _) = Context("/app/deep/route");
+    public async Task AFallbackFileThatDoesNotExistIsDisabledRatherThanThrown() {
+        WriteFile("real.txt", "real");
 
         var handler = Handler(configuration => configuration.FallBackFile.Returns("/missing.html"));
 
-        var exception = await Assert.ThrowsAsync<Exception>(() => handler.Handle(context));
+        var (context, _, _, _) = Context("/app/deep/route");
 
-        Assert.Contains("missing.html", exception.Message);
+        Assert.False(await handler.Handle(context));
+
+        // And the mount still serves what it does have.
+        var (real, body, _, _) = Context("/real.txt");
+
+        Assert.True(await handler.Handle(real));
+        Assert.Equal("real", Served(body));
     }
 
     /// <summary>
@@ -421,7 +436,7 @@ public class StaticContentHandlerTests : IDisposable {
         var handler = Handler(configuration => configuration.CacheMaxAge.Returns(3600));
 
         Assert.True(await handler.Handle(context));
-        Assert.Equal("max-age=3600", headers[KnownHeaders.CacheControl].ToString());
+        Assert.Equal("public, max-age=3600", headers[KnownHeaders.CacheControl].ToString());
     }
 
     /// <summary>
@@ -440,7 +455,7 @@ public class StaticContentHandlerTests : IDisposable {
         });
 
         Assert.True(await handler.Handle(context));
-        Assert.Equal("max-age=31536000, immutable", headers[KnownHeaders.CacheControl].ToString());
+        Assert.Equal("public, max-age=31536000, immutable", headers[KnownHeaders.CacheControl].ToString());
     }
 
     /// <summary>No configured max age means no Cache-Control header at all, not an empty one.</summary>
@@ -562,7 +577,7 @@ public class StaticContentHandlerTests : IDisposable {
                 Options.Create(configuration),
                 mimeHelper,
                 new GZipStaticContentCompressor(new MemoryStreamPool()),
-                new ETagProvider(new TestMD5Pool()),
+                new ETagProvider(new TestHashPool()),
                 NullLogger<FileSystemContentSource>.Instance),
             configuration);
 
@@ -709,7 +724,8 @@ public class StaticContentHandlerTests : IDisposable {
         Assert.Empty(body.ToArray());
 
         Assert.Equal(etag, headers[KnownHeaders.ETag].ToString());
-        Assert.Equal("max-age=31536000, immutable", headers[KnownHeaders.CacheControl].ToString());
+        Assert.Equal(
+            "public, max-age=31536000, immutable", headers[KnownHeaders.CacheControl].ToString());
         Assert.Equal(KnownHeaders.AcceptEncoding, headers[KnownHeaders.Vary].ToString());
     }
 

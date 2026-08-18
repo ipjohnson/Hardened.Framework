@@ -10,7 +10,7 @@ namespace Hardened.Web.StaticContent.Tests;
 /// </summary>
 public class ETagProviderTests {
 
-    private static ETagProvider Provider() => new(new TestMD5Pool());
+    private static ETagProvider Provider() => new(new TestHashPool());
 
     [Fact]
     public void TheSameContentAlwaysProducesTheSameETag() {
@@ -66,14 +66,20 @@ public class ETagProviderTests {
     }
 
     /// <summary>
-    /// The tag is base64 of the raw MD5, which is 16 bytes and therefore always 24 characters
+    /// The tag is base64 of a raw SHA-256, which is 32 bytes and therefore always 44 characters
     /// with a single pad. The length is worth pinning because the value travels in a header.
+    ///
+    /// <para>
+    /// SHA-256 rather than MD5, and not for collision resistance - a validator is opaque and any
+    /// hash would do. <c>MD5.Create()</c> throws outright on a FIPS-enforcing host, which would
+    /// take the static content path down on its first request rather than degrade.
+    /// </para>
     /// </summary>
     [Fact]
-    public void TheETagIsBase64OfTheSixteenByteHash() {
+    public void TheETagIsBase64OfTheThirtyTwoByteHash() {
         var etag = Provider().GenerateETag("content"u8.ToArray());
 
-        Assert.Equal(24, etag.Length);
-        Assert.Equal(16, Convert.FromBase64String(etag).Length);
+        Assert.Equal(44, etag.Length);
+        Assert.Equal(32, Convert.FromBase64String(etag).Length);
     }
 }

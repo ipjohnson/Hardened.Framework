@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Web.Runtime.CacheControl;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
@@ -72,6 +73,8 @@ public class ManifestContentSourceTests : IDisposable {
 
         configuration.Path.Returns(_staticRoot);
         configuration.CacheContent.Returns(true);
+        configuration.CacheControlType.Returns(
+            CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(true);
         configuration.CompressTextContent.Returns(false);

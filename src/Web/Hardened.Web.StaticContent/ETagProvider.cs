@@ -9,18 +9,22 @@ public interface IETagProvider {
 }
 
 [SingletonService(Using = RegistrationType.Try)]
+/// <remarks>
+/// SHA-256 rather than MD5. The value is opaque and any hash would serve as a validator, so the
+/// choice looks free - but <c>MD5.Create()</c> throws outright on a FIPS-enforcing host, which
+/// would take the static content path down on its first request rather than degrade. The build task
+/// already hashes with SHA-256; this is the same decision on the side that reads a directory.
+/// </remarks>
 public class ETagProvider : IETagProvider {
-    private readonly IItemPool<MD5> _md5Pool;
+    private readonly IItemPool<SHA256> _hashPool;
 
-    public ETagProvider(IItemPool<MD5> md5Pool) {
-        _md5Pool = md5Pool;
+    public ETagProvider(IItemPool<SHA256> hashPool) {
+        _hashPool = hashPool;
     }
 
     public string GenerateETag(byte[] content) {
-        using var md5Rental = _md5Pool.Get();
+        using var rental = _hashPool.Get();
 
-        var hashBytes = md5Rental.Item.ComputeHash(content);
-
-        return Convert.ToBase64String(hashBytes);
+        return Convert.ToBase64String(rental.Item.ComputeHash(content));
     }
 }

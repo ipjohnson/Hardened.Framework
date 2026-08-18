@@ -187,6 +187,18 @@ public class BuildStaticContentManifestTests : IDisposable {
         Assert.False(File.Exists(_output));
     }
 
+    /// <summary>
+    /// A directory the scan cannot even look at fails the build with a code, rather than escaping
+    /// as an unhandled exception with an MSBuild stack trace in it.
+    /// </summary>
+    [Fact]
+    public void ADirectoryThatCannotBeReadFailsWithACode() {
+        var (result, engine, _) = Run(contentDirectory: "");
+
+        Assert.False(result);
+        Assert.Equal("HSTATIC000", Assert.Single(engine.Errors).Code);
+    }
+
     #endregion
 
     #region what it reports

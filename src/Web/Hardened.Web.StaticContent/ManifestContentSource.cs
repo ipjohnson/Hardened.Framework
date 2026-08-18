@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Utilities;
 using Microsoft.Extensions.Logging;
@@ -24,7 +23,13 @@ namespace Hardened.Web.StaticContent;
 /// source's cache, which is bounded by what clients ask for.
 /// </para>
 /// </remarks>
-[SingletonService(Using = RegistrationType.Try)]
+/// <remarks>
+/// <b>Deliberately not <c>[SingletonService]</c>.</b> Both sources implement
+/// <c>IStaticContentSource</c>, so auto-registering them registered two implementations of one
+/// interface with <c>TryAdd</c> - and the first one emitted won, silently, whatever the application
+/// had. Which source answers is a decision, made once in
+/// <c>HardenedStaticContent.ConfigureServices</c> from whether the build produced a manifest.
+/// </remarks>
 public class ManifestContentSource : IStaticContentSource {
     private readonly IStaticContentManifest _manifest;
     private readonly IStaticContentConfiguration _configuration;
