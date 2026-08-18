@@ -16,6 +16,16 @@ public class KnownContentType {
     public static StringValues CssStringValues = new StringValues(Css);
 
     /// <summary>
+    /// An HTML form post: <c>name=value&amp;name=value</c>, with a space encoded as <c>+</c>.
+    /// </summary>
+    /// <remarks>
+    /// The same wire format as a query string, and the <c>+</c> is the difference that matters -
+    /// see <c>UrlEncodedParser</c>.
+    /// </remarks>
+    public const string FormUrlEncoded = "application/x-www-form-urlencoded";
+    public static StringValues FormUrlEncodedStringValues = new StringValues(FormUrlEncoded);
+
+    /// <summary>
     /// Newline-delimited JSON: one document per line, separated by <c>0x0A</c>.
     /// </summary>
     /// <remarks>

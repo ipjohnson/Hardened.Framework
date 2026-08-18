@@ -62,6 +62,7 @@ namespace Hardened.Web.AspNetCore.Runtime.Impl
         public string Path { get; }
         public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
         public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
     }
     public class AspNetExecutionResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
@@ -86,6 +87,12 @@ namespace Hardened.Web.AspNetCore.Runtime.Impl
     {
         public AspNetResourceNotFoundHandler() { }
         public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public sealed class AspNetTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    {
+        public AspNetTransportInfo(Microsoft.AspNetCore.Http.HttpRequest request) { }
+        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        public string? Get(string key) { }
     }
     public interface IAspNetCoreRequestHandler
     {

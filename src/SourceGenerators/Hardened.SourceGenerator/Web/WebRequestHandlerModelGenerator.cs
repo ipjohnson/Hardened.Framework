@@ -188,6 +188,13 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
                         return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
                             ParameterBindType.Cookie, cookieName,parameterIndex);
 
+                    case "FromForm":
+                        var formName =
+                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
+
+                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
+                            ParameterBindType.Form, formName, parameterIndex);
+
                     case "FromQueryString":
                         var queryName =
                             attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
