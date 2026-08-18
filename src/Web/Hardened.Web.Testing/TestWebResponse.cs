@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using System.Text;
 using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -36,28 +37,65 @@ public class TestWebResponse {
     }
 
     public T Deserialize<T>() {
-        if (Headers.TryGetValue(KnownHeaders.ContentEncoding, out var contentEncoding)) {
-            if (contentEncoding.Contains(KnownEncoding.GZip)) {
-                using var gzipStream = new GZipStream(Body, CompressionMode.Decompress, true);
+        var decoded = Decode();
 
-                return System.Text.Json.JsonSerializer.Deserialize<T>(gzipStream,
-                           new JsonSerializerOptions(JsonSerializerDefaults.Web)) ??
-                       throw new Exception("Could not deserialize response");
+        try {
+            return System.Text.Json.JsonSerializer.Deserialize<T>(decoded,
+                       new JsonSerializerOptions(JsonSerializerDefaults.Web)) ??
+                   throw new Exception("Could not deserialize response");
+        }
+        finally {
+            if (!ReferenceEquals(decoded, Body)) {
+                decoded.Dispose();
             }
+        }
+    }
 
-            if (contentEncoding.Contains(KnownEncoding.Br)) {
-                using var brStream = new BrotliStream(Body, CompressionMode.Decompress, true);
+    /// <summary>
+    /// The whole body as text, with <c>Content-Encoding</c> undone.
+    /// </summary>
+    /// <remarks>
+    /// <c>TestWebApp</c> sends <c>Accept-Encoding: gzip</c> on every request, so a handler that
+    /// honours it answers compressed and a test reading <see cref="Body"/> directly gets the gzip
+    /// magic number rather than its content. That is what a real client would receive too - it just
+    /// decompresses before anyone sees it. <see cref="Deserialize{T}"/> already did this for JSON;
+    /// this is the same for anything that is not - a YAML specification, a rendered page.
+    /// </remarks>
+    public async Task<string> ReadTextAsync() {
+        Body.Position = 0;
 
-                return System.Text.Json.JsonSerializer.Deserialize<T>(brStream,
-                           new JsonSerializerOptions(JsonSerializerDefaults.Web)) ??
-                       throw new Exception("Could not deserialize response");
+        var decoded = Decode();
+
+        try {
+            using var reader = new StreamReader(decoded, Encoding.UTF8, leaveOpen: true);
+
+            return await reader.ReadToEndAsync();
+        }
+        finally {
+            if (!ReferenceEquals(decoded, Body)) {
+                decoded.Dispose();
             }
+        }
+    }
 
-            throw new BadContentEncodingException(contentEncoding.ToString());
+    /// <summary>
+    /// <see cref="Body"/> with any content coding undone, or <see cref="Body"/> itself when there is
+    /// none. The caller disposes the result only when it is not <see cref="Body"/>, which the
+    /// response still owns.
+    /// </summary>
+    private Stream Decode() {
+        if (!Headers.TryGetValue(KnownHeaders.ContentEncoding, out var contentEncoding)) {
+            return Body;
         }
 
-        return System.Text.Json.JsonSerializer.Deserialize<T>(Body,
-                   new JsonSerializerOptions(JsonSerializerDefaults.Web)) ??
-               throw new Exception("Could not deserialize response");
+        if (contentEncoding.Contains(KnownEncoding.GZip)) {
+            return new GZipStream(Body, CompressionMode.Decompress, true);
+        }
+
+        if (contentEncoding.Contains(KnownEncoding.Br)) {
+            return new BrotliStream(Body, CompressionMode.Decompress, true);
+        }
+
+        throw new BadContentEncodingException(contentEncoding.ToString());
     }
 }

@@ -73,7 +73,12 @@ public class TestWebApp : TestContext, ITestWebApp {
             httpMethod, path, webRequest, responseBody, scope,
             metricLoggerProvider.CreateLogger("test-session"));
 
-        context.Request.Headers[KnownHeaders.AcceptEncoding]= KnownEncoding.GZip;
+        // A default rather than an override. It used to be assigned unconditionally, after the
+        // caller's own configuration had run, so a test setting this header had it silently
+        // replaced - which made the uncompressed path of any handler that honours it untestable.
+        if (!context.Request.Headers.ContainsKey(KnownHeaders.AcceptEncoding)) {
+            context.Request.Headers[KnownHeaders.AcceptEncoding] = KnownEncoding.GZip;
+        }
 
         if (bodyValue != null && string.IsNullOrEmpty(context.Request.ContentType)) {
             context.Request.Headers[KnownHeaders.ContentType] = KnownContentType.Js;

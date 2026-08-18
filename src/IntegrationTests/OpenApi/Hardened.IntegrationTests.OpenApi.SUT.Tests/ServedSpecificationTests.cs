@@ -1,4 +1,3 @@
-using System.Text;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
@@ -28,10 +27,7 @@ public class ServedSpecificationTests {
 
         response.Assert.Ok();
 
-        response.Body.Position = 0;
-        using var reader = new StreamReader(response.Body, Encoding.UTF8, leaveOpen: true);
-
-        Assert.Equal(PetstoreSpecification.Document, await reader.ReadToEndAsync());
+        Assert.Equal(PetstoreSpecification.Document, await response.ReadTextAsync());
     }
 
     /// <summary>
@@ -57,9 +53,6 @@ public class ServedSpecificationTests {
     public async Task AYamlCommentReachesTheWire(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/openapi.yaml");
 
-        response.Body.Position = 0;
-        using var reader = new StreamReader(response.Body, Encoding.UTF8, leaveOpen: true);
-
-        Assert.Contains("# This comment is load-bearing.", await reader.ReadToEndAsync());
+        Assert.Contains("# This comment is load-bearing.", await response.ReadTextAsync());
     }
 }

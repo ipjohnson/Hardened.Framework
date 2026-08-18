@@ -84,22 +84,27 @@ public static class RoutingTableGenerator {
 
         var documentVersion = version ?? OpenApiVersionFacts.Default;
 
-        // A streamed response has no spelling before 3.2, so the document is emitted without one
-        // and the handler is named rather than the omission being silent.
-        if (!OpenApiVersionFacts.SupportsItemSchema(documentVersion)) {
-            foreach (var handler in routable) {
-                if (handler.ResponseInformation.IsAsyncEnumerable) {
-                    OpenApiVersionDiagnostics.ReportStreamNeedsItemSchema(
-                        context,
-                        handler.ControllerType.Name + "." + handler.HandlerMethod,
-                        documentVersion);
+        // Only for an entry point that asked. The document used to be emitted unconditionally on
+        // the grounds that it cost one string, which understated it - see OpenApiDocumentSource -
+        // and an application that does not serve one now does not carry one.
+        if (OpenApiDocumentFeature.Path(models.Left) != null) {
+            // A streamed response has no spelling before 3.2, so the document is emitted without one
+            // and the handler is named rather than the omission being silent.
+            if (!OpenApiVersionFacts.SupportsItemSchema(documentVersion)) {
+                foreach (var handler in routable) {
+                    if (handler.ResponseInformation.IsAsyncEnumerable) {
+                        OpenApiVersionDiagnostics.ReportStreamNeedsItemSchema(
+                            context,
+                            handler.ControllerType.Name + "." + handler.HandlerMethod,
+                            documentVersion);
+                    }
                 }
             }
-        }
 
-        context.AddSource(
-            models.Left.EntryPointType.Name + ".OpenApiDocument",
-            OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left), documentVersion));
+            context.AddSource(
+                models.Left.EntryPointType.Name + ".OpenApiDocument",
+                OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left), documentVersion));
+        }
 
         // From the same models the table came from, and unconditionally: links have no third-party
         // dependency, and the common case is an API with no views that still wants them for
@@ -191,6 +196,8 @@ public static class RoutingTableGenerator {
 
         RegisterLinks(diMethod, serviceCollection, applicationModel, webEndPointModels);
 
+        RegisterOpenApiDocument(diMethod, serviceCollection, applicationModel, classDefinition);
+
         RegisterEnabledModules(diMethod, serviceCollection, applicationModel);
 
         RegisterAuthorizationPosture(diMethod, serviceCollection, applicationModel);
@@ -238,6 +245,43 @@ public static class RoutingTableGenerator {
         IReadOnlyList<RequestHandlerModel> webEndPointModels) {
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
             new[] { LinkGenerator.LinksType(applicationModel) }));
+    }
+
+    /// <summary>
+    /// Serves the generated document, when the entry point enabled it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Emitted here rather than written by hand because it is the only place both halves exist: the
+    /// document is a member of this entry point's own generated partial, and nothing outside this
+    /// generator can name it. An attribute argument could not carry it either - it is
+    /// <c>static readonly</c> rather than <c>const</c>, so it is not a compile-time constant.
+    /// </para>
+    /// <para>
+    /// Registered ahead of the routing table, which is consulted first because providers are read in
+    /// reverse registration order - so a route the application declares at this path shadows the
+    /// document rather than colliding with it, matching how the health endpoints behave.
+    /// </para>
+    /// </remarks>
+    private static void RegisterOpenApiDocument(
+        MethodDefinition diMethod,
+        ParameterDefinition serviceCollection,
+        EntryPointSelector.Model applicationModel,
+        ClassDefinition classDefinition) {
+        var path = OpenApiDocumentFeature.Path(applicationModel);
+
+        if (path == null) {
+            return;
+        }
+
+        diMethod.AddIndentedStatement(
+            serviceCollection.InvokeGeneric(
+                "AddSingleton",
+                new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider },
+                CodeOutputComponent.Get(
+                    "new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
+                    classDefinition.Name + "." + OpenApiDocumentSource.DocumentPropertyName +
+                    ", \"" + path.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\")")));
     }
 
     /// <summary>

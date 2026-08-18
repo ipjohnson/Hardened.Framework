@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Pull the OpenAPI document out of the C# constant a generator wrote it into.
+"""Pull the OpenAPI document out of the C# member a generator wrote it into.
 
-The code-first document is emitted as a string literal rather than a file, because a Roslyn
-analyzer may not touch the file system. That is the right call for the generator and an awkward
-one for a linter, which wants JSON on disk — so this extracts it.
+The code-first document is emitted into source rather than to a file, because a Roslyn analyzer may
+not touch the file system. That is the right call for the generator and an awkward one for a linter,
+which wants JSON on disk — so this extracts it. It is emitted gzipped, so this inflates it.
+
+Requires the entry point to carry [Enable<HardenedOpenApiDocument>]. Without it no document is
+generated at all, and there is nothing here to extract.
 
 Used by CI to hand the served document to Spectral. Worth doing rather than trusting a schema
 check: path templating is prose in the OpenAPI specification instead of schema, so
@@ -13,6 +16,7 @@ path-params error it is.
     extract-openapi.py <generated-source.cs> <output.json> [--lint-as VERSION]
 """
 
+import gzip
 import json
 import pathlib
 import re
@@ -30,14 +34,27 @@ LINTABLE_VERSION = "3.1.0"
 
 
 def extract(source: str) -> dict:
-    """The first string literal in the file, unescaped back to the JSON it holds."""
-    match = re.search(r'"((?:[^"\\]|\\.)*)"', source, re.S)
+    """The byte-array literal in the file, inflated back to the JSON it holds.
+
+    The generator emits the document gzipped, into a `ReadOnlySpan<byte>` over a metadata blob,
+    because a C# string literal is stored as UTF-16 and so costs two bytes per ASCII character —
+    562KB of assembly for a 279KB document, against 37KB this way. Nothing here needs the
+    compression to be understood; it just has to be undone before Spectral sees it.
+    """
+    match = re.search(r"new byte\[\]\s*\{(.*?)\}\s*;", source, re.S)
 
     if not match:
-        raise SystemExit("no string literal in the generated source")
+        raise SystemExit(
+            "no byte-array literal in the generated source — the entry point may not have "
+            "[Enable<HardenedOpenApiDocument>], without which no document is emitted"
+        )
 
-    # The literal is C#-escaped; unicode_escape reverses the escaping the generator applied.
-    return json.loads(match.group(1).encode().decode("unicode_escape"))
+    try:
+        data = bytes(int(token) for token in match.group(1).split(",") if token.strip())
+    except ValueError as error:
+        raise SystemExit(f"malformed byte-array literal: {error}")
+
+    return json.loads(gzip.decompress(data))
 
 
 def downgrade_for_linting(document: dict) -> dict:

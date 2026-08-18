@@ -6,6 +6,7 @@
         <Description>HTTP routing for Hardened: [Get], [Post], [Put], [Delete], [Patch] and [BasePath], plus static content serving and CORS.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <IsPackable>True</IsPackable>
         <PackageId>Hardened.Web.Runtime</PackageId>
     </PropertyGroup>
@@ -22,6 +23,18 @@
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+    </ItemGroup>
+
+    <!--
+        This assembly carries a [WebLibrary] of its own - HardenedOpenApiUi, the reference page - so
+        it needs the generators that turn one into a routing table. Analyzer references, so nothing
+        here reaches a consumer's build and no assembly dependency is created; the generators
+        reference no runtime assembly, which is what keeps this from being a cycle.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
 </Project>
