@@ -23,6 +23,13 @@ public static class EntryPointSelector {
         /// </summary>
         public IReadOnlyList<EnabledFeatureModel> EnabledFeatures { get; set; } =
             Array.Empty<EnabledFeatureModel>();
+
+        /// <summary>
+        /// The links types belonging to modules this entry point imports, so a view can reach the
+        /// routes a library declares. See <see cref="ImportedLinksModel"/>.
+        /// </summary>
+        public IReadOnlyList<ImportedLinksModel> ImportedLinks { get; set; } =
+            Array.Empty<ImportedLinksModel>();
     }
 
     public class Comparer : IEqualityComparer<Model> {
@@ -42,7 +49,8 @@ public static class EntryPointSelector {
                    CompareAttributes(x, y) &&
                    CompareMethodDefinitions(x, y) &&
                    CompareProperties(x, y) &&
-                   x.EnabledFeatures.SequenceEqual(y.EnabledFeatures);
+                   x.EnabledFeatures.SequenceEqual(y.EnabledFeatures) &&
+                   x.ImportedLinks.SequenceEqual(y.ImportedLinks);
         }
 
         private bool CompareProperties(Model x, Model y) {
@@ -122,6 +130,7 @@ public static class EntryPointSelector {
 
             IReadOnlyList<AttributeModel> attributes = Array.Empty<AttributeModel>();
             IReadOnlyList<EnabledFeatureModel> features = Array.Empty<EnabledFeatureModel>();
+            IReadOnlyList<ImportedLinksModel> importedLinks = Array.Empty<ImportedLinksModel>();
 
             if (syntaxContext.Node is ClassDeclarationSyntax classDeclarationSyntax) {
                 attributes = AttributeModelHelper
@@ -132,6 +141,11 @@ public static class EntryPointSelector {
                 // is names, strings and type definitions - enough to emit from, and comparable by
                 // value so the model still keys the incremental cache.
                 features = EnabledFeatureSelector.Read(syntaxContext, classDeclarationSyntax, token);
+
+                // Resolved here for the same reason as the features above: the compilation is in
+                // reach, and what survives is names and type definitions that compare by value.
+                importedLinks =
+                    ImportedLinksModel.Read(syntaxContext, classDeclarationSyntax, attributes);
             }
 
             return new Model {
@@ -140,7 +154,8 @@ public static class EntryPointSelector {
                 RootEntryPoint = rootEntryPoint,
                 AttributeModels = attributes,
                 PropertyDefinitions = GeneratePropertyDefinitions(syntaxContext),
-                EnabledFeatures = features
+                EnabledFeatures = features,
+                ImportedLinks = importedLinks
             };
         };
     }

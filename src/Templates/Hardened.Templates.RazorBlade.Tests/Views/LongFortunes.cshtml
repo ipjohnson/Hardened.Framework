@@ -1,0 +1,15 @@
+@using Hardened.Templates.RazorBlade.Tests.Models
+@*
+    Deliberately more than a kilobyte of output. StreamWriter's default character buffer is 1 KiB,
+    so a view this size is the smallest thing that forces a flush mid-render - which is what used
+    to reach the response stream synchronously and fail on a real server.
+
+    global:: because this assembly's namespace ends in RazorBlade.
+*@
+@inherits global::Hardened.Templates.RazorBlade.HardenedHtmlTemplate<Hardened.Templates.RazorBlade.Tests.Models.FortunePage>
+<ul>
+@foreach (var fortune in Model.Fortunes)
+{
+    <li class="fortune" data-id="@fortune.Id"><span class="id">@fortune.Id</span><span class="message">@fortune.Message</span></li>
+}
+</ul>

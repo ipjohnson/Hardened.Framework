@@ -254,6 +254,7 @@ namespace Hardened.Requests.Runtime.Execution
         public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         public string Path { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
+        public Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo WithPath(string? path) { }
     }
     public class ExecutionRequestParameter : Hardened.Requests.Abstract.Execution.IExecutionRequestParameter
     {

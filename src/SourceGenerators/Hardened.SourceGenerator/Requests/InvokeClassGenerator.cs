@@ -61,6 +61,30 @@ public static class InvokeClassGenerator {
     /// claims it through ordinary selection. The parameter stays because
     /// <c>IExecutionContext.DefaultOutput</c> is public and an application may still set one.
     /// </remarks>
+    /// <summary>
+    /// The path the handler is actually served at, supplied by whoever constructed it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A handler class knows its controller's <c>[BasePath]</c> and its own route template, and
+    /// nothing else - the module's <c>[BasePath]</c> lives on the entry point and is applied when
+    /// the routing table is built. So a handler served at <c>/catalog/books</c> described itself
+    /// as <c>/books</c>, and every consumer of <c>IExecutionRequestHandlerInfo.Path</c> - a
+    /// per-handler global filter, an authorization convention, a log line - was handed a path
+    /// matching no request the application could receive.
+    /// </para>
+    /// <para>
+    /// Optional, and defaulted to null, because the web routing table is not the only thing that
+    /// constructs these: a function handler has no route and no base path, and must keep
+    /// compiling against a one-argument constructor.
+    /// </para>
+    /// </remarks>
+    private static void AddRoutePathParameter(MethodDefinition constructor) {
+        var routePath = constructor.AddParameter(typeof(string), "routePath");
+
+        routePath.DefaultValue = Null();
+    }
+
     private static void CreateConstructor(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
         IOutputComponent defaultOutput = Null();
 
@@ -100,13 +124,14 @@ public static class InvokeClassGenerator {
                 handlerModel.ControllerType
             },
             "serviceProvider",
-            "_handlerInfo",
+            "_handlerInfo.WithPath(routePath)",
             "InvokeMethod",
             GenerateFilterEnumerable(handlerModel, classDefinition)
         );
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddRoutePathParameter(constructor);
     }
 
     private static void CreateAsyncParametersConstructor(RequestHandlerModel handlerModel,
@@ -118,7 +143,7 @@ public static class InvokeClassGenerator {
                 handlerModel.ControllerType, GenericParameters
             },
             "serviceProvider",
-            "_handlerInfo",
+            "_handlerInfo.WithPath(routePath)",
             "BindRequestParameters",
             "InvokeMethod",
             GenerateFilterEnumerable(handlerModel, classDefinition)
@@ -126,6 +151,7 @@ public static class InvokeClassGenerator {
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddRoutePathParameter(constructor);
     }
 
     private static void CreateSyncNoParameterConstructor(RequestHandlerModel handlerModel,
@@ -138,13 +164,14 @@ public static class InvokeClassGenerator {
                 handlerModel.ControllerType
             },
             "serviceProvider",
-            "_handlerInfo",
+            "_handlerInfo.WithPath(routePath)",
             "InvokeMethod",
             GenerateFilterEnumerable(handlerModel, classDefinition)
         );
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddRoutePathParameter(constructor);
     }
 
     private static void CreateSyncParametersConstructor(RequestHandlerModel handlerModel,
@@ -156,7 +183,7 @@ public static class InvokeClassGenerator {
                 handlerModel.ControllerType, GenericParameters
             },
             "serviceProvider",
-            "_handlerInfo",
+            "_handlerInfo.WithPath(routePath)",
             "BindRequestParameters",
             "InvokeMethod",
             GenerateFilterEnumerable(handlerModel, classDefinition)
@@ -164,6 +191,7 @@ public static class InvokeClassGenerator {
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddRoutePathParameter(constructor);
     }
 
     private static void CreateAsyncEnumerableNoParameterConstructor(RequestHandlerModel handlerModel,
@@ -177,7 +205,7 @@ public static class InvokeClassGenerator {
                 handlerModel.ResponseInformation.AsyncEnumerableItemType!
             },
             "serviceProvider",
-            "_handlerInfo",
+            "_handlerInfo.WithPath(routePath)",
             "InvokeMethod",
             GenerateFilterEnumerable(handlerModel, classDefinition),
             FramingArgument(handlerModel)
@@ -185,6 +213,7 @@ public static class InvokeClassGenerator {
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddRoutePathParameter(constructor);
     }
 
     private static void CreateAsyncEnumerableParametersConstructor(RequestHandlerModel handlerModel,
@@ -197,7 +226,7 @@ public static class InvokeClassGenerator {
                 handlerModel.ResponseInformation.AsyncEnumerableItemType!
             },
             "serviceProvider",
-            "_handlerInfo",
+            "_handlerInfo.WithPath(routePath)",
             "BindRequestParameters",
             "InvokeMethod",
             GenerateFilterEnumerable(handlerModel, classDefinition),
@@ -206,6 +235,7 @@ public static class InvokeClassGenerator {
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddRoutePathParameter(constructor);
     }
 
     /// <summary>

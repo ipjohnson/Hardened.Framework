@@ -45,6 +45,17 @@ public static class RoutingTableGenerator {
     [ThreadStatic]
     private static IReadOnlyList<RouteConstraintModel>? _constraints;
 
+    /// <summary>
+    /// The entry point's <c>[BasePath]</c>, on the same terms as <see cref="_constraints"/>.
+    /// </summary>
+    /// <remarks>
+    /// Held here so the handler construction sites can compose it onto each route. A handler class
+    /// is generated from its own declarations and cannot see the module's base path, so without
+    /// this it reports the path it was declared with rather than the one it answers on.
+    /// </remarks>
+    [ThreadStatic]
+    private static string? _basePath;
+
     public static void GenerateRoute(SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
         WebGeneratorOptions? options = null,
@@ -117,6 +128,7 @@ public static class RoutingTableGenerator {
     public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken) {
         _caseInsensitive = IsCaseInsensitive(appModel);
+        _basePath = GetBasePath(appModel);
 
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
@@ -728,7 +740,7 @@ public static class RoutingTableGenerator {
                         "_field" + leafNode.Value.InvokeHandlerType.Name);
 
                 var coalesceHandler = NullCoalesceEqual(field.Instance,
-                    New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"));
+                    NewHandler(leafNode));
 
                 coalesceHandler.PrintParentheses = false;
 
@@ -783,7 +795,7 @@ public static class RoutingTableGenerator {
                 var cachedInfo = NullCoalesceEqual(infoField.Instance,
                     New(
                         KnownTypes.Web.RequestHandlerInfo,
-                        New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"),
+                        NewHandler(leafNode),
                         EmptyTokens));
 
                 cachedInfo.PrintParentheses = false;
@@ -798,7 +810,7 @@ public static class RoutingTableGenerator {
                     "_field" + leafNode.Value.InvokeHandlerType.Name);
 
             var coalesceHandler = NullCoalesceEqual(field.Instance,
-                New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider"));
+                NewHandler(leafNode));
 
             coalesceHandler.PrintParentheses = false;
 
@@ -1015,6 +1027,27 @@ public static class RoutingTableGenerator {
         appModel.AttributeModels != null &&
         appModel.AttributeModels.Any(model =>
             model.TypeDefinition.Name.StartsWith("CaseInsensitiveRoutes", StringComparison.Ordinal));
+
+    /// <summary>
+    /// Constructs the handler, telling it the path it is being routed at.
+    /// </summary>
+    /// <remarks>
+    /// The path is composed here, with the same <see cref="RoutePath.Combine"/> that built the
+    /// route tree, rather than at run time from the two parts - so there is no second
+    /// implementation of the base-path rules to drift from this one. The argument is omitted
+    /// entirely when the entry point declares no base path, which keeps the generated table
+    /// unchanged for every application that has none.
+    /// </remarks>
+    private static IOutputComponent NewHandler(RouteTreeLeafNode<RequestHandlerModel> leafNode) {
+        if (string.IsNullOrEmpty(_basePath)) {
+            return New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider");
+        }
+
+        return New(
+            leafNode.Value.InvokeHandlerType,
+            "_rootServiceProvider",
+            QuoteString(RoutePath.Combine(_basePath, leafNode.Value.Name.Path)));
+    }
 
     private static string GetBasePath(EntryPointSelector.Model appModel) {
         if (appModel.AttributeModels != null) {
