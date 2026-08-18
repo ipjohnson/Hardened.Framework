@@ -105,7 +105,9 @@ internal sealed class ApiGatewayHarness {
         bool isBase64Encoded = false,
         IDictionary<string, string>? headers = null,
         IDictionary<string, string>? queryStringParameters = null,
-        string[]? cookies = null) =>
+        string[]? cookies = null,
+        string? sourceIp = null,
+        string? domainName = null) =>
         new() {
             RawPath = rawPath,
             Body = body,
@@ -120,9 +122,13 @@ internal sealed class ApiGatewayHarness {
             Cookies = cookies!,
             RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext {
                 Stage = stage,
+                DomainName = domainName,
                 Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription {
                     Method = method,
-                    Path = rawPath
+                    Path = rawPath,
+                    // Null unless a test asks, because API Gateway always sends one and a fixture
+                    // that always did would hide a transport reading the wrong field.
+                    SourceIp = sourceIp
                 }
             }
         };

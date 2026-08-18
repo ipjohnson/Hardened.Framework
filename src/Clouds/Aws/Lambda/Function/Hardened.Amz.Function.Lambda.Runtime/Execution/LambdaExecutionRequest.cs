@@ -59,4 +59,15 @@ public class LambdaExecutionRequest : IExecutionRequest {
     }
 
     public IReadOnlyList<string> Cookies => Array.Empty<string>();
+
+    /// <summary>
+    /// Nothing, because a direct invocation has no connection to describe.
+    /// </summary>
+    /// <remarks>
+    /// The honest answer rather than a gap. A function invoked through the Lambda API - by the SDK,
+    /// by an event source, by a console - has no client address, no protocol version and no scheme,
+    /// and inventing one from the invoking identity would put something in a field callers read as
+    /// the caller's network address.
+    /// </remarks>
+    public ITransportInfo Transport => EmptyTransportInfo.Instance;
 }

@@ -84,9 +84,10 @@ public class StreamingExecutionRequest : IExecutionRequest {
     private IQueryStringCollection? _queryStringCollection;
     private IHeaderCollection? _headerCollection;
     private IReadOnlyList<string>? _cookies;
+    private ITransportInfo? _transport;
 
     public StreamingExecutionRequest(APIGatewayHttpApiV2ProxyRequest request)
-        : this(request, null, null, null, null, null) {
+        : this(request, null, null, null, null, null, null) {
     }
 
     private StreamingExecutionRequest(
@@ -95,8 +96,10 @@ public class StreamingExecutionRequest : IExecutionRequest {
         string? path,
         IHeaderCollection? headers,
         IQueryStringCollection? queryString,
-        IReadOnlyList<string>? cookies) {
+        IReadOnlyList<string>? cookies,
+        ITransportInfo? transport) {
         _proxyRequest = request;
+        _transport = transport;
         _method = method ?? request.RequestContext.Http.Method;
         Path = path ?? StripStagePath(request.RawPath, request.RequestContext?.Stage);
         _headerCollection = headers;
@@ -129,7 +132,10 @@ public class StreamingExecutionRequest : IExecutionRequest {
             path ?? Path,
             CloneHeaders(headers),
             queryString ?? _queryStringCollection,
-            cookies ?? _cookies) {
+            cookies ?? _cookies,
+            // Shared rather than rebuilt, as on the buffered path: a fork is the same request from
+            // the same caller.
+            Transport) {
             // Cloned, not shared: a forked chain must be able to rebind without writing
             // through to the request it was forked from. See the conformance suite in
             // Hardened.Requests.Testing.
@@ -188,6 +194,17 @@ public class StreamingExecutionRequest : IExecutionRequest {
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }
+
+    /// <summary>
+    /// The buffered path's, reused rather than copied.
+    /// </summary>
+    /// <remarks>
+    /// It is the same API Gateway event either way, so a second implementation would be two
+    /// answers to one question - which is the drift AMZ-FEATURE-REVIEW item 17 is about. This
+    /// package already references the buffered runtime, so there is nothing to pay for it.
+    /// </remarks>
+    public ITransportInfo Transport =>
+        _transport ??= new Web.Lambda.Runtime.Impl.ApiGatewayTransportInfo(_proxyRequest);
 
     public IReadOnlyList<string> Cookies =>
         _cookies ??= _proxyRequest.Cookies ?? Array.Empty<string>();

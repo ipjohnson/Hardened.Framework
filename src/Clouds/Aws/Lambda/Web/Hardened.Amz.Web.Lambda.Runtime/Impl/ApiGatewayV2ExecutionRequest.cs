@@ -18,9 +18,10 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
     private IQueryStringCollection? _queryStringCollection;
     private IHeaderCollection? _headerCollection;
     private IReadOnlyList<string>? _cookies;
+    private ITransportInfo? _transport;
 
     public ApiGatewayV2ExecutionRequest(APIGatewayHttpApiV2ProxyRequest request)
-        : this(request, null, null, null, null, null) {
+        : this(request, null, null, null, null, null, null) {
     }
 
     private ApiGatewayV2ExecutionRequest(
@@ -29,8 +30,10 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
         string? path,
         IHeaderCollection? headers,
         IQueryStringCollection? queryString,
-        IReadOnlyList<string>? cookies) {
+        IReadOnlyList<string>? cookies,
+        ITransportInfo? transport) {
         _proxyRequest = request;
+        _transport = transport;
         _method = method ?? request.RequestContext.Http.Method;
         Path = path ?? StripStagePath(request.RawPath, request.RequestContext?.Stage);
         _headerCollection = headers;
@@ -72,7 +75,12 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
             path ?? Path,
             CloneHeaders(headers),
             queryString ?? _queryStringCollection,
-            cookies ?? _cookies) {
+            cookies ?? _cookies,
+            // Shared rather than rebuilt: a fork is the same request from the same caller, and
+            // rebinding its method or path says nothing about where it came from. The framework's
+            // conformance suite asserts identity here, and caught its own ASP.NET adapter getting
+            // this wrong.
+            Transport) {
             // Cloned, not shared: a forked chain must be able to rebind without writing
             // through to the request it was forked from. See the conformance suite in
             // Hardened.Requests.Testing.
@@ -147,6 +155,13 @@ internal class ApiGatewayV2ExecutionRequest : IExecutionRequest {
     /// handing that back through a non-nullable <see cref="IReadOnlyList{T}"/> made every caller a
     /// null-reference away from failing on the ordinary case of a request without cookies.
     /// </summary>
+    /// <summary>
+    /// Built once and shared with every fork, because a fork is the same request from the same
+    /// caller. The framework's conformance suite asserts the identity, not just the values.
+    /// </summary>
+    public ITransportInfo Transport =>
+        _transport ??= new ApiGatewayTransportInfo(_proxyRequest);
+
     public IReadOnlyList<string> Cookies =>
         _cookies ??= _proxyRequest.Cookies ?? Array.Empty<string>();
 }
