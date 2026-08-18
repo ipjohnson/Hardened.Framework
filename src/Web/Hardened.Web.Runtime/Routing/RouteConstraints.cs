@@ -36,6 +36,18 @@ public static class RouteConstraints {
 
     public const string Bool = "bool";
 
+    public const string Decimal = "decimal";
+
+    public const string Date = "date";
+
+    public const string DateTime = "datetime";
+
+    public const string Alpha = "alpha";
+
+    public const string Slug = "slug";
+
+    public const string Hex = "hex";
+
     public static bool IsInt(ReadOnlySpan<char> value) =>
         int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
 
@@ -47,4 +59,117 @@ public static class RouteConstraints {
 
     public static bool IsBool(ReadOnlySpan<char> value) =>
         bool.TryParse(value, out _);
+
+    /// <summary>A sign and a decimal point, and nothing else.</summary>
+    /// <remarks>
+    /// Not <see cref="NumberStyles.Number"/>, which allows thousands separators: under the invariant
+    /// culture that made <c>4,5</c> parse as 45 and <c>1,000</c> as 1000, so a resource had several
+    /// URLs for one value. The same canonicality rule <see cref="IsSlug"/> follows, for the same
+    /// reason.
+    /// </remarks>
+    public static bool IsDecimal(ReadOnlySpan<char> value) =>
+        decimal.TryParse(
+            value,
+            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+            CultureInfo.InvariantCulture,
+            out _);
+
+    /// <summary>An ISO 8601 calendar date - <c>yyyy-MM-dd</c>, and nothing else.</summary>
+    /// <remarks>
+    /// <see cref="DateOnly.TryParseExact(ReadOnlySpan{char}, ReadOnlySpan{char}, out DateOnly)"/>
+    /// rather than <c>TryParse</c>, which accepts a large and culture-sensitive grammar. A route that
+    /// matched <c>12/06/2026</c> while disagreeing about which number was the month would select a
+    /// different handler on different machines.
+    /// </remarks>
+    public static bool IsDate(ReadOnlySpan<char> value) =>
+        DateOnly.TryParseExact(
+            value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+
+    /// <summary>An ISO 8601 date and time, in one of <see cref="Iso8601.Formats"/>.</summary>
+    /// <remarks>Exact formats only, for the reason <see cref="IsDate"/> gives.</remarks>
+    public static bool IsDateTime(ReadOnlySpan<char> value) =>
+        DateTimeOffset.TryParseExact(
+            value, Iso8601.Formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+
+    /// <summary><c>^[A-Za-z]+$</c>. ASCII, because a route is part of a URL.</summary>
+    public static bool IsAlpha(ReadOnlySpan<char> value) {
+        if (value.Length == 0) {
+            return false;
+        }
+
+        foreach (var character in value) {
+            if (!char.IsAsciiLetter(character)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary><c>^[0-9a-fA-F]+$</c> — a content hash, a commit sha, a request id.</summary>
+    public static bool IsHex(ReadOnlySpan<char> value) {
+        if (value.Length == 0) {
+            return false;
+        }
+
+        foreach (var character in value) {
+            if (!char.IsAsciiHexDigit(character)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary><c>^[a-z0-9]+(-[a-z0-9]+)*$</c> — no leading, trailing or doubled hyphen.</summary>
+    /// <remarks>
+    /// Lower case only. A slug is a canonical form: admitting <c>My-Post</c> beside <c>my-post</c>
+    /// would make two URLs for one resource, which is the thing a slug exists to avoid.
+    /// </remarks>
+    public static bool IsSlug(ReadOnlySpan<char> value) {
+        if (value.Length == 0 || value[0] == '-' || value[value.Length - 1] == '-') {
+            return false;
+        }
+
+        var previousWasHyphen = false;
+
+        foreach (var character in value) {
+            if (character == '-') {
+                if (previousWasHyphen) {
+                    return false;
+                }
+
+                previousWasHyphen = true;
+                continue;
+            }
+
+            if (!char.IsAsciiDigit(character) && !char.IsAsciiLetterLower(character)) {
+                return false;
+            }
+
+            previousWasHyphen = false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// The formats <see cref="IsDateTime"/> accepts, on a nested type so that only a route declaring
+    /// <c>:datetime</c> pays for them.
+    /// </summary>
+    /// <remarks>
+    /// A static field on <see cref="RouteConstraints"/> itself would make the whole class carry a
+    /// type initialiser. C# emits <c>beforefieldinit</c> for a class with only static field
+    /// initialisers, so <see cref="IsInt"/> would very probably still be free — but "very probably
+    /// free" is not the claim this class makes. Nested, the array is reachable only from the one
+    /// method that reads it, and a trimmer drops it with that method.
+    /// </remarks>
+    private static class Iso8601 {
+        public static readonly string[] Formats = {
+            "yyyy-MM-ddTHH:mm:ssK",
+            "yyyy-MM-ddTHH:mm:ss.FFFFFFFK",
+            "yyyy-MM-ddTHH:mmK",
+            "yyyy-MM-dd"
+        };
+    }
 }

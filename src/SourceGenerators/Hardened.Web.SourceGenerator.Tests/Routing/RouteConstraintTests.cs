@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.SourceGeneration.Testing;
+using Hardened.SourceGenerator.Web.Routing;
 using Hardened.Web.Runtime.Attributes;
 using Microsoft.CodeAnalysis;
 using Xunit;
@@ -45,11 +46,52 @@ public class RouteConstraintTests {
     [InlineData("long", "9007199254740993", "abc")]
     [InlineData("guid", "3f2504e0-4f89-11d3-9a0c-0305e82c3301", "not-a-guid")]
     [InlineData("bool", "true", "yes")]
+    [InlineData("decimal", "4.5", "abc")]
+    [InlineData("date", "2026-08-17", "2026-8-17")]
+    [InlineData("datetime", "2026-08-17T09:30:00Z", "2026-08-17 09:30")]
+    [InlineData("alpha", "beta", "beta2")]
+    [InlineData("hex", "0f9AC3", "0g9")]
+    [InlineData("slug", "my-first-post", "My-First-Post")]
     public void AConstrainedTokenMatchesOnlyWhatPasses(string constraint, string passes, string fails) {
         var routing = Routing("/items/{id:" + constraint + "}");
 
         Assert.Equal("Item", routing.Handler("GET", "/items/" + passes).InvokeMethod);
         Assert.Null(routing.Route("GET", "/items/" + fails));
+    }
+
+    /// <summary>
+    /// A slug is a canonical form. Admitting a leading, trailing or doubled hyphen - or upper case -
+    /// would make several URLs for one resource, which is the thing a slug exists to avoid.
+    /// </summary>
+    [Theory]
+    [InlineData("my-first-post", true)]
+    [InlineData("post", true)]
+    [InlineData("2026-recap", true)]
+    [InlineData("-leading", false)]
+    [InlineData("trailing-", false)]
+    [InlineData("double--hyphen", false)]
+    [InlineData("Upper", false)]
+    [InlineData("under_score", false)]
+    public void SlugIsACanonicalForm(string segment, bool matches) {
+        var routing = Routing("/posts/{id:slug}");
+
+        Assert.Equal(matches, routing.Route("GET", "/posts/" + segment) != null);
+    }
+
+    /// <summary>
+    /// ISO 8601 only, never <c>DateTime.TryParse</c>. A URL is the same string in every locale, so a
+    /// route that accepted <c>12/06/2026</c> would be agreeing to a value whose meaning depends on
+    /// where the process happens to be running - and under selection that decides which handler runs.
+    /// </summary>
+    [Theory]
+    [InlineData("2026-08-17", true)]
+    [InlineData("12/06/2026", false)]
+    [InlineData("17 August 2026", false)]
+    [InlineData("2026-13-01", false)]
+    public void ADateIsIso8601AndNothingElse(string segment, bool matches) {
+        var routing = Routing("/on/{id:date}");
+
+        Assert.Equal(matches, routing.Route("GET", "/on/" + segment) != null);
     }
 
     /// <summary>
@@ -166,9 +208,77 @@ public class RouteConstraintTests {
         Assert.Contains("RouteConstraint", message);
     }
 
+    /// <summary>
+    /// Every name the table compiles has a rank, and nothing else does. A name added to
+    /// <c>Test</c> and forgotten in <c>Rank</c> would silently sort as a custom constraint - after
+    /// every built-in - which is a routing decision made by omission.
+    /// </summary>
+    [Fact]
+    public void EveryBuiltInNameIsRanked() {
+        foreach (var name in RouteConstraintFacts.Names) {
+            Assert.NotNull(RouteConstraintFacts.Test(name));
+
+            Assert.True(
+                RouteConstraintFacts.Rank(name) < RouteConstraintFacts.CustomPrecedence,
+                $"'{name}' is built in but ranks as a custom constraint.");
+        }
+    }
+
+    /// <summary>
+    /// Every arm of the rank table, so a name whose rank was never asserted cannot drift. The
+    /// numbers are the specification — they decide which handler a request reaches once alternatives
+    /// exist — so they are pinned rather than sampled.
+    /// </summary>
+    [Theory]
+    [InlineData("guid", 10)]
+    [InlineData("date", 15)]
+    [InlineData("datetime", 15)]
+    [InlineData("bool", 20)]
+    [InlineData("int", 30)]
+    [InlineData("min", 32)]
+    [InlineData("max", 32)]
+    [InlineData("range", 32)]
+    [InlineData("long", 35)]
+    [InlineData("decimal", 40)]
+    [InlineData("hex", 50)]
+    [InlineData("alpha", 60)]
+    [InlineData("slug", 70)]
+    [InlineData("length", 80)]
+    [InlineData("minlength", 80)]
+    [InlineData("maxlength", 80)]
+    public void TheRankTableIsWhatItSays(string constraint, int rank) {
+        Assert.Equal(rank, RouteConstraintFacts.Rank(constraint));
+    }
+
+    /// <summary>
+    /// The ordering that matters is between pairs a route can actually put at one position.
+    /// </summary>
+    [Theory]
+    [InlineData("guid", "int")]
+    [InlineData("date", "slug")]
+    [InlineData("int", "long")]
+    [InlineData("min", "long")]
+    [InlineData("hex", "alpha")]
+    [InlineData("alpha", "slug")]
+    [InlineData("slug", "length")]
+    [InlineData("length", "isbn")]
+    public void TheNarrowerConstraintRanksFirst(string narrower, string wider) {
+        Assert.True(
+            RouteConstraintFacts.Rank(narrower) < RouteConstraintFacts.Rank(wider),
+            $"'{narrower}' should sort before '{wider}'.");
+    }
+
+    /// <summary>An undeclared name gets the custom precedence rather than throwing.</summary>
+    [Fact]
+    public void AnUnknownNameRanksAsCustom() {
+        Assert.Equal(RouteConstraintFacts.CustomPrecedence, RouteConstraintFacts.Rank("isbn"));
+    }
+
     [Theory]
     [InlineData("/items/{id:int}")]
     [InlineData("/items/{id:guid}")]
+    [InlineData("/items/{id:slug}")]
+    [InlineData("/items/{id:datetime}")]
     [InlineData("/items/{id}")]
     public void ASupportedTokenIsNotReported(string route) {
         Assert.DoesNotContain(

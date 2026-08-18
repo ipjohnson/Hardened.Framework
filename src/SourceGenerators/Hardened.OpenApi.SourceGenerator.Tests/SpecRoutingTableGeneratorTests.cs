@@ -193,6 +193,103 @@ public class SpecRoutingTableGeneratorTests {
         Assert.Contains("StoreController_ListStores", result);
     }
 
+    /// <summary>
+    /// A handler whose path ends in a constrained token, for the two positions a constraint can
+    /// guard: the end of a route and the middle of one.
+    /// </summary>
+    private static List<RequestHandlerModel> CreateConstrainedHandlers() {
+        var serviceType = TypeDefinition.Get("Test.Api.Services", "IPetService");
+
+        return new List<RequestHandlerModel> {
+            new(new RequestHandlerNameModel("/pets/{petId:int}", "GET"),
+                serviceType, "GetPet",
+                TypeDefinition.Get("Test.Api.Generated", "PetController_GetPet"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel { IsAsync = true },
+                Array.Empty<AttributeModel>()),
+            new(new RequestHandlerNameModel("/pets/{petId:guid}/tags", "GET"),
+                serviceType, "GetTags",
+                TypeDefinition.Get("Test.Api.Generated", "PetController_GetTags"),
+                Array.Empty<RequestParameterInformation>(),
+                new ResponseInformationModel { IsAsync = true },
+                Array.Empty<AttributeModel>())
+        };
+    }
+
+    /// <summary>
+    /// The route tree is shared source, so a node built from a document carries
+    /// <c>WildCardConstraint</c> exactly as one built from an attribute does. Until the spec table
+    /// emitted the test, it read that property nowhere: a constrained token compiled, routed, and
+    /// constrained nothing - the state <c>{id:int}</c> was in before any of this.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_TestsAConstraintAtTheEndOfARoute() {
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        Assert.Contains("RouteConstraints.IsInt(", result);
+
+        // Negated at a leaf: failing the constraint is no match at all, so the method returns null
+        // rather than handing the value on to a binder that would answer 400.
+        Assert.Contains("!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsInt(", result);
+    }
+
+    /// <summary>
+    /// A constraint in the middle of a route gates the segment scan rather than being checked after
+    /// it, so a value that fails leaves the scan free to try the next boundary.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_TestsAConstraintInTheMiddleOfARoute() {
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        Assert.Contains("RouteConstraints.IsGuid(", result);
+
+        // Not negated, and not a separate statement: it joins the boundary conjunction.
+        Assert.DoesNotContain("!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsGuid(", result);
+    }
+
+    /// <summary>
+    /// A token names at least one character, so <c>/pets/</c> is not a match for
+    /// <c>/pets/{petId}</c>. The attribute-routed table has guarded this since 2026-08-16; this one
+    /// did not, so an empty segment bound <c>""</c> and came back 400 from the binder — telling a
+    /// client it addressed a real endpoint incorrectly about a URL that addresses no endpoint.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_RejectsAnEmptyTokenAtTheEndOfARoute() {
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreatePetstoreHandlers(), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        Assert.Contains("charSpan.Length <= index", result);
+    }
+
+    /// <summary>
+    /// And mid-path the scan has to have consumed something, or it accepts a boundary at the
+    /// position it started from — which let <c>//tags</c> match <c>/{petId}/tags</c> with the token
+    /// bound to <c>""</c>. The same defect as above, at the other position.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_RejectsAnEmptyTokenInTheMiddleOfARoute() {
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        Assert.Contains("currentIndex > index", result);
+    }
+
+    /// <summary>An unconstrained token emits no test, so the common route pays nothing.</summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_EmitsNoConstraintWhenTheTokenDeclaresNone() {
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            CreateAppModel(), CreatePetstoreHandlers(), ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<string>.Empty, CancellationToken.None);
+
+        Assert.DoesNotContain("RouteConstraints.", result);
+    }
+
     [Fact]
     public void GenerateCSharpRouteFile_ContainsDependencyRegistrationStaticField() {
         var appModel = CreateAppModel();
