@@ -21,15 +21,42 @@
     </ItemGroup>
 
     <!--
-      The targets file and the task travel with the package: build/ is imported automatically by a
-      consuming project, and tasks/ is where the targets file looks for the assembly.
+      Package\ rather than build\, because .gitignore ignores build/ - so the targets file was
+      never committed and the Pack step failed on a path that exists only on the machine that wrote
+      it. Hardened.Smithy.SourceGenerator already sits in Package\ for this reason.
+
+      PackagePath must use a forward slash. A trailing backslash packs to "build//" on Linux and
+      macOS, where NuGet never imports it - the failure that shipped once already on the OpenAPI
+      package and is silent until a consumer finds no generated types.
     -->
     <ItemGroup>
-        <None Include="build\Hardened.Web.StaticContent.targets" Pack="true" PackagePath="build\"/>
-        <None Include="..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net8.0\Hardened.Web.StaticContent.BuildTask.dll"
-              Pack="true" PackagePath="tasks\net8.0\" Condition="Exists('..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net8.0\Hardened.Web.StaticContent.BuildTask.dll')"/>
-        <None Include="..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net472\Hardened.Web.StaticContent.BuildTask.dll"
-              Pack="true" PackagePath="tasks\net472\" Condition="Exists('..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net472\Hardened.Web.StaticContent.BuildTask.dll')"/>
+        <Content Include="Package\Hardened.Web.StaticContent.*">
+            <Pack>true</Pack>
+            <PackagePath>build/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <!--
+      Both task flavours. The targets file selects between them on $(MSBuildRuntimeType), so one
+      package serves Visual Studio's .NET Framework MSBuild and the CLI's .NET one.
+    -->
+    <ItemGroup>
+        <None Include="..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net472\**\*.dll"
+              Pack="true" PackagePath="tasks/net472" Visible="false"/>
+        <None Include="..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net8.0\**\*.dll"
+              Pack="true" PackagePath="tasks/net8.0" Visible="false"/>
+    </ItemGroup>
+
+    <!--
+      Built before this can be packed, and not bound against: the task runs in MSBuild and the
+      runtime runs in the application.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Web.StaticContent.BuildTask\Hardened.Web.StaticContent.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          SkipGetTargetFrameworkProperties="true"
+                          PrivateAssets="all"/>
     </ItemGroup>
 
     <ItemGroup>

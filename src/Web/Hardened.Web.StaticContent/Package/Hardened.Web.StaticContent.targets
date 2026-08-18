@@ -1,0 +1,120 @@
+<Project>
+    <!--
+      Declare a content directory and the build works out everything the runtime would otherwise
+      discover per request:
+
+        <ItemGroup>
+          <HardenedStaticContent Include="wwwroot" RoutePrefix="/" FallBackFile="index.html" />
+        </ItemGroup>
+
+      Without one the application reads the directory at run time instead, so this whole file is an
+      optimisation and a verification layer rather than a requirement.
+    -->
+
+    <PropertyGroup>
+        <ExcludeGeneratedCodeFromCoverage Condition="'$(ExcludeGeneratedCodeFromCoverage)' == ''">true</ExcludeGeneratedCodeFromCoverage>
+        <HardenedStaticContentNamespace Condition="'$(HardenedStaticContentNamespace)' == ''">$(RootNamespace)</HardenedStaticContentNamespace>
+        <HardenedStaticContentNamespace Condition="'$(HardenedStaticContentNamespace)' == ''">Generated</HardenedStaticContentNamespace>
+        <HardenedStaticContentEmbedThresholdBytes Condition="'$(HardenedStaticContentEmbedThresholdBytes)' == ''">1048576</HardenedStaticContentEmbedThresholdBytes>
+
+        <_HardenedStaticContentTasksDir Condition="'$(MSBuildRuntimeType)' == 'Core'">$(MSBuildThisFileDirectory)../tasks/net8.0/</_HardenedStaticContentTasksDir>
+        <_HardenedStaticContentTasksDir Condition="'$(MSBuildRuntimeType)' != 'Core'">$(MSBuildThisFileDirectory)../tasks/net472/</_HardenedStaticContentTasksDir>
+        <HardenedStaticContentTaskAssembly Condition="'$(HardenedStaticContentTaskAssembly)' == ''">$(_HardenedStaticContentTasksDir)Hardened.Web.StaticContent.BuildTask.dll</HardenedStaticContentTaskAssembly>
+    </PropertyGroup>
+
+    <!--
+      Out of process. The usual objection - a process per invocation - does not apply: this runs
+      once per project. In process, the task assembly is held open afterwards, so in this repository,
+      where the same build produces the task and consumes it, an edited task would be silently
+      ignored until the MSBuild nodes died.
+    -->
+    <UsingTask TaskName="Hardened.Web.StaticContent.BuildTask.BuildStaticContentManifest"
+               Condition="'$(HardenedStaticContentInProcessTask)' != 'true'"
+               TaskFactory="TaskHostFactory"
+               AssemblyFile="$(HardenedStaticContentTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.Web.StaticContent.BuildTask.BuildStaticContentManifest"
+               Condition="'$(HardenedStaticContentInProcessTask)' == 'true'"
+               AssemblyFile="$(HardenedStaticContentTaskAssembly)"/>
+
+    <!--
+      The file the task will write is declared HERE, at the top level, and not inside the target
+      that writes it.
+
+      An IDE builds its project model out of MSBuild *evaluation*, not out of a build. Rider has no
+      CompileDesignTime target at all, so a file that only becomes a @(Compile) item while a target
+      is running is a file the editor never hears about: the manifest resolves on the compiler
+      command line and nowhere else, and every reference to it reddens in a project that builds
+      clean.
+
+      Top level is also what makes the path resolvable. MSBuild evaluates every top-level ItemGroup
+      after every property and every import, so $(IntermediateOutputPath) is final here even though
+      it is still empty when a csproj body imports this file.
+
+      A transform of @(HardenedStaticContent) rather than a glob of the output directory: on a clean
+      tree the file does not exist yet, and a glob would come back empty on exactly the build that
+      has to declare it.
+    -->
+    <ItemGroup Condition="'@(HardenedStaticContent)' != ''">
+        <_HardenedStaticContentSource Include="@(HardenedStaticContent->'$(IntermediateOutputPath)staticcontent/%(Filename).staticcontent.g.cs')"/>
+        <Compile Include="@(_HardenedStaticContentSource)" Visible="false"/>
+    </ItemGroup>
+
+    <!--
+      Every metadata value the task reads, none of which touches the content directory when it
+      changes - so without this the up-to-date check below would skip the target and leave the
+      previous manifest in place after someone changed the route prefix.
+    -->
+    <Target Name="HardenedStaticContentStamp" Condition="'@(HardenedStaticContent)' != ''">
+        <MakeDir Directories="$(IntermediateOutputPath)staticcontent"/>
+
+        <WriteLinesToFile
+            File="$(IntermediateOutputPath)staticcontent/options.stamp"
+            Lines="@(HardenedStaticContent->'%(Identity)|%(RoutePrefix)|%(FallBackFile)');$(HardenedStaticContentNamespace)|$(HardenedStaticContentEmbedThresholdBytes)"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true"/>
+    </Target>
+
+    <!--
+      Inputs are the content itself, so adding, removing or editing a file rebuilds the manifest.
+      A directory glob rather than the item, because the item names a directory and MSBuild would
+      otherwise compare against the directory's own timestamp - which does not move when a file
+      two levels down inside it changes.
+    -->
+    <Target Name="HardenedStaticContentManifest"
+            DependsOnTargets="HardenedStaticContentStamp"
+            BeforeTargets="CoreCompile"
+            Condition="'@(HardenedStaticContent)' != ''"
+            Inputs="@(HardenedStaticContent->'%(Identity)/**/*');$(IntermediateOutputPath)staticcontent/options.stamp"
+            Outputs="@(_HardenedStaticContentSource)">
+
+        <BuildStaticContentManifest
+            ContentDirectory="%(HardenedStaticContent.Identity)"
+            RoutePrefix="%(HardenedStaticContent.RoutePrefix)"
+            FallBackFile="%(HardenedStaticContent.FallBackFile)"
+            OutputFile="$(IntermediateOutputPath)staticcontent/%(HardenedStaticContent.Filename).staticcontent.g.cs"
+            Namespace="$(HardenedStaticContentNamespace)"
+            EmbedThresholdBytes="$(HardenedStaticContentEmbedThresholdBytes)"
+            ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)"/>
+    </Target>
+
+    <!--
+      Runs even when the target above is skipped as up to date, because that is the case worth
+      catching: a manifest that is not on disk means the up-to-date check was made against a file
+      that is not there, and the compiler is about to open it. Silence would surface as a missing
+      type in a project that builds clean everywhere else.
+    -->
+    <Target Name="HardenedStaticContentVerify"
+            DependsOnTargets="HardenedStaticContentManifest"
+            BeforeTargets="CoreCompile"
+            Condition="'@(HardenedStaticContent)' != ''">
+
+        <Error Condition="'@(_HardenedStaticContentSource)' == ''"
+               Code="HSTATIC006"
+               Text="Hardened.Web.StaticContent.targets was imported before these items were declared: @(HardenedStaticContent). No manifest reached the compilation. Move the &lt;Import&gt; below the &lt;HardenedStaticContent&gt; item group."/>
+
+        <Error Condition="!Exists('%(_HardenedStaticContentSource.FullPath)')"
+               Code="HSTATIC007"
+               Text="The static content manifest '%(_HardenedStaticContentSource.Identity)' was not written. Delete $(IntermediateOutputPath)staticcontent and rebuild."/>
+    </Target>
+</Project>
