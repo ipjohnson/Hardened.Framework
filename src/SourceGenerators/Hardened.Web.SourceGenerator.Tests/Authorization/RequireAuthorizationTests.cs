@@ -331,6 +331,7 @@ public class RequireAuthorizationTests {
 
             [HardenedModule]
             [RequireAuthorization]
+            [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
             public partial class TestApplication { }
 
             public class UserController {

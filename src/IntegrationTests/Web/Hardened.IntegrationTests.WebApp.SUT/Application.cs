@@ -9,23 +9,30 @@ using Hardened.Web.Runtime.OpenApi;
 
 namespace Hardened.IntegrationTests.WebApp.SUT;
 
+/// <remarks>
+/// <para>
+/// <c>[Enable&lt;OpenApiDocumentPublishing&gt;]</c> is what embeds the document the web generator wrote
+/// from this application's own routes and serves it at <c>/openapi.json</c>. It replaces the
+/// registration this module used to make by hand, which had to live here rather than in
+/// <c>CreateBuilder</c> - that helper is only used by Program.cs, and the test host calls
+/// <c>PopulateServiceCollection</c> directly.
+/// </para>
+/// <para>
+/// The reference page is installed twice, at different paths, because that is the arrangement worth
+/// covering: <c>HardenedOpenApiUi</c> keys its equality on <c>Path</c> so that a service publishing
+/// several specifications gets a page for each, and nothing but a second install proves the module
+/// loads more than once.
+/// </para>
+/// </remarks>
 [HardenedModule]
 [WebLibrary(Test = "test")]
+[Enable<OpenApiDocumentPublishing>]
+[HardenedOpenApiUi(Title = "Integration Tests")]
+[HardenedOpenApiUi(Path = "/docs/internal", Title = "Internal", DocumentPath = "/internal.json")]
 [AspNetCoreRuntime]
 public partial class Application : IServiceCollectionConfiguration {
 
-    /// <summary>
-    /// Serves the document the web generator wrote from this application's own routes.
-    /// </summary>
-    /// <remarks>
-    /// On the module rather than in <c>CreateBuilder</c>, because that helper is only used by
-    /// Program.cs - the test host calls <c>PopulateServiceCollection</c> directly, so a
-    /// registration written there is one the tests never see.
-    /// </remarks>
     public void ConfigureServices(IServiceCollection services) {
-        services.AddSingleton<IWebExecutionRequestHandlerProvider>(
-            new OpenApiDocumentProvider(OpenApiDocument));
-
         // Stands in for authentication until the framework ships it, so the authorization tests can
         // exercise a caller who holds grants rather than only one who holds none.
         services.AddSingleton<IStartupService, TestPrincipalStartupService>();

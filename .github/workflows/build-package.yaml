@@ -192,7 +192,7 @@ jobs:
             -name 'Application.OpenApiDocument.cs' | head -1)
 
           if [ -z "$generated" ]; then
-            echo "::error::No generated OpenAPI document found. EmitCompilerGeneratedFiles may be off on the integration SUT."
+            echo "::error::No generated OpenAPI document found. Either EmitCompilerGeneratedFiles is off on the integration SUT, or its entry point lost [Enable<OpenApiDocumentPublishing>] - without which no document is emitted."
             exit 1
           fi
 

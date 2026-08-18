@@ -61,6 +61,7 @@ public class OpenApiVersionGeneratorTests {
                     namespace TestApp;
 
                     [HardenedModule]
+                    [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
                     public partial class TestApplication { }
 
                     public class UserController {
@@ -80,13 +81,8 @@ public class OpenApiVersionGeneratorTests {
         var source = result.GeneratedSources
             .First(pair => pair.Key.Contains("OpenApiDocument")).Value;
 
-        // The document is a C# string literal; take it back to JSON the way CI's extractor does.
-        var start = source.IndexOf('"');
-        var end = source.LastIndexOf('"');
-        var literal = source.Substring(start + 1, end - start - 1);
-
-        using var document = JsonDocument.Parse(
-            System.Text.RegularExpressions.Regex.Unescape(literal));
+        // The document is emitted gzipped; take it back to JSON the way CI's extractor does.
+        using var document = JsonDocument.Parse(GeneratedOpenApiDocument.Extract(source));
 
         return document.RootElement.GetProperty("openapi").GetString();
     }

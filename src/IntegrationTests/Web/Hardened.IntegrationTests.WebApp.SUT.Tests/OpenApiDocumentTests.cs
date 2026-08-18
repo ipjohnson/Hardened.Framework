@@ -17,11 +17,47 @@ public class OpenApiDocumentTests {
 
         response.Assert.Ok();
 
-        response.Body.Position = 0;
+        return JsonDocument.Parse(await response.ReadTextAsync());
+    }
 
+    /// <summary>
+    /// It is served compressed, which is the form it is embedded in.
+    /// </summary>
+    /// <remarks>
+    /// The document is gzipped by the generator and the bytes go out untouched for a client that
+    /// says it takes them - which is every client - so the common path compresses nothing per
+    /// request. <c>TestWebApp</c> sends <c>Accept-Encoding: gzip</c> on every request, so this is
+    /// that path.
+    /// </remarks>
+    [HardenedTest]
+    public async Task TheDocumentIsServedCompressed(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/openapi.json");
+
+        response.Assert.Ok();
+
+        Assert.Equal("gzip", response.Headers["Content-Encoding"].ToString());
+        Assert.Equal(
+            response.Body.Length.ToString(), response.Headers["Content-Length"].ToString());
+    }
+
+    /// <summary>
+    /// A client that does not take gzip gets the document inflated rather than unreadable.
+    /// </summary>
+    [HardenedTest]
+    public async Task AClientThatDoesNotAcceptGZipGetsPlainJson(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get(
+            "/openapi.json", request => request.Headers["Accept-Encoding"] = "identity");
+
+        response.Assert.Ok();
+
+        Assert.False(response.Headers.ContainsKey("Content-Encoding"));
+
+        response.Body.Position = 0;
         using var reader = new StreamReader(response.Body, leaveOpen: true);
 
-        return JsonDocument.Parse(await reader.ReadToEndAsync());
+        using var document = JsonDocument.Parse(await reader.ReadToEndAsync());
+
+        Assert.Equal("3.2.0", document.RootElement.GetProperty("openapi").GetString());
     }
 
     [HardenedTest]

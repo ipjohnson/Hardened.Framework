@@ -48,12 +48,16 @@
 
     <ItemGroup>
         <!--
-            Opted in, because this fixture asserts the document reaches the wire verbatim -
-            comments included. Embedding is off by default: it publishes the whole description, and
-            a large one exceeds the metadata limit on user strings all by itself.
+            Published and given a page from here rather than from an attribute. The contract is a
+            build input, so where it is served is a fact about this file - stating it anywhere else
+            means naming the file twice with nothing checking the two agree.
+
+            EmbedDocument is not set: it is on by default now that the document is embedded gzipped
+            rather than as a UTF-16 string literal, which is what made it too expensive to default.
         -->
         <HardenedOpenApiSpec Include="Specs\petstore.yaml">
-            <EmbedDocument>true</EmbedDocument>
+            <PublishUrl>/openapi.yaml</PublishUrl>
+            <UiUrl>/docs</UiUrl>
         </HardenedOpenApiSpec>
     </ItemGroup>
 

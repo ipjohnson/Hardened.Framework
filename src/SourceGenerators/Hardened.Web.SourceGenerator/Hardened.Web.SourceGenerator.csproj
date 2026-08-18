@@ -51,6 +51,16 @@
         <DevelopmentDependency>true</DevelopmentDependency>
     </PropertyGroup>
 
+    <!--
+        Linked alongside OpenApiDocument/**, which uses it. Hardened.Idl.Shared owns it because the
+        specification-first emitter compresses the same way.
+    -->
+    <ItemGroup>
+        <Compile Include="../Hardened.Idl.Shared/GZipLiteral.cs">
+            <Link>Shared/GZipLiteral.cs</Link>
+        </Compile>
+    </ItemGroup>
+
     <ItemGroup>
         <Compile Include="../Hardened.SourceGenerator/Configuration/**/*">
             <Link>Configuration\%(RecursiveDir)/%(FileName)%(Extension)</Link>

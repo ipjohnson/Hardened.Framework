@@ -38,6 +38,7 @@ public class OpenApiReverseRoundTripTests {
         namespace TestApp;
 
         [HardenedModule]
+        [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
         public partial class TestApplication { }
 
         public class Product {
@@ -98,12 +99,9 @@ public class OpenApiReverseRoundTripTests {
         result.AssertNoErrors();
 
         var source = result.SourceContaining("OpenApiDocument");
-        var match = Regex.Match(source, "\"((?:[^\"\\\\]|\\\\.)*)\"", RegexOptions.Singleline);
-
-        Assert.True(match.Success, "No document literal in the generated source.");
 
         var model = OpenApiSpecParser.Parse(
-            Regex.Unescape(match.Groups[1].Value), "round-trip.json", CancellationToken.None);
+            GeneratedOpenApiDocument.Extract(source), "round-trip.json", CancellationToken.None);
 
         Assert.True(model != null, "The build task's reader rejected the emitted document.");
 

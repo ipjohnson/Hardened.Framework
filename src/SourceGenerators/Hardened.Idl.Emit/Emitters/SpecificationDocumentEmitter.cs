@@ -1,6 +1,5 @@
 using CSharpAuthor;
 using Hardened.Idl.Models;
-using Hardened.Idl;
 
 namespace Hardened.Idl.Emitters;
 
@@ -42,18 +41,31 @@ internal static class SpecificationDocumentEmitter {
         contentType.InitializeValue =
             new CodeOutputComponent(Quote(ContentType(specPath))) { Indented = false };
 
-        var text = definition.AddField(typeof(string), "Document");
+        var text = definition.AddProperty(ReadOnlySpanOfByte, "DocumentGZip");
 
-        // static readonly rather than const: CSharpAuthor has no const modifier, and a const of
-        // this size would be inlined into every assembly that referenced it.
-        text.Modifiers |= ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
-        text.InitializeValue = new CodeOutputComponent(Verbatim(document)) { Indented = false };
+        // Gzipped bytes rather than a verbatim string literal. A C# string literal lives in the
+        // assembly's #US heap as UTF-16, so it cost two bytes per ASCII character - which is what
+        // kept EmbedDocument off by default, because a large description could exceed the
+        // user-string limit on its own. An RVA blob is a different heap and about an eighth the
+        // size. Fidelity is untouched: gzip round-trips the source text exactly, comments and line
+        // endings included, which is the whole point of embedding the input rather than re-emitting
+        // it.
+        text.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
+        text.Set = null;
+        text.Get.LambdaSyntax = true;
+        text.Get.AddCode(GZipLiteral.Write(document));
+        text.Comment = "The document this application was generated from, gzip-compressed.";
 
         return definition;
     }
 
+    private static ITypeDefinition ReadOnlySpanOfByte =>
+        new GenericTypeDefinition(
+            TypeDefinitionEnum.ClassDefinition, "System", "ReadOnlySpan",
+            new[] { TypeDefinition.Get(typeof(byte)) });
+
     public static string TypeName(string fileName) =>
-        NamingHelper.ToPascalCase(fileName) + "Specification";
+        NamingHelper.SpecificationTypeName(fileName);
 
     /// <summary>
     /// From the extension, since that is the only thing that says which of the two interchangeable
@@ -68,19 +80,6 @@ internal static class SpecificationDocumentEmitter {
             ? "application/yaml"
             : "application/json";
     }
-
-    /// <summary>
-    /// A verbatim literal, so the only character needing an escape is the quote.
-    /// </summary>
-    /// <remarks>
-    /// The alternative is a regular literal with every newline, tab and backslash escaped, which
-    /// for a YAML document of any size is a single unreadable line and a much larger surface for an
-    /// escaping mistake to hide in. A verbatim literal also carries the document's own line endings
-    /// through unchanged, which is what "verbatim" has to mean if the served bytes are to match the
-    /// file.
-    /// </remarks>
-    private static string Verbatim(string document) =>
-        "@\"" + document.Replace("\"", "\"\"") + "\"";
 
     private static string Quote(string value) =>
         "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";

@@ -40,6 +40,7 @@ public class OpenApiRoundTripTests {
         namespace TestApp;
 
         [HardenedModule]
+        [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
         [Server("https://api.example.com", "Production")]
         [Server("https://staging.example.com")]
         public partial class TestApplication { }
@@ -140,7 +141,7 @@ public class OpenApiRoundTripTests {
 
         result.AssertNoErrors();
 
-        var document = ExtractDocument(result.SourceContaining("OpenApiDocument"));
+        var document = GeneratedOpenApiDocument.Extract(result.SourceContaining("OpenApiDocument"));
 
         var settings = new OpenApiReaderSettings();
         settings.AddYamlReader();
@@ -209,13 +210,6 @@ public class OpenApiRoundTripTests {
     }
 
     /// <summary>The string literal the generator wrote, unescaped back to its JSON.</summary>
-    private static string ExtractDocument(string source) {
-        var match = Regex.Match(source, "\"((?:[^\"\\\\]|\\\\.)*)\"", RegexOptions.Singleline);
-
-        Assert.True(match.Success, "No document literal in the generated source.");
-
-        return Regex.Unescape(match.Groups[1].Value);
-    }
 
     [Fact]
     public void TheEmittedDocumentIsValidOpenApi() {

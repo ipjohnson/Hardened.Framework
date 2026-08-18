@@ -45,6 +45,7 @@ namespace Hardened.Web.Testing
         public T Deserialize<T>() { }
         [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(Hardened.Web.Testing.TestWebResponse.<DeserializeAsyncEnumerable>d__11<T>))]
         public System.Collections.Generic.IAsyncEnumerable<T> DeserializeAsyncEnumerable<T>() { }
+        public System.Threading.Tasks.Task<string> ReadTextAsync() { }
     }
     public class WebAssertThat : Hardened.Web.Testing.IWebAssertThat
     {

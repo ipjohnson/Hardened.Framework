@@ -28,9 +28,9 @@ internal static class SpecRoutingTableGenerator {
         SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
         ImmutableArray<HandlerInfo?> handlerInfos,
-        ImmutableArray<string> jsonTypeInfoResolvers,
+        ImmutableArray<SpecRegistration> specRegistrations,
         bool excludeFromCoverage = false) {
-        var outputString = GenerateCSharpRouteFile(models.Left, models.Right, handlerInfos, jsonTypeInfoResolvers, context.CancellationToken, excludeFromCoverage);
+        var outputString = GenerateCSharpRouteFile(models.Left, models.Right, handlerInfos, specRegistrations, context.CancellationToken, excludeFromCoverage);
         var fileName = models.Left.EntryPointType.Name + ".SpecRouting";
         context.AddSource(fileName, outputString);
 
@@ -44,7 +44,7 @@ internal static class SpecRoutingTableGenerator {
         EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers,
         ImmutableArray<HandlerInfo?> handlerInfos,
-        ImmutableArray<string> jsonTypeInfoResolvers,
+        ImmutableArray<SpecRegistration> specRegistrations,
         CancellationToken cancellationToken,
         bool excludeFromCoverage = false) {
         _caseInsensitive = appModel.AttributeModels != null &&
@@ -54,7 +54,7 @@ internal static class SpecRoutingTableGenerator {
 
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
-        CreateRoutingTable(appModel, handlers, handlerInfos, jsonTypeInfoResolvers, applicationFile, cancellationToken, excludeFromCoverage);
+        CreateRoutingTable(appModel, handlers, handlerInfos, specRegistrations, applicationFile, cancellationToken, excludeFromCoverage);
 
         var outputContext = new OutputContext(
             new OutputContextOptions {
@@ -68,7 +68,7 @@ internal static class SpecRoutingTableGenerator {
         EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> endPointModels,
         ImmutableArray<HandlerInfo?> handlerInfos,
-        ImmutableArray<string> jsonTypeInfoResolvers,
+        ImmutableArray<SpecRegistration> specRegistrations,
         CSharpFileDefinition applicationFile,
         CancellationToken cancellationToken,
         bool excludeFromCoverage = false) {
@@ -93,7 +93,7 @@ internal static class SpecRoutingTableGenerator {
             appModel.EntryPointType.Namespace,
             appModel.EntryPointType.Name + ".SpecRoutingTable");
 
-        GenerateDependencyInjection(appClass, routingType, appModel, endPointModels, handlerInfos, jsonTypeInfoResolvers, cancellationToken);
+        GenerateDependencyInjection(appClass, routingType, appModel, endPointModels, handlerInfos, specRegistrations, cancellationToken);
     }
 
     private static void CreateConstructor(ClassDefinition appClass) {
@@ -109,7 +109,7 @@ internal static class SpecRoutingTableGenerator {
         EntryPointSelector.Model applicationModel,
         IReadOnlyList<RequestHandlerModel> webEndPointModels,
         ImmutableArray<HandlerInfo?> handlerInfos,
-        ImmutableArray<string> jsonTypeInfoResolvers,
+        ImmutableArray<SpecRegistration> specRegistrations,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -134,10 +134,22 @@ internal static class SpecRoutingTableGenerator {
         // handler's namespace, which meant two spec files in one project emitted two classes of that
         // one name and the project did not compile - finding 3.1. Ordered so the emitted table does
         // not reshuffle between builds.
-        foreach (var resolver in jsonTypeInfoResolvers.OrderBy(name => name, StringComparer.Ordinal)) {
+        // Ordered so the emitted table does not reshuffle between builds.
+        var ordered = specRegistrations
+            .OrderBy(registration => registration.ResolverName, StringComparer.Ordinal)
+            .ThenBy(registration => registration.PublishUrl, StringComparer.Ordinal)
+            .ToList();
+
+        foreach (var registration in ordered) {
+            if (registration.ResolverName.Length == 0) {
+                continue;
+            }
+
             diMethod.AddIndentedStatement(new CodeOutputComponent(
-                $"serviceCollection.AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), global::{resolver}.Instance)"));
+                $"serviceCollection.AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), global::{registration.ResolverName}.Instance)"));
         }
+
+        RegisterPublishedSpecs(diMethod, serviceCollection, ordered);
 
         // Register interface → implementation mappings from [Handler] classes
         foreach (var handlerInfo in handlerInfos) {
@@ -160,6 +172,61 @@ internal static class SpecRoutingTableGenerator {
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
             new[] { LinkGenerator.LinksType(applicationModel) }));
     }
+
+    /// <summary>
+    /// The documents this application publishes, and the reference pages that read them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Emitted from <c>PublishUrl</c> and <c>UiUrl</c> metadata on the item that declared the spec,
+    /// rather than written by hand. A specification-first application's contract is a build input:
+    /// where it publishes that contract is a fact about the file, and stating it anywhere else means
+    /// naming the file twice with nothing checking the two agree.
+    /// </para>
+    /// <para>
+    /// The page goes through <c>AddModule</c> rather than being registered directly, so it is the
+    /// same <c>HardenedOpenApiUi</c> an attribute-routed application applies as an attribute - one
+    /// implementation, reached two ways, rather than a second one that would drift.
+    /// </para>
+    /// <para>
+    /// Spelled out in full, because generated code carries none of the consumer's using directives -
+    /// the same reason <c>RegisterEnabledModules</c> does.
+    /// </para>
+    /// </remarks>
+    private static void RegisterPublishedSpecs(
+        MethodDefinition diMethod,
+        ParameterDefinition serviceCollection,
+        IReadOnlyList<SpecRegistration> registrations) {
+        foreach (var registration in registrations) {
+            if (registration.PublishUrl.Length == 0) {
+                continue;
+            }
+
+            diMethod.AddIndentedStatement(
+                serviceCollection.InvokeGeneric(
+                    "AddSingleton",
+                    new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider },
+                    CodeOutputComponent.Get(
+                        "new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(global::" +
+                        registration.SpecificationTypeName + ".DocumentGZip, " +
+                        Quote(registration.PublishUrl) + ", global::" +
+                        registration.SpecificationTypeName + ".ContentType)")));
+
+            if (registration.UiUrl.Length == 0) {
+                continue;
+            }
+
+            diMethod.AddIndentedStatement(CodeOutputComponent.Get(
+                "global::DependencyModules.Runtime.ServiceCollectionExtensions.AddModule(" +
+                serviceCollection.Name +
+                ", new global::Hardened.Web.Runtime.OpenApi.HardenedOpenApiUi { Path = " +
+                Quote(registration.UiUrl) + ", DocumentPath = " +
+                Quote(registration.PublishUrl) + " })"));
+        }
+    }
+
+    private static string Quote(string value) =>
+        "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
     private static void ImplementHandlerMethod(
         EntryPointSelector.Model appModel,

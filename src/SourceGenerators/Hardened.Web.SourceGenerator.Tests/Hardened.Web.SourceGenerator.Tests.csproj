@@ -32,6 +32,13 @@
         <ProjectReference Include="..\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj"/>
 
         <!--
+            For EntryPointDiagnostics alone. Both generator assemblies compile CSharpAuthor in, so
+            every CSharpAuthor type is ambiguous across the two - which is fine only because the
+            tests here touch none of them: the diagnostic is decided over entry point names.
+        -->
+        <ProjectReference Include="..\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"/>
+
+        <!--
             The same OpenAPI reader the build task parses specifications with, so the round trip can
             check the emitted document against something other than the code that wrote it. Reading
             it back with Hardened's own parser would let a misunderstanding shared by the writer and

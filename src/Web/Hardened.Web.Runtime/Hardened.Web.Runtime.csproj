@@ -24,4 +24,5 @@
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
     </ItemGroup>
 
+
 </Project>

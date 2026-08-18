@@ -124,15 +124,35 @@ public class SpecSourceGenerator : IIncrementalGenerator {
             HandlerSelector.Transform
         ).Where(info => info != null).Collect();
 
-        // The resolver names the task emitted, fully qualified. Collected across every spec, because
-        // each spec now produces its own resolver - one flat OpenApiJsonTypeInfoResolver per project
-        // is what made two spec files in one project fail to compile.
-        var resolverNames = specWithNamespace
-            .Select((pair, _) => pair.Left is { JsonTypeInfoResolverName.Length: > 0 } spec
-                ? $"{pair.Right}.Models.{spec.JsonTypeInfoResolverName}"
-                : null)
-            .Where(name => name is not null)
-            .Select((name, _) => name!)
+        // What each spec contributes to the container, fully qualified. Collected across every spec:
+        // each produces its own resolver - one flat OpenApiJsonTypeInfoResolver per project is what
+        // made two spec files in one project fail to compile - and each may also ask to be published
+        // and to have a reference page, from PublishUrl and UiUrl metadata on the item that declared
+        // it.
+        var specRegistrations = specWithNamespace
+            .Select((pair, _) => {
+                var spec = pair.Left;
+
+                if (spec is null) {
+                    return null;
+                }
+
+                var registration = new SpecRegistration(
+                    spec.JsonTypeInfoResolverName.Length > 0
+                        ? $"{pair.Right}.Models.{spec.JsonTypeInfoResolverName}"
+                        : "",
+                    spec.PublishUrl.Length > 0
+                        ? $"{pair.Right}.{NamingHelper.SpecificationTypeName(spec.FileName)}"
+                        : "",
+                    spec.PublishUrl,
+                    spec.UiUrl);
+
+                return registration.ResolverName.Length > 0 || registration.PublishUrl.Length > 0
+                    ? registration
+                    : null;
+            })
+            .Where(registration => registration is not null)
+            .Select((registration, _) => registration!)
             .Collect();
 
         // Collect all handler models across all spec files
@@ -188,11 +208,11 @@ public class SpecSourceGenerator : IIncrementalGenerator {
         var routeProvider = entryPointProvider
             .Combine(enrichedModels)
             .Combine(handlerInfoProvider)
-            .Combine(resolverNames)
+            .Combine(specRegistrations)
             .Combine(excludeFromCoverageProvider);
 
         context.RegisterSourceOutput(routeProvider,
-            SourceGeneratorWrapper.Wrap<((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<string> Right) Left, bool Right)>(
+            SourceGeneratorWrapper.Wrap<((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<SpecRegistration> Right) Left, bool Right)>(
                 (ctx, pair) => SpecRoutingTableGenerator.GenerateRoute(
                     ctx, pair.Left.Left.Left, pair.Left.Left.Right!, pair.Left.Right, pair.Right)));
 
