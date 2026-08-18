@@ -1,9 +1,11 @@
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
+using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Tests.Support;
+using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
@@ -203,6 +205,71 @@ public class AsyncEnumerableIoFilterTests {
         Assert.False(handlerRan);
 
         logger.Received(1).RequestParameterBindFailed(context, failure);
+    }
+
+    /// <summary>
+    /// A request that something ahead of this filter already refused does not have its body read.
+    ///
+    /// <para>
+    /// This is the streaming route's half of the rule <c>IoFilter</c> follows. A requirement over
+    /// grants alone is settled before serialization so that a request presenting no credential
+    /// never costs a large deserialization before it is rejected; binding here would hand that
+    /// position back for the routes most likely to be carrying a large body.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task ARequestAlreadyRefusedIsNeitherBoundNorStreamed() {
+        var log = new List<string>();
+        var context = Pipeline.Context();
+        var bound = false;
+
+        context.Response.ExceptionValue = new InvalidOperationException("refused upstream");
+
+        var filter = new AsyncEnumerableIoFilter<string>(
+            _ => {
+                bound = true;
+
+                return Task.FromResult(EmptyParameters.Instance);
+            },
+            _ => {
+                log.Add("serialize");
+
+                return Task.CompletedTask;
+            },
+            null);
+
+        await Pipeline.Chain(context, filter,
+            new Pipeline.Inline(c => {
+                log.Add("handler");
+
+                c.Context.Response.ResponseValue = Items("never-written");
+
+                return Task.CompletedTask;
+            })).Next();
+
+        Assert.False(bound);
+        Assert.DoesNotContain("handler", log);
+
+        // Still serialized, so the refusal reaches the caller rather than dying in the pipeline.
+        Assert.Contains("serialize", log);
+    }
+
+    /// <summary>
+    /// A bind that never happened is not measured. Recording the duration anyway would put a
+    /// near-zero on the histogram for every refused request, which reads as a very fast
+    /// deserialization rather than as none - and refused requests are exactly the population you
+    /// would go to that histogram to explain.
+    /// </summary>
+    [Fact]
+    public async Task ARequestAlreadyRefusedRecordsNoBindDuration() {
+        var metrics = Substitute.For<IMetricLogger>();
+        var context = Pipeline.Context(metrics: metrics);
+
+        context.Response.ExceptionValue = new InvalidOperationException("refused upstream");
+
+        await Pipeline.Chain(context, Filter<string>()).Next();
+
+        metrics.DidNotReceive().Record(RequestMetrics.ParameterBindDuration, Arg.Any<double>());
     }
 
     /// <summary>
