@@ -80,7 +80,11 @@ public static class InvokeClassGenerator {
     /// </para>
     /// </remarks>
     private static void AddRoutePathParameter(MethodDefinition constructor) {
-        var routePath = constructor.AddParameter(typeof(string), "routePath");
+        // string?, not string. Every generated handler lands in a project with nullable
+        // reference types on, where "string routePath = null" is CS8625 - a warning locally and
+        // an error under TreatWarningsAsErrors, which is what CI builds with.
+        var routePath = constructor.AddParameter(
+            TypeDefinition.Get(typeof(string)).MakeNullable(), "routePath");
 
         routePath.DefaultValue = Null();
     }
