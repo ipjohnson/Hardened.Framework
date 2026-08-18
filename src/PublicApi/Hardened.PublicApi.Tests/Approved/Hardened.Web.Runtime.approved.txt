@@ -116,32 +116,9 @@ namespace Hardened.Web.Runtime.CacheControl
 }
 namespace Hardened.Web.Runtime.Configuration
 {
-    public interface IStaticContentConfiguration
-    {
-        Hardened.Web.Runtime.CacheControl.CacheControlEnum CacheControlType { get; }
-        int? CacheMaxAge { get; }
-        bool CompressTextContent { get; }
-        bool EnableETag { get; }
-        string? FallBackFile { get; }
-        bool Immutable { get; }
-        System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; }
-        string Path { get; }
-    }
     public interface IWebRoutingConfiguration
     {
         Hardened.Web.Runtime.Configuration.TrailingSlash TrailingSlash { get; }
-    }
-    public class StaticContentConfiguration : Hardened.Web.Runtime.Configuration.IStaticContentConfiguration
-    {
-        public StaticContentConfiguration() { }
-        public Hardened.Web.Runtime.CacheControl.CacheControlEnum CacheControlType { get; set; }
-        public int? CacheMaxAge { get; set; }
-        public bool CompressTextContent { get; set; }
-        public bool EnableETag { get; set; }
-        public string? FallBackFile { get; set; }
-        public bool Immutable { get; set; }
-        public System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; set; }
-        public string Path { get; set; }
     }
     public enum TrailingSlash
     {
@@ -212,6 +189,7 @@ namespace Hardened.Web.Runtime.DependencyInjection
 }
 namespace Hardened.Web.Runtime.Handlers
 {
+    public interface IFallbackRequestHandlerProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider { }
     public interface IMethodNotAllowedHandler
     {
         System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context, string allow);
@@ -238,7 +216,7 @@ namespace Hardened.Web.Runtime.Handlers
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class WebExecutionHandlerService : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService
     {
-        public WebExecutionHandlerService(System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider> handlers, Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler resourceNotFoundHandler, Hardened.Web.Runtime.Handlers.IMethodNotAllowedHandler methodNotAllowedHandler, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Hardened.Web.Runtime.StaticContent.IStaticContentHandler staticContentHandler, Microsoft.Extensions.Options.IOptions<Hardened.Web.Runtime.Configuration.IWebRoutingConfiguration> routing) { }
+        public WebExecutionHandlerService(System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider> handlers, System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IFallbackRequestHandlerProvider> fallbacks, Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler resourceNotFoundHandler, Hardened.Web.Runtime.Handlers.IMethodNotAllowedHandler methodNotAllowedHandler, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Microsoft.Extensions.Options.IOptions<Hardened.Web.Runtime.Configuration.IWebRoutingConfiguration> routing) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }
@@ -404,38 +382,5 @@ namespace Hardened.Web.Runtime.Routing
         public static bool IsMinLength(System.ReadOnlySpan<char> value, int min) { }
         public static bool IsRange(System.ReadOnlySpan<char> value, long min, long max) { }
         public static bool IsSlug(System.ReadOnlySpan<char> value) { }
-    }
-}
-namespace Hardened.Web.Runtime.StaticContent
-{
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
-    public class ETagProvider : Hardened.Web.Runtime.StaticContent.IETagProvider
-    {
-        public ETagProvider(Hardened.Shared.Runtime.Collections.IItemPool<System.Security.Cryptography.MD5> md5Pool) { }
-        public string GenerateETag(byte[] content) { }
-    }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
-    public class GZipStaticContentCompressor : Hardened.Web.Runtime.StaticContent.IGZipStaticContentCompressor
-    {
-        public GZipStaticContentCompressor(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
-        public byte[] CompressContent(byte[] bytes, System.IO.Compression.CompressionLevel compressionLevel) { }
-    }
-    public interface IETagProvider
-    {
-        string GenerateETag(byte[] content);
-    }
-    public interface IGZipStaticContentCompressor
-    {
-        byte[] CompressContent(byte[] bytes, System.IO.Compression.CompressionLevel compressionLevel = 1);
-    }
-    public interface IStaticContentHandler
-    {
-        System.Threading.Tasks.Task<bool> Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context);
-    }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
-    public class StaticContentHandler : Hardened.Web.Runtime.StaticContent.IStaticContentHandler
-    {
-        public StaticContentHandler(Microsoft.Extensions.Options.IOptions<Hardened.Web.Runtime.Configuration.IStaticContentConfiguration> configuration, Hardened.Shared.Runtime.Utilities.IFileExtToMimeTypeHelper fileExtToMimeTypeHelper, Hardened.Web.Runtime.StaticContent.IGZipStaticContentCompressor gZipStaticContentCompressor, Hardened.Web.Runtime.StaticContent.IETagProvider etagProvider, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Microsoft.Extensions.Logging.ILogger<Hardened.Web.Runtime.StaticContent.StaticContentHandler> logger) { }
-        public System.Threading.Tasks.Task<bool> Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
 }

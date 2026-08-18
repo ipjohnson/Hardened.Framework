@@ -1,9 +1,8 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Web.Runtime.CacheControl;
-using Hardened.Web.Runtime.Configuration;
 using Xunit;
 
-namespace Hardened.Web.Runtime.Tests.Configuration;
+namespace Hardened.Web.StaticContent.Tests;
 
 /// <summary>
 /// The defaults an application gets when it registers the web module and configures nothing.

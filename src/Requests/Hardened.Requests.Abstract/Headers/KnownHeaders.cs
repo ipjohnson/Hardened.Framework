@@ -21,6 +21,47 @@ public static class KnownHeaders {
 
     public const string Cookie = "Cookie";
 
+    /// <summary>
+    /// The validator for the representation being sent.
+    /// </summary>
+    /// <remarks>
+    /// Without it on the response there is nothing for a client to put in
+    /// <see cref="IfNoneMatch"/>, so a server that reads that header and never writes this one has
+    /// a conditional-request path no browser can ever reach. That was the state of static content
+    /// until this constant existed.
+    /// </remarks>
+    public const string ETag = "ETag";
+
+    /// <summary>
+    /// When the representation last changed. The validator a cache falls back on when it has no
+    /// <see cref="ETag"/>, and the one an <see cref="IfModifiedSince"/> is compared against.
+    /// </summary>
+    public const string LastModified = "Last-Modified";
+
+    /// <summary>The date-based conditional. Weaker than <see cref="IfNoneMatch"/>, and outranked by it.</summary>
+    public const string IfModifiedSince = "If-Modified-Since";
+
+    /// <summary>
+    /// That ranges are understood at this resource, which is what makes a media element seek.
+    /// </summary>
+    /// <remarks>
+    /// Its absence is not neutral: a client that cannot tell whether ranges work assumes they do
+    /// not, so a video served without it plays from the start and cannot be scrubbed.
+    /// </remarks>
+    public const string AcceptRanges = "Accept-Ranges";
+
+    /// <summary>The bytes being asked for.</summary>
+    public const string Range = "Range";
+
+    /// <summary>Which bytes a 206 carries, or the length a 416 was measured against.</summary>
+    public const string ContentRange = "Content-Range";
+
+    /// <summary>
+    /// Whether the range still applies to what the client holds. A range against a representation
+    /// that has since changed is a request for bytes that no longer mean what the client thinks.
+    /// </summary>
+    public const string IfRange = "If-Range";
+
     /// <summary>Where a redirect points. Required on a 3xx that has one.</summary>
     public const string Location = "Location";
 

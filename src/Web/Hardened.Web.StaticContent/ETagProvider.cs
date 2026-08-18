@@ -2,7 +2,7 @@
 using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 
-namespace Hardened.Web.Runtime.StaticContent;
+namespace Hardened.Web.StaticContent;
 
 public interface IETagProvider {
     string GenerateETag(byte[] content);

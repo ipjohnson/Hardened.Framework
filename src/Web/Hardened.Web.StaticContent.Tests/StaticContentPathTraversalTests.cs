@@ -1,18 +1,16 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
-using Hardened.Web.Runtime.Configuration;
-using Hardened.Web.Runtime.StaticContent;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
 
-namespace Hardened.Web.Runtime.Tests.StaticContent;
+namespace Hardened.Web.StaticContent.Tests;
 
 /// <summary>
-/// StaticContentHandler maps a request path onto the filesystem with
+/// FileSystemContentSource maps a request path onto the filesystem with
 /// Path.Combine(root, requestPath.TrimStart('/')) and no canonicalisation, so whether a
 /// traversal sequence can escape the configured root depends entirely on the transport
 /// having normalised the path first.
@@ -49,9 +47,11 @@ public class StaticContentPathTraversalTests : IDisposable {
         try { Directory.Delete(_tempRoot, true); } catch { /* best effort */ }
     }
 
-    private static StaticContentHandler Handler() {
+    private static StaticContentPipeline Handler() {
         var configuration = Substitute.For<IStaticContentConfiguration>();
         configuration.Path.Returns("wwwroot");
+        configuration.CacheContent.Returns(true);
+        configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(false);
         configuration.CompressTextContent.Returns(false);
         configuration.FallBackFile.Returns((string?)null);
@@ -63,13 +63,14 @@ public class StaticContentPathTraversalTests : IDisposable {
         var etag = Substitute.For<IETagProvider>();
         etag.GenerateETag(Arg.Any<byte[]>()).Returns("etag");
 
-        return new StaticContentHandler(
-            Options.Create(configuration),
-            mimeHelper,
-            Substitute.For<IGZipStaticContentCompressor>(),
-            etag,
-            new MemoryStreamPool(),
-            NullLogger<StaticContentHandler>.Instance);
+        return new StaticContentPipeline(
+            new FileSystemContentSource(
+                Options.Create(configuration),
+                mimeHelper,
+                Substitute.For<IGZipStaticContentCompressor>(),
+                etag,
+                NullLogger<FileSystemContentSource>.Instance),
+            configuration);
     }
 
     private static (IExecutionContext context, MemoryStream body) Context(string path) {

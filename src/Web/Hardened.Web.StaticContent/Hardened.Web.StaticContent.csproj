@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
+        <Description>Static file serving for Hardened. Serves a content directory as a route, so authorization, conventions, HEAD and 405 apply to a file the same way they apply to a handler. Opt in by referencing this package and writing [HardenedStaticContent].</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Web.StaticContent</PackageId>
+    </PropertyGroup>
+
+    <!--
+      Declared rather than inherited, matching Hardened.Web.Kestrel.Runtime: analyzers do not flow
+      transitively, so a package consumer writing a [HardenedModule] would not get the generator
+      otherwise.
+    -->
+    <ItemGroup>
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9230" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <!--
+      The targets file and the task travel with the package: build/ is imported automatically by a
+      consuming project, and tasks/ is where the targets file looks for the assembly.
+    -->
+    <ItemGroup>
+        <None Include="build\Hardened.Web.StaticContent.targets" Pack="true" PackagePath="build\"/>
+        <None Include="..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net8.0\Hardened.Web.StaticContent.BuildTask.dll"
+              Pack="true" PackagePath="tasks\net8.0\" Condition="Exists('..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net8.0\Hardened.Web.StaticContent.BuildTask.dll')"/>
+        <None Include="..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net472\Hardened.Web.StaticContent.BuildTask.dll"
+              Pack="true" PackagePath="tasks\net472\" Condition="Exists('..\Hardened.Web.StaticContent.BuildTask\bin\$(Configuration)\net472\Hardened.Web.StaticContent.BuildTask.dll')"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+    </ItemGroup>
+
+</Project>

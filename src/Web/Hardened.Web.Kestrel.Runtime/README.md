@@ -96,8 +96,10 @@ following matter — and the first one matters more often than teams expect.
   middleware ecosystem generally.
 - `IHttpContextAccessor`, and anything in application code that depends on `HttpContext`.
 
-Hardened supplies its own CORS, static content handling and filter pipeline, so those particular
-overlaps are covered.
+Hardened supplies its own CORS and filter pipeline, so those particular overlaps are covered.
+Static files are covered by `Hardened.Web.StaticContent`, which is a separate package rather than
+part of the runtime: most services serve none, and a DI registration is exactly what a trimmer
+cannot remove, so carrying it unconditionally cost every application about 20 KB it could not drop.
 
 ## Hosting inside a generic host
 

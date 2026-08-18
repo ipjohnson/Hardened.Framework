@@ -749,16 +749,121 @@ surface, and `GetRequestNameModel` throws `NotImplementedException("HttpMethodAt
 supported yet.")` for it, so making it applicable without also implementing it would turn an
 unusable attribute into a crashing one.
 
-**A Brotli static asset is served labelled `gzip`.**
-`StaticContentHandler.RespondWithContentEncodedFile` writes
-`Headers[Content-Encoding] = KnownEncoding.GZipStringValues` unconditionally, so a client that
-offered `br` receives Brotli bytes under `Content-Encoding: gzip` and cannot decode them. The
-neighbouring path — decompressing on the way out for a client that offered no matching encoding —
-is correct for both `.gz` and `.br`, so shipping `.br` files only breaks for the clients that can
-actually use them.
+**~~A Brotli static asset is served labelled `gzip`.~~ Fixed.**
+`StaticContentHandler` wrote `Headers[Content-Encoding] = KnownEncoding.GZipStringValues`
+unconditionally, so a client that offered `br` received Brotli bytes under `Content-Encoding: gzip`
+and could not decode them. The response now names the coding the entry holds, and
+`ABrotliSiblingIsServedCompressedToAClientThatAskedForIt` asserts it rather than describing it.
+
+Worth recording what kept it invisible. The branch that emitted the wrong label was almost never
+reached: the match asked `encoding.Contains(cacheEntry.ContentEncoding)` on a `StringValues`, which
+is element equality against the whole header value, and a browser sends `Accept-Encoding: gzip,
+deflate, br, zstd` as one value. No browser ever took the serve-the-stored-bytes path at all — every
+one of them received the asset inflated per request, which is both the most expensive branch
+available and the reason a mislabelled `.br` file never produced a report. `AcceptEncodingHeader`
+answers that question now, and `ABrowserAcceptEncodingHeaderGetsTheStoredBytes` pins it against the
+header a real client sends.
 
 **`RawResponseAttribute` discards its content type.** `RawResponseAttribute(string contentType =
 "text/plain")` has an empty body and no property, so the value exists only in syntax. The web
 generator reads it from there and the behaviour is correct; a filter reading the attribute out of
 handler metadata would find nothing. `IsFilterAttribute` excludes it from metadata, so nothing
 does today.
+
+### 12.3 Static content is a route as of this change
+
+Static content was a fall through: `WebExecutionHandlerService` called `IStaticContentHandler`
+directly once routing had failed. Nothing that hangs off a handler reached it — no filter chain, no
+conventions, no authorization, no HEAD handling, no 405, no `RequestMapped`. An application that
+adopted `[RequireAuthorization]`, whose premise is that an unannotated handler is denied rather than
+public, still served everything under its content root anonymously and got no diagnostic saying so.
+
+It is now `StaticContentMountProvider`, registered ahead of every other provider so it is consulted
+after them, building its handler through `ExecutionHelper.AsyncStandardFilterEmptyParameters` — the
+same helper every generated handler funnels through, and where `CreateFilterArray` applies
+conventions and asks `IGlobalFilterRegistry`. This is the move `a82f026` made for `OpenApiUiProvider`
+and documented the reasoning for; static content predated it.
+
+The authorization design is that there is none: the mount's metadata carries no `[AllowAnonymous]`,
+which is the one thing a convention cannot narrow, so a mount inherits the application's posture.
+`IStaticContentConfiguration.Requirement` is there for a mount that wants a policy of its own, which
+is what `IExecutionRequestHandlerInfo` documents for a handler registered by hand.
+
+`IStaticContentHandler` and `StaticContentHandler` are deleted rather than deprecated. Left
+registered they were the bypass one `GetRequiredService` away, which is the thing this change exists
+to remove. `WebExecutionHandlerService`'s constructor loses its parameter with them; both appear in
+the approved public API diff.
+
+`StaticContentMountProviderTests` covers what could not previously be asserted — that default-deny
+refuses an anonymous request for a file, that a mount requirement reaches the handler info and
+refuses, that a HEAD matches the same handler, and that a write to a file is a 405 while a write to a
+path only the single-page fall back answers is not.
+
+### 12.4 Static content moved to its own package
+
+`Hardened.Web.StaticContent`. Referencing the package and writing `[HardenedStaticContent]` is the
+opt-in; an application that does not carries none of the code and cannot serve a file by accident.
+Measured before the split: the feature was 17,408 bytes of `Hardened.Web.Runtime.dll` plus 3,072 in
+`Hardened.Shared.Runtime.dll`, none of it trimmable, because `HardenedWebModule` registered the
+source and the mount provider unconditionally and a DI registration roots everything it touches.
+
+`FileExtToMimeTypeHelper` deliberately stayed in `Hardened.Shared.Runtime`. Mapping an extension to
+a content type is a common problem rather than a static-content one.
+
+Ordering moved into the type system with it. The mount is an `IFallbackRequestHandlerProvider`,
+consulted after every ordinary provider, because a directory of files can shadow any path at all and
+"registered first, so consulted last" was a property of the registration site — which stops being
+controllable the moment the provider ships in its own package and the application decides where its
+module goes.
+
+`Hardened.Web.Runtime` keeps `IStaticContentHandler`'s removal from §12.3; the whole `StaticContent`
+namespace leaves it here. Both approved public API files were regenerated and reviewed.
+
+### 12.5 The remaining phases
+
+**Not caching, rather than watching.** `IStaticContentConfiguration.CacheContent`, defaulted off in
+`development`. A watcher, its change tokens and its invalidation are all machinery for avoiding a
+stat and a read of a file the operating system already has in its page cache, which costs tens of
+microseconds. Compression follows the flag: paid once into a cache it is recovered on every request
+after, and paid per request at `SmallestSize` it is the slowest thing on the path.
+
+It replaces `Debugger.IsAttached`, sampled once in a singleton constructor - so it answered "was a
+debugger attached when the container was built", and disabled only the write half of the cache while
+every request still paid a lookup that could never hit.
+
+**Ranges and the date validator.** `Accept-Ranges`, 206, 416 with the length attached, `If-Range`,
+`Last-Modified` and `If-Modified-Since`. Ranges apply only to a representation served as stored: a
+byte offset into a gzip stream is not a byte offset into the resource, and `Content-Range` has no way
+to say which one it meant. `If-None-Match` outranks the date outright per RFC 9110 §13.2.1, including
+when it does not match.
+
+**A manifest computed at build.** `Hardened.Web.StaticContent.BuildTask` walks the content directory
+and writes the C# the application compiles: hashes with SHA-256, compresses once at `Optimal`,
+resolves default documents, resolves links, and reports what it will not publish quietly.
+`ManifestContentSource` then serves from a table fixed before the process starts - nothing hashed on
+the request path, nothing compressed, nothing that grows, and no traversal question at all, because
+a path not in the table does not exist.
+
+Diagnostics: HSTATIC001 missing directory, HSTATIC002 a link out of the root, HSTATIC003 a
+secret-looking file, HSTATIC004 an empty directory, HSTATIC005 a missing fall back file, HSTATIC006
+and HSTATIC007 from the targets file when the manifest does not reach the compilation.
+
+Two defects the tests found in the new code rather than the old, both of the shape this plan exists
+to catch:
+
+- The directory alias was chosen by whichever default document the file system walk reached first,
+  which on an ordinal walk is `index.htm`. `DefaultDocuments` declared a preference order that
+  nothing applied.
+- Every diagnostic code was passed to `Log.LogError` positionally, which put it in the *subcategory*
+  rather than the code. MSBuild printed the message without an identifier and `<NoWarn>HSTATIC003`
+  matched nothing - so the one lever the diagnostic documents did not work.
+
+`GeneratedManifestCompilesTests` compiles the emitted source with Roslyn and loads it back, which is
+the assertion §2.1 wanted: a generator whose output does not compile is a defect that surfaces in
+somebody else's project, pointing at code they never wrote.
+
+**Not verified here.** The targets file's behaviour under IDE evaluation - Rider and Visual Studio
+building their project model out of evaluation rather than a build - is written to the pattern
+`Hardened.OpenApi.SourceGenerator.targets` established and its comments record, but nothing in this
+repository exercises it. It wants a project that consumes the produced package.
+

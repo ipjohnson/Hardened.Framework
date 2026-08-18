@@ -364,6 +364,19 @@ namespace Hardened.Requests.Abstract.Forms
 }
 namespace Hardened.Requests.Abstract.Headers
 {
+    public static class AcceptEncodingHeader
+    {
+        public static bool Accepts(Microsoft.Extensions.Primitives.StringValues acceptEncoding, string coding) { }
+    }
+    public readonly struct ByteRange : System.IEquatable<Hardened.Requests.Abstract.Headers.ByteRange>
+    {
+        public ByteRange(long From, long To) { }
+        public long From { get; init; }
+        public long Length { get; }
+        public long To { get; init; }
+        public string ContentRange(long totalLength) { }
+        public static string Unsatisfied(long totalLength) { }
+    }
     public class CookieSetOptions : System.IEquatable<Hardened.Requests.Abstract.Headers.CookieSetOptions>
     {
         public static Hardened.Requests.Abstract.Headers.CookieSetOptions Empty;
@@ -376,6 +389,12 @@ namespace Hardened.Requests.Abstract.Headers
         public Hardened.Requests.Abstract.Headers.SameSite? SameSite { get; init; }
         public bool Secure { get; init; }
         public void AppendSettings(System.Text.StringBuilder builder) { }
+    }
+    public static class EntityTagHeader
+    {
+        public static string Format(string opaque) { }
+        public static string Format(string opaque, string variant) { }
+        public static bool Matches(Microsoft.Extensions.Primitives.StringValues ifNoneMatch, string etag) { }
     }
     public interface ICookieSetCollection
     {
@@ -422,16 +441,23 @@ namespace Hardened.Requests.Abstract.Headers
     {
         public const string Accept = "Accept";
         public const string AcceptEncoding = "Accept-Encoding";
+        public const string AcceptRanges = "Accept-Ranges";
         public const string Allow = "Allow";
         public const string CacheControl = "Cache-Control";
         public const string ContentEncoding = "Content-Encoding";
         public const string ContentLength = "Content-Length";
+        public const string ContentRange = "Content-Range";
         public const string ContentType = "Content-Type";
         public const string Cookie = "Cookie";
+        public const string ETag = "ETag";
         public const string IfMatch = "If-Match";
+        public const string IfModifiedSince = "If-Modified-Since";
         public const string IfNoneMatch = "If-None-Match";
+        public const string IfRange = "If-Range";
+        public const string LastModified = "Last-Modified";
         public const string Location = "Location";
         public const string Origin = "Origin";
+        public const string Range = "Range";
         public const string RetryAfter = "Retry-After";
         public const string Vary = "Vary";
         public static class Cors
@@ -445,6 +471,17 @@ namespace Hardened.Requests.Abstract.Headers
             public const string AccessControlRequestHeaders = "Access-Control-Request-Headers";
             public const string AccessControlRequestMethod = "Access-Control-Request-Method";
         }
+    }
+    public static class RangeHeader
+    {
+        public static readonly Microsoft.Extensions.Primitives.StringValues AcceptsBytes;
+        public static Hardened.Requests.Abstract.Headers.RangeResult Resolve(Microsoft.Extensions.Primitives.StringValues range, long totalLength, out Hardened.Requests.Abstract.Headers.ByteRange resolved) { }
+    }
+    public enum RangeResult
+    {
+        None = 0,
+        Satisfiable = 1,
+        Unsatisfiable = 2,
     }
     public enum SameSite
     {

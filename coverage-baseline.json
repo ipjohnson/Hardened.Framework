@@ -16,8 +16,8 @@
     "branch": 10.7
   },
   "Hardened.Requests.Abstract": {
-    "line": 82.2,
-    "branch": 90.0
+    "line": 93.7,
+    "branch": 94.6
   },
   "Hardened.Requests.Runtime": {
     "line": 82.7,
@@ -64,12 +64,20 @@
     "branch": 84.6
   },
   "Hardened.Web.Runtime": {
-    "line": 99.2,
-    "branch": 99.0
+    "line": 98.5,
+    "branch": 98.5
   },
   "Hardened.Web.SourceGenerator": {
     "line": 71.7,
     "branch": 64.7
+  },
+  "Hardened.Web.StaticContent": {
+    "line": 94.9,
+    "branch": 85.1
+  },
+  "Hardened.Web.StaticContent.BuildTask": {
+    "line": 93.7,
+    "branch": 95.6
   },
   "Hardened.Web.Testing": {
     "line": 98.0,
