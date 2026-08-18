@@ -226,7 +226,7 @@ public class SpecRoutingTableGeneratorTests {
     public void GenerateCSharpRouteFile_TestsAConstraintAtTheEndOfARoute() {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
             CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<string>.Empty, CancellationToken.None);
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.Contains("RouteConstraints.IsInt(", result);
 
@@ -243,7 +243,7 @@ public class SpecRoutingTableGeneratorTests {
     public void GenerateCSharpRouteFile_TestsAConstraintInTheMiddleOfARoute() {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
             CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<string>.Empty, CancellationToken.None);
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.Contains("RouteConstraints.IsGuid(", result);
 
@@ -261,7 +261,7 @@ public class SpecRoutingTableGeneratorTests {
     public void GenerateCSharpRouteFile_RejectsAnEmptyTokenAtTheEndOfARoute() {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
             CreateAppModel(), CreatePetstoreHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<string>.Empty, CancellationToken.None);
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.Contains("charSpan.Length <= index", result);
     }
@@ -275,7 +275,7 @@ public class SpecRoutingTableGeneratorTests {
     public void GenerateCSharpRouteFile_RejectsAnEmptyTokenInTheMiddleOfARoute() {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
             CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<string>.Empty, CancellationToken.None);
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.Contains("currentIndex > index", result);
     }
@@ -285,7 +285,7 @@ public class SpecRoutingTableGeneratorTests {
     public void GenerateCSharpRouteFile_EmitsNoConstraintWhenTheTokenDeclaresNone() {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
             CreateAppModel(), CreatePetstoreHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<string>.Empty, CancellationToken.None);
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
 
         Assert.DoesNotContain("RouteConstraints.", result);
     }
