@@ -12,8 +12,15 @@ public class SerializationLocatorService : ISerializationLocatorService {
     public SerializationLocatorService(
         IEnumerable<IRequestDeserializer> requestDeserializers,
         IEnumerable<IResponseSerializer> responseSerializers) {
-        // reverse lists so user registered serializers are tested first
-        _requestDeserializers = requestDeserializers.Reverse().ToArray();
+        // Reversed so an application's own registrations are tested before the framework's, then
+        // ordered ahead of that for the reason given below. Same treatment as the response side,
+        // and for the same reason: two deserializers both claiming application/json - which is
+        // what installing Hardened.Requests.Serializers.Newtonsoft produces - were previously
+        // separated only by which module happened to register last.
+        _requestDeserializers = requestDeserializers
+            .Reverse()
+            .OrderBy(deserializer => deserializer.Order)
+            .ToArray();
 
         // Ordered ahead of that, because reverse-registration order alone is not something an
         // application can steer: within a module DependencyModules sorts by implementation type

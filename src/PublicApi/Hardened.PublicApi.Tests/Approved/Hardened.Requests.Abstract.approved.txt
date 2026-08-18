@@ -598,6 +598,7 @@ namespace Hardened.Requests.Abstract.Serializer
     public interface IRequestDeserializer
     {
         bool IsDefaultSerializer { get; }
+        int Order { get; }
         bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
@@ -641,6 +642,12 @@ namespace Hardened.Requests.Abstract.Serializer
     {
         public const string Any = "*/*";
         public static bool Matches(string? requested, string? produced) { }
+    }
+    public enum RequestDeserializerOrder
+    {
+        Specialized = -100,
+        Normal = 0,
+        Deferred = 1000,
     }
     public enum ResponseSerializerOrder
     {

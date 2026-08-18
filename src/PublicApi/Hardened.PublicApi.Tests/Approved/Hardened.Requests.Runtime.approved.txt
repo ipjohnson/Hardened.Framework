@@ -631,6 +631,7 @@ namespace Hardened.Requests.Runtime.Serializer
     {
         public AotRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.AotRequestDeserializer> logger, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
         public bool IsDefaultSerializer { get; }
+        public int Order { get; }
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }

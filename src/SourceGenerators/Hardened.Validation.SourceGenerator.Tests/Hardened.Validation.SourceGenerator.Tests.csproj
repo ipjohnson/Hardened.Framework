@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="3.2.2"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+            Referenced as a normal assembly rather than an analyzer so a GeneratorDriver can drive
+            it directly.
+
+            Hardened.SourceGenerator is deliberately NOT referenced alongside it, and neither is any
+            other generator assembly. This one compiles Hardened.SourceGenerator/Shared, CSharpAuthor
+            and ValidationModules.SourceGenerator.Impl in via linked Compile items, so a second
+            generator reference would put two copies of every one of those types in scope and every
+            use would be ambiguous - the CS0433 that Hardened.OpenApi.SourceGenerator.Tests
+            documents at length.
+        -->
+        <ProjectReference Include="..\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj"/>
+
+        <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
+
+        <!-- [HardenedModule], which is what the entry point selector looks for. -->
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+
+    </ItemGroup>
+
+    <!--
+        ValidationModules.Runtime carries IValidatorFor<T> and the constraint attributes the test
+        source is written against. Referenced directly rather than pulled in through
+        Hardened.Requests.Runtime, which would work and would also drag that whole assembly into
+        this project's coverage run at zero - every class in it reading as untested because this
+        suite happens not to touch it.
+
+        Resolved the same way the rest of the repository resolves it: a sibling checkout when one is
+        there, the published package otherwise, so a CI runner without the checkout builds against
+        what shipped rather than failing on a path that does not exist.
+    -->
+    <PropertyGroup>
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\ValidationModules</ValidationModulesRoot>
+        <ValidationModulesRuntimeProject>$(ValidationModulesRoot)\src\ValidationModules.Runtime\ValidationModules.Runtime.csproj</ValidationModulesRuntimeProject>
+        <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesRuntimeProject)')">true</UseLocalValidationModules>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Condition="'$(UseLocalValidationModules)' == 'true'" Include="$(ValidationModulesRuntimeProject)"/>
+        <PackageReference Condition="'$(UseLocalValidationModules)' != 'true'" Include="ValidationModules.Runtime" Version="$(ValidationModulesVersion)"/>
+    </ItemGroup>
+
+</Project>

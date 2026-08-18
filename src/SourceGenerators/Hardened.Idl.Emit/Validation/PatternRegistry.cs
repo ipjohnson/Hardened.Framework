@@ -26,6 +26,20 @@ namespace Hardened.Idl.Validation;
 internal sealed class PatternRegistry {
     private readonly Dictionary<string, string> _members = new(System.StringComparer.Ordinal);
     private readonly List<string> _rejected = new();
+
+    /// <summary>
+    /// Which patterns are already in <see cref="_rejected"/>.
+    /// </summary>
+    /// <remarks>
+    /// A set rather than a scan of <see cref="_rejected"/>, because the entries there are
+    /// <c>pattern + " - " + message</c> and the scan used to ask whether any entry <em>started
+    /// with</em> the pattern. A pattern that is a prefix of one already rejected therefore matched
+    /// an unrelated entry and was dropped: reject <c>\_x</c> and then <c>\_</c>, and only the first
+    /// was ever reported. Both are refused either way - this decides only what the build says it
+    /// refused, which is the whole point of keeping the list.
+    /// </remarks>
+    private readonly HashSet<string> _rejectedPatterns = new(System.StringComparer.Ordinal);
+
     private readonly string _namespace;
 
     public PatternRegistry(string patternNamespace, string specFileName) {
@@ -77,7 +91,7 @@ internal sealed class PatternRegistry {
             _ = new Regex(pattern);
             return true;
         } catch (System.ArgumentException exception) {
-            if (!_rejected.Exists(entry => entry.StartsWith(pattern, System.StringComparison.Ordinal))) {
+            if (_rejectedPatterns.Add(pattern)) {
                 _rejected.Add(pattern + " - " + exception.Message);
             }
 
