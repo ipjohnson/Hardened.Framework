@@ -111,6 +111,21 @@ public class GeneratorResult(
             : string.Join(", ", GeneratedSources.Keys.OrderBy(key => key, StringComparer.Ordinal));
 
     /// <summary>
+    /// Whether <paramref name="span"/> points into the generated file <paramref name="hintName"/>.
+    /// </summary>
+    /// <remarks>
+    /// The null check is the whole point. A diagnostic reported at <see cref="Location.None"/> has a
+    /// null <c>Path</c>, and every diagnostic this codebase reports is at <c>Location.None</c> by
+    /// policy — a syntax location would travel with the model through the incremental caches, which
+    /// compare models for equality to decide whether to rerun. So the one case
+    /// <see cref="Describe(IReadOnlyList{Diagnostic})"/> exists to explain — a generator reporting an
+    /// error — was the one case that made it throw a <see cref="NullReferenceException"/> instead of
+    /// printing anything.
+    /// </remarks>
+    private static bool IsIn(FileLinePositionSpan span, string hintName) =>
+        span.Path?.EndsWith(hintName, StringComparison.Ordinal) == true;
+
+    /// <summary>
     /// The failure message that matters. A compiler error with no source attached is unreadable, so
     /// every generated file carrying an error is printed with line numbers and the offending lines
     /// marked.
@@ -132,7 +147,7 @@ public class GeneratorResult(
         foreach (var pair in GeneratedSources.OrderBy(pair => pair.Key, StringComparer.Ordinal)) {
             var failingLines = errors
                 .Select(error => error.Location.GetLineSpan())
-                .Where(span => span.Path.EndsWith(pair.Key, StringComparison.Ordinal))
+                .Where(span => IsIn(span, pair.Key))
                 .Select(span => span.StartLinePosition.Line)
                 .ToHashSet();
 
@@ -147,8 +162,7 @@ public class GeneratorResult(
         }
 
         var located = errors.Any(error =>
-            GeneratedSources.Keys.Any(hint =>
-                error.Location.GetLineSpan().Path.EndsWith(hint, StringComparison.Ordinal)));
+            GeneratedSources.Keys.Any(hint => IsIn(error.Location.GetLineSpan(), hint)));
 
         if (!located) {
             message

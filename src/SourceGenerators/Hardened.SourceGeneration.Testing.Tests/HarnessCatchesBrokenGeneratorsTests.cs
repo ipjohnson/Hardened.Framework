@@ -146,10 +146,52 @@ public class HarnessCatchesBrokenGeneratorsTests {
             .AssertNoErrors();
     }
 
+    /// <summary>
+    /// Every diagnostic in this workspace is reported at <see cref="Location.None"/> — deliberately,
+    /// because a syntax location would travel with the model through the incremental caches. That
+    /// gives the diagnostic a null <c>Path</c>, and <c>Describe</c> used to call
+    /// <c>span.Path.EndsWith(...)</c> on it, so the harness threw a <see cref="NullReferenceException"/>
+    /// from inside its own failure formatting.
+    /// </summary>
+    /// <remarks>
+    /// The case that broke was the case that mattered: a routing diagnostic firing at error severity
+    /// made every test in that suite fail with an NRE pointing into the harness, hiding both the
+    /// diagnostic and whatever the generated code did wrong.
+    /// </remarks>
+    [Fact]
+    public void AnErrorWithNoLocationIsDescribedRatherThanThrowing() {
+        var result = GeneratorTestHarness.Run(
+            "namespace TestApp; public class Marker { }",
+            new DiagnosticReportingGenerator());
+
+        var failure = Assert.ThrowsAny<Exception>(() => result.AssertNoErrors());
+
+        Assert.IsNotType<NullReferenceException>(failure);
+        Assert.Contains("HRDTEST", failure.Message);
+        Assert.Contains("no location", failure.Message);
+    }
+
     private sealed class EmittingGenerator(string hintName, string source) : IIncrementalGenerator {
         public void Initialize(IncrementalGeneratorInitializationContext context) =>
             context.RegisterPostInitializationOutput(
                 ctx => ctx.AddSource(hintName, SourceText.From(source, Encoding.UTF8)));
+    }
+
+    /// <summary>Reports an error at <see cref="Location.None"/>, as every generator here does.</summary>
+    private sealed class DiagnosticReportingGenerator : IIncrementalGenerator {
+        public void Initialize(IncrementalGeneratorInitializationContext context) =>
+            context.RegisterSourceOutput(
+                context.CompilationProvider,
+                (production, _) => production.ReportDiagnostic(
+                    Diagnostic.Create(
+                        new DiagnosticDescriptor(
+                            id: "HRDTEST",
+                            title: "Deliberate",
+                            messageFormat: "Reported with no location, as the real ones are.",
+                            category: "Hardened.Testing",
+                            defaultSeverity: DiagnosticSeverity.Error,
+                            isEnabledByDefault: true),
+                        Location.None)));
     }
 
     private sealed class ThrowingGenerator : IIncrementalGenerator {
