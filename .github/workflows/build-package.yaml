@@ -80,6 +80,12 @@ jobs:
           test "$(smithy --version)" = "$SMITHY_VERSION"
           smithy --version
 
+      # Checked here as well as in release.yaml, on the branch that will eventually be tagged. The
+      # release is the only place it matters and the worst place to find out: a pack list that
+      # missed a project is a nuget.org publish that cannot be taken back.
+      - name: Every publishable project must be in the release pack list
+        run: python3 scripts/check-pack-list.py
+
       - run: dotnet restore src/Hardened.Framework.sln
 
       # ContinuousIntegrationBuild turns warnings into errors (see src/Directory.Build.props).

@@ -34,10 +34,27 @@
         The generator half, as a real dependency rather than a copy. Both this package and
         Hardened.Smithy.SourceGenerator depend on it, so a project using both gets exactly one
         analyzer - which packing the DLL into each front end would not give.
+
+        Deliberately without ReferenceOutputAssembly="false", unlike the build task below. Pack
+        builds its dependency group from project references where that attribute is not false, so
+        setting it here does not merely skip an assembly reference - it drops the nuspec dependency
+        entirely. This package carried it through 0.6.0-rc1000 and shipped to nuget.org with an
+        empty <dependencies/> and no analyzers/ folder: the build task ran, wrote the normalised
+        model, and nothing generated code from it. Nothing in the repository could notice, because
+        every SUT references the generator as OutputItemType="Analyzer" directly.
+
+        The reference costs an unused assembly reference on a project that compiles no source, and
+        IncludeBuildOutput=false keeps it out of the package.
+
+        PrivateAssets="none" for the other half of the same failure. PrivateAssets defaults to
+        contentfiles;analyzers;build, and pack turns that into exclude="Build,Analyzers" on the
+        nuspec dependency - so a consumer would restore Hardened.Idl.SourceGenerator and then
+        suppress the only thing in it, an analyzers/dotnet/cs assembly. Restoring the generator and
+        not running it fails exactly the way not restoring it does.
     -->
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Idl.SourceGenerator\Hardened.Idl.SourceGenerator.csproj"
-                          ReferenceOutputAssembly="false"/>
+                          PrivateAssets="none"/>
     </ItemGroup>
 
     <!--

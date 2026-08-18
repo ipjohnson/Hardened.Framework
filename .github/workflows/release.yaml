@@ -77,6 +77,12 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Releasing $VERSION"
 
+      # Before the build, because it costs a second and the answer does not depend on one: a
+      # project missing from the pack list below is a release that ships without it, and there is
+      # no version to fix it under once the tag has published.
+      - name: Every publishable project must be in the pack list
+        run: python3 scripts/check-pack-list.py
+
       - run: dotnet restore src/Hardened.Framework.sln
 
       # Same warnings-as-errors treatment the branch build gets. A release is the last place to
@@ -171,6 +177,15 @@ jobs:
       # same generator in two packages: a consumer referencing both loaded it twice and both
       # copies emitted the module onto the same partial class, failing with CS0111/CS8646. One
       # publishable supplier is what keeps that impossible.
+      #
+      # Hardened.Idl.SourceGenerator is the opposite case and has to be here. When the OpenAPI
+      # generator was split into a front end and a shared Roslyn generator, the generator half
+      # moved into that package and this list was not updated - so 0.6.0-rc1000 published
+      # Hardened.OpenApi.SourceGenerator carrying build/ and tasks/ and no analyzers/ at all,
+      # against a package id that exists on no feed. The build task ran, wrote the normalised
+      # model, and nothing generated code from it. Nothing in the repository could notice: every
+      # SUT references the generator as OutputItemType="Analyzer" directly, so only a consumer
+      # restoring from nuget.org would have found it.
       - name: Pack
         run: |
           for project in \
@@ -184,7 +199,9 @@ jobs:
             src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj \
             src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.Idl.SourceGenerator/Hardened.Idl.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.OpenApi.SourceGenerator/Hardened.OpenApi.SourceGenerator.csproj \
+            src/SourceGenerators/Hardened.Smithy.SourceGenerator/Hardened.Smithy.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Validation.SourceGenerator/Hardened.Validation.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj \
             src/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj \
@@ -215,7 +232,11 @@ jobs:
           # line parsing shares nothing with the request pipeline and was dropped to shrink the
           # surface area. The 0.4.0-rc1000 packages of both remain on nuget.org and are
           # deliberately left listed.
-          EXPECTED=18
+          # 20 after Hardened.Idl.SourceGenerator and Hardened.Smithy.SourceGenerator were added.
+          # This step did not catch either omission, and could not: both are new package ids, so
+          # nothing was dropped from a list that already agreed with this number. The count guards
+          # against losing a package, not against never having added one.
+          EXPECTED=20
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
