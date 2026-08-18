@@ -21,10 +21,40 @@ so a developer with ~/CSharpAuthor or ~/ValidationModules builds assemblies whos
 from the ones CI builds. A baseline written from that machine records percentages CI cannot
 reproduce, and an assembly - ValidationModules.Runtime - that only exists as a project locally.
 
-The coverage-report artifact is uploaded on every run, including a failed one:
+The coverage-report artifact is uploaded on every run, including a failed one - which is what
+makes a run that died in a later step, such as Pack, still usable for re-baselining:
 
     gh run download <run-id> -n coverage-report -D /tmp/cicov
     python3 scripts/coverage-gate.py --summary /tmp/cicov/Summary.json --update
+
+An assembly missing from the baseline is not necessarily an oversight
+-------------------------------------------------------------------
+
+This gate errors on a baseline entry no run reported, and only prints an assembly the run
+reported and the baseline does not. So an assembly that never reaches the report is never gated,
+and nothing says so.
+
+Hardened.Smithy.BuildTask is in that state, and adding a baseline entry for it would make every
+run fail rather than fix it. Measured 2026-08-18:
+
+    dotnet build src/Hardened.Framework.sln -c Release
+    dotnet test  src/Hardened.Framework.sln --no-build -c Release \
+        --settings coverlet.runsettings --collect:"XPlat Code Coverage"
+        -> 20 assemblies, Hardened.Smithy.BuildTask among them
+
+    dotnet build src/Hardened.Framework.sln -c Release -p:ContinuousIntegrationBuild=true
+    (same test command)
+        -> 19 assemblies, Hardened.Smithy.BuildTask absent, and two of the 23 cobertura files
+           come out with no <package> element at all
+
+CI always builds with ContinuousIntegrationBuild=true, so the assembly has never appeared in a
+CI report - its own 73 tests run and pass there, and their coverage is discarded. That is roughly
+8,600 lines ungated, counting the Idl.Emit and Idl.Shared sources it compiles in.
+
+The two empty cobertura files are the thing to chase: coverlet is producing a report and putting
+nothing in it, which is a collection failure rather than a merge one. Deterministic builds rewrite
+source paths to /_/..., and DeterministicReport is set below, so the path mapping is the first
+place to look. Until it is fixed, a missing assembly here means unmeasured, not untested.
 """
 
 from __future__ import annotations
