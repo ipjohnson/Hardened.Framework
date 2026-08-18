@@ -291,14 +291,26 @@ namespace Hardened.Web.Runtime.Routing
 {
     public static class RouteConstraints
     {
+        public const string Alpha = "alpha";
         public const string Bool = "bool";
+        public const string Date = "date";
+        public const string DateTime = "datetime";
+        public const string Decimal = "decimal";
         public const string Guid = "guid";
+        public const string Hex = "hex";
         public const string Int = "int";
         public const string Long = "long";
+        public const string Slug = "slug";
+        public static bool IsAlpha(System.ReadOnlySpan<char> value) { }
         public static bool IsBool(System.ReadOnlySpan<char> value) { }
+        public static bool IsDate(System.ReadOnlySpan<char> value) { }
+        public static bool IsDateTime(System.ReadOnlySpan<char> value) { }
+        public static bool IsDecimal(System.ReadOnlySpan<char> value) { }
         public static bool IsGuid(System.ReadOnlySpan<char> value) { }
+        public static bool IsHex(System.ReadOnlySpan<char> value) { }
         public static bool IsInt(System.ReadOnlySpan<char> value) { }
         public static bool IsLong(System.ReadOnlySpan<char> value) { }
+        public static bool IsSlug(System.ReadOnlySpan<char> value) { }
     }
 }
 namespace Hardened.Web.Runtime.StaticContent
