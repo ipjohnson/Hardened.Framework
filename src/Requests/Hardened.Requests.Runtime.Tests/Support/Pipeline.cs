@@ -3,6 +3,7 @@ using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
+using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
@@ -30,13 +31,19 @@ public static class Pipeline {
     /// <c>TestContext.Current.CancellationToken</c>. A test that needs a cancellable context builds
     /// one directly - see <see cref="Cancellable"/>.
     /// </remarks>
+    /// <param name="metrics">
+    /// The sink the pipeline records into. Omitted by almost every test, which does not care and
+    /// gets the null sink; supplied by the few asserting what a filter measured - or, as often,
+    /// that it measured nothing.
+    /// </param>
     public static IExecutionContext Context(
         string method = "GET",
         string path = "/",
         string? accept = "application/json",
         byte[]? body = null,
-        Action<ServiceCollection>? configureServices = null) {
-        return Build(method, path, accept, body, configureServices, CancellationToken.None);
+        Action<ServiceCollection>? configureServices = null,
+        IMetricLogger? metrics = null) {
+        return Build(method, path, accept, body, configureServices, CancellationToken.None, metrics);
     }
 
     /// <summary>
@@ -52,7 +59,7 @@ public static class Pipeline {
         string path = "/",
         byte[]? body = null,
         Action<ServiceCollection>? configureServices = null) {
-        return Build(method, path, "application/json", body, configureServices, cancellationToken);
+        return Build(method, path, "application/json", body, configureServices, cancellationToken, null);
     }
 
     private static IExecutionContext Build(
@@ -61,7 +68,8 @@ public static class Pipeline {
         string? accept,
         byte[]? body,
         Action<ServiceCollection>? configureServices,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        IMetricLogger? metrics) {
 
         var services = new ServiceCollection();
 
@@ -82,7 +90,8 @@ public static class Pipeline {
             Substitute.For<IKnownServices>(),
             request,
             new TestExecutionResponse(new MemoryStream()),
-            cancellationToken);
+            cancellationToken,
+            metrics);
     }
 
     /// <summary>
