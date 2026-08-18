@@ -57,6 +57,22 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
     /// </remarks>
     public string ExpectedVersion { get; set; } = "";
 
+    /// <summary>
+    /// Whether a version mismatch fails the build. False on a developer machine.
+    /// </summary>
+    /// <remarks>
+    /// The pin is worth having on the build that produces artefacts other people consume, and is
+    /// only an obstacle on the one that does not. Requiring an exact CLI locally means every
+    /// developer, and every machine, has to chase a version to build at all - and the answer to
+    /// "I pulled and it does not build" cannot be "install this specific tool first".
+    /// <para>
+    /// So the mismatch is a warning locally and an error in CI. The reproducibility argument is
+    /// unchanged: what CI publishes is still produced by exactly one CLI version, and a local AST
+    /// that came out different is a warning the developer has already seen.
+    /// </para>
+    /// </remarks>
+    public bool PinVersion { get; set; }
+
     [Output]
     public ITaskItem? AstFile { get; set; }
 
@@ -141,13 +157,22 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
         var actual = result.StandardOutput.Trim();
 
         if (!string.Equals(actual, ExpectedVersion.Trim(), StringComparison.Ordinal)) {
-            Log.LogError(null, "HSMT011", null, FirstModel(), 0, 0, 0, 0,
+            const string message =
                 "The Smithy CLI at '{0}' is version {1}, but this build is pinned to {2}. The AST a " +
-                "different version produces can differ, so the generated code would differ with it. " +
-                "Install {2}, or change $(HardenedSmithyCliVersion) deliberately.",
-                tool, actual, ExpectedVersion.Trim());
+                "different version produces can differ, so the generated code would differ with it.";
 
-            return false;
+            if (PinVersion) {
+                Log.LogError(null, "HSMT011", null, FirstModel(), 0, 0, 0, 0,
+                    message + " Install {2}, or change $(HardenedSmithyCliVersion) deliberately.",
+                    tool, actual, ExpectedVersion.Trim());
+
+                return false;
+            }
+
+            Log.LogWarning(null, "HSMT011", null, FirstModel(), 0, 0, 0, 0,
+                message + " Building anyway, because the pin is enforced on the build that publishes " +
+                "rather than on yours. Set $(HardenedSmithyPinCliVersion) to make this an error here too.",
+                tool, actual, ExpectedVersion.Trim());
         }
 
         Log.LogMessage(MessageImportance.Low, "Smithy CLI {0} at {1}.", actual, tool);

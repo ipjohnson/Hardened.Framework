@@ -104,6 +104,21 @@
             deliberate one-line change rather than whatever the machine happens to have.
         -->
         <HardenedSmithyCliVersion Condition="'$(HardenedSmithyCliVersion)' == ''">1.73.0</HardenedSmithyCliVersion>
+
+        <!--
+            Whether a mismatch fails the build, or only warns.
+
+            Pinned where it matters and advisory where it does not. A developer pulls the repo and
+            builds with the CLI they have; the build that publishes uses exactly the pinned one. The
+            reproducibility argument is untouched - what ships is still produced by one version - and
+            the cost it was imposing was that nobody could build at all without chasing a version
+            first, which is not a trade worth making on a machine that publishes nothing.
+
+            Defaults to $(ContinuousIntegrationBuild), which CI already sets and a local build does
+            not. Set it explicitly to pin locally too.
+        -->
+        <HardenedSmithyPinCliVersion Condition="'$(HardenedSmithyPinCliVersion)' == ''">$(ContinuousIntegrationBuild)</HardenedSmithyPinCliVersion>
+        <HardenedSmithyPinCliVersion Condition="'$(HardenedSmithyPinCliVersion)' == ''">false</HardenedSmithyPinCliVersion>
     </PropertyGroup>
 
     <!--
@@ -198,7 +213,8 @@
         <GenerateSmithyAst Models="@(HardenedSmithyModel)"
                            OutputPath="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).json"
                            ToolPath="$(HardenedSmithyCliPath)"
-                           ExpectedVersion="$(HardenedSmithyCliVersion)"/>
+                           ExpectedVersion="$(HardenedSmithyCliVersion)"
+                           PinVersion="$(HardenedSmithyPinCliVersion)"/>
 
         <Touch Files="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).stamp"
                AlwaysCreate="true"/>

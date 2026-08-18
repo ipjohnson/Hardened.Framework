@@ -75,7 +75,7 @@ public class GenerateSmithyAstTests : IDisposable {
     }
 
     private (bool Result, SmithyTaskHarness.RecordingBuildEngine Engine, string Output) Run(
-        string? toolPath, string expectedVersion = "") {
+        string? toolPath, string expectedVersion = "", bool pinVersion = true) {
         var engine = new SmithyTaskHarness.RecordingBuildEngine();
         var output = Path.Combine(_root, "out", "ast.json");
 
@@ -84,7 +84,8 @@ public class GenerateSmithyAstTests : IDisposable {
             Models = new ITaskItem[] { new Microsoft.Build.Utilities.TaskItem(Model()) },
             OutputPath = output,
             ToolPath = toolPath ?? "",
-            ExpectedVersion = expectedVersion
+            ExpectedVersion = expectedVersion,
+            PinVersion = pinVersion
         };
 
         return (task.Execute(), engine, output);
@@ -107,8 +108,8 @@ public class GenerateSmithyAstTests : IDisposable {
     }
 
     /// <summary>
-    /// The pin is the point. A different CLI can produce a different AST from identical sources, so
-    /// a mismatch stops the build rather than generating against whatever is installed.
+    /// Where the pin is enforced, a different CLI stops the build: it can produce a different AST
+    /// from identical sources, and that is not something to discover downstream of a publish.
     /// </summary>
     [Fact]
     public void Execute_RefusesACliThatIsNotThePinnedVersion() {
@@ -122,6 +123,34 @@ public class GenerateSmithyAstTests : IDisposable {
 
         Assert.Contains("1.56.0", message);
         Assert.Contains("1.73.0", message);
+    }
+
+    /// <summary>
+    /// And where it is not - a developer machine - the same mismatch is a warning and the build
+    /// carries on.
+    /// </summary>
+    /// <remarks>
+    /// The pin belongs on the build that produces artefacts other people consume. Requiring an exact
+    /// CLI locally means every developer has to chase a version before the repo builds at all, and
+    /// "I pulled and it does not build" is not answered by "install this specific tool first". What
+    /// CI publishes is still produced by exactly one version, so nothing about reproducibility
+    /// changes.
+    /// </remarks>
+    [Fact]
+    public void Execute_WarnsButBuildsWhenTheVersionIsNotPinned() {
+        var (result, engine, output) = Run(
+            FakeCli("1.56.0", output: "{\"smithy\":\"2.0\",\"shapes\":{}}"),
+            expectedVersion: "1.73.0",
+            pinVersion: false);
+
+        Assert.True(result, string.Join("\n", engine.Errors.Select(error => error.Message)));
+        Assert.False(HasError(engine, "HSMT011"));
+        Assert.True(File.Exists(output));
+
+        var warning = engine.Warnings.Single(entry => entry.Code == "HSMT011").Message;
+
+        Assert.Contains("1.56.0", warning);
+        Assert.Contains("1.73.0", warning);
     }
 
     [Fact]
