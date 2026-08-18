@@ -474,6 +474,16 @@ internal static class SpecRoutingTableGenerator {
             wildCardMethod.While(LessThan(currentIndex, CodeOutputComponent.Get("segmentLimit")));
 
         var pathCheck = CreatePathIfStatement(span, wildCardNode.Path, cancellationToken, currentIndex.Name);
+
+        // Part of whether the token matched, not something checked afterwards: failing it has to
+        // leave the scan free to try the next boundary, exactly as a literal mismatch does.
+        var constraintCheck = ConstraintTest(
+            wildCardNode, $"{span.Name}.Slice({index.Name}, {currentIndex.Name} - {index.Name})");
+
+        if (constraintCheck != null) {
+            pathCheck = pathCheck.Concat(new[] { constraintCheck }).ToList();
+        }
+
         var ifStatement = whileBlock.If(And(pathCheck));
         var currentPlusOne = Add(currentIndex, 1);
 
@@ -500,6 +510,42 @@ internal static class SpecRoutingTableGenerator {
         whileBlock.AddIndentedStatement(Increment(currentIndex));
     }
 
+    /// <summary>
+    /// The call that tests this node's constraint against <paramref name="value"/>, or null when the
+    /// token declares none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The twin of <c>RoutingTableGenerator.ConstraintTest</c>, and it has to stay one. The route
+    /// tree is shared source, so a node built from a document carries <c>WildCardConstraint</c>
+    /// exactly as one built from an attribute does - and until this existed, the spec-first table
+    /// read that property nowhere. A constrained token compiled, routed, and constrained nothing,
+    /// which is the state <c>{id:int}</c> was in before any of this.
+    /// </para>
+    /// <para>
+    /// Built-ins only. <c>SpecSourceGenerator</c> does not collect <c>[RouteConstraint]</c>
+    /// declarations, so a custom name is not resolvable here - but it is not silent either:
+    /// <c>RouteTokenDiagnostics</c> runs over a document's paths too, so an undeclared name is
+    /// <c>HRDR002</c> at build time rather than a route that quietly matches everything.
+    /// </para>
+    /// </remarks>
+    private static IOutputComponent? ConstraintTest(
+        RouteTreeNode<RequestHandlerModel> node, string value, bool negate = false) {
+        var constraint = node.WildCardConstraint;
+
+        if (string.IsNullOrEmpty(constraint)) {
+            return null;
+        }
+
+        var test = RouteConstraintFacts.Test(constraint!);
+
+        // Null only for a name no built-in has, which the diagnostic above has already reported.
+        // Emitting a call to nothing would bury that under a CS0103.
+        return test == null
+            ? null
+            : CodeOutputComponent.Get((negate ? "!" : "") + test + "(" + value + ")");
+    }
+
     private static void GenerateWildCardLeafNode(
         ClassDefinition routingClass,
         RouteTreeNode<RequestHandlerModel> wildCardNode,
@@ -513,6 +559,15 @@ internal static class SpecRoutingTableGenerator {
             // /users/42/anything/at/all. An OpenAPI template means one segment, and this is the
             // table compiled from one.
             wildCardMethod.If($"{span.Name}.Slice({index.Name}).IndexOf('/') >= 0").Return(Null());
+
+            // The constraint decides whether the token matched at all, so a failure is no match -
+            // 404 - rather than a value handed on to the binder for a 400.
+            var leafConstraint = ConstraintTest(
+                wildCardNode, $"{span.Name}.Slice({index.Name})", negate: true);
+
+            if (leafConstraint != null) {
+                wildCardMethod.If(leafConstraint).Return(Null());
+            }
 
             var switchBlock = wildCardMethod.Switch(methodString);
 
