@@ -24,8 +24,22 @@
         -->
         <NoWarn>$(NoWarn);RS2008</NoWarn>
         <Nullable>enable</Nullable>
-        <IsPackable>True</IsPackable>
-        <PackageId>Hardened.DependencyModules.SourceGenerator</PackageId>
+        <!--
+          Not packable, deliberately.
+
+          This generator reaches consumers inside Hardened.Library.SourceGenerator, which packs
+          this project's DLL into its own analyzers/dotnet/cs by path - see the None Include there.
+          Nothing needs it on its own: a project that declares a module wants the configuration and
+          service-provider generators in the same breath, and referencing both packages would load
+          this analyzer twice and emit every generated type twice.
+
+          The standalone package was published once, at 0.1.0-rc1, and never again. It is still
+          named in the docs as what emits PopulateServiceCollection, which sends readers to a
+          version four release lines behind everything else. Publishing it on the line would put a
+          second copy of the same analyzer on the feed to solve a problem nobody has; this ends the
+          question the other way.
+        -->
+        <IsPackable>False</IsPackable>
         <IncludeBuildOutput>false</IncludeBuildOutput>
 
         <!--
