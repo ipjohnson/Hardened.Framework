@@ -22,6 +22,17 @@ public class NewtonsoftDeserializer : IRequestDeserializer {
 
     public bool IsDefaultSerializer => true;
 
+    /// <summary>
+    /// Ahead of <c>SystemTextJsonRequestDeserializer</c>, and behind the AOT deserializer.
+    /// </summary>
+    /// <remarks>
+    /// The read half of the same statement <c>NewtonsoftSerializer.Order</c> makes, and it has to
+    /// agree with it. A package that wrote responses with Newtonsoft while some other deserializer
+    /// read the requests would apply one naming strategy on the way out and another on the way in —
+    /// a model that round-trips through neither.
+    /// </remarks>
+    public int Order => (int)RequestDeserializerOrder.Specialized + 1;
+
     public bool CanProcessContext(IExecutionContext context) {
         return context.Request.ContentType?.Contains("application/json") ?? false;
     }

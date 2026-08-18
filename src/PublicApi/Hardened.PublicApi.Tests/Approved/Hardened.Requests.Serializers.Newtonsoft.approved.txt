@@ -27,6 +27,7 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Impl
     {
         public NewtonsoftDeserializer(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Hardened.Requests.Serializers.Newtonsoft.Impl.ISharedSerializer sharedSerializer, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Serializers.Newtonsoft.Impl.NewtonsoftDeserializer> logger) { }
         public bool IsDefaultSerializer { get; }
+        public int Order { get; }
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
@@ -35,6 +36,7 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Impl
     {
         public NewtonsoftSerializer(Hardened.Requests.Serializers.Newtonsoft.Impl.ISharedSerializer sharedSerializer, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
         public bool IsDefaultSerializer { get; }
+        public int Order { get; }
         public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }

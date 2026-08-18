@@ -69,6 +69,18 @@ public class AotRequestDeserializer : IRequestDeserializer {
 
     public bool IsDefaultSerializer => true;
 
+    /// <summary>
+    /// Ahead of <see cref="SystemTextJsonRequestDeserializer"/>, which is how an AOT application
+    /// ends up reading bodies with its own deserializer rather than the reflection-based one.
+    /// </summary>
+    /// <remarks>
+    /// The counterpart to <see cref="AotResponseSerializer.Order"/>, and stated for the same reason.
+    /// This used to be arranged by <c>TryAddSingleton</c> on the reflection-based registration, which
+    /// keys on the service type rather than on that class - so it fired for any
+    /// <c>IRequestDeserializer</c> registered first, not only this one.
+    /// </remarks>
+    public int Order => (int)RequestDeserializerOrder.Specialized;
+
     public bool CanProcessContext(IExecutionContext context) {
         return context.Request.ContentType?.Contains("application/json") ?? false;
     }
