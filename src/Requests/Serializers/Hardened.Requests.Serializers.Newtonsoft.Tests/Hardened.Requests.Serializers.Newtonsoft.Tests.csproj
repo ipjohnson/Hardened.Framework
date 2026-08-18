@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="3.2.2"/>
+        <PackageReference Include="NSubstitute" Version="5.1.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Requests.Serializers.Newtonsoft\Hardened.Requests.Serializers.Newtonsoft.csproj"/>
+
+        <!--
+            The in-memory transport, so the serializers are driven through a real request and
+            response rather than a mocked context. Both sides here read and write streams that the
+            caller owns, and a substituted context cannot fail when that ownership is broken.
+        -->
+        <ProjectReference Include="..\..\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
+    </ItemGroup>
+
+</Project>

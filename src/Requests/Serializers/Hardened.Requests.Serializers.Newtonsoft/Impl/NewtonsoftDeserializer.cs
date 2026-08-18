@@ -26,32 +26,51 @@ public class NewtonsoftDeserializer : IRequestDeserializer {
         return context.Request.ContentType?.Contains("application/json") ?? false;
     }
 
-
+    /// <summary>
+    /// Reads the request body and deserializes it, leaving the body open for whoever owns it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This method returned <c>default(T)</c> for every request until 2026-08-18, and had done since
+    /// the package shipped. It took one reservation from the pool, copied the body into a
+    /// <em>second</em> one, seeked a <em>third</em>, and then read the first — which was empty. Two
+    /// of the three were never disposed, so every request leaked a pooled stream. Even with the
+    /// right stream it could not have worked: <c>ReadToEndAsync</c> ran the <c>StreamReader</c> to
+    /// EOF before <c>Deserialize</c> was given the <c>JsonTextReader</c> over it, so the parser saw
+    /// no tokens.
+    /// </para>
+    /// <para>
+    /// Nothing caught it because nothing ran it. The assembly was at 0% line coverage with no test
+    /// project, and no integration fixture imports the package.
+    /// </para>
+    /// <para>
+    /// The three <c>LogInformation</c> calls went with it. They were debug leftovers, and one of
+    /// them wrote the entire request body to the log at Information — every credential, token and
+    /// personal detail any consumer ever posted.
+    /// </para>
+    /// <para>
+    /// <c>leaveOpen: true</c> on the reader is load-bearing rather than tidy: <c>MemoryStreamPool</c>
+    /// resets <c>Position</c> when a reservation is returned, which throws on a stream a reader
+    /// closed on its way out. That is the same defect <c>JsonSerializerImpl.DeserializeAsync</c>
+    /// carried until 2026-08-12.
+    /// </para>
+    /// </remarks>
     public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) {
         try {
-            using var memoryStreamRes = _memoryStreamPool.Get();
+            using var buffer = _memoryStreamPool.Get();
 
-            _logger.LogInformation("Length: " + memoryStreamRes.Item.Length);
+            await context.Request.Body.CopyToAsync(buffer.Item);
 
-            await context.Request.Body.CopyToAsync(_memoryStreamPool.Get().Item);
+            buffer.Item.Position = 0;
 
-            _logger.LogInformation("Length: " + memoryStreamRes.Item.Length);
-
-            _memoryStreamPool.Get().Item.Seek(0, SeekOrigin.Begin);
-
-            using var textReader = new StreamReader(memoryStreamRes.Item, null, true, -1, true);
+            using var textReader = new StreamReader(buffer.Item, null, true, -1, true);
             using var jsonReader = new JsonTextReader(textReader);
-
-            var stringValue = await textReader.ReadToEndAsync();
-
-            _logger.LogInformation("Received: " + stringValue);
-
-            memoryStreamRes.Item.Position = 0;
 
             return _sharedSerializer.Serializer.Deserialize<T>(jsonReader);
         }
         catch (Exception exp) {
-            _logger.LogError(exp, "serializers threw exception " + exp.Message);
+            _logger.LogError(exp, "Newtonsoft deserializer threw {Message}", exp.Message);
+
             throw;
         }
     }
