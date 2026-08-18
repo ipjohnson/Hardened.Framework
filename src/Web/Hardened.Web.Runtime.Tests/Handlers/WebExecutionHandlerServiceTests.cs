@@ -3,7 +3,6 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
-using Hardened.Web.Runtime.StaticContent;
 using Hardened.Web.Runtime.Configuration;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Shared.Runtime.Metrics;
@@ -28,18 +27,19 @@ namespace Hardened.Web.Runtime.Tests.Handlers;
 public class WebExecutionHandlerServiceTests {
 
     /// <summary>
-    /// A matched route hands the request to the handler's own chain, and the static content and
-    /// not-found paths are never reached.
+    /// A matched route hands the request to the handler's own chain, and neither the static content
+    /// mount behind it nor the not-found path is reached.
     /// </summary>
     [Fact]
     public async Task AMatchedRouteRunsTheHandlersChain() {
         var fixture = new Fixture();
+        var staticChain = fixture.StaticMount();
         var handlerChain = fixture.RouteMatches("/orders");
 
         await fixture.Service().Execute(fixture.Chain);
 
         await handlerChain.Received(1).Next();
-        await fixture.StaticContent.DidNotReceive().Handle(Arg.Any<IExecutionContext>());
+        await staticChain.DidNotReceive().Next();
         await fixture.NotFound.DidNotReceive().Handle(Arg.Any<IExecutionChain>());
     }
 
@@ -112,30 +112,64 @@ public class WebExecutionHandlerServiceTests {
     }
 
     /// <summary>
-    /// No route, but a static file at that path: the request is served from disk and never becomes
-    /// a 404.
+    /// No route, but a static file at that path: the mount answers and the request never becomes a
+    /// 404. The mount is consulted last, so this is what "nothing else claimed it" looks like.
     /// </summary>
     [Fact]
-    public async Task ARequestWithNoRouteFallsBackToStaticContent() {
+    public async Task ARequestWithNoRouteIsAnsweredByTheStaticMount() {
         var fixture = new Fixture();
-
-        fixture.StaticContent.Handle(fixture.Context).Returns(true);
+        var staticChain = fixture.StaticMount();
 
         await fixture.Service().Execute(fixture.Chain);
 
-        await fixture.StaticContent.Received(1).Handle(fixture.Context);
+        await staticChain.Received(1).Next();
         await fixture.NotFound.DidNotReceive().Handle(Arg.Any<IExecutionChain>());
     }
 
     /// <summary>
-    /// No route and no static file is the only path to the not-found handler. Static content is
-    /// tried first, so a request the file handler claims never reaches it.
+    /// A fallback is consulted after every ordinary provider, whatever order they were registered
+    /// in. This is the guarantee that replaced "registered first, so consulted last" - which was a
+    /// property of the registration site, and stopped being controllable once the provider shipped
+    /// in its own package and an application chose where its module went.
+    /// </summary>
+    [Fact]
+    public async Task AFallbackIsConsultedAfterEveryOrdinaryProvider() {
+        var fixture = new Fixture();
+
+        // Registered after the route, so reverse order alone would consult it first.
+        var routeChain = fixture.RouteMatches("/orders");
+        var staticChain = fixture.StaticMount();
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        await routeChain.Received(1).Next();
+        await staticChain.DidNotReceive().Next();
+    }
+
+    /// <summary>
+    /// A static file runs a handler chain, which is the whole point of the mount being a provider:
+    /// everything that hangs off a handler - authorization above all - is in that chain, and a
+    /// direct call could never have any of it.
+    /// </summary>
+    [Fact]
+    public async Task AStaticFileIsDispatchedLikeAnyOtherHandler() {
+        var fixture = new Fixture();
+
+        fixture.StaticMount();
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        fixture.Context.Received(1).HandlerInfo = fixture.HandlerInfo;
+        fixture.RequestLogger.Received(1).RequestMapped(fixture.Context);
+    }
+
+    /// <summary>
+    /// No route and no static file is the only path to the not-found handler. The mount declines by
+    /// having no provider answer, which is what a path with no file behind it looks like.
     /// </summary>
     [Fact]
     public async Task ARequestWithNeitherARouteNorAFileReachesTheNotFoundHandler() {
         var fixture = new Fixture();
-
-        fixture.StaticContent.Handle(fixture.Context).Returns(false);
 
         await fixture.Service().Execute(fixture.Chain);
 
@@ -150,30 +184,27 @@ public class WebExecutionHandlerServiceTests {
     public async Task AnUnmatchedRequestIsNotLoggedAsMapped() {
         var fixture = new Fixture();
 
-        fixture.StaticContent.Handle(fixture.Context).Returns(false);
-
         await fixture.Service().Execute(fixture.Chain);
 
         fixture.RequestLogger.DidNotReceive().RequestMapped(Arg.Any<IExecutionContext>());
     }
 
     /// <summary>
-    /// An application with no routing table at all — a web app that is only static content — still
-    /// serves files rather than failing on the empty provider list.
+    /// An application with no providers at all answers 404 rather than failing on the empty list.
+    /// It used to still serve static content here, because static content was a call rather than a
+    /// provider; an application with no providers now genuinely has no static content either.
     /// </summary>
     [Fact]
-    public async Task AnApplicationWithNoProvidersStillServesStaticContent() {
+    public async Task AnApplicationWithNoProvidersAnswersNotFound() {
         var fixture = new Fixture();
 
-        fixture.StaticContent.Handle(fixture.Context).Returns(true);
-
         var service = new WebExecutionHandlerService(
-            [], fixture.NotFound, fixture.MethodNotAllowed, fixture.RequestLogger, fixture.StaticContent,
+            [], [], fixture.NotFound, fixture.MethodNotAllowed, fixture.RequestLogger,
             Options.Create<IWebRoutingConfiguration>(new WebRoutingConfiguration()));
 
         await service.Execute(fixture.Chain);
 
-        await fixture.StaticContent.Received(1).Handle(fixture.Context);
+        await fixture.NotFound.Received(1).Handle(fixture.Chain);
     }
 
     /// <summary>
@@ -234,11 +265,13 @@ public class WebExecutionHandlerServiceTests {
     [Fact]
     public async Task StaticContentIsTriedBeforeThe405() {
         var fixture = new Fixture();
+        var staticChain = fixture.StaticMount();
 
         fixture.MethodMismatch("GET");
-        fixture.StaticContent.Handle(fixture.Context).Returns(true);
 
         await fixture.Service().Execute(fixture.Chain);
+
+        await staticChain.Received(1).Next();
 
         await fixture.MethodNotAllowed.DidNotReceive()
             .Handle(Arg.Any<IExecutionContext>(), Arg.Any<string>());
@@ -584,7 +617,6 @@ public class WebExecutionHandlerServiceTests {
             Chain = Substitute.For<IExecutionChain>();
             Chain.Context.Returns(Context);
 
-            StaticContent = Substitute.For<IStaticContentHandler>();
             NotFound = Substitute.For<IResourceNotFoundHandler>();
             RequestLogger = Substitute.For<IRequestLogger>();
             HandlerInfo = Substitute.For<IExecutionRequestHandlerInfo>();
@@ -593,8 +625,6 @@ public class WebExecutionHandlerServiceTests {
         public IExecutionContext Context { get; }
 
         public IExecutionChain Chain { get; }
-
-        public IStaticContentHandler StaticContent { get; }
 
         public IResourceNotFoundHandler NotFound { get; }
 
@@ -680,6 +710,32 @@ public class WebExecutionHandlerServiceTests {
         public IMethodNotAllowedHandler MethodNotAllowed { get; } =
             Substitute.For<IMethodNotAllowedHandler>();
 
+        /// <summary>
+        /// A fallback provider, shaped like the static content mount: answering whatever nothing
+        /// else claimed.
+        /// </summary>
+        /// <remarks>
+        /// Registered as a fallback rather than at the front of the ordinary list, because that is
+        /// what decides when it is consulted now. Ordering used to be a property of where the
+        /// registration sat, and a provider shipping in its own package cannot control that.
+        /// </remarks>
+        public IExecutionChain StaticMount() {
+            var handlerChain = Substitute.For<IExecutionChain>();
+            var handler = Substitute.For<IExecutionRequestHandler>();
+
+            handler.HandlerInfo.Returns(HandlerInfo);
+            handler.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(handlerChain);
+
+            var provider = Substitute.For<IFallbackRequestHandlerProvider>();
+
+            provider.GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+                .Returns(new RequestHandlerInfo(handler, PathTokenCollection.Empty));
+
+            _fallbacks.Add(provider);
+
+            return handlerChain;
+        }
+
         /// <summary>A provider that recognises the path but not the verb.</summary>
         public IWebExecutionRequestHandlerProvider MethodMismatch(string allow) {
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
@@ -695,12 +751,14 @@ public class WebExecutionHandlerServiceTests {
         /// <summary>How the pipeline treats a path no route matched exactly.</summary>
         public WebRoutingConfiguration Routing { get; } = new();
 
+        private readonly List<IFallbackRequestHandlerProvider> _fallbacks = new();
+
         public WebExecutionHandlerService Service(params IWebExecutionRequestHandlerProvider[] providers) =>
             new(providers.Length > 0 ? providers : _providers,
+                _fallbacks,
                 NotFound,
                 MethodNotAllowed,
                 RequestLogger,
-                StaticContent,
                 Options.Create<IWebRoutingConfiguration>(Routing));
     }
 }

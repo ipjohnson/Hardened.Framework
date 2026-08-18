@@ -175,46 +175,14 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
         /// Whether the client said it takes gzip.
         /// </summary>
         /// <remarks>
-        /// <c>Accept-Encoding</c> arrives as one header value listing several codings -
-        /// <c>gzip, deflate, br, zstd</c> is what a browser sends - so this is a search within the
-        /// value rather than a comparison against it. Bounded on both sides so <c>x-gzip</c> and a
-        /// coding merely containing the letters do not match, and the quality value is ignored
-        /// because <c>gzip;q=0</c> is rare enough not to be worth a parser here: the cost of being
-        /// wrong is a response compressed for a client that would rather have had it plain.
+        /// The bounded token search this used to spell out inline now lives in
+        /// <see cref="AcceptEncodingHeader"/>, unchanged. It was the only correct reading of
+        /// <c>Accept-Encoding</c> in the codebase and it was private to this file, while
+        /// <c>StaticContentHandler</c> a few directories away asked the question with
+        /// <c>StringValues.Contains</c> and got the wrong answer for every browser.
         /// </remarks>
-        private static bool AcceptsGZip(IExecutionContext context) {
-            if (!context.Request.Headers.TryGetValue(KnownHeaders.AcceptEncoding, out var accepted)) {
-                return false;
-            }
-
-            foreach (var value in accepted) {
-                if (value == null) {
-                    continue;
-                }
-
-                var index = value.IndexOf(KnownEncoding.GZip, StringComparison.OrdinalIgnoreCase);
-
-                while (index >= 0) {
-                    var after = index + KnownEncoding.GZip.Length;
-
-                    if ((index == 0 || !IsTokenCharacter(value[index - 1])) &&
-                        (after == value.Length || !IsTokenCharacter(value[after]))) {
-                        return true;
-                    }
-
-                    index = value.IndexOf(
-                        KnownEncoding.GZip, index + 1, StringComparison.OrdinalIgnoreCase);
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Whether this character continues a coding name, so <c>x-gzip</c> and a hypothetical
-        /// <c>gzip2</c> are one token rather than a match plus a neighbour.
-        /// </summary>
-        private static bool IsTokenCharacter(char character) =>
-            char.IsLetterOrDigit(character) || character == '-';
+        private static bool AcceptsGZip(IExecutionContext context) =>
+            context.Request.Headers.TryGetValue(KnownHeaders.AcceptEncoding, out var accepted) &&
+            AcceptEncodingHeader.Accepts(accepted, KnownEncoding.GZip);
     }
 }

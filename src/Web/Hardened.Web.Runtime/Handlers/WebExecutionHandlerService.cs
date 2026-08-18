@@ -5,7 +5,6 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Configuration;
-using Hardened.Web.Runtime.StaticContent;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
@@ -16,25 +15,36 @@ public interface IWebExecutionHandlerService : IExecutionFilter { }
 [SingletonService(Using = RegistrationType.Try)]
 public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
     private readonly IEnumerable<IWebExecutionRequestHandlerProvider> _handlers;
-    private readonly IStaticContentHandler _staticContentHandler;
     private readonly IResourceNotFoundHandler _resourceNotFoundHandler;
     private readonly IMethodNotAllowedHandler _methodNotAllowedHandler;
     private readonly IRequestLogger _requestLogger;
     private readonly IWebRoutingConfiguration _routing;
 
+    /// <param name="fallbacks">
+    /// Providers that answer whatever nothing else claimed, appended after every ordinary one.
+    /// See <see cref="IFallbackRequestHandlerProvider"/>: a package shipping a provider that can
+    /// shadow any path cannot control where its registration lands relative to another module's,
+    /// so being asked last is a property of the type rather than of the registration site.
+    /// </param>
     public WebExecutionHandlerService(
         IEnumerable<IWebExecutionRequestHandlerProvider> handlers,
+        IEnumerable<IFallbackRequestHandlerProvider> fallbacks,
         IResourceNotFoundHandler resourceNotFoundHandler,
         IMethodNotAllowedHandler methodNotAllowedHandler,
         IRequestLogger requestLogger,
-        IStaticContentHandler staticContentHandler,
         IOptions<IWebRoutingConfiguration> routing) {
         _resourceNotFoundHandler = resourceNotFoundHandler;
         _methodNotAllowedHandler = methodNotAllowedHandler;
         _requestLogger = requestLogger;
-        _staticContentHandler = staticContentHandler;
         _routing = routing.Value;
-        _handlers = handlers.Reverse();
+
+        // A fallback registers as both, so it would otherwise be walked twice - once in its own
+        // right and once among the ordinary providers, where being asked early is the whole thing
+        // this avoids.
+        _handlers = handlers.Where(handler => handler is not IFallbackRequestHandlerProvider)
+            .Reverse()
+            .Concat(fallbacks.Reverse())
+            .ToArray();
     }
 
     public Task Execute(IExecutionChain chain) {
@@ -100,12 +110,17 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
         return handlerChain.Next();
     }
 
+    /// <remarks>
+    /// Static content used to be tried here, ahead of everything else in this method, by calling a
+    /// handler directly. It is an <see cref="IFallbackRequestHandlerProvider"/> now, which puts it
+    /// inside <see cref="Match"/> instead and after every ordinary provider. The observable order is
+    /// unchanged: a route an application declared still wins, a file still beats both the
+    /// trailing-slash alternative and the 405, and only a request nothing has a file for reaches
+    /// the bottom of this method. What changed is that a static request now runs a handler's filter
+    /// chain, so authorization applies to it.
+    /// </remarks>
     private async Task ResolvedFromSecondarySources(
         IExecutionChain chain, IExecutionContext context, string? allow) {
-        if (await _staticContentHandler.Handle(context)) {
-            return;
-        }
-
         // The other spelling, when the application asked for one. Tried after static content, so a
         // file that exists at the path as written still wins, and before the 405, because a route
         // reached by normalising is a route that answers this verb.

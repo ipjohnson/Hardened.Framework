@@ -1,0 +1,165 @@
+namespace Hardened.Web.StaticContent
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ETagProvider : Hardened.Web.StaticContent.IETagProvider
+    {
+        public ETagProvider(Hardened.Shared.Runtime.Collections.IItemPool<System.Security.Cryptography.MD5> md5Pool) { }
+        public string GenerateETag(byte[] content) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class FileSystemContentSource : Hardened.Web.StaticContent.IStaticContentSource
+    {
+        public FileSystemContentSource(Microsoft.Extensions.Options.IOptions<Hardened.Web.StaticContent.IStaticContentConfiguration> configuration, Hardened.Shared.Runtime.Utilities.IFileExtToMimeTypeHelper fileExtToMimeTypeHelper, Hardened.Web.StaticContent.IGZipStaticContentCompressor compressor, Hardened.Web.StaticContent.IETagProvider etagProvider, Microsoft.Extensions.Logging.ILogger<Hardened.Web.StaticContent.FileSystemContentSource> logger) { }
+        public bool Enabled { get; }
+        public System.Threading.Tasks.ValueTask<Hardened.Web.StaticContent.StaticContentEntry?> Load(Hardened.Web.StaticContent.StaticContentLocation location) { }
+        public Hardened.Web.StaticContent.StaticContentLocation? Locate(string requestPath) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class GZipStaticContentCompressor : Hardened.Web.StaticContent.IGZipStaticContentCompressor
+    {
+        public GZipStaticContentCompressor(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
+        public byte[] CompressContent(byte[] bytes, System.IO.Compression.CompressionLevel compressionLevel) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class HardenedStaticContent : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public const string DefaultPath = "wwwroot";
+        public const string DevelopmentEnvironment = "development";
+        public HardenedStaticContent() { }
+        public bool? CacheContent { get; set; }
+        public int? CacheMaxAge { get; set; }
+        public bool? CompressTextContent { get; set; }
+        public bool? EnableETag { get; set; }
+        public bool? EnableRangeRequests { get; set; }
+        public string? FallBackFile { get; set; }
+        public bool? Immutable { get; set; }
+        public string? Path { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class HardenedStaticContentAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public HardenedStaticContentAttribute() { }
+        public bool CacheContent { get; set; }
+        public int CacheMaxAge { get; set; }
+        public bool CompressTextContent { get; set; }
+        public bool EnableETag { get; set; }
+        public bool EnableRangeRequests { get; set; }
+        public string FallBackFile { get; set; }
+        public bool Immutable { get; set; }
+        public string Path { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public interface IETagProvider
+    {
+        string GenerateETag(byte[] content);
+    }
+    public interface IGZipStaticContentCompressor
+    {
+        byte[] CompressContent(byte[] bytes, System.IO.Compression.CompressionLevel compressionLevel = 1);
+    }
+    public interface IStaticContentConfiguration
+    {
+        bool CacheContent { get; }
+        Hardened.Web.Runtime.CacheControl.CacheControlEnum CacheControlType { get; }
+        int? CacheMaxAge { get; }
+        bool CompressTextContent { get; }
+        bool EnableETag { get; }
+        bool EnableRangeRequests { get; }
+        string? FallBackFile { get; }
+        bool Immutable { get; }
+        System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; }
+        string Path { get; }
+        Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
+    }
+    public interface IStaticContentManifest
+    {
+        System.Collections.Generic.IReadOnlyList<Hardened.Web.StaticContent.StaticContentManifestEntry> Entries { get; }
+        string? FallBackRoute { get; }
+    }
+    public interface IStaticContentSource
+    {
+        bool Enabled { get; }
+        System.Threading.Tasks.ValueTask<Hardened.Web.StaticContent.StaticContentEntry?> Load(Hardened.Web.StaticContent.StaticContentLocation location);
+        Hardened.Web.StaticContent.StaticContentLocation? Locate(string requestPath);
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ManifestContentSource : Hardened.Web.StaticContent.IStaticContentSource
+    {
+        public ManifestContentSource(Hardened.Web.StaticContent.IStaticContentManifest manifest, Microsoft.Extensions.Options.IOptions<Hardened.Web.StaticContent.IStaticContentConfiguration> configuration, Hardened.Shared.Runtime.Utilities.IFileExtToMimeTypeHelper fileExtToMimeTypeHelper, Microsoft.Extensions.Logging.ILogger<Hardened.Web.StaticContent.ManifestContentSource> logger) { }
+        public bool Enabled { get; }
+        public System.Threading.Tasks.ValueTask<Hardened.Web.StaticContent.StaticContentEntry?> Load(Hardened.Web.StaticContent.StaticContentLocation location) { }
+        public Hardened.Web.StaticContent.StaticContentLocation? Locate(string requestPath) { }
+    }
+    public class StaticContentConfiguration : Hardened.Web.StaticContent.IStaticContentConfiguration
+    {
+        public StaticContentConfiguration() { }
+        public bool CacheContent { get; set; }
+        public Hardened.Web.Runtime.CacheControl.CacheControlEnum CacheControlType { get; set; }
+        public int? CacheMaxAge { get; set; }
+        public bool CompressTextContent { get; set; }
+        public bool EnableETag { get; set; }
+        public bool EnableRangeRequests { get; set; }
+        public string? FallBackFile { get; set; }
+        public bool Immutable { get; set; }
+        public System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; set; }
+        public string Path { get; set; }
+        public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; set; }
+    }
+    public class StaticContentController
+    {
+        public StaticContentController(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
+        public System.Threading.Tasks.Task Serve(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Web.StaticContent.IStaticContentSource source, Hardened.Web.StaticContent.IStaticContentConfiguration configuration, string? cacheControl) { }
+    }
+    public sealed class StaticContentEntry
+    {
+        public StaticContentEntry(string contentType, string? contentEncoding, bool isBinary, string hash, byte[] content, System.DateTimeOffset? lastModified = default) { }
+        public byte[] Content { get; }
+        public string? ContentEncoding { get; }
+        public Microsoft.Extensions.Primitives.StringValues ContentEncodingHeader { get; }
+        public string ContentLength { get; }
+        public string ContentType { get; }
+        public string ETag { get; }
+        public string EncodedETag { get; }
+        public bool IsBinary { get; }
+        public bool IsEncoded { get; }
+        public System.DateTimeOffset? LastModified { get; }
+        public string? LastModifiedHeader { get; }
+    }
+    public readonly struct StaticContentLocation : System.IEquatable<Hardened.Web.StaticContent.StaticContentLocation>
+    {
+        public StaticContentLocation(string Key, string FilePath, string? ContentEncoding, Hardened.Web.StaticContent.StaticContentEntry? Cached, bool IsFallback) { }
+        public Hardened.Web.StaticContent.StaticContentEntry? Cached { get; init; }
+        public string? ContentEncoding { get; init; }
+        public string FilePath { get; init; }
+        public bool IsFallback { get; init; }
+        public string Key { get; init; }
+    }
+    public sealed class StaticContentManifestEntry : System.IEquatable<Hardened.Web.StaticContent.StaticContentManifestEntry>
+    {
+        public StaticContentManifestEntry(string RoutePath, string Hash, long Length, long LastModifiedUtcTicks, byte[]? Content, byte[]? GZipContent, string? RelativePath) { }
+        public byte[]? Content { get; init; }
+        public byte[]? GZipContent { get; init; }
+        public string Hash { get; init; }
+        public bool IsEmbedded { get; }
+        public System.DateTimeOffset LastModified { get; }
+        public long LastModifiedUtcTicks { get; init; }
+        public long Length { get; init; }
+        public string? RelativePath { get; init; }
+        public string RoutePath { get; init; }
+    }
+    public class StaticContentMountProvider : Hardened.Web.Runtime.Handlers.IFallbackRequestHandlerProvider, Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
+    {
+        public StaticContentMountProvider(System.IServiceProvider serviceProvider) { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public static class StaticContentWriter
+    {
+        public static string? CacheControlFor(Hardened.Web.StaticContent.IStaticContentConfiguration configuration) { }
+        public static System.Threading.Tasks.Task Write(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Web.StaticContent.StaticContentEntry entry, Hardened.Web.StaticContent.IStaticContentConfiguration configuration, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, string? cacheControl) { }
+    }
+}

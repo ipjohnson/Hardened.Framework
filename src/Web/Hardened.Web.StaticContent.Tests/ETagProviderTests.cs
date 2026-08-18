@@ -1,8 +1,7 @@
 using System.Text;
-using Hardened.Web.Runtime.StaticContent;
 using Xunit;
 
-namespace Hardened.Web.Runtime.Tests.StaticContent;
+namespace Hardened.Web.StaticContent.Tests;
 
 /// <summary>
 /// The ETag is the whole of the conditional-request contract: a client sends back what it was

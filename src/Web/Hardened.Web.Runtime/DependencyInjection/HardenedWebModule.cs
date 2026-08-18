@@ -19,14 +19,9 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
                 new IConfigurationValueProvider[] {
-                    new NewConfigurationValueProvider<IStaticContentConfiguration, StaticContentConfiguration>(null),
                     new NewConfigurationValueProvider<IWebRoutingConfiguration, WebRoutingConfiguration>(null)
                 }, Array.Empty<IConfigurationValueAmender>())
         );
-        services.TryAddSingleton(
-            serviceProvider => Microsoft.Extensions.Options.Options.Create(
-                serviceProvider.GetRequiredService<IConfigurationManager>()
-                    .GetConfiguration<IStaticContentConfiguration>()));
 
         services.TryAddSingleton(
             serviceProvider => Microsoft.Extensions.Options.Options.Create(

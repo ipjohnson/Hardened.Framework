@@ -1,9 +1,8 @@
 using System.IO.Compression;
 using Hardened.Shared.Runtime.Collections;
-using Hardened.Web.Runtime.StaticContent;
 using Xunit;
 
-namespace Hardened.Web.Runtime.Tests.StaticContent;
+namespace Hardened.Web.StaticContent.Tests;
 
 public class GZipStaticContentCompressorTests {
     private readonly GZipStaticContentCompressor _compressor;

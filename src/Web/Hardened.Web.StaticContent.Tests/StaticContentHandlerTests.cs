@@ -4,15 +4,13 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
-using Hardened.Web.Runtime.Configuration;
-using Hardened.Web.Runtime.StaticContent;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
 
-namespace Hardened.Web.Runtime.Tests.StaticContent;
+namespace Hardened.Web.StaticContent.Tests;
 
 /// <summary>
 /// Everything the static content handler decides after it has found the file.
@@ -80,13 +78,15 @@ public class StaticContentHandlerTests : IDisposable {
     /// A handler over the temporary root. <paramref name="configure"/> receives the configuration
     /// substitute already carrying the defaults, so a case only states what it changes.
     /// </summary>
-    private StaticContentHandler Handler(
+    private StaticContentPipeline Handler(
         Action<IStaticContentConfiguration>? configure = null,
         string? path = null) {
         var configuration = Substitute.For<IStaticContentConfiguration>();
 
         configuration.Path.Returns(path ?? _staticRoot);
-        configuration.EnableETag.Returns(false);
+        configuration.CacheContent.Returns(true);
+        configuration.EnableRangeRequests.Returns(true);
+        configuration.EnableETag.Returns(true);
         configuration.CompressTextContent.Returns(false);
         configuration.FallBackFile.Returns((string?)null);
         configuration.CacheMaxAge.Returns((int?)null);
@@ -99,13 +99,14 @@ public class StaticContentHandlerTests : IDisposable {
 
         mimeHelper.GetMimeTypeInfo(Arg.Any<string>()).Returns(("text/plain", false));
 
-        return new StaticContentHandler(
-            Options.Create(configuration),
-            mimeHelper,
-            new GZipStaticContentCompressor(new MemoryStreamPool()),
-            new ETagProvider(new TestMD5Pool()),
-            new MemoryStreamPool(),
-            NullLogger<StaticContentHandler>.Instance);
+        return new StaticContentPipeline(
+            new FileSystemContentSource(
+                Options.Create(configuration),
+                mimeHelper,
+                new GZipStaticContentCompressor(new MemoryStreamPool()),
+                new ETagProvider(new TestMD5Pool()),
+                NullLogger<FileSystemContentSource>.Instance),
+            configuration);
     }
 
     private static (IExecutionContext context, MemoryStream body, IExecutionResponse response, IDictionary<string, StringValues> responseHeaders)
@@ -234,18 +235,20 @@ public class StaticContentHandlerTests : IDisposable {
     }
 
     /// <summary>
-    /// A client that offers Brotli gets the stored bytes untouched. The content encoding header
-    /// says gzip regardless, which is wrong for a <c>.br</c> file — reported rather than asserted
-    /// here; see docs/TESTING-PLAN.md §11.
+    /// A client that offers Brotli gets the stored bytes untouched, labelled as Brotli. The label
+    /// used to say <c>gzip</c> whatever the entry held, so a client that offered <c>br</c> received
+    /// Brotli bytes it could not decode - and shipping <c>.br</c> siblings therefore broke for
+    /// precisely the clients able to use them.
     /// </summary>
     [Fact]
     public async Task ABrotliSiblingIsServedCompressedToAClientThatAskedForIt() {
         WriteBrotliFile("styles.css.br", "body { color: red; }");
 
-        var (context, body, _, _) = Context(
+        var (context, body, _, headers) = Context(
             "/styles.css", (KnownHeaders.AcceptEncoding, KnownEncoding.Br));
 
         Assert.True(await Handler().Handle(context));
+        Assert.Equal(KnownEncoding.Br, headers[KnownHeaders.ContentEncoding].ToString());
 
         using var compressed = new MemoryStream(body.ToArray());
         using var brotli = new BrotliStream(compressed, CompressionMode.Decompress);
@@ -254,6 +257,49 @@ public class StaticContentHandlerTests : IDisposable {
         await brotli.CopyToAsync(inflated, TestContext.Current.CancellationToken);
 
         Assert.Equal("body { color: red; }", Encoding.UTF8.GetString(inflated.ToArray()));
+    }
+
+    /// <summary>
+    /// The header a browser actually sends lists four codings in one value, and the handler used to
+    /// ask whether the header <em>equalled</em> the coding. It never did, so no browser ever
+    /// received a pre-compressed asset: every one of them took the inflate-per-request path
+    /// instead, which is the most expensive branch available.
+    /// </summary>
+    [Theory]
+    [InlineData("gzip, deflate, br, zstd")]
+    [InlineData("gzip, deflate")]
+    [InlineData("gzip")]
+    public async Task ABrowserAcceptEncodingHeaderGetsTheStoredBytes(string acceptEncoding) {
+        WriteGZipFile("app.js.gz", "console.log('hi');");
+
+        var (context, body, _, headers) = Context(
+            "/app.js", (KnownHeaders.AcceptEncoding, acceptEncoding));
+
+        Assert.True(await Handler().Handle(context));
+        Assert.Equal(KnownEncoding.GZip, headers[KnownHeaders.ContentEncoding].ToString());
+
+        using var compressed = new MemoryStream(body.ToArray());
+        using var gzip = new GZipStream(compressed, CompressionMode.Decompress);
+        using var inflated = new MemoryStream();
+
+        await gzip.CopyToAsync(inflated, TestContext.Current.CancellationToken);
+
+        Assert.Equal("console.log('hi');", Encoding.UTF8.GetString(inflated.ToArray()));
+    }
+
+    /// <summary>
+    /// A compressed representation declares its length like any other. It used to declare none,
+    /// so the same file reported a size or did not depending on what the client offered.
+    /// </summary>
+    [Fact]
+    public async Task AnEncodedResponseDeclaresItsLength() {
+        WriteGZipFile("app.js.gz", "console.log('hi');");
+
+        var (context, body, _, headers) = Context(
+            "/app.js", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+
+        Assert.True(await Handler().Handle(context));
+        Assert.Equal(body.Length.ToString(), headers[KnownHeaders.ContentLength].ToString());
     }
 
     /// <summary>
@@ -291,20 +337,28 @@ public class StaticContentHandlerTests : IDisposable {
     /// <summary>
     /// A conditional request whose ETag matches is answered 304 with no body. Serving the bytes
     /// anyway is the failure mode that makes caching headers pointless.
+    ///
+    /// <para>
+    /// The validator comes off the first response rather than being computed here, which is the
+    /// only version of this test that means anything: a client can only send back what it was
+    /// given. Computed locally, this passed while the handler emitted no ETag at all and no browser
+    /// could ever reach the branch.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task AMatchingIfNoneMatchIsAnsweredWith304AndNoBody() {
         WriteFile("logo.txt", "image bytes");
 
-        // EnableETag defaults to false in this fixture, and without it the handler never emits an
-        // ETag for If-None-Match to match against.
-        var handler = Handler(configuration => configuration.EnableETag.Returns(true));
+        var handler = Handler();
 
-        var (first, _, _, _) = Context("/logo.txt");
+        var (first, _, _, firstHeaders) = Context("/logo.txt");
 
         await handler.Handle(first);
 
-        var etag = new ETagProvider(new TestMD5Pool()).GenerateETag("image bytes"u8.ToArray());
+        var etag = firstHeaders[KnownHeaders.ETag].ToString();
+
+        Assert.StartsWith("\"", etag);
+        Assert.EndsWith("\"", etag);
 
         var (second, body, response, _) = Context("/logo.txt", (KnownHeaders.IfNoneMatch, etag));
 
@@ -312,6 +366,32 @@ public class StaticContentHandlerTests : IDisposable {
 
         response.Received().Status = 304;
         Assert.Empty(body.ToArray());
+    }
+
+    /// <summary>
+    /// ETags off means no validator and no conditional answer - the one thing the configuration
+    /// property claims to do, and did not do at all until the handler started reading it.
+    /// </summary>
+    [Fact]
+    public async Task ETagsCanBeTurnedOff() {
+        WriteFile("logo.txt", "image bytes");
+
+        var handler = Handler(configuration => configuration.EnableETag.Returns(false));
+
+        var (first, _, _, headers) = Context("/logo.txt");
+
+        await handler.Handle(first);
+
+        Assert.DoesNotContain(KnownHeaders.ETag, headers.Keys);
+
+        // Nothing to match against, so a client claiming anything still gets the body.
+        var (second, body, response, _) = Context(
+            "/logo.txt", (KnownHeaders.IfNoneMatch, "\"anything\""));
+
+        Assert.True(await handler.Handle(second));
+
+        response.Received().Status = 200;
+        Assert.Equal("image bytes", Served(body));
     }
 
     /// <summary>A conditional request whose ETag does not match gets the file.</summary>
@@ -407,16 +487,16 @@ public class StaticContentHandlerTests : IDisposable {
         var handler = Handler(configuration =>
             configuration.OnPrepareResponse.Returns(new Action<IExecutionContext>(_ => calls++)));
 
-        var (first, _, _, _) = Context("/asset.txt");
+        var (first, _, _, firstHeaders) = Context("/asset.txt");
 
         await handler.Handle(first);
 
-        var etag = new ETagProvider(new TestMD5Pool()).GenerateETag("asset"u8.ToArray());
-
-        var (second, _, _, _) = Context("/asset.txt", (KnownHeaders.IfNoneMatch, etag));
+        var (second, _, response, _) = Context(
+            "/asset.txt", (KnownHeaders.IfNoneMatch, firstHeaders[KnownHeaders.ETag].ToString()));
 
         await handler.Handle(second);
 
+        response.Received().Status = 304;
         Assert.Equal(2, calls);
     }
 
@@ -477,13 +557,14 @@ public class StaticContentHandlerTests : IDisposable {
 
         mimeHelper.GetMimeTypeInfo(Arg.Any<string>()).Returns(("application/octet-stream", true));
 
-        var handler = new StaticContentHandler(
-            Options.Create(configuration),
-            mimeHelper,
-            new GZipStaticContentCompressor(new MemoryStreamPool()),
-            new ETagProvider(new TestMD5Pool()),
-            new MemoryStreamPool(),
-            NullLogger<StaticContentHandler>.Instance);
+        var handler = new StaticContentPipeline(
+            new FileSystemContentSource(
+                Options.Create(configuration),
+                mimeHelper,
+                new GZipStaticContentCompressor(new MemoryStreamPool()),
+                new ETagProvider(new TestMD5Pool()),
+                NullLogger<FileSystemContentSource>.Instance),
+            configuration);
 
         var (context, body, response, headers) = Context(
             "/large.bin", (KnownHeaders.AcceptEncoding, KnownEncoding.GZip));
@@ -510,4 +591,211 @@ public class StaticContentHandlerTests : IDisposable {
         response.Received().ContentType = "text/plain";
         Assert.Equal("10", headers[KnownHeaders.ContentLength].ToString());
     }
+
+    #region the validator, and what carries it
+
+    /// <summary>
+    /// A served file carries an ETag, and it is a well-formed one. Without the header there is
+    /// nothing for a client to put in <c>If-None-Match</c>, so the handler's whole conditional
+    /// path was unreachable from a browser however correct the comparison was.
+    /// </summary>
+    [Fact]
+    public async Task AServedFileCarriesAQuotedETag() {
+        WriteFile("logo.txt", "image bytes");
+
+        var (context, _, _, headers) = Context("/logo.txt");
+
+        Assert.True(await Handler().Handle(context));
+
+        var etag = headers[KnownHeaders.ETag].ToString();
+
+        Assert.StartsWith("\"", etag);
+        Assert.EndsWith("\"", etag);
+        Assert.True(etag.Length > 2, "the ETag was an empty pair of quotes");
+    }
+
+    /// <summary>
+    /// A resource stored compressed is two bodies at one URL, so it says what it varies on. A
+    /// shared cache that did not know would hand a client that cannot inflate them the bytes that
+    /// need it.
+    /// </summary>
+    [Fact]
+    public async Task ACompressedRepresentationSaysItVariesOnAcceptEncoding() {
+        WriteGZipFile("app.js.gz", "console.log('hi');");
+
+        var (compressedClient, _, _, compressedHeaders) = Context(
+            "/app.js", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+
+        Assert.True(await Handler().Handle(compressedClient));
+        Assert.Equal(KnownHeaders.AcceptEncoding, compressedHeaders[KnownHeaders.Vary].ToString());
+
+        // And on the answer to a client that took it inflated, which is the same resource.
+        var (plainClient, _, _, plainHeaders) = Context("/app.js");
+
+        Assert.True(await Handler().Handle(plainClient));
+        Assert.Equal(KnownHeaders.AcceptEncoding, plainHeaders[KnownHeaders.Vary].ToString());
+    }
+
+    /// <summary>
+    /// A resource stored one way does not vary, and says so by omission. Declaring it anyway would
+    /// have a CDN store a copy per coding of a file that is byte-identical for all of them.
+    /// </summary>
+    [Fact]
+    public async Task AnUncompressedResourceDoesNotSayItVaries() {
+        WriteFile("small.txt", "small");
+
+        var (context, _, _, headers) = Context(
+            "/small.txt", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+
+        Assert.True(await Handler().Handle(context));
+        Assert.DoesNotContain(KnownHeaders.Vary, headers.Keys);
+    }
+
+    /// <summary>
+    /// The two representations of one resource carry different validators. Sharing one tells a
+    /// cache holding both that they are interchangeable, and it will hand a client the wrong body
+    /// on the strength of it.
+    /// </summary>
+    [Fact]
+    public async Task TheCompressedAndInflatedRepresentationsHaveDifferentETags() {
+        WriteGZipFile("app.js.gz", "console.log('hi');");
+
+        var handler = Handler();
+
+        var (compressedClient, _, _, compressedHeaders) = Context(
+            "/app.js", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+
+        await handler.Handle(compressedClient);
+
+        var (plainClient, _, _, plainHeaders) = Context("/app.js");
+
+        await handler.Handle(plainClient);
+
+        Assert.NotEqual(
+            plainHeaders[KnownHeaders.ETag].ToString(),
+            compressedHeaders[KnownHeaders.ETag].ToString());
+    }
+
+    /// <summary>
+    /// A 304 repeats what the 200 carried. The cache headers used to be written after the
+    /// not-modified return, so a revalidation dropped them - which meant an asset marked
+    /// <c>immutable</c> was revalidated on every request after the first, the one thing marking it
+    /// immutable exists to prevent.
+    /// </summary>
+    [Fact]
+    public async Task ANotModifiedResponseRepeatsTheCacheHeaders() {
+        WriteGZipFile("app.js.gz", "console.log('hi');");
+
+        var handler = Handler(configuration => {
+            configuration.CacheMaxAge.Returns(31536000);
+            configuration.Immutable.Returns(true);
+        });
+
+        var (first, _, _, firstHeaders) = Context(
+            "/app.js", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+
+        await handler.Handle(first);
+
+        var etag = firstHeaders[KnownHeaders.ETag].ToString();
+
+        var (second, body, response, headers) = Context(
+            "/app.js",
+            (KnownHeaders.AcceptEncoding, "gzip, deflate, br"),
+            (KnownHeaders.IfNoneMatch, etag));
+
+        Assert.True(await handler.Handle(second));
+
+        response.Received().Status = 304;
+        Assert.Empty(body.ToArray());
+
+        Assert.Equal(etag, headers[KnownHeaders.ETag].ToString());
+        Assert.Equal("max-age=31536000, immutable", headers[KnownHeaders.CacheControl].ToString());
+        Assert.Equal(KnownHeaders.AcceptEncoding, headers[KnownHeaders.Vary].ToString());
+    }
+
+    /// <summary>
+    /// The three shapes of <c>If-None-Match</c> that are not a lone strong tag. Compared with
+    /// string equality all three miss, and the client is sent a body it already holds.
+    /// </summary>
+    [Fact]
+    public async Task TheOtherShapesOfIfNoneMatchAreHonoured() {
+        WriteFile("logo.txt", "image bytes");
+
+        var handler = Handler();
+
+        var (warm, _, _, warmHeaders) = Context("/logo.txt");
+
+        await handler.Handle(warm);
+
+        var etag = warmHeaders[KnownHeaders.ETag].ToString();
+
+        foreach (var header in new[] { "*", "\"other\", " + etag, "W/" + etag }) {
+            var (context, body, response, _) = Context(
+                "/logo.txt", (KnownHeaders.IfNoneMatch, header));
+
+            Assert.True(await handler.Handle(context));
+
+            response.Received().Status = 304;
+            Assert.Empty(body.ToArray());
+        }
+    }
+
+    #endregion
+
+    #region what the cache is keyed on
+
+    /// <summary>
+    /// Every URL the fall back file answers shares one cache entry. Keyed on the request path
+    /// instead, each distinct unknown URL wrote its own entry holding its own complete copy of the
+    /// shell, in a dictionary with no bound - so an unauthenticated caller walking /a1, /a2, /a3
+    /// grew the process until it died.
+    ///
+    /// <para>
+    /// Deleting the file between the two requests is how the test tells one shared entry from two
+    /// identical ones: the second URL has never been seen before and there is nothing on disk left
+    /// to read.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task EveryUrlTheFallbackAnswersSharesOneCacheEntry() {
+        WriteFile("index.html", "<html>shell</html>");
+
+        var handler = Handler(configuration => configuration.FallBackFile.Returns("/index.html"));
+
+        var (first, firstBody, _, _) = Context("/app/one");
+
+        Assert.True(await handler.Handle(first));
+        Assert.Equal("<html>shell</html>", Served(firstBody));
+
+        File.Delete(Path.Combine(_staticRoot, "index.html"));
+
+        var (second, secondBody, _, _) = Context("/app/two");
+
+        Assert.True(await handler.Handle(second));
+        Assert.Equal("<html>shell</html>", Served(secondBody));
+    }
+
+    /// <summary>
+    /// And the fall back file is cached under its own name, which keying on the request path meant
+    /// it never was - a request for it directly always went back to disk.
+    /// </summary>
+    [Fact]
+    public async Task TheFallbackFileIsCachedUnderItsOwnName() {
+        WriteFile("index.html", "<html>shell</html>");
+
+        var handler = Handler(configuration => configuration.FallBackFile.Returns("/index.html"));
+
+        var (viaFallback, _, _, _) = Context("/app/deep/route");
+
+        Assert.True(await handler.Handle(viaFallback));
+
+        File.Delete(Path.Combine(_staticRoot, "index.html"));
+
+        var (direct, body, _, _) = Context("/index.html");
+
+        Assert.True(await handler.Handle(direct));
+        Assert.Equal("<html>shell</html>", Served(body));
+    }
+
+    #endregion
 }
