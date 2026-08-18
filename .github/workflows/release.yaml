@@ -26,6 +26,10 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+
+    env:
+      # Must equal $(HardenedSmithyCliVersion); the build fails with HSMT011 if it does not.
+      SMITHY_VERSION: 1.73.0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,6 +81,48 @@ jobs:
 
       # Same warnings-as-errors treatment the branch build gets. A release is the last place to
       # relax it.
+      # The Smithy CLI turns the .smithy models in the integration fixture into the JSON AST the
+      # build task reads. It is pinned, and the build enforces the pin rather than trusting it:
+      # $(HardenedSmithyCliVersion) in Hardened.Smithy.SourceGenerator.targets must equal
+      # SMITHY_VERSION below, or the build stops with HSMT011 instead of generating against
+      # whatever version happens to be installed. Two versions can produce different ASTs, and
+      # therefore different generated C#, from identical sources.
+      #
+      # Cached because the archive is 27 MB and the download is the only slow part; the CLI itself
+      # runs once per model edit, not once per build.
+      - name: Cache the Smithy CLI
+        id: smithy-cli
+        uses: actions/cache@v4
+        with:
+          path: ~/.smithy-cli
+          key: smithy-cli-${{ env.SMITHY_VERSION }}-linux-x86_64
+
+      # Verified against the checksum the release publishes beside it. A build that downloads and
+      # executes a binary should say which one it expected.
+      - name: Install the Smithy CLI
+        if: steps.smithy-cli.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          ASSET=smithy-cli-linux-x86_64.zip
+          BASE=https://github.com/smithy-lang/smithy/releases/download/$SMITHY_VERSION
+          curl -sSLf -o "$ASSET" "$BASE/$ASSET"
+          curl -sSLf -o "$ASSET.sha256" "$BASE/$ASSET.sha256"
+          echo "$(awk '{print $1}' "$ASSET.sha256")  $ASSET" | sha256sum -c -
+          unzip -q "$ASSET"
+          mkdir -p ~/.smithy-cli
+          mv smithy-cli-linux-x86_64/* ~/.smithy-cli/
+
+      - name: Put the Smithy CLI on PATH
+        run: |
+          echo "$HOME/.smithy-cli/bin" >> "$GITHUB_PATH"
+
+      # Fails here, naming the version, rather than inside a build task three steps later.
+      - name: Check the Smithy CLI version
+        run: |
+          set -euo pipefail
+          test "$(smithy --version)" = "$SMITHY_VERSION"
+          smithy --version
+
       - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
       - name: Test with coverage
