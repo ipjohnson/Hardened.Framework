@@ -81,8 +81,16 @@ public class ServiceProviderFileGenerator {
 
         providerMethod.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.Logging);
 
+        // AddHardenedEnvironment rather than AddSingleton, because the environment has to be
+        // reachable as IModuleEnvironment as well as IHardenedEnvironment. AddSingleton registers
+        // the parameter's static type only, so [IfEnvironment] found nothing here and fell back to
+        // ASPNETCORE_ENVIRONMENT - Production - while the rest of the application read
+        // HARDENED_ENVIRONMENT and said development. This method builds the collection for every
+        // host that has no Program.cs of its own, Lambda among them.
+        providerMethod.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.Application);
+
         providerMethod.AddIndentedStatement(
-            serviceCollectionDefinition.Invoke("AddSingleton", "environment")
+            serviceCollectionDefinition.Invoke("AddHardenedEnvironment", "environment")
         );
 
         providerMethod.NewLine();

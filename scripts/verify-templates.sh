@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Verify the templates: build the framework, pack it and them, install the packed template,
-# generate a project from every supported combination, and prove each one restores, builds, tests
-# and serves. This is the gate a release runs.
+# generate a project from every supported combination of all three templates, and prove each one
+# restores, builds, tests and - where it serves HTTP - answers. This is the gate a release runs.
 #
 # The packed nupkg is installed rather than the template folder, deliberately. A template tested
 # from source proves nothing about packaging, which is where the 0.8.0-rc1000 quickstart broke.
@@ -84,7 +84,9 @@ say "installing the packed template"
 # package id, and it shadows the packed one with the same template identity - so the verification would
 # silently exercise the working tree instead of the artifact.
 dotnet new uninstall Hardened.Templates >/dev/null 2>&1 || true
-dotnet new uninstall "$REPO/src/Templates/Hardened.Templates/templates/hardened-web" >/dev/null 2>&1 || true
+for TEMPLATE_DIR in "$REPO"/src/Templates/Hardened.Templates/templates/*/; do
+    dotnet new uninstall "${TEMPLATE_DIR%/}" >/dev/null 2>&1 || true
+done
 dotnet new install "$FEED/Hardened.Templates.$VERSION.nupkg"
 
 FAILED=0
@@ -195,6 +197,68 @@ for COMBO in "${COMBOS[@]}"; do
         FAILED=1
     fi
 done
+
+say "hardened-library"
+# Framework packages only, so this one is verified against the build under test like hardened-web.
+LIB="$WORK/library"
+dotnet new hardened-library -n Sample -o "$LIB" --skip-restore
+dotnet nuget add source "$FEED" --name template-verify-local --configfile "$LIB/nuget.config" >/dev/null
+if ( cd "$LIB" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
+    echo "   builds and tests"
+else
+    echo "   FAILED: hardened-library"
+    FAILED=1
+fi
+
+# A dotted project name is the .NET norm and it is not merely cosmetic here: the module class is
+# named after the project, and an unfiltered substitution produced "public partial class
+# Acme.ApiLibrary" - which does not compile. Every template that names a class after the project
+# needs the safe-identifier form, so the check runs against a name that has a dot in it.
+say "dotted project names"
+for TEMPLATE in hardened-library hardened-web; do
+    DOTTED="$WORK/dotted-$TEMPLATE"
+    dotnet new "$TEMPLATE" -n Acme.Sample -o "$DOTTED" --skip-restore
+    dotnet nuget add source "$FEED" --name template-verify-local --configfile "$DOTTED/nuget.config" >/dev/null
+    if ( cd "$DOTTED" && dotnet build -v q --nologo ); then
+        echo "   $TEMPLATE builds as Acme.Sample"
+    else
+        echo "   FAILED: $TEMPLATE does not build with a dotted name"
+        FAILED=1
+    fi
+done
+
+# The Amz-dependent variants cannot be verified against the framework build under test, and that
+# is a property of the dependency direction rather than an omission. Hardened.Amz depends on
+# published Hardened packages, so a generated project pinned to this run's 0.0.0-verify framework
+# also drags in whatever version Amz was built against - NU1605, every time. They are therefore
+# generated against the newest published version, which gates the templates themselves without
+# claiming to gate the build under test.
+say "AWS Lambda templates (published packages)"
+PUBLISHED=$(curl -s "https://api.nuget.org/v3-flatcontainer/hardened.amz.function.lambda.runtime/index.json" \
+    | tr ',' '\n' | tr -d '" ' | grep -E '^[0-9]' | tail -1)
+
+if [ -z "$PUBLISHED" ]; then
+    echo "   SKIPPED: could not reach nuget.org for the published Hardened.Amz version"
+else
+    echo "   pinned to $PUBLISHED, not this run's $VERSION"
+
+    for AMZ in "hardened-function --trigger invoke" "hardened-function --trigger sqs" "hardened-web --host aws-lambda"; do
+        set -- $AMZ
+        AMZ_TEMPLATE="$1"; shift
+        AMZ_OUT="$WORK/amz-$AMZ_TEMPLATE-$(echo "$*" | tr -cd 'a-z')"
+
+        # No local feed added: these restore from nuget.org alone, on purpose.
+        dotnet new "$AMZ_TEMPLATE" -n Sample -o "$AMZ_OUT" "$@" \
+            --hardened-version "$PUBLISHED" --skip-restore
+
+        if ( cd "$AMZ_OUT" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
+            echo "   $AMZ_TEMPLATE $*: builds and tests"
+        else
+            echo "   FAILED: $AMZ_TEMPLATE $*"
+            FAILED=1
+        fi
+    done
+fi
 
 say "host independence"
 # The framework's claim is that handlers, filters, binding and routing do not change with the

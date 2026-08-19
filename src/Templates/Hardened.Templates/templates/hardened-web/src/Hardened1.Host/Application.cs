@@ -8,6 +8,9 @@ using Hardened.Web.Kestrel.Runtime;
 #if (aspnet)
 using Hardened.Web.AspNetCore.Runtime;
 #endif
+#if (lambda)
+using Hardened.Amz.Web.Lambda.Runtime.DependencyInjection;
+#endif
 
 namespace Hardened1.Host;
 
@@ -25,6 +28,10 @@ namespace Hardened1.Host;
 #if (aspnet)
 [AspNetCoreRuntime]
 #endif
+#if (lambda)
+// Brings the API Gateway host and, through the [HardenedWebModule] it carries, the web pipeline.
+[LambdaWebModule]
+#endif
 #if (codeFirst)
 // Embeds the document the build wrote from this application's routes, and serves it at
 // /openapi.json. Spec-first applications do not use this: their document is a build input,
@@ -37,5 +44,5 @@ namespace Hardened1.Host;
 [HardenedOpenApiUi(Title = "Hardened1", Environments = "development")]
 #endif
 #endif
-[Hardened1Library]
+[TemplateModuleNameLibrary]
 public partial class Application;

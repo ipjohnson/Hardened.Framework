@@ -305,4 +305,45 @@ public class TestApplicationTests {
 
         public void Dispose() => Disposed = true;
     }
+
+    #region the environment is reachable under both interfaces
+
+    /// <summary>
+    /// The module system reads <see cref="IModuleEnvironment"/> while it is deciding what to
+    /// register, so a test host that registers the environment under
+    /// <see cref="IHardenedEnvironment"/> alone leaves <c>[IfEnvironment]</c> answering against
+    /// <c>ASPNETCORE_ENVIRONMENT</c> - <c>Production</c> - while the application under test says
+    /// <c>development</c>. Registration under both is what makes the two agree.
+    /// </summary>
+    [Theory]
+    [InlineData("staging")]
+    [InlineData("development")]
+    public void TheModuleSystemSeesTheEnvironmentTheTestWasGiven(string environmentName) {
+        var environment = new EnvironmentImpl(environmentName);
+
+        var application = new TestApplication(
+            new ApplicationModule((_, _) => { }), "test", environment, null);
+
+        Assert.Same(environment, application.Provider.GetRequiredService<IModuleEnvironment>());
+        Assert.Equal(
+            environmentName,
+            application.Provider.GetRequiredService<IModuleEnvironment>().EnvironmentName);
+    }
+
+    /// <summary>
+    /// Both constructors register the environment, and only one of them being fixed is exactly the
+    /// drift <see cref="BothModuleShapesProduceTheSameWiring"/> exists to catch.
+    /// </summary>
+    [Fact]
+    public void BothModuleShapesReachTheEnvironmentUnderBothInterfaces() {
+        foreach (var provider in new[] {
+                     FromApplicationModule().Provider, FromDependencyModule().Provider
+                 }) {
+            Assert.Same(
+                provider.GetRequiredService<IHardenedEnvironment>(),
+                provider.GetRequiredService<IModuleEnvironment>());
+        }
+    }
+
+    #endregion
 }

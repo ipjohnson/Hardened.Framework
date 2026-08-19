@@ -18,6 +18,13 @@
   "sourceName": "Hardened1",
   "preferNameDirectory": true,
   "symbols": {
+    "moduleClass": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "classIdentifier",
+      "replaces": "TemplateModuleName",
+      "fileRename": "TemplateModuleName"
+    },
     "host": {
       "type": "parameter",
       "datatype": "choice",
@@ -31,6 +38,10 @@
         {
           "choice": "aspnet",
           "description": "ASP.NET Core, when you need its middleware, authentication or hosting diagnostics."
+        },
+        {
+          "choice": "aws-lambda",
+          "description": "AWS Lambda behind API Gateway, with a harness that runs it locally over HTTP."
         }
       ]
     },
@@ -96,6 +107,10 @@
     "specFirst": {
       "type": "computed",
       "value": "(contract == 'openapi' || contract == 'smithy')"
+    },
+    "lambda": {
+      "type": "computed",
+      "value": "(host == 'aws-lambda')"
     }
   },
   "sources": [
@@ -124,6 +139,23 @@
           "exclude": [
             "src/Hardened1/contracts/greeting.smithy"
           ]
+        },
+        {
+          "condition": "(!lambda)",
+          "exclude": [
+            "src/Hardened1.Harness/**",
+            "Hardened1.Lambda.sln"
+          ]
+        },
+        {
+          "condition": "(lambda)",
+          "exclude": [
+            "src/Hardened1.Host/Program.cs",
+            "Hardened1.sln"
+          ],
+          "rename": {
+            "Hardened1.Lambda.sln": "Hardened1.sln"
+          }
         }
       ]
     }
@@ -170,6 +202,13 @@
           }
         }
       ]
+    }
+  },
+  "forms": {
+    "classIdentifier": {
+      "identifier": "replace",
+      "pattern": "[^\\w]",
+      "replacement": ""
     }
   }
 }

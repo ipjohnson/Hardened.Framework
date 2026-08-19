@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <!-- Hardened writes your routing table, request handlers and parameter binding as ordinary
+         C#. Reading it is the fastest way to understand what the framework is doing:
+         obj/<configuration>/<tfm>/generated/, one directory per generator. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+</Project>

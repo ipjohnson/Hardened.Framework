@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The function. There is no separate host project: on Lambda the deployed artifact is this
+    assembly, and the generator writes the entry point the runtime calls.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Hardened.Shared.Runtime" />
+    <PackageReference Include="Hardened.Requests.Runtime" />
+    <PackageReference Include="Hardened.Amz.Shared.Lambda.Runtime" />
+    <PackageReference Include="Hardened.Amz.Function.Lambda.Runtime" />
+<!--#if (sqs) -->
+    <PackageReference Include="Hardened.Amz.Function.Sqs.Runtime" />
+<!--#endif -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hardened.Library.SourceGenerator" />
+    <!--
+      PrivateAssets="all" on the generators so they stop at this project's boundary. They are
+      build-time only, and nothing that references this assembly should inherit them.
+    -->
+    <PackageReference Include="Hardened.Function.SourceGenerator" PrivateAssets="all" />
+    <PackageReference Include="Hardened.Amz.Function.Lambda.SourceGenerator" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
