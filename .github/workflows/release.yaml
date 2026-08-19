@@ -225,7 +225,8 @@ jobs:
             src/Web/Hardened.Web.Kestrel.Runtime/Hardened.Web.Kestrel.Runtime.csproj \
             src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
             src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
-            src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj; do
+            src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj \
+            src/Templates/Hardened.Templates/Hardened.Templates.csproj; do
             dotnet pack "$project" --configuration Release --no-build --output ./artifacts \
               "/p:PackageVersion=${{ steps.version.outputs.version }}"
           done
@@ -254,7 +255,10 @@ jobs:
           # and were never listed, and Hardened.Web.StaticContent, which arrived in #146 and was
           # not either. The check above could not catch any of them - it compares the count against
           # this number, so a package nobody added is a package nobody misses.
-          EXPECTED=21
+          # 22 after Hardened.Templates, the dotnet new templates, arrived in #154. It was added to
+          # the solution and not here, so the coverage check above would have failed the next
+          # release - which is the check working, and the fourth time this list has drifted.
+          EXPECTED=22
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

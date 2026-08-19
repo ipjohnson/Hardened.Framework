@@ -35,6 +35,11 @@
 
         Staged into obj/ and packed from there, so pack leaves the working tree clean and the
         0.0.0-DEV token survives in source for the next build to substitute.
+
+        $(PackageVersion) rather than $(Version), because the release sets the first and not the
+        second - stamping the second would have shipped a template pinning 1.0.0 while the package
+        itself said 0.9.0. It defaults to $(Version) when unset, so an ordinary
+        `dotnet pack -p:Version=x` is unaffected.
     -->
     <PropertyGroup>
         <!-- obj/ spelled out rather than $(IntermediateOutputPath), which the SDK sets in its
@@ -50,7 +55,7 @@
         after the Exec has written the staged copy.
     -->
     <Target Name="StageTemplates" BeforeTargets="GenerateNuspec">
-        <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/stage-templates.py&quot; &quot;$(MSBuildProjectDirectory)/templates&quot; &quot;$(_TemplateStage)&quot; &quot;$(Version)&quot;" />
+        <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/stage-templates.py&quot; &quot;$(MSBuildProjectDirectory)/templates&quot; &quot;$(_TemplateStage)&quot; &quot;$(PackageVersion)&quot;" />
 
         <ItemGroup>
             <_PackageFiles Include="$(_TemplateStage)/**/*">
