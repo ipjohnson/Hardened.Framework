@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Ian Johnson",
+  "classifications": [
+    "Web",
+    "API",
+    "Hardened"
+  ],
+  "identity": "Hardened.Web.CSharp",
+  "groupIdentity": "Hardened.Web",
+  "name": "Hardened Web Application",
+  "shortName": "hardened-web",
+  "description": "A Hardened web application: an implementation library, a host, and a test project.",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "Hardened1",
+  "preferNameDirectory": true,
+  "symbols": {
+    "host": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "kestrel",
+      "description": "Where the application runs. Affects only the host project.",
+      "choices": [
+        {
+          "choice": "kestrel",
+          "description": "Kestrel, without the ASP.NET Core request pipeline. The default."
+        },
+        {
+          "choice": "aspnet",
+          "description": "ASP.NET Core, when you need its middleware, authentication or hosting diagnostics."
+        }
+      ]
+    },
+    "HardenedVersion": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "0.0.0-DEV",
+      "description": "The Hardened package version to pin. Defaults to the version this template shipped with.",
+      "replaces": "0.0.0-HARDENED-VERSION"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Skip the automatic restore after creation."
+    },
+    "kestrel": {
+      "type": "computed",
+      "value": "(host == 'kestrel')"
+    },
+    "aspnet": {
+      "type": "computed",
+      "value": "(host == 'aspnet')"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": []
+    }
+  ],
+  "primaryOutputs": [
+    {
+      "path": "src/Hardened1.Host/Hardened1.Host.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "condition": "(!skipRestore)",
+      "description": "Restore the packages the template pinned.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}

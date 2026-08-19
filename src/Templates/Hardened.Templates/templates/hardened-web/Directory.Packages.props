@@ -1,0 +1,32 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- One place to bump. The generated code and the runtime it targets ship together,
+         so every Hardened package moves as a set. -->
+    <HardenedVersion>0.0.0-HARDENED-VERSION</HardenedVersion>
+  </PropertyGroup>
+
+  <ItemGroup Label="Hardened">
+    <PackageVersion Include="Hardened.Shared.Runtime" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Web.Runtime" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Web.Kestrel.Runtime" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Web.AspNetCore.Runtime" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Shared.Testing" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Web.Testing" Version="$(HardenedVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Hardened source generators">
+    <!-- Not optional. The runtime packages carry no analyzers, so without these the module's
+         generated half never exists and PopulateServiceCollection does not compile. -->
+    <PackageVersion Include="Hardened.Library.SourceGenerator" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Web.SourceGenerator" Version="$(HardenedVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <!-- xUnit v3. Hardened.Shared.Testing builds on xunit.v3.extensibility.core, so a test
+         project on xunit 2.x fails with CS0433 on Assert. -->
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+  </ItemGroup>
+</Project>

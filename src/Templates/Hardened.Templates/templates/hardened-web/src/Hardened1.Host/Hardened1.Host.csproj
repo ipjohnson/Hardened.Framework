@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The only host-specific project. Microsoft.NET.Sdk rather than Microsoft.NET.Sdk.Web in both
+    cases: Hardened brings ASP.NET Core in through a framework reference where it needs it, and
+    the Web SDK's Razor pipeline only gets in the way.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hardened.Shared.Runtime" />
+    <PackageReference Include="Hardened.Web.Runtime" />
+<!--#if (kestrel) -->
+    <PackageReference Include="Hardened.Web.Kestrel.Runtime" />
+<!--#endif -->
+<!--#if (aspnet) -->
+    <PackageReference Include="Hardened.Web.AspNetCore.Runtime" />
+<!--#endif -->
+    <PackageReference Include="Hardened.Library.SourceGenerator" />
+    <PackageReference Include="Hardened.Web.SourceGenerator" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hardened1\Hardened1.csproj" />
+  </ItemGroup>
+
+</Project>

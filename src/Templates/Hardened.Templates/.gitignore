@@ -1,0 +1,4 @@
+# A template's projects are content, not builds. If someone opens one in an IDE these appear,
+# and packing them would ship a stranger's absolute paths - stage-templates.py filters them too.
+templates/**/bin/
+templates/**/obj/
