@@ -28,8 +28,14 @@ namespace Hardened.Idl.SourceGenerator;
 /// <param name="UiUrl">
 /// Where its reference page is served, from <c>UiUrl</c> metadata, or empty when there is none.
 /// </param>
+/// <param name="UiEnvironments">
+/// The environments that page is served in, from <c>UiEnvironments</c> metadata, or empty for all
+/// of them. Passed to <c>HardenedOpenApiUi</c> unchanged, so a specification-first page is gated
+/// the same way an attribute-declared one is.
+/// </param>
 internal record SpecRegistration(
     string ResolverName,
     string SpecificationTypeName,
     string PublishUrl,
-    string UiUrl);
+    string UiUrl,
+    string UiEnvironments);

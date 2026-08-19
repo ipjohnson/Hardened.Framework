@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 #
-# Build the framework and the template, install the packed template, generate a project from it,
-# and prove the result restores, builds, tests and serves.
+# Verify the templates: build the framework, pack it and them, install the packed template,
+# generate a project from every supported combination, and prove each one restores, builds, tests
+# and serves. This is the gate a release runs.
 #
 # The packed nupkg is installed rather than the template folder, deliberately. A template tested
 # from source proves nothing about packaging, which is where the 0.8.0-rc1000 quickstart broke.
 #
-# Usage: scripts/template-smoke.sh [host:contract ...]
+# Usage: scripts/verify-templates.sh [host:contract ...]
 #        default: kestrel:code aspnet:code kestrel:openapi kestrel:smithy
 #
 # smithy is skipped unless the Smithy CLI is on PATH at the pinned version - a build without it
@@ -16,11 +17,11 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Unique per run, and that is not cosmetic. NuGet caches an extracted package by id and version
 # in the global packages folder, so a fixed version means the second run restores the first run's
-# content however many times the framework has been rebuilt since - a green smoke over stale
-# packages, which is worse than no smoke at all.
-VERSION="0.0.0-smoke$(date +%s)"
-FEED="${TMPDIR:-/tmp}/hardened-smoke-feed"
-WORK="${TMPDIR:-/tmp}/hardened-smoke-work"
+# content however many times the framework has been rebuilt since - a green run over stale
+# packages, which is worse than no run at all.
+VERSION="0.0.0-verify$(date +%s)"
+FEED="${TMPDIR:-/tmp}/hardened-template-feed"
+WORK="${TMPDIR:-/tmp}/hardened-template-work"
 SMITHY_PIN=1.73.0
 
 COMBOS=("$@")
@@ -41,7 +42,7 @@ rm -rf "$FEED" "$WORK"
 mkdir -p "$FEED" "$WORK"
 
 # Previous runs' packages, which are never referenced again.
-find "${NUGET_PACKAGES:-$HOME/.nuget/packages}" -maxdepth 2 -type d -name '0.0.0-smoke*' \
+find "${NUGET_PACKAGES:-$HOME/.nuget/packages}" -maxdepth 2 -type d -name '0.0.0-verify*' \
     -exec rm -rf {} + 2>/dev/null || true
 
 # Pack output is noisy with pre-existing NU5100/NU5128 about build tasks that deliberately sit
@@ -79,7 +80,11 @@ pack framework "$REPO/src/Hardened.Framework.sln" \
 pack template "$REPO/src/Templates/Hardened.Templates/Hardened.Templates.csproj"
 
 say "installing the packed template"
+# Both spellings: a folder install from the inner loop registers under its path rather than the
+# package id, and it shadows the packed one with the same template identity - so the verification would
+# silently exercise the working tree instead of the artifact.
 dotnet new uninstall Hardened.Templates >/dev/null 2>&1 || true
+dotnet new uninstall "$REPO/src/Templates/Hardened.Templates/templates/hardened-web" >/dev/null 2>&1 || true
 dotnet new install "$FEED/Hardened.Templates.$VERSION.nupkg"
 
 FAILED=0
@@ -93,11 +98,11 @@ for COMBO in "${COMBOS[@]}"; do
     # --HardenedVersion is deliberately NOT passed. The template stamps the version it was
     # packed with as the default, and that default is what a real user gets - so it is what
     # needs testing. Passing it here would test the flag and leave the default unexercised.
-    dotnet new hardened-web -n Smoke -o "$OUT" --host "$HOST" --contract "$CONTRACT" --skipRestore
+    dotnet new hardened-web -n Sample -o "$OUT" --host "$HOST" --contract "$CONTRACT" --skip-restore
 
     # The generated nuget.config names nuget.org only, which is what a real user wants. The
-    # smoke run also needs the framework build that has not been published yet.
-    dotnet nuget add source "$FEED" --name smoke-local --configfile "$OUT/nuget.config" >/dev/null
+    # verification run also needs the framework build that has not been published yet.
+    dotnet nuget add source "$FEED" --name template-verify-local --configfile "$OUT/nuget.config" >/dev/null
 
     ( cd "$OUT" && dotnet build -v q --nologo )
     ( cd "$OUT" && dotnet test --no-build -v q --nologo )
@@ -108,7 +113,7 @@ for COMBO in "${COMBOS[@]}"; do
     # second probe silently talks to the first probe's process.
     serve() {
         local port="$1" env_name="$2" log="$3"
-        ( cd "$OUT/src/Smoke.Host" && PORT="$port" HARDENED_ENVIRONMENT="$env_name" \
+        ( cd "$OUT/src/Sample.Host" && PORT="$port" HARDENED_ENVIRONMENT="$env_name" \
             dotnet run --no-build >"$log" 2>&1 & )
 
         for _ in $(seq 1 60); do
@@ -123,7 +128,7 @@ for COMBO in "${COMBOS[@]}"; do
     }
 
     stop() {
-        pkill -f "$OUT/src/Smoke.Host" 2>/dev/null || true
+        pkill -f "$OUT/src/Sample.Host" 2>/dev/null || true
         sleep 0.5
     }
 
@@ -172,22 +177,17 @@ for COMBO in "${COMBOS[@]}"; do
         # Both were probed while their server was up; re-asking here would ask a dead port.
         echo "   /docs  development=$DOCS_DEV  production=$DOCS_PROD"
 
-        # Asserted for code-first only, because that is the only path with a gate. A spec-first
-        # application installs its reference page through UiUrl metadata on the contract item,
-        # which has no environment story at all - so its page is served in every environment,
-        # and asserting otherwise here would be asserting a framework gap closed.
-        if [ "$CONTRACT" = "code" ]; then
-            if [ "$DOCS_DEV" != "200" ]; then
-                echo "   FAILED: the reference page should be served in development"
-                FAILED=1
-            fi
+        # Asserted for every contract. Code-first gates with
+        # [HardenedOpenApiUi(Environments = ...)]; spec-first with UiEnvironments metadata on the
+        # contract item. Both reach the same module, so both are held to the same answer.
+        if [ "$DOCS_DEV" != "200" ]; then
+            echo "   FAILED: the reference page should be served in development"
+            FAILED=1
+        fi
 
-            if [ "$DOCS_PROD" = "200" ]; then
-                echo "   FAILED: the reference page reached production"
-                FAILED=1
-            fi
-        else
-            echo "   note: spec-first installs its page from contract metadata, which is not gated"
+        if [ "$DOCS_PROD" = "200" ]; then
+            echo "   FAILED: the reference page reached production"
+            FAILED=1
         fi
     else
         echo "   FAILED: status=$CODE body='$BODY'"
@@ -204,7 +204,7 @@ A="$WORK/kestrel-code"; B="$WORK/aspnet-code"
 if [ -d "$A" ] && [ -d "$B" ]; then
     # Source only. bin/ and obj/ carry absolute paths and compiler output, which differ for
     # reasons that have nothing to do with the host.
-    for PART in src/Smoke tests/Smoke.Tests; do
+    for PART in src/Sample tests/Sample.Tests; do
         if diff -r -x bin -x obj "$A/$PART" "$B/$PART" >/dev/null 2>&1; then
             echo "   identical across hosts: $PART"
         else
@@ -217,5 +217,5 @@ fi
 
 dotnet new uninstall Hardened.Templates >/dev/null 2>&1 || true
 
-say "$([ $FAILED -eq 0 ] && echo 'smoke passed' || echo 'SMOKE FAILED')"
+say "$([ $FAILED -eq 0 ] && echo 'templates verified' || echo 'TEMPLATE VERIFICATION FAILED')"
 exit $FAILED

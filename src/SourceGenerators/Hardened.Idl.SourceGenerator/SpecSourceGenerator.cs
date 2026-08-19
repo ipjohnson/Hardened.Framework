@@ -145,7 +145,8 @@ public class SpecSourceGenerator : IIncrementalGenerator {
                         ? $"{pair.Right}.{NamingHelper.SpecificationTypeName(spec.FileName)}"
                         : "",
                     spec.PublishUrl,
-                    spec.UiUrl);
+                    spec.UiUrl,
+                    spec.UiEnvironments);
 
                 return registration.ResolverName.Length > 0 || registration.PublishUrl.Length > 0
                     ? registration

@@ -221,7 +221,10 @@ internal static class SpecRoutingTableGenerator {
                 serviceCollection.Name +
                 ", new global::Hardened.Web.Runtime.OpenApi.HardenedOpenApiUi { Path = " +
                 Quote(registration.UiUrl) + ", DocumentPath = " +
-                Quote(registration.PublishUrl) + " })"));
+                Quote(registration.PublishUrl) +
+                (registration.UiEnvironments.Length == 0
+                    ? ""
+                    : ", Environments = " + Quote(registration.UiEnvironments)) + " })"));
         }
     }
 

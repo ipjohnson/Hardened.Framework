@@ -91,7 +91,7 @@ shapes of code.
 `--trigger` values are host-scoped in a way `--host` values are not: SQS is AWS, Pub/Sub would be
 GCP. `template.json` choice symbols cannot express "valid only when `--host` is X", so an invalid
 pair has to fail somewhere. Fail it in a post-action with a message naming the valid pairs, and
-keep the smoke matrix to real combinations.
+keep the verification matrix to real combinations.
 
 ## The default route
 
@@ -128,12 +128,12 @@ would either put the whole application two release lines back or mix build lines
 
 > Hardened.Amz tracked a framework three release lines old that way, with a green build throughout.
 
-The template is the forcing function. A smoke test that restores a generated Lambda project fails
+The template is the forcing function. Verification that restores a generated Lambda project fails
 on the version conflict, where a green build did not. Ship `hardened-web --host kestrel|aspnet`
 first; add `aws-lambda` when Amz tracks the line.
 
 **Azure and GCP do not exist yet.** The point of this factoring is that they are additive: a host
-directory, one value in a choice symbol, one row in the smoke matrix. Nothing about the
+directory, one value in a choice symbol, one row in the verification matrix. Nothing about the
 implementation library or the tests changes, and the CI assertion says so out loud.
 
 ## Packaging and distribution
@@ -180,7 +180,7 @@ recommend.
 
 Two jobs, and the second is the one that matters.
 
-**Smoke, per variant.** Install the *packed* nupkg, `dotnet new`, restore, build, test, run,
+**Verify, per variant.** Install the *packed* nupkg, `dotnet new`, restore, build, test, run,
 `curl` the default route. Not a project reference — the artifact users get. A template built in
 the solution with `ProjectReference`s proves nothing about packaging, which is where the
 0.8.0-rc1000 quickstart broke.
@@ -190,7 +190,7 @@ the solution with `ProjectReference`s proves nothing about packaging, which is w
 central claim, checked mechanically, and it is the thing that will keep Azure and GCP honest when
 they arrive.
 
-Generate the smoke matrix from the choice symbol's values so a new host cannot be added without
+Generate the verification matrix from the choice symbol's values so a new host cannot be added without
 being tested.
 
 ## Sequencing

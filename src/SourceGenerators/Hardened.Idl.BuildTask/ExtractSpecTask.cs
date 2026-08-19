@@ -283,6 +283,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
 
         model.PublishUrl = Absolute(publishUrl);
         model.UiUrl = Absolute(uiUrl);
+        model.UiEnvironments = spec.GetMetadata("UiEnvironments").Trim();
 
         return true;
     }
