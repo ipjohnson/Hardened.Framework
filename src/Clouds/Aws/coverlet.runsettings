@@ -39,8 +39,27 @@
                       filters matter here - both start with "Hardened".
 
                       Hardened.Framework carries the same filters for the same reason.
+
+                      Hardened.Idl.* is listed because the borrowed source is not all under one
+                      namespace. Hardened.SourceGenerator 0.9.0-rc1000 began shipping
+                      GZipLiteral.cs, which OpenApiDocumentSource.cs has always used and which
+                      0.8.0-rc1000 omitted from the package - that omission was a build failure
+                      for every consumer, fixed in Hardened.Framework#151. It declares
+                      namespace Hardened.Idl, so the filter above did not reach it and one
+                      borrowed file landed in the denominator of two assemblies whose own code is
+                      about 170 lines. That is enough to move the gate a long way:
+
+                        Hardened.Amz.Function.Lambda.SourceGenerator  line 97.7 -> 91.3, branch 84.3 -> 71.0
+                        Hardened.Amz.Web.Lambda.SourceGenerator       line 97.7 -> 87.2, branch 83.3 -> 55.5
+
+                      Excluded rather than re-baselined, deliberately. Lowering the floor would
+                      record a permanent drop in this repository's own coverage to account for a
+                      file it does not execute and did not write, and would hide a real regression
+                      in the ~170 lines that are actually its own. Match by namespace, not by
+                      assembly: this source is compiled into Hardened.Amz.* assemblies, so there is
+                      no separate assembly to filter on.
                     -->
-                    <Exclude>[*.Tests]*,[LambdaWebTest*]*,[Hardened.Amz.*]CSharpAuthor.*,[Hardened.Amz.*]Hardened.SourceGenerator.*,[Hardened.Amz.*]ValidationModules.*</Exclude>
+                    <Exclude>[*.Tests]*,[LambdaWebTest*]*,[Hardened.Amz.*]CSharpAuthor.*,[Hardened.Amz.*]Hardened.SourceGenerator.*,[Hardened.Amz.*]Hardened.Idl.*,[Hardened.Amz.*]ValidationModules.*</Exclude>
 
                     <!--
                       Source-generated output is verified through behaviour, not by line
