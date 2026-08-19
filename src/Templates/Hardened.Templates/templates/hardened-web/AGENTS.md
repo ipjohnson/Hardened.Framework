@@ -101,7 +101,7 @@ service.
 ```bash
 dotnet build
 dotnet test
-dotnet run --project src/Hardened1.Host        # PORT=5080 by default
+dotnet run --project src/Hardened1.Host        # listens on 5080, override with PORT
 curl localhost:5080/greeting/world
 ```
 

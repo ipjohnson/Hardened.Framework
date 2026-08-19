@@ -38,4 +38,4 @@ namespace Hardened1.Host;
 #endif
 #endif
 [Hardened1Library]
-public partial class Application { }
+public partial class Application;

@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 #endif
 
-// PORT so the sample can move off 5000, which macOS hands to AirPlay Receiver.
+// Listens on 5080. Override with PORT.
 var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var configured) ? configured : 5080;
 
 #if (kestrel)
@@ -28,6 +28,11 @@ new Application().PopulateServiceCollection(services);
 await using var app = HardenedKestrelApplication.Create(
     services,
     kestrel => kestrel.ListenAnyIP(port));
+
+// Printed, so the address is read rather than guessed. The ASP.NET host does this for you.
+app.Services.GetRequiredService<ILoggerFactory>()
+    .CreateLogger("Hardened1.Host")
+    .LogInformation("Listening on http://localhost:{Port}", port);
 
 await app.RunAsync();
 #endif
