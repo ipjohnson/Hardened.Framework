@@ -57,6 +57,19 @@ pack() {
     fi
 }
 
+# Built before packing, deliberately. The OpenAPI and Smithy packages include their MSBuild task
+# assemblies by path out of another project's bin, and pack alone does not reliably put them
+# there - so the package shipped a targets file pointing at a tasks/ folder that did not exist,
+# and the first spec-first build failed with MSB4062. It passed locally only because the tree had
+# been built by hand first.
+say "building the framework"
+if ! dotnet build "$REPO/src/Hardened.Framework.sln" -c Release \
+        -p:HardenedSmithyPinCliVersion=false -v q --nologo >"$WORK/build.log" 2>&1; then
+    grep -E ": error" "$WORK/build.log" | head -20
+    echo "   full log: $WORK/build.log"
+    exit 1
+fi
+
 # UseLocalValidationModules=false so a sibling checkout cannot leak a version that was never
 # published into the packed dependency graph.
 pack framework "$REPO/src/Hardened.Framework.sln" \
@@ -101,7 +114,7 @@ for COMBO in "${COMBOS[@]}"; do
         for _ in $(seq 1 60); do
             local code
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 1 \
-                "http://localhost:$port/greeting/world" || echo 000)
+                "http://localhost:$port/greeting/world" || true)
             [ "$code" = "200" ] && return 0
             sleep 0.4
         done
@@ -114,6 +127,20 @@ for COMBO in "${COMBOS[@]}"; do
         sleep 0.5
     }
 
+    # Retried rather than asked once. A 000 from a server still warming up is indistinguishable
+    # from a 404 by a gate, and the difference decides whether this script fails the build.
+    status_of() {
+        local url="$1" code=000
+
+        for _ in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$url" || true)
+            [ "$code" != "000" ] && break
+            sleep 0.5
+        done
+
+        echo "$code"
+    }
+
     PORT=$((5300 + RANDOM % 200))
     CODE=000
     BODY=""
@@ -122,7 +149,7 @@ for COMBO in "${COMBOS[@]}"; do
     if serve "$PORT" development "$OUT/run.log"; then
         CODE=200
         BODY=$(curl -s --max-time 2 "http://localhost:$PORT/greeting/world" || true)
-        DOCS_DEV=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://localhost:$PORT/docs" || echo 000)
+        DOCS_DEV=$(status_of "http://localhost:$PORT/docs")
     fi
 
     stop
@@ -133,7 +160,7 @@ for COMBO in "${COMBOS[@]}"; do
     DOCS_PROD=000
 
     if serve "$PROD_PORT" production "$OUT/run-prod.log"; then
-        DOCS_PROD=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://localhost:$PROD_PORT/docs" || echo 000)
+        DOCS_PROD=$(status_of "http://localhost:$PROD_PORT/docs")
     fi
 
     stop
@@ -141,10 +168,8 @@ for COMBO in "${COMBOS[@]}"; do
     if [ "$CODE" = "200" ] && [ -n "$BODY" ]; then
         echo "   serving: $CODE $BODY"
 
-        # The reference page is installed for development only, so it has to be reachable here
-        # and gone under another environment. Both halves, because a gate that never opens looks
-        # exactly like a gate that works.
-        DOCS_DEV=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://localhost:$PORT/docs" || echo 000)
+        # Both halves, because a gate that never opens looks exactly like a gate that works.
+        # Both were probed while their server was up; re-asking here would ask a dead port.
         echo "   /docs  development=$DOCS_DEV  production=$DOCS_PROD"
 
         # Asserted for code-first only, because that is the only path with a gate. A spec-first
