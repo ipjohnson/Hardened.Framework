@@ -6,11 +6,11 @@ Hosts Hardened on Kestrel without the ASP.NET Core request pipeline.
 var services = new ServiceCollection();
 
 services.AddLogging();
-services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+services.AddHardenedEnvironment(args);
 new Application().PopulateServiceCollection(services);
 
 await using var app = HardenedKestrelApplication.Create(
-    services, kestrel => kestrel.ListenAnyIP(5000));
+    services, kestrel => kestrel.ListenAnyIP(5080));
 
 await app.RunAsync();
 ```
@@ -108,7 +108,7 @@ start. To keep configuration binding, logging setup and coordinated shutdown fro
 `Microsoft.Extensions.Hosting`, register the hosted service instead:
 
 ```csharp
-builder.Services.AddHardenedKestrel(kestrel => kestrel.ListenAnyIP(5000));
+builder.Services.AddHardenedKestrel(kestrel => kestrel.ListenAnyIP(5080));
 ```
 
 That keeps `Microsoft.Extensions.Hosting` and drops only `Microsoft.AspNetCore.Hosting`. Using

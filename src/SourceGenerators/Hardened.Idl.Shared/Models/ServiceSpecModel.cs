@@ -36,6 +36,16 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public string UiUrl { get; set; } = "";
 
     /// <summary>
+    /// The environments the reference page is served in, comma separated, or empty for all of them.
+    /// </summary>
+    /// <remarks>
+    /// From <c>UiEnvironments</c> metadata, and passed straight to <c>HardenedOpenApiUi</c> - so a
+    /// specification-first page is gated exactly the way an attribute-declared one is, rather than
+    /// being the one route in an application that cannot be.
+    /// </remarks>
+    public string UiEnvironments { get; set; } = "";
+
+    /// <summary>
     /// What the build task emitted for validation, per operation. Empty when nothing is constrained.
     /// </summary>
     public List<ValidatedOperationModel> ValidatedOperations { get; set; } = new();
@@ -47,6 +57,7 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
         if (JsonTypeInfoResolverName != other.JsonTypeInfoResolverName) return false;
         if (PublishUrl != other.PublishUrl) return false;
         if (UiUrl != other.UiUrl) return false;
+        if (UiEnvironments != other.UiEnvironments) return false;
         if (Schemas.Count != other.Schemas.Count) return false;
         if (Services.Count != other.Services.Count) return false;
         if (FilterTypes.Count != other.FilterTypes.Count) return false;

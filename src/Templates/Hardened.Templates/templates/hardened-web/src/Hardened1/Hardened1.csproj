@@ -52,6 +52,12 @@
       <PublishUrl>/openapi.yaml</PublishUrl>
 <!--#if (OpenApiUi) -->
       <UiUrl>/docs</UiUrl>
+      <!--
+        Development only. The page describes every operation this service exposes and renders them
+        with a script from a CDN, neither of which a deployed API obviously wants. This is the same
+        gate [HardenedOpenApiUi(Environments = ...)] applies to an attribute-declared page.
+      -->
+      <UiEnvironments>development</UiEnvironments>
 <!--#endif -->
     </HardenedOpenApiSpec>
   </ItemGroup>
@@ -59,19 +65,23 @@
 <!--#if (smithy) -->
 
   <!--
-    The contract. The Smithy CLI turns this model into the JSON AST the generator reads, so a
-    build needs it on PATH at the pinned version - the build fails with HSMT011 naming both if
-    the version differs, because two CLI versions can produce different ASTs and therefore
-    different generated C#.
-  -->
-  <!--
-    PublishUrl and UiUrl are deliberately absent. The targets synthesise the HardenedSmithyAst
-    item from the compiled model without copying metadata across, so setting either here is
-    silently discarded - the document is not served and no reference page appears. Set them on a
-    HardenedSmithyAst item pointing at a checked-in AST if you need them today.
+    The contract. PublishUrl serves the document itself, UiUrl serves a reference page over it -
+    both facts about this model, so both live on the item that declares it, exactly as they do for
+    an OpenAPI spec.
+
+    The Smithy CLI turns this into the JSON AST the generator reads, so a build needs it on PATH at
+    the pinned version - the build fails with HSMT011 naming both if the version differs, because
+    two CLI versions can produce different ASTs and therefore different generated C#.
   -->
   <ItemGroup>
-    <HardenedSmithyModel Include="contracts\greeting.smithy" />
+    <HardenedSmithyModel Include="contracts\greeting.smithy">
+      <PublishUrl>/openapi.json</PublishUrl>
+<!--#if (OpenApiUi) -->
+      <UiUrl>/docs</UiUrl>
+      <!-- Development only; see the OpenAPI item above for why. -->
+      <UiEnvironments>development</UiEnvironments>
+<!--#endif -->
+    </HardenedSmithyModel>
   </ItemGroup>
 <!--#endif -->
 

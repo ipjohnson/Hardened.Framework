@@ -45,6 +45,7 @@ internal static class SpecModelSerializer {
         spec.Add("JsonTypeInfoResolverName", model.JsonTypeInfoResolverName);
         spec.Add("PublishUrl", model.PublishUrl);
         spec.Add("UiUrl", model.UiUrl);
+        spec.Add("UiEnvironments", model.UiEnvironments);
         spec.WriteTo(builder);
 
         foreach (var schema in model.Schemas) {
@@ -105,6 +106,7 @@ internal static class SpecModelSerializer {
                     model.JsonTypeInfoResolverName = record.String("JsonTypeInfoResolverName") ?? "";
                     model.PublishUrl = record.String("PublishUrl") ?? "";
                     model.UiUrl = record.String("UiUrl") ?? "";
+                    model.UiEnvironments = record.String("UiEnvironments") ?? "";
                     break;
 
                 case "schema":

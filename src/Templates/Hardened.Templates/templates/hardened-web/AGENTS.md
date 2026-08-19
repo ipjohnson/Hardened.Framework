@@ -1,7 +1,7 @@
 # Hardened1
 
-A Hardened application. Read this before editing — several things about it are not visible from
-the source tree.
+Invariants and traps for anyone editing this code. `README.md` covers what the application is, how
+to run it and how the projects fit together; this file does not repeat any of that.
 
 ## Most of this application is generated at build time
 
@@ -62,16 +62,11 @@ method's exact signature.
 is served at `/greeting/{name}`.
 #endif
 
-## Layout
+## The one structural rule
 
-| Project | What belongs in it |
-|---|---|
-| `src/Hardened1` | Everything the application does. Knows nothing about where it runs. |
-| `src/Hardened1.Host` | The only host-specific project: which runtime, and `Program.cs`. |
-| `tests/Hardened1.Tests` | Tests, against the library rather than the host. |
-
-Keep that split. The implementation library is host-independent by design — swapping the host
-should change no file in it.
+**The implementation library must stay host-independent.** Nothing in `src/Hardened1` may reference
+the host project or name a runtime. Swapping `src/Hardened1.Host` is expected to change no file
+outside it, and the tests target the library for the same reason.
 
 ## Things that will not be obvious
 
@@ -98,15 +93,4 @@ service.
 
 ## Commands
 
-```bash
-dotnet build
-dotnet test
-dotnet run --project src/Hardened1.Host        # listens on 5080, override with PORT
-curl localhost:5080/greeting/world
-```
-
-#if (OpenApiUi)
-A reference page is served at `/docs` in the `development` environment only — see the attribute on
-`Application`. Widen or remove it deliberately; it describes every operation the service exposes
-and loads a script from a CDN.
-#endif
+See `README.md`. Nothing here overrides it.

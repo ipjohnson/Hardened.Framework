@@ -220,12 +220,68 @@
                AlwaysCreate="true"/>
     </Target>
 
+    <!--
+        Carries the serving metadata from the model onto the AST the CLI compiles it into.
+
+        A Smithy service is written across as many files as it likes and all of them form ONE model
+        in one CLI invocation, so the AST entry is synthesised rather than declared and has no
+        metadata of its own. Without this, PublishUrl and UiUrl written on a HardenedSmithyModel
+        item were read by nobody: the application served no document and no reference page, and
+        nothing said so.
+
+        Declared here rather than beside the item at evaluation, because only the paths need to
+        exist that early - that is what lets an IDE see the generated types before a build. The
+        metadata is not read until the two targets below.
+
+        Update= rather than a bare item group, so a hand-authored HardenedSmithyAst - which is one
+        document and does carry its own metadata - is left alone.
+    -->
+    <Target Name="HardenedSmithyModelMetadata"
+            Condition="'@(HardenedSmithyModel)' != ''"
+            BeforeTargets="HardenedSmithyFilterStamp;HardenedSmithyExtractModels">
+
+        <ItemGroup>
+            <_HardenedSmithyPublishUrl Include="%(HardenedSmithyModel.PublishUrl)"
+                                       Condition="'%(HardenedSmithyModel.PublishUrl)' != ''"/>
+            <_HardenedSmithyUiUrl Include="%(HardenedSmithyModel.UiUrl)"
+                                  Condition="'%(HardenedSmithyModel.UiUrl)' != ''"/>
+            <_HardenedSmithyUiEnvironments Include="%(HardenedSmithyModel.UiEnvironments)"
+                                           Condition="'%(HardenedSmithyModel.UiEnvironments)' != ''"/>
+        </ItemGroup>
+
+        <PropertyGroup>
+            <_HardenedSmithyPublishUrlValue>@(_HardenedSmithyPublishUrl->Distinct())</_HardenedSmithyPublishUrlValue>
+            <_HardenedSmithyUiUrlValue>@(_HardenedSmithyUiUrl->Distinct())</_HardenedSmithyUiUrlValue>
+            <_HardenedSmithyUiEnvironmentsValue>@(_HardenedSmithyUiEnvironments->Distinct())</_HardenedSmithyUiEnvironmentsValue>
+        </PropertyGroup>
+
+        <!--
+            Two files disagreeing is a mistake rather than something to pick a winner for: the model
+            is one service and it is served at one address.
+        -->
+        <Error Condition="$(_HardenedSmithyPublishUrlValue.Contains(';'))"
+               Code="HSMT012"
+               Text="The Smithy model declares more than one PublishUrl: $(_HardenedSmithyPublishUrlValue). Every .smithy file in a project compiles into one model served at one address, so set it on one item." />
+
+        <Error Condition="$(_HardenedSmithyUiUrlValue.Contains(';'))"
+               Code="HSMT012"
+               Text="The Smithy model declares more than one UiUrl: $(_HardenedSmithyUiUrlValue). Every .smithy file in a project compiles into one model with one reference page, so set it on one item." />
+
+        <ItemGroup>
+            <HardenedSmithyAst Update="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).json">
+                <PublishUrl>$(_HardenedSmithyPublishUrlValue)</PublishUrl>
+                <UiUrl>$(_HardenedSmithyUiUrlValue)</UiUrl>
+                <UiEnvironments>$(_HardenedSmithyUiEnvironmentsValue)</UiEnvironments>
+            </HardenedSmithyAst>
+        </ItemGroup>
+    </Target>
+
     <Target Name="HardenedSmithyFilterStamp" DependsOnTargets="HardenedSmithyResolveModelDir">
         <MakeDir Directories="$(HardenedSmithyModelDir)"/>
 
         <WriteLinesToFile
             File="$(HardenedSmithyModelDir)filters.stamp"
-            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(EmbedDocument)');$(HardenedSmithyServiceShapeId)"
+            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedSmithyServiceShapeId)"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>

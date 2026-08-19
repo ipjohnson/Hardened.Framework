@@ -169,7 +169,7 @@
 
         <WriteLinesToFile
             File="$(HardenedOpenApiModelDir)filters.stamp"
-            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(EmbedDocument)')"
+            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)')"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>
