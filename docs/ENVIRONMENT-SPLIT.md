@@ -73,34 +73,48 @@ are the same object and `[EnvironmentName("production")]` behaves exactly as doc
 tests, different production behaviour — the same shape as `IStartupService` not running under the
 ASP.NET host.
 
-## The fix an application can apply today
+## The fix
+
+`AddHardenedEnvironment` registers the one instance under both service types:
 
 ```csharp
-var environment = new EnvironmentImpl(arguments: args);
-
-services.AddSingleton<IHardenedEnvironment>(environment);
-services.AddSingleton<IModuleEnvironment>(environment);
+services.AddHardenedEnvironment(args);
 ```
 
-Verified: module application then reports `development`, and the gated page appears in development
-and is absent in production. The `hardened-web` template does this, with the reason at the call
-site.
+That is now the documented line, in the README and in the `hardened-web` template. It replaces:
 
-## Worth deciding
+```csharp
+services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+```
 
-One line in every host is a line every application can forget, and forgetting it is silent. Some
-candidates, roughly in order of how much they remove the chance:
+which publishes only the type application code reads and leaves the module system to guess.
 
-- **An extension that registers both.** `services.AddHardenedEnvironment(environment)` — one call,
-  nothing to know, and a place to document why. Cheapest thing that ends the class of bug.
-- **Have the runtime modules register it.** The framework does not register an environment on
-  purpose, because only the application knows where its name comes from. That argument is about
-  *which* environment, not about *how many interfaces* it lands under — the host could register
-  the second one from the first.
-- **Make the defaults agree.** `development` against `Production` is the part that turns a missing
-  registration into a wrong answer rather than a lucky one.
-- **Say it in `guide/environments`.** The page currently promises the opposite, so at minimum the
-  promise needs to become true or become accurate.
+Verified end to end: with the old line, `guide/services`' own example hands a developer running
+under `HARDENED_ENVIRONMENT=development` the SMTP sender. With the new one it hands them the
+console sender, and the same application under `production` gets SMTP.
+
+| Registration | `HARDENED_ENVIRONMENT=development` | `=production` |
+|---|---|---|
+| `AddTransient<IHardenedEnvironment>` | **Smtp (production)** | Smtp (production) |
+| `AddHardenedEnvironment` | Console (development) | Smtp (production) |
+
+`ASPNETCORE_ENVIRONMENT` no longer decides anything: it was only ever read by the fallback, and
+with the environment always registered the fallback is unreachable. `HARDENED_ENVIRONMENT` is the
+one variable, which is the right answer for a framework that also runs on Kestrel, on Lambda and
+in a console.
+
+## Still open
+
+- **`guide/environments` and `guide/getting-started` need the new line.** They live in the other
+  repository, so this change cannot reach them. The page currently promises one environment and
+  shows the registration that produces two.
+- **Nothing stops a host forgetting it.** `AddHardenedEnvironment` makes the right thing one call,
+  but an application that registers `IHardenedEnvironment` by hand still gets the split silently.
+  A guard - the module system reporting when it fell back rather than falling back quietly - would
+  close it.
+- **The defaults still differ.** `development` against `Production` is what turns a missed
+  registration into a wrong answer rather than a harmless one. Unreachable now, and still a sharp
+  edge for anyone composing a container by hand.
 
 ## Two smaller things found alongside
 

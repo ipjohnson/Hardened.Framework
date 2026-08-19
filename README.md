@@ -47,9 +47,10 @@ using Hardened.Web.AspNetCore.Runtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Registered by the application, not by the framework: startup fails on the first service
-// that asks for one.
-builder.Services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+// Registered by the application, not by the framework: only the application knows where its
+// environment name and arguments come from. Startup fails on the first service that asks for
+// one if this is missing.
+builder.Services.AddHardenedEnvironment(args);
 
 new Application().PopulateServiceCollection(builder.Services);
 
