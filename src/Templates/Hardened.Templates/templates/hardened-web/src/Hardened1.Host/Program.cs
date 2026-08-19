@@ -1,3 +1,4 @@
+using DependencyModules.Runtime.Interfaces;
 using Hardened.Shared.Runtime.Application;
 using Hardened1.Host;
 #if (kestrel)
@@ -21,7 +22,18 @@ services.AddLogging(logging => logging.AddSimpleConsole(options => options.Singl
 
 // Registered by the application, not the framework: only the application knows where its
 // environment name and arguments come from.
-services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+//
+// Registered under both interfaces, and that matters. EnvironmentImpl implements
+// IHardenedEnvironment for the application and IModuleEnvironment for the module system, but
+// they are looked up separately: DependencyModules searches the collection for
+// IModuleEnvironment when modules are applied, and falls back to reading
+// ASPNETCORE_ENVIRONMENT - defaulting to "Production" - when it finds none. Register only the
+// first and an application is "development" to its own code and "Production" to
+// [IfEnvironment], which decides what is registered at all.
+var environment = new EnvironmentImpl(arguments: args);
+
+services.AddSingleton<IHardenedEnvironment>(environment);
+services.AddSingleton<IModuleEnvironment>(environment);
 
 new Application().PopulateServiceCollection(services);
 
@@ -35,8 +47,12 @@ await app.RunAsync();
 var builder = WebApplication.CreateBuilder(args);
 
 // Registered by the application, not the framework: only the application knows where its
-// environment name and arguments come from.
-builder.Services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+// environment name and arguments come from. Under both interfaces - see the Kestrel branch
+// above for why the second one is load-bearing.
+var environment = new EnvironmentImpl(arguments: args);
+
+builder.Services.AddSingleton<IHardenedEnvironment>(environment);
+builder.Services.AddSingleton<IModuleEnvironment>(environment);
 
 new Application().PopulateServiceCollection(builder.Services);
 

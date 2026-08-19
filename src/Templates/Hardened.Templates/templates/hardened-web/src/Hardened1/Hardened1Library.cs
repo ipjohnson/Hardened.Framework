@@ -1,5 +1,7 @@
 using Hardened.Shared.Runtime.Attributes;
+#if (codeFirst)
 using Hardened.Web.Runtime.Attributes;
+#endif
 using Hardened.Web.Runtime.DependencyInjection;
 
 namespace Hardened1;
@@ -13,5 +15,8 @@ namespace Hardened1;
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
+#if (codeFirst)
+// This assembly's URL space. Every route below it is relative to this.
 [BasePath("/greeting")]
+#endif
 public partial class Hardened1Library { }

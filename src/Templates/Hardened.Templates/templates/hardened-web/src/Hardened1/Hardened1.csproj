@@ -8,7 +8,77 @@
     <PackageReference Include="Hardened.Shared.Runtime" />
     <PackageReference Include="Hardened.Web.Runtime" />
     <PackageReference Include="Hardened.Library.SourceGenerator" />
+<!--#if (codeFirst) -->
     <PackageReference Include="Hardened.Web.SourceGenerator" />
+<!--#endif -->
+
+    <!--
+      Turns constraint attributes into validators and registers them. Required for a contract
+      that carries constraints - without it a handler declaring them throws at request time
+      rather than validating - and worth having for code-first too, where a [Required] added
+      later would otherwise compile and silently never run.
+    -->
+    <PackageReference Include="Hardened.Validation.SourceGenerator" />
+<!--#if (openapi) -->
+    <PackageReference Include="Hardened.OpenApi.SourceGenerator" />
+<!--#endif -->
+<!--#if (smithy) -->
+    <PackageReference Include="Hardened.Smithy.SourceGenerator" />
+<!--#endif -->
+<!--#if (specFirst) -->
+    <!--
+      Both. The OpenAPI and Smithy packages carry only an MSBuild task, which normalises the
+      contract into models, a service interface and validation. The Roslyn generator that turns
+      that model into request handlers and a routing table is this one, and it is a dependency of
+      neither - analyzers do not flow through a package reference anyway.
+
+      Leaving it out compiles, starts, and answers 404 to every route in the document.
+
+      It also replaces Hardened.Web.SourceGenerator rather than joining it: both emit the routing
+      table and the links type, so referencing the pair is CS0101 on every generated name.
+
+      PrivateAssets="all" because this one is not marked as a development dependency - by design,
+      so it can arrive transitively from the front-end package. That has not happened yet, so it
+      is referenced directly here, and without this it would flow on to the host project and
+      collide with the web generator there.
+    -->
+    <PackageReference Include="Hardened.Idl.SourceGenerator" PrivateAssets="all" />
+<!--#endif -->
   </ItemGroup>
+
+<!--#if (openapi) -->
+
+  <!--
+    The contract. PublishUrl serves the document itself, UiUrl serves a reference page over it -
+    both facts about this file, so both live on the item that declares it rather than being
+    restated as attributes on the application.
+  -->
+  <ItemGroup>
+    <HardenedOpenApiSpec Include="contracts\greeting.yaml">
+      <PublishUrl>/openapi.yaml</PublishUrl>
+<!--#if (OpenApiUi) -->
+      <UiUrl>/docs</UiUrl>
+<!--#endif -->
+    </HardenedOpenApiSpec>
+  </ItemGroup>
+<!--#endif -->
+<!--#if (smithy) -->
+
+  <!--
+    The contract. The Smithy CLI turns this model into the JSON AST the generator reads, so a
+    build needs it on PATH at the pinned version - the build fails with HSMT011 naming both if
+    the version differs, because two CLI versions can produce different ASTs and therefore
+    different generated C#.
+  -->
+  <!--
+    PublishUrl and UiUrl are deliberately absent. The targets synthesise the HardenedSmithyAst
+    item from the compiled model without copying metadata across, so setting either here is
+    silently discarded - the document is not served and no reference page appears. Set them on a
+    HardenedSmithyAst item pointing at a checked-in AST if you need them today.
+  -->
+  <ItemGroup>
+    <HardenedSmithyModel Include="contracts\greeting.smithy" />
+  </ItemGroup>
+<!--#endif -->
 
 </Project>

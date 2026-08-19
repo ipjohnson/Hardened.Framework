@@ -208,7 +208,16 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
                 result.SchemasKept, result.SchemasDropped);
         }
 
-        return true;
+        // Whether the served document now describes operations nobody implements, which is the
+        // only thing the answer is used for - see ServedDocument and HOAT009/HSMT009.
+        //
+        // It used to be an unconditional true, which made the warning fire on every spec that
+        // embeds its document and does not set EmitUnreferencedSchemas - the default on both
+        // counts. Apply still runs in that case, to prune schemas no operation references, but
+        // pruning a schema drops no operation, so the document continues to describe exactly what
+        // is implemented. Both in-repo spec fixtures warned on every build, which is the warning
+        // saying nothing rather than the fixtures being wrong.
+        return result.OperationsDropped > 0;
     }
 
     /// <summary>

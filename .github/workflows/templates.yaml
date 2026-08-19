@@ -1,0 +1,37 @@
+name: templates
+
+# Its own workflow rather than a job in build-package, because it packs the whole framework to a
+# temporary feed and installs the result. That is slow, and it answers a different question:
+# build-package asks whether the framework compiles, this asks whether a stranger running
+# `dotnet new hardened-web` gets something that runs.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # The template pins net8.0 and its generated projects must build on the SDK a reader is
+      # most likely to have, not only on the newest one. Both are installed so the smoke run
+      # exercises the floor rather than assuming it.
+      - name: Show the SDKs in play
+        run: dotnet --list-sdks
+
+      # Everything the run needs is in the script, so the workflow is one line and the same
+      # command works on a laptop. A CI-only invocation is one nobody can reproduce when it fails.
+      - name: Generate, build, test and serve from the packed template
+        run: ./scripts/template-smoke.sh

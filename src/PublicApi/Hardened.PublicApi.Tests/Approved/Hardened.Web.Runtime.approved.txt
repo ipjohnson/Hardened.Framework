@@ -261,7 +261,7 @@ namespace Hardened.Web.Runtime.OpenApi
 {
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class HardenedOpenApiUi : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    public class HardenedOpenApiUi : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IEnvironmentServiceCollectionConfiguration
     {
         public const string DefaultDocumentPath = "/openapi.json";
         public const string DefaultPath = "/docs";
@@ -271,11 +271,13 @@ namespace Hardened.Web.Runtime.OpenApi
         public const string DefaultTitle = "API Reference";
         public HardenedOpenApiUi() { }
         public string? DocumentPath { get; set; }
+        public string? Environments { get; set; }
         public string? Path { get; set; }
         public string? ScriptIntegrity { get; set; }
         public string? ScriptUrl { get; set; }
         public string? Title { get; set; }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services, DependencyModules.Runtime.Interfaces.IModuleEnvironment environment) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
@@ -285,6 +287,7 @@ namespace Hardened.Web.Runtime.OpenApi
     {
         public HardenedOpenApiUiAttribute() { }
         public string DocumentPath { get; set; }
+        public string Environments { get; set; }
         public string Path { get; set; }
         public string ScriptIntegrity { get; set; }
         public string ScriptUrl { get; set; }

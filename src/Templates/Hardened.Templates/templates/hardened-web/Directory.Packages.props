@@ -20,6 +20,10 @@
          generated half never exists and PopulateServiceCollection does not compile. -->
     <PackageVersion Include="Hardened.Library.SourceGenerator" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Web.SourceGenerator" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.OpenApi.SourceGenerator" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Smithy.SourceGenerator" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Idl.SourceGenerator" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Validation.SourceGenerator" Version="$(HardenedVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Testing">
