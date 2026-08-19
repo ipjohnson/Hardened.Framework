@@ -1,0 +1,175 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Ian Johnson",
+  "classifications": [
+    "Web",
+    "API",
+    "Hardened"
+  ],
+  "identity": "Hardened.Web.CSharp",
+  "groupIdentity": "Hardened.Web",
+  "name": "Hardened Web Application",
+  "shortName": "hardened-web",
+  "description": "A Hardened web application: an implementation library, a host, and a test project.",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "Hardened1",
+  "preferNameDirectory": true,
+  "symbols": {
+    "host": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "kestrel",
+      "description": "Where the application runs. Affects only the host project.",
+      "choices": [
+        {
+          "choice": "kestrel",
+          "description": "Kestrel, without the ASP.NET Core request pipeline. The default."
+        },
+        {
+          "choice": "aspnet",
+          "description": "ASP.NET Core, when you need its middleware, authentication or hosting diagnostics."
+        }
+      ]
+    },
+    "HardenedVersion": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "0.0.0-DEV",
+      "description": "The Hardened package version to pin. Defaults to the version this template shipped with.",
+      "replaces": "0.0.0-HARDENED-VERSION"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Skip the automatic restore after creation."
+    },
+    "kestrel": {
+      "type": "computed",
+      "value": "(host == 'kestrel')"
+    },
+    "aspnet": {
+      "type": "computed",
+      "value": "(host == 'aspnet')"
+    },
+    "contract": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "code",
+      "description": "Where the API contract lives.",
+      "choices": [
+        {
+          "choice": "code",
+          "description": "The C# is the contract. Routes are attributes; the OpenAPI document is generated from them."
+        },
+        {
+          "choice": "openapi",
+          "description": "An OpenAPI document is the contract. The models, service interface, routes and validation are generated from it."
+        },
+        {
+          "choice": "smithy",
+          "description": "A Smithy model is the contract. Same generated output as openapi, from a different source. Needs the Smithy CLI."
+        }
+      ]
+    },
+    "OpenApiUi": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Serve a reference page at /docs."
+    },
+    "codeFirst": {
+      "type": "computed",
+      "value": "(contract == 'code')"
+    },
+    "openapi": {
+      "type": "computed",
+      "value": "(contract == 'openapi')"
+    },
+    "smithy": {
+      "type": "computed",
+      "value": "(contract == 'smithy')"
+    },
+    "specFirst": {
+      "type": "computed",
+      "value": "(contract == 'openapi' || contract == 'smithy')"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "condition": "(!codeFirst)",
+          "exclude": [
+            "src/Hardened1/GreetingController.cs"
+          ]
+        },
+        {
+          "condition": "(!specFirst)",
+          "exclude": [
+            "src/Hardened1/GreetingService.cs"
+          ]
+        },
+        {
+          "condition": "(!openapi)",
+          "exclude": [
+            "src/Hardened1/contracts/greeting.yaml"
+          ]
+        },
+        {
+          "condition": "(!smithy)",
+          "exclude": [
+            "src/Hardened1/contracts/greeting.smithy"
+          ]
+        }
+      ]
+    }
+  ],
+  "primaryOutputs": [
+    {
+      "path": "src/Hardened1.Host/Hardened1.Host.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "condition": "(!skipRestore)",
+      "description": "Restore the packages the template pinned.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ],
+  "specialCustomOperations": {
+    "**/*.md": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "if": [
+              "#if"
+            ],
+            "else": [
+              "#else"
+            ],
+            "elseif": [
+              "#elseif"
+            ],
+            "endif": [
+              "#endif"
+            ],
+            "trim": true,
+            "wholeLine": true,
+            "evaluator": "C++"
+          }
+        }
+      ]
+    }
+  }
+}

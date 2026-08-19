@@ -21,6 +21,11 @@ namespace Hardened.Shared.Runtime.Application
         public T? CustomData<T>(string name, T? defaultValue = default) { }
         public T? Value<T>(string name, T? defaultValue = default) { }
     }
+    public static class HardenedEnvironmentServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddHardenedEnvironment(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment) { }
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddHardenedEnvironment(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Collections.Generic.IReadOnlyList<string>? arguments = null) { }
+    }
     public interface IApplicationDelegateProvider
     {
         System.Threading.Tasks.Task<Hardened.Shared.Runtime.Application.ApplicationDelegate> ProvideDelegate(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.IServiceProvider serviceProvider);

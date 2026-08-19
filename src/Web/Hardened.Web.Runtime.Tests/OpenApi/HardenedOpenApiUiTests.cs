@@ -181,4 +181,66 @@ public class HardenedOpenApiUiTests {
         Assert.DoesNotContain("@latest", HardenedOpenApiUi.DefaultScriptUrl);
         Assert.StartsWith("sha384-", HardenedOpenApiUi.DefaultScriptIntegrity);
     }
+
+    #region environments
+
+    /// <summary>
+    /// A page confined to some environments contributes nothing outside them.
+    /// </summary>
+    /// <remarks>
+    /// Asserted as "no provider registered" rather than "the route answers 404", because the point
+    /// is that the page is not built at all - no handler, no configuration, and nothing carrying
+    /// the CDN script URL into a deployed application.
+    /// </remarks>
+    [Theory]
+    [InlineData("development", "development", true)]
+    [InlineData("development,test", "test", true)]
+    [InlineData("development, test", "TEST", true)]
+    [InlineData("development", "production", false)]
+    [InlineData("development,test", "staging", false)]
+    public void EnvironmentsDecidesWhetherThePageIsInstalled(
+        string environments, string running, bool expected) {
+        var services = new ServiceCollection();
+
+        new HardenedOpenApiUi { Environments = environments }
+            .ConfigureServices(services, new StubEnvironment(running));
+
+        var installed = services.BuildServiceProvider()
+            .GetServices<IWebExecutionRequestHandlerProvider>()
+            .OfType<OpenApiUiProvider>()
+            .Any();
+
+        Assert.Equal(expected, installed);
+    }
+
+    /// <summary>
+    /// The default is every environment, which is what every application installing this module
+    /// before Environments existed already had.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void WithoutEnvironmentsThePageIsInstalledEverywhere(string? environments) {
+        var services = new ServiceCollection();
+
+        new HardenedOpenApiUi { Environments = environments }
+            .ConfigureServices(services, new StubEnvironment("production"));
+
+        Assert.Contains(
+            services.BuildServiceProvider().GetServices<IWebExecutionRequestHandlerProvider>(),
+            provider => provider is OpenApiUiProvider);
+    }
+
+    private sealed class StubEnvironment : global::DependencyModules.Runtime.Interfaces.IModuleEnvironment {
+        public StubEnvironment(string environmentName) {
+            EnvironmentName = environmentName;
+        }
+
+        public string EnvironmentName { get; }
+
+        public string? Value(string name) => null;
+    }
+
+    #endregion
 }

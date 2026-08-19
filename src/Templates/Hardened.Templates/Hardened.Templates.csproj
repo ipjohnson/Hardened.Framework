@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <PackageId>Hardened.Templates</PackageId>
+        <PackageType>Template</PackageType>
+        <Description>dotnet new templates for Hardened: hardened-web.</Description>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <IsPackable>True</IsPackable>
+
+        <!-- A template package carries content, not an assembly. -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <IncludeContentInPack>true</IncludeContentInPack>
+        <ContentTargetFolders>content</ContentTargetFolders>
+        <NoDefaultExcludes>true</NoDefaultExcludes>
+
+        <!-- NU5128: no lib/ folder, which is correct for this package type. -->
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+    </PropertyGroup>
+
+    <!--
+        The template content is not part of this project's compilation and must never be.
+        Its .cs files reference packages this project does not, and its .csproj files pin a
+        version that only exists once packed - so a stray glob turns them into build errors
+        that have nothing to do with the template being correct.
+    -->
+    <ItemGroup>
+        <Compile Remove="**\*" />
+        <None Remove="**\*" />
+    </ItemGroup>
+
+    <!--
+        The generated projects pin a Hardened version, and it comes from this build rather than
+        from a literal in the file - a hardcoded one goes stale the way the RazorBlade install
+        snippet did, four release lines behind with nothing to notice.
+
+        Staged into obj/ and packed from there, so pack leaves the working tree clean and the
+        0.0.0-DEV token survives in source for the next build to substitute.
+    -->
+    <PropertyGroup>
+        <!-- obj/ spelled out rather than $(IntermediateOutputPath), which the SDK sets in its
+             .targets and is therefore still empty this early in evaluation - staging landed
+             beside the csproj instead of under obj/. -->
+        <_TemplateStage>$(MSBuildProjectDirectory)/obj/staged-templates</_TemplateStage>
+    </PropertyGroup>
+
+    <!--
+        GenerateNuspec rather than Pack, and _PackageFiles rather than Content. Content globs are
+        evaluated when the project loads, which is before anything has been staged - so on a clean
+        tree the glob matches nothing and pack fails with NU5017. _PackageFiles is collected here,
+        after the Exec has written the staged copy.
+    -->
+    <Target Name="StageTemplates" BeforeTargets="GenerateNuspec">
+        <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/stage-templates.py&quot; &quot;$(MSBuildProjectDirectory)/templates&quot; &quot;$(_TemplateStage)&quot; &quot;$(Version)&quot;" />
+
+        <ItemGroup>
+            <_PackageFiles Include="$(_TemplateStage)/**/*">
+                <PackagePath>content/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+                <BuildAction>Content</BuildAction>
+            </_PackageFiles>
+        </ItemGroup>
+    </Target>
+
+</Project>

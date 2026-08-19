@@ -1,0 +1,76 @@
+name: templates
+
+# Its own workflow rather than a job in build-package, because it packs the whole framework to a
+# temporary feed and installs the result. That is slow, and it answers a different question:
+# build-package asks whether the framework compiles, this asks whether a stranger running
+# `dotnet new hardened-web` gets something that runs.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+
+    env:
+      # Must equal $(HardenedSmithyCliVersion), the same pin build-package enforces.
+      SMITHY_VERSION: 1.73.0
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # The template pins net8.0 and its generated projects must build on the SDK a reader is
+      # most likely to have, not only on the newest one. Both are installed so the smoke run
+      # exercises the floor rather than assuming it.
+      - name: Show the SDKs in play
+        run: dotnet --list-sdks
+
+      # The smoke packs the whole solution, which builds the Smithy fixtures, and the --contract
+      # smithy variant compiles a model of its own - so the CLI is needed twice over. The script
+      # skips that variant when the pinned version is absent rather than failing, which would
+      # quietly reduce what this gate covers; installing it here is what keeps the matrix whole.
+      #
+      # Cached, checksum-verified, same steps as build-package.
+      - name: Cache the Smithy CLI
+        id: smithy-cli
+        uses: actions/cache@v4
+        with:
+          path: ~/.smithy-cli
+          key: smithy-cli-${{ env.SMITHY_VERSION }}-linux-x86_64
+
+      - name: Install the Smithy CLI
+        if: steps.smithy-cli.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          ASSET=smithy-cli-linux-x86_64.zip
+          BASE=https://github.com/smithy-lang/smithy/releases/download/$SMITHY_VERSION
+          curl -sSLf -o "$ASSET" "$BASE/$ASSET"
+          curl -sSLf -o "$ASSET.sha256" "$BASE/$ASSET.sha256"
+          echo "$(awk '{print $1}' "$ASSET.sha256")  $ASSET" | sha256sum -c -
+          unzip -q "$ASSET"
+          mkdir -p ~/.smithy-cli
+          mv smithy-cli-linux-x86_64/* ~/.smithy-cli/
+
+      - name: Put the Smithy CLI on PATH
+        run: echo "$HOME/.smithy-cli/bin" >> "$GITHUB_PATH"
+
+      - name: Check the Smithy CLI version
+        run: |
+          set -euo pipefail
+          test "$(smithy --version)" = "$SMITHY_VERSION"
+          smithy --version
+
+      # Everything the run needs is in the script, so the workflow is one line and the same
+      # command works on a laptop. A CI-only invocation is one nobody can reproduce when it fails.
+      - name: Generate, build, test and serve from the packed template
+        run: ./scripts/template-smoke.sh

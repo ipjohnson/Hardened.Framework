@@ -60,7 +60,7 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// </para>
 /// </summary>
 [DependencyModule]
-public partial class HardenedOpenApiUi : IServiceCollectionConfiguration {
+public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfiguration {
 
     /// <summary>
     /// Where the page is served. Also this module's identity - see <see cref="Equals"/>.
@@ -124,6 +124,58 @@ public partial class HardenedOpenApiUi : IServiceCollectionConfiguration {
     /// installed, so a single <c>IOpenApiUiConfiguration</c> in the container would be whichever
     /// module ran last, and every page would render the same one.
     /// </remarks>
+    /// <summary>
+    /// The environments this page is served in, as a comma-separated list. Null serves it
+    /// everywhere, which is the default and what every existing installation gets.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A reference page is a development affordance that happens to be reachable in production.
+    /// It describes every operation the service exposes and pulls a script from a CDN to render
+    /// them, and neither is obviously wanted on a deployed API - Swashbuckle defaults to
+    /// development-only for the same reasons.
+    /// </para>
+    /// <para>
+    /// Not defaulted to development here, because that would silently remove a page from every
+    /// application already installing this module. Templates and new applications set it; the
+    /// default keeps the existing answer.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// [HardenedOpenApiUi(Title = "Orders", Environments = "development,test")]
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public string? Environments { get; set; }
+
+    public void ConfigureServices(IServiceCollection services, IModuleEnvironment environment) {
+        // Before anything is registered rather than as a check inside the provider: a page that
+        // is not served in this environment should contribute no route, no handler and no
+        // configuration, so nothing can reach it and nothing carries it.
+        if (!ServedIn(environment)) {
+            return;
+        }
+
+        ConfigureServices(services);
+    }
+
+    /// <summary>Whether <see cref="Environments"/> admits the one the application is running in.</summary>
+    private bool ServedIn(IModuleEnvironment environment) {
+        if (string.IsNullOrWhiteSpace(Environments)) {
+            return true;
+        }
+
+        foreach (var candidate in Environments!.Split(EnvironmentSeparators, StringSplitOptions.RemoveEmptyEntries)) {
+            if (string.Equals(candidate.Trim(), environment.EnvironmentName, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static readonly char[] EnvironmentSeparators = [',', ';'];
+
     public void ConfigureServices(IServiceCollection services) {
         // Stateless, and resolved once per request by the instance filter - so a singleton, and
         // Try because every installed page shares the one type.
