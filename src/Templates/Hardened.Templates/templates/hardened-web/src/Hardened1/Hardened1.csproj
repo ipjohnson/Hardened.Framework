@@ -19,30 +19,24 @@
       later would otherwise compile and silently never run.
     -->
     <PackageReference Include="Hardened.Validation.SourceGenerator" />
+    <!--
+      PrivateAssets="all" so the generators stay in this project.
+      
+      The front end brings Hardened.Idl.SourceGenerator with it - the Roslyn generator that turns
+      the normalised contract into handlers and a routing table - and that package is deliberately
+      not a development dependency, so it can arrive transitively. Which means it also travels on
+      through this project's own ProjectReference into whatever references it. In the host, where
+      Hardened.Web.SourceGenerator is already emitting a routing table and a links type for the
+      application module, that is CS0101 on every generated name.
+
+      One attribute stops the whole subtree at this project's boundary, which is where a build-time
+      generator belongs anyway.
+    -->
 <!--#if (openapi) -->
-    <PackageReference Include="Hardened.OpenApi.SourceGenerator" />
+    <PackageReference Include="Hardened.OpenApi.SourceGenerator" PrivateAssets="all" />
 <!--#endif -->
 <!--#if (smithy) -->
-    <PackageReference Include="Hardened.Smithy.SourceGenerator" />
-<!--#endif -->
-<!--#if (specFirst) -->
-    <!--
-      Both. The OpenAPI and Smithy packages carry only an MSBuild task, which normalises the
-      contract into models, a service interface and validation. The Roslyn generator that turns
-      that model into request handlers and a routing table is this one, and it is a dependency of
-      neither - analyzers do not flow through a package reference anyway.
-
-      Leaving it out compiles, starts, and answers 404 to every route in the document.
-
-      It also replaces Hardened.Web.SourceGenerator rather than joining it: both emit the routing
-      table and the links type, so referencing the pair is CS0101 on every generated name.
-
-      PrivateAssets="all" because this one is not marked as a development dependency - by design,
-      so it can arrive transitively from the front-end package. That has not happened yet, so it
-      is referenced directly here, and without this it would flow on to the host project and
-      collide with the web generator there.
-    -->
-    <PackageReference Include="Hardened.Idl.SourceGenerator" PrivateAssets="all" />
+    <PackageReference Include="Hardened.Smithy.SourceGenerator" PrivateAssets="all" />
 <!--#endif -->
   </ItemGroup>
 
