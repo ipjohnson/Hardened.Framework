@@ -22,6 +22,10 @@ curl localhost:5080/greeting/world
 #if (OpenApiUi)
 There is a reference page at <http://localhost:5080/docs> and the document behind it at
 `/openapi.json`. The page is served in the `development` environment only.
+
+Visual Studio and Rider open it on F5 — pick the **Hardened1.Host (+Browser)** configuration, which
+comes from `src/Hardened1.Host/Properties/launchSettings.json`. The `dotnet` CLI reads that file for
+environment variables but ignores `launchBrowser`, so from a terminal browse to it yourself.
 #endif
 
 ## The three projects

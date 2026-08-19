@@ -124,6 +124,13 @@
           "exclude": [
             "src/Hardened1/contracts/greeting.smithy"
           ]
+        },
+        {
+          "comment": "The launch profile exists to open /docs on F5. Without the page there is nothing for it to open, and a profile pointing at a 404 is worse than no profile.",
+          "condition": "(!OpenApiUi)",
+          "exclude": [
+            "src/Hardened1.Host/Properties/launchSettings.json"
+          ]
         }
       ]
     }
