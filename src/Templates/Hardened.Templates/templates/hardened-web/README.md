@@ -24,8 +24,10 @@ There is a reference page at <http://localhost:5080/docs> and the document behin
 `/openapi.json`. The page is served in the `development` environment only.
 
 Visual Studio and Rider open it on F5 — pick the **Hardened1.Host (+Browser)** configuration, which
-comes from `src/Hardened1.Host/Properties/launchSettings.json`. The `dotnet` CLI reads that file for
-environment variables but ignores `launchBrowser`, so from a terminal browse to it yourself.
+comes from `src/Hardened1.Host/Properties/launchSettings.json`. That profile names no environment
+variables on purpose: `dotnet run` applies a profile's variables over the ones already set, so a
+`PORT` pinned there would override the caller's. The `dotnet` CLI also ignores `launchBrowser`, so
+from a terminal browse to the page yourself.
 #endif
 
 ## The three projects

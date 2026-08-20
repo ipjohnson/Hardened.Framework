@@ -5,10 +5,7 @@
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "docs",
-      "applicationUrl": "http://localhost:5080",
-      "environmentVariables": {
-        "PORT": "5080"
-      }
+      "applicationUrl": "http://localhost:5080"
     }
   }
 }
