@@ -942,4 +942,60 @@ internal static class Specs {
           }
         }
         """;
+
+    /// <summary>
+    /// A choice declared as a component of its own, discriminated, plus one on a property so both
+    /// declaration sites are generated from one document.
+    /// </summary>
+    internal const string ComponentChoice =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets/{petId}:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              parameters:
+                - name: petId
+                  in: path
+                  required: true
+                  schema: { type: string }
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+        components:
+          schemas:
+            Pet:
+              oneOf:
+                - $ref: '#/components/schemas/Cat'
+                - $ref: '#/components/schemas/Dog'
+              discriminator:
+                propertyName: kind
+            Cat:
+              type: object
+              required: [kind, meow]
+              properties:
+                kind: { type: string }
+                meow: { type: string }
+            Dog:
+              type: object
+              required: [kind, woof]
+              properties:
+                kind: { type: string }
+                woof: { type: string }
+            Sighting:
+              type: object
+              properties:
+                seen:
+                  oneOf:
+                    - $ref: '#/components/schemas/Cat'
+                    - $ref: '#/components/schemas/Dog'
+                  discriminator:
+                    propertyName: kind
+        """;
 }

@@ -427,6 +427,200 @@ public class OneOfTests {
               properties: { kind: { type: string }, meow: { type: boolean } }
         """;
 
+    // ── a choice declared as a component of its own ───────────────────────────────────────────
+
+    /// <summary>
+    /// A component whose whole definition is a <c>oneOf</c> is the choice, named by the document.
+    /// </summary>
+    /// <remarks>
+    /// The synthesized case above is named for where it sits because it has no name of its own.
+    /// This one does, so it keeps it - and nothing is reserved or renamed, which is what makes a
+    /// property referencing it read as the type the document already named.
+    /// </remarks>
+    [Fact]
+    public void AComponentThatIsAChoiceKeepsItsOwnName() {
+        var model = Parse(ComponentChoice);
+
+        var choice = Choice(model);
+
+        Assert.NotNull(choice);
+        Assert.Equal("Pet", choice!.Name);
+        Assert.Equal("kind", choice.DiscriminatorPropertyName);
+        Assert.Equal(
+            new[] { "#/components/schemas/Cat", "#/components/schemas/Dog" },
+            choice.OneOf.Select(branch => branch.Ref).ToArray());
+    }
+
+    /// <summary>
+    /// The operation returning it keeps its response type, which is what was lost outright.
+    /// </summary>
+    /// <remarks>
+    /// An undiscriminated component choice fell through to <c>Primitive</c> with a null type, and
+    /// an operation whose response referenced it came out with no response type at all - the
+    /// handler signature was a bare <c>Task</c>. A discriminated one became an object with no
+    /// properties, which is the worse of the two: the signature looked right and the payload
+    /// deserialized into nothing.
+    /// </remarks>
+    [Fact]
+    public void AnOperationReturningAComponentChoiceKeepsItsResponseType() {
+        var operation = Parse(ComponentChoice).Services.Single().Operations.Single();
+
+        Assert.Equal("#/components/schemas/Pet", operation.ResponseRef);
+    }
+
+    /// <summary>Without a discriminator too, where the schemas separate the branches.</summary>
+    [Fact]
+    public void AnUndiscriminatedComponentChoiceIsStillAType() {
+        var choice = Choice(Parse(UndiscriminatedComponentChoice));
+
+        Assert.NotNull(choice);
+        Assert.Equal("Pet", choice!.Name);
+        Assert.Null(choice.DiscriminatorPropertyName);
+        Assert.Equal(2, choice.OneOf.Count);
+    }
+
+    /// <summary>
+    /// A <c>oneOf</c> beside properties of its own is a hierarchy base, not a choice.
+    /// </summary>
+    /// <remarks>
+    /// This is the boundary, and it is about whether the schema declares members rather than about
+    /// the discriminator. A base carrying shared properties is composed into its branches by
+    /// <c>allOf</c> and generates as a record they inherit; a bare choice has nothing to inherit.
+    /// </remarks>
+    [Fact]
+    public void AComponentChoiceWithPropertiesOfItsOwnStaysAHierarchyBase() {
+        var model = Parse(HierarchyBase);
+
+        Assert.Null(Choice(model));
+
+        var pet = Assert.Single(model.Schemas, schema => schema.Name == "Pet");
+
+        Assert.Equal(SchemaKind.Object, pet.Kind);
+        Assert.Equal("kind", pet.DiscriminatorPropertyName);
+        Assert.Contains(pet.Properties, property => property.Name == "name");
+    }
+
+    /// <summary>
+    /// One branch is not a choice, the same as for a property declaring one.
+    /// </summary>
+    [Fact]
+    public void AComponentChoiceWithOneBranchIsNotGivenAType() {
+        Assert.Null(Choice(Parse(SingleBranchComponent)));
+    }
+
+    private const string ComponentChoice = """
+        openapi: "3.0.3"
+        info: { title: T, version: "1.0" }
+        paths:
+          /pets:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Pet' }
+        components:
+          schemas:
+            Pet:
+              oneOf:
+                - $ref: '#/components/schemas/Cat'
+                - $ref: '#/components/schemas/Dog'
+              discriminator: { propertyName: kind }
+            Cat:
+              type: object
+              properties: { kind: { type: string }, meow: { type: boolean } }
+            Dog:
+              type: object
+              properties: { kind: { type: string }, bark: { type: boolean } }
+        """;
+
+    private const string UndiscriminatedComponentChoice = """
+        openapi: "3.0.3"
+        info: { title: T, version: "1.0" }
+        paths:
+          /pets:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Pet' }
+        components:
+          schemas:
+            Pet:
+              oneOf:
+                - $ref: '#/components/schemas/Cat'
+                - $ref: '#/components/schemas/Dog'
+            Cat:
+              type: object
+              properties: { meow: { type: boolean } }
+            Dog:
+              type: object
+              properties: { bark: { type: boolean } }
+        """;
+
+    private const string HierarchyBase = """
+        openapi: "3.0.3"
+        info: { title: T, version: "1.0" }
+        paths:
+          /pets:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Pet' }
+        components:
+          schemas:
+            Pet:
+              type: object
+              required: [kind, name]
+              properties:
+                kind: { type: string }
+                name: { type: string }
+              discriminator: { propertyName: kind }
+              oneOf:
+                - $ref: '#/components/schemas/Cat'
+            Cat:
+              allOf:
+                - $ref: '#/components/schemas/Pet'
+                - type: object
+                  properties: { meow: { type: boolean } }
+        """;
+
+    private const string SingleBranchComponent = """
+        openapi: "3.0.3"
+        info: { title: T, version: "1.0" }
+        paths:
+          /pets:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Pet' }
+        components:
+          schemas:
+            Pet:
+              oneOf:
+                - $ref: '#/components/schemas/Cat'
+            Cat:
+              type: object
+              properties: { meow: { type: boolean } }
+        """;
+
     private const string Undiscriminated = """
         openapi: "3.0.3"
         info: { title: T, version: "1.0" }

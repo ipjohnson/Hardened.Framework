@@ -241,17 +241,29 @@ public class SpecParsingTests {
     }
 
     /// <summary>
-    /// A <c>oneOf</c> with no <c>discriminator</c> still degrades to <c>JsonElement</c>.
+    /// A component whose whole definition is an undiscriminated <c>oneOf</c> becomes the type that
+    /// holds one of its branches, and the property naming it is typed as that rather than as
+    /// <c>JsonElement</c>.
     /// </summary>
     /// <remarks>
-    /// The discriminator is what says which branch a payload is, so without one there is nothing to
-    /// switch on at run time and no way to write the polymorphism metadata the serializer needs.
-    /// A discriminated <c>oneOf</c> becomes a real hierarchy - see
-    /// <see cref="ADiscriminatedOneOfBecomesAPolymorphicBase"/>. This is the boundary between them,
-    /// not a statement that <c>oneOf</c> is unsupported.
+    /// <para>
+    /// This asserted <c>Primitive</c> and <c>JsonElement</c>, on the reasoning that without a
+    /// discriminator there is nothing to switch on at run time. <c>ChoiceResolution</c> answered
+    /// that afterwards - a branch carrying a property no other declares is told apart by the
+    /// schemas, and branches nothing separates are decided by reading the payload into each and
+    /// requiring exactly one to fit - but only for a <c>oneOf</c> declared on a property. A
+    /// component declaring the same thing kept the old answer, which is the inconsistency this
+    /// closes rather than a boundary anyone chose. <c>Card</c> and <c>Cash</c> here are separated by
+    /// their own properties, so no payload is guessed at.
+    /// </para>
+    /// <para>
+    /// A discriminated <c>oneOf</c> that also carries properties of its own is still a hierarchy
+    /// base - see <see cref="ADiscriminatedOneOfBecomesAPolymorphicBase"/>. That is the boundary,
+    /// and it is about whether the schema declares members, not about the discriminator.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void AOneOfSchemaProducesNoGeneratedType() {
+    public void AnUndiscriminatedOneOfComponentBecomesAChoiceType() {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -280,12 +292,18 @@ public class SpecParsingTests {
 
         var paymentMethod = model.Schemas.First(s => s.Name == "PaymentMethod");
 
-        Assert.Equal(SchemaKind.Primitive, paymentMethod.Kind);
+        Assert.Equal(SchemaKind.OneOf, paymentMethod.Kind);
+
+        // Named by the component, so both branches are reachable and neither renames the type.
+        Assert.Equal(
+            new[] { "#/components/schemas/Card", "#/components/schemas/Cash" },
+            paymentMethod.OneOf.Select(branch => branch.Ref).ToArray());
 
         var method = model.Schemas.First(s => s.Name == "Order").Properties.First(p => p.Name == "method");
 
-        Assert.Null(method.Ref);
-        Assert.Equal("JsonElement", TypeMapper.MapPropertyToCSharpType(method));
+        // The property carries the reference it was written with, and types as the choice.
+        Assert.Equal("#/components/schemas/PaymentMethod", method.Ref);
+        Assert.Equal("PaymentMethod", TypeMapper.MapPropertyToCSharpType(method));
     }
 
     // ── nested and inline schemas ─────────────────────────────────────────────────────────────
