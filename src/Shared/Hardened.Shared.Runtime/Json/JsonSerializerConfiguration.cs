@@ -78,25 +78,33 @@ public class JsonSerializerConfiguration : IJsonSerializerConfiguration {
 /// </para>
 /// </remarks>
 internal sealed class DeclaredEnumsFirstConverter : JsonConverterFactory {
-    private static readonly JsonStringEnumConverter Names = new();
 
+    /// <summary>
+    /// An enum that has not already said how it is written.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test is spelled out rather than delegated to a held <c>JsonStringEnumConverter</c>.
+    /// Constructing one in a field initializer is IL3050 whatever this class does with it, because
+    /// the field runs outside the <c>IsDynamicCodeSupported</c> guard that makes the rest of this
+    /// safe - and a suppression there would be claiming something untrue.
+    /// </para>
+    /// <para>
+    /// <c>Nullable&lt;TEnum&gt;</c> is deliberately <em>not</em> claimed, which is what the built-in
+    /// converter does too: System.Text.Json unwraps a nullable and asks about the underlying type,
+    /// so answering true here wins a type this cannot then build a converter for.
+    /// </para>
+    /// </remarks>
     public override bool CanConvert(Type typeToConvert) =>
-        Names.CanConvert(typeToConvert) && !DeclaresItsOwnConverter(typeToConvert);
+        typeToConvert.IsEnum &&
+        !typeToConvert.IsDefined(typeof(JsonConverterAttribute), inherit: false);
 
     [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "Only constructed from DefaultConfiguration, which guards on " +
+        Justification = "Only reached from DefaultConfiguration, which guards on " +
                         "RuntimeFeature.IsDynamicCodeSupported; ILC removes that branch.")]
     [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
         Justification = "Same guard: an AOT publish never reaches this factory.")]
     public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
-        Names.CreateConverter(typeToConvert, options);
+        new JsonStringEnumConverter().CreateConverter(typeToConvert, options);
 
-    /// <summary>
-    /// Whether the type carries its own <c>[JsonConverter]</c>, which this must not outrank.
-    /// </summary>
-    private static bool DeclaresItsOwnConverter(Type type) {
-        var underlying = Nullable.GetUnderlyingType(type) ?? type;
-
-        return underlying.IsDefined(typeof(JsonConverterAttribute), inherit: false);
-    }
 }

@@ -40,10 +40,19 @@ public class PetStoreServiceImpl : IPetStoreService {
     /// and <c>@httpHeader("X-Trace-Id")</c>. The header's C# name comes from its wire name, because
     /// NameAllocator assigns every name in the model from the wire spelling.
     /// </summary>
-    public Task<GetPetOutput> GetPet(string petId, bool? verbose, string? xTraceId) {
-        var pet = Pets.FirstOrDefault(p => p.Id == petId) ?? Pets[0];
+    /// <remarks>
+    /// The return is nullable because the model declares a <c>NotFound</c> error for this
+    /// operation, which is the contract saying a null answer is allowed here. Returning null
+    /// answers 404; throwing the generated exception type is how a handler says more than that.
+    /// </remarks>
+    public Task<GetPetOutput?> GetPet(string petId, bool? verbose, string? xTraceId) {
+        var pet = Pets.FirstOrDefault(p => p.Id == petId);
 
-        return Task.FromResult(new GetPetOutput(
+        if (pet == null) {
+            return Task.FromResult<GetPetOutput?>(null);
+        }
+
+        return Task.FromResult<GetPetOutput?>(new GetPetOutput(
             verbose == true ? pet : pet with { Nickname = null }));
     }
 

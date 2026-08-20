@@ -1681,7 +1681,7 @@ internal static class OpenApiSpecParser {
     /// Reading it from the values is what the emitters need anyway - the wire form is what the
     /// members are, whatever the schema says about them.
     /// </remarks>
-    private static string? EnumMemberType(IList<JsonNode?> members) {
+    private static string? EnumMemberType(IList<JsonNode> members) {
         var sawString = false;
         var sawNumber = false;
 
