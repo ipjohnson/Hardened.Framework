@@ -22,6 +22,21 @@
     
     
     <!--
+        A diagnostic descriptor is built per call rather than held in a static field, because RS2008
+        looks for the field and these projects set EnforceExtendedAnalyzerRules - so a test that
+        wants to assert a message or a severity has to call the builder, and the builders are
+        internal. The generator projects that compile these files in as source see them already;
+        this one is referenced rather than linked, so it needs saying.
+
+        Same arrangement Hardened.Idl.SourceGenerator and Hardened.OpenApi.BuildTask already use.
+        An MSBuild item rather than source, so it does not travel with the .cs files this package
+        ships.
+    -->
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.SourceGenerator.Tests"/>
+    </ItemGroup>
+
+    <!--
         Both directions embed a document and both compress it the same way, but this assembly and
         Hardened.Idl.Emit share no project - so the source is linked in, which is the arrangement
         already used in the other direction for OpenApiDocument/**.

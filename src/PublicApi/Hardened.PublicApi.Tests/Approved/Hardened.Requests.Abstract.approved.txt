@@ -741,6 +741,18 @@ namespace Hardened.Requests.Abstract.Responses
         public Hardened.Requests.Abstract.Responses.IHttpStatusResponse Response { get; }
         public override void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
+    public enum ResponseModel
+    {
+        Standard = 0,
+        Response = 1,
+        Union = 2,
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
+    public sealed class ResponseModelAttribute : System.Attribute
+    {
+        public ResponseModelAttribute(Hardened.Requests.Abstract.Responses.ResponseModel model) { }
+        public Hardened.Requests.Abstract.Responses.ResponseModel Model { get; }
+    }
     public static class RetryAfter
     {
         public static string HeaderValue(System.TimeSpan delay) { }

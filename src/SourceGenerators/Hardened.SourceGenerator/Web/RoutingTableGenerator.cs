@@ -81,6 +81,15 @@ public static class RoutingTableGenerator {
             GetBasePath(models.Left),
             AmbiguousRouteDiagnostics.Severity(options.AmbiguousRoutes));
 
+        // Before anything is emitted, for the same reason the ambiguity check is: a module that
+        // declared a response model this version cannot emit still produces a table, and every
+        // handler in it is generated as though the module were Standard. That builds, runs, and
+        // answers requests - with the declared response set discarded and nothing saying so.
+        ResponseModelDiagnostics.ReportUnimplementedMode(
+            context,
+            ResponseModelSelector.Read(models.Left),
+            models.Left.EntryPointType.Name);
+
         // Before the document is written, because an unrecognised version has no answer to fall
         // back to - see OpenApiVersionDiagnostics.ReportUnknownVersion.
         var version = OpenApiVersionFacts.Parse(options.OpenApiVersion);
