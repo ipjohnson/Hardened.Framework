@@ -147,6 +147,17 @@ internal static class SpecRoutingTableGenerator {
 
             diMethod.AddIndentedStatement(new CodeOutputComponent(
                 $"serviceCollection.AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), global::{registration.ResolverName}.Instance)"));
+
+            // The enum converters the same resolver holds, as the parameter binder consumes them.
+            //
+            // Without this a path or query parameter typed as a described enum is parsed by
+            // Enum.Parse against the C# member name, so `?genre=science-fiction` - the document's
+            // own value - answers 400 while `?genre=ScienceFiction`, a name appearing nowhere in the
+            // document, answers 200. The body and the response were always right; only parameters
+            // spoke a second vocabulary.
+            diMethod.AddIndentedStatement(new CodeOutputComponent(
+                $"foreach (var stringConverter in global::{registration.ResolverName}.StringConverters) " +
+                "{ serviceCollection.AddSingleton(typeof(global::Hardened.Requests.Abstract.Serializer.IStringConverter), stringConverter); }"));
         }
 
         RegisterPublishedSpecs(diMethod, serviceCollection, ordered);

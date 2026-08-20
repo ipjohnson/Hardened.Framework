@@ -33,10 +33,21 @@ public class PetServiceImpl : IPetService {
         return Task.FromResult(new Pet("3", body.Name, body.Tag));
     }
 
-    public Task<List<Pet>> SearchPets(string q, string? status) {
+    /// <summary>
+    /// Echoes the enum parameters back on the match, so a test can see what bound.
+    /// </summary>
+    /// <remarks>
+    /// <c>species</c> carries a value that is not a valid C# identifier and <c>size</c> is an
+    /// integer enum - the two shapes that could not reach a handler at all before the binder read
+    /// the description's vocabulary rather than the member name.
+    /// </remarks>
+    public Task<List<Pet>> SearchPets(
+        string q, string? status, PetSpecies? species, PetSize? size) {
         var matches = Pets
             .Where(pet => pet.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
             .Select(pet => status == null ? pet : pet with { Status = status })
+            .Select(pet => species == null ? pet : pet with { Species = species })
+            .Select(pet => size == null ? pet : pet with { Size = size })
             .ToList();
 
         return Task.FromResult(matches);

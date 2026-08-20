@@ -285,8 +285,28 @@ internal static class NameAllocator {
                 var allocated = new string[schema.EnumValues.Count];
                 var order = new List<int>(schema.EnumValues.Count);
 
+                // What each member would like to be called, before uniqueness is applied.
+                //
+                // The document's own name where it gave one - x-enum-varnames, which the parser
+                // records - and the value otherwise. An integer enum declares values and no names,
+                // so there is nothing to PascalCase and the value becomes Value1, Value5, Value25.
+                // Allocation still runs over whichever it is, because two preferred names can
+                // collide as easily as two values can.
+                var preferred = new string[schema.EnumValues.Count];
+                var declared =
+                    schema.EnumMemberNamesAreDeclared &&
+                    schema.EnumMemberNames.Count == schema.EnumValues.Count
+                        ? schema.EnumMemberNames
+                        : null;
+                var numeric = EnumWireForm.IsNumeric(schema);
+
                 for (var i = 0; i < schema.EnumValues.Count; i++) {
                     order.Add(i);
+                    preferred[i] = declared != null
+                        ? declared[i]
+                        : numeric
+                            ? EnumWireForm.SynthesizedName(schema.EnumValues[i])
+                            : schema.EnumValues[i];
                 }
 
                 // Same rule, and the results go back to the positions their values hold, because
@@ -296,7 +316,7 @@ internal static class NameAllocator {
 
                 foreach (var index in order) {
                     allocated[index] = values.Allocate(
-                        schema.EnumValues[index], Qualify(typeName, schema.EnumValues[index]));
+                        preferred[index], Qualify(typeName, preferred[index]));
                 }
 
                 schema.EnumMemberNames = new List<string>(allocated);

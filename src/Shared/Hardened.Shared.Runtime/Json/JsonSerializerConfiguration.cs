@@ -46,9 +46,57 @@ public class JsonSerializerConfiguration : IJsonSerializerConfiguration {
         // An AOT application that wants named enums says so where it can be compiled:
         // [JsonSourceGenerationOptions(UseStringEnumConverter = true)] on its JsonSerializerContext.
         if (RuntimeFeature.IsDynamicCodeSupported) {
-            options.Converters.Add(new JsonStringEnumConverter());
+            options.Converters.Add(new DeclaredEnumsFirstConverter());
         }
 
         return JsonTypeInfoLookup.WithReflectionFallback(options);
+    }
+}
+
+/// <summary>
+/// Names for enums that have no converter of their own, and stands aside for those that do.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A bare <c>JsonStringEnumConverter</c> sat here, and it broke every enum a description declared.
+/// System.Text.Json ranks a converter in <c>Options.Converters</c> <em>above</em> a
+/// <c>[JsonConverter]</c> attribute on the type, so the generated converter - the one that knows the
+/// document's values - never ran through this serializer. It wrote the C# member name:
+/// <c>{"genre":"ScienceFiction"}</c> where the document says <c>"science-fiction"</c>.
+/// </para>
+/// <para>
+/// It bit hardest in the test host, whose <c>Post(object, path)</c> serializes with exactly this
+/// service while the request deserializer builds its own options and honours the attribute. So the
+/// harness wrote a value its own application then refused, and every test posting a generated record
+/// carrying an enum got a 500.
+/// </para>
+/// <para>
+/// Declining by <c>CanConvert</c> rather than dropping the converter outright: an application's own
+/// enums, which no description declared and nothing generated a converter for, still serialize as
+/// names rather than as numbers. Only the enums that already know their own wire form are left
+/// alone.
+/// </para>
+/// </remarks>
+internal sealed class DeclaredEnumsFirstConverter : JsonConverterFactory {
+    private static readonly JsonStringEnumConverter Names = new();
+
+    public override bool CanConvert(Type typeToConvert) =>
+        Names.CanConvert(typeToConvert) && !DeclaresItsOwnConverter(typeToConvert);
+
+    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
+        Justification = "Only constructed from DefaultConfiguration, which guards on " +
+                        "RuntimeFeature.IsDynamicCodeSupported; ILC removes that branch.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
+        Justification = "Same guard: an AOT publish never reaches this factory.")]
+    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
+        Names.CreateConverter(typeToConvert, options);
+
+    /// <summary>
+    /// Whether the type carries its own <c>[JsonConverter]</c>, which this must not outrank.
+    /// </summary>
+    private static bool DeclaresItsOwnConverter(Type type) {
+        var underlying = Nullable.GetUnderlyingType(type) ?? type;
+
+        return underlying.IsDefined(typeof(JsonConverterAttribute), inherit: false);
     }
 }

@@ -620,6 +620,13 @@ namespace Hardened.Requests.Abstract.Serializer
         public System.Collections.Generic.IReadOnlyList<string> MediaTypes { get; }
         public static Hardened.Requests.Abstract.Serializer.AcceptedContentTypes Parse(string? acceptHeader) { }
     }
+    public sealed class DelegatingStringConverter<TValue> : Hardened.Requests.Abstract.Serializer.IStringConverter
+    {
+        public DelegatingStringConverter(Hardened.Requests.Abstract.Serializer.DelegatingStringConverter<TValue>.TryParse tryParse, string? typeName = null) { }
+        public System.Type ConvertType { get; }
+        public T Convert<T>(string value) { }
+        public delegate bool TryParse<TValue>(string value, out TValue parsed);
+    }
     public interface IContextSerializationService
     {
         System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context);

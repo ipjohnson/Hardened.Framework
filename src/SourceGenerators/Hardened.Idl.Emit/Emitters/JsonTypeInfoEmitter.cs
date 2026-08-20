@@ -46,6 +46,8 @@ internal static class JsonTypeInfoEmitter {
         resolver.AddUsingNamespace("System.Text.Json.Serialization");
         resolver.AddUsingNamespace("System.Text.Json.Serialization.Metadata");
 
+        AddStringConverters(resolver, schemas, modelsNamespace);
+
         AddGetTypeInfo(resolver, schemas, modelsNamespace);
 
         foreach (var schema in schemas) {
@@ -327,6 +329,54 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine($"                    HasDefaultValue = {(prop.HasDefault ? "true" : "false")},");
         sb.AppendLine($"                    DefaultValue = {defaultValue},");
         sb.AppendLine("                },");
+    }
+
+    /// <summary>
+    /// Every generated enum converter, as the parameter binder consumes them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The converters are already emitted beside their enums and named by the resolver; this is the
+    /// list of them, so the routing table can register each as an <c>IStringConverter</c> without
+    /// knowing which enums a description declared.
+    /// </para>
+    /// <para>
+    /// A path or query parameter is text rather than JSON, so it never went through these - the
+    /// binder called <c>Enum.Parse</c> on the C# member name instead, and any declared value that is
+    /// not already a valid identifier was unreachable as a parameter.
+    /// </para>
+    /// </remarks>
+    private static void AddStringConverters(
+        ClassDefinition resolver, List<SchemaModel> schemas, string ns) {
+        var converters = new List<string>();
+
+        foreach (var schema in schemas) {
+            if (schema.Kind != SchemaKind.Enum) {
+                continue;
+            }
+
+            var enumType = TypeMapper.QualifiedName(
+                ns, NamingHelper.ToPascalCase(schema.Name), false);
+            var converterType = TypeMapper.QualifiedName(
+                ns, EnumConverterEmitter.ConverterName(schema.Name), false);
+
+            // The document's own name for the type, not the C# one, because the message it produces
+            // is read by whoever wrote the request against the document.
+            converters.Add(
+                $"new global::Hardened.Requests.Abstract.Serializer.DelegatingStringConverter<{enumType}>(" +
+                $"{converterType}.TryParseWire, \"{schema.Name}\")");
+        }
+
+        var field = resolver.AddField(
+            TypeDefinition.Get("Hardened.Requests.Abstract.Serializer", "IStringConverter").MakeArray(),
+            "StringConverters");
+
+        field.Modifiers |=
+            ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
+        field.InitializeValue = new CodeOutputComponent(
+            converters.Count == 0
+                ? "global::System.Array.Empty<global::Hardened.Requests.Abstract.Serializer.IStringConverter>()"
+                : "{ " + string.Join(", ", converters) + " }") { Indented = false };
     }
 
     private static void AddEnumTypeInfo(ClassDefinition resolver, SchemaModel schema, string ns) {
