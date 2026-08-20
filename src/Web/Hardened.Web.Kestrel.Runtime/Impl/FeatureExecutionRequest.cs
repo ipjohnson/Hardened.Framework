@@ -157,32 +157,11 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
 
     public ITransportInfo Transport => _transport;
 
-    private static IQueryStringCollection ParseQueryString(string? rawQueryString) {
-        if (string.IsNullOrEmpty(rawQueryString) || rawQueryString == "?") {
-            return EmptyQueryStringCollection.Instance;
-        }
-
-        var trimmed = rawQueryString[0] == '?' ? rawQueryString[1..] : rawQueryString;
-        var values = new Dictionary<string, string>();
-
-        foreach (var pair in trimmed.Split('&')) {
-            if (pair.Length == 0) {
-                continue;
-            }
-
-            var separator = pair.IndexOf('=');
-
-            if (separator > -1) {
-                values[Uri.UnescapeDataString(pair[..separator])] =
-                    Uri.UnescapeDataString(pair[(separator + 1)..]);
-            }
-            else {
-                values[Uri.UnescapeDataString(pair)] = "";
-            }
-        }
-
-        return new SimpleQueryStringCollection(values);
-    }
+    /// <summary>
+    /// Shared with the test host rather than written twice - see <see cref="QueryStringParser"/>.
+    /// </summary>
+    private static IQueryStringCollection ParseQueryString(string? rawQueryString) =>
+        QueryStringParser.Parse(rawQueryString);
 
     private static IReadOnlyList<string> ParseCookies(IDictionary<string, StringValues> headers) {
         if (!headers.TryGetValue(KnownHeaders.Cookie, out var cookieHeader)) {

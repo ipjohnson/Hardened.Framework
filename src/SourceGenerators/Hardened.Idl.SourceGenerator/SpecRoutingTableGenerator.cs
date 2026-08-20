@@ -147,20 +147,52 @@ internal static class SpecRoutingTableGenerator {
 
             diMethod.AddIndentedStatement(new CodeOutputComponent(
                 $"serviceCollection.AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), global::{registration.ResolverName}.Instance)"));
+
+            // The enum converters the same resolver holds, as the parameter binder consumes them.
+            //
+            // Without this a path or query parameter typed as a described enum is parsed by
+            // Enum.Parse against the C# member name, so `?genre=science-fiction` - the document's
+            // own value - answers 400 while `?genre=ScienceFiction`, a name appearing nowhere in the
+            // document, answers 200. The body and the response were always right; only parameters
+            // spoke a second vocabulary.
+            diMethod.AddIndentedStatement(new CodeOutputComponent(
+                $"foreach (var stringConverter in global::{registration.ResolverName}.StringConverters) " +
+                "{ serviceCollection.AddSingleton(typeof(global::Hardened.Requests.Abstract.Serializer.IStringConverter), stringConverter); }"));
         }
 
         RegisterPublishedSpecs(diMethod, serviceCollection, ordered);
 
+        // The service-wide negotiation policy, from the entry point or from a description's root.
+        var negotiation = ContentNegotiationRegistration.Statement(
+            applicationModel.AttributeModels,
+            ordered.FirstOrDefault(registration => registration.ContentNegotiation.Length > 0)
+                ?.ContentNegotiation ?? "");
+
+        if (negotiation != null) {
+            diMethod.AddIndentedStatement(new CodeOutputComponent(negotiation));
+        }
+
         // Register interface → implementation mappings from [Handler] classes
+        var declaredServiceNames =
+            new HashSet<string>(webEndPointModels.Select(m => m.ControllerType.Name));
+
         foreach (var handlerInfo in handlerInfos) {
             if (handlerInfo == null) continue;
             cancellationToken.ThrowIfCancellationRequested();
 
+            // The base-list entry naming a described service, rather than whichever came first.
+            //
+            // `class CatalogHandler : HandlerBase, ICatalogService` registered HandlerBase, because
+            // C# puts a base class first and this read position 0. The build stayed clean and every
+            // route on that service was dead. HOAG031 reports the case where nothing matches.
+            var service = handlerInfo.ServiceInterface(declaredServiceNames);
+
             // Find the matching model to get the correctly-namespaced interface type
             var matchingModel = webEndPointModels.FirstOrDefault(m =>
-                m.ControllerType.Name == handlerInfo.InterfaceType.Name);
+                m.ControllerType.Name == (service ?? handlerInfo.InterfaceType).Name);
 
-            var interfaceType = matchingModel?.ControllerType ?? handlerInfo.InterfaceType;
+            var interfaceType =
+                matchingModel?.ControllerType ?? service ?? handlerInfo.InterfaceType;
 
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
                 new[] { interfaceType, handlerInfo.ImplementationType }));

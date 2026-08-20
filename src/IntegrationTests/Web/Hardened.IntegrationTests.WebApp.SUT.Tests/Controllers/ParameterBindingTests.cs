@@ -66,6 +66,36 @@ public class ParameterBindingTests {
     }
 
     /// <summary>
+    /// A percent-encoded value arrives decoded, the same as it does on Kestrel.
+    /// </summary>
+    /// <remarks>
+    /// The harness built its query collection with a parser of its own that stored the raw
+    /// substring, so this value bound as <c>2026-09-10T09%3A00%3A00%2B00%3A00</c> and any handler
+    /// parsing it answered 400 - while the identical request over a socket answered 200. Both hosts
+    /// read <c>QueryStringParser</c> now, which is what keeps them from drifting again.
+    /// </remarks>
+    [HardenedTest]
+    public async Task QueryStringArrivesPercentDecoded(ITestWebApp testWebApp) {
+        var encoded = Uri.EscapeDataString("2026-09-10T09:00:00+00:00");
+
+        var response = await testWebApp.Get("/binding/query?name=" + encoded);
+
+        response.Assert.Ok();
+        Assert.Equal("2026-09-10T09:00:00+00:00", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// Base64 pads with <c>'='</c>, which the harness's own parser dropped the whole pair over.
+    /// </summary>
+    [HardenedTest]
+    public async Task QueryStringKeepsAValueContainingAnEqualsSign(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query?name=YWJjZA==");
+
+        response.Assert.Ok();
+        Assert.Equal("YWJjZA==", response.Deserialize<string>());
+    }
+
+    /// <summary>
     /// [FromHeader] binding. Documented since the framework's first release and, until the
     /// generator fix, incapable of compiling.
     /// </summary>

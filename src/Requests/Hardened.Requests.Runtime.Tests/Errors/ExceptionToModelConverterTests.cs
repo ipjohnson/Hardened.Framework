@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Errors;
@@ -111,8 +112,8 @@ public class ExceptionToModelConverterTests {
 
         Assert.Equal(500, status);
         var error = Assert.IsType<ErrorModel>(model);
-        Assert.Equal(nameof(InvalidOperationException), error.Type);
-        Assert.Equal("something went wrong", error.Message);
+        Assert.Equal("ServerError", error.Type);
+        Assert.DoesNotContain("something went wrong", error.Message);
     }
 
     private class CustomValidationProblemException : Exception {
@@ -178,16 +179,103 @@ public class ExceptionToModelConverterTests {
     }
 
     /// <summary>
-    /// The exception message is echoed to the caller verbatim for unrecognised exceptions.
-    /// Worth pinning so that a change to message handling is a deliberate decision.
+    /// Nothing about an unrecognised exception reaches the caller - not its message, not its type.
     /// </summary>
+    /// <remarks>
+    /// The inverse of this assertion used to stand here, pinning the verbatim echo "so that a
+    /// change to message handling is a deliberate decision", and using this same connection string
+    /// as its example. The hazard was understood and left open; this is the decision. The exception
+    /// still reaches <c>IRequestLogger.RequestFailed</c> in full, which is where an operator reads
+    /// it.
+    /// </remarks>
     [Fact]
-    public void UnrecognisedExceptionMessageIsEchoedVerbatim() {
-        var (_, model) = Converter.ConvertExceptionToModel(
+    public void UnrecognisedExceptionTellsTheCallerNothingAboutItself() {
+        var (status, model) = Converter.ConvertExceptionToModel(
             Context(), new Exception("connection string 'Server=db;Password=hunter2' failed"));
 
-        Assert.Equal("connection string 'Server=db;Password=hunter2' failed",
-            Assert.IsType<ErrorModel>(model).Message);
+        var error = Assert.IsType<ErrorModel>(model);
+
+        Assert.Equal(500, status);
+        Assert.DoesNotContain("hunter2", error.Message);
+        Assert.DoesNotContain("Server=db", error.Message);
+        Assert.Equal("ServerError", error.Type);
+    }
+
+    /// <summary>
+    /// A body the caller sent that could not be read is the caller's error, not the server's.
+    /// </summary>
+    /// <remarks>
+    /// The generated enum and union converters diagnose an undeclared value precisely and raise
+    /// <c>JsonException</c> to say so. Every other bad value in the same body - a too-short string,
+    /// a number below its minimum - already answered 400 with a field-level list; this one answered
+    /// 500 and echoed the exception text, so a client typo read as a server fault.
+    /// </remarks>
+    [Fact]
+    public void UnreadableRequestBodyMapsTo400() {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(), new JsonException("'cooking' is not a value Genre declares."));
+
+        Assert.Equal(400, status);
+
+        var validationError = Assert.IsType<RequestValidationError>(model);
+        var field = Assert.Single(validationError.Errors);
+
+        Assert.Equal("ValidationError", validationError.Type);
+        Assert.Equal("body", field.Field);
+        Assert.Equal("invalid", field.Code);
+        Assert.Equal("'cooking' is not a value Genre declares.", field.Message);
+    }
+
+    /// <summary>
+    /// System.Text.Json names the member it failed on; that becomes the field, as a validator would
+    /// have spelled it.
+    /// </summary>
+    [Fact]
+    public void UnreadableRequestBodyNamesTheFieldFromTheJsonPath() {
+        var exception = ThrownReading("{\"genre\":5}", "$.genre");
+
+        var (_, model) = Converter.ConvertExceptionToModel(Context(), exception);
+
+        var field = Assert.Single(Assert.IsType<RequestValidationError>(model).Errors);
+
+        Assert.Equal("body.genre", field.Field);
+    }
+
+    /// <summary>
+    /// The line and byte position System.Text.Json appends belong in the field, not in prose.
+    /// </summary>
+    [Fact]
+    public void UnreadableRequestBodyDropsThePositionSuffixFromTheMessage() {
+        var exception = ThrownReading("{\"genre\":5}", "$.genre");
+
+        var (_, model) = Converter.ConvertExceptionToModel(Context(), exception);
+
+        var field = Assert.Single(Assert.IsType<RequestValidationError>(model).Errors);
+
+        Assert.DoesNotContain("LineNumber", field.Message);
+        Assert.DoesNotContain("BytePositionInLine", field.Message);
+    }
+
+    /// <summary>
+    /// A real one from the serializer, so the shape of <c>Path</c> and <c>Message</c> is the
+    /// runtime's rather than this test's idea of it.
+    /// </summary>
+    private static JsonException ThrownReading(string json, string expectedPath) {
+        var exception = Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<PayloadWithAString>(json));
+
+        Assert.Equal(expectedPath, exception.Path);
+
+        return exception;
+    }
+
+    /// <summary>
+    /// A number where a string is declared, which is what raises a <c>JsonException</c> carrying a
+    /// member path. The JSON name is spelled out so the path reads as a wire name would.
+    /// </summary>
+    private class PayloadWithAString {
+        [System.Text.Json.Serialization.JsonPropertyName("genre")]
+        public string Genre { get; set; } = "";
     }
 
     #region status and headers

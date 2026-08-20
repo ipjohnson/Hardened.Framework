@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Serializer;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -24,6 +25,17 @@ namespace Hardened.Web.Runtime.Tests.Serializer;
 /// </para>
 /// </summary>
 public class NullValueResponseStatusTests {
+
+    /// <summary>
+    /// The handler under test, with a serializer locator that is never reached.
+    /// </summary>
+    /// <remarks>
+    /// It is only consulted when the handler info carries a <c>NullResponseBody</c>, which none of
+    /// these contexts does - they are about the status and the log line. <c>NullResponseBodyTests</c>
+    /// covers the case where a body is written.
+    /// </remarks>
+    private static NullValueResponseHandler Handler(ILogger<NullValueResponseHandler> logger) =>
+        new(logger, Substitute.For<ISerializationLocatorService>());
 
     /// <summary>
     /// The verb matrix. GET and PUT are the two verbs whose null result means the resource is not
@@ -116,8 +128,8 @@ public class NullValueResponseStatusTests {
         var notFound = new RecordingLogger();
         var found = new RecordingLogger();
 
-        new NullValueResponseHandler(notFound).Handle(Context("GET"));
-        new NullValueResponseHandler(found).Handle(Context("POST"));
+        Handler(notFound).Handle(Context("GET"));
+        Handler(found).Handle(Context("POST"));
 
         Assert.Single(notFound.Entries);
         Assert.Empty(found.Entries);
@@ -131,7 +143,7 @@ public class NullValueResponseStatusTests {
     public void TheNotFoundLogNamesTheVerbAndPath() {
         var logger = new RecordingLogger();
 
-        new NullValueResponseHandler(logger).Handle(Context("GET"));
+        Handler(logger).Handle(Context("GET"));
 
         var (level, message) = Assert.Single(logger.Entries);
 
@@ -148,7 +160,7 @@ public class NullValueResponseStatusTests {
     public void AHandlerOverrideOf404IsLoggedAsWell() {
         var logger = new RecordingLogger();
 
-        new NullValueResponseHandler(logger).Handle(Context("POST", nullResponseStatus: 404));
+        Handler(logger).Handle(Context("POST", nullResponseStatus: 404));
 
         Assert.Single(logger.Entries);
     }
@@ -161,7 +173,7 @@ public class NullValueResponseStatusTests {
     public void AHandlerOverrideAwayFrom404IsNotLogged() {
         var logger = new RecordingLogger();
 
-        new NullValueResponseHandler(logger).Handle(Context("GET", nullResponseStatus: 204));
+        Handler(logger).Handle(Context("GET", nullResponseStatus: 204));
 
         Assert.Empty(logger.Entries);
     }
@@ -190,7 +202,7 @@ public class NullValueResponseStatusTests {
     }
 
     private static NullValueResponseHandler Handler() =>
-        new(NullLogger<NullValueResponseHandler>.Instance);
+        Handler(NullLogger<NullValueResponseHandler>.Instance);
 
     private static IExecutionContext Context(
         string method,

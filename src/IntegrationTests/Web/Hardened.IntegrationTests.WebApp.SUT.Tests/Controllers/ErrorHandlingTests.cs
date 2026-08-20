@@ -69,9 +69,66 @@ public class ErrorHandlingTests {
 
         var error = response.Deserialize<ErrorModel>();
 
-        Assert.Equal(nameof(InvalidOperationException), error.Type);
-        Assert.Equal("the widget was not ready", error.Message);
+        Assert.Equal("ServerError", error.Type);
+        Assert.NotEqual("", error.Message);
     }
+
+    /// <summary>
+    /// And it carries nothing of the exception that caused it.
+    /// </summary>
+    /// <remarks>
+    /// The handler throws <c>InvalidOperationException("the widget was not ready")</c>. Neither the
+    /// type nor the message reaches the caller, because neither was written for one. The exception
+    /// is still logged in full through <c>IRequestLogger.RequestFailed</c>.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AServerErrorRevealsNothingAboutTheException(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/errors/server");
+
+        var error = response.Deserialize<ErrorModel>();
+
+        Assert.DoesNotContain("the widget was not ready", error.Message);
+        Assert.DoesNotContain(nameof(InvalidOperationException), error.Type);
+    }
+
+    /// <summary>
+    /// A body this service cannot read is a 400 with a field-level list, like every other bad value
+    /// in the same body - not a 500.
+    /// </summary>
+    /// <remarks>
+    /// Driven as raw text rather than an object, because the point is a payload the deserializer
+    /// refuses. This answered 500 and echoed the parser's message before.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnUnreadableRequestBodyBecomes400(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            "{\"values\": }", "/binding/body/totals",
+            request => request.Headers["Content-Type"] = "application/json");
+
+        response.Assert.BadRequest();
+    }
+
+    /// <summary>
+    /// And it names the failure as a field, the way a failed constraint in the same body does.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnUnreadableRequestBodyCarriesAFieldLevelError(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            "{\"values\": [\"not a number\"]}", "/binding/body/totals",
+            request => request.Headers["Content-Type"] = "application/json");
+
+        response.Assert.BadRequest();
+
+        var error = response.Deserialize<ValidationShape>();
+
+        Assert.Equal("ValidationError", error!.Type);
+        Assert.NotEmpty(error.Errors);
+        Assert.StartsWith("body", error.Errors[0].Field);
+    }
+
+    private record ValidationShape(string Type, string Message, List<FieldShape> Errors);
+
+    private record FieldShape(string Field, string Code, string Message);
 
     /// <summary>
     /// A status the pipeline had no way to produce. Every thrown exception was classified as 400 or

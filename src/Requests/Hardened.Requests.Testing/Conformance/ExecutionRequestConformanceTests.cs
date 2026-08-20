@@ -149,6 +149,29 @@ public abstract class ExecutionRequestConformanceTests {
         Assert.Equal("50", request.QueryString.Get("size").ToString());
     }
 
+    /// <summary>
+    /// A query value arrives decoded, whatever the transport had to do to carry it.
+    /// </summary>
+    /// <remarks>
+    /// The characters here are the ones that told the transports apart. A timestamp's <c>:</c> and
+    /// <c>+</c> have to survive percent-encoding; base64's trailing <c>=</c> has to survive a
+    /// parser that splits on <c>=</c>; and a space has to arrive as a space whether it was written
+    /// <c>%20</c> or <c>+</c>. The test host used to fail all three and answer 400 where Kestrel
+    /// answered 200.
+    /// </remarks>
+    [Fact]
+    public void QueryStringValuesArriveDecoded() {
+        var request = Create(s => {
+            s.QueryString["asOf"] = "2026-09-10T09:00:00+00:00";
+            s.QueryString["cursor"] = "YWJjZA==";
+            s.QueryString["title"] = "East of Eden";
+        });
+
+        Assert.Equal("2026-09-10T09:00:00+00:00", request.QueryString.Get("asOf").ToString());
+        Assert.Equal("YWJjZA==", request.QueryString.Get("cursor").ToString());
+        Assert.Equal("East of Eden", request.QueryString.Get("title").ToString());
+    }
+
     [Fact]
     public void CookiesAreSurfaced() {
         var request = Create(s => {

@@ -29,7 +29,8 @@ internal static class RequestModelBuilder {
             foreach (var operation in service.Operations) {
                 var model = BuildHandlerModel(operation, serviceType, handlerClassPrefix,
                     modelsNamespace, generatedNamespace, validationNamespace,
-                    spec.ValidatedOperations, filterTypeLookup, service.DispatchHeader);
+                    spec.ValidatedOperations, filterTypeLookup, spec.Schemas,
+                    service.DispatchHeader);
                 models.Add(model);
             }
         }
@@ -93,12 +94,22 @@ internal static class RequestModelBuilder {
     }
 
 
+    /// <summary>
+    /// The handler implementing this operation's service, wherever it sits in the base list.
+    /// </summary>
+    /// <remarks>
+    /// This compared against the first base-list entry alone, so a handler declaring a base class -
+    /// which C# requires to come first - matched nothing and lost every filter and
+    /// <c>[Output&lt;T&gt;]</c> written on it, silently.
+    /// </remarks>
     private static HandlerInfo? FindHandlerInfo(
         RequestHandlerModel model,
         IReadOnlyList<HandlerInfo> handlerInfos) {
         foreach (var info in handlerInfos) {
-            if (info.InterfaceType.Name == model.ControllerType.Name) {
-                return info;
+            foreach (var candidate in info.InterfaceCandidates) {
+                if (candidate.Name == model.ControllerType.Name) {
+                    return info;
+                }
             }
         }
 
@@ -134,6 +145,7 @@ internal static class RequestModelBuilder {
         string validationNamespace,
         IReadOnlyList<ValidatedOperationModel> validatedOperations,
         Dictionary<string, FilterTypeModel> filterTypeLookup,
+        IReadOnlyList<SchemaModel> schemas,
         string? dispatchHeader = null) {
         var methodName = operation.MethodName;
         var handlerTypeName = $"{handlerClassPrefix}_{methodName}";
@@ -146,7 +158,7 @@ internal static class RequestModelBuilder {
             operation.Path, operation.HttpMethod, dispatchHeader, operation.DispatchKey);
 
         var parameters = BuildParameters(operation, modelsNamespace);
-        var responseInfo = BuildResponseInfo(operation, modelsNamespace);
+        var responseInfo = BuildResponseInfo(operation, schemas, modelsNamespace);
 
         var filters = new List<AttributeModel>();
 
@@ -282,7 +294,7 @@ internal static class RequestModelBuilder {
     }
 
     private static ResponseInformationModel BuildResponseInfo(
-        OperationModel operation, string modelsNamespace) {
+        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace) {
         ITypeDefinition? returnType = null;
 
         if (operation.ResponseRef != null) {
@@ -292,6 +304,16 @@ internal static class RequestModelBuilder {
             var itemTypeName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef));
             var itemType = TypeDefinition.Get(modelsNamespace, itemTypeName);
             returnType = new GenericTypeDefinition(typeof(List<>), new[] { itemType });
+        } else if (operation.ResponseIsArray && operation.ResponseArrayItemsType != null &&
+                   TypeMapper.MapToCSharpType(
+                       operation.ResponseArrayItemsType, operation.ResponseArrayItemsFormat) is var primitive &&
+                   primitive != "object") {
+            // Kept in step with ServiceInterfaceEmitter.GetReturnType: the interface declares the
+            // signature and this types the handler that implements it, so a divergence here is a
+            // generated class that does not implement its own interface.
+            returnType = new GenericTypeDefinition(
+                typeof(List<>),
+                new[] { TypeMapper.GetTypeDefinition(modelsNamespace, primitive, false) });
         } else if (operation.ResponseType != null) {
             var csType = TypeMapper.MapToCSharpType(operation.ResponseType, operation.ResponseFormat);
             if (csType != "object") {
@@ -317,8 +339,51 @@ internal static class RequestModelBuilder {
             // Carried so the implementation can be checked against the contract: a document
             // promising rendered HTML for a model needs a view, and there is nothing to serialize
             // an object as text/html without one.
-            RendersAModel = operation.ResponseRef != null || operation.ResponseIsArray
+            RendersAModel = operation.ResponseRef != null || operation.ResponseIsArray,
+
+            // The status the description declared for the success response.
+            //
+            // 200 is not carried, because it is what the response already answers - a handler info
+            // field naming it would be noise on every operation to say nothing. Anything else is
+            // the document making a promise the service has to keep.
+            DefaultStatusCode =
+                operation.SuccessStatusCode == 200 ? null : operation.SuccessStatusCode,
+
+            NullResponseBodyExpression = NullResponseBody(operation, schemas, modelsNamespace),
+
+            // The set the response is negotiated against. Empty means the description said nothing,
+            // which leaves negotiation exactly as it was rather than declaring an empty set.
+            ProducedContentTypes = operation.ProducedContentTypes.Count > 0
+                ? string.Join(",", operation.ProducedContentTypes)
+                : null
         };
+    }
+
+    /// <summary>
+    /// The generated instance a null return writes, named, or null where there is none.
+    /// </summary>
+    /// <remarks>
+    /// Both the condition and the field name come from <c>DefaultErrorBody</c> rather than being
+    /// restated here. The build task that writes the field runs in a different process and this
+    /// never sees its output, so naming a field it declined to emit would produce code that does not
+    /// compile - the shared decision is what stops the two drifting.
+    /// </remarks>
+    private static string? NullResponseBody(
+        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace) {
+        var schemaName = DefaultErrorBody.SchemaFor(operation);
+
+        if (schemaName == null) {
+            return null;
+        }
+
+        // Emitted only when every required member can be filled without inventing a value.
+        if (DefaultErrorBody.Arguments(
+                schemas, schemaName, DefaultErrorBody.NullResponseStatus) == null) {
+            return null;
+        }
+
+        return $"global::{modelsNamespace}.{DefaultErrorBody.HolderTypeName}." +
+               DefaultErrorBody.FieldName(schemaName, DefaultErrorBody.NullResponseStatus);
     }
 
 

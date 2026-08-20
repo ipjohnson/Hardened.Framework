@@ -1,4 +1,5 @@
-﻿using CSharpAuthor;
+﻿using System.Linq;
+using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
@@ -77,8 +78,35 @@ public static class HandlerInfoCodeGenerator {
             parameterInfoField = ", null";
         }
 
+        // The status the operation declared, and the body a null return writes.
+        //
+        // Both sit after `requirement`, which nothing generated passes, so both are written by name.
+        // Emitted only when there is something to say - an operation answering 200 with no declared
+        // null body produces exactly the constructor call it always did.
+        var declaredArgs = "";
+
+        if (handlerModel.ResponseInformation.DefaultStatusCode is { } successStatus) {
+            declaredArgs += $", successStatus: {successStatus}";
+        }
+
+        if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.NullResponseBodyExpression)) {
+            declaredArgs +=
+                $", nullResponseBody: {handlerModel.ResponseInformation.NullResponseBodyExpression}";
+        }
+
+        // The media types this operation produces, as the array negotiation reads. Emitted only when
+        // the operation declared some - an empty array and no array mean different things, and the
+        // second is what leaves an unannotated handler negotiating exactly as it did.
+        if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.ProducedContentTypes)) {
+            var quoted = handlerModel.ResponseInformation.ProducedContentTypes!
+                .Split(',')
+                .Select(contentType => "\"" + contentType.Trim() + "\"");
+
+            declaredArgs += $", producedContentTypes: new string[] {{ {string.Join(", ", quoted)} }}";
+        }
+
         handlerInfoField.InitializeValue =
-            new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField}{metadataArg})");
+            new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField}{metadataArg}{declaredArgs})");
 
         // No HandlerInfo property is emitted, deliberately. The field above is the handler as
         // written; BaseExecutionHandler exposes the one the chain was actually built from, which is

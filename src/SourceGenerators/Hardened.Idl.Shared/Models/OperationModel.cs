@@ -75,6 +75,19 @@ internal class OperationModel : IEquatable<OperationModel> {
     public string? ResponseFormat { get; set; }
     public bool ResponseIsArray { get; set; }
     public string? ResponseArrayItemsRef { get; set; }
+
+    /// <summary>
+    /// The array's element type, where the elements are primitives rather than a <c>$ref</c>.
+    /// </summary>
+    /// <remarks>
+    /// Only the <c>$ref</c> was carried, so <c>items: {type: string}</c> left the mapper with
+    /// nothing to name and every array-of-primitives response became <c>JsonElement</c>.
+    /// Array-of-<c>$ref</c> worked, which is why it went unnoticed.
+    /// </remarks>
+    public string? ResponseArrayItemsType { get; set; }
+
+    /// <summary>The element's <c>format</c>, which distinguishes int32 from int64 and date from date-time.</summary>
+    public string? ResponseArrayItemsFormat { get; set; }
     public int SuccessStatusCode { get; set; } = 200;
 
     /// <summary>
@@ -86,6 +99,23 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// for no gain - the success case is one response by construction, and these are the rest.
     /// </remarks>
     public List<ErrorResponseModel> ErrorResponses { get; set; } = new();
+
+    /// <summary>
+    /// Every media type the success response declares, in document order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Distinct from <see cref="ResponseContentType"/>, which is the one media type the schema was
+    /// read from - JSON where the operation offers it. That one decides the C# return type; this one
+    /// is the set the response is negotiated against, and an operation offering both JSON and
+    /// plain text has one of the first and two of the second.
+    /// </para>
+    /// <para>
+    /// Document order matters: it is what an <c>Accept</c> of <c>*/*</c> resolves to, because the
+    /// first representation a document lists is the one it leads with.
+    /// </para>
+    /// </remarks>
+    public List<string> ProducedContentTypes { get; set; } = new();
 
     /// <summary>
     /// Opt in to a <c>byte[]</c> signature for a response the spec types as a string.
@@ -147,7 +177,10 @@ internal class OperationModel : IEquatable<OperationModel> {
                ResponseFormat == other.ResponseFormat &&
                ResponseIsArray == other.ResponseIsArray &&
                ResponseArrayItemsRef == other.ResponseArrayItemsRef &&
+               ResponseArrayItemsType == other.ResponseArrayItemsType &&
+               ResponseArrayItemsFormat == other.ResponseArrayItemsFormat &&
                ErrorResponses.SequenceEqual(other.ErrorResponses) &&
+               ProducedContentTypes.SequenceEqual(other.ProducedContentTypes) &&
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&
                RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&

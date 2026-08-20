@@ -51,4 +51,43 @@ public class HttpMethodTests {
         Assert.Equal("got:abc123", get.Deserialize<string>());
         Assert.Equal("deleted:abc123", delete.Deserialize<string>());
     }
+
+    /// <summary>
+    /// A hand-written handler answers the status its attribute declares.
+    /// </summary>
+    /// <remarks>
+    /// The attribute-routed half of the same wiring the specification-first routes exercise. Both
+    /// land on <c>ResponseInformationModel.DefaultStatusCode</c>, and this is here so a change that
+    /// wires only the described side cannot pass.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ADeclaredSuccessStatusIsAnswered(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(null!, "/verbs/created");
+
+        Assert.Equal(201, response.StatusCode);
+    }
+
+    /// <summary>
+    /// A declared 204 answers 204 and writes nothing, whatever the handler returned.
+    /// </summary>
+    [HardenedTest]
+    public async Task ADeclaredNoContentStatusWritesNoBody(ITestWebApp testWebApp) {
+        var response = await testWebApp.Delete("/verbs/emptied");
+
+        Assert.Equal(204, response.StatusCode);
+
+        response.Body.Position = 0;
+
+        using var reader = new StreamReader(response.Body, leaveOpen: true);
+
+        Assert.Equal("", await reader.ReadToEndAsync());
+    }
+
+    /// <summary>A handler declaring nothing still answers 200.</summary>
+    [HardenedTest]
+    public async Task AHandlerDeclaringNoStatusStillAnswers200(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/verbs/item/abc123");
+
+        Assert.Equal(200, response.StatusCode);
+    }
 }

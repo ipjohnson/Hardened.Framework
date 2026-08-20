@@ -43,6 +43,7 @@ internal static class SpecModelSerializer {
         var spec = new Record("spec");
         spec.Add("FileName", model.FileName);
         spec.Add("JsonTypeInfoResolverName", model.JsonTypeInfoResolverName);
+        spec.Add("ContentNegotiation", model.ContentNegotiation);
         spec.Add("PublishUrl", model.PublishUrl);
         spec.Add("UiUrl", model.UiUrl);
         spec.Add("UiEnvironments", model.UiEnvironments);
@@ -104,6 +105,7 @@ internal static class SpecModelSerializer {
                 case "spec":
                     model.FileName = record.String("FileName") ?? "";
                     model.JsonTypeInfoResolverName = record.String("JsonTypeInfoResolverName") ?? "";
+                    model.ContentNegotiation = record.String("ContentNegotiation") ?? "";
                     model.PublishUrl = record.String("PublishUrl") ?? "";
                     model.UiUrl = record.String("UiUrl") ?? "";
                     model.UiEnvironments = record.String("UiEnvironments") ?? "";
@@ -233,6 +235,7 @@ internal static class SpecModelSerializer {
         record.Add("Kind", schema.Kind.ToString());
         record.Add("Description", schema.Description);
         record.Add("IsDeprecated", schema.IsDeprecated);
+        record.Add("EnumMemberNamesAreDeclared", schema.EnumMemberNamesAreDeclared);
         record.Add("DiscriminatorPropertyName", schema.DiscriminatorPropertyName);
         record.Add("BaseRef", schema.BaseRef);
         record.Add("Type", schema.Type);
@@ -299,6 +302,7 @@ internal static class SpecModelSerializer {
         Kind = ReadSchemaKind(record.String("Kind")),
         Description = record.String("Description"),
         IsDeprecated = record.Bool("IsDeprecated"),
+        EnumMemberNamesAreDeclared = record.Bool("EnumMemberNamesAreDeclared"),
         DiscriminatorPropertyName = record.String("DiscriminatorPropertyName"),
         BaseRef = record.String("BaseRef"),
         Type = record.String("Type"),
@@ -429,7 +433,10 @@ internal static class SpecModelSerializer {
         record.Add("ResponseType", operation.ResponseType);
         record.Add("ResponseFormat", operation.ResponseFormat);
         record.Add("ResponseIsArray", operation.ResponseIsArray);
+        record.Add("ProducedContentTypes", operation.ProducedContentTypes);
         record.Add("ResponseArrayItemsRef", operation.ResponseArrayItemsRef);
+        record.Add("ResponseArrayItemsType", operation.ResponseArrayItemsType);
+        record.Add("ResponseArrayItemsFormat", operation.ResponseArrayItemsFormat);
         record.Add("SuccessStatusCode", operation.SuccessStatusCode);
         record.WriteTo(builder);
 
@@ -489,7 +496,10 @@ internal static class SpecModelSerializer {
         ResponseType = record.String("ResponseType"),
         ResponseFormat = record.String("ResponseFormat"),
         ResponseIsArray = record.Bool("ResponseIsArray"),
+        ProducedContentTypes = record.Strings("ProducedContentTypes") ?? new List<string>(),
         ResponseArrayItemsRef = record.String("ResponseArrayItemsRef"),
+        ResponseArrayItemsType = record.String("ResponseArrayItemsType"),
+        ResponseArrayItemsFormat = record.String("ResponseArrayItemsFormat"),
         SuccessStatusCode = record.Int("SuccessStatusCode") ?? 200,
     };
 

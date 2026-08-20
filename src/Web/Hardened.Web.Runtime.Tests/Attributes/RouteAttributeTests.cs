@@ -112,25 +112,60 @@ public class RouteAttributeTests {
     }
 
     /// <summary>
-    /// The four status properties <c>[Get]</c> and the rest declared until 2026-08-11 are gone.
-    /// Sixteen of them across four attributes compiled and did nothing: the web generator's
-    /// <c>RequestHandlerNameModel</c> carries only path and method, so no value ever reached the
-    /// emitted handler info. Only <c>NullReturnStatus</c> had an interface slot anything read, and
-    /// even its declared defaults contradicted the runtime. See docs/TESTING-PLAN.md §2.3.
+    /// Every verb declares <c>SuccessStatus</c>, and nothing else beyond its path.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The four status properties these carried until 2026-08-11 were removed because nothing read
+    /// them - sixteen across four attributes that compiled and did nothing, with declared defaults
+    /// that contradicted the runtime.
+    /// </para>
+    /// <para>
+    /// <c>SuccessStatus</c> is back and wired, because "nothing reads it" was an argument for
+    /// reading it. A described operation states its status through the document; without this a
+    /// hand-written handler would be the only kind that could not say the same thing. Both reach
+    /// <c>ResponseInformationModel.DefaultStatusCode</c> and one runtime behaviour.
+    /// </para>
+    /// <para>
+    /// The other three stay gone. A validation or error status asserted by a hand-written attribute
+    /// has no source of truth behind it, which is what made the original four dead weight.
+    /// </para>
+    /// </remarks>
     [Theory]
     [InlineData(typeof(GetAttribute))]
     [InlineData(typeof(PostAttribute))]
     [InlineData(typeof(PutAttribute))]
     [InlineData(typeof(DeleteAttribute))]
     [InlineData(typeof(PatchAttribute))]
-    public void NoVerbAttributeDeclaresAStatusPropertyNothingReads(Type attributeType) {
+    public void EveryVerbDeclaresSuccessStatusAndNoOtherStatus(Type attributeType) {
         var declared = attributeType.GetProperties(
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
             .Select(property => property.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(["Path"], declared);
+        Assert.Equal(["Path", "SuccessStatus"], declared);
+    }
+
+    /// <summary>
+    /// Unset means 200, and 0 is what unset looks like through reflection.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not defaulted to 200. The generator treats 200 and unset alike, and a default of
+    /// 0 makes "the author said nothing" distinguishable from "the author asked for 200" if that
+    /// ever needs telling apart. <c>NullReturnStatus = 404</c> shipping on <c>[Delete]</c> while the
+    /// runtime answered 200 is what a wrong default looks like.
+    /// </remarks>
+    [Theory]
+    [InlineData(typeof(GetAttribute))]
+    [InlineData(typeof(PostAttribute))]
+    [InlineData(typeof(PutAttribute))]
+    [InlineData(typeof(DeleteAttribute))]
+    [InlineData(typeof(PatchAttribute))]
+    public void SuccessStatusDefaultsToUnset(Type attributeType) {
+        var attribute = Activator.CreateInstance(attributeType, "")!;
+
+        Assert.Equal(0, attribute.GetType().GetProperty("SuccessStatus")!.GetValue(attribute));
     }
 
     [Fact]

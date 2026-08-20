@@ -71,13 +71,51 @@ public class JsonAndPlainTextTests {
     }
 
     /// <summary>
-    /// A client that expresses no preference gets JSON, because a bare string is offered as
-    /// text/plain rather than forced to it. Answering text here would change what every handler
-    /// returning a string does, which is not something /plaintext is worth.
+    /// A client that expresses no preference gets the one representation this operation declares.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This asserted the opposite until 2026-08-20 - that no Accept header falls back to JSON - on
+    /// the grounds that answering text here would change what every handler returning a string does.
+    /// That was a fair objection to the blunt fix and no longer applies to this one: only an
+    /// operation that declares what it produces is negotiated against its own set, and a handler
+    /// returning a bare string with nothing declared behaves exactly as it always did.
+    /// </para>
+    /// <para>
+    /// <c>/plaintext</c> declares <c>text/plain</c> and nothing else. No Accept header means
+    /// "whatever you have", and JSON is not something this operation has - it was answering with the
+    /// declared string wrapped in quotes, which is a valid JSON document and the wrong response.
+    /// </para>
+    /// </remarks>
     [HardenedTest]
-    public async Task PlainText_WithNoAcceptHeaderFallsBackToJson(ITestWebApp testWebApp) {
+    public async Task PlainText_WithNoAcceptHeaderAnswersTheOneDeclaredType(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/plaintext");
+
+        response.Assert.Ok();
+
+        Assert.Equal("text/plain", response.Headers["Content-Type"]);
+        Assert.Equal("Hello, World!", await Body.Read(response));
+    }
+
+    /// <summary>
+    /// This document declares <c>x-hardened-content-negotiation: lenient</c>, so a client asking
+    /// only for JSON at a text-only operation is served rather than refused.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The escape hatch, end to end: the root extension reaches the generated routing table, which
+    /// registers the policy, which <c>SerializationLocatorService</c> reads. Under the default -
+    /// strict - this same request is a 406, which <c>ContentNegotiationTests</c> in the OpenApi SUT
+    /// asserts.
+    /// </para>
+    /// <para>
+    /// One answer for the whole service, not per operation. A policy each operation restates is one
+    /// that ends up applied unevenly, and the operation that quietly differs is invisible.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task PlainText_UnderLenientServesJsonRatherThanRefusing(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/plaintext", Accepting("application/json"));
 
         response.Assert.Ok();
 

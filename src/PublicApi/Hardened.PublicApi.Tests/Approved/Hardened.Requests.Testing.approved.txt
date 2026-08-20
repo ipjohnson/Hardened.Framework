@@ -47,6 +47,7 @@ namespace Hardened.Requests.Testing.Conformance
         public void PathIsSurfaced() { }
         public void PathTokensAreEmptyRatherThanNullBeforeRouting() { }
         public void QueryStringIsSurfaced() { }
+        public void QueryStringValuesArriveDecoded() { }
         public void TransportInfoIsNeverNull() { }
     }
     public abstract class ExecutionResponseConformanceTests

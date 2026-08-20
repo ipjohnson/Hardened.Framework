@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CSharpAuthor;
 using Hardened.Idl.Models;
 using Hardened.SourceGenerator.Requests;
@@ -20,18 +21,37 @@ internal static class HandlerSelector {
         // Get class type from syntax (no semantic model needed)
         var implementationType = classDeclaration.GetTypeDefinition();
 
-        // Get the first base type from syntax — this is the interface the class implements.
-        // We use syntax rather than semantic model because the interface may be source-generated
-        // and not yet available in the semantic model.
-        var baseType = classDeclaration.BaseList?.Types.FirstOrDefault();
-        if (baseType == null) return null;
+        // Every entry in the base list, not the first one.
+        //
+        // This used to take BaseList.Types.FirstOrDefault() and call it "the interface the class
+        // implements". C# requires a base class to come first, so
+        //
+        //     class CatalogHandler : HandlerBase, ICatalogService
+        //
+        // registered HandlerBase and left ICatalogService unimplemented by anything - a clean build
+        // with no diagnostic and every route on that service dead at request time. Which entry is
+        // the service interface cannot be decided here, because the interface is generated and the
+        // semantic model in this pass may not have it yet. So all of them are carried and the
+        // routing table, which knows what the description declared, picks.
+        var candidates = new List<ITypeDefinition>();
 
-        var interfaceType = baseType.Type.GetTypeDefinition(context);
-        if (interfaceType == null) {
-            // If semantic model can't resolve it (generated type), extract from syntax
-            var baseTypeName = baseType.Type.ToString();
-            var classNs = classDeclaration.GetNamespace();
-            interfaceType = TypeDefinition.Get(classNs, baseTypeName);
+        if (classDeclaration.BaseList != null) {
+            foreach (var baseType in classDeclaration.BaseList.Types) {
+                var resolved = baseType.Type.GetTypeDefinition(context);
+
+                if (resolved == null) {
+                    // If semantic model can't resolve it (generated type), extract from syntax
+                    var baseTypeName = baseType.Type.ToString();
+                    var classNs = classDeclaration.GetNamespace();
+                    resolved = TypeDefinition.Get(classNs, baseTypeName);
+                }
+
+                candidates.Add(resolved);
+            }
+        }
+
+        if (candidates.Count == 0) {
+            return null;
         }
 
         // Collect class-level attributes (excluding Handler)
@@ -65,6 +85,13 @@ internal static class HandlerSelector {
             }
         }
 
-        return new HandlerInfo(implementationType, interfaceType, classFilters, methodFilters);
+        return new HandlerInfo(implementationType, candidates, classFilters, methodFilters,
+            LocationOf(classDeclaration));
     }
+
+    /// <summary>
+    /// The class name's own span, so a diagnostic underlines the handler rather than its whole body.
+    /// </summary>
+    private static Location LocationOf(ClassDeclarationSyntax classDeclaration) =>
+        classDeclaration.Identifier.GetLocation();
 }

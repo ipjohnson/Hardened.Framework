@@ -31,4 +31,20 @@ public class HttpMethodController {
     /// </summary>
     [Get("/item/{id}")]
     public string GetItem(string id) => $"got:{id}";
+
+    /// <summary>
+    /// A hand-written handler declaring the status it answers with.
+    /// </summary>
+    /// <remarks>
+    /// The other half of what a described operation states with a <c>responses:</c> key. Both reach
+    /// <c>ResponseInformationModel.DefaultStatusCode</c>, so this and the specification-first route
+    /// exercise one runtime behaviour rather than two. <c>SuccessStatus</c> was removed from these
+    /// attributes on 2026-08-11 because nothing read it; this is what reading it looks like.
+    /// </remarks>
+    [Post("/created", SuccessStatus = 201)]
+    public string CreateItem() => "created";
+
+    /// <summary>A declared 204, which also means the body is not written.</summary>
+    [Delete("/emptied", SuccessStatus = 204)]
+    public string EmptyItem() => "this body is not written";
 }

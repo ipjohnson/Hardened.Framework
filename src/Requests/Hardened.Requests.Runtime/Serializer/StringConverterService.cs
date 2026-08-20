@@ -94,6 +94,16 @@ public class StringConverterService : IStringConverterService {
             return stringConverter.Convert<T>(value);
         }
 
+        // An optional parameter arrives as Nullable<T>, so a converter registered for the underlying
+        // type has to be found through it - otherwise a required enum parameter binds through the
+        // description's vocabulary and an optional one silently falls through to Enum.Parse, which
+        // answers to a different set of values.
+        var underlying = Nullable.GetUnderlyingType(typeof(T));
+
+        if (underlying != null && _converters.TryGetValue(underlying, out stringConverter)) {
+            return stringConverter.Convert<T>(value);
+        }
+
         return StandardConverter<T>(value);
     }
 

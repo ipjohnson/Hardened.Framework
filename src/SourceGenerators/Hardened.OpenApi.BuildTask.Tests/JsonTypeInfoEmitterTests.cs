@@ -652,7 +652,10 @@ public class JsonTypeInfoEmitterTests {
         Assert.DoesNotContain("if (type == typeof(float))", result);
         Assert.DoesNotContain("if (type == typeof(double))", result);
         Assert.DoesNotContain("if (type == typeof(byte[]))", result);
-        Assert.DoesNotContain("StringConverter", result);
+        // Qualified, because the resolver also carries a StringConverters array - the generated enum
+        // converters, as the parameter binder consumes them. What this is about is the primitive
+        // type-info entries, which are JsonMetadataServices' own.
+        Assert.DoesNotContain("JsonMetadataServices.StringConverter", result);
         Assert.DoesNotContain("BooleanConverter", result);
         Assert.DoesNotContain("Int32Converter", result);
         Assert.DoesNotContain("ByteArrayConverter", result);
