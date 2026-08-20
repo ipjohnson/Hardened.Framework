@@ -113,6 +113,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
+        '404':
+          description: No pet with that id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
     put:
       tags:
         - Pet
@@ -276,3 +282,17 @@ components:
         - available
         - pending
         - sold
+    # RFC 7807. Recognised by its members rather than its name, so a null return can be given a
+    # body shaped as the contract says without anything here inventing a domain value.
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string

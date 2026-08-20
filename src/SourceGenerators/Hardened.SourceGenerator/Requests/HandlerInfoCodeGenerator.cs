@@ -77,8 +77,24 @@ public static class HandlerInfoCodeGenerator {
             parameterInfoField = ", null";
         }
 
+        // The status the operation declared, and the body a null return writes.
+        //
+        // Both sit after `requirement`, which nothing generated passes, so both are written by name.
+        // Emitted only when there is something to say - an operation answering 200 with no declared
+        // null body produces exactly the constructor call it always did.
+        var declaredArgs = "";
+
+        if (handlerModel.ResponseInformation.DefaultStatusCode is { } successStatus) {
+            declaredArgs += $", successStatus: {successStatus}";
+        }
+
+        if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.NullResponseBodyExpression)) {
+            declaredArgs +=
+                $", nullResponseBody: {handlerModel.ResponseInformation.NullResponseBodyExpression}";
+        }
+
         handlerInfoField.InitializeValue =
-            new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField}{metadataArg})");
+            new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField}{metadataArg}{declaredArgs})");
 
         // No HandlerInfo property is emitted, deliberately. The field above is the handler as
         // written; BaseExecutionHandler exposes the one the chain was actually built from, which is

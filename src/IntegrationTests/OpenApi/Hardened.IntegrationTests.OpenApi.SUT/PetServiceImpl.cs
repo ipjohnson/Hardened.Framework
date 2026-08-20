@@ -42,8 +42,18 @@ public class PetServiceImpl : IPetService {
         return Task.FromResult(matches);
     }
 
-    public Task<Pet> GetPet(string petId) {
-        return Task.FromResult(new Pet(petId, "TestPet"));
+    /// <summary>
+    /// Returns null for one id, because the document declares a 404 for this operation.
+    /// </summary>
+    /// <remarks>
+    /// The <c>?</c> on the return type is generated from that declaration - it is how the contract
+    /// says a null answer is allowed here. The framework turns it into a 404 carrying the
+    /// <c>Problem</c> the document declared, with the status and its reason phrase and nothing about
+    /// why this handler found nothing.
+    /// </remarks>
+    public Task<Pet?> GetPet(string petId) {
+        return Task.FromResult<Pet?>(
+            petId == "missing" ? null : new Pet(petId, "TestPet"));
     }
 
     public Task<Pet> ReplacePet(string petId, CreatePetRequest body) {

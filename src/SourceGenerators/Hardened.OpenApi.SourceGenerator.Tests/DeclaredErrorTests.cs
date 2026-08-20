@@ -57,15 +57,27 @@ public class DeclaredErrorTests {
     }
 
     /// <summary>
-    /// The signature is unchanged — that is what makes this non-breaking. The declared error
-    /// arrives by being thrown, not by being expressed in the return type.
+    /// A declared 404 makes the success type nullable, and nothing else about the signature moves.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <c>?</c> is the contract statement: returning null is a declared answer for this
+    /// operation, and the framework writes the 404 and the body the document declared for it. An
+    /// operation with no declared 404 has no <c>?</c>, and the compiler says so at the return.
+    /// </para>
+    /// <para>
+    /// The assertion here used to be that the signature was unchanged, on the grounds that a
+    /// declared error arrives by being thrown. Throwing is still how a handler explains a refusal -
+    /// the generated exception type carries a body it wrote. Null is the other half: the answer
+    /// when there is nothing to explain, which previously had no way to be stated at all.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void TheSuccessSignatureIsUnchanged() {
+    public void ADeclaredNotFoundMakesTheSuccessTypeNullable() {
         var generated = OpenApiGenerator.Run(Specs.DeclaredErrors).AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
-        Assert.Contains("Task<global::TestNamespace.Models.Pet> GetPet(string petId);", generated);
+        Assert.Contains("Task<global::TestNamespace.Models.Pet?> GetPet(string petId);", generated);
     }
 
     /// <summary>

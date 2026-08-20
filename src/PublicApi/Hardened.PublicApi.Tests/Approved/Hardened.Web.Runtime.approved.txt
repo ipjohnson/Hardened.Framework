@@ -22,6 +22,7 @@ namespace Hardened.Web.Runtime.Attributes
     {
         public DeleteAttribute(string path = "") { }
         public string Path { get; }
+        public int SuccessStatus { get; set; }
     }
     public class FromCookieAttribute : System.Attribute
     {
@@ -47,21 +48,25 @@ namespace Hardened.Web.Runtime.Attributes
     {
         public GetAttribute(string path = "") { }
         public string Path { get; }
+        public int SuccessStatus { get; set; }
     }
     public class PatchAttribute : System.Attribute
     {
         public PatchAttribute(string path = "") { }
         public string Path { get; }
+        public int SuccessStatus { get; set; }
     }
     public class PostAttribute : System.Attribute
     {
         public PostAttribute(string path = "") { }
         public string Path { get; }
+        public int SuccessStatus { get; set; }
     }
     public class PutAttribute : System.Attribute
     {
         public PutAttribute(string path = "") { }
         public string Path { get; }
+        public int SuccessStatus { get; set; }
     }
     [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=true, Inherited=false)]
     public class RouteConstraintAttribute : System.Attribute

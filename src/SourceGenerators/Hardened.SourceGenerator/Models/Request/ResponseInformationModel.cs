@@ -44,7 +44,26 @@ public record ResponseInformationModel {
     /// </remarks>
     public bool RendersAModel { get; set; }
 
+    /// <summary>
+    /// The status a successful response carries, or null for 200.
+    /// </summary>
+    /// <remarks>
+    /// Where the two front ends meet: a description's <c>responses:</c> key reaches this through
+    /// <c>RequestModelBuilder</c>, and <c>[Post(SuccessStatus = 201)]</c> reaches it through
+    /// <c>BaseRequestModelGenerator</c>. One field, so one runtime behaviour.
+    /// </remarks>
     public int? DefaultStatusCode { get; set; }
+
+    /// <summary>
+    /// C# naming the instance a null return writes, or null to write nothing.
+    /// </summary>
+    /// <remarks>
+    /// An expression rather than a value, because the instance is a generated <c>static readonly</c>
+    /// field on the models - allocated once for the process and serialized by the generated
+    /// <c>JsonTypeInfo</c> like any other response. It holds the status and its reason phrase and
+    /// nothing about the request, which is the point of it.
+    /// </remarks>
+    public string? NullResponseBodyExpression { get; set; }
 
     public string? RawResponseContentType { get; set; }
 
@@ -67,6 +86,7 @@ public record ResponseInformationModel {
     /// times as a side effect of adding or removing the template annotation.
     /// </remarks>
     public override string ToString() {
-        return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}";
+        return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
+               $":{DefaultStatusCode}:{NullResponseBodyExpression}";
     }
 }

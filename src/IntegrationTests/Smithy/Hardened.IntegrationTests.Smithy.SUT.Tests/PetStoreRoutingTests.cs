@@ -98,28 +98,29 @@ public class PetStoreRoutingTests {
     }
 
     /// <summary>
-    /// The model says <c>@http(code: 201)</c> and the response is 200.
+    /// The model says <c>@http(code: 201)</c> and the response is 201.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>This asserts a known gap, not the desired behaviour.</b> <c>SuccessStatusCode</c> is
-    /// parsed, carried through the serialized model, and read in exactly one place -
-    /// <c>ServiceInterfaceEmitter</c>, where it becomes the <c>&rarr; 201</c> in a doc comment.
-    /// Nothing applies it to the response, so a description that promises 201 Created answers 200.
+    /// This asserted the opposite until 2026-08-20, as a pinned known gap: <c>SuccessStatusCode</c>
+    /// was parsed, carried through the serialized model, and read in exactly one place -
+    /// <c>ServiceInterfaceEmitter</c>, where it became the <c>&rarr; 201</c> in a doc comment.
+    /// Nothing applied it, so a description promising 201 Created answered 200 and a client
+    /// generated from it was wrong about every creation endpoint.
     /// </para>
     /// <para>
-    /// It is not a Smithy problem and not new: the OpenAPI fixture's petstore.yaml declares a
-    /// <c>'201'</c> for the same operation and has no test that would notice. Fixing it changes the
-    /// status every spec-first application returns, which is a decision about the whole pipeline
-    /// rather than about this front end - so it is pinned here instead, and this test will fail the
-    /// moment someone fixes it, which is when it should be revisited.
+    /// The note left here said the fix changes the status every specification-first application
+    /// returns and so was a decision about the whole pipeline rather than about this front end, and
+    /// that the test would fail the moment someone made it. It did, and this is the revisit: the
+    /// status now reaches <c>IExecutionRequestHandlerInfo.SuccessStatus</c> from both front ends and
+    /// is applied once, in <c>ContextSerializationService</c>.
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task CreatePet_DoesNotYetApplyTheDeclaredStatusCode(ITestWebApp app) {
+    public async Task CreatePet_AppliesTheDeclaredStatusCode(ITestWebApp app) {
         var response = await app.Post(new { name = "Rex" }, "/pets");
 
-        Assert.Equal(200, response.StatusCode);
+        Assert.Equal(201, response.StatusCode);
     }
 
     /// <summary>@length(min: 1, max: 64) on the name member.</summary>

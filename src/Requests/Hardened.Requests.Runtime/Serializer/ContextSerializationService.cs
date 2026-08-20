@@ -52,8 +52,38 @@ public class ContextSerializationService : IContextSerializationService {
             return _nullValueResponse.Handle(context);
         }
 
+        // The status the operation declared, unless something along the way already chose one.
+        //
+        // Until now this was read in exactly one place - to write a "POST /books -> 201" doc comment
+        // on the generated interface - and never applied. So a document promising 201 Created was
+        // served as 200, and a client generated from that document was wrong about every creation
+        // endpoint. The value was parsed, serialized between the build task and the generator, and
+        // thrown away one step from where it was needed.
+        var declared = context.HandlerInfo?.SuccessStatus;
+
+        if (declared.HasValue && !context.Response.Status.HasValue) {
+            context.Response.Status = declared.Value;
+        }
+
+        // A status defined to carry no body carries none, whatever the handler returned. Serializing
+        // into a 204 produces a response no conforming client will read the body of and some
+        // intermediaries will reject outright.
+        if (CarriesNoBody(context.Response.Status)) {
+            return Task.CompletedTask;
+        }
+
         return _serializationLocatorService.FindResponseSerializer(context).SerializeResponse(context);
     }
+
+    /// <summary>
+    /// The statuses RFC 9110 defines as having no content.
+    /// </summary>
+    /// <remarks>
+    /// 205 is included on the same footing as 204: both are defined to have no body. 304 is here
+    /// because a conditional response repeats headers alone.
+    /// </remarks>
+    private static bool CarriesNoBody(int? status) =>
+        status is 204 or 205 or 304;
 
     /// <summary>
     /// What writes this response, built once.

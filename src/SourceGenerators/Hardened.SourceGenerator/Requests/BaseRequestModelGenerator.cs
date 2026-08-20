@@ -300,9 +300,48 @@ public abstract class BaseRequestModelGenerator {
             AsyncEnumerableItemType = asyncEnumerableItemType,
             OutputType = output,
             ReturnType = returnType,
-            RawResponseContentType = rawResponse
+            RawResponseContentType = rawResponse,
+            DefaultStatusCode = DeclaredSuccessStatus(context)
         };
     }
+
+    /// <summary>
+    /// <c>SuccessStatus</c> from the verb attribute, or null for 200.
+    /// </summary>
+    /// <remarks>
+    /// The hand-written half of what a description states with a <c>responses:</c> key. Both land on
+    /// <c>ResponseInformationModel.DefaultStatusCode</c>, which is what keeps the two front ends to
+    /// one runtime behaviour rather than two that agree by inspection.
+    /// </remarks>
+    private static int? DeclaredSuccessStatus(GeneratorSyntaxContext context) {
+        foreach (var verb in RoutingVerbs) {
+            var attribute = context.Node.GetAttribute(verb);
+
+            if (attribute?.ArgumentList == null) {
+                continue;
+            }
+
+            foreach (var argument in attribute.ArgumentList.Arguments) {
+                if (argument.NameEquals?.Name.Identifier.Text != "SuccessStatus") {
+                    continue;
+                }
+
+                if (int.TryParse(
+                        argument.Expression.ToString(),
+                        System.Globalization.NumberStyles.Integer,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var status) &&
+                    status != 200) {
+                    return status;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static readonly string[] RoutingVerbs =
+        new[] { "Get", "Post", "Put", "Patch", "Delete" };
 
     protected virtual IReadOnlyList<AttributeModel> GetFilters(
         GeneratorSyntaxContext context,

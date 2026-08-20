@@ -246,14 +246,16 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public class ExecutionRequestHandlerInfo : Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo
     {
-        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null) { }
+        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null) { }
         public System.Type HandlerType { get; }
         public string InvokeMethod { get; }
         public System.Collections.Generic.IReadOnlyList<object> Metadata { get; }
         public string Method { get; }
+        public object? NullResponseBody { get; }
         public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         public string Path { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
+        public int? SuccessStatus { get; }
         public Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo WithPath(string? path) { }
     }
     public class ExecutionRequestParameter : Hardened.Requests.Abstract.Execution.IExecutionRequestParameter
@@ -665,7 +667,7 @@ namespace Hardened.Requests.Runtime.Serializer
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class NullValueResponseHandler : Hardened.Requests.Abstract.Serializer.INullValueResponseHandler
     {
-        public NullValueResponseHandler(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.NullValueResponseHandler> logger) { }
+        public NullValueResponseHandler(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.NullValueResponseHandler> logger, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService serializationLocatorService) { }
         public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     public static class RawOutputHelper

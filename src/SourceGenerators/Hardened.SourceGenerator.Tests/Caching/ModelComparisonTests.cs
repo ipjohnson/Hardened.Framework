@@ -200,10 +200,43 @@ public class ModelComparisonTests {
             OutputType = Type("Fortunes"),
             RawResponseContentType = "text/csv",
             StreamFraming = "sse",
-            ReturnType = Type("String")
+            ReturnType = Type("String"),
+            DefaultStatusCode = 201,
+            NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem"
         };
 
-        Assert.Equal("True:System.Fortunes:text/csv:sse:System.String", model.ToString());
+        Assert.Equal(
+            "True:System.Fortunes:text/csv:sse:System.String:201:" +
+            "Models.DefaultErrorBodies.NotFoundProblem",
+            model.ToString());
+    }
+
+    /// <summary>
+    /// Two operations differing only in the status they declare are two different responses.
+    /// </summary>
+    /// <remarks>
+    /// The failure this prevents: an operation edited from <c>'200'</c> to <c>'201'</c> keeping its
+    /// cached handler and continuing to answer 200 - which is the defect the status wiring exists to
+    /// close, arriving by the back door.
+    /// </remarks>
+    [Fact]
+    public void TwoResponsesDifferingOnlyInDeclaredStatusAreDifferent() {
+        var baseline = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
+
+        Assert.NotEqual(baseline.ToString(), (baseline with { DefaultStatusCode = 201 }).ToString());
+    }
+
+    /// <summary>
+    /// And two differing only in the body a null return writes.
+    /// </summary>
+    [Fact]
+    public void TwoResponsesDifferingOnlyInNullBodyAreDifferent() {
+        var baseline = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
+
+        Assert.NotEqual(
+            baseline.ToString(),
+            (baseline with { NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem" })
+            .ToString());
     }
 
     /// <summary>

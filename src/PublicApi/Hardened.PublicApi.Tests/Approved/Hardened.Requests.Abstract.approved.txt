@@ -283,6 +283,7 @@ namespace Hardened.Requests.Abstract.Execution
         string InvokeMethod { get; }
         System.Collections.Generic.IReadOnlyList<object> Metadata { get; }
         string Method { get; }
+        object? NullResponseBody { get; }
         int? NullResponseStatus { get; }
         System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         string Path { get; }

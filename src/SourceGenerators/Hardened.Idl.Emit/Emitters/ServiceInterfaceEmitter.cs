@@ -66,7 +66,13 @@ internal static class ServiceInterfaceEmitter {
         }
 
         if (operation.ResponseRef != null) {
-            return Task(Model(operation.ResponseRef, modelsNamespace));
+            // Nullable exactly when the operation declares a 404, so the signature states what the
+            // handler is allowed to do. Returning null answers 404 with the body the document
+            // declared for it; without a declared 404 the `?` is absent and the compiler says so.
+            //
+            // A handler that wants to explain the refusal throws the generated exception type
+            // instead, which carries a body it wrote. Null is the "nothing to say" answer.
+            return Task(Model(operation.ResponseRef, modelsNamespace, DeclaresNotFound(operation)));
         }
 
         if (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null) {
@@ -107,9 +113,22 @@ internal static class ServiceInterfaceEmitter {
         }
     }
 
-    private static ITypeDefinition Model(string reference, string modelsNamespace) =>
-        TypeDefinition.Get(
-            modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(reference)));
+    private static ITypeDefinition Model(
+        string reference, string modelsNamespace, bool nullable = false) =>
+        TypeMapper.GetTypeDefinition(
+            modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(reference)), nullable);
+
+    /// <summary>
+    /// Whether a null return is a declared answer for this operation.
+    /// </summary>
+    /// <remarks>
+    /// Restricted to the verbs whose null result is a 404 - a null POST or DELETE succeeds with no
+    /// content, so <c>?</c> there would say something different from what the runtime does. See
+    /// <c>NullValueResponseHandler</c> and <c>DefaultErrorBody</c>, which is where that rule lives.
+    /// </remarks>
+    private static bool DeclaresNotFound(OperationModel operation) =>
+        (operation.HttpMethod == "GET" || operation.HttpMethod == "PUT") &&
+        operation.ErrorResponses.Any(error => error.StatusCode == 404);
 
     private static ITypeDefinition Task(ITypeDefinition result) =>
         new GenericTypeDefinition(

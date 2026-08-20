@@ -11,7 +11,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         string invokeMethod,
         IReadOnlyList<IExecutionRequestParameter>? parameters = null,
         IReadOnlyList<object>? metadata = null,
-        Requirement? requirement = null) {
+        Requirement? requirement = null,
+        int? successStatus = null,
+        object? nullResponseBody = null) {
         Path = path;
         Method = method;
         HandlerType = handlerType;
@@ -19,6 +21,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         Parameters = parameters ?? new List<IExecutionRequestParameter>();
         Metadata = metadata ?? Array.Empty<object>();
         Requirement = requirement ?? IExecutionRequestHandlerInfo.RequirementFrom(Metadata);
+        SuccessStatus = successStatus;
+        NullResponseBody = nullResponseBody;
     }
 
     public string Path { get; }
@@ -39,6 +43,12 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
     /// so the walk over metadata happens once per handler type for the life of the process.
     /// </remarks>
     public Requirement? Requirement { get; }
+
+    /// <inheritdoc />
+    public int? SuccessStatus { get; }
+
+    /// <inheritdoc />
+    public object? NullResponseBody { get; }
 
     /// <summary>
     /// The same handler, addressed at <paramref name="path"/>.
@@ -69,5 +79,6 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         string.IsNullOrEmpty(path) || string.Equals(path, Path, StringComparison.Ordinal)
             ? this
             : new ExecutionRequestHandlerInfo(
-                path!, Method, HandlerType, InvokeMethod, Parameters, Metadata, Requirement);
+                path!, Method, HandlerType, InvokeMethod, Parameters, Metadata, Requirement,
+                SuccessStatus, NullResponseBody);
 }

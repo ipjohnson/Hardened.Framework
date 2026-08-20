@@ -29,7 +29,8 @@ internal static class RequestModelBuilder {
             foreach (var operation in service.Operations) {
                 var model = BuildHandlerModel(operation, serviceType, handlerClassPrefix,
                     modelsNamespace, generatedNamespace, validationNamespace,
-                    spec.ValidatedOperations, filterTypeLookup, service.DispatchHeader);
+                    spec.ValidatedOperations, filterTypeLookup, spec.Schemas,
+                    service.DispatchHeader);
                 models.Add(model);
             }
         }
@@ -144,6 +145,7 @@ internal static class RequestModelBuilder {
         string validationNamespace,
         IReadOnlyList<ValidatedOperationModel> validatedOperations,
         Dictionary<string, FilterTypeModel> filterTypeLookup,
+        IReadOnlyList<SchemaModel> schemas,
         string? dispatchHeader = null) {
         var methodName = operation.MethodName;
         var handlerTypeName = $"{handlerClassPrefix}_{methodName}";
@@ -156,7 +158,7 @@ internal static class RequestModelBuilder {
             operation.Path, operation.HttpMethod, dispatchHeader, operation.DispatchKey);
 
         var parameters = BuildParameters(operation, modelsNamespace);
-        var responseInfo = BuildResponseInfo(operation, modelsNamespace);
+        var responseInfo = BuildResponseInfo(operation, schemas, modelsNamespace);
 
         var filters = new List<AttributeModel>();
 
@@ -292,7 +294,7 @@ internal static class RequestModelBuilder {
     }
 
     private static ResponseInformationModel BuildResponseInfo(
-        OperationModel operation, string modelsNamespace) {
+        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace) {
         ITypeDefinition? returnType = null;
 
         if (operation.ResponseRef != null) {
@@ -327,8 +329,45 @@ internal static class RequestModelBuilder {
             // Carried so the implementation can be checked against the contract: a document
             // promising rendered HTML for a model needs a view, and there is nothing to serialize
             // an object as text/html without one.
-            RendersAModel = operation.ResponseRef != null || operation.ResponseIsArray
+            RendersAModel = operation.ResponseRef != null || operation.ResponseIsArray,
+
+            // The status the description declared for the success response.
+            //
+            // 200 is not carried, because it is what the response already answers - a handler info
+            // field naming it would be noise on every operation to say nothing. Anything else is
+            // the document making a promise the service has to keep.
+            DefaultStatusCode =
+                operation.SuccessStatusCode == 200 ? null : operation.SuccessStatusCode,
+
+            NullResponseBodyExpression = NullResponseBody(operation, schemas, modelsNamespace)
         };
+    }
+
+    /// <summary>
+    /// The generated instance a null return writes, named, or null where there is none.
+    /// </summary>
+    /// <remarks>
+    /// Both the condition and the field name come from <c>DefaultErrorBody</c> rather than being
+    /// restated here. The build task that writes the field runs in a different process and this
+    /// never sees its output, so naming a field it declined to emit would produce code that does not
+    /// compile - the shared decision is what stops the two drifting.
+    /// </remarks>
+    private static string? NullResponseBody(
+        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace) {
+        var schemaName = DefaultErrorBody.SchemaFor(operation);
+
+        if (schemaName == null) {
+            return null;
+        }
+
+        // Emitted only when every required member can be filled without inventing a value.
+        if (DefaultErrorBody.Arguments(
+                schemas, schemaName, DefaultErrorBody.NullResponseStatus) == null) {
+            return null;
+        }
+
+        return $"global::{modelsNamespace}.{DefaultErrorBody.HolderTypeName}." +
+               DefaultErrorBody.FieldName(schemaName, DefaultErrorBody.NullResponseStatus);
     }
 
 
