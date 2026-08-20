@@ -33,6 +33,26 @@ internal class SchemaModel : IEquatable<SchemaModel> {
     /// </remarks>
     public List<string> EnumMemberNames { get; set; } = new();
 
+    /// <summary>
+    /// Whether <see cref="EnumMemberNames"/> is what the document asked for, or a parser's guess.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Both front ends fill that list, and they mean different things by it. OpenAPI fills it from
+    /// <c>x-enum-varnames</c>, which is an author naming the C# members outright. Smithy fills it
+    /// from the member key beside the wire value - <c>DOG = "dog"</c> - which is a hint rather than
+    /// a request, and one that PascalCases to <c>DOG</c> where the wire value gives the more
+    /// idiomatic <c>Dog</c>.
+    /// </para>
+    /// <para>
+    /// So the allocator honours the list when this is set and prefers the wire value otherwise,
+    /// which is what it has always done for Smithy. Without the distinction, turning on
+    /// <c>x-enum-varnames</c> would have renamed every Smithy-generated enum member as a side
+    /// effect.
+    /// </para>
+    /// </remarks>
+    public bool EnumMemberNamesAreDeclared { get; set; }
+
     /// <summary>The member names to emit, derived when the allocator has not run.</summary>
     public IReadOnlyList<string> EnumMembers =>
         EnumMemberNames.Count == EnumValues.Count

@@ -1,33 +1,93 @@
 using CSharpAuthor;
 using Hardened.SourceGenerator.Shared;
+using Microsoft.CodeAnalysis;
 
 namespace Hardened.Idl.SourceGenerator;
 
 internal class HandlerInfo : IEquatable<HandlerInfo> {
     public HandlerInfo(
         ITypeDefinition implementationType,
-        ITypeDefinition interfaceType,
+        IReadOnlyList<ITypeDefinition> interfaceCandidates,
         IReadOnlyList<AttributeModel> classFilters,
-        IReadOnlyList<HandlerMethodFilterInfo> methodFilters) {
+        IReadOnlyList<HandlerMethodFilterInfo> methodFilters,
+        Location? location = null) {
         ImplementationType = implementationType;
-        InterfaceType = interfaceType;
+        InterfaceCandidates = interfaceCandidates;
         ClassFilters = classFilters;
         MethodFilters = methodFilters;
+        Location = location;
     }
+
+    /// <summary>
+    /// A handler whose base list is one interface, which is the ordinary shape.
+    /// </summary>
+    public HandlerInfo(
+        ITypeDefinition implementationType,
+        ITypeDefinition interfaceType,
+        IReadOnlyList<AttributeModel> classFilters,
+        IReadOnlyList<HandlerMethodFilterInfo> methodFilters,
+        Location? location = null)
+        : this(implementationType, new[] { interfaceType }, classFilters, methodFilters, location) { }
 
     public ITypeDefinition ImplementationType { get; }
 
-    public ITypeDefinition InterfaceType { get; }
+    /// <summary>
+    /// Every entry in the class's base list, in the order it was written.
+    /// </summary>
+    /// <remarks>
+    /// Which one is the service interface is not decidable where this is built - the interface is
+    /// generated, and the semantic model of that pass may not carry it yet - so the choice is
+    /// deferred to whoever knows what the description declared. See
+    /// <see cref="ServiceInterface"/>.
+    /// </remarks>
+    public IReadOnlyList<ITypeDefinition> InterfaceCandidates { get; }
+
+    /// <summary>
+    /// The first base-list entry, which is what this used to assume was the service interface.
+    /// </summary>
+    /// <remarks>
+    /// Kept as the fallback for a handler whose base list matches no declared service, so a
+    /// registration that worked before still works. It is not the answer - <c>ServiceInterface</c>
+    /// is - and it is wrong precisely when a handler has a base class, because C# requires that to
+    /// come first.
+    /// </remarks>
+    public ITypeDefinition InterfaceType => InterfaceCandidates[0];
 
     public IReadOnlyList<AttributeModel> ClassFilters { get; }
 
     public IReadOnlyList<HandlerMethodFilterInfo> MethodFilters { get; }
 
+    /// <summary>Where the handler is declared, for a diagnostic that has to point at it.</summary>
+    public Location? Location { get; }
+
+    /// <summary>
+    /// The base-list entry naming one of <paramref name="declaredServiceNames"/>, or null.
+    /// </summary>
+    /// <remarks>
+    /// Matched on the simple name, which is what the routing table and the model builder already
+    /// compare - the generated interface's namespace is the emitting project's and a handler may
+    /// spell it unqualified.
+    /// </remarks>
+    public ITypeDefinition? ServiceInterface(ICollection<string> declaredServiceNames) {
+        foreach (var candidate in InterfaceCandidates) {
+            if (declaredServiceNames.Contains(candidate.Name)) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
     public bool Equals(HandlerInfo? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         if (!ImplementationType.Equals(other.ImplementationType)) return false;
-        if (!InterfaceType.Equals(other.InterfaceType)) return false;
+        if (InterfaceCandidates.Count != other.InterfaceCandidates.Count) return false;
+
+        for (var i = 0; i < InterfaceCandidates.Count; i++) {
+            if (!InterfaceCandidates[i].Equals(other.InterfaceCandidates[i])) return false;
+        }
+
         if (!ClassFilters.DeepEquals(other.ClassFilters)) return false;
         if (MethodFilters.Count != other.MethodFilters.Count) return false;
 
@@ -43,7 +103,7 @@ internal class HandlerInfo : IEquatable<HandlerInfo> {
     public override int GetHashCode() {
         unchecked {
             var hash = ImplementationType.GetHashCode();
-            hash = (hash * 397) ^ InterfaceType.GetHashCode();
+            hash = (hash * 397) ^ InterfaceCandidates.GetHashCodeAggregation();
             hash = (hash * 397) ^ ClassFilters.GetHashCodeAggregation();
             hash = (hash * 397) ^ MethodFilters.GetHashCodeAggregation();
             return hash;

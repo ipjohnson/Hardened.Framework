@@ -38,4 +38,9 @@ internal record SpecRegistration(
     string SpecificationTypeName,
     string PublishUrl,
     string UiUrl,
-    string UiEnvironments);
+    string UiEnvironments,
+
+    /// <summary>
+    /// <c>x-hardened-content-negotiation</c> from this description's root, or empty.
+    /// </summary>
+    string ContentNegotiation);

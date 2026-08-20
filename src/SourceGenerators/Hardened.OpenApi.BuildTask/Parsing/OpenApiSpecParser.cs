@@ -134,6 +134,16 @@ internal static class OpenApiSpecParser {
         }
 
         // Parse x-filter-types extension
+        // Whole-service, and at the root because that is the only place a document addresses the
+        // service rather than an operation. What an operation produces is per operation; what
+        // happens when a client asks for something outside that set is one answer for all of them.
+        if (document.Extensions != null &&
+            document.Extensions.TryGetValue("x-hardened-content-negotiation", out var negotiationExt) &&
+            negotiationExt is JsonNodeExtension { Node: JsonValue negotiationValue } &&
+            negotiationValue.GetValueKind() == JsonValueKind.String) {
+            model.ContentNegotiation = negotiationValue.GetValue<string>().Trim().ToLowerInvariant();
+        }
+
         if (document.Extensions != null &&
             document.Extensions.TryGetValue("x-filter-types", out var filterTypesExt) &&
             filterTypesExt is JsonNodeExtension { Node: JsonObject filterTypesObj }) {
@@ -402,6 +412,8 @@ internal static class OpenApiSpecParser {
                     operation.ResponseRef = null;
                     operation.ResponseIsArray = true;
                     operation.ResponseArrayItemsRef = response.ArrayItemsRef;
+                    operation.ResponseArrayItemsType = response.ArrayItemsType;
+                    operation.ResponseArrayItemsFormat = response.ArrayItemsFormat;
                 } else if (Missing(operation.ResponseRef)) {
                     operation.ResponseRef = null;
                 }
@@ -544,15 +556,29 @@ internal static class OpenApiSpecParser {
     private static SchemaModel? ParseSchemaKind(
         string name, IOpenApiSchema schema, SchemaCollector collector) {
         if (schema.Enum is { Count: > 0 }) {
-            return new SchemaModel {
+            var enumModel = new SchemaModel {
                 Name = name,
                 Kind = SchemaKind.Enum,
+
+                // The wire type travels with the values, because the emitters cannot tell a
+                // quoted member from an unquoted one without it - a string enum writes
+                // "science-fiction" and an integer enum writes 3.
+                Type = EnumMemberType(schema.Enum),
                 EnumValues = schema.Enum
                     .Select(EnumMember)
                         .Where(value => value != null)
                         .Select(value => value!)
                     .ToList()
             };
+
+            var declaredNames = EnumMemberNames(schema);
+
+            if (declaredNames != null && declaredNames.Count == enumModel.EnumValues.Count) {
+                enumModel.EnumMemberNames.AddRange(declaredNames);
+                enumModel.EnumMemberNamesAreDeclared = true;
+            }
+
+            return enumModel;
         }
 
         if (schema.AllOf is { Count: > 0 }) {
@@ -1101,7 +1127,14 @@ internal static class OpenApiSpecParser {
         }
 
         if (prop.Enum is { Count: > 0 }) {
-            model.Type = "string";
+            // The members' own type, not "string" unconditionally. An inline enum on a property
+            // generates no C# enum - it stays a primitive constrained by [AllowedValues] - so this
+            // is the type that member is emitted as. Forcing "string" made an integer enum a string
+            // property holding "1", "2", which is the mismatch that kept numeric members filtered
+            // out of the parser in the first place.
+            var memberType = EnumMemberType(prop.Enum);
+
+            model.Type = memberType == "integer" ? SchemaType(prop) ?? "integer" : "string";
             model.EnumValues = prop.Enum
                 .Select(EnumMember)
                     .Where(value => value != null)
@@ -1451,6 +1484,16 @@ internal static class OpenApiSpecParser {
                     }
 
                     if (response.Content != null) {
+                        // Every media type the response declares, in document order - the set the
+                        // response is negotiated against. SelectMediaType below picks one of these
+                        // to read the schema from, which is a different question: that one decides
+                        // the C# return type, this one decides what may go on the wire.
+                        foreach (var declared in response.Content.Keys) {
+                            if (!opModel.ProducedContentTypes.Contains(declared)) {
+                                opModel.ProducedContentTypes.Add(declared);
+                            }
+                        }
+
                         var responseContent = SelectMediaType(response.Content);
 
                         // itemSchema first, because it and schema answer different questions and a
@@ -1469,6 +1512,12 @@ internal static class OpenApiSpecParser {
                             opModel.ResponseFormat = responseSchema.Format;
                             opModel.ResponseIsArray = SchemaType(responseSchema) == "array";
                             opModel.ResponseArrayItemsRef = SchemaRef(responseSchema.Items);
+
+                            // The element's own type, for an array of primitives. Only the $ref was
+                            // read, so `items: {type: string}` named nothing and the response became
+                            // JsonElement - while array-of-$ref worked, which is what hid it.
+                            opModel.ResponseArrayItemsType = SchemaType(responseSchema.Items);
+                            opModel.ResponseArrayItemsFormat = responseSchema.Items?.Format;
                         }
                     }
 
@@ -1692,19 +1741,119 @@ internal static class OpenApiSpecParser {
             : null;
 
     /// <summary>
-    /// An enum member, when it is one a string-typed C# member can carry.
+    /// An enum member, as the literal text of whichever type the description declared.
     /// </summary>
     /// <remarks>
-    /// Only strings, which is what the previous reader's <c>OfType&lt;OpenApiString&gt;</c> filter
-    /// amounted to. A boolean or numeric <c>enum</c> - Stripe writes <c>deleted: {type: boolean,
-    /// enum: [true]}</c> - is still dropped, and would need the property to stop being typed as a
-    /// string before its values could mean anything. Widening it here alone emits
-    /// <c>[AllowedValues("true")]</c> against a member that never holds <c>"true"</c>.
+    /// <para>
+    /// Strings and integers both. This took strings alone, which is what the previous reader's
+    /// <c>OfType&lt;OpenApiString&gt;</c> filter amounted to - so <c>type: integer, enum: [1, 2, 3]</c>
+    /// was still recognised as an enum by <c>ParseSchemaKind</c> and arrived with every member
+    /// filtered away, emitting an empty C# enum whose generated converter threw on every value.
+    /// </para>
+    /// <para>
+    /// The note left here was that widening this alone would emit <c>[AllowedValues("true")]</c>
+    /// against a member that never holds <c>"true"</c>, which was correct: the wire type has to
+    /// travel with the values so the emitters know not to quote them. <see cref="SchemaModel.Type"/>
+    /// carries it now, and <c>ConstraintAttributes</c> reads it.
+    /// </para>
+    /// <para>
+    /// Booleans stay out. A two-valued enum is a <c>bool</c>, not a C# enum, and Stripe's
+    /// <c>deleted: {type: boolean, enum: [true]}</c> is a constant rather than a type.
+    /// </para>
     /// </remarks>
-    private static string? EnumMember(JsonNode? value) =>
-        value is JsonValue jsonValue && jsonValue.GetValueKind() == JsonValueKind.String
-            ? jsonValue.GetValue<string>()
-            : null;
+    private static string? EnumMember(JsonNode? value) {
+        if (value is not JsonValue jsonValue) {
+            return null;
+        }
+
+        switch (jsonValue.GetValueKind()) {
+            case JsonValueKind.String:
+                return jsonValue.GetValue<string>();
+            case JsonValueKind.Number:
+                return jsonValue.ToJsonString();
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>
+    /// The type an <c>enum</c>'s members are, from the members rather than from <c>type:</c>.
+    /// </summary>
+    /// <remarks>
+    /// A document is not obliged to write <c>type:</c> beside its <c>enum:</c>, and plenty do not.
+    /// Reading it from the values is what the emitters need anyway - the wire form is what the
+    /// members are, whatever the schema says about them.
+    /// </remarks>
+    private static string? EnumMemberType(IList<JsonNode> members) {
+        var sawString = false;
+        var sawNumber = false;
+
+        foreach (var member in members) {
+            if (member is not JsonValue jsonValue) {
+                continue;
+            }
+
+            switch (jsonValue.GetValueKind()) {
+                case JsonValueKind.String:
+                    sawString = true;
+                    break;
+                case JsonValueKind.Number:
+                    sawNumber = true;
+                    break;
+            }
+        }
+
+        // Both is not a C# enum in either direction, and guessing which half to honour would put
+        // half the document's values out of reach. Reported rather than resolved - see
+        // MixedEnumDiagnostics.
+        if (sawString && sawNumber) {
+            return MixedEnumType;
+        }
+
+        return sawNumber ? "integer" : sawString ? "string" : null;
+    }
+
+    /// <summary>
+    /// Marks an <c>enum</c> declaring both strings and numbers, which is a build error.
+    /// </summary>
+    internal const string MixedEnumType = "mixed-enum";
+
+    /// <summary>
+    /// The C# member names a document supplied for its enum, or null where it supplied none.
+    /// </summary>
+    /// <remarks>
+    /// <c>x-enum-varnames</c> is what openapi-generator reads and <c>x-enumNames</c> is what NSwag
+    /// reads; both are common enough in the wild that honouring one and not the other would be
+    /// arbitrary. It matters most for an integer enum, which declares values and no names at all -
+    /// without this its members are <c>Value1</c>, <c>Value2</c>, and those appear at every call
+    /// site.
+    /// </remarks>
+    private static List<string>? EnumMemberNames(IOpenApiSchema schema) {
+        if (schema.Extensions == null) {
+            return null;
+        }
+
+        foreach (var key in new[] { "x-enum-varnames", "x-enumNames" }) {
+            if (!schema.Extensions.TryGetValue(key, out var extension) ||
+                extension is not JsonNodeExtension { Node: JsonArray array }) {
+                continue;
+            }
+
+            var names = new List<string>(array.Count);
+
+            foreach (var node in array) {
+                if (node is JsonValue value && value.GetValueKind() == JsonValueKind.String) {
+                    names.Add(NamingHelper.ToPascalCase(value.GetValue<string>()));
+                }
+            }
+
+            if (names.Count == array.Count && names.Count > 0) {
+                return names;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>A string-valued member of a JSON object, or null.</summary>
     private static string? StringValue(JsonObject obj, string name) =>

@@ -29,21 +29,52 @@ public class PetServiceImpl : IPetService {
         return Task.FromResult(Pets.ToList());
     }
 
+    /// <summary>
+    /// An array of primitives, which was <c>JsonElement</c> until the element type was carried.
+    /// </summary>
+    /// <remarks>
+    /// Only <c>ResponseArrayItemsRef</c> reached the type mapper, so <c>items: {type: string}</c>
+    /// named nothing while array-of-<c>$ref</c> worked - which is exactly why it went unnoticed.
+    /// </remarks>
+    public Task<List<string>> ListPetNames() =>
+        Task.FromResult(Pets.Select(pet => pet.Name).ToList());
+
     public Task<Pet> CreatePet(CreatePetRequest body) {
         return Task.FromResult(new Pet("3", body.Name, body.Tag));
     }
 
-    public Task<List<Pet>> SearchPets(string q, string? status) {
+    /// <summary>
+    /// Echoes the enum parameters back on the match, so a test can see what bound.
+    /// </summary>
+    /// <remarks>
+    /// <c>species</c> carries a value that is not a valid C# identifier and <c>size</c> is an
+    /// integer enum - the two shapes that could not reach a handler at all before the binder read
+    /// the description's vocabulary rather than the member name.
+    /// </remarks>
+    public Task<List<Pet>> SearchPets(
+        string q, string? status, PetSpecies? species, PetSize? size) {
         var matches = Pets
             .Where(pet => pet.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
             .Select(pet => status == null ? pet : pet with { Status = status })
+            .Select(pet => species == null ? pet : pet with { Species = species })
+            .Select(pet => size == null ? pet : pet with { Size = size })
             .ToList();
 
         return Task.FromResult(matches);
     }
 
-    public Task<Pet> GetPet(string petId) {
-        return Task.FromResult(new Pet(petId, "TestPet"));
+    /// <summary>
+    /// Returns null for one id, because the document declares a 404 for this operation.
+    /// </summary>
+    /// <remarks>
+    /// The <c>?</c> on the return type is generated from that declaration - it is how the contract
+    /// says a null answer is allowed here. The framework turns it into a 404 carrying the
+    /// <c>Problem</c> the document declared, with the status and its reason phrase and nothing about
+    /// why this handler found nothing.
+    /// </remarks>
+    public Task<Pet?> GetPet(string petId) {
+        return Task.FromResult<Pet?>(
+            petId == "missing" ? null : new Pet(petId, "TestPet"));
     }
 
     public Task<Pet> ReplacePet(string petId, CreatePetRequest body) {

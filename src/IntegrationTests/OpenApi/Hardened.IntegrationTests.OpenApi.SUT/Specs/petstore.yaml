@@ -86,6 +86,20 @@ paths:
               - available
               - pending
               - sold
+        # A named enum as a query parameter, carrying a value that is not a C# identifier. This is
+        # the path that spoke a second vocabulary: the binder parsed the member name, so the
+        # document's own "guinea-pig" answered 400 and "GuineaPig" - a name the document never
+        # mentions - answered 200.
+        - name: species
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PetSpecies'
+        - name: size
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PetSize'
       responses:
         '200':
           description: Matching pets
@@ -113,6 +127,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
+        '404':
+          description: No pet with that id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
     put:
       tags:
         - Pet
@@ -170,6 +190,20 @@ paths:
       responses:
         '204':
           description: Pet deleted
+  /pets/names:
+    get:
+      tags:
+        - Pet
+      operationId: listPetNames
+      responses:
+        '200':
+          description: Just the names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
   /pets/plain:
     get:
       tags:
@@ -234,6 +268,10 @@ components:
             - available
             - pending
             - sold
+        species:
+          $ref: '#/components/schemas/PetSpecies'
+        size:
+          $ref: '#/components/schemas/PetSize'
     CreatePetRequest:
       type: object
       required:
@@ -276,3 +314,39 @@ components:
         - available
         - pending
         - sold
+    # A value that is not a valid C# identifier. Reachable as a body value and a response value
+    # since the generated converter existed; unreachable as a query parameter until the binder
+    # stopped calling Enum.Parse on the member name.
+    PetSpecies:
+      type: string
+      enum:
+        - dog
+        - cat
+        - guinea-pig
+    # An integer enum. This produced an empty C# enum whose converter threw on every value:
+    # ParseSchemaKind recognised the enum, and the member reader dropped everything non-string.
+    PetSize:
+      type: integer
+      format: int32
+      enum:
+        - 1
+        - 5
+        - 25
+      x-enum-varnames:
+        - Small
+        - Medium
+        - Large
+    # RFC 7807. Recognised by its members rather than its name, so a null return can be given a
+    # body shaped as the contract says without anything here inventing a domain value.
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string

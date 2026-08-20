@@ -46,9 +46,65 @@ public class JsonSerializerConfiguration : IJsonSerializerConfiguration {
         // An AOT application that wants named enums says so where it can be compiled:
         // [JsonSourceGenerationOptions(UseStringEnumConverter = true)] on its JsonSerializerContext.
         if (RuntimeFeature.IsDynamicCodeSupported) {
-            options.Converters.Add(new JsonStringEnumConverter());
+            options.Converters.Add(new DeclaredEnumsFirstConverter());
         }
 
         return JsonTypeInfoLookup.WithReflectionFallback(options);
     }
+}
+
+/// <summary>
+/// Names for enums that have no converter of their own, and stands aside for those that do.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A bare <c>JsonStringEnumConverter</c> sat here, and it broke every enum a description declared.
+/// System.Text.Json ranks a converter in <c>Options.Converters</c> <em>above</em> a
+/// <c>[JsonConverter]</c> attribute on the type, so the generated converter - the one that knows the
+/// document's values - never ran through this serializer. It wrote the C# member name:
+/// <c>{"genre":"ScienceFiction"}</c> where the document says <c>"science-fiction"</c>.
+/// </para>
+/// <para>
+/// It bit hardest in the test host, whose <c>Post(object, path)</c> serializes with exactly this
+/// service while the request deserializer builds its own options and honours the attribute. So the
+/// harness wrote a value its own application then refused, and every test posting a generated record
+/// carrying an enum got a 500.
+/// </para>
+/// <para>
+/// Declining by <c>CanConvert</c> rather than dropping the converter outright: an application's own
+/// enums, which no description declared and nothing generated a converter for, still serialize as
+/// names rather than as numbers. Only the enums that already know their own wire form are left
+/// alone.
+/// </para>
+/// </remarks>
+internal sealed class DeclaredEnumsFirstConverter : JsonConverterFactory {
+
+    /// <summary>
+    /// An enum that has not already said how it is written.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test is spelled out rather than delegated to a held <c>JsonStringEnumConverter</c>.
+    /// Constructing one in a field initializer is IL3050 whatever this class does with it, because
+    /// the field runs outside the <c>IsDynamicCodeSupported</c> guard that makes the rest of this
+    /// safe - and a suppression there would be claiming something untrue.
+    /// </para>
+    /// <para>
+    /// <c>Nullable&lt;TEnum&gt;</c> is deliberately <em>not</em> claimed, which is what the built-in
+    /// converter does too: System.Text.Json unwraps a nullable and asks about the underlying type,
+    /// so answering true here wins a type this cannot then build a converter for.
+    /// </para>
+    /// </remarks>
+    public override bool CanConvert(Type typeToConvert) =>
+        typeToConvert.IsEnum &&
+        !typeToConvert.IsDefined(typeof(JsonConverterAttribute), inherit: false);
+
+    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
+        Justification = "Only reached from DefaultConfiguration, which guards on " +
+                        "RuntimeFeature.IsDynamicCodeSupported; ILC removes that branch.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
+        Justification = "Same guard: an AOT publish never reaches this factory.")]
+    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
+        new JsonStringEnumConverter().CreateConverter(typeToConvert, options);
+
 }

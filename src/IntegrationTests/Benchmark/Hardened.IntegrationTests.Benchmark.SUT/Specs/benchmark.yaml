@@ -1,4 +1,9 @@
 openapi: "3.0.0"
+# A whole-service policy, at the root because that is the only place a document addresses the
+# service. Lenient keeps the pre-2026-08-20 answer for a client that asks for something no operation
+# produces: serialize with the default rather than refusing. Set here so the escape hatch is
+# exercised somewhere, and because a benchmark harness would rather answer than argue.
+x-hardened-content-negotiation: lenient
 info:
   title: TechEmpower Framework Benchmarks
   version: "1.0.0"

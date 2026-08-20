@@ -300,9 +300,76 @@ public abstract class BaseRequestModelGenerator {
             AsyncEnumerableItemType = asyncEnumerableItemType,
             OutputType = output,
             ReturnType = returnType,
-            RawResponseContentType = rawResponse
+            RawResponseContentType = rawResponse,
+            DefaultStatusCode = DeclaredSuccessStatus(context),
+            ProducedContentTypes = DeclaredContentTypes(context)
         };
     }
+
+    /// <summary>
+    /// <c>SuccessStatus</c> from the verb attribute, or null for 200.
+    /// </summary>
+    /// <remarks>
+    /// The hand-written half of what a description states with a <c>responses:</c> key. Both land on
+    /// <c>ResponseInformationModel.DefaultStatusCode</c>, which is what keeps the two front ends to
+    /// one runtime behaviour rather than two that agree by inspection.
+    /// </remarks>
+    private static int? DeclaredSuccessStatus(GeneratorSyntaxContext context) {
+        foreach (var verb in RoutingVerbs) {
+            var attribute = context.Node.GetAttribute(verb);
+
+            if (attribute?.ArgumentList == null) {
+                continue;
+            }
+
+            foreach (var argument in attribute.ArgumentList.Arguments) {
+                if (argument.NameEquals?.Name.Identifier.Text != "SuccessStatus") {
+                    continue;
+                }
+
+                if (int.TryParse(
+                        argument.Expression.ToString(),
+                        System.Globalization.NumberStyles.Integer,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var status) &&
+                    status != 200) {
+                    return status;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// <c>[SupportedContentTypes(...)]</c>, comma-joined, or null where the handler said nothing.
+    /// </summary>
+    /// <remarks>
+    /// The hand-written half of a described operation's <c>content:</c> keys. Read from syntax
+    /// rather than the semantic model, like everything else here.
+    /// </remarks>
+    private static string? DeclaredContentTypes(GeneratorSyntaxContext context) {
+        var attribute = context.Node.GetAttribute("SupportedContentTypes");
+
+        if (attribute?.ArgumentList == null || attribute.ArgumentList.Arguments.Count == 0) {
+            return null;
+        }
+
+        var types = new List<string>();
+
+        foreach (var argument in attribute.ArgumentList.Arguments) {
+            var literal = argument.Expression.ToString().Trim();
+
+            if (literal.Length > 1 && literal[0] == '"' && literal[literal.Length - 1] == '"') {
+                types.Add(literal.Substring(1, literal.Length - 2));
+            }
+        }
+
+        return types.Count == 0 ? null : string.Join(",", types);
+    }
+
+    private static readonly string[] RoutingVerbs =
+        new[] { "Get", "Post", "Put", "Patch", "Delete" };
 
     protected virtual IReadOnlyList<AttributeModel> GetFilters(
         GeneratorSyntaxContext context,

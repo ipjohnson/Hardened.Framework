@@ -177,6 +177,62 @@ public class SpecRoutingTableGeneratorTests {
         Assert.Matches(@"AddTransient<[^>]*IPetService[^>]*,[^>]*PetServiceImpl[^>]*>", result);
     }
 
+    /// <summary>
+    /// A handler declaring a base class registers against its service interface, not the base.
+    /// </summary>
+    /// <remarks>
+    /// C# requires a base class to be written first, and the selector took the first base-list entry
+    /// and called it the interface. So <c>class PetServiceImpl : HandlerBase, IPetService</c>
+    /// registered <c>HandlerBase</c>, nothing implemented <c>IPetService</c>, the build stayed clean
+    /// and every route on that service failed at request time.
+    /// </remarks>
+    [Fact]
+    public void GenerateCSharpRouteFile_RegistersTheServiceInterfaceRatherThanAPrecedingBaseClass() {
+        var appModel = CreateAppModel();
+        var handlers = CreatePetstoreHandlers();
+
+        var handlerInfo = new HandlerInfo(
+            TypeDefinition.Get("Test.Api", "PetServiceImpl"),
+            new ITypeDefinition[] {
+                TypeDefinition.Get("Test.Api", "HandlerBase"),
+                TypeDefinition.Get("Test.Api.Services", "IPetService")
+            },
+            Array.Empty<AttributeModel>(),
+            Array.Empty<HandlerMethodFilterInfo>());
+
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            appModel, handlers, ImmutableArray.Create<HandlerInfo?>(handlerInfo),
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+
+        Assert.Matches(@"AddTransient<[^>]*IPetService[^>]*,[^>]*PetServiceImpl[^>]*>", result);
+        Assert.DoesNotMatch(@"AddTransient<[^>]*HandlerBase[^>]*,", result);
+    }
+
+    /// <summary>
+    /// A handler naming no described service still registers against its first base-list entry,
+    /// which is what it did before any of this. HOAG031 reports it; the registration is unchanged.
+    /// </summary>
+    [Fact]
+    public void GenerateCSharpRouteFile_FallsBackToTheFirstBaseTypeWhenNoneIsADescribedService() {
+        var appModel = CreateAppModel();
+        var handlers = CreatePetstoreHandlers();
+
+        var handlerInfo = new HandlerInfo(
+            TypeDefinition.Get("Test.Api", "OrphanImpl"),
+            new ITypeDefinition[] {
+                TypeDefinition.Get("Test.Api", "ISomethingElse"),
+                TypeDefinition.Get("Test.Api", "IAlsoNotDescribed")
+            },
+            Array.Empty<AttributeModel>(),
+            Array.Empty<HandlerMethodFilterInfo>());
+
+        var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
+            appModel, handlers, ImmutableArray.Create<HandlerInfo?>(handlerInfo),
+            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+
+        Assert.Matches(@"AddTransient<[^>]*ISomethingElse[^>]*,[^>]*OrphanImpl[^>]*>", result);
+    }
+
     [Fact]
     public void GenerateCSharpRouteFile_ContainsRoutingForEndpointPaths() {
         var appModel = CreateAppModel();

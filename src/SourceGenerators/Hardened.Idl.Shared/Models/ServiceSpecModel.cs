@@ -50,7 +50,19 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// </summary>
     public List<ValidatedOperationModel> ValidatedOperations { get; set; } = new();
 
+    /// <summary>
+    /// <c>x-hardened-content-negotiation</c> at the document root - "strict", "lenient", or empty.
+    /// </summary>
+    /// <remarks>
+    /// A whole-service answer rather than a per-operation one, and at the root because that is the
+    /// only place in a document that addresses the service. What an operation produces is per
+    /// operation; what happens outside that set is not.
+    /// </remarks>
+    public string ContentNegotiation { get; set; } = "";
+
     public bool Equals(ServiceSpecModel? other) {
+        if (other is not null && ContentNegotiation != other.ContentNegotiation) return false;
+
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         if (FileName != other.FileName) return false;

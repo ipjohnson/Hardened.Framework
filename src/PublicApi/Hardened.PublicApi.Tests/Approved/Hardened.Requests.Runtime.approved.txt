@@ -246,14 +246,17 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public class ExecutionRequestHandlerInfo : Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo
     {
-        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null) { }
+        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null) { }
         public System.Type HandlerType { get; }
         public string InvokeMethod { get; }
         public System.Collections.Generic.IReadOnlyList<object> Metadata { get; }
         public string Method { get; }
+        public object? NullResponseBody { get; }
         public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         public string Path { get; }
+        public System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
+        public int? SuccessStatus { get; }
         public Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo WithPath(string? path) { }
     }
     public class ExecutionRequestParameter : Hardened.Requests.Abstract.Execution.IExecutionRequestParameter
@@ -535,6 +538,11 @@ namespace Hardened.Requests.Runtime.QueryString
         public static Hardened.Requests.Abstract.QueryString.IQueryStringCollection Instance { get; }
         public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
     }
+    public static class QueryStringParser
+    {
+        public static Hardened.Requests.Abstract.QueryString.IQueryStringCollection Parse(string? rawQueryString) { }
+        public static Hardened.Requests.Abstract.QueryString.IQueryStringCollection ParseFromPath(string? path) { }
+    }
     public class SimpleQueryStringCollection : Hardened.Requests.Abstract.QueryString.IQueryStringCollection
     {
         public SimpleQueryStringCollection(System.Collections.Generic.IDictionary<string, string>? queryParameters) { }
@@ -660,7 +668,7 @@ namespace Hardened.Requests.Runtime.Serializer
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class NullValueResponseHandler : Hardened.Requests.Abstract.Serializer.INullValueResponseHandler
     {
-        public NullValueResponseHandler(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.NullValueResponseHandler> logger) { }
+        public NullValueResponseHandler(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.NullValueResponseHandler> logger, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService serializationLocatorService) { }
         public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     public static class RawOutputHelper
@@ -680,7 +688,7 @@ namespace Hardened.Requests.Runtime.Serializer
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class SerializationLocatorService : Hardened.Requests.Abstract.Serializer.ISerializationLocatorService
     {
-        public SerializationLocatorService(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IRequestDeserializer> requestDeserializers, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IResponseSerializer> responseSerializers) { }
+        public SerializationLocatorService(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IRequestDeserializer> requestDeserializers, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IResponseSerializer> responseSerializers, Hardened.Requests.Abstract.Serializer.IContentNegotiationPolicy? negotiationPolicy = null) { }
         public Hardened.Requests.Abstract.Serializer.IRequestDeserializer FindRequestDeserializer(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public Hardened.Requests.Abstract.Serializer.IResponseSerializer FindResponseSerializer(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }

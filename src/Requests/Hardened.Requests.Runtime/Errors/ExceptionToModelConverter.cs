@@ -1,4 +1,5 @@
-﻿using DependencyModules.Runtime.Attributes;
+﻿using System.Text.Json;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Validation;
@@ -51,7 +52,17 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
                 });
         }
 
-        var model = new ErrorModel { Type = exp.GetType().Name, Message = exp.Message };
+        // A body the caller sent that this service cannot read. System.Text.Json raises it for
+        // malformed JSON, and the generated converters raise it deliberately to name a value the
+        // specification does not declare - "'cooking' is not a value Genre declares."
+        //
+        // Every other bad value in the same body already answers 400 with a field-level error list;
+        // this one answered 500, which told a client its own typo was a server fault. Shaped as a
+        // validation error rather than an ErrorModel so one malformed field reads the same however
+        // it was caught.
+        if (exp is JsonException jsonException) {
+            return (400, BodyReadError(jsonException));
+        }
 
         // Client errors are identified by type, not by the shape of the type's name.
         //
@@ -61,8 +72,76 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         //
         // To have an exception treated as a client error, derive it from
         // BadRequestException.
-        var statusCode = exp is BadRequestException or FormatException ? 400 : 500;
+        if (exp is BadRequestException or FormatException) {
+            // The message is kept here and dropped below, which is the whole distinction: these are
+            // raised about the caller's own request, by code that chose the wording for them.
+            return (400, new ErrorModel { Type = exp.GetType().Name, Message = exp.Message });
+        }
 
-        return (statusCode, model);
+        // Nothing about the exception reaches the caller.
+        //
+        // This used to answer with the type's name and its message verbatim, and a test pinned that
+        // - using "connection string 'Server=db;Password=hunter2' failed" as its example, so the
+        // hazard was understood at the time and left for a deliberate decision. This is it. An
+        // unhandled exception is a server fault; its message was written for whoever is reading the
+        // logs, not for whoever made the request, and it is the one message here nobody chose with a
+        // caller in mind.
+        //
+        // Nothing is lost: IRequestLogger.RequestFailed already logs the exception with its stack,
+        // method and path at Error, which is where it belongs.
+        return (500, ServerError);
+    }
+
+    /// <summary>
+    /// The whole of what a caller learns from an unhandled exception.
+    /// </summary>
+    /// <remarks>
+    /// Shared rather than constructed per request - it holds nothing about the request, which is
+    /// the point of it.
+    /// </remarks>
+    private static readonly ErrorModel ServerError = new() {
+        Type = "ServerError",
+        Message = "The server could not complete this request."
+    };
+
+    /// <summary>
+    /// A body that could not be read, as the same field-level shape a failed constraint produces.
+    /// </summary>
+    /// <remarks>
+    /// The message is the exception's, because a <c>JsonException</c> describes the caller's own
+    /// payload - which is what a 400 is for, and what every constraint message in the same list
+    /// already does. Its trailing <c>Path: $.x | LineNumber: 0 | ...</c> is dropped, since the path
+    /// is the field rather than prose.
+    /// </remarks>
+    private static RequestValidationError BodyReadError(JsonException exception) =>
+        new() {
+            Type = "ValidationError",
+            Message = "One or more validation errors occurred.",
+            Errors = [
+                new RequestValidationFieldError {
+                    Field = FieldFrom(exception.Path),
+                    Code = "invalid",
+                    Message = WithoutPositionSuffix(exception.Message)
+                }
+            ]
+        };
+
+    /// <summary>
+    /// <c>$.genre</c>, as <c>body.genre</c> - the spelling the constraint validators use.
+    /// </summary>
+    private static string FieldFrom(string? path) {
+        if (string.IsNullOrEmpty(path) || path == "$") {
+            return "body";
+        }
+
+        return path!.StartsWith("$.", StringComparison.Ordinal)
+            ? "body." + path.Substring(2)
+            : "body" + path.Substring(1);
+    }
+
+    private static string WithoutPositionSuffix(string message) {
+        var marker = message.IndexOf(" Path: ", StringComparison.Ordinal);
+
+        return marker == -1 ? message : message.Substring(0, marker);
     }
 }

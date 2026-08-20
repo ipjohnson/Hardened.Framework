@@ -90,7 +90,6 @@ public class AotRequestDeserializer : IRequestDeserializer {
             return await DeserializeEncodedContent<T>(context, contentEncoding);
         }
 
-        _logger.LogInformation($"Deserialize with option convert count {_serializerOptions.Converters.Count}");
         return await System.Text.Json.JsonSerializer.DeserializeAsync(
             context.Request.Body, Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions));
     }

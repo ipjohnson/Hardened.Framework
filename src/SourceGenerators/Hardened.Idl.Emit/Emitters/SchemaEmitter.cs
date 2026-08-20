@@ -315,10 +315,30 @@ internal static class SchemaEmitter {
                     $"typeof(global::{modelsNamespace}.{EnumConverterEmitter.ConverterName(schema.Name)})")
                 { Indented = false });
 
+        // An integer enum's members are its declared numbers, so the C# member carries the value it
+        // stands for rather than a position. A string enum's numbering is meaningless and stays
+        // implicit, which keeps every existing generated enum byte-identical.
+        var underlying = EnumWireForm.UnderlyingType(schema);
+
+        if (underlying != null) {
+            enumDefinition.BaseType = TypeDefinition.Get("System", "Int64");
+        }
+
+        var numeric = EnumWireForm.IsNumeric(schema);
+
         // Allocated, not derived - see NameAllocator. Two wire values can reach C# as one member
         // name, and deciding that here would be deciding it in one of the places that used to.
-        foreach (var member in schema.EnumMembers) {
-            enumDefinition.AddValue(member);
+        var members = EnumWireForm.MemberNames(schema);
+
+        for (var index = 0; index < members.Count; index++) {
+            // The literal itself, not a component wrapping it - AddValue renders the argument with
+            // ToString(), so a component lands in the output as its own type name.
+            if (numeric) {
+                enumDefinition.AddValue(members[index], schema.EnumValues[index]);
+            }
+            else {
+                enumDefinition.AddValue(members[index]);
+            }
         }
 
         return enumDefinition;

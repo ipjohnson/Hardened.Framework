@@ -74,11 +74,41 @@ internal static class SpecDiagnostics {
         }
     }
 
+    /// <summary>
+    /// An <c>enum</c> declaring both strings and numbers, which is not a C# enum in either form.
+    /// </summary>
+    /// <remarks>
+    /// Fatal rather than resolved. Honouring the strings puts the numbers out of reach and honouring
+    /// the numbers puts the strings out of reach, so either choice silently drops half the values a
+    /// caller may send - which is the shape of defect the whole enum vocabulary work exists to
+    /// close. The document has to say which it means.
+    /// </remarks>
+    private static void FindMixedEnums(ServiceSpecModel model, List<Problem> problems) {
+        foreach (var schema in model.Schemas) {
+            if (schema.Kind == SchemaKind.Enum && schema.Type == MixedEnumType) {
+                problems.Add(new Problem(
+                    "HOAT011",
+                    $"Enum '{schema.Name}' declares both string and numeric values. A C# enum " +
+                    "carries one wire form or the other, and picking one here would put every " +
+                    "value of the other kind out of reach. Declare the members as all strings or " +
+                    "all numbers.",
+                    fatal: true));
+            }
+        }
+    }
+
+    /// <summary>
+    /// What the parser marks a mixed enum's type as. Spelled here rather than referenced, because
+    /// this assembly does not see the OpenAPI parser.
+    /// </summary>
+    internal const string MixedEnumType = "mixed-enum";
+
     public static IReadOnlyList<Problem> Find(ServiceSpecModel model) {
         var problems = new List<Problem>();
 
         FindDuplicateSchemaNames(model, problems);
         FindUnresolvableChoices(model, problems);
+        FindMixedEnums(model, problems);
 
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
