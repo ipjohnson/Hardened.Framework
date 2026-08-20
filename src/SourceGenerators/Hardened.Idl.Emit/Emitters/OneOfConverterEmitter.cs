@@ -230,7 +230,17 @@ internal static class OneOfConverterEmitter {
         // The branches nothing separates on paper. A payload usually settles it - two schemas whose
         // properties are all optional overlap until one arrives carrying a property only one of them
         // declares - so each is tried and the count decides.
-        lines.Add("object? matched = null;");
+        //
+        // Accumulated as the wrapper rather than as object, and wrapped inside the try where the
+        // branch type is still known. `new(matched!)` over an object needs a constructor taking one,
+        // which is the shape this type is moving away from: one constructor per branch says the same
+        // thing to the compiler instead of to a run-time check, and is what the language declares
+        // for a union. Read<T> throws rather than returning null, so a caught branch never stored
+        // one, and `matches` is what says whether `matched` was ever assigned.
+        var wrapper = TypeMapper.QualifiedName(
+            modelsNamespace, NamingHelper.ToPascalCase(schema.Name), false);
+
+        lines.Add($"{wrapper} matched = default;");
         lines.Add("var matches = 0;");
         lines.Add("");
 
@@ -240,7 +250,7 @@ internal static class OneOfConverterEmitter {
 
             lines.Add("try");
             lines.Add("{");
-            lines.Add($"    matched = Read<{type}>(element, options);");
+            lines.Add($"    matched = new(Read<{type}>(element, options));");
             lines.Add("    matches++;");
             lines.Add("}");
             lines.Add("catch (global::System.Text.Json.JsonException)");
@@ -251,7 +261,7 @@ internal static class OneOfConverterEmitter {
 
         lines.Add("if (matches == 1)");
         lines.Add("{");
-        lines.Add("    return new(matched!);");
+        lines.Add("    return matched;");
         lines.Add("}");
         lines.Add("");
 

@@ -18,11 +18,11 @@ namespace Hardened.Idl.Emitters;
 /// </para>
 /// <para>
 /// A struct, so an optional payload is <c>T?</c> and a required one cannot be null - the same shape
-/// a generated enum already has, which is why the type mapper needs one predicate for both. The
-/// constructor is the only way in and it refuses anything that is not a branch, so the only instance
-/// that can hold nothing is <c>default</c>, which nothing here produces. It would be a
-/// <c>readonly struct</c> if CSharpAuthor rendered that modifier on a type; the single get-only
-/// property makes it immutable either way.
+/// a generated enum already has, which is why the type mapper needs one predicate for both. There is
+/// one constructor per branch and they are the only way in, so a value the schema does not permit
+/// does not compile, and the only instance that can hold nothing is <c>default</c>, which nothing
+/// here produces. It would be a <c>readonly struct</c> if CSharpAuthor rendered that modifier on a
+/// type; the single get-only property makes it immutable either way.
 /// </para>
 /// <para>
 /// Named for where it is declared rather than for what it holds - <c>OneOfHolderPayload</c> rather
@@ -37,12 +37,24 @@ namespace Hardened.Idl.Emitters;
 /// covering every case is checked for exhaustiveness.
 /// </para>
 /// <para>
-/// Not emitted here because generated code compiles in the consumer's project, and unions need
-/// <c>net11.0</c>. When that is the floor this becomes a second emit gated on the target framework,
-/// and it is not a breaking change for anyone: <c>Value</c> is spelled the same either way, so
-/// <c>switch (payload.Value) { case Cat c: ... }</c> written against this keeps compiling against
-/// the native one. The converter is needed in both cases - the union feature says nothing about
-/// System.Text.Json - so the discriminator and shape work is what carries over.
+/// Not emitted here because generated code compiles in the consumer's project, and the keyword needs
+/// a <b>C# 15 compiler</b> - which is a <c>LangVersion</c> question, not a target framework one. A
+/// <c>net8.0</c> project on the .NET 11 SDK can declare a union; a <c>net11.0</c> project on an
+/// older SDK cannot, so gating this on the target framework would answer both wrongly. When it is
+/// emitted it becomes a second emit selected by the module, alongside this one rather than instead
+/// of it.
+/// </para>
+/// <para>
+/// The swap costs a caller nothing they wrote deliberately: <c>Value</c> is spelled the same either
+/// way, so <c>switch (payload.Value) { case Cat c: ... }</c> keeps compiling. What does change is a
+/// pattern applied to the wrapper itself - <c>payload is { Value: Cat c }</c> - because patterns on
+/// a union unwrap to <c>Value</c>, so the property pattern starts looking for a <c>Value</c> on the
+/// branch. That is why the choice is a mode the module names rather than something inferred from
+/// the compiler in hand: it moves on an edit that can be reviewed, not on an SDK upgrade.
+/// </para>
+/// <para>
+/// The converter is needed in both cases - the union feature says nothing about System.Text.Json -
+/// so the discriminator and shape work is what carries over.
 /// </para>
 /// </remarks>
 internal static class OneOfEmitter {
@@ -64,7 +76,7 @@ internal static class OneOfEmitter {
         type.Comment = DocComment.Format(schema.Description) ?? $"One of {readable}.";
 
         EmitValue(type);
-        EmitConstructor(type, name, branches, readable);
+        EmitConstructors(type, name, branches);
         EmitConversions(type, name, branches);
         EmitToString(type);
 
@@ -84,33 +96,42 @@ internal static class OneOfEmitter {
         value.Set = null;
     }
 
-    private static void EmitConstructor(
-        ClassDefinition type, string name, List<string> branches, string readable) {
-        var constructor = type.AddConstructor();
-
-        constructor.Modifiers |= ComponentModifier.Public;
-        constructor.AddParameter(TypeDefinition.Get(typeof(object)), "value");
-        constructor.Comment = $"Wraps a value the schema permits.";
-
-        // The check the type exists for. Written as a pattern rather than a chain of `is`, so
-        // adding a branch adds a word instead of a clause.
-        //
-        // Add rather than AddIndentedStatement: that appends a ";" per component, which turns the
-        // guard into `if (...);` followed by an unconditional throw - code that compiles, and that
-        // refuses every value the type was built to accept.
-        var lines = new[] {
-            $"if (value is not ({string.Join(" or ", branches)}))",
-            "{",
-            "    throw new global::System.ArgumentException(",
-            $"        \"Expected {readable}, got \" + (value?.GetType().Name ?? \"null\") + \".\",",
-            "        nameof(value));",
-            "}",
-            "",
-            "Value = value;"
-        };
-
-        foreach (var line in lines) {
-            constructor.Add(new CodeOutputComponent(line) { Indented = true });
+    /// <summary>
+    /// One constructor per branch, so the branch set is stated to the compiler rather than to a
+    /// run-time check.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This was a single constructor over <c>object</c> that threw <c>ArgumentException</c> for
+    /// anything that was not a branch. One per branch says the same thing earlier: a value the
+    /// schema does not permit is now a build error at the call site rather than a throw on the line
+    /// that constructed it, and the message the old check composed had nowhere left to be needed.
+    /// </para>
+    /// <para>
+    /// It is also the shape the language recognises. A type with one single-parameter constructor
+    /// per case and a public <c>object? Value</c> is what <c>union OneOfHolderPayload(Cat, Dog);</c>
+    /// compiles to, so this differs from the native declaration in nothing a caller can observe -
+    /// which is what lets the two be swapped without touching code that uses either.
+    /// </para>
+    /// <para>
+    /// The one case this changes rather than moves: <see cref="Branches"/> drops a branch it could
+    /// not type, so a value of that branch had no constructor to reach anyway. It used to reach the
+    /// <c>object</c> one and throw; now there is nothing to call. A refusal at build time rather
+    /// than at run time, which is the direction worth moving in, but it is visible.
+    /// </para>
+    /// <para>
+    /// Emitted as components rather than through <c>AddConstructor</c>, for the same reason the
+    /// conversions below are: the branch is a qualified name rather than a type this assembly can
+    /// reference, and taking both from one list is what keeps a constructor and its conversion from
+    /// ever disagreeing about the branch set.
+    /// </para>
+    /// </remarks>
+    private static void EmitConstructors(ClassDefinition type, string name, List<string> branches) {
+        foreach (var branch in branches) {
+            type.AddComponent(
+                new CodeOutputComponent($"public {name}({branch} value) => Value = value;") {
+                    Indented = true
+                });
         }
     }
 

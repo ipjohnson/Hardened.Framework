@@ -788,6 +788,50 @@ public class GeneratedCodeCompilesTests {
     }
 
     /// <summary>
+    /// A choice declared as a component of its own generates the same wrapper a property-level one
+    /// does, named by the document, and the operation returning it is typed as it.
+    /// </summary>
+    /// <remarks>
+    /// Both used to end somewhere unusable: undiscriminated it parsed as a primitive with no type,
+    /// so the operation lost its response type; discriminated it became an object, and a bare
+    /// <c>oneOf</c> declares no properties, so the type generated empty and a payload deserialized
+    /// into nothing behind a build that stayed green.
+    /// </remarks>
+    [Fact]
+    public void AComponentThatIsAChoiceGeneratesTheWrapperAndTypesTheOperation() {
+        var generated = Undent(OpenApiGenerator.Run(Specs.ComponentChoice).AssertNoErrors());
+
+        Assert.Contains("public struct Pet", generated);
+        Assert.Contains("Task<global::TestNamespace.Models.Pet> GetPet(string petId);", generated);
+
+        // The wrapper is not an empty object: it carries the branches and its own converter.
+        Assert.Contains("public object? Value", generated);
+        Assert.Contains("public sealed class PetConverter", generated);
+    }
+
+    /// <summary>
+    /// A choice takes one constructor per branch, so a value the schema does not permit does not
+    /// compile.
+    /// </summary>
+    /// <remarks>
+    /// This was a single constructor over <c>object</c> guarded by a run-time
+    /// <c>ArgumentException</c>. One per branch says the same thing to the compiler instead, and is
+    /// the shape the language recognises - a type with one single-parameter constructor per case
+    /// and a public <c>object? Value</c> is what <c>union Pet(Cat, Dog);</c> compiles to.
+    /// </remarks>
+    [Fact]
+    public void AChoiceTakesOneConstructorPerBranchRatherThanCheckingAtRunTime() {
+        var generated = Undent(OpenApiGenerator.Run(Specs.ComponentChoice).AssertNoErrors());
+
+        Assert.Contains("public Pet(global::TestNamespace.Models.Cat value) => Value = value;", generated);
+        Assert.Contains("public Pet(global::TestNamespace.Models.Dog value) => Value = value;", generated);
+
+        // The guard the constructors replace, and the message it composed, are both gone.
+        Assert.DoesNotContain("public Pet(object value)", generated);
+        Assert.DoesNotContain("throw new global::System.ArgumentException(", generated);
+    }
+
+    /// <summary>
     /// The generated file with every line left-trimmed, so an assertion about the shape of a doc
     /// comment does not also depend on how deeply the member it documents happens to be nested.
     /// </summary>

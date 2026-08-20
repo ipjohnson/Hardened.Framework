@@ -559,9 +559,30 @@ internal static class OpenApiSpecParser {
             return ParseAllOf(name, schema, collector);
         }
 
+        // A component whose whole definition is a choice becomes the type that holds one of its
+        // branches - the same type a property declaring one inline gets, and for the same reason.
+        //
+        // Both spellings used to end somewhere unusable. Without a discriminator it matched none of
+        // the shapes below and fell through to Primitive with a null type, so every property naming
+        // it read as JsonElement and an operation returning it lost its response type altogether.
+        // With one it came here and became an object, which is the worse of the two: a bare oneOf
+        // declares no properties, so the type generated empty and a payload deserialized into
+        // nothing at all - silently, behind a build that stayed green.
+        //
+        // Properties of its own are the case that is still an object. A oneOf beside properties is
+        // a base carrying shared members, which is a hierarchy rather than a choice.
+        if (schema.OneOf is { Count: > 0 } &&
+            (schema.Properties == null || schema.Properties.Count == 0)) {
+            var choice = ParseComponentChoice(name, schema);
+
+            if (choice != null) {
+                return choice;
+            }
+        }
+
         // A oneOf naming its branches, with a discriminator to choose between them, is the base of
-        // a hierarchy. It matched none of the shapes below and fell through to Primitive with a
-        // null type, which is what made every property referencing it a JsonElement.
+        // a hierarchy. Reached now only when the schema declares properties of its own, or when the
+        // branches left no choice to make.
         if (schema.OneOf is { Count: > 0 } && schema.Discriminator != null) {
             return ParseObjectSchema(name, schema, collector);
         }
@@ -582,6 +603,46 @@ internal static class OpenApiSpecParser {
             Kind = SchemaKind.Primitive,
             Type = SchemaType(schema),
             Format = schema.Format
+        };
+    }
+
+    /// <summary>
+    /// A component that is a choice between named schemas, or null when there is no choice left to
+    /// make.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Fewer than two branches is not a choice: one means the schema is an alias for that branch,
+    /// and none means every branch typed to nothing - <c>{}</c> or 3.1's <c>{type: "null"}</c>,
+    /// which <see cref="CollectBranches"/> drops. Both return null and fall through to the ordinary
+    /// shapes rather than producing a type that holds one thing or nothing, which is the same rule
+    /// a property declaring the same <c>oneOf</c> follows.
+    /// </para>
+    /// <para>
+    /// The discriminator is deliberately not read here. <c>ParseSchema</c> runs
+    /// <c>ParsePolymorphism</c> over every schema this returns, and that already reads
+    /// <c>propertyName</c>, an explicit <c>mapping</c>, and the bare form the specification says
+    /// keys each branch by its own name. Reading it twice would be two places to disagree.
+    /// </para>
+    /// <para>
+    /// Named by the component rather than by its branches, so it needs no allocation here: the name
+    /// is the one the document gave it. <c>NameAllocator</c> reserves the converter beside it, the
+    /// same as for a synthesized choice.
+    /// </para>
+    /// </remarks>
+    private static SchemaModel? ParseComponentChoice(string name, IOpenApiSchema schema) {
+        var branches = new List<ChoiceBranchModel>();
+
+        CollectBranches(schema.OneOf, branches);
+
+        if (branches.Count < 2) {
+            return null;
+        }
+
+        return new SchemaModel {
+            Name = name,
+            Kind = SchemaKind.OneOf,
+            OneOf = branches
         };
     }
 
@@ -884,7 +945,17 @@ internal static class OpenApiSpecParser {
         }
     }
 
-    private static void CollectBranches(IList<IOpenApiSchema>? branches, PropertyModel model) {
+    /// <summary>
+    /// The branches of a choice, as the model describes them.
+    /// </summary>
+    /// <remarks>
+    /// Takes the list rather than the owner, because a choice is declared in two places and they do
+    /// not share a model type: on a property, where it becomes a synthesized type named for where it
+    /// sits, and as a component of its own, where it is already named. Reading both through one
+    /// method is what keeps them from disagreeing about which branches count.
+    /// </remarks>
+    private static void CollectBranches(
+        IList<IOpenApiSchema>? branches, List<ChoiceBranchModel> into) {
         if (branches == null) {
             return;
         }
@@ -905,8 +976,8 @@ internal static class OpenApiSpecParser {
                 ? new ChoiceBranchModel { Ref = reference }
                 : new ChoiceBranchModel { Type = SchemaType(branch), Format = branch.Format };
 
-            if (!model.OneOf.Contains(described)) {
-                model.OneOf.Add(described);
+            if (!into.Contains(described)) {
+                into.Add(described);
             }
         }
     }
@@ -990,8 +1061,8 @@ internal static class OpenApiSpecParser {
         // What the payload is allowed to be. Recorded whether or not it becomes a type of its own,
         // because the branches would otherwise leave no trace in the model - and a schema nothing
         // in the model points at is not generated.
-        CollectBranches(prop.OneOf, model);
-        CollectBranches(prop.AnyOf, model);
+        CollectBranches(prop.OneOf, model.OneOf);
+        CollectBranches(prop.AnyOf, model.OneOf);
         CollectTypeUnion(prop, model);
 
         // A choice between named schemas becomes a type that holds exactly one of them, rather than
@@ -1113,8 +1184,12 @@ internal static class OpenApiSpecParser {
         if (SchemaType(schema) == "array") return SchemaRef(schema);
         if (schema.AllOf is { Count: > 0 }) return SchemaRef(schema);
 
-        // The base of a polymorphic hierarchy gets a generated type like any other object.
-        if (schema.OneOf is { Count: > 0 } && schema.Discriminator != null) return SchemaRef(schema);
+        // The base of a polymorphic hierarchy gets a generated type like any other object, and so
+        // does a component that is a choice between branches - see ParseComponentChoice. Both are
+        // covered by the same test: a oneOf declares a type either way, and neither has a `type` of
+        // its own for the primitive check below to see. Without this the reference was dropped and
+        // the property inlined to JsonElement, which is the type it was trying not to be.
+        if (schema.OneOf is { Count: > 0 }) return SchemaRef(schema);
 
         // Primitive types (string, integer, number, boolean) — inline them.
         return null;
