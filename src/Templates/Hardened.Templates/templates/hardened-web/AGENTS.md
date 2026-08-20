@@ -58,7 +58,7 @@ naming both versions, because different CLI versions can produce different ASTs.
 finds `[Get]`, `[Post]`, `[Put]`, `[Delete]` or `[Patch]` and emits a handler bound to that
 method's exact signature.
 
-`[BasePath]` on `Hardened1Library` prefixes every route in the assembly, so a route of `/{name}`
+`[BasePath]` on `TemplateModuleNameLibrary` prefixes every route in the assembly, so a route of `/{name}`
 is served at `/greeting/{name}`.
 #endif
 

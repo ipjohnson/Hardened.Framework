@@ -10,7 +10,7 @@ namespace Hardened1;
 /// The library module: this assembly's handlers, services and URL space.
 /// </summary>
 /// <remarks>
-/// The host imports it with the single generated [Hardened1Library] attribute. partial is not
+/// The host imports it with the single generated [TemplateModuleNameLibrary] attribute. partial is not
 /// optional - the generator writes the other half.
 /// </remarks>
 [HardenedModule]
@@ -19,4 +19,4 @@ namespace Hardened1;
 // This assembly's URL space. Every route below it is relative to this.
 [BasePath("/greeting")]
 #endif
-public partial class Hardened1Library;
+public partial class TemplateModuleNameLibrary;

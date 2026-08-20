@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Ian Johnson",
+  "classifications": [
+    "Serverless",
+    "AWS",
+    "Hardened"
+  ],
+  "identity": "Hardened.Function.CSharp",
+  "groupIdentity": "Hardened.Function",
+  "name": "Hardened Lambda Function",
+  "shortName": "hardened-function",
+  "description": "A Hardened AWS Lambda function: a handler, its services, and a test project that invokes it without AWS.",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "Hardened1",
+  "preferNameDirectory": true,
+  "symbols": {
+    "trigger": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "invoke",
+      "description": "What invokes the function.",
+      "choices": [
+        {
+          "choice": "invoke",
+          "description": "A direct invocation. The payload is the handler's parameter and its return value is the response."
+        },
+        {
+          "choice": "sqs",
+          "description": "An SQS queue. The batch is unpacked, the handler runs per record, and failures are reported per record."
+        }
+      ]
+    },
+    "HardenedVersion": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "0.0.0-DEV",
+      "description": "The Hardened package version to pin. Defaults to the version this template shipped with.",
+      "replaces": "0.0.0-HARDENED-VERSION"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Skip the automatic restore after creation."
+    },
+    "invoke": {
+      "type": "computed",
+      "value": "(trigger == 'invoke')"
+    },
+    "sqs": {
+      "type": "computed",
+      "value": "(trigger == 'sqs')"
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "src/Hardened1/Hardened1.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "condition": "(!skipRestore)",
+      "description": "Restore the packages the template pinned.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ],
+  "specialCustomOperations": {
+    "**/*.md": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "if": [
+              "#if"
+            ],
+            "else": [
+              "#else"
+            ],
+            "elseif": [
+              "#elseif"
+            ],
+            "endif": [
+              "#endif"
+            ],
+            "trim": true,
+            "wholeLine": true,
+            "evaluator": "C++"
+          }
+        }
+      ]
+    }
+  }
+}

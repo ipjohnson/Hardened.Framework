@@ -48,7 +48,7 @@ A route is an attribute on a method of a plain class — no base type, no interf
 public Greeting Hello(string name) => new($"Hello, {name}!");
 ```
 
-`[BasePath]` on `Hardened1Library` prefixes every route in the assembly, so that one is served at
+`[BasePath]` on `TemplateModuleNameLibrary` prefixes every route in the assembly, so that one is served at
 `/greeting/{name}`. `[Get]`, `[Post]`, `[Put]`, `[Delete]` and `[Patch]` all behave the same way.
 
 A service is registered next to the class it belongs to, with `[SingletonService]`,

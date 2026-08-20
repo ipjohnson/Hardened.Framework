@@ -5,9 +5,11 @@
     cases: Hardened brings ASP.NET Core in through a framework reference where it needs it, and
     the Web SDK's Razor pipeline only gets in the way.
   -->
+<!--#if (!lambda) -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
+<!--#endif -->
 
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Runtime" />
@@ -17,6 +19,11 @@
 <!--#endif -->
 <!--#if (aspnet) -->
     <PackageReference Include="Hardened.Web.AspNetCore.Runtime" />
+<!--#endif -->
+<!--#if (lambda) -->
+    <PackageReference Include="Hardened.Amz.Shared.Lambda.Runtime" />
+    <PackageReference Include="Hardened.Amz.Web.Lambda.Runtime" />
+    <PackageReference Include="Hardened.Amz.Web.Lambda.SourceGenerator" PrivateAssets="all" />
 <!--#endif -->
     <PackageReference Include="Hardened.Library.SourceGenerator" />
     <PackageReference Include="Hardened.Web.SourceGenerator" />
