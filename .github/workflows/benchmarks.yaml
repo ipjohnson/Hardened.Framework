@@ -46,9 +46,15 @@ jobs:
       # and the same hazard: the credential is expanded at restore time, but the env was scoped to
       # this step, so it was already gone. It went unnoticed here because a scheduled benchmark run
       # failing is quieter than a build failing.
+      # Two SDKs, for the reason build-package.yaml gives at length: global.json selects the .NET 11
+      # preview to compile with, and the net8.0 assemblies need the 8.0 runtime to start. A
+      # benchmark is also a measurement, so the SDK it was taken on is part of the result - which is
+      # the other reason the preview is named exactly rather than as 11.0.x.
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: |
+            8.0.x
+            11.0.100-preview.7.26381.103
 
       # Recorded with the results because a benchmark number means nothing without the
       # machine that produced it, and hosted runner hardware changes over time.
