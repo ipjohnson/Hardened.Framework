@@ -141,21 +141,11 @@
           ]
         },
         {
-          "condition": "(!lambda)",
+          "comment": "The launch profile exists to open /docs on F5. Without the page there is nothing for it to open, and a profile pointing at a 404 is worse than no profile.",
+          "condition": "(!OpenApiUi)",
           "exclude": [
-            "src/Hardened1.Harness/**",
-            "Hardened1.Lambda.sln"
+            "src/Hardened1.Host/Properties/launchSettings.json"
           ]
-        },
-        {
-          "condition": "(lambda)",
-          "exclude": [
-            "src/Hardened1.Host/Program.cs",
-            "Hardened1.sln"
-          ],
-          "rename": {
-            "Hardened1.Lambda.sln": "Hardened1.sln"
-          }
         }
       ]
     }

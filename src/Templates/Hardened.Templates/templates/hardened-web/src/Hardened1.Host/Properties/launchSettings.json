@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Hardened1.Host (+Browser)": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "docs",
+      "applicationUrl": "http://localhost:5080"
+    }
+  }
+}
