@@ -19,7 +19,13 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # in the global packages folder, so a fixed version means the second run restores the first run's
 # content however many times the framework has been rebuilt since - a green run over stale
 # packages, which is worse than no run at all.
-VERSION="0.0.0-verify$(date +%s)"
+#
+# 99.0.0 rather than 0.0.0, and that is not cosmetic either. Hardened.Amz depends on published
+# Hardened packages with a floor - ">= 0.10.0-rc1000" today - and a 0.0.0 version sits below it,
+# so every Lambda project failed to restore with NU1605 rather than exercising anything. A real
+# release is always above that floor, so the verification version has to be too, or the Amz
+# templates can only ever be tested against the previous release instead of the build in hand.
+VERSION="99.0.0-verify$(date +%s)"
 FEED="${TMPDIR:-/tmp}/hardened-template-feed"
 WORK="${TMPDIR:-/tmp}/hardened-template-work"
 SMITHY_PIN=1.73.0
@@ -227,38 +233,32 @@ for TEMPLATE in hardened-library hardened-web; do
     fi
 done
 
-# The Amz-dependent variants cannot be verified against the framework build under test, and that
-# is a property of the dependency direction rather than an omission. Hardened.Amz depends on
-# published Hardened packages, so a generated project pinned to this run's 0.0.0-verify framework
-# also drags in whatever version Amz was built against - NU1605, every time. They are therefore
-# generated against the newest published version, which gates the templates themselves without
-# claiming to gate the build under test.
-say "AWS Lambda templates (published packages)"
-PUBLISHED=$(curl -s "https://api.nuget.org/v3-flatcontainer/hardened.amz.function.lambda.runtime/index.json" \
-    | tr ',' '\n' | tr -d '" ' | grep -E '^[0-9]' | tail -1)
+# The Amz pin floats, which is what lets these be gated against the build under test at all.
+# Hardened.Amz depends on published Hardened packages, so an exact pin here would name a version
+# that does not exist yet for the whole window between the two repositories' releases. Floating it
+# means the framework packages come from this run's feed while Hardened.Amz stays on its newest
+# published release - which is precisely the state a release leaves the world in, so verifying it
+# is verifying the thing that actually ships.
+say "AWS Lambda templates"
+for AMZ in "hardened-function --trigger invoke" "hardened-function --trigger sqs" "hardened-web --host aws-lambda"; do
+    set -- $AMZ
+    AMZ_TEMPLATE="$1"; shift
+    AMZ_OUT="$WORK/amz-$AMZ_TEMPLATE-$(echo "$*" | tr -cd 'a-z')"
 
-if [ -z "$PUBLISHED" ]; then
-    echo "   SKIPPED: could not reach nuget.org for the published Hardened.Amz version"
-else
-    echo "   pinned to $PUBLISHED, not this run's $VERSION"
+    dotnet new "$AMZ_TEMPLATE" -n Sample -o "$AMZ_OUT" "$@" --skip-restore
+    dotnet nuget add source "$FEED" --name template-verify-local --configfile "$AMZ_OUT/nuget.config" >/dev/null
 
-    for AMZ in "hardened-function --trigger invoke" "hardened-function --trigger sqs" "hardened-web --host aws-lambda"; do
-        set -- $AMZ
-        AMZ_TEMPLATE="$1"; shift
-        AMZ_OUT="$WORK/amz-$AMZ_TEMPLATE-$(echo "$*" | tr -cd 'a-z')"
-
-        # No local feed added: these restore from nuget.org alone, on purpose.
-        dotnet new "$AMZ_TEMPLATE" -n Sample -o "$AMZ_OUT" "$@" \
-            --hardened-version "$PUBLISHED" --skip-restore
-
-        if ( cd "$AMZ_OUT" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
-            echo "   $AMZ_TEMPLATE $*: builds and tests"
-        else
-            echo "   FAILED: $AMZ_TEMPLATE $*"
-            FAILED=1
-        fi
-    done
-fi
+    if ( cd "$AMZ_OUT" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
+        echo "   $AMZ_TEMPLATE $*: builds and tests"
+        # Worth printing: a float that silently stopped resolving would otherwise look identical
+        # to one that resolved to the right thing.
+        grep -hoE '"Hardened\.Amz\.[A-Za-z.]+/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
+            | tr -d '"' | sort -u | head -2 | sed 's/^/     resolved /'
+    else
+        echo "   FAILED: $AMZ_TEMPLATE $*"
+        FAILED=1
+    fi
+done
 
 say "host independence"
 # The framework's claim is that handlers, filters, binding and routing do not change with the
