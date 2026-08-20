@@ -59,10 +59,8 @@ public class ResponseModelGeneratorTests {
     private static Diagnostic? Reported(GeneratorResult result, string id) =>
         result.GeneratorDiagnostics.FirstOrDefault(diagnostic => diagnostic.Id == id);
 
-    private static void AssertNoModeDiagnostics(GeneratorResult result) {
-        Assert.Null(Reported(result, ResponseModelDiagnostics.ResponseNotImplementedId));
+    private static void AssertNoModeDiagnostics(GeneratorResult result) =>
         Assert.Null(Reported(result, ResponseModelDiagnostics.UnionNotImplementedId));
-    }
 
     #region the modes that build
 
@@ -119,30 +117,20 @@ public class ResponseModelGeneratorTests {
         Assert.Contains("TestApplication", reported.GetMessage(), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void ResponseMode_IsABuildError() {
-        var reported = Reported(
-            Generate(
-                "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
-                "Hardened.Requests.Abstract.Responses.ResponseModel.Response)]"),
-            ResponseModelDiagnostics.ResponseNotImplementedId);
-
-        Assert.NotNull(reported);
-        Assert.Equal(DiagnosticSeverity.Error, reported!.Severity);
-        Assert.Contains("TestApplication", reported.GetMessage(), StringComparison.Ordinal);
-    }
-
     /// <summary>
-    /// One mode reports one diagnostic. Reporting both would leave a consumer suppressing the wrong
-    /// one, and would say the module declared something it did not.
+    /// Response mode builds. It reported HRDRM001 until code-first Response was emitted, and this is
+    /// the assertion that says the diagnostic went away rather than the mode quietly doing nothing:
+    /// a module declaring it produces a routing table and no error.
     /// </summary>
     [Fact]
-    public void UnionMode_DoesNotAlsoReportTheResponseDiagnostic() {
+    public void ResponseMode_Builds() {
         var result = Generate(
             "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
-            "Hardened.Requests.Abstract.Responses.ResponseModel.Union)]");
+            "Hardened.Requests.Abstract.Responses.ResponseModel.Response)]");
 
-        Assert.Null(Reported(result, ResponseModelDiagnostics.ResponseNotImplementedId));
+        AssertNoModeDiagnostics(result);
+        Assert.Empty(result.GeneratorDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+        Assert.Contains(result.GeneratedSources, pair => pair.Key.Contains("Routing"));
     }
 
     #endregion

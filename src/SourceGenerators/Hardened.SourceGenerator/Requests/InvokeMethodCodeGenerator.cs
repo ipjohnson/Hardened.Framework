@@ -32,14 +32,108 @@ public static class InvokeMethodCodeGenerator {
         AssignOutputFactory(requestHandlerModel, invokeMethod, context);
         AssignRawContentType(requestHandlerModel, invokeMethod, context);
 
-        if (requestHandlerModel.ResponseInformation.ReturnType != null && 
-            requestHandlerModel.ResponseInformation.ReturnType.Name != typeof(void).Name) {
+        var cases = UnionResponseSelector.Decode(requestHandlerModel.ResponseInformation.UnionCases);
+
+        if (cases.Count > 0) {
+            EmitResponseSetDispatch(invokeMethod, invokeStatement, context, cases);
+        }
+        else if (requestHandlerModel.ResponseInformation.ReturnType != null &&
+                 requestHandlerModel.ResponseInformation.ReturnType.Name != typeof(void).Name) {
             invokeMethod.Assign(invokeStatement).To(context.Property("Response.ResponseValue"));
         }
         else {
             invokeMethod.AddIndentedStatement(invokeStatement);
         }
     }
+
+    /// <summary>
+    /// The glue for a handler that returns a declared response set.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The payload needs no transformation: <c>IExecutionResponse.ResponseValue</c> is already
+    /// <c>object?</c> and a union's <c>Value</c> is already <c>object?</c>, so it is assigned once
+    /// before the switch rather than in every arm. What the switch decides is the status, the
+    /// headers, and whether anything is serialized - the three things the case type knows and the
+    /// pipeline does not.
+    /// </para>
+    /// <para>
+    /// A type switch rather than a chain of <c>is</c> checks, so the compiler orders the tests and
+    /// reports an unreachable arm. Case types cannot be assignable to one another - the built-in
+    /// ones are sealed and the diagnostics reject a set where they are - so arm order carries no
+    /// meaning and the emitted order is the declared one, which is what makes the generated file
+    /// readable against the signature.
+    /// </para>
+    /// <para>
+    /// <c>default</c> answers 500. It is reached when <c>Value</c> is null, which
+    /// <c>return default;</c> produces and which compiles - a handler that declared no case has
+    /// stated nothing, and guessing a success status for it would send a caller an empty body under
+    /// a 200.
+    /// </para>
+    /// <para>
+    /// Built through <c>SwitchBlockDefinition</c> rather than composed as text. Only the case label
+    /// is a raw component, because a case type is a fully-qualified name rather than a type this
+    /// assembly can reference - the same reason <c>OneOfEmitter</c> emits its constructors that way.
+    /// Everything else is a statement, so the braces and the indentation are the author's problem
+    /// rather than this file's.
+    /// </para>
+    /// </remarks>
+    private static void EmitResponseSetDispatch(
+        MethodDefinition invokeMethod,
+        IOutputComponent invokeStatement,
+        ParameterDefinition context,
+        IReadOnlyList<UnionCaseModel> cases) {
+        var result = invokeMethod.Assign(invokeStatement).ToVar(ResultVariable);
+
+        var payload = result.Property(ValueProperty);
+
+        invokeMethod.Assign(payload).To(context.Property("Response.ResponseValue"));
+
+        var switchBlock = invokeMethod.Switch(payload);
+
+        for (var i = 0; i < cases.Count; i++) {
+            var unionCase = cases[i];
+
+            // A named binding only where an arm reads it. `case T _:` is a declaration pattern with
+            // a discard, which has been legal since C# 7 - lower than the bare type pattern `case
+            // T:` a reader might reach for, and the difference matters because this is a consumer's
+            // build rather than ours. The alternative was naming every binding and discarding the
+            // unread ones, which put a `_ = __case0;` line in most arms of every handler.
+            var binding = unionCase.AppliesHeaders ? CaseVariable + i : "_";
+
+            var caseBlock = switchBlock.AddCase(
+                CodeOutputComponent.Get(unionCase.TypeName + " " + binding));
+
+            caseBlock.Assign(CodeOutputComponent.Get(unionCase.Status.ToString()))
+                .To(context.Property("Response.Status"));
+
+            if (unionCase.AppliesHeaders) {
+                caseBlock.AddIndentedStatement(
+                    CodeOutputComponent.Get(binding)
+                        .Invoke("ApplyHeaders", context.Property("Response.Headers")));
+            }
+
+            if (!unionCase.HasBody) {
+                caseBlock.Assign(CodeOutputComponent.Get("false"))
+                    .To(context.Property("Response.ShouldSerialize"));
+            }
+
+            caseBlock.Break();
+        }
+
+        var fallback = switchBlock.AddDefault();
+
+        fallback.Assign(CodeOutputComponent.Get("500")).To(context.Property("Response.Status"));
+        fallback.Assign(CodeOutputComponent.Get("false"))
+            .To(context.Property("Response.ShouldSerialize"));
+        fallback.Break();
+    }
+
+    private const string ResultVariable = "__response";
+
+    private const string CaseVariable = "__case";
+
+    private const string ValueProperty = "Value";
 
     /// <summary>
     /// Puts the handler's <c>[Output&lt;T&gt;]</c> factory on the response, when it declares one.

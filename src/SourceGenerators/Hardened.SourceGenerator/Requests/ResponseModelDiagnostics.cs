@@ -7,21 +7,21 @@ namespace Hardened.SourceGenerator.Requests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// An error rather than a warning, and reported for both non-default modes. A mode that is accepted
-/// and then does nothing produces an application that compiles, runs, and answers every request the
-/// way standard mode does - while its author believes it has a declared response set. That is the
-/// silently-wrong outcome the whole design is arranged to avoid, and it is worse than a build
-/// failure because nothing about it looks like a failure.
+/// An error rather than a warning. A mode that is accepted and then does nothing produces an
+/// application that compiles, runs, and answers every request the way standard mode does - while its
+/// author believes it has a declared response set. That is the silently-wrong outcome the whole
+/// design is arranged to avoid, and it is worse than a build failure because nothing about it looks
+/// like a failure.
 /// </para>
 /// <para>
-/// Both diagnostics are deleted by the work that implements the mode they name, so their lifetime
-/// is short by construction.
+/// Each diagnostic is deleted by the work that implements the mode it names, so its lifetime is
+/// short by construction. <c>HRDRM001</c> was the <c>Response</c> mode and is gone: code-first
+/// <c>Response</c> is emitted by <c>UnionResponseSelector</c> and <c>InvokeMethodCodeGenerator</c>,
+/// and the id is not reused, because a consumer suppressing it should not silently acquire a
+/// suppression for something else.
 /// </para>
 /// </remarks>
 public static class ResponseModelDiagnostics {
-
-    /// <summary>The <c>Response</c> mode, before the struct and its emit exist.</summary>
-    public const string ResponseNotImplementedId = "HRDRM001";
 
     /// <summary>The <c>Union</c> mode, before the language union is emitted.</summary>
     public const string UnionNotImplementedId = "HRDRM002";
@@ -31,18 +31,6 @@ public static class ResponseModelDiagnostics {
     /// <c>OpenApiVersionDiagnostics</c> gives: RS2008 looks for the field, and these projects set
     /// <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    internal static DiagnosticDescriptor ResponseNotImplementedDescriptor() => new(
-        id: ResponseNotImplementedId,
-        title: "Response mode is not implemented yet",
-        messageFormat:
-            "'{0}' declares [ResponseModel(ResponseModel.Response)], which this version cannot " +
-            "emit - handlers would be generated as though the module were Standard, with the " +
-            "declared response set silently discarded. Use ResponseModel.Standard and throw for " +
-            "the other statuses until Response mode ships.",
-        category: "Hardened.Responses",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
     internal static DiagnosticDescriptor UnionNotImplementedDescriptor() => new(
         id: UnionNotImplementedId,
         title: "Union mode is not implemented yet",
@@ -64,8 +52,12 @@ public static class ResponseModelDiagnostics {
     /// </remarks>
     public static void ReportUnimplementedMode(
         SourceProductionContext context, ResponseModelValue model, string entryPointName) {
+        // Response is absent deliberately. Code-first, the return type already decides: a handler
+        // returning something that matches the basic union pattern gets the dispatch whatever the
+        // module declared, so a module in Response mode works. What the mode still governs is the
+        // signature the IDL-first emitter writes, and an analyzer checking methods against the
+        // declared intent - neither of which is a reason to fail this build.
         var descriptor = model switch {
-            ResponseModelValue.Response => ResponseNotImplementedDescriptor(),
             ResponseModelValue.Union => UnionNotImplementedDescriptor(),
             _ => null
         };

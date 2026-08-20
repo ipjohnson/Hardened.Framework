@@ -203,13 +203,50 @@ public class ModelComparisonTests {
             ReturnType = Type("String"),
             DefaultStatusCode = 201,
             NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem",
-            ProducedContentTypes = "text/plain,text/csv"
+            ProducedContentTypes = "text/plain,text/csv",
+            UnionCases = "global::App.Todo|201|01;global::App.NotFound|404|01"
         };
 
         Assert.Equal(
             "True:System.Fortunes:text/csv:sse:System.String:201:" +
-            "Models.DefaultErrorBodies.NotFoundProblem:text/plain,text/csv",
+            "Models.DefaultErrorBodies.NotFoundProblem:text/plain,text/csv:" +
+            "global::App.Todo|201|01;global::App.NotFound|404|01",
             model.ToString());
+    }
+
+    /// <summary>
+    /// And two differing only in the cases they declare.
+    /// </summary>
+    /// <remarks>
+    /// The failure this prevents is the one the response set makes possible: a handler edited to
+    /// drop or add a case keeping its cached dispatch, so the emitted switch answers on a set the
+    /// signature no longer declares. That surfaces as a status nothing in the source explains.
+    /// </remarks>
+    [Fact]
+    public void TwoResponsesDifferingOnlyInTheirCaseSetAreDifferent() {
+        var baseline = new ResponseInformationModel {
+            IsAsync = true,
+            ReturnType = Type("String"),
+            UnionCases = "global::App.Todo|200|01"
+        };
+
+        Assert.NotEqual(
+            baseline.ToString(),
+            (baseline with { UnionCases = "global::App.Todo|200|01;global::App.Gone|410|01" })
+                .ToString());
+    }
+
+    /// <summary>
+    /// A handler that declares a response set is not the same as one that returns a single type,
+    /// even where everything else about the two agrees.
+    /// </summary>
+    [Fact]
+    public void AResponseSetIsDifferentFromASingleReturnType() {
+        var single = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
+
+        Assert.NotEqual(
+            single.ToString(),
+            (single with { UnionCases = "global::App.Todo|200|01" }).ToString());
     }
 
     /// <summary>

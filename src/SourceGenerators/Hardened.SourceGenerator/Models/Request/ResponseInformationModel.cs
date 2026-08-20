@@ -90,6 +90,26 @@ public record ResponseInformationModel {
     public string? RawResponseContentType { get; set; }
 
     /// <summary>
+    /// The cases of a declared response set, encoded, or null where the handler returns one type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A joined string for the reason <see cref="ProducedContentTypes"/> is one, and the reasoning
+    /// there applies here with more at stake: this is a <c>record</c>, so its synthesized equality
+    /// is the cache key, and a <c>List&lt;UnionCaseModel&gt;</c> member would compare by reference.
+    /// Two handlers declaring the same cases would look different to the incremental generator and
+    /// two declaring different ones could look the same - and what a wrong answer produces here is
+    /// a handler emitting the dispatch for a response set it no longer has.
+    /// </para>
+    /// <para>
+    /// <c>UnionResponseSelector</c> owns both directions of the format so there is one definition of
+    /// it. Null rather than empty for a handler that returns a single type: an empty set would be a
+    /// response set with no cases, which is not the same thing and is not a shape anything produces.
+    /// </para>
+    /// </remarks>
+    public string? UnionCases { get; set; }
+
+    /// <summary>
     /// How a streamed response is framed on the wire, or null for newline-delimited JSON.
     /// </summary>
     /// <remarks>
@@ -106,9 +126,17 @@ public record ResponseInformationModel {
     /// This is what a caching failure is read through, and either property changing alone has to be
     /// visible in it. It has reported one and dropped the other twice now, in each direction, both
     /// times as a side effect of adding or removing the template annotation.
+    ///
+    /// <para>
+    /// <see cref="UnionCases"/> was added to this in the same edit that added the property, for that
+    /// reason. A case set changing while this string does not is a caching failure that surfaces as
+    /// a handler dispatching on cases it no longer declares, which looks like nothing to do with
+    /// caching at all.
+    /// </para>
     /// </remarks>
     public override string ToString() {
         return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
-               $":{DefaultStatusCode}:{NullResponseBodyExpression}:{ProducedContentTypes}";
+               $":{DefaultStatusCode}:{NullResponseBodyExpression}:{ProducedContentTypes}" +
+               $":{UnionCases}";
     }
 }

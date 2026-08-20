@@ -19,33 +19,27 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 public class ResponseModelDiagnosticsTests {
 
     [Fact]
-    public void BothUnimplementedModes_AreErrors() {
-        Assert.Equal(
-            DiagnosticSeverity.Error,
-            ResponseModelDiagnostics.ResponseNotImplementedDescriptor().DefaultSeverity);
-
+    public void TheUnimplementedMode_IsAnError() {
         Assert.Equal(
             DiagnosticSeverity.Error,
             ResponseModelDiagnostics.UnionNotImplementedDescriptor().DefaultSeverity);
     }
 
-    /// <summary>
-    /// Distinct ids, because the two are removed by different pieces of work and a consumer
-    /// suppressing one must not lose the other.
-    /// </summary>
     [Fact]
-    public void TheTwoModes_ReportDistinctIds() {
-        Assert.NotEqual(
-            ResponseModelDiagnostics.ResponseNotImplementedId,
-            ResponseModelDiagnostics.UnionNotImplementedId);
-
-        Assert.Equal(
-            ResponseModelDiagnostics.ResponseNotImplementedId,
-            ResponseModelDiagnostics.ResponseNotImplementedDescriptor().Id);
-
+    public void TheDescriptor_CarriesTheDeclaredId() {
         Assert.Equal(
             ResponseModelDiagnostics.UnionNotImplementedId,
             ResponseModelDiagnostics.UnionNotImplementedDescriptor().Id);
+    }
+
+    /// <summary>
+    /// HRDRM001 was Response mode and is gone, since code-first Response is emitted now. The id is
+    /// not reused: a consumer who suppressed it must not silently acquire a suppression for
+    /// something else.
+    /// </summary>
+    [Fact]
+    public void TheRetiredResponseId_IsNotReused() {
+        Assert.NotEqual("HRDRM001", ResponseModelDiagnostics.UnionNotImplementedId);
     }
 
     /// <summary>
@@ -62,27 +56,18 @@ public class ResponseModelDiagnosticsTests {
     }
 
     /// <summary>
-    /// Each message says what to do instead. Response points at Standard because that is the only
-    /// mode that works; Union points at Response, which is what it is for.
+    /// The message says what to do instead, and Response is now a mode that works.
     /// </summary>
     [Fact]
-    public void EachMessage_NamesAModeThatWorks() {
-        var response = ResponseModelDiagnostics.ResponseNotImplementedDescriptor()
-            .MessageFormat.ToString();
-
+    public void TheMessage_NamesAModeThatWorks() {
         var union = ResponseModelDiagnostics.UnionNotImplementedDescriptor()
             .MessageFormat.ToString();
 
-        Assert.Contains("ResponseModel.Standard", response, StringComparison.Ordinal);
         Assert.Contains("ResponseModel.Response", union, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void BothModes_ShareOneCategory() {
-        Assert.Equal(
-            "Hardened.Responses",
-            ResponseModelDiagnostics.ResponseNotImplementedDescriptor().Category);
-
+    public void TheDescriptor_IsCategorised() {
         Assert.Equal(
             "Hardened.Responses",
             ResponseModelDiagnostics.UnionNotImplementedDescriptor().Category);
