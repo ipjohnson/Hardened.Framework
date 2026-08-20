@@ -535,6 +535,11 @@ namespace Hardened.Requests.Runtime.QueryString
         public static Hardened.Requests.Abstract.QueryString.IQueryStringCollection Instance { get; }
         public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
     }
+    public static class QueryStringParser
+    {
+        public static Hardened.Requests.Abstract.QueryString.IQueryStringCollection Parse(string? rawQueryString) { }
+        public static Hardened.Requests.Abstract.QueryString.IQueryStringCollection ParseFromPath(string? path) { }
+    }
     public class SimpleQueryStringCollection : Hardened.Requests.Abstract.QueryString.IQueryStringCollection
     {
         public SimpleQueryStringCollection(System.Collections.Generic.IDictionary<string, string>? queryParameters) { }

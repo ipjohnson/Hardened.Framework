@@ -208,29 +208,15 @@ public class TestWebApp : TestContext, ITestWebApp {
             metricLogger);
     }
 
-    private IQueryStringCollection ParseQueryStringFromPath(string path) {
-        var questionMarkIndex = path.IndexOf('?');
-
-        if (questionMarkIndex == -1 || questionMarkIndex == path.Length) {
-            return EmptyQueryStringCollection.Instance;
-        }
-
-        var queryString = path.Substring(questionMarkIndex + 1);
-
-        var queryStringValues = new Dictionary<string, string>();
-        var pairs = queryString.Split('&');
-
-        foreach (var kvp in pairs) {
-            var values = kvp.Split('=');
-
-            if (values.Length == 2) {
-                queryStringValues[values[0]] = values[1];
-            }
-            else {
-                queryStringValues[kvp] = "";
-            }
-        }
-
-        return new SimpleQueryStringCollection(queryStringValues);
-    }
+    /// <summary>
+    /// The same parser the Kestrel host uses - see <see cref="QueryStringParser"/>.
+    /// </summary>
+    /// <remarks>
+    /// This used to be its own implementation, and a worse one: it split on every <c>'='</c> and
+    /// stored the raw substring, so it decoded nothing and dropped any pair whose value contained an
+    /// <c>'='</c>. The harness's whole value is that it drives the real pipeline, and a request that
+    /// answers 400 here and 200 on Kestrel is worse than no harness for that case.
+    /// </remarks>
+    private static IQueryStringCollection ParseQueryStringFromPath(string path) =>
+        QueryStringParser.ParseFromPath(path);
 }
