@@ -141,6 +141,24 @@
           ]
         },
         {
+          "comment": "One solution reaches the output and it is always named Hardened1.sln, so `dotnet build` in the generated folder has exactly one thing to build. Dropping these left both, and the generated application could not be built at all - MSB1011, from the bare `dotnet build` in scripts/verify-templates.sh.",
+          "condition": "(!lambda)",
+          "exclude": [
+            "src/Hardened1.Harness/**",
+            "Hardened1.Lambda.sln"
+          ]
+        },
+        {
+          "condition": "(lambda)",
+          "exclude": [
+            "src/Hardened1.Host/Program.cs",
+            "Hardened1.sln"
+          ],
+          "rename": {
+            "Hardened1.Lambda.sln": "Hardened1.sln"
+          }
+        },
+        {
           "comment": "The launch profile exists to open /docs on F5. Without the page there is nothing for it to open, and a profile pointing at a 404 is worse than no profile.",
           "condition": "(!OpenApiUi)",
           "exclude": [
