@@ -134,6 +134,16 @@ internal static class OpenApiSpecParser {
         }
 
         // Parse x-filter-types extension
+        // Whole-service, and at the root because that is the only place a document addresses the
+        // service rather than an operation. What an operation produces is per operation; what
+        // happens when a client asks for something outside that set is one answer for all of them.
+        if (document.Extensions != null &&
+            document.Extensions.TryGetValue("x-hardened-content-negotiation", out var negotiationExt) &&
+            negotiationExt is JsonNodeExtension { Node: JsonValue negotiationValue } &&
+            negotiationValue.GetValueKind() == JsonValueKind.String) {
+            model.ContentNegotiation = negotiationValue.GetValue<string>().Trim().ToLowerInvariant();
+        }
+
         if (document.Extensions != null &&
             document.Extensions.TryGetValue("x-filter-types", out var filterTypesExt) &&
             filterTypesExt is JsonNodeExtension { Node: JsonObject filterTypesObj }) {
@@ -1399,6 +1409,16 @@ internal static class OpenApiSpecParser {
                     }
 
                     if (response.Content != null) {
+                        // Every media type the response declares, in document order - the set the
+                        // response is negotiated against. SelectMediaType below picks one of these
+                        // to read the schema from, which is a different question: that one decides
+                        // the C# return type, this one decides what may go on the wire.
+                        foreach (var declared in response.Content.Keys) {
+                            if (!opModel.ProducedContentTypes.Contains(declared)) {
+                                opModel.ProducedContentTypes.Add(declared);
+                            }
+                        }
+
                         var responseContent = SelectMediaType(response.Content);
 
                         // itemSchema first, because it and schema answer different questions and a

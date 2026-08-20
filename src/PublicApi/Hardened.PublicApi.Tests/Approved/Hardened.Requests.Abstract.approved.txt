@@ -1,5 +1,11 @@
 namespace Hardened.Requests.Abstract.Attributes
 {
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class, AllowMultiple=false)]
+    public class ContentNegotiationAttribute : System.Attribute
+    {
+        public ContentNegotiationAttribute(Hardened.Requests.Abstract.Serializer.ContentNegotiationMode mode) { }
+        public Hardened.Requests.Abstract.Serializer.ContentNegotiationMode Mode { get; }
+    }
     public class FromBodyAttribute : System.Attribute
     {
         public FromBodyAttribute() { }
@@ -43,6 +49,12 @@ namespace Hardened.Requests.Abstract.Attributes
     public sealed class ResponseOnlyAttribute : System.Attribute
     {
         public ResponseOnlyAttribute() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false)]
+    public class SupportedContentTypesAttribute : System.Attribute
+    {
+        public SupportedContentTypesAttribute(params string[] contentTypes) { }
+        public string[] ContentTypes { get; }
     }
 }
 namespace Hardened.Requests.Abstract.Authorization
@@ -287,6 +299,7 @@ namespace Hardened.Requests.Abstract.Execution
         int? NullResponseStatus { get; }
         System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         string Path { get; }
+        System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         int? SuccessStatus { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? RequirementFrom(System.Collections.Generic.IReadOnlyList<object> metadata);
@@ -620,12 +633,26 @@ namespace Hardened.Requests.Abstract.Serializer
         public System.Collections.Generic.IReadOnlyList<string> MediaTypes { get; }
         public static Hardened.Requests.Abstract.Serializer.AcceptedContentTypes Parse(string? acceptHeader) { }
     }
+    public enum ContentNegotiationMode
+    {
+        Strict = 0,
+        Lenient = 1,
+    }
+    public sealed class ContentNegotiationPolicy : Hardened.Requests.Abstract.Serializer.IContentNegotiationPolicy
+    {
+        public ContentNegotiationPolicy(Hardened.Requests.Abstract.Serializer.ContentNegotiationMode mode = 0) { }
+        public Hardened.Requests.Abstract.Serializer.ContentNegotiationMode Mode { get; }
+    }
     public sealed class DelegatingStringConverter<TValue> : Hardened.Requests.Abstract.Serializer.IStringConverter
     {
         public DelegatingStringConverter(Hardened.Requests.Abstract.Serializer.DelegatingStringConverter<TValue>.TryParse tryParse, string? typeName = null) { }
         public System.Type ConvertType { get; }
         public T Convert<T>(string value) { }
         public delegate bool TryParse<TValue>(string value, out TValue parsed);
+    }
+    public interface IContentNegotiationPolicy
+    {
+        Hardened.Requests.Abstract.Serializer.ContentNegotiationMode Mode { get; }
     }
     public interface IContextSerializationService
     {
@@ -687,6 +714,10 @@ namespace Hardened.Requests.Abstract.Serializer
     {
         public const string Any = "*/*";
         public static bool Matches(string? requested, string? produced) { }
+    }
+    public class NotAcceptableException : Hardened.Requests.Abstract.Errors.StatusCodeException
+    {
+        public NotAcceptableException(System.Collections.Generic.IReadOnlyList<string> produced) { }
     }
     public enum RequestDeserializerOrder
     {

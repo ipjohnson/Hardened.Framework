@@ -202,12 +202,13 @@ public class ModelComparisonTests {
             StreamFraming = "sse",
             ReturnType = Type("String"),
             DefaultStatusCode = 201,
-            NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem"
+            NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem",
+            ProducedContentTypes = "text/plain,text/csv"
         };
 
         Assert.Equal(
             "True:System.Fortunes:text/csv:sse:System.String:201:" +
-            "Models.DefaultErrorBodies.NotFoundProblem",
+            "Models.DefaultErrorBodies.NotFoundProblem:text/plain,text/csv",
             model.ToString());
     }
 
@@ -229,6 +230,18 @@ public class ModelComparisonTests {
     /// <summary>
     /// And two differing only in the body a null return writes.
     /// </summary>
+    /// <summary>
+    /// And two differing only in what they produce, which is what negotiation reads.
+    /// </summary>
+    [Fact]
+    public void TwoResponsesDifferingOnlyInProducedContentTypesAreDifferent() {
+        var baseline = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
+
+        Assert.NotEqual(
+            baseline.ToString(),
+            (baseline with { ProducedContentTypes = "text/plain" }).ToString());
+    }
+
     [Fact]
     public void TwoResponsesDifferingOnlyInNullBodyAreDifferent() {
         var baseline = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };

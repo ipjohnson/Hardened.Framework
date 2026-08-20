@@ -146,9 +146,12 @@ public class SpecSourceGenerator : IIncrementalGenerator {
                         : "",
                     spec.PublishUrl,
                     spec.UiUrl,
-                    spec.UiEnvironments);
+                    spec.UiEnvironments,
+                    spec.ContentNegotiation);
 
-                return registration.ResolverName.Length > 0 || registration.PublishUrl.Length > 0
+                return registration.ResolverName.Length > 0 ||
+                       registration.PublishUrl.Length > 0 ||
+                       registration.ContentNegotiation.Length > 0
                     ? registration
                     : null;
             })

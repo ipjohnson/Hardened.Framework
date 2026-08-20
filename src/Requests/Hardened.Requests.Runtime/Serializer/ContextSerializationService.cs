@@ -1,5 +1,6 @@
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Abstract.Serializer;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,36 @@ public class ContextSerializationService : IContextSerializationService {
     }
 
     public Task SerializeResponse(IExecutionContext context) {
+        try {
+            return SerializeAcceptedResponse(context);
+        }
+        catch (NotAcceptableException notAcceptable) {
+            // Thrown while locating the serializer, which is synchronous, so it is caught here
+            // rather than escaping into the host as an unhandled fault. It is a normal response -
+            // the client asked for representations this operation does not have - and has to travel
+            // the response path like any other.
+            return WriteNotAcceptable(context, notAcceptable);
+        }
+    }
+
+    /// <summary>
+    /// A 406, with a body naming what the operation can produce.
+    /// </summary>
+    /// <remarks>
+    /// The content type is committed before re-entering the locator, which does two things: it says
+    /// plainly that this response is a JSON error document rather than one of the representations
+    /// under negotiation, and it means the declared-set tier is not consulted a second time - so
+    /// this cannot recurse into the refusal it is answering.
+    /// </remarks>
+    private Task WriteNotAcceptable(IExecutionContext context, NotAcceptableException exception) {
+        context.Response.Status = exception.StatusCode;
+        context.Response.ResponseValue = exception.Value;
+        context.Response.ContentType = KnownContentType.Json;
+
+        return _serializationLocatorService.FindResponseSerializer(context).SerializeResponse(context);
+    }
+
+    private Task SerializeAcceptedResponse(IExecutionContext context) {
         if (context.DefaultOutput != null) {
             return context.DefaultOutput(context);
         }

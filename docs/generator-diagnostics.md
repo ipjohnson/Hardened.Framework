@@ -67,3 +67,35 @@ name now. HOAG031 fires only when *no* entry matches.
 | `HOAT0xx` | OpenAPI build task. |
 | `HSMT0xx` | Smithy build task. `HSMT011` is the CLI version pin, and is a warning locally by design. |
 | `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. |
+
+## Content negotiation
+
+Not a diagnostic, but the other thing a service states once rather than per operation.
+
+An operation says what it produces — the `content:` keys of its success response, or
+`[SupportedContentTypes("text/plain", "text/csv")]` on a hand-written handler. A request carrying no
+`Accept`, or `*/*`, is answered with the first of them; a request naming media types gets its own
+preference order honoured within the set.
+
+What happens when a client's `Accept` shares nothing with that set is one answer for the whole
+service:
+
+```yaml
+x-hardened-content-negotiation: lenient   # at the document root
+```
+
+```csharp
+[ContentNegotiation(ContentNegotiationMode.Lenient)]   // on the entry point
+```
+
+`Strict` is the default and answers 406 with a body naming what the operation produces. `Lenient`
+serializes with the default serializer anyway, which is what the framework did before this existed.
+
+It is deliberately not per operation. A policy each operation restates is one that ends up applied
+unevenly, and the operation that quietly differs is invisible. Nor is it derived from the document:
+a 406 is the transport telling a client its `Accept` named nothing that exists, and unlike a 404 —
+which is a domain outcome an operation may or may not report — there is nothing about it for an API
+author to decide.
+
+An operation that declares nothing negotiates exactly as it did before: every registered serializer
+is a candidate.

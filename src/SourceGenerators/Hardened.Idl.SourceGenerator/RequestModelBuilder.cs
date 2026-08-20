@@ -349,7 +349,13 @@ internal static class RequestModelBuilder {
             DefaultStatusCode =
                 operation.SuccessStatusCode == 200 ? null : operation.SuccessStatusCode,
 
-            NullResponseBodyExpression = NullResponseBody(operation, schemas, modelsNamespace)
+            NullResponseBodyExpression = NullResponseBody(operation, schemas, modelsNamespace),
+
+            // The set the response is negotiated against. Empty means the description said nothing,
+            // which leaves negotiation exactly as it was rather than declaring an empty set.
+            ProducedContentTypes = operation.ProducedContentTypes.Count > 0
+                ? string.Join(",", operation.ProducedContentTypes)
+                : null
         };
     }
 

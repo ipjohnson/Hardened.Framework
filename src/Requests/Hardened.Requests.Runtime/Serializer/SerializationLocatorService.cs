@@ -8,10 +8,14 @@ namespace Hardened.Requests.Runtime.Serializer;
 public class SerializationLocatorService : ISerializationLocatorService {
     private readonly IRequestDeserializer[] _requestDeserializers;
     private readonly IResponseSerializer[] _responseSerializers;
+    private readonly IContentNegotiationPolicy _negotiationPolicy;
 
     public SerializationLocatorService(
         IEnumerable<IRequestDeserializer> requestDeserializers,
-        IEnumerable<IResponseSerializer> responseSerializers) {
+        IEnumerable<IResponseSerializer> responseSerializers,
+        IContentNegotiationPolicy? negotiationPolicy = null) {
+        _negotiationPolicy = negotiationPolicy ?? new ContentNegotiationPolicy();
+
         // Reversed so an application's own registrations are tested before the framework's, then
         // ordered ahead of that for the reason given below. Same treatment as the response side,
         // and for the same reason: two deserializers both claiming application/json - which is
@@ -100,6 +104,22 @@ public class SerializationLocatorService : ISerializationLocatorService {
         var accepted = AcceptedContentTypes.Parse(context.Request.Accept);
         var mediaTypes = accepted.MediaTypes;
 
+        // What the operation says it produces, when it says anything.
+        //
+        // Without this the client's preferences were matched against every registered serializer
+        // rather than against the operation's own representations - and MediaType.Matches answers
+        // true for */* and for an absent Accept against any of them. So an operation declaring
+        // text/plain and nothing else was answered in JSON for `Accept: */*`, which is what curl
+        // sends by default: the declared string, wrapped in quotes with its newlines escaped.
+        var declared = context.HandlerInfo?.ProducedContentTypes;
+
+        if (declared is { Count: > 0 }) {
+            return FindDeclaredProducer(declared, mediaTypes, context);
+        }
+
+        // Nothing declared, so every registered serializer is a candidate - which is what this did
+        // for every response before an operation could say what it produces, and still does for a
+        // handler that says nothing.
         for (var i = 0; i < mediaTypes.Count; i++) {
             var serializer = FindProducerOf(mediaTypes[i], context);
 
@@ -115,6 +135,72 @@ public class SerializationLocatorService : ISerializationLocatorService {
         }
 
         throw new Exception("Could not locate response serializer for accept: " + context.Request.Accept);
+    }
+
+
+    /// <summary>
+    /// The serializer for a response whose operation declared what it produces.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two of the three cases need no policy at all. <c>*/*</c>, or no <c>Accept</c>, means "whatever
+    /// you have" and is answered with the first declared type - the one the document leads with. A
+    /// client naming types gets its own preference order honoured, within the declared set.
+    /// </para>
+    /// <para>
+    /// Only the third is a decision: a client naming types that share nothing with the set has asked
+    /// for something that does not exist. That is a 406 under
+    /// <see cref="ContentNegotiationMode.Strict"/>, and falls back to the default serializer under
+    /// <see cref="ContentNegotiationMode.Lenient"/>.
+    /// </para>
+    /// </remarks>
+    private IResponseSerializer FindDeclaredProducer(
+        IReadOnlyList<string> declared,
+        IReadOnlyList<string> accepted,
+        IExecutionContext context) {
+        // The client's preferences decide the order, the declared set decides what is on offer.
+        for (var i = 0; i < accepted.Count; i++) {
+            for (var j = 0; j < declared.Count; j++) {
+                if (!MediaType.Matches(accepted[i], declared[j])) {
+                    continue;
+                }
+
+                var serializer = FindProducerOf(declared[j], context);
+
+                if (serializer != null) {
+                    context.Response.ContentType = declared[j];
+
+                    return serializer;
+                }
+            }
+        }
+
+        // Nothing the client asked for is on offer - but first tell that apart from a service that
+        // cannot write anything it promised. A document declaring application/pdf with no PDF
+        // serializer registered would otherwise answer 406 to every request and make a
+        // configuration fault look like a client mistake. Tier one throws for exactly this, and so
+        // does this.
+        var producible = false;
+
+        for (var j = 0; j < declared.Count && !producible; j++) {
+            producible = FindProducerOf(declared[j], context) != null;
+        }
+
+        if (!producible) {
+            throw new Exception(
+                $"This operation declares {string.Join(", ", declared)} and no registered " +
+                "serializer can produce any of them.");
+        }
+
+        if (_negotiationPolicy.Mode == ContentNegotiationMode.Lenient) {
+            for (var i = 0; i < _responseSerializers.Length; i++) {
+                if (_responseSerializers[i].IsDefaultSerializer) {
+                    return _responseSerializers[i];
+                }
+            }
+        }
+
+        throw new NotAcceptableException(declared);
     }
 
     private IResponseSerializer? FindProducerOf(string mediaType, IExecutionContext context) {

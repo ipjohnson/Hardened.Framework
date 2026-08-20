@@ -13,7 +13,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         IReadOnlyList<object>? metadata = null,
         Requirement? requirement = null,
         int? successStatus = null,
-        object? nullResponseBody = null) {
+        object? nullResponseBody = null,
+        IReadOnlyList<string>? producedContentTypes = null) {
         Path = path;
         Method = method;
         HandlerType = handlerType;
@@ -23,6 +24,7 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         Requirement = requirement ?? IExecutionRequestHandlerInfo.RequirementFrom(Metadata);
         SuccessStatus = successStatus;
         NullResponseBody = nullResponseBody;
+        ProducedContentTypes = producedContentTypes ?? Array.Empty<string>();
     }
 
     public string Path { get; }
@@ -49,6 +51,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
 
     /// <inheritdoc />
     public object? NullResponseBody { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> ProducedContentTypes { get; }
 
     /// <summary>
     /// The same handler, addressed at <paramref name="path"/>.
@@ -80,5 +85,5 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
             ? this
             : new ExecutionRequestHandlerInfo(
                 path!, Method, HandlerType, InvokeMethod, Parameters, Metadata, Requirement,
-                SuccessStatus, NullResponseBody);
+                SuccessStatus, NullResponseBody, ProducedContentTypes);
 }

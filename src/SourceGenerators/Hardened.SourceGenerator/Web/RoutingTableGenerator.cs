@@ -198,6 +198,16 @@ public static class RoutingTableGenerator {
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
 
+        // The service-wide negotiation policy, from [ContentNegotiation] on the entry point. There
+        // is no description to consult here; the spec-first table reads both. Same helper either
+        // way, so an application says it once and means the same thing.
+        var negotiation = Routing.ContentNegotiationRegistration.Statement(
+            applicationModel.AttributeModels, "");
+
+        if (negotiation != null) {
+            diMethod.AddIndentedStatement(new CodeOutputComponent(negotiation));
+        }
+
         var distinctControllers =
             webEndPointModels.Select(model => model.ControllerType).Distinct();
 

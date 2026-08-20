@@ -65,6 +65,28 @@ public record ResponseInformationModel {
     /// </remarks>
     public string? NullResponseBodyExpression { get; set; }
 
+    /// <summary>
+    /// Every media type this operation can produce, comma-separated, or null where it said nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Where the two front ends meet again: the <c>content:</c> keys of a described operation's
+    /// success response, and <c>[SupportedContentTypes(...)]</c> on a hand-written one.
+    /// </para>
+    /// <para>
+    /// A joined string rather than a list, because this is a <c>record</c> and a <c>List&lt;string&gt;</c>
+    /// member would compare by reference - so two responses declaring the same types would look
+    /// different to the incremental generator's cache, and two declaring different ones could look
+    /// the same. <c>ToString</c> is what a caching failure is read through, and a value it cannot
+    /// represent is a value that silently does not invalidate.
+    /// </para>
+    /// <para>
+    /// Null means the operation said nothing, which is not the same as an empty set: nothing
+    /// declared leaves negotiation exactly as it was.
+    /// </para>
+    /// </remarks>
+    public string? ProducedContentTypes { get; set; }
+
     public string? RawResponseContentType { get; set; }
 
     /// <summary>
@@ -87,6 +109,6 @@ public record ResponseInformationModel {
     /// </remarks>
     public override string ToString() {
         return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
-               $":{DefaultStatusCode}:{NullResponseBodyExpression}";
+               $":{DefaultStatusCode}:{NullResponseBodyExpression}:{ProducedContentTypes}";
     }
 }

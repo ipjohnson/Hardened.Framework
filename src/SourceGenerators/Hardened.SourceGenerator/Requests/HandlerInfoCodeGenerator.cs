@@ -1,4 +1,5 @@
-﻿using CSharpAuthor;
+﻿using System.Linq;
+using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
@@ -91,6 +92,17 @@ public static class HandlerInfoCodeGenerator {
         if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.NullResponseBodyExpression)) {
             declaredArgs +=
                 $", nullResponseBody: {handlerModel.ResponseInformation.NullResponseBodyExpression}";
+        }
+
+        // The media types this operation produces, as the array negotiation reads. Emitted only when
+        // the operation declared some - an empty array and no array mean different things, and the
+        // second is what leaves an unannotated handler negotiating exactly as it did.
+        if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.ProducedContentTypes)) {
+            var quoted = handlerModel.ResponseInformation.ProducedContentTypes!
+                .Split(',')
+                .Select(contentType => "\"" + contentType.Trim() + "\"");
+
+            declaredArgs += $", producedContentTypes: new string[] {{ {string.Join(", ", quoted)} }}";
         }
 
         handlerInfoField.InitializeValue =

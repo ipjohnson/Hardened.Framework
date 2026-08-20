@@ -101,6 +101,23 @@ internal class OperationModel : IEquatable<OperationModel> {
     public List<ErrorResponseModel> ErrorResponses { get; set; } = new();
 
     /// <summary>
+    /// Every media type the success response declares, in document order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Distinct from <see cref="ResponseContentType"/>, which is the one media type the schema was
+    /// read from - JSON where the operation offers it. That one decides the C# return type; this one
+    /// is the set the response is negotiated against, and an operation offering both JSON and
+    /// plain text has one of the first and two of the second.
+    /// </para>
+    /// <para>
+    /// Document order matters: it is what an <c>Accept</c> of <c>*/*</c> resolves to, because the
+    /// first representation a document lists is the one it leads with.
+    /// </para>
+    /// </remarks>
+    public List<string> ProducedContentTypes { get; set; } = new();
+
+    /// <summary>
     /// Opt in to a <c>byte[]</c> signature for a response the spec types as a string.
     /// </summary>
     /// <remarks>
@@ -163,6 +180,7 @@ internal class OperationModel : IEquatable<OperationModel> {
                ResponseArrayItemsType == other.ResponseArrayItemsType &&
                ResponseArrayItemsFormat == other.ResponseArrayItemsFormat &&
                ErrorResponses.SequenceEqual(other.ErrorResponses) &&
+               ProducedContentTypes.SequenceEqual(other.ProducedContentTypes) &&
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&
                RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&

@@ -61,6 +61,24 @@ public interface IExecutionRequestHandlerInfo {
     /// </remarks>
     object? NullResponseBody => null;
 
+    /// <summary>
+    /// The media types this operation can produce, in the server's preference order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// From a described operation's <c>content:</c> keys or a hand-written
+    /// <c>[SupportedContentTypes]</c>. The first entry is what <c>Accept: */*</c> - or a request
+    /// carrying no <c>Accept</c> at all - is answered with, because the first representation a
+    /// document lists is the one it leads with.
+    /// </para>
+    /// <para>
+    /// Empty means the operation said nothing, and negotiation behaves exactly as it did before any
+    /// of this: every registered serializer is asked, and <c>*/*</c> takes whichever answers first.
+    /// That is not the same as an empty set, which would mean the operation produces nothing.
+    /// </para>
+    /// </remarks>
+    IReadOnlyList<string> ProducedContentTypes => Array.Empty<string>();
+
     IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
 
     IReadOnlyList<object> Metadata => Array.Empty<object>();

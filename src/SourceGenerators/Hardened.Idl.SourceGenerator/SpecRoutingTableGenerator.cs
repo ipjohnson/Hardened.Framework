@@ -162,6 +162,16 @@ internal static class SpecRoutingTableGenerator {
 
         RegisterPublishedSpecs(diMethod, serviceCollection, ordered);
 
+        // The service-wide negotiation policy, from the entry point or from a description's root.
+        var negotiation = ContentNegotiationRegistration.Statement(
+            applicationModel.AttributeModels,
+            ordered.FirstOrDefault(registration => registration.ContentNegotiation.Length > 0)
+                ?.ContentNegotiation ?? "");
+
+        if (negotiation != null) {
+            diMethod.AddIndentedStatement(new CodeOutputComponent(negotiation));
+        }
+
         // Register interface → implementation mappings from [Handler] classes
         var declaredServiceNames =
             new HashSet<string>(webEndPointModels.Select(m => m.ControllerType.Name));

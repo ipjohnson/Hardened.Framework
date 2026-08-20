@@ -301,7 +301,8 @@ public abstract class BaseRequestModelGenerator {
             OutputType = output,
             ReturnType = returnType,
             RawResponseContentType = rawResponse,
-            DefaultStatusCode = DeclaredSuccessStatus(context)
+            DefaultStatusCode = DeclaredSuccessStatus(context),
+            ProducedContentTypes = DeclaredContentTypes(context)
         };
     }
 
@@ -338,6 +339,33 @@ public abstract class BaseRequestModelGenerator {
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// <c>[SupportedContentTypes(...)]</c>, comma-joined, or null where the handler said nothing.
+    /// </summary>
+    /// <remarks>
+    /// The hand-written half of a described operation's <c>content:</c> keys. Read from syntax
+    /// rather than the semantic model, like everything else here.
+    /// </remarks>
+    private static string? DeclaredContentTypes(GeneratorSyntaxContext context) {
+        var attribute = context.Node.GetAttribute("SupportedContentTypes");
+
+        if (attribute?.ArgumentList == null || attribute.ArgumentList.Arguments.Count == 0) {
+            return null;
+        }
+
+        var types = new List<string>();
+
+        foreach (var argument in attribute.ArgumentList.Arguments) {
+            var literal = argument.Expression.ToString().Trim();
+
+            if (literal.Length > 1 && literal[0] == '"' && literal[literal.Length - 1] == '"') {
+                types.Add(literal.Substring(1, literal.Length - 2));
+            }
+        }
+
+        return types.Count == 0 ? null : string.Join(",", types);
     }
 
     private static readonly string[] RoutingVerbs =
