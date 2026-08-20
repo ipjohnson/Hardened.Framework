@@ -190,6 +190,20 @@ paths:
       responses:
         '204':
           description: Pet deleted
+  /pets/names:
+    get:
+      tags:
+        - Pet
+      operationId: listPetNames
+      responses:
+        '200':
+          description: Just the names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
   /pets/plain:
     get:
       tags:

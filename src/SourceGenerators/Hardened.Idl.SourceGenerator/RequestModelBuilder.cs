@@ -304,6 +304,16 @@ internal static class RequestModelBuilder {
             var itemTypeName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef));
             var itemType = TypeDefinition.Get(modelsNamespace, itemTypeName);
             returnType = new GenericTypeDefinition(typeof(List<>), new[] { itemType });
+        } else if (operation.ResponseIsArray && operation.ResponseArrayItemsType != null &&
+                   TypeMapper.MapToCSharpType(
+                       operation.ResponseArrayItemsType, operation.ResponseArrayItemsFormat) is var primitive &&
+                   primitive != "object") {
+            // Kept in step with ServiceInterfaceEmitter.GetReturnType: the interface declares the
+            // signature and this types the handler that implements it, so a divergence here is a
+            // generated class that does not implement its own interface.
+            returnType = new GenericTypeDefinition(
+                typeof(List<>),
+                new[] { TypeMapper.GetTypeDefinition(modelsNamespace, primitive, false) });
         } else if (operation.ResponseType != null) {
             var csType = TypeMapper.MapToCSharpType(operation.ResponseType, operation.ResponseFormat);
             if (csType != "object") {

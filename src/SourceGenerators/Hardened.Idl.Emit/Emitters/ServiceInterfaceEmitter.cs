@@ -80,6 +80,20 @@ internal static class ServiceInterfaceEmitter {
                 typeof(List<>), new[] { Model(operation.ResponseArrayItemsRef, modelsNamespace) }));
         }
 
+        // An array of primitives - List<string> rather than JsonElement. Only the $ref branch above
+        // existed, so `items: {type: string}` had nothing to name and fell through to the untyped
+        // response at the bottom of this method.
+        if (operation.ResponseIsArray && operation.ResponseArrayItemsType != null) {
+            var itemType = TypeMapper.MapToCSharpType(
+                operation.ResponseArrayItemsType, operation.ResponseArrayItemsFormat);
+
+            if (itemType != "object") {
+                return Task(new GenericTypeDefinition(
+                    typeof(List<>),
+                    new[] { TypeMapper.GetTypeDefinition(modelsNamespace, itemType, false) }));
+            }
+        }
+
         if (operation.ResponseType != null) {
             var csType = TypeMapper.MapToCSharpType(operation.ResponseType, operation.ResponseFormat);
 

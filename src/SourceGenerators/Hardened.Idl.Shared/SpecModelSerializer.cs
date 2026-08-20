@@ -432,6 +432,8 @@ internal static class SpecModelSerializer {
         record.Add("ResponseFormat", operation.ResponseFormat);
         record.Add("ResponseIsArray", operation.ResponseIsArray);
         record.Add("ResponseArrayItemsRef", operation.ResponseArrayItemsRef);
+        record.Add("ResponseArrayItemsType", operation.ResponseArrayItemsType);
+        record.Add("ResponseArrayItemsFormat", operation.ResponseArrayItemsFormat);
         record.Add("SuccessStatusCode", operation.SuccessStatusCode);
         record.WriteTo(builder);
 
@@ -492,6 +494,8 @@ internal static class SpecModelSerializer {
         ResponseFormat = record.String("ResponseFormat"),
         ResponseIsArray = record.Bool("ResponseIsArray"),
         ResponseArrayItemsRef = record.String("ResponseArrayItemsRef"),
+        ResponseArrayItemsType = record.String("ResponseArrayItemsType"),
+        ResponseArrayItemsFormat = record.String("ResponseArrayItemsFormat"),
         SuccessStatusCode = record.Int("SuccessStatusCode") ?? 200,
     };
 

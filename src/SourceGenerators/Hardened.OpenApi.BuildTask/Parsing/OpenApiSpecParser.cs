@@ -402,6 +402,8 @@ internal static class OpenApiSpecParser {
                     operation.ResponseRef = null;
                     operation.ResponseIsArray = true;
                     operation.ResponseArrayItemsRef = response.ArrayItemsRef;
+                    operation.ResponseArrayItemsType = response.ArrayItemsType;
+                    operation.ResponseArrayItemsFormat = response.ArrayItemsFormat;
                 } else if (Missing(operation.ResponseRef)) {
                     operation.ResponseRef = null;
                 }
@@ -1415,6 +1417,12 @@ internal static class OpenApiSpecParser {
                             opModel.ResponseFormat = responseSchema.Format;
                             opModel.ResponseIsArray = SchemaType(responseSchema) == "array";
                             opModel.ResponseArrayItemsRef = SchemaRef(responseSchema.Items);
+
+                            // The element's own type, for an array of primitives. Only the $ref was
+                            // read, so `items: {type: string}` named nothing and the response became
+                            // JsonElement - while array-of-$ref worked, which is what hid it.
+                            opModel.ResponseArrayItemsType = SchemaType(responseSchema.Items);
+                            opModel.ResponseArrayItemsFormat = responseSchema.Items?.Format;
                         }
                     }
 

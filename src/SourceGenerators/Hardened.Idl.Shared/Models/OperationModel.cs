@@ -75,6 +75,19 @@ internal class OperationModel : IEquatable<OperationModel> {
     public string? ResponseFormat { get; set; }
     public bool ResponseIsArray { get; set; }
     public string? ResponseArrayItemsRef { get; set; }
+
+    /// <summary>
+    /// The array's element type, where the elements are primitives rather than a <c>$ref</c>.
+    /// </summary>
+    /// <remarks>
+    /// Only the <c>$ref</c> was carried, so <c>items: {type: string}</c> left the mapper with
+    /// nothing to name and every array-of-primitives response became <c>JsonElement</c>.
+    /// Array-of-<c>$ref</c> worked, which is why it went unnoticed.
+    /// </remarks>
+    public string? ResponseArrayItemsType { get; set; }
+
+    /// <summary>The element's <c>format</c>, which distinguishes int32 from int64 and date from date-time.</summary>
+    public string? ResponseArrayItemsFormat { get; set; }
     public int SuccessStatusCode { get; set; } = 200;
 
     /// <summary>
@@ -147,6 +160,8 @@ internal class OperationModel : IEquatable<OperationModel> {
                ResponseFormat == other.ResponseFormat &&
                ResponseIsArray == other.ResponseIsArray &&
                ResponseArrayItemsRef == other.ResponseArrayItemsRef &&
+               ResponseArrayItemsType == other.ResponseArrayItemsType &&
+               ResponseArrayItemsFormat == other.ResponseArrayItemsFormat &&
                ErrorResponses.SequenceEqual(other.ErrorResponses) &&
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&

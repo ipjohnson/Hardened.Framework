@@ -29,6 +29,16 @@ public class PetServiceImpl : IPetService {
         return Task.FromResult(Pets.ToList());
     }
 
+    /// <summary>
+    /// An array of primitives, which was <c>JsonElement</c> until the element type was carried.
+    /// </summary>
+    /// <remarks>
+    /// Only <c>ResponseArrayItemsRef</c> reached the type mapper, so <c>items: {type: string}</c>
+    /// named nothing while array-of-<c>$ref</c> worked - which is exactly why it went unnoticed.
+    /// </remarks>
+    public Task<List<string>> ListPetNames() =>
+        Task.FromResult(Pets.Select(pet => pet.Name).ToList());
+
     public Task<Pet> CreatePet(CreatePetRequest body) {
         return Task.FromResult(new Pet("3", body.Name, body.Tag));
     }
