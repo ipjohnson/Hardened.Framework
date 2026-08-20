@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Runs the Lambda application locally, behind an ordinary HTTP listener.
+
+    A Lambda application has no host to run: AWS invokes it. That makes it awkward to try, so this
+    project exists only for development - it is not part of what you deploy, and the ASP.NET
+    dependency it brings is exactly what the deployed artifact should not carry.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hardened.Amz.Shared.Lambda.Runtime" />
+    <PackageReference Include="Hardened.Amz.Web.Lambda.Runtime" />
+    <PackageReference Include="Hardened.Amz.Web.Lambda.Harness" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hardened1.Host\Hardened1.Host.csproj" />
+  </ItemGroup>
+
+</Project>

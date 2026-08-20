@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Ian Johnson",
+  "classifications": [
+    "Library",
+    "Hardened"
+  ],
+  "identity": "Hardened.Library.CSharp",
+  "groupIdentity": "Hardened.Library",
+  "name": "Hardened Library",
+  "shortName": "hardened-library",
+  "description": "A reusable Hardened module: services a host picks up with one attribute, and a test project.",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "Hardened1",
+  "preferNameDirectory": true,
+  "symbols": {
+    "moduleClass": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "classIdentifier",
+      "replaces": "TemplateModuleName",
+      "fileRename": "TemplateModuleName"
+    },
+    "HardenedVersion": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "0.0.0-DEV",
+      "description": "The Hardened package version to pin. Defaults to the version this template shipped with.",
+      "replaces": "0.0.0-HARDENED-VERSION"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Skip the automatic restore after creation."
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "src/Hardened1/Hardened1.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "condition": "(!skipRestore)",
+      "description": "Restore the packages the template pinned.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ],
+  "specialCustomOperations": {
+    "**/*.md": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "if": [
+              "#if"
+            ],
+            "else": [
+              "#else"
+            ],
+            "elseif": [
+              "#elseif"
+            ],
+            "endif": [
+              "#endif"
+            ],
+            "trim": true,
+            "wholeLine": true,
+            "evaluator": "C++"
+          }
+        }
+      ]
+    }
+  },
+  "forms": {
+    "classIdentifier": {
+      "identifier": "replace",
+      "pattern": "[^\\w]",
+      "replacement": ""
+    }
+  }
+}

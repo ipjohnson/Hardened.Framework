@@ -5,6 +5,10 @@
          so every Hardened package moves as a set. -->
     <HardenedVersion>0.0.0-HARDENED-VERSION</HardenedVersion>
     <!--
+      Hardened.Amz releases on its own line, and this pins the same version the framework is on
+      because the two are released together. If they ever diverge, this is the one line to change.
+    -->
+    <!--
       Floated rather than pinned to $(HardenedVersion), because the two repositories release in
       sequence and cannot both be at the new version at the same instant. Hardened.Amz depends on
       published Hardened packages, so the framework releases first - and for the window between the
@@ -21,33 +25,24 @@
 
   <ItemGroup Label="Hardened">
     <PackageVersion Include="Hardened.Shared.Runtime" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Web.Runtime" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Web.Kestrel.Runtime" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Web.AspNetCore.Runtime" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Requests.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Shared.Testing" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Web.Testing" Version="$(HardenedVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="AWS Lambda">
-    <!--
-      Hardened.Amz releases on its own line, and this pins the same version the framework is on
-      because the two are released together. If they ever diverge, this is the one line to change.
-    -->
     <PackageVersion Include="Hardened.Amz.Shared.Lambda.Runtime" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Web.Lambda.Runtime" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Web.Lambda.Harness" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Web.Lambda.SourceGenerator" Version="$(HardenedAmzVersion)" />
+    <PackageVersion Include="Hardened.Amz.Function.Lambda.Runtime" Version="$(HardenedAmzVersion)" />
+    <PackageVersion Include="Hardened.Amz.Function.Lambda.SourceGenerator" Version="$(HardenedAmzVersion)" />
+    <PackageVersion Include="Hardened.Amz.Function.Lambda.Testing" Version="$(HardenedAmzVersion)" />
+    <PackageVersion Include="Hardened.Amz.Function.Sqs.Runtime" Version="$(HardenedAmzVersion)" />
+    <PackageVersion Include="Hardened.Amz.Function.Sqs.Testing" Version="$(HardenedAmzVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Hardened source generators">
     <!-- Not optional. The runtime packages carry no analyzers, so without these the module's
          generated half never exists and PopulateServiceCollection does not compile. -->
     <PackageVersion Include="Hardened.Library.SourceGenerator" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Web.SourceGenerator" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.OpenApi.SourceGenerator" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Smithy.SourceGenerator" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Idl.SourceGenerator" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Validation.SourceGenerator" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Function.SourceGenerator" Version="$(HardenedVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Testing">

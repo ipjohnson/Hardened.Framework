@@ -24,7 +24,12 @@ public class TestApplication : IApplicationRoot {
         var serviceCollection = new ServiceCollection();
 
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton(environment);
+
+        // Both interfaces, because the module system reads IModuleEnvironment while it decides
+        // what to register. AddSingleton would register the parameter's static type alone, and
+        // [IfEnvironment] under test would answer against ASPNETCORE_ENVIRONMENT - Production -
+        // rather than the environment this application was handed.
+        serviceCollection.AddHardenedEnvironment(environment);
 
         applicationModule.ConfigureModule(environment, serviceCollection);
 
@@ -38,7 +43,12 @@ public class TestApplication : IApplicationRoot {
         var serviceCollection = new ServiceCollection();
 
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton(environment);
+
+        // Both interfaces, because the module system reads IModuleEnvironment while it decides
+        // what to register. AddSingleton would register the parameter's static type alone, and
+        // [IfEnvironment] under test would answer against ASPNETCORE_ENVIRONMENT - Production -
+        // rather than the environment this application was handed.
+        serviceCollection.AddHardenedEnvironment(environment);
 
         dependencyModule.PopulateServiceCollection(serviceCollection);
 

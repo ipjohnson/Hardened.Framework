@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A Hardened library. It names no runtime, which is the point: the same package is consumed by
+    a Kestrel service, an ASP.NET one and a Lambda without change.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Hardened.Shared.Runtime" />
+    <PackageReference Include="Hardened.Library.SourceGenerator" />
+  </ItemGroup>
+
+</Project>

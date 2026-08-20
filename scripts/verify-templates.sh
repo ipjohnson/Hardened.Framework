@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Verify the templates: build the framework, pack it and them, install the packed template,
-# generate a project from every supported combination, and prove each one restores, builds, tests
-# and serves. This is the gate a release runs.
+# generate a project from every supported combination of all three templates, and prove each one
+# restores, builds, tests and - where it serves HTTP - answers. This is the gate a release runs.
 #
 # The packed nupkg is installed rather than the template folder, deliberately. A template tested
 # from source proves nothing about packaging, which is where the 0.8.0-rc1000 quickstart broke.
@@ -19,7 +19,13 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # in the global packages folder, so a fixed version means the second run restores the first run's
 # content however many times the framework has been rebuilt since - a green run over stale
 # packages, which is worse than no run at all.
-VERSION="0.0.0-verify$(date +%s)"
+#
+# 99.0.0 rather than 0.0.0, and that is not cosmetic either. Hardened.Amz depends on published
+# Hardened packages with a floor - ">= 0.10.0-rc1000" today - and a 0.0.0 version sits below it,
+# so every Lambda project failed to restore with NU1605 rather than exercising anything. A real
+# release is always above that floor, so the verification version has to be too, or the Amz
+# templates can only ever be tested against the previous release instead of the build in hand.
+VERSION="99.0.0-verify$(date +%s)"
 FEED="${TMPDIR:-/tmp}/hardened-template-feed"
 WORK="${TMPDIR:-/tmp}/hardened-template-work"
 SMITHY_PIN=1.73.0
@@ -84,7 +90,9 @@ say "installing the packed template"
 # package id, and it shadows the packed one with the same template identity - so the verification would
 # silently exercise the working tree instead of the artifact.
 dotnet new uninstall Hardened.Templates >/dev/null 2>&1 || true
-dotnet new uninstall "$REPO/src/Templates/Hardened.Templates/templates/hardened-web" >/dev/null 2>&1 || true
+for TEMPLATE_DIR in "$REPO"/src/Templates/Hardened.Templates/templates/*/; do
+    dotnet new uninstall "${TEMPLATE_DIR%/}" >/dev/null 2>&1 || true
+done
 dotnet new install "$FEED/Hardened.Templates.$VERSION.nupkg"
 
 FAILED=0
@@ -192,6 +200,62 @@ for COMBO in "${COMBOS[@]}"; do
     else
         echo "   FAILED: status=$CODE body='$BODY'"
         tail -20 "$OUT/run.log" || true
+        FAILED=1
+    fi
+done
+
+say "hardened-library"
+# Framework packages only, so this one is verified against the build under test like hardened-web.
+LIB="$WORK/library"
+dotnet new hardened-library -n Sample -o "$LIB" --skip-restore
+dotnet nuget add source "$FEED" --name template-verify-local --configfile "$LIB/nuget.config" >/dev/null
+if ( cd "$LIB" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
+    echo "   builds and tests"
+else
+    echo "   FAILED: hardened-library"
+    FAILED=1
+fi
+
+# A dotted project name is the .NET norm and it is not merely cosmetic here: the module class is
+# named after the project, and an unfiltered substitution produced "public partial class
+# Acme.ApiLibrary" - which does not compile. Every template that names a class after the project
+# needs the safe-identifier form, so the check runs against a name that has a dot in it.
+say "dotted project names"
+for TEMPLATE in hardened-library hardened-web; do
+    DOTTED="$WORK/dotted-$TEMPLATE"
+    dotnet new "$TEMPLATE" -n Acme.Sample -o "$DOTTED" --skip-restore
+    dotnet nuget add source "$FEED" --name template-verify-local --configfile "$DOTTED/nuget.config" >/dev/null
+    if ( cd "$DOTTED" && dotnet build -v q --nologo ); then
+        echo "   $TEMPLATE builds as Acme.Sample"
+    else
+        echo "   FAILED: $TEMPLATE does not build with a dotted name"
+        FAILED=1
+    fi
+done
+
+# The Amz pin floats, which is what lets these be gated against the build under test at all.
+# Hardened.Amz depends on published Hardened packages, so an exact pin here would name a version
+# that does not exist yet for the whole window between the two repositories' releases. Floating it
+# means the framework packages come from this run's feed while Hardened.Amz stays on its newest
+# published release - which is precisely the state a release leaves the world in, so verifying it
+# is verifying the thing that actually ships.
+say "AWS Lambda templates"
+for AMZ in "hardened-function --trigger invoke" "hardened-function --trigger sqs" "hardened-web --host aws-lambda"; do
+    set -- $AMZ
+    AMZ_TEMPLATE="$1"; shift
+    AMZ_OUT="$WORK/amz-$AMZ_TEMPLATE-$(echo "$*" | tr -cd 'a-z')"
+
+    dotnet new "$AMZ_TEMPLATE" -n Sample -o "$AMZ_OUT" "$@" --skip-restore
+    dotnet nuget add source "$FEED" --name template-verify-local --configfile "$AMZ_OUT/nuget.config" >/dev/null
+
+    if ( cd "$AMZ_OUT" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
+        echo "   $AMZ_TEMPLATE $*: builds and tests"
+        # Worth printing: a float that silently stopped resolving would otherwise look identical
+        # to one that resolved to the right thing.
+        grep -hoE '"Hardened\.Amz\.[A-Za-z.]+/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
+            | tr -d '"' | sort -u | head -2 | sed 's/^/     resolved /'
+    else
+        echo "   FAILED: $AMZ_TEMPLATE $*"
         FAILED=1
     fi
 done
