@@ -8,7 +8,19 @@
       Hardened.Amz releases on its own line, and this pins the same version the framework is on
       because the two are released together. If they ever diverge, this is the one line to change.
     -->
-    <HardenedAmzVersion>$(HardenedVersion)</HardenedAmzVersion>
+    <!--
+      Floated rather than pinned to $(HardenedVersion), because the two repositories release in
+      sequence and cannot both be at the new version at the same instant. Hardened.Amz depends on
+      published Hardened packages, so the framework releases first - and for the window between the
+      two, an exact pin here names a Hardened.Amz version that does not exist yet and every Lambda
+      project fails to restore.
+
+      The float resolves to the newest 0.x Hardened.Amz, prereleases included. During the window
+      that is the previous release, which still works: this file pins the framework packages
+      higher, and a dependency asking for a lower version is satisfied by a higher one.
+    -->
+    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+    <HardenedAmzVersion>0.*-*</HardenedAmzVersion>
   </PropertyGroup>
 
   <ItemGroup Label="Hardened">
