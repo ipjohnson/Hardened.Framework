@@ -1,55 +1,64 @@
-# Installation
+# Getting started
 
-Hardened ships as a set of NuGet packages split across two repositories. A web API needs the
+Hardened ships as NuGet packages on nuget.org, split across two repositories. A web API needs the
 [core framework](https://github.com/ipjohnson/Hardened.Framework); a Lambda function adds
-[Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
+[Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz). No private feed and no token.
 
-## The package feed
+## The short way
 
-Packages are published to GitHub Packages rather than nuget.org, which means a feed and a
-credential. Add a `nuget.config` beside the solution:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-    <packageSources>
-        <clear />
-        <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-        <add key="github-ipjohnson" value="https://nuget.pkg.github.com/ipjohnson/index.json" />
-    </packageSources>
-    <packageSourceCredentials>
-        <github-ipjohnson>
-            <add key="Username" value="ipjohnson" />
-            <add key="ClearTextPassword" value="%GITHUB_TOKEN%" />
-        </github-ipjohnson>
-    </packageSourceCredentials>
-</configuration>
+```bash
+dotnet new install Hardened.Templates
+dotnet new hardened-web -n Greeter
+cd Greeter
+dotnet run --project src/Greeter.Host
 ```
 
-`%GITHUB_TOKEN%` is expanded from the environment, so the token never lands in a file you might
-commit. It needs the `read:packages` scope and nothing else.
+```console
+$ curl localhost:5080/greeting/world
+{"message":"Hello, world!"}
+```
 
-::: warning GitHub Packages always wants a token
-The feed rejects anonymous requests even for public packages. A restore that fails with a 401 on
-the `github-ipjohnson` source almost always means `GITHUB_TOKEN` is unset in the shell that ran it —
-including the shell your IDE inherited when you launched it from a desktop icon rather than a
-terminal.
+That is a working API with tests, a reference page at `/docs`, and every package version pinned in
+one place. [Project templates](/guide/project-templates) covers the options — the host, the
+contract, Lambda, libraries.
+
+The rest of this page assembles the same thing by hand, which is worth doing once to see what the
+template is actually setting up.
+
+::: warning Everything is prerelease
+There is no stable release yet, so `dotnet add package` needs `--prerelease` or it finds nothing.
+The templates pin explicit versions, so they are unaffected.
 :::
 
-## A web project
+## A web project by hand
 
-Three package references and a generator:
+Two kinds of package reference, and the second kind is the one people miss.
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="Hardened.Shared.Runtime" Version="..." />
-    <PackageReference Include="Hardened.Web.Runtime" Version="..." />
-    <PackageReference Include="Hardened.Web.AspNetCore.Runtime" Version="..." />
+    <!-- Runtime -->
+    <PackageReference Include="Hardened.Shared.Runtime" Version="0.11.0-rc1000" />
+    <PackageReference Include="Hardened.Web.Runtime" Version="0.11.0-rc1000" />
+    <PackageReference Include="Hardened.Web.Kestrel.Runtime" Version="0.11.0-rc1000" />
+
+    <!-- Source generators. Not optional. -->
+    <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.11.0-rc1000" />
+    <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.11.0-rc1000" />
 </ItemGroup>
 ```
 
-The source generators arrive with those packages. To read what they emit — which is the fastest way
-to understand any of this — turn on `EmitCompilerGeneratedFiles`:
+::: danger The generators do not arrive with the runtime packages
+Analyzers do not flow through a package reference. Reference only the runtime packages and the
+project still compiles — into an application whose `Application` class has no
+`PopulateServiceCollection`, or one that builds cleanly and answers **404 to every route**, because
+nothing generated a routing table.
+
+Nothing errors, and nothing says what is missing. This is the most common way to get a Hardened
+project wrong, and it is why [the templates](/guide/project-templates) exist.
+:::
+
+To read what the generators emit — the fastest way to understand any of this — turn on
+`EmitCompilerGeneratedFiles`:
 
 ```xml
 <PropertyGroup>
@@ -63,22 +72,23 @@ the module registration are all there to be read.
 
 ## The smallest application
 
-An application is a `partial class` marked `[HardenedModule]`, plus whichever runtime module
-describes where it runs. For ASP.NET Core that is `[AspNetCoreRuntime]`:
+An application is a `partial class` marked `[HardenedModule]`, plus whichever runtime module says
+where it runs. `[KestrelRuntime]` serves HTTP without the ASP.NET Core request pipeline, and is the
+one to reach for first:
 
 ```csharp
 using Hardened.Shared.Runtime.Attributes;
-using Hardened.Web.AspNetCore.Runtime;
+using Hardened.Web.Kestrel.Runtime;
 
 namespace Greeter;
 
 [HardenedModule]
-[AspNetCoreRuntime]
-public partial class Application { }
+[KestrelRuntime]
+public partial class Application;
 ```
 
-`partial` is not optional. The generator adds the other half of the class — including
-`PopulateServiceCollection`, which is what `Program.cs` calls.
+`partial` is not optional. The generator writes the other half of the class — including
+`PopulateServiceCollection`, which `Program.cs` calls.
 
 A handler is a plain class. No base type, no interface, no registration:
 
@@ -93,48 +103,67 @@ public class GreetingController {
 }
 ```
 
-And `Program.cs` builds an ordinary ASP.NET Core host, hands the module the service collection, and
-inserts the Hardened middleware:
+And `Program.cs` builds the service collection, hands it to the module, and starts Kestrel:
 
 ```csharp
 using Greeter;
 using Hardened.Shared.Runtime.Application;
-using Hardened.Web.AspNetCore.Runtime;
+using Hardened.Web.Kestrel.Runtime;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
-var builder = WebApplication.CreateBuilder(args);
+var services = new ServiceCollection();
 
-builder.Services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+// A provider, not just AddLogging(). Without one the application starts and serves in complete
+// silence - no request log, no startup warning - which is a confusing first run.
+services.AddLogging(logging => logging.AddSimpleConsole(options => options.SingleLine = true));
 
-new Application().PopulateServiceCollection(builder.Services);
+services.AddHardenedEnvironment(args);
 
-var app = builder.Build();
+new Application().PopulateServiceCollection(services);
 
-app.UseHardened();
+await using var app = HardenedKestrelApplication.Create(
+    services, kestrel => kestrel.ListenAnyIP(5080));
 
-app.Run();
+await app.RunAsync();
 ```
 
-`IHardenedEnvironment` is registered by the application rather than by the framework, because only
-the application knows where its environment name and arguments come from. Leave it out and startup
-fails on the first service that asks for one — see [Environments](/guide/environments).
+`AddHardenedEnvironment` is called by the application rather than by the framework, because only the
+application knows where its environment name and arguments come from. It registers the environment
+under both `IHardenedEnvironment` and `IModuleEnvironment` — the first is what your code reads, the
+second is what decides which services get registered at all. Registering only the first leaves
+`[IfEnvironment]` answering against a different variable than everything else in the application.
+See [Environments](/guide/environments).
 
 `dotnet run`, then:
 
-```
-$ curl localhost:5000/hello/world
+```console
+$ curl localhost:5080/hello/world
 "Hello, world!"
 ```
 
+## Hosting it somewhere else
+
+The runtime attribute is the only thing that changes. `[AspNetCoreRuntime]` from
+`Hardened.Web.AspNetCore.Runtime` puts the same handlers behind ASP.NET Core's pipeline when you
+need its middleware or authentication; `[LambdaWebModule]` from Hardened.Amz puts them behind API
+Gateway.
+
+Handlers, filters, binding and the generated routing table do not change with the host. That is why
+the templates put the implementation in one project and the host in another, and point the tests at
+the implementation.
+
 ## Where the route came from
 
-Nothing scanned for `GreetingController`. During the build, the web generator found the `[Get]`
+Nothing scanned for `GreetingController`. During the build the web generator found the `[Get]`
 attribute, emitted a handler bound to that method's exact signature, and added the route to a
 generated routing table. Under `obj/` you will find something close to what you would have written
-yourself — which is the point: there is no container graph to reason about and no startup cost to
+by hand — which is the point: there is no container graph to reason about and no startup cost to
 measure.
 
 ## Next
 
+- [Project templates](/guide/project-templates) — the options, and what each one generates
 - [Modules](/guide/modules) — how `[HardenedModule]` composes, and the hooks it gives you
 - [Routing](/guide/routing) — the route attributes and their status codes
 - [Testing](/guide/testing) — booting this application inside a test

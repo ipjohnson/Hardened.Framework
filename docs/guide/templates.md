@@ -1,4 +1,9 @@
-# Templates
+# Views
+
+::: tip Looking for `dotnet new`?
+This page is about rendering HTML views with RazorBlade. The project templates are under
+[Project templates](/guide/project-templates).
+:::
 
 A handler returns a model. A template turns that model into HTML. Neither knows about the other
 until a request asks for `text/html` — so the same handler serialises as JSON for an API client and

@@ -18,12 +18,26 @@ public interface IHardenedEnvironment : IModuleEnvironment {
 ## Registering one
 
 The framework does not register an environment, because only the application knows where its name
-and arguments come from. An ASP.NET Core host registers one before handing the collection to the
-module:
+and arguments come from. A host registers one before handing the collection to the module:
 
 ```csharp
-builder.Services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+services.AddHardenedEnvironment(args);              // name from HARDENED_ENVIRONMENT
+services.AddHardenedEnvironment(new EnvironmentImpl("staging"));   // or an explicit one
 ```
+
+::: danger Register it with AddHardenedEnvironment, not AddSingleton
+The environment has to be reachable as **both** `IHardenedEnvironment` and `IModuleEnvironment`.
+`AddSingleton(environment)` and `AddTransient<IHardenedEnvironment>(...)` register the first only —
+`AddSingleton` infers the variable's static type, and neither adds the second.
+
+The module system looks up `IModuleEnvironment` while it is deciding what to register. Finding
+none, it falls back to its own default, which reads `ASPNETCORE_ENVIRONMENT` and defaults to
+`Production`. So `[IfEnvironment]` answers `Production` while everything else in the same
+application reads `HARDENED_ENVIRONMENT` and says `development`.
+
+It compiles, it starts, and the only symptom is an environment-gated service quietly not being
+there. `AddHardenedEnvironment` registers the one instance under both.
+:::
 
 A self-hosting entry point — console or Lambda — gets a generated constructor that does it for you,
 and another that lets you pass one in:
@@ -110,6 +124,11 @@ public class ConsoleEmailSender : IEmailSender { }
 `IHardenedEnvironment` implements DependencyModules' `IModuleEnvironment` for exactly this reason —
 there is one environment, and the conditional registrations, the configuration models and the
 application code all see the same answer.
+
+Inheriting the interface is not the same as being registered under it, which is what
+`AddHardenedEnvironment` is for: it puts the single instance in the container under both service
+types. A host that registers only `IHardenedEnvironment` still type-checks, and `[IfEnvironment]`
+still answers — against the wrong variable.
 
 ## Log level
 

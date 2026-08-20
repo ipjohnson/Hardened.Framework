@@ -16,6 +16,9 @@ hero:
       text: Get started
       link: /guide/getting-started
     - theme: alt
+      text: Project templates
+      link: /guide/project-templates
+    - theme: alt
       text: AWS Lambda
       link: /aws/
     - theme: alt
@@ -83,8 +86,8 @@ Attribute the method. The rest is emitted during the build.
 
 ```csharp
 [HardenedModule]
-[AspNetCoreRuntime]
-public partial class Application { }
+[KestrelRuntime]
+public partial class Application;
 
 public class GreetingController {
     [Get("/hello/{name}")]
@@ -94,16 +97,24 @@ public class GreetingController {
 
 ```csharp
 // Program.cs
-var builder = WebApplication.CreateBuilder(args);
+var services = new ServiceCollection();
 
-builder.Services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+services.AddLogging(logging => logging.AddSimpleConsole(options => options.SingleLine = true));
+services.AddHardenedEnvironment(args);
 
-new Application().PopulateServiceCollection(builder.Services);
+new Application().PopulateServiceCollection(services);
 
-var app = builder.Build();
+await using var app = HardenedKestrelApplication.Create(
+    services, kestrel => kestrel.ListenAnyIP(5080));
 
-app.UseHardened();
-app.Run();
+await app.RunAsync();
+```
+
+Or skip the wiring entirely — `dotnet new hardened-web` writes all of it, with tests:
+
+```bash
+dotnet new install Hardened.Templates
+dotnet new hardened-web -n Greeter
 ```
 
 There is no `[ApiController]`, no `ControllerBase`, no `AddControllers()`. Set

@@ -64,7 +64,8 @@ export default defineConfig({
         {
           text: 'Getting started',
           items: [
-            { text: 'Installation', link: '/guide/getting-started' },
+            { text: 'Getting started', link: '/guide/getting-started' },
+            { text: 'Project templates', link: '/guide/project-templates' },
             { text: 'Modules', link: '/guide/modules' },
             { text: 'Registering services', link: '/guide/services' },
           ],
@@ -85,7 +86,8 @@ export default defineConfig({
             { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
             { text: 'Generating from OpenAPI', link: '/guide/openapi' },
             { text: 'Content negotiation', link: '/guide/content-negotiation' },
-            { text: 'Templates', link: '/guide/templates' },
+            { text: 'Streaming responses', link: '/guide/streaming' },
+            { text: 'Views', link: '/guide/templates' },
           ],
         },
         {
