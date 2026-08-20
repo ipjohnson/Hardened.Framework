@@ -175,6 +175,16 @@ public class SpecSourceGenerator : IIncrementalGenerator {
                     models.ToList(), handlerInfos!).ToImmutableArray();
             });
 
+        // Both directions of the described-service-to-handler match, reported once per compilation.
+        //
+        // Off the models and the handler declarations only, so editing a handler body does not
+        // re-run it. Warnings rather than errors - see HandlerBindingDiagnostics for why, and for
+        // the NoWarn a contract-only project sets.
+        context.RegisterSourceOutput(
+            allHandlerModels.Combine(handlerInfoProvider),
+            (ctx, pair) => HandlerBindingDiagnostics.Report(
+                ctx, pair.Left, pair.Right.Where(info => info != null).Select(info => info!).ToList()));
+
         // Combine enriched models with config for handler generation
         var excludeFromCoverageProvider = configProvider.Select((cfg, _) => cfg.ExcludeFromCoverage);
         var enrichedModelsWithConfig = enrichedModels.Combine(excludeFromCoverageProvider);

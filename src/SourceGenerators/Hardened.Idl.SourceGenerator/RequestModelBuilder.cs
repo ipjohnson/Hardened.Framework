@@ -93,12 +93,22 @@ internal static class RequestModelBuilder {
     }
 
 
+    /// <summary>
+    /// The handler implementing this operation's service, wherever it sits in the base list.
+    /// </summary>
+    /// <remarks>
+    /// This compared against the first base-list entry alone, so a handler declaring a base class -
+    /// which C# requires to come first - matched nothing and lost every filter and
+    /// <c>[Output&lt;T&gt;]</c> written on it, silently.
+    /// </remarks>
     private static HandlerInfo? FindHandlerInfo(
         RequestHandlerModel model,
         IReadOnlyList<HandlerInfo> handlerInfos) {
         foreach (var info in handlerInfos) {
-            if (info.InterfaceType.Name == model.ControllerType.Name) {
-                return info;
+            foreach (var candidate in info.InterfaceCandidates) {
+                if (candidate.Name == model.ControllerType.Name) {
+                    return info;
+                }
             }
         }
 

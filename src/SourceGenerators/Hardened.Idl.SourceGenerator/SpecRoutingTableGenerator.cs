@@ -152,15 +152,26 @@ internal static class SpecRoutingTableGenerator {
         RegisterPublishedSpecs(diMethod, serviceCollection, ordered);
 
         // Register interface → implementation mappings from [Handler] classes
+        var declaredServiceNames =
+            new HashSet<string>(webEndPointModels.Select(m => m.ControllerType.Name));
+
         foreach (var handlerInfo in handlerInfos) {
             if (handlerInfo == null) continue;
             cancellationToken.ThrowIfCancellationRequested();
 
+            // The base-list entry naming a described service, rather than whichever came first.
+            //
+            // `class CatalogHandler : HandlerBase, ICatalogService` registered HandlerBase, because
+            // C# puts a base class first and this read position 0. The build stayed clean and every
+            // route on that service was dead. HOAG031 reports the case where nothing matches.
+            var service = handlerInfo.ServiceInterface(declaredServiceNames);
+
             // Find the matching model to get the correctly-namespaced interface type
             var matchingModel = webEndPointModels.FirstOrDefault(m =>
-                m.ControllerType.Name == handlerInfo.InterfaceType.Name);
+                m.ControllerType.Name == (service ?? handlerInfo.InterfaceType).Name);
 
-            var interfaceType = matchingModel?.ControllerType ?? handlerInfo.InterfaceType;
+            var interfaceType =
+                matchingModel?.ControllerType ?? service ?? handlerInfo.InterfaceType;
 
             diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
                 new[] { interfaceType, handlerInfo.ImplementationType }));
