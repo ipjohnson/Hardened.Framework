@@ -204,12 +204,11 @@ namespace Hardened.Requests.Abstract.Errors
     {
         System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionChain chain);
     }
-    public interface IStatusCodeException
+    public interface IStatusCodeException : Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders
     {
         int StatusCode { get; }
-        void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers);
     }
-    public class StatusCodeException : System.Exception, Hardened.Requests.Abstract.Errors.IStatusCodeException
+    public class StatusCodeException : System.Exception, Hardened.Requests.Abstract.Errors.IStatusCodeException, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders
     {
         public StatusCodeException(int statusCode, object? value = null, string? message = null) { }
         public StatusCodeException(int statusCode, object? value, string message, System.Exception inner) { }
@@ -623,6 +622,151 @@ namespace Hardened.Requests.Abstract.RequestFilter
         public RequestFilterInfo(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> filterFunc, int? order = default) { }
         public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> FilterFunc { get; }
         public int? Order { get; }
+    }
+}
+namespace Hardened.Requests.Abstract.Responses
+{
+    [Hardened.Requests.Abstract.Responses.HttpStatus(202)]
+    public sealed class Accepted : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Accepted>
+    {
+        public Accepted(string? Location = null) { }
+        public bool HasBody { get; }
+        public string? Location { get; init; }
+        public int Status { get; }
+        public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(409)]
+    public sealed class Conflict : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Conflict>
+    {
+        public Conflict(string? Detail = null) { }
+        public string? Detail { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(201)]
+    public sealed class Created<T> : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Created<T>>
+    {
+        public Created(T Value, string Location) { }
+        public string Location { get; init; }
+        public int Status { get; }
+        public T Value { get; init; }
+        public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(403)]
+    public sealed class Forbidden : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Forbidden>
+    {
+        public Forbidden(string? Detail = null) { }
+        public string? Detail { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(410)]
+    public sealed class Gone : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Gone>
+    {
+        public Gone(string? Detail = null) { }
+        public string? Detail { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Struct, Inherited=false)]
+    public sealed class HttpStatusAttribute : System.Attribute
+    {
+        public HttpStatusAttribute(int statusCode) { }
+        public int StatusCode { get; }
+    }
+    public interface IHttpStatusResponse
+    {
+        bool HasBody { get; }
+        int Status { get; }
+    }
+    public interface IProvidesResponseHeaders
+    {
+        void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers);
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(204)]
+    public sealed class NoContent : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NoContent>
+    {
+        public NoContent() { }
+        public bool HasBody { get; }
+        public int Status { get; }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(404)]
+    public sealed class NotFound : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotFound>
+    {
+        public NotFound(string Resource, string? Detail = null) { }
+        public string? Detail { get; init; }
+        public string Resource { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(412)]
+    public sealed class PreconditionFailed : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionFailed>
+    {
+        public PreconditionFailed(string? Detail = null) { }
+        public string? Detail { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+    }
+    public static class ProblemTypes
+    {
+        public const string Conflict = "urn:hardened:problem:conflict";
+        public const string Forbidden = "urn:hardened:problem:forbidden";
+        public const string Gone = "urn:hardened:problem:gone";
+        public const string NotFound = "urn:hardened:problem:not-found";
+        public const string PreconditionFailed = "urn:hardened:problem:precondition-failed";
+        public const string Prefix = "urn:hardened:problem:";
+        public const string RateLimited = "urn:hardened:problem:rate-limited";
+        public const string ServiceUnavailable = "urn:hardened:problem:service-unavailable";
+        public const string Unauthorized = "urn:hardened:problem:unauthorized";
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(429)]
+    public sealed class RateLimited : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.RateLimited>
+    {
+        public RateLimited(System.TimeSpan RetryAfter, string? Detail = null) { }
+        public string? Detail { get; init; }
+        public System.TimeSpan RetryAfter { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+        public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
+    public class ResponseException : Hardened.Requests.Abstract.Errors.StatusCodeException
+    {
+        public ResponseException(Hardened.Requests.Abstract.Responses.IHttpStatusResponse response, string? message = null) { }
+        public Hardened.Requests.Abstract.Responses.IHttpStatusResponse Response { get; }
+        public override void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
+    public static class RetryAfter
+    {
+        public static string HeaderValue(System.TimeSpan delay) { }
+        public static int Seconds(System.TimeSpan delay) { }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(503)]
+    public sealed class ServiceUnavailable : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.ServiceUnavailable>
+    {
+        public ServiceUnavailable(System.TimeSpan? After = default, string? Detail = null) { }
+        public System.TimeSpan? After { get; init; }
+        public string? Detail { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+        public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(401)]
+    public sealed class Unauthorized : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Unauthorized>
+    {
+        public Unauthorized(string? Detail = null, Hardened.Requests.Abstract.Authorization.AuthorizationChallenge? Challenge = null) { }
+        public Hardened.Requests.Abstract.Authorization.AuthorizationChallenge? Challenge { get; init; }
+        public string? Detail { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+        public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
 }
 namespace Hardened.Requests.Abstract.Serializer

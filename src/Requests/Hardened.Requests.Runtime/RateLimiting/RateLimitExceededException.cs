@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Responses;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Runtime.RateLimiting;
@@ -33,7 +34,11 @@ public class RateLimitExceededException : StatusCodeException {
     public override void ApplyHeaders(IDictionary<string, StringValues> headers) {
         // Seconds, rounded up: rounding down would invite the caller back a moment before the
         // allowance exists and produce a second 429.
-        var seconds = Math.Max(1, (int)Math.Ceiling(_decision.RetryAfter.TotalSeconds));
+        //
+        // Shared with the RateLimited response type rather than rounded here, because those two are
+        // the same refusal reaching the response by different routes and a client must not be able
+        // to tell which one answered.
+        var seconds = RetryAfter.Seconds(_decision.RetryAfter);
 
         headers[KnownHeaders.RetryAfter] = seconds.ToString(CultureInfo.InvariantCulture);
 
