@@ -40,10 +40,14 @@ public class UnionResponseEmitterTests {
         new() { StatusCode = status, Ref = schemaRef };
 
     private static string Emit(params OperationModel[] operations) =>
+        Emit(asLanguageUnion: false, operations);
+
+    private static string Emit(bool asLanguageUnion, params OperationModel[] operations) =>
         EmitterHarness.Write(ns => UnionResponseEmitter.Emit(
             ns,
             new ServiceModel { Tag = "pets", Operations = new List<OperationModel>(operations) },
-            EmitterHarness.ModelsNamespace));
+            EmitterHarness.ModelsNamespace,
+            asLanguageUnion));
 
     #region the case types
 
@@ -169,6 +173,65 @@ public class UnionResponseEmitterTests {
 
         Assert.Contains("public struct GetPetResponse", emitted);
         Assert.Contains("public GetPetResponse(Test.Api.Models.GetPetNotFound value)", emitted);
+    }
+
+    #endregion
+
+    #region the language union
+
+    /// <summary>
+    /// Union mode declares the container with the keyword. Every member the struct spells out - the
+    /// constructors, the conversions, Value - the compiler synthesises from the case list, which is
+    /// why the declaration is the whole of it.
+    /// </summary>
+    [Fact]
+    public void UnionModeDeclaresTheContainerWithTheKeyword() {
+        var emitted = Emit(
+            asLanguageUnion: true,
+            Operation(errors: [Error(404, "#/components/schemas/ApiError"), Error(503, null)]));
+
+        Assert.Contains(
+            "public union GetPetResponse(Pet, GetPetNotFound, GetPetServiceUnavailable);", emitted);
+
+        Assert.DoesNotContain("public struct GetPetResponse", emitted);
+        Assert.DoesNotContain("implicit operator GetPetResponse", emitted);
+    }
+
+    /// <summary>
+    /// The case types are emitted byte-identical in both modes, which is what makes moving between
+    /// them a container swap rather than a migration.
+    /// </summary>
+    [Fact]
+    public void TheCaseTypesAreIdenticalInBothModes() {
+        var operation = Operation(errors: [Error(404, "#/components/schemas/ApiError"), Error(503, null)]);
+
+        var asStruct = Emit(asLanguageUnion: false, operation);
+        var asUnion = Emit(asLanguageUnion: true, operation);
+
+        foreach (var line in new[] {
+                     "public sealed record GetPetNotFound",
+                     "HttpStatus(404)",
+                     "public sealed record GetPetServiceUnavailable",
+                     "HttpStatus(503)"
+                 }) {
+            Assert.Contains(line, asStruct);
+            Assert.Contains(line, asUnion);
+        }
+    }
+
+    /// <summary>
+    /// And the signature is the same type name either way, so switching modes does not rewrite the
+    /// interface.
+    /// </summary>
+    [Fact]
+    public void BothUnionModesReturnTheSameTypeName() {
+        var operation = Operation(errors: [Error(404, "#/components/schemas/ApiError")]);
+
+        Assert.Equal(
+            Argument(ServiceInterfaceEmitter.GetReturnType(
+                operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Response)),
+            Argument(ServiceInterfaceEmitter.GetReturnType(
+                operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Union)));
     }
 
     #endregion

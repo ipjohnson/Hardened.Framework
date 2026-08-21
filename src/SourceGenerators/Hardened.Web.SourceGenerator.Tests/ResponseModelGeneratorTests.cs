@@ -59,8 +59,11 @@ public class ResponseModelGeneratorTests {
     private static Diagnostic? Reported(GeneratorResult result, string id) =>
         result.GeneratorDiagnostics.FirstOrDefault(diagnostic => diagnostic.Id == id);
 
+    /// <summary>
+    /// No error at all. Every mode is emitted now, so a module declaring one has nothing to be told.
+    /// </summary>
     private static void AssertNoModeDiagnostics(GeneratorResult result) =>
-        Assert.Null(Reported(result, ResponseModelDiagnostics.UnionNotImplementedId));
+        Assert.Empty(result.GeneratorDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
 
     #region the modes that build
 
@@ -100,36 +103,20 @@ public class ResponseModelGeneratorTests {
     #region the modes that do not
 
     /// <summary>
-    /// The whole point of C.2. Accepting this and emitting standard-mode handlers produces an
-    /// application that compiles, runs and answers every request the way standard mode does, with
-    /// the declared response set discarded and nothing saying so.
+    /// Both modes build. Each reported a "not implemented" error until the work that emits it
+    /// landed - HRDRM001 until code-first Response, HRDRM002 until CSharpAuthor gained the union
+    /// keyword - and these are the assertions that say the diagnostics went away rather than the
+    /// modes quietly doing nothing: a module declaring either produces a routing table and no error.
     /// </summary>
-    [Fact]
-    public void UnionMode_IsABuildError() {
-        var reported = Reported(
-            Generate(
-                "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
-                "Hardened.Requests.Abstract.Responses.ResponseModel.Union)]"),
-            ResponseModelDiagnostics.UnionNotImplementedId);
-
-        Assert.NotNull(reported);
-        Assert.Equal(DiagnosticSeverity.Error, reported!.Severity);
-        Assert.Contains("TestApplication", reported.GetMessage(), StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// Response mode builds. It reported HRDRM001 until code-first Response was emitted, and this is
-    /// the assertion that says the diagnostic went away rather than the mode quietly doing nothing:
-    /// a module declaring it produces a routing table and no error.
-    /// </summary>
-    [Fact]
-    public void ResponseMode_Builds() {
+    [Theory]
+    [InlineData("Response")]
+    [InlineData("Union")]
+    public void EveryMode_Builds(string mode) {
         var result = Generate(
             "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
-            "Hardened.Requests.Abstract.Responses.ResponseModel.Response)]");
+            $"Hardened.Requests.Abstract.Responses.ResponseModel.{mode})]");
 
         AssertNoModeDiagnostics(result);
-        Assert.Empty(result.GeneratorDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
         Assert.Contains(result.GeneratedSources, pair => pair.Key.Contains("Routing"));
     }
 

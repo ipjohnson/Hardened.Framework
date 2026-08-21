@@ -75,9 +75,11 @@ internal static class SpecFileEmitter {
                 //
                 // In the models namespace, beside the payloads they carry, rather than beside the
                 // interfaces - neither is part of the contract an implementation implements.
-                var responses = responseModel == SpecResponseModel.Response
-                    ? UnionResponseEmitter.Emit(models, service, modelsNamespace)
-                    : ErrorResponseEmitter.Emit(models, service, modelsNamespace);
+                var responses = responseModel == SpecResponseModel.Standard
+                    ? ErrorResponseEmitter.Emit(models, service, modelsNamespace)
+                    : UnionResponseEmitter.Emit(
+                        models, service, modelsNamespace,
+                        asLanguageUnion: responseModel == SpecResponseModel.Union);
 
                 foreach (var definition in responses) {
                     Coverage.Apply(definition, excludeFromCoverage);

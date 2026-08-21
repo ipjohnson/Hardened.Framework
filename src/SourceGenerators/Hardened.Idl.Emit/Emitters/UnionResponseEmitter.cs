@@ -40,7 +40,8 @@ internal static class UnionResponseEmitter {
     /// The union type and its case types, for every operation the service declares.
     /// </summary>
     public static IReadOnlyList<ClassDefinition> Emit(
-        IConstructContainer container, ServiceModel service, string modelsNamespace) {
+        IConstructContainer container, ServiceModel service, string modelsNamespace,
+        bool asLanguageUnion = false) {
         var emitted = new List<ClassDefinition>();
 
         foreach (var operation in service.Operations) {
@@ -53,7 +54,8 @@ internal static class UnionResponseEmitter {
                 cases.Add(caseType);
             }
 
-            emitted.Add(EmitContainer(container, operation, cases, modelsNamespace));
+            emitted.Add(
+                EmitContainer(container, operation, cases, modelsNamespace, asLanguageUnion));
         }
 
         return emitted;
@@ -133,19 +135,25 @@ internal static class UnionResponseEmitter {
     /// </remarks>
     private static ClassDefinition EmitContainer(
         IConstructContainer container, OperationModel operation, IReadOnlyList<CaseType> cases,
-        string modelsNamespace) {
+        string modelsNamespace, bool asLanguageUnion) {
         var name = ContainerName(operation);
 
-        var branches = new List<string>();
+        var branchTypes = new List<ITypeDefinition>();
 
-        var success = SuccessBranch(operation, modelsNamespace);
+        var success = SuccessBranchType(operation, modelsNamespace);
 
         if (success != null) {
-            branches.Add(success);
+            branchTypes.Add(success);
         }
 
         foreach (var caseType in cases) {
-            branches.Add(modelsNamespace + "." + caseType.Name);
+            branchTypes.Add(TypeDefinition.Get(modelsNamespace, caseType.Name));
+        }
+
+        var branches = new List<string>();
+
+        foreach (var branchType in branchTypes) {
+            branches.Add(branchType.Namespace + "." + branchType.Name);
         }
 
         var comment = $"Every response {operation.HttpMethod} {operation.Path} declares.";
@@ -154,6 +162,24 @@ internal static class UnionResponseEmitter {
 
         type.Modifiers |= ComponentModifier.Public;
         type.Comment = comment;
+
+        // The one declaration that differs between the two union modes, and the reason C.7 is
+        // small: the keyword and the struct compile to the same shape - a constructor and an
+        // implicit conversion per case plus a public object? Value - so the per-status case types
+        // above are emitted byte-identical and the code-first selector recognises either through the
+        // same structural check. Moving between the modes rewrites no handler. What can break is
+        // code pattern-matching on the wrapper, because patterns on a language union unwrap to
+        // Value, and that is why the modes are named rather than inferred.
+        if (asLanguageUnion) {
+            type.TypeKeyword = ClassKeyword.Union;
+
+            foreach (var branchType in branchTypes) {
+                type.AddUnionCase(branchType);
+            }
+
+            return type;
+        }
+
         type.TypeKeyword = ClassKeyword.Struct;
 
         var value = type.AddProperty(TypeDefinition.Get(typeof(object)).MakeNullable(), "Value");
@@ -197,16 +223,21 @@ internal static class UnionResponseEmitter {
     /// raw-bytes response is not a response set - the first is many bodies and the second is one the
     /// application already holds encoded - and neither belongs in a union of statuses.
     /// </remarks>
-    private static string? SuccessBranch(OperationModel operation, string modelsNamespace) {
+    private static ITypeDefinition? SuccessBranchType(
+        OperationModel operation, string modelsNamespace) {
         if (operation.ResponseRef != null) {
-            return modelsNamespace + "." +
-                   NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef));
+            return TypeDefinition.Get(
+                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef)));
         }
 
         if (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null) {
-            return "System.Collections.Generic.List<" + modelsNamespace + "." +
-                   NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef)) +
-                   ">";
+            return new GenericTypeDefinition(
+                typeof(List<>),
+                new[] {
+                    TypeDefinition.Get(
+                        modelsNamespace,
+                        NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef)))
+                });
         }
 
         return null;

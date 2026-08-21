@@ -81,15 +81,6 @@ public static class RoutingTableGenerator {
             GetBasePath(models.Left),
             AmbiguousRouteDiagnostics.Severity(options.AmbiguousRoutes));
 
-        // Before anything is emitted, for the same reason the ambiguity check is: a module that
-        // declared a response model this version cannot emit still produces a table, and every
-        // handler in it is generated as though the module were Standard. That builds, runs, and
-        // answers requests - with the declared response set discarded and nothing saying so.
-        ResponseModelDiagnostics.ReportUnimplementedMode(
-            context,
-            ResponseModelSelector.Read(models.Left),
-            models.Left.EntryPointType.Name);
-
         // Per handler, and before its dispatch is emitted. A case set the document cannot describe
         // unambiguously still produces a switch that compiles and runs - the ambiguity is in the
         // shipped contract rather than in the generated code, which is exactly why nothing else
