@@ -27,12 +27,21 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # templates can only ever be tested against the previous release instead of the build in hand.
 VERSION="99.0.0-verify$(date +%s)"
 FEED="${TMPDIR:-/tmp}/hardened-template-feed"
-WORK="${TMPDIR:-/tmp}/hardened-template-work"
+# Resolved with pwd -P, which is not cosmetic on macOS. $TMPDIR there is /var/folders/... and /var
+# is a symlink to /private/var, so a launched process reports the resolved path in its command line
+# while $OUT still holds the unresolved one - and `pkill -f "$OUT/src/Sample.Host"` below therefore
+# matched nothing. Every generated application stayed running after its combination finished, and a
+# later combination picking the same random port talked to an earlier one's server: a create that
+# should answer 201 came back 409, because the todo already existed in a store from a previous run.
+WORK="$(cd "${TMPDIR:-/tmp}" && pwd -P)/hardened-template-work"
 SMITHY_PIN=1.73.0
 
 COMBOS=("$@")
 if [ ${#COMBOS[@]} -eq 0 ]; then
-    COMBOS=(kestrel:code aspnet:code kestrel:openapi)
+    # One combination per response model rather than the full cross product: the model is
+    # orthogonal to the host, and proving that costs nothing beyond one of each.
+    COMBOS=(kestrel:code aspnet:code kestrel:openapi
+            kestrel:code:response kestrel:openapi:response)
 
     if command -v smithy >/dev/null 2>&1 && [ "$(smithy --version 2>/dev/null)" = "$SMITHY_PIN" ]; then
         COMBOS+=(kestrel:smithy)
@@ -99,14 +108,25 @@ FAILED=0
 
 for COMBO in "${COMBOS[@]}"; do
     HOST="${COMBO%%:*}"
-    CONTRACT="${COMBO##*:}"
-    say "host: $HOST   contract: $CONTRACT"
-    OUT="$WORK/$HOST-$CONTRACT"
+    REST="${COMBO#*:}"
+    CONTRACT="${REST%%:*}"
+
+    # host:contract, or host:contract:model. Defaulted rather than required, so every combo written
+    # before the response model existed still means what it said.
+    if [ "$REST" = "$CONTRACT" ]; then
+        MODEL=standard
+    else
+        MODEL="${REST#*:}"
+    fi
+
+    say "host: $HOST   contract: $CONTRACT   response model: $MODEL"
+    OUT="$WORK/$HOST-$CONTRACT-$MODEL"
 
     # --HardenedVersion is deliberately NOT passed. The template stamps the version it was
     # packed with as the default, and that default is what a real user gets - so it is what
     # needs testing. Passing it here would test the flag and leave the default unexercised.
-    dotnet new hardened-web -n Sample -o "$OUT" --host "$HOST" --contract "$CONTRACT" --skip-restore
+    dotnet new hardened-web -n Sample -o "$OUT" --host "$HOST" --contract "$CONTRACT" \
+        --response-model "$MODEL" --skip-restore
 
     # The generated nuget.config names nuget.org only, which is what a real user wants. The
     # verification run also needs the framework build that has not been published yet.
@@ -127,7 +147,7 @@ for COMBO in "${COMBOS[@]}"; do
         for _ in $(seq 1 60); do
             local code
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 1 \
-                "http://localhost:$port/greeting/world" || true)
+                "http://localhost:$port/todos/1" || true)
             [ "$code" = "200" ] && return 0
             sleep 0.4
         done
@@ -139,6 +159,11 @@ for COMBO in "${COMBOS[@]}"; do
         pkill -f "$OUT/src/Sample.Host" 2>/dev/null || true
         sleep 0.5
     }
+
+    # Whatever happens after this point, the servers this combination started are not left running.
+    # An abandoned one holds its port, and the next combination that lands on it is talking to the
+    # previous application's state rather than its own.
+    trap 'pkill -f "$WORK/.*/src/Sample.Host" 2>/dev/null || true' EXIT
 
     # Retried rather than asked once. A 000 from a server still warming up is indistinguishable
     # from a 404 by a gate, and the difference decides whether this script fails the build.
@@ -161,8 +186,38 @@ for COMBO in "${COMBOS[@]}"; do
 
     if serve "$PORT" development "$OUT/run.log"; then
         CODE=200
-        BODY=$(curl -s --max-time 2 "http://localhost:$PORT/greeting/world" || true)
+        BODY=$(curl -s --max-time 2 "http://localhost:$PORT/todos/1" || true)
         DOCS_DEV=$(status_of "http://localhost:$PORT/docs")
+
+        # The declared error paths, over a real socket. A response model exercised only at 200 is
+        # indistinguishable from having no declared set at all, which is the thing worth proving
+        # here - and the sample's 404 and 409 are the two statuses every mode has to answer the
+        # same way, whether it reaches them by returning a case or by throwing.
+        MISSING=$(status_of "http://localhost:$PORT/todos/9999")
+        DUPLICATE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
+            -X POST -H 'Content-Type: application/json' \
+            -d '{"title":"Add an endpoint"}' \
+            "http://localhost:$PORT/todos" || true)
+
+        # Which status a create answers with, and the three-way split is the point.
+        #
+        # Code-first Standard has one success type per handler and nowhere to name a status beside
+        # it, so it answers 200. Specification-first Standard answers 201, because the contract names
+        # the status and the generated dispatch carries it - what that mode cannot do is name more
+        # than one. The declared models answer 201 from the case itself, either way.
+        #
+        # Asserting the difference is what proves the flag reached the generated code rather than
+        # only the csproj.
+        CREATED=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
+            -X POST -H 'Content-Type: application/json' \
+            -d '{"title":"Written by the verification run"}' \
+            "http://localhost:$PORT/todos" || true)
+
+        if [ "$MODEL" = "standard" ] && [ "$CONTRACT" = "code" ]; then
+            EXPECT_CREATED=200
+        else
+            EXPECT_CREATED=201
+        fi
     fi
 
     stop
@@ -180,6 +235,19 @@ for COMBO in "${COMBOS[@]}"; do
 
     if [ "$CODE" = "200" ] && [ -n "$BODY" ]; then
         echo "   serving: $CODE $BODY"
+        echo "   declared errors: /todos/9999=$MISSING  duplicate POST=$DUPLICATE"
+
+        echo "   create: $CREATED (expected $EXPECT_CREATED for $MODEL)"
+
+        if [ "$MISSING" != "404" ] || [ "$DUPLICATE" != "409" ]; then
+            echo "   FAILED: expected 404 and 409, got $MISSING and $DUPLICATE"
+            FAILED=1
+        fi
+
+        if [ "$CREATED" != "$EXPECT_CREATED" ]; then
+            echo "   FAILED: $CONTRACT/$MODEL should create at $EXPECT_CREATED, got $CREATED"
+            FAILED=1
+        fi
 
         # Both halves, because a gate that never opens looks exactly like a gate that works.
         # Both were probed while their server was up; re-asking here would ask a dead port.

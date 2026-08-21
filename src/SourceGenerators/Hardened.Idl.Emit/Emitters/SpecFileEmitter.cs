@@ -86,7 +86,7 @@ internal static class SpecFileEmitter {
                 responses.AddRange(
                     ErrorResponseEmitter.Emit(
                         models, service, modelsNamespace,
-                        operation => !UnionResponseEmitter.RequiresResponseSet(operation, responseModel)));
+                        operation => !ResponseSetPlan.RequiresResponseSet(operation, responseModel)));
 
                 responses.AddRange(
                     UnionResponseEmitter.Emit(

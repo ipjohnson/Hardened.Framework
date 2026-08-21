@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Text;
 using Hardened.Idl.Models;
@@ -44,6 +45,7 @@ internal static class SpecModelSerializer {
         spec.Add("FileName", model.FileName);
         spec.Add("JsonTypeInfoResolverName", model.JsonTypeInfoResolverName);
         spec.Add("ContentNegotiation", model.ContentNegotiation);
+        spec.Add("ResponseModel", model.ResponseModel.ToString());
         spec.Add("PublishUrl", model.PublishUrl);
         spec.Add("UiUrl", model.UiUrl);
         spec.Add("UiEnvironments", model.UiEnvironments);
@@ -106,6 +108,7 @@ internal static class SpecModelSerializer {
                     model.FileName = record.String("FileName") ?? "";
                     model.JsonTypeInfoResolverName = record.String("JsonTypeInfoResolverName") ?? "";
                     model.ContentNegotiation = record.String("ContentNegotiation") ?? "";
+                    model.ResponseModel = ParseResponseModel(record.String("ResponseModel"));
                     model.PublishUrl = record.String("PublishUrl") ?? "";
                     model.UiUrl = record.String("UiUrl") ?? "";
                     model.UiEnvironments = record.String("UiEnvironments") ?? "";
@@ -750,5 +753,23 @@ internal static class SpecModelSerializer {
 
             return builder.ToString();
         }
+    }
+
+    /// <summary>
+    /// The response model a written record names, defaulting to Standard.
+    /// </summary>
+    /// <remarks>
+    /// An unrecognised value is Standard rather than a throw, matching how the build task reads
+    /// $(HardenedResponseModel): a model file written by a newer build should degrade to the shape
+    /// every consumer already understands rather than fail the read.
+    /// </remarks>
+    private static SpecResponseModel ParseResponseModel(string? value) {
+        if (string.Equals(value, nameof(SpecResponseModel.Response), StringComparison.OrdinalIgnoreCase)) {
+            return SpecResponseModel.Response;
+        }
+
+        return string.Equals(value, nameof(SpecResponseModel.Union), StringComparison.OrdinalIgnoreCase)
+            ? SpecResponseModel.Union
+            : SpecResponseModel.Standard;
     }
 }

@@ -124,7 +124,7 @@ public class UnionResponseEmitterTests {
     /// </summary>
     [Fact]
     public void TheContainerIsNamedForTheOperation() {
-        Assert.Equal("GetPetResponse", UnionResponseEmitter.ContainerName(Operation()));
+        Assert.Equal("GetPetResponse", ResponseSetPlan.ContainerName(Operation()));
     }
 
     /// <summary>

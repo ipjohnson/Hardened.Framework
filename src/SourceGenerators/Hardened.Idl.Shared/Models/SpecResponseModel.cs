@@ -1,9 +1,16 @@
-namespace Hardened.Idl.Emitters;
+namespace Hardened.Idl.Models;
 
 /// <summary>
 /// How a generated service interface states the responses an operation declares.
 /// </summary>
 /// <remarks>
+/// <para>
+/// <b>In the shared model layer, not beside the emitters.</b> It is read on both sides of the
+/// build: the emitters write the interface from it, and the generator writes the dispatch that
+/// fills that interface from it. The generator compiles Hardened.Idl.Shared and not
+/// Hardened.Idl.Emit, so an enum that lived beside the emitters was unreachable from the half that
+/// also needs it - which is why the dispatch was emitted as though every operation were Standard.
+/// </para>
 /// <para>
 /// The specification-first half of <c>Hardened.Requests.Abstract.Responses.ResponseModel</c>, and a
 /// separate type for the reason the generator's own copy of that enum is separate: this assembly

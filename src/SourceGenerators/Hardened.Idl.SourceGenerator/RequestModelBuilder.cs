@@ -1,6 +1,7 @@
 using CSharpAuthor;
 using Hardened.Idl.Models;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.Idl;
 
@@ -29,6 +30,7 @@ internal static class RequestModelBuilder {
             foreach (var operation in service.Operations) {
                 var model = BuildHandlerModel(operation, serviceType, handlerClassPrefix,
                     modelsNamespace, generatedNamespace, validationNamespace,
+                    spec.ResponseModel,
                     spec.ValidatedOperations, filterTypeLookup, spec.Schemas,
                     service.DispatchHeader);
                 models.Add(model);
@@ -143,6 +145,7 @@ internal static class RequestModelBuilder {
         string modelsNamespace,
         string generatedNamespace,
         string validationNamespace,
+        SpecResponseModel responseModel,
         IReadOnlyList<ValidatedOperationModel> validatedOperations,
         Dictionary<string, FilterTypeModel> filterTypeLookup,
         IReadOnlyList<SchemaModel> schemas,
@@ -158,7 +161,7 @@ internal static class RequestModelBuilder {
             operation.Path, operation.HttpMethod, dispatchHeader, operation.DispatchKey);
 
         var parameters = BuildParameters(operation, modelsNamespace);
-        var responseInfo = BuildResponseInfo(operation, schemas, modelsNamespace);
+        var responseInfo = BuildResponseInfo(operation, schemas, modelsNamespace, responseModel);
 
         var filters = new List<AttributeModel>();
 
@@ -294,8 +297,28 @@ internal static class RequestModelBuilder {
     }
 
     private static ResponseInformationModel BuildResponseInfo(
-        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace) {
+        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace,
+        SpecResponseModel responseModel) {
         ITypeDefinition? returnType = null;
+
+        // The declared set, ahead of everything below, exactly as ServiceInterfaceEmitter.GetReturnType
+        // decides it - because that emitter writes the signature this dispatch has to fill.
+        var unionCases = BuildUnionCases(operation, responseModel, modelsNamespace);
+
+        if (unionCases != null) {
+            return new ResponseInformationModel {
+                IsAsync = true,
+                ReturnType = new GenericTypeDefinition(
+                    typeof(Task<>),
+                    new[] { TypeDefinition.Get(modelsNamespace, ResponseSetPlan.ContainerName(operation)) }),
+                DeclaredContentType = operation.ResponseContentType,
+                RendersAModel = true,
+                ProducedContentTypes = operation.ProducedContentTypes.Count > 0
+                    ? string.Join(",", operation.ProducedContentTypes)
+                    : null,
+                UnionCases = unionCases
+            };
+        }
 
         if (operation.ResponseRef != null) {
             var typeName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef));
@@ -387,4 +410,102 @@ internal static class RequestModelBuilder {
     }
 
 
+
+    /// <summary>
+    /// The operation's declared response set, encoded for the shared dispatch emitter, or null
+    /// where it answers with one type and throws.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This was missing, and its absence is the whole of why a specification-first response set did
+    /// not work. InvokeMethodCodeGenerator emits a per-case switch when UnionCases is set and a
+    /// plain assignment when it is not, and both directions share it - so the code-first path, which
+    /// fills this from the return type's symbols, dispatched correctly while this one assigned the
+    /// container itself. The wrapper went on the wire nested under its own Value member, at whatever
+    /// status the operation would have answered anyway, and every declared error came back as a
+    /// success carrying a Body property.
+    /// </para>
+    /// <para>
+    /// Built from the contract rather than from symbols, because there are none here: this runs in a
+    /// generator that is handed a parsed model and four namespaces, and reaching for a Compilation to
+    /// resolve the generated container would defeat incrementality in the way EnabledFeatureSelector
+    /// warns about. The contract already knows every case and its status.
+    /// </para>
+    /// <para>
+    /// The branch order matches EmitContainer's, and every name comes from ResponseSetPlan, so the
+    /// type the build task emits and the case this switches on cannot be spelled differently.
+    /// </para>
+    /// </remarks>
+    private static string? BuildUnionCases(
+        OperationModel operation, SpecResponseModel responseModel, string modelsNamespace) {
+        if (!ResponseSetPlan.RequiresResponseSet(operation, responseModel)) {
+            return null;
+        }
+
+        var cases = new List<UnionCaseModel>();
+
+        if (ResponseSetPlan.HasNamedSuccessPayload(operation)) {
+            cases.Add(new UnionCaseModel(
+                Qualified(modelsNamespace, PrimarySuccessTypeName(operation)),
+                operation.SuccessStatusCode,
+                appliesHeaders: false,
+                hasBody: true));
+        }
+
+        foreach (var success in operation.SuccessResponses) {
+            if (!ResponseSetPlan.NeedsSuccessCaseType(operation, success)) {
+                continue;
+            }
+
+            // A bodyless success is a case that serializes nothing - the 204 the union had no way to
+            // express before. hasBody false is what makes the emitted switch set ShouldSerialize.
+            var hasBody = success.Ref != null;
+
+            cases.Add(new UnionCaseModel(
+                Qualified(modelsNamespace, ResponseSetPlan.CaseName(operation, success.StatusCode)),
+                success.StatusCode,
+                appliesHeaders: false,
+                hasBody: hasBody,
+                carriesBody: hasBody,
+                bodyTypeName: hasBody
+                    ? Qualified(modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(success.Ref!)))
+                    : null));
+        }
+
+        foreach (var error in operation.ErrorResponses) {
+            // carriesBody, because a generated error case is a wrapper whose Body is the payload the
+            // document declared. Sending the wrapper ships that payload nested under a Body member.
+            cases.Add(new UnionCaseModel(
+                Qualified(modelsNamespace, ResponseSetPlan.CaseName(operation, error.StatusCode)),
+                error.StatusCode,
+                appliesHeaders: false,
+                hasBody: true,
+                carriesBody: true,
+                bodyTypeName: error.Ref == null
+                    ? null
+                    : Qualified(modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref)))));
+        }
+
+        return UnionResponseSelector.Encode(cases);
+    }
+
+    /// <summary>The primary success's own type name, which the union names directly.</summary>
+    private static string PrimarySuccessTypeName(OperationModel operation) =>
+        operation.ResponseRef != null
+            ? NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef))
+            : "System.Collections.Generic.List<" +
+              NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef!)) + ">";
+
+    /// <summary>
+    /// global:: qualified, which is the form UnionCaseModel.TypeName is emitted as.
+    /// </summary>
+    /// <remarks>
+    /// The code-first side gets this from SymbolDisplayFormat.FullyQualifiedFormat. There is no
+    /// symbol here, so it is spelled - and it has to agree, because the emitted switch writes the
+    /// string straight into a case label.
+    /// </remarks>
+    private static string Qualified(string modelsNamespace, string typeName) =>
+        typeName.StartsWith("System.", System.StringComparison.Ordinal)
+            ? "global::" + typeName
+            : "global::" + modelsNamespace + "." + typeName;
 }
