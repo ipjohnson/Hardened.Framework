@@ -150,6 +150,30 @@ public class ResponseSetDispatchTests {
             """).AssertNoErrors();
     }
 
+    /// <summary>
+    /// A case whose body is a member rather than the case itself. The generated arm casts to
+    /// ICarriesResponseBody and overrides the assignment made before the switch, so the caller's
+    /// payload reaches the wire rather than a wrapper with the payload nested inside it.
+    /// </summary>
+    [Fact]
+    public void ACaseCarryingItsBodyCompiles() {
+        Generate("""
+            using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            public record Todo(int Id);
+            public record ApiError(string Code);
+
+            public class TodoController {
+                [Get("/todos/{id}")]
+                public Response<Todo, NotFound<ApiError>, Conflict<ApiError>> ById(int id) =>
+                    new Todo(id);
+            }
+            """).AssertNoErrors();
+    }
+
     #endregion
 
     #region what it emits
@@ -240,6 +264,31 @@ public class ResponseSetDispatchTests {
 
         Assert.Contains("default:", handler, StringComparison.Ordinal);
         Assert.Contains("Response.Status = 500", handler, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Only a case that wraps a body overrides the assignment made before the switch. An ordinary
+    /// case sends itself, and nothing casts.
+    /// </summary>
+    [Fact]
+    public void OnlyAWrappingCaseUnwrapsItsBody() {
+        var handler = Handler((Generate("""
+            using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            public record Todo(int Id);
+            public record ApiError(string Code);
+
+            public class TodoController {
+                [Get("/todos/{id}")]
+                public Response<Todo, NotFound<ApiError>, Conflict> ById(int id) => new Todo(id);
+            }
+            """)));
+
+        // One unwrap, for the one case that wraps a payload.
+        Assert.Equal(1, handler.Split("ICarriesResponseBody").Length - 1);
     }
 
     /// <summary>

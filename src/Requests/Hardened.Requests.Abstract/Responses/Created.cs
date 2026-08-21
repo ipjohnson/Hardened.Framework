@@ -20,16 +20,18 @@ namespace Hardened.Requests.Abstract.Responses;
 /// <para>
 /// <b>The body is <see cref="Value"/>, not this record.</b> Serializing the wrapper would put the
 /// caller's resource under a <c>value</c> member and the location in the body as well as the
-/// header, which is not what a 201 looks like anywhere. Unwrapping is the response-mode plumbing's
-/// job and arrives with it; until then this type is the declaration, and what reads it is the
-/// generator.
+/// header, which is not what a 201 looks like anywhere. <see cref="ICarriesResponseBody"/> is what
+/// says so, and the generated dispatch reads it at compile time rather than testing for it per
+/// request.
 /// </para>
 /// </remarks>
 [HttpStatus(201)]
 public sealed record Created<T>(T Value, string Location)
-    : IHttpStatusResponse, IProvidesResponseHeaders {
+    : IHttpStatusResponse, IProvidesResponseHeaders, ICarriesResponseBody {
 
     public int Status => 201;
+
+    object? ICarriesResponseBody.Body => Value;
 
     public void ApplyHeaders(IDictionary<string, StringValues> headers) {
         headers[KnownHeaders.Location] = Location;

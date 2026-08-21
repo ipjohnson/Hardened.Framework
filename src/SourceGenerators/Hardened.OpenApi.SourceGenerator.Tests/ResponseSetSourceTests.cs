@@ -58,11 +58,15 @@ public class ResponseSetSourceTests {
     /// A malformed entry is skipped rather than throwing. This crosses an incremental cache as a
     /// string, and a generator that threw while decoding one would fail the build with a message
     /// about nothing the author wrote.
+    ///
+    /// The fixtures spell the encoding out rather than building it, which is deliberate: it is what
+    /// noticed the format gaining a field. A round trip through Encode would have agreed with itself
+    /// either way.
     /// </summary>
     [Theory]
     [InlineData("global::App.Todo")]
-    [InlineData("global::App.Todo|notanumber|01")]
-    [InlineData("global::App.Todo|200|1")]
+    [InlineData("global::App.Todo|notanumber|010|")]
+    [InlineData("global::App.Todo|200|1|")]
     public void AMalformedEntryIsSkipped(string encoded) {
         Assert.Empty(UnionResponseSelector.Decode(encoded));
     }
@@ -70,7 +74,7 @@ public class ResponseSetSourceTests {
     [Fact]
     public void AMalformedEntryDoesNotDiscardTheGoodOnesBesideIt() {
         var decoded = UnionResponseSelector.Decode(
-            "global::App.Todo|200|01;broken;global::App.Gone|410|01");
+            "global::App.Todo|200|010|;broken;global::App.Gone|410|010|");
 
         Assert.Equal(2, decoded.Count);
         Assert.Equal("global::App.Todo", decoded[0].TypeName);
