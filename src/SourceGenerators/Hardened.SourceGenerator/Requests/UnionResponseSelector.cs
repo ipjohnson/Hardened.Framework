@@ -44,6 +44,13 @@ public readonly struct UnionCaseModel {
 /// version hosts it, and stays on <c>netstandard2.0</c>.
 /// </para>
 /// <para>
+/// <b>Takes a <c>SemanticModel</c> rather than a <c>GeneratorSyntaxContext</c>.</b> The context is a
+/// wrapper over a node and a model, only the model is used, and it cannot be constructed outside a
+/// running generator - so taking it would mean this could only ever be exercised through a whole
+/// generator run. Every generator here compiles these sources in rather than referencing them, so
+/// "tested through the web generator" is a statement about a different compilation of this file.
+/// </para>
+/// <para>
 /// <b>It also never asks what mode the module declared.</b> Code-first, the return type has already
 /// decided: if it matches, union glue is emitted, and if it does not, the existing path runs.
 /// <c>[ResponseModel]</c> is a declaration of intent for an analyzer to check methods against, not
@@ -63,14 +70,14 @@ public static class UnionResponseSelector {
     /// <summary>
     /// The cases of the handler's return type, encoded, or null where it is not a response set.
     /// </summary>
-    /// <param name="context">The syntax context, for the semantic model.</param>
+    /// <param name="semanticModel">The model the return type is resolved against.</param>
     /// <param name="methodDeclaration">The handler.</param>
     /// <param name="successStatus">
     /// The endpoint's success status, which every case that does not name one of its own takes.
     /// </param>
     public static string? Read(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, int? successStatus) {
-        var returned = Unwrap(context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
+        SemanticModel semanticModel, MethodDeclarationSyntax methodDeclaration, int? successStatus) {
+        var returned = Unwrap(semanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
 
         if (returned == null) {
             return null;
@@ -91,8 +98,8 @@ public static class UnionResponseSelector {
     /// forward rather than rejected in place.
     /// </remarks>
     public static string? Diagnose(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, int? successStatus) {
-        var returned = Unwrap(context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
+        SemanticModel semanticModel, MethodDeclarationSyntax methodDeclaration, int? successStatus) {
+        var returned = Unwrap(semanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
 
         if (returned == null) {
             return null;
