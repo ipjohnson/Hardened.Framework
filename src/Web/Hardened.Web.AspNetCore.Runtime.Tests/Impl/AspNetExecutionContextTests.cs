@@ -211,11 +211,22 @@ public class AspNetExecutionContextTests {
         Assert.Same(info, fork.HandlerInfo);
     }
 
+    /// <summary>
+    /// The fork starts when the request did, so a timing filter on it measures the whole request
+    /// rather than the part after the fork.
+    /// </summary>
+    /// <remarks>
+    /// The timestamps are compared, not two readings of them. Reading each one's elapsed time asks
+    /// what the clock said at two different moments and then asserts the answers round to the same
+    /// millisecond - which holds only if nothing happened in between, and is a claim about the
+    /// machine rather than about the fork. <c>MachineTimestamp</c> is a struct over one tick count,
+    /// so comparing the values says exactly what this test means and says it exactly.
+    /// </remarks>
     [Fact]
     public void AForkKeepsTheStartTime() {
         var context = Context();
 
-        Assert.Equal(context.StartTime.GetElapsedMilliseconds(), Fork(context).StartTime.GetElapsedMilliseconds(), 0);
+        Assert.Equal(context.StartTime, Fork(context).StartTime);
     }
 
     /// <summary>
