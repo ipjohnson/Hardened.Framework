@@ -34,4 +34,23 @@
         </None>
     </ItemGroup>
 
+    <!--
+        Both front ends' targets files, copied in so TargetsWiringTests can compare what they pass
+        against what the shared task shell declares. Linked from their real locations rather than
+        copied into this folder: a copy is a second thing to keep in step, and it would go stale in
+        exactly the case the test exists to catch.
+
+        The OpenAPI one is here rather than in its own test project because the shell is shared -
+        a property added to ExtractSpecTask has to reach both, and splitting the check across two
+        projects makes the second half easy to forget.
+    -->
+    <ItemGroup>
+        <None Include="..\Hardened.Smithy.SourceGenerator\Package\Hardened.Smithy.SourceGenerator.targets"
+              Link="Targets\Hardened.Smithy.SourceGenerator.targets"
+              CopyToOutputDirectory="PreserveNewest"/>
+        <None Include="..\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"
+              Link="Targets\Hardened.OpenApi.SourceGenerator.targets"
+              CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+
 </Project>

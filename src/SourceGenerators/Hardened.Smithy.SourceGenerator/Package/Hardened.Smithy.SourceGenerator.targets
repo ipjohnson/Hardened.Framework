@@ -281,11 +281,21 @@
 
         <WriteLinesToFile
             File="$(HardenedSmithyModelDir)filters.stamp"
-            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedSmithyServiceShapeId)"
+            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedSmithyServiceShapeId);$(HardenedResponseModel)"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>
 
+    <!--
+        ResponseModel is passed here for the same reason the OpenAPI target passes it: ExtractSpecTask
+        reads $(HardenedResponseModel) to choose between Standard, Response and Union, and
+        ExtractSmithySpec inherits that property along with the rest of the shell.
+
+        It was absent, so a Smithy project setting the property got Standard however it was set, and
+        got it silently - the interfaces it generated were valid, just not the ones asked for. The
+        OpenAPI path had been passing it since the property existed, which is what made this look
+        like a mode that did not work for Smithy rather than a line that was never written.
+    -->
     <Target Name="HardenedSmithyExtractModels"
             DependsOnTargets="HardenedSmithyResolveModelDir;HardenedSmithyGenerateAst;HardenedSmithyFilterStamp"
             BeforeTargets="CoreCompile"
@@ -298,6 +308,7 @@
                            GeneratedSourceDirectory="$(HardenedSmithyGeneratedDir)"
                            Namespace="$(HardenedSmithyNamespace)"
                            ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)"
+                           ResponseModel="$(HardenedResponseModel)"
                            EmbedDocument="$(HardenedSmithyEmbedDocument)"
                            EmitUnreferencedSchemas="$(HardenedSmithyEmitUnreferencedSchemas)"
                            ServiceShapeId="$(HardenedSmithyServiceShapeId)">

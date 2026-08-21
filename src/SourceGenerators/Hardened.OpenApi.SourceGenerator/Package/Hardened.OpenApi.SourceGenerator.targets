@@ -158,8 +158,15 @@
         output in place. Writing them to a stamp gives the check something whose timestamp moves
         when any of them changes, and only then, which is what WriteOnlyWhenDifferent is for.
 
-        Anything new the task reads off the item belongs in this line. It is a filter stamp by
-        name and history; it is the metadata stamp in fact.
+        Anything new the task reads belongs in this line, whether it arrives as item metadata or
+        as a property. It is a filter stamp by name and history; it is the task-input stamp in fact.
+
+        $(HardenedResponseModel) is the property case, and it was missing. Switching a project
+        between Standard, Response and Union changes every generated signature and touches no spec
+        file, so the check found the stamp unmoved, skipped the target, and left the previous mode's
+        service interfaces on disk - a build that reports success and generates the mode you were in
+        yesterday. Nothing surfaces it: the old code still compiles, because it was valid output for
+        the mode that produced it.
 
         A dependency rather than a BeforeTargets, because a target's Inputs are read after its
         DependsOnTargets have run: the stamp has to exist before it is compared against.
@@ -169,7 +176,7 @@
 
         <WriteLinesToFile
             File="$(HardenedOpenApiModelDir)filters.stamp"
-            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)')"
+            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedResponseModel)"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>
