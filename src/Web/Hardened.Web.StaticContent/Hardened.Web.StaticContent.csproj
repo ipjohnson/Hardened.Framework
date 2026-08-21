@@ -51,12 +51,30 @@
     <!--
       Built before this can be packed, and not bound against: the task runs in MSBuild and the
       runtime runs in the application.
+
+      SetTargetFramework pins the reference to an inner build, and is not optional even though
+      nothing here binds against the output. The task cross-targets net472;net8.0, and a reference
+      to a cross-targeting project resolves to its outer build, where Microsoft.Common.CrossTargeting
+      .targets defines Build and Clean and not GetTargetPath. `dotnet build` never asks for it - it
+      builds the reference itself and ReferenceOutputAssembly="false" skips the path lookup - but an
+      IDE builds projects in dependency order with BuildProjectReferences=false, and in that mode
+      ResolveProjectReferences calls GetTargetPath on every project reference. Against the outer
+      build that is MSB4057, so the project failed in Rider and Visual Studio while CI stayed green.
+
+      Both TFMs still get built and packed: the task is its own solution member, so the solution
+      build runs its outer build regardless of what this reference asks for, and the tasks/net472
+      glob below keeps finding output.
+
+      Every other build task in this repository is referenced this way - see
+      Hardened.OpenApi.SourceGenerator, Hardened.Smithy.SourceGenerator, and
+      Hardened.IntegrationTests.StaticContent.Manifest.SUT, which references this same task.
     -->
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Web.StaticContent.BuildTask\Hardened.Web.StaticContent.BuildTask.csproj"
                           ReferenceOutputAssembly="false"
                           SkipGetTargetFrameworkProperties="true"
-                          PrivateAssets="all"/>
+                          PrivateAssets="all"
+                          SetTargetFramework="TargetFramework=net8.0"/>
     </ItemGroup>
 
     <ItemGroup>
