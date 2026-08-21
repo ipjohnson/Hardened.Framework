@@ -45,6 +45,30 @@
     </PropertyGroup>
 
     <!--
+      NU1603, for a dependency version the Framework mis-stamped rather than one this repository
+      chose.
+
+      Hardened.Requests.Runtime 0.12.0-rc1000 was packed declaring
+      ValidationModules.Runtime (>= 0.12.0-rc1000) - its own version, on another product's
+      dependency. 0.11.0-rc1000 declares 1.0.0-rc1006 correctly, so this is a regression in that
+      one release. The version it names does not exist, so NuGet resolves upward and warns, and
+      ContinuousIntegrationBuild turns the warning into an error in every project that reaches
+      Hardened.Requests.Runtime - which is all of them.
+
+      Suppressed rather than worked around with a direct pin, because a pin here would silently
+      satisfy the wrong range and read as though this repository had an opinion about which
+      ValidationModules to use. It does not; the Framework does, and its package says the wrong
+      thing.
+
+      nuget.org is append-only, so 0.12.0-rc1000 cannot be corrected in place. Remove this the
+      moment the pins above move to a Framework release whose nuspec names a ValidationModules
+      version that exists.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);NU1603</NoWarn>
+    </PropertyGroup>
+
+    <!--
       Applies to every project under src/.
 
       Test projects get coverlet.collector so that collecting "XPlat Code Coverage" during
