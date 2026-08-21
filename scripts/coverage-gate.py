@@ -39,7 +39,7 @@ run fail rather than fix it. Measured 2026-08-18:
 
     dotnet build src/Hardened.Framework.sln -c Release
     dotnet test  src/Hardened.Framework.sln --no-build -c Release \
-        --settings coverlet.runsettings --collect:"XPlat Code Coverage"
+        --settings coverage.runsettings --collect:"Code Coverage"
         -> 20 assemblies, Hardened.Smithy.BuildTask among them
 
     dotnet build src/Hardened.Framework.sln -c Release -p:ContinuousIntegrationBuild=true

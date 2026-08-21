@@ -60,21 +60,24 @@
     <!--
       Applies to every project under src/.
 
-      Test projects get coverlet.collector so that collecting "XPlat Code Coverage" during
-      `dotnet test` produces Cobertura reports. Collection settings (what is excluded from
-      the numbers) live in coverlet.runsettings at the repository root.
+      Test projects get Microsoft.CodeCoverage, so collecting "Code Coverage" during `dotnet test`
+      produces Cobertura reports. Collection settings - what is excluded from the numbers - live
+      in coverage.runsettings at the repository root.
 
-      6.0.2 does not instrument anything under the .NET 11 SDK. It fails silently rather than
-      erroring: every test still runs and passes, and every assembly reports 0.0% - which the
-      coverage gate then reads as the entire codebase having lost its tests. Measured on one project
-      with everything else held equal, 6.0.2 reported 0.0% for Hardened.Requests.Abstract where
-      10.0.1 reported 72.0% line and 68.8% branch.
+      This was coverlet.collector until the build moved to the .NET 11 SDK, which coverlet does
+      not instrument under. It failed silently rather than erroring: every test ran and passed
+      while 6.0.2 reported 0.0% for every assembly, and 10.0.1 narrowed that to a partial
+      collapse - Hardened.Requests.Abstract reading 31.3% against a 93.5% floor it holds on
+      8.0.401.
 
-      This is also what made local coverage runs look unreliable throughout the response-set work.
-      They were not unreliable; src/global.json floated to the preview, so they were hitting this.
+      Microsoft.CodeCoverage ships with Microsoft.NET.Test.Sdk and moves with the SDK, which is
+      the property worth having here: the failure was a third-party instrumenter lagging a new
+      runtime, and that is a thing which recurs at every upgrade. Its numbers land within a point
+      of coverlet's for almost every assembly - Hardened.Shared.Runtime 96.6% against 96.6%,
+      Requests.Abstract 93.9% against 93.5% - so the baseline moved rather than the tests.
     -->
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
-        <PackageReference Include="coverlet.collector" Version="10.0.1">
+        <PackageReference Include="Microsoft.CodeCoverage" Version="18.9.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
