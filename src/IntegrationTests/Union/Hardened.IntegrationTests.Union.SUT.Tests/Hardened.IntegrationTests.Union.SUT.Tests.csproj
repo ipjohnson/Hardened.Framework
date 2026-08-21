@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- net11.0 to reference the SUT, which needs it for the keyword. The testing packages are
+         net8.0 and resolve here the ordinary way. -->
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <NoWarn>$(NoWarn);NETSDK1057</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="3.2.2" />
+
+        <!--
+            Named directly because on net11.0 nothing else resolves it consistently.
+            Hardened.Shared.Testing floors Microsoft.Extensions.DependencyInjection at 8.0.1 and
+            DependencyModules.xUnit floors it at 10.0.0; on net8.0 the graph settles on 8.0.1 and the
+            two never meet, and on net11.0 NuGet sees a downgrade and fails restore with NU1605.
+            Selecting the higher version is the resolution NU1605 itself names, and it is scoped to
+            the one project here that targets net11.0.
+        -->
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
+        <ProjectReference Include="..\Hardened.IntegrationTests.Union.SUT\Hardened.IntegrationTests.Union.SUT.csproj" />
+    </ItemGroup>
+
+</Project>

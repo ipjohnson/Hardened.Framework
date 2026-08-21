@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        net11.0, alone in this solution, and preview alongside it.
+
+        A C# 15 union is not purely a compiler feature: the compiler requires
+        System.Runtime.CompilerServices.IUnion and UnionAttribute, and those arrive with the .NET 11
+        reference assemblies. Measured on SDK 11.0.100-preview.7, net8.0 with LangVersion preview is
+        CS0518 and CS0656 rather than a working build, and net11.0 without preview is CS1001 - the
+        keyword does not parse, because the default is 14.0.
+
+        This is the only project here that needs either. Everything else stays net8.0, which is what
+        the packages target and what the Lambda runtime runs.
+    -->
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net11.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+
+        <!-- A preview SDK says so once per project; it is not news here. -->
+        <NoWarn>$(NoWarn);NETSDK1057</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>
