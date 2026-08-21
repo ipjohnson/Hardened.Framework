@@ -36,19 +36,45 @@ namespace Hardened.Idl.Emitters;
 /// </remarks>
 internal static class UnionResponseEmitter {
 
+    /// <summary>Where the response contracts a generated case implements live.</summary>
+    private const string ResponsesNamespace = "Hardened.Requests.Abstract.Responses";
+
     /// <summary>
     /// The union type and its case types, for every operation the service declares.
     /// </summary>
     public static IReadOnlyList<ClassDefinition> Emit(
         IConstructContainer container, ServiceModel service, string modelsNamespace,
-        bool asLanguageUnion = false) {
+        bool asLanguageUnion = false, SpecResponseModel responseModel = SpecResponseModel.Response) {
         var emitted = new List<ClassDefinition>();
 
         foreach (var operation in service.Operations) {
+            if (!ResponseSetPlan.RequiresResponseSet(operation, responseModel)) {
+                continue;
+            }
+
             var cases = new List<CaseType>();
 
+            // A declared success that carries no body, or that is not the primary one, needs a case
+            // type of its own - it has no schema to stand in for it the way a $ref success does.
+            // 204 is the common shape: the branch exists, it is empty, and the dispatch already
+            // knows what to do with a case whose hasBody is false.
+            foreach (var response in operation.SuccessResponses) {
+                if (!ResponseSetPlan.NeedsSuccessCaseType(operation, response)) {
+                    continue;
+                }
+
+                var successCase = EmitCaseType(
+                    container, operation, response.StatusCode, response.Ref, response.Description,
+                    modelsNamespace);
+
+                emitted.Add(successCase.Definition);
+                cases.Add(successCase);
+            }
+
             foreach (var response in operation.ErrorResponses) {
-                var caseType = EmitCaseType(container, operation, response, modelsNamespace);
+                var caseType = EmitCaseType(
+                    container, operation, response.StatusCode, response.Ref, response.Description,
+                    modelsNamespace);
 
                 emitted.Add(caseType.Definition);
                 cases.Add(caseType);
@@ -61,19 +87,6 @@ internal static class UnionResponseEmitter {
         return emitted;
     }
 
-    /// <summary>The name the service interface returns for this operation.</summary>
-    /// <remarks>
-    /// Public because <c>ServiceInterfaceEmitter</c> names it in a signature and this is the only
-    /// definition of the scheme. Deriving it a second time there is how a generated type and the
-    /// signature that returns it come to disagree.
-    /// </remarks>
-    public static string ContainerName(OperationModel operation) =>
-        operation.MethodName + "Response";
-
-    /// <summary>The case type for one declared status.</summary>
-    public static string CaseName(OperationModel operation, int statusCode) =>
-        operation.MethodName + StatusName(statusCode);
-
     /// <summary>
     /// One record per declared status, carrying the body that status declares, or nothing.
     /// </summary>
@@ -84,9 +97,9 @@ internal static class UnionResponseEmitter {
     /// unambiguous match order.
     /// </remarks>
     private static CaseType EmitCaseType(
-        IConstructContainer container, OperationModel operation, ErrorResponseModel response,
-        string modelsNamespace) {
-        var name = CaseName(operation, response.StatusCode);
+        IConstructContainer container, OperationModel operation, int statusCode, string? bodyRef,
+        string? description, string modelsNamespace) {
+        var name = ResponseSetPlan.CaseName(operation, statusCode);
 
         var definition = container.AddClass(name);
 
@@ -98,8 +111,8 @@ internal static class UnionResponseEmitter {
         // and generated code is read more often than it is written.
         definition.TerminateWithSemicolon = true;
 
-        definition.Comment = DocComment.Format(response.Description)
-            ?? $"The {response.StatusCode} response declared for {operation.HttpMethod} {operation.Path}.";
+        definition.Comment = DocComment.Format(description)
+            ?? $"The {statusCode} response declared for {operation.HttpMethod} {operation.Path}.";
 
         // [HttpStatus], so the dispatch generator reads this case's status from the type rather
         // than from the specification it can no longer see. It is the same attribute a hand-written
@@ -107,16 +120,16 @@ internal static class UnionResponseEmitter {
         definition.AddAttribute(
             TypeDefinition.Get("Hardened.Requests.Abstract.Responses", "HttpStatusAttribute"),
             new CodeOutputComponent(
-                response.StatusCode.ToString(System.Globalization.CultureInfo.InvariantCulture)) {
+                statusCode.ToString(System.Globalization.CultureInfo.InvariantCulture)) {
                 Indented = false
             });
 
-        if (response.Ref == null) {
+        if (bodyRef == null) {
             return new CaseType(definition, name, hasBody: false);
         }
 
         var payload = TypeDefinition.Get(
-            modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(response.Ref)));
+            modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(bodyRef)));
 
         var constructor = definition.AddConstructor();
 
@@ -126,6 +139,28 @@ internal static class UnionResponseEmitter {
         constructor.IsPrimary = true;
         constructor.Modifiers |= ComponentModifier.Public;
         constructor.AddParameter(payload, "Body");
+
+        // The contract the shared dispatch reads a wrapper's payload through, and the same one
+        // Created<T> and the generic problem types implement by hand. Without it the emitted switch
+        // casts this case to ICarriesResponseBody and does not compile - and before the switch was
+        // emitted at all, the wrapper went on the wire whole, putting the declared payload under a
+        // Body member no client was told about.
+        definition.AddBaseType(
+            TypeDefinition.Get(ResponsesNamespace, "ICarriesResponseBody"));
+
+        // A body to put it in. The header-only form above is what a case with no payload wants, and
+        // it is what this was until the interface arrived - a record ending at its semicolon has
+        // nowhere for a member to go, and CSharpAuthor drops one added to it silently.
+        definition.TerminateWithSemicolon = false;
+
+        // Explicit, because the record already has a public Body of the payload's own type and an
+        // implicit implementation would have to widen it to object?. Created<T> resolves the same
+        // collision the same way.
+        definition.AddComponent(
+            new CodeOutputComponent(
+                "object? " + ResponsesNamespace + ".ICarriesResponseBody.Body => Body;") {
+                Indented = true
+            });
 
         return new CaseType(definition, name, hasBody: true);
     }
@@ -141,7 +176,7 @@ internal static class UnionResponseEmitter {
     private static ClassDefinition EmitContainer(
         IConstructContainer container, OperationModel operation, IReadOnlyList<CaseType> cases,
         string modelsNamespace, bool asLanguageUnion) {
-        var name = ContainerName(operation);
+        var name = ResponseSetPlan.ContainerName(operation);
 
         var branchTypes = new List<ITypeDefinition>();
 
@@ -221,6 +256,29 @@ internal static class UnionResponseEmitter {
     }
 
     /// <summary>
+    /// Whether a declared success needs a case type of its own rather than being named by its schema.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The primary success is the operation's own payload type, so it needs no wrapper - a handler
+    /// returns the pet it already had. It needs one only when there is no payload to name, which is
+    /// 204 and every other bodyless success.
+    /// </para>
+    /// <para>
+    /// Every other success is wrapped whatever its body, because the wrapper is what carries the
+    /// status. Two successes sharing one schema would otherwise put the same type in the union
+    /// twice, and two identical conversions are ambiguous at the use site rather than at the
+    /// declaration - the same wall the per-status error wrappers exist for.
+    /// </para>
+    /// <para>
+    /// Deliberately expressed against <see cref="SuccessBranchType"/>'s own answer rather than by
+    /// restating its conditions. Restating them is how a branch and the case type meant to replace
+    /// it come to disagree about which one an operation got.
+    /// </para>
+    /// </remarks>
+
+
+    /// <summary>
     /// The operation's success payload as a branch, or null where it answers with no body.
     /// </summary>
     /// <remarks>
@@ -230,6 +288,10 @@ internal static class UnionResponseEmitter {
     /// </remarks>
     private static ITypeDefinition? SuccessBranchType(
         OperationModel operation, string modelsNamespace) {
+        if (!ResponseSetPlan.HasNamedSuccessPayload(operation)) {
+            return null;
+        }
+
         if (operation.ResponseRef != null) {
             return TypeDefinition.Get(
                 modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef)));
@@ -246,33 +308,6 @@ internal static class UnionResponseEmitter {
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// The status's name, on the same scheme <c>ErrorResponseEmitter</c> uses.
-    /// </summary>
-    /// <remarks>
-    /// Duplicated from that emitter rather than shared, because the two schemes must be free to
-    /// diverge without one silently renaming the other's types - and a generated type name is API.
-    /// </remarks>
-    private static string StatusName(int statusCode) {
-        switch (statusCode) {
-            case 400: return "BadRequest";
-            case 401: return "Unauthorized";
-            case 403: return "Forbidden";
-            case 404: return "NotFound";
-            case 405: return "MethodNotAllowed";
-            case 406: return "NotAcceptable";
-            case 409: return "Conflict";
-            case 410: return "Gone";
-            case 412: return "PreconditionFailed";
-            case 415: return "UnsupportedMediaType";
-            case 422: return "UnprocessableContent";
-            case 429: return "TooManyRequests";
-            case 500: return "InternalServerError";
-            case 503: return "ServiceUnavailable";
-            default: return "Status" + statusCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        }
     }
 
     private readonly struct CaseType {

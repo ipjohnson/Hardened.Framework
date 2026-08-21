@@ -60,8 +60,29 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// </remarks>
     public string ContentNegotiation { get; set; } = "";
 
+    /// <summary>
+    /// How this spec's handlers declare their responses.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The build task chooses it from <c>$(HardenedResponseModel)</c> and the emitters read it, but
+    /// it also has to survive into the generator: the interface signature and the dispatch that
+    /// fills it are written by two different halves of the build, and the second reads only this
+    /// model. Without it the generator emitted a plain assignment for a handler whose signature
+    /// returned a response set - so the wrapper went on the wire, under its own Value member, at
+    /// whatever status the operation would have answered anyway.
+    /// </para>
+    /// <para>
+    /// At the root rather than per operation, because it is what the module asked for. Whether a
+    /// given operation ends up with a response set is a different question and belongs to
+    /// <c>ResponseSetPlan.RequiresResponseSet</c>, which reads this and the operation both.
+    /// </para>
+    /// </remarks>
+    public SpecResponseModel ResponseModel { get; set; } = SpecResponseModel.Standard;
+
     public bool Equals(ServiceSpecModel? other) {
         if (other is not null && ContentNegotiation != other.ContentNegotiation) return false;
+        if (other is not null && ResponseModel != other.ResponseModel) return false;
 
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;

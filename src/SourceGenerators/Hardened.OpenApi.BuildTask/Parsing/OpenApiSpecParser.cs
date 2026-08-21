@@ -404,6 +404,18 @@ internal static class OpenApiSpecParser {
                     if (Missing(parameter.ArrayItemsRef)) parameter.ArrayItemsRef = null;
                 }
 
+                // A success whose schema does not exist loses its body rather than its status: the
+                // status is declared and still has to be answerable, so the case becomes a bodyless
+                // one. Errors are removed outright because an error case with no body and no status
+                // of its own carries nothing at all.
+                foreach (var success in operation.SuccessResponses) {
+                    if (Missing(success.Ref)) success.Ref = null;
+                    if (Missing(success.ArrayItemsRef)) {
+                        success.ArrayItemsRef = null;
+                        success.IsArray = false;
+                    }
+                }
+
                 operation.ErrorResponses.RemoveAll(error => Missing(error.Ref));
 
                 var response = Array(operation.ResponseRef);
@@ -1477,13 +1489,39 @@ internal static class OpenApiSpecParser {
                     });
                 }
 
-                foreach (var respKvp in operation.Responses.Where(r => r.Key.StartsWith("2")).OrderBy(r => r.Key)) {
+                // Every 2xx, not the first one.
+                //
+                // This loop ended in an unconditional break, so an operation declaring 200 and 202
+                // parsed as its 200 and the 202 left no trace - not in the interface, not in the
+                // routing, not in the document the build emits back out. The set was already in
+                // hand and one of it was kept.
+                //
+                // The flat fields still describe the primary success, which is the lowest declared
+                // 2xx and therefore the first here, so every consumer that reads them individually
+                // is untouched. The list beside them is what an operation with more than one
+                // success needs, because its extra statuses cannot be thrown.
+                var isPrimarySuccess = true;
+
+                foreach (var respKvp in operation.Responses.Where(r => r.Key.StartsWith("2")).OrderBy(r => r.Key, StringComparer.Ordinal)) {
                     var response = respKvp.Value;
-                    if (int.TryParse(respKvp.Key, out var statusCode)) {
+
+                    // A non-numeric 2xx key - the "2XX" range form - names no single status, so it
+                    // cannot become a case. Skipped rather than guessed at, and skipped before the
+                    // flat fields are touched so it cannot claim the primary slot either.
+                    if (!int.TryParse(respKvp.Key, out var statusCode)) {
+                        continue;
+                    }
+
+                    var success = new SuccessResponseModel {
+                        StatusCode = statusCode,
+                        Description = FirstNonEmpty(response?.Description)
+                    };
+
+                    if (isPrimarySuccess) {
                         opModel.SuccessStatusCode = statusCode;
                     }
 
-                    if (response.Content != null) {
+                    if (response?.Content != null) {
                         // Every media type the response declares, in document order - the set the
                         // response is negotiated against. SelectMediaType below picks one of these
                         // to read the schema from, which is a different question: that one decides
@@ -1501,27 +1539,42 @@ internal static class OpenApiSpecParser {
                         // 3.2 added it for exactly this; Microsoft.OpenApi surfaces it directly, so
                         // there is nothing to hand-parse.
                         if (responseContent.Value?.ItemSchema != null) {
-                            opModel.ResponseContentType = responseContent.Key;
-                            opModel.ItemSchemaRef = SchemaRef(responseContent.Value.ItemSchema);
+                            if (isPrimarySuccess) {
+                                opModel.ResponseContentType = responseContent.Key;
+                                opModel.ItemSchemaRef = SchemaRef(responseContent.Value.ItemSchema);
+                            }
                         }
                         else if (responseContent.Value?.Schema != null) {
                             var responseSchema = responseContent.Value.Schema;
-                            opModel.ResponseContentType = responseContent.Key;
-                            opModel.ResponseRef = SchemaRef(responseSchema);
-                            opModel.ResponseType = SchemaType(responseSchema);
-                            opModel.ResponseFormat = responseSchema.Format;
-                            opModel.ResponseIsArray = SchemaType(responseSchema) == "array";
-                            opModel.ResponseArrayItemsRef = SchemaRef(responseSchema.Items);
 
-                            // The element's own type, for an array of primitives. Only the $ref was
-                            // read, so `items: {type: string}` named nothing and the response became
-                            // JsonElement - while array-of-$ref worked, which is what hid it.
-                            opModel.ResponseArrayItemsType = SchemaType(responseSchema.Items);
-                            opModel.ResponseArrayItemsFormat = responseSchema.Items?.Format;
+                            success.ContentType = responseContent.Key;
+                            success.Ref = SchemaRef(responseSchema);
+                            success.Type = SchemaType(responseSchema);
+                            success.Format = responseSchema.Format;
+                            success.IsArray = SchemaType(responseSchema) == "array";
+                            success.ArrayItemsRef = SchemaRef(responseSchema.Items);
+                            success.ArrayItemsType = SchemaType(responseSchema.Items);
+
+                            if (isPrimarySuccess) {
+                                opModel.ResponseContentType = responseContent.Key;
+                                opModel.ResponseRef = SchemaRef(responseSchema);
+                                opModel.ResponseType = SchemaType(responseSchema);
+                                opModel.ResponseFormat = responseSchema.Format;
+                                opModel.ResponseIsArray = SchemaType(responseSchema) == "array";
+                                opModel.ResponseArrayItemsRef = SchemaRef(responseSchema.Items);
+
+                                // The element's own type, for an array of primitives. Only the $ref
+                                // was read, so `items: {type: string}` named nothing and the
+                                // response became JsonElement - while array-of-$ref worked, which is
+                                // what hid it.
+                                opModel.ResponseArrayItemsType = SchemaType(responseSchema.Items);
+                                opModel.ResponseArrayItemsFormat = responseSchema.Items?.Format;
+                            }
                         }
                     }
 
-                    break;
+                    opModel.SuccessResponses.Add(success);
+                    isPrimarySuccess = false;
                 }
             }
 

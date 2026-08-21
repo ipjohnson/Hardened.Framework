@@ -325,6 +325,17 @@ public class SpecModelSerializerTests {
             ResponseIsArray = true,
             ResponseArrayItemsRef = "#/components/schemas/Pet",
             SuccessStatusCode = 201,
+            SuccessResponses = {
+                new SuccessResponseModel {
+                    StatusCode = 201,
+                    Ref = "#/components/schemas/Pet",
+                    Type = "object",
+                    ContentType = "application/json",
+                    Description = "Created."
+                },
+                // Bodyless, and a second success - the two shapes that had nowhere to go before.
+                new SuccessResponseModel { StatusCode = 204 },
+            },
             ErrorResponses = {
                 new ErrorResponseModel {
                     StatusCode = 404, Ref = "#/components/schemas/ApiError", Description = "Gone."

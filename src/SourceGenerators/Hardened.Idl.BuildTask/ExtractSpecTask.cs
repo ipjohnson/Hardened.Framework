@@ -427,6 +427,13 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             // what the resolver is called, the same way it is told everything else.
             model.JsonTypeInfoResolverName = JsonTypeInfoEmitter.ResolverNameFor(fileName);
 
+            // Stamped onto the model, not only handed to the emitters, because the generator reads
+            // only what is written here. The interface is emitted below from this mode and the
+            // dispatch that fills it is written later, by a generator that never sees an MSBuild
+            // property - so a mode that reached one and not the other produced a handler assigning a
+            // response set as though it were a single value.
+            model.ResponseModel = SelectedResponseModel();
+
             if (!Published(spec, path, model)) {
                 continue;
             }

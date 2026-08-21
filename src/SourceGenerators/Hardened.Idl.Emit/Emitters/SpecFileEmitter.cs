@@ -69,17 +69,30 @@ internal static class SpecFileEmitter {
                     ServiceInterfaceEmitter.Emit(services, service, modelsNamespace, responseModel),
                     excludeFromCoverage);
 
-                // One of the two, never both. Emitting a thrown exception and a returned case type
-                // for the same declared 404 would offer two ways to answer it and no way to tell
-                // from a handler which it used.
-                //
                 // In the models namespace, beside the payloads they carry, rather than beside the
                 // interfaces - neither is part of the contract an implementation implements.
-                var responses = responseModel == SpecResponseModel.Standard
-                    ? ErrorResponseEmitter.Emit(models, service, modelsNamespace)
-                    : UnionResponseEmitter.Emit(
+                //
+                // Both emitters run, partitioned by operation rather than one of them per service.
+                //
+                // "Never both" is an invariant about a single declared status, and it still holds:
+                // an operation is wholly in one form or the other, so no 404 is ever reachable as a
+                // thrown exception and as a returned case at once. What changed is that the choice
+                // is no longer the module's alone - an operation declaring two successes is in the
+                // response-set form whatever the module asked for, because a throw cannot carry a
+                // success. A service can therefore hold some of each, and emitting only one kind
+                // would leave the other operations' signatures naming types nothing wrote.
+                var responses = new List<ClassDefinition>();
+
+                responses.AddRange(
+                    ErrorResponseEmitter.Emit(
                         models, service, modelsNamespace,
-                        asLanguageUnion: responseModel == SpecResponseModel.Union);
+                        operation => !ResponseSetPlan.RequiresResponseSet(operation, responseModel)));
+
+                responses.AddRange(
+                    UnionResponseEmitter.Emit(
+                        models, service, modelsNamespace,
+                        asLanguageUnion: responseModel == SpecResponseModel.Union,
+                        responseModel: responseModel));
 
                 foreach (var definition in responses) {
                     Coverage.Apply(definition, excludeFromCoverage);

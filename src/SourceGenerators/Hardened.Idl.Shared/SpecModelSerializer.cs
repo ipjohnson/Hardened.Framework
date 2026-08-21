@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Text;
 using Hardened.Idl.Models;
@@ -44,6 +45,7 @@ internal static class SpecModelSerializer {
         spec.Add("FileName", model.FileName);
         spec.Add("JsonTypeInfoResolverName", model.JsonTypeInfoResolverName);
         spec.Add("ContentNegotiation", model.ContentNegotiation);
+        spec.Add("ResponseModel", model.ResponseModel.ToString());
         spec.Add("PublishUrl", model.PublishUrl);
         spec.Add("UiUrl", model.UiUrl);
         spec.Add("UiEnvironments", model.UiEnvironments);
@@ -106,6 +108,7 @@ internal static class SpecModelSerializer {
                     model.FileName = record.String("FileName") ?? "";
                     model.JsonTypeInfoResolverName = record.String("JsonTypeInfoResolverName") ?? "";
                     model.ContentNegotiation = record.String("ContentNegotiation") ?? "";
+                    model.ResponseModel = ParseResponseModel(record.String("ResponseModel"));
                     model.PublishUrl = record.String("PublishUrl") ?? "";
                     model.UiUrl = record.String("UiUrl") ?? "";
                     model.UiEnvironments = record.String("UiEnvironments") ?? "";
@@ -159,6 +162,20 @@ internal static class SpecModelSerializer {
 
                 case "param":
                     operation?.Parameters.Add(ReadParameter(record));
+                    break;
+
+                case "successresponse":
+                    operation?.SuccessResponses.Add(new SuccessResponseModel {
+                        StatusCode = record.Int("StatusCode") ?? 0,
+                        Ref = record.String("Ref"),
+                        Type = record.String("Type"),
+                        Format = record.String("Format"),
+                        IsArray = record.Bool("IsArray"),
+                        ArrayItemsRef = record.String("ArrayItemsRef"),
+                        ArrayItemsType = record.String("ArrayItemsType"),
+                        ContentType = record.String("ContentType"),
+                        Description = record.String("Description"),
+                    });
                     break;
 
                 case "errorresponse":
@@ -440,6 +457,24 @@ internal static class SpecModelSerializer {
         record.Add("SuccessStatusCode", operation.SuccessStatusCode);
         record.WriteTo(builder);
 
+        // Before the errors, so a reader sees an operation's successes in the order the document
+        // declares them and the primary stays first. Written even when there is one, because a
+        // reader that has to infer the list from the flat fields is a second definition of the
+        // set that can disagree with the first.
+        foreach (var successResponse in operation.SuccessResponses) {
+            var successRecord = new Record("successresponse");
+            successRecord.AddAlways("StatusCode", successResponse.StatusCode.ToString(CultureInfo.InvariantCulture));
+            successRecord.Add("Ref", successResponse.Ref);
+            successRecord.Add("Type", successResponse.Type);
+            successRecord.Add("Format", successResponse.Format);
+            successRecord.Add("IsArray", successResponse.IsArray);
+            successRecord.Add("ArrayItemsRef", successResponse.ArrayItemsRef);
+            successRecord.Add("ArrayItemsType", successResponse.ArrayItemsType);
+            successRecord.Add("ContentType", successResponse.ContentType);
+            successRecord.Add("Description", successResponse.Description);
+            successRecord.WriteTo(builder);
+        }
+
         foreach (var errorResponse in operation.ErrorResponses) {
             var record2 = new Record("errorresponse");
             record2.AddAlways("StatusCode", errorResponse.StatusCode.ToString(CultureInfo.InvariantCulture));
@@ -718,5 +753,23 @@ internal static class SpecModelSerializer {
 
             return builder.ToString();
         }
+    }
+
+    /// <summary>
+    /// The response model a written record names, defaulting to Standard.
+    /// </summary>
+    /// <remarks>
+    /// An unrecognised value is Standard rather than a throw, matching how the build task reads
+    /// $(HardenedResponseModel): a model file written by a newer build should degrade to the shape
+    /// every consumer already understands rather than fail the read.
+    /// </remarks>
+    private static SpecResponseModel ParseResponseModel(string? value) {
+        if (string.Equals(value, nameof(SpecResponseModel.Response), StringComparison.OrdinalIgnoreCase)) {
+            return SpecResponseModel.Response;
+        }
+
+        return string.Equals(value, nameof(SpecResponseModel.Union), StringComparison.OrdinalIgnoreCase)
+            ? SpecResponseModel.Union
+            : SpecResponseModel.Standard;
     }
 }

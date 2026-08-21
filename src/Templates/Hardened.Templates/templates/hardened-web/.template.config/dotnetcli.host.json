@@ -1,8 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/dotnetcli.host",
-
   "//": "The CLI name is kebab-case, which is what dotnet's own templates use - --use-controllers, --susi-policy-id. The symbol names stay identifier-safe because the #if conditionals in the content evaluate them.",
-
   "symbolInfo": {
     "host": {
       "longName": "host",
@@ -11,6 +9,10 @@
     "contract": {
       "longName": "contract",
       "shortName": "c"
+    },
+    "responseModel": {
+      "longName": "response-model",
+      "shortName": "rm"
     },
     "OpenApiUi": {
       "longName": "openapi-ui",

@@ -17,6 +17,6 @@ namespace Hardened1;
 [HardenedWebModule]
 #if (codeFirst)
 // This assembly's URL space. Every route below it is relative to this.
-[BasePath("/greeting")]
+[BasePath("/todos")]
 #endif
 public partial class TemplateModuleNameLibrary;

@@ -111,6 +111,46 @@
     "lambda": {
       "type": "computed",
       "value": "(host == 'aws-lambda')"
+    },
+    "responseModel": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "standard",
+      "description": "How a handler declares more than one kind of response.",
+      "choices": [
+        {
+          "choice": "standard",
+          "description": "One return type per handler; other statuses are reached by throwing. The default, and what an application that says nothing gets."
+        },
+        {
+          "choice": "response",
+          "description": "Handlers return Response<T1..Tn>, a struct any C# compiler can build. The declared set reaches the generated document, so 404 and 409 are described rather than implied."
+        },
+        {
+          "choice": "union",
+          "description": "Handlers return a C# 15 union. Same declared set as response, plus exhaustiveness in your own code. Needs a compiler that can do C# 15 - the .NET 11 SDK - and reports a build error naming LangVersion below it."
+        }
+      ]
+    },
+    "standardMode": {
+      "type": "computed",
+      "value": "(responseModel == 'standard')"
+    },
+    "responseMode": {
+      "type": "computed",
+      "value": "(responseModel == 'response')"
+    },
+    "unionMode": {
+      "type": "computed",
+      "value": "(responseModel == 'union')"
+    },
+    "declaredMode": {
+      "type": "computed",
+      "value": "(responseModel == 'response' || responseModel == 'union')"
+    },
+    "lambdaUnionConflict": {
+      "type": "computed",
+      "value": "(host == 'aws-lambda' && responseModel == 'union')"
     }
   },
   "sources": [
@@ -119,25 +159,25 @@
         {
           "condition": "(!codeFirst)",
           "exclude": [
-            "src/Hardened1/GreetingController.cs"
+            "src/Hardened1/TodoController.cs"
           ]
         },
         {
           "condition": "(!specFirst)",
           "exclude": [
-            "src/Hardened1/GreetingService.cs"
+            "src/Hardened1/TodoService.cs"
           ]
         },
         {
           "condition": "(!openapi)",
           "exclude": [
-            "src/Hardened1/contracts/greeting.yaml"
+            "src/Hardened1/contracts/todos.yaml"
           ]
         },
         {
           "condition": "(!smithy)",
           "exclude": [
-            "src/Hardened1/contracts/greeting.smithy"
+            "src/Hardened1/contracts/todos.smithy"
           ]
         },
         {
@@ -163,6 +203,22 @@
           "condition": "(!OpenApiUi)",
           "exclude": [
             "src/Hardened1.Host/Properties/launchSettings.json"
+          ]
+        },
+        {
+          "comment": "One global.json reaches the output. The union model needs the .NET 11 SDK for the keyword; every other model pins the 8.0 line, because the newest installed SDK is not a safe default - a net8.0 project built by the 11 preview writes a test deps.json missing its own ProjectReference.",
+          "condition": "(unionMode)",
+          "exclude": [
+            "global.json"
+          ],
+          "rename": {
+            "global.union.json": "global.json"
+          }
+        },
+        {
+          "condition": "(!unionMode)",
+          "exclude": [
+            "global.union.json"
           ]
         }
       ]

@@ -4,6 +4,47 @@
     The implementation library. Everything the application does lives here, and nothing in it
     knows where it runs - swapping the host project changes no file in this one.
   -->
+<!--#if (unionMode) -->
+
+  <!--
+    preview, for the union keyword, and here rather than in Directory.Build.props on purpose: this
+    is the only project that declares one. The host and the test project compile against this
+    assembly's public surface without ever naming a union type, so raising their language version
+    would buy nothing and would hide which project actually has the requirement.
+
+    preview rather than a number. This SDK's compiler reports 14.0 as its default and offers no 15
+    at all, so <LangVersion>15</LangVersion> is CS1617 - an invalid option - rather than a version
+    floor. Unions are a preview language feature and stay behind this switch until C# 15 ships.
+
+    The framework half is in Directory.Build.props, which explains the pairing.
+  -->
+  <PropertyGroup>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+<!--#endif -->
+<!--#if (specFirst) -->
+<!--#if (declaredMode) -->
+
+  <!--
+    Which response model the build generates the service interface in. The contract declares the
+    statuses either way; this decides whether they arrive as one return type per operation with the
+    rest thrown, or as a declared set the compiler makes you handle.
+
+    An MSBuild property rather than the [ResponseModel] attribute, because in a contract-first
+    project the interface is generated before any attribute is read - the build task writes the
+    signature this names, and the handler implements whatever it wrote.
+  -->
+  <PropertyGroup>
+<!--#if (responseMode) -->
+    <HardenedResponseModel>Response</HardenedResponseModel>
+<!--#endif -->
+<!--#if (unionMode) -->
+    <HardenedResponseModel>Union</HardenedResponseModel>
+<!--#endif -->
+  </PropertyGroup>
+<!--#endif -->
+<!--#endif -->
+
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Runtime" />
     <PackageReference Include="Hardened.Web.Runtime" />
@@ -48,7 +89,7 @@
     restated as attributes on the application.
   -->
   <ItemGroup>
-    <HardenedOpenApiSpec Include="contracts\greeting.yaml">
+    <HardenedOpenApiSpec Include="contracts\todos.yaml">
       <PublishUrl>/openapi.yaml</PublishUrl>
 <!--#if (OpenApiUi) -->
       <UiUrl>/docs</UiUrl>
@@ -74,7 +115,7 @@
     two CLI versions can produce different ASTs and therefore different generated C#.
   -->
   <ItemGroup>
-    <HardenedSmithyModel Include="contracts\greeting.smithy">
+    <HardenedSmithyModel Include="contracts\todos.smithy">
       <PublishUrl>/openapi.json</PublishUrl>
 <!--#if (OpenApiUi) -->
       <UiUrl>/docs</UiUrl>
