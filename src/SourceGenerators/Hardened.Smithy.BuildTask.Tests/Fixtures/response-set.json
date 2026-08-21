@@ -1,0 +1,117 @@
+{
+    "smithy": "2.0",
+    "shapes": {
+        "com.example.test#GetTodo": {
+            "type": "operation",
+            "input": {
+                "target": "com.example.test#GetTodoInput"
+            },
+            "output": {
+                "target": "com.example.test#Todo"
+            },
+            "errors": [
+                {
+                    "target": "com.example.test#TodoNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/todos/{id}",
+                    "code": 200
+                },
+                "smithy.api#readonly": {}
+            }
+        },
+        "com.example.test#GetTodoInput": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#input": {}
+            }
+        },
+        "com.example.test#RemoveTodo": {
+            "type": "operation",
+            "input": {
+                "target": "com.example.test#RemoveTodoInput"
+            },
+            "output": {
+                "target": "smithy.api#Unit"
+            },
+            "errors": [
+                {
+                    "target": "com.example.test#TodoNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "DELETE",
+                    "uri": "/todos/{id}",
+                    "code": 204
+                },
+                "smithy.api#idempotent": {}
+            }
+        },
+        "com.example.test#RemoveTodoInput": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#input": {}
+            }
+        },
+        "com.example.test#Todo": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "com.example.test#TodoNotFound": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 404
+            }
+        },
+        "com.example.test#Todos": {
+            "type": "service",
+            "version": "2024-01-01",
+            "operations": [
+                {
+                    "target": "com.example.test#GetTodo"
+                },
+                {
+                    "target": "com.example.test#RemoveTodo"
+                }
+            ]
+        }
+    }
+}

@@ -308,6 +308,24 @@ internal static class SmithySpecParser {
 
         ParseInput(context, operation, model, name, protocol);
         ParseOutput(context, operation, model, name, protocol);
+
+        // The success as a declared response, mirroring what the OpenAPI parser records. Smithy
+        // models one output per operation, so there is always exactly one and never the multiple
+        // 2xx a description can declare - but the emitters read this list rather than the flat
+        // fields when they build a response set, and an operation missing from it gets a set
+        // carrying only its errors and no case a handler can return to say it succeeded. That is
+        // what a Smithy operation answering 204 did: RemoveTodoNoContent was never emitted.
+        model.SuccessResponses.Add(new SuccessResponseModel {
+            StatusCode = model.SuccessStatusCode,
+            Ref = model.ResponseRef,
+            Type = model.ResponseType,
+            Format = model.ResponseFormat,
+            IsArray = model.ResponseIsArray,
+            ArrayItemsRef = model.ResponseArrayItemsRef,
+            ArrayItemsType = model.ResponseArrayItemsType,
+            ContentType = model.ResponseContentType
+        });
+
         ParseErrors(context, operation, model, protocol);
 
         return model;

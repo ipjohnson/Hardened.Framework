@@ -15,6 +15,17 @@ service Todos {
     operations: [GetTodo, CreateTodo, RemoveTodo]
 }
 
+/// What a client sends to create one. Named rather than inline, so the generated model is called
+/// NewTodo here as well - an inline `input := { ... }` would generate CreateTodoInput, and the
+/// implementation could then only be written against one of the two contract languages.
+structure NewTodo {
+    // The constraint is enforced before the handler runs. Nothing in this project validates
+    // anything - the build turns this into a filter in front of the generated handler.
+    @required
+    @length(min: 1, max: 64)
+    title: String
+}
+
 structure Todo {
     @required
     id: Integer
@@ -60,13 +71,7 @@ operation GetTodo {
 @documentation("Creates a todo.")
 @http(method: "POST", uri: "/todos", code: 201)
 operation CreateTodo {
-    input := {
-        // The constraint is enforced before the handler runs. Nothing in this project validates
-        // anything - the build turns this into a filter in front of the generated handler.
-        @required
-        @length(min: 1, max: 64)
-        title: String
-    }
+    input: NewTodo
 
     output: Todo
 

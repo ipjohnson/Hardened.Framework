@@ -14,7 +14,7 @@ paths:
   /todos/{id}:
     get:
       tags:
-        - Todo
+        - Todos
       operationId: getTodo
       summary: One todo by id.
       parameters:
@@ -40,7 +40,7 @@ paths:
                 $ref: '#/components/schemas/Problem'
     delete:
       tags:
-        - Todo
+        - Todos
       operationId: removeTodo
       summary: Removes a todo.
       parameters:
@@ -65,7 +65,7 @@ paths:
   /todos:
     post:
       tags:
-        - Todo
+        - Todos
       operationId: createTodo
       summary: Creates a todo.
       requestBody:

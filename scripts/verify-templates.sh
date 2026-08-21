@@ -51,7 +51,11 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
             kestrel:code:union kestrel:openapi:union)
 
     if command -v smithy >/dev/null 2>&1 && [ "$(smithy --version 2>/dev/null)" = "$SMITHY_PIN" ]; then
-        COMBOS+=(kestrel:smithy)
+        # The declared model too, not only standard. Smithy's half of it had never run: the targets
+        # file did not pass $(HardenedResponseModel) at all, so a Smithy project asking for a
+        # response set got Standard and got it silently. A row that only ever exercises the default
+        # is how that survived.
+        COMBOS+=(kestrel:smithy kestrel:smithy:response)
     else
         FOUND="$(command -v smithy >/dev/null 2>&1 && smithy --version || echo none)"
         echo "note: skipping the smithy contract - it needs the Smithy CLI at $SMITHY_PIN, found $FOUND"

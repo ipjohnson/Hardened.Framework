@@ -12,7 +12,7 @@ namespace Hardened1;
 /// statuses all came from the contract, and the generated routing table points here. [Handler] is
 /// what marks this class as the implementation to route to.
 ///
-/// ITodoService and every model below it exist only after a build. Add an operation to the contract
+/// ITodosService and every model below it exist only after a build. Add an operation to the contract
 /// and this class stops satisfying the interface, which is the point: the specification and the
 /// code cannot drift apart without the build saying so.
 ///
@@ -20,13 +20,28 @@ namespace Hardened1;
 /// routing table and the validation the contract's constraints produced.
 /// </remarks>
 [Handler]
-public class TodoService : ITodoService {
+public class TodoService : ITodosService {
 
     private readonly ITodoStore _store;
 
     public TodoService(ITodoStore store) {
         _store = store;
     }
+
+    // The one thing the two contract languages do not agree on. An OpenAPI description declares a
+    // shared Problem schema for every error; a Smithy model declares a named @error structure per
+    // failure. The signatures either produces are identical, so isolating the body here keeps every
+    // call site below the same in both.
+#if (openapi)
+    private static Problem NotFoundBody(string detail) => new() { Detail = detail };
+
+    private static Problem ConflictBody(string detail) => new() { Detail = detail };
+#endif
+#if (smithy)
+    private static TodoNotFound NotFoundBody(string message) => new(message);
+
+    private static TodoTitleTaken ConflictBody(string message) => new(message);
+#endif
 
 #if (standardMode)
     /// <summary>
@@ -49,7 +64,7 @@ public class TodoService : ITodoService {
     public Task<Todo> CreateTodo(NewTodo body) {
         if (_store.TitleExists(body.Title)) {
             throw new CreateTodoConflictException(
-                new Problem { Detail = $"A todo titled '{body.Title}' already exists." });
+                ConflictBody($"A todo titled '{body.Title}' already exists."));
         }
 
         return Task.FromResult(_store.Add(body.Title));
@@ -59,7 +74,7 @@ public class TodoService : ITodoService {
     public Task RemoveTodo(int id) {
         if (!_store.Remove(id)) {
             throw new RemoveTodoNotFoundException(
-                new Problem { Detail = $"No todo has id {id}." });
+                NotFoundBody($"No todo has id {id}."));
         }
 
         return Task.CompletedTask;
@@ -79,7 +94,7 @@ public class TodoService : ITodoService {
 
         if (todo is null) {
             return Task.FromResult<GetTodoResponse>(
-                new GetTodoNotFound(new Problem { Detail = $"No todo has id {id}." }));
+                new GetTodoNotFound(NotFoundBody($"No todo has id {id}.")));
         }
 
         return Task.FromResult<GetTodoResponse>(todo);
@@ -90,7 +105,7 @@ public class TodoService : ITodoService {
         if (_store.TitleExists(body.Title)) {
             return Task.FromResult<CreateTodoResponse>(
                 new CreateTodoConflict(
-                    new Problem { Detail = $"A todo titled '{body.Title}' already exists." }));
+                    ConflictBody($"A todo titled '{body.Title}' already exists.")));
         }
 
         return Task.FromResult<CreateTodoResponse>(_store.Add(body.Title));
@@ -107,7 +122,7 @@ public class TodoService : ITodoService {
     public Task<RemoveTodoResponse> RemoveTodo(int id) {
         if (!_store.Remove(id)) {
             return Task.FromResult<RemoveTodoResponse>(
-                new RemoveTodoNotFound(new Problem { Detail = $"No todo has id {id}." }));
+                new RemoveTodoNotFound(NotFoundBody($"No todo has id {id}.")));
         }
 
         return Task.FromResult<RemoveTodoResponse>(new RemoveTodoNoContent());
