@@ -45,8 +45,8 @@ public class GenericResponseTests {
         }
     }
 
-    private static object Build(Type openGeneric) {
-        var closed = openGeneric.MakeGenericType(typeof(ApiError));
+    private static object Build(Type type) {
+        var closed = type.IsGenericTypeDefinition ? type.MakeGenericType(typeof(ApiError)) : type;
         var constructor = closed.GetConstructors().OrderBy(c => c.GetParameters().Length).First();
 
         var arguments = constructor.GetParameters()
@@ -105,13 +105,32 @@ public class GenericResponseTests {
 
     /// <summary>
     /// The <c>type</c> URI identifies what went wrong, not what shape the body is - so the generic
-    /// and non-generic forms of one status share it.
+    /// and non-generic forms of one status agree on it, and on the title.
     /// </summary>
-    [Fact]
-    public void TheGenericAndNonGenericFormsShareAProblemType() {
-        Assert.Equal(new NotFound("todo").Type, new NotFound<ApiError>(new ApiError("e","m")).Type);
-        Assert.Equal(new Conflict().Type, new Conflict<ApiError>(new ApiError("e","m")).Type);
-        Assert.Equal(new Gone().Type, new Gone<ApiError>(new ApiError("e","m")).Type);
+    /// <remarks>
+    /// Every pair rather than a sample. The two are written out separately, so a copied-and-edited
+    /// declaration that kept the wrong <c>ProblemTypes</c> constant would read correctly and
+    /// describe the wrong problem - which a client matching on <c>type</c> acts on.
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(GenericProblemTypes))]
+    public void AGenericProblemAgreesWithItsNonGenericFormOnKind(Type openGeneric) {
+        var plain = openGeneric.Assembly.GetType(
+            openGeneric.Namespace + "." + openGeneric.Name.Split('`')[0]);
+
+        // Created<T> has no non-generic counterpart and is not a problem type.
+        if (plain == null) {
+            return;
+        }
+
+        var generic = Build(openGeneric);
+        var reference = Build(plain);
+
+        foreach (var member in new[] { "Type", "Title" }) {
+            Assert.Equal(
+                plain.GetProperty(member)!.GetValue(reference),
+                openGeneric.MakeGenericType(typeof(ApiError)).GetProperty(member)!.GetValue(generic));
+        }
     }
 
     [Theory]
