@@ -99,6 +99,34 @@ registration. The generated routing table points at your implementation.
 Spec-generated routes carry their verb from the document, so an operation's method never has to be
 restated in C#.
 
+## Declared error responses
+
+A description that declares more than a 200 gets code for the rest of it too.
+
+```yaml
+responses:
+  '200':
+    description: The todo.
+    content: { application/json: { schema: { $ref: '#/components/schemas/Todo' } } }
+  '404':
+    description: No todo has that id.
+    content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+```
+
+By default the success stays the return type and the 404 becomes two things: a nullable return, so
+returning `null` answers it with the body the document declared, and a generated
+`GetTodoNotFoundException` carrying a body you write when you want to explain the refusal.
+
+Set `<HardenedResponseModel>Response</HardenedResponseModel>` and the same description generates a
+`GetTodoResponse` container instead, with one case per declared status and the compiler checking
+that you handled each. [Declared responses](/guide/responses) covers the three modes and what each
+one costs.
+
+Two things follow from the description rather than from the mode. A non-200 success is honoured
+whichever mode you are in — a `201` in the document is a 201 on the wire. And an operation declaring
+**two** 2xx statuses always gets a response set, because the throw path that carries its other
+statuses cannot carry a success.
+
 ## Choosing the namespace
 
 Generated types default to the project's `RootNamespace`, suffixed with `.Models`, `.Services` and

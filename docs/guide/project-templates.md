@@ -53,9 +53,20 @@ dotnet new hardened-web -n Greeter [options]
 |---|---|---|
 | `-ho, --host` | `kestrel`, `aspnet`, `aws-lambda` | `kestrel` |
 | `-c, --contract` | `code`, `openapi`, `smithy` | `code` |
+| `-rm, --response-model` | `standard`, `response`, `union` | `standard` |
 | `--openapi-ui` | `true`, `false` | `true` |
 | `--hardened-version` | any published version | the version the template shipped with |
 | `--skip-restore` | `true`, `false` | `false` |
+
+`--response-model` decides how the generated handlers declare what they can answer with, and the
+sample is written to show the difference: the same three routes answer 404 and 409 in every mode,
+while creating a todo answers 200 under `standard` and 201 under the other two. See
+[Declared responses](/guide/responses).
+
+`union` generates a `net11.0` project pinned to the .NET 11 SDK in `global.json`, because a C# 15
+union needs the .NET 11 reference assemblies and not only the keyword. It cannot be combined with
+`--host aws-lambda`, whose managed runtime is `net8.0` — the generated project refuses with
+`HTPL001` rather than failing at deploy time.
 
 ### What you get
 
