@@ -1,5 +1,6 @@
 ﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -33,8 +34,48 @@ public abstract class BaseRequestModelGenerator {
             filters) {
             ResponseSchema = OpenApiDocument.JsonSchemaWriter.Write(
                 SchemaSubject(context, methodDeclaration, response)),
+            ResponseSchemas = DeclaredResponses(context, response),
             RequestSchema = BodySchema(context, methodDeclaration, parameters)
         };
+    }
+
+    /// <summary>
+    /// Every response the handler declares, with the schema of each, or nothing where it declares
+    /// one type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is what makes the code-first document say what a specification-first one says. Until it
+    /// existed the document carried a single hardcoded 200 for every operation, so a handler that
+    /// could answer 404 or 409 published a contract claiming it could not - and a client generated
+    /// from that document had no branch for either.
+    /// </para>
+    /// <para>
+    /// A case with no schema is a case whose type resolves to nothing this compilation can name,
+    /// which should not happen - the type came from the handler's own signature - so the entry is
+    /// still written with its status and no content rather than dropped. A response missing from
+    /// the document is worse than one whose body is unstated.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<ResponseSchemaModel> DeclaredResponses(
+        GeneratorSyntaxContext context, ResponseInformationModel response) {
+        if (response.UnionCases == null) {
+            return Array.Empty<ResponseSchemaModel>();
+        }
+
+        var responses = new List<ResponseSchemaModel>();
+
+        foreach (var unionCase in UnionResponseSelector.Decode(response.UnionCases)) {
+            var symbol = context.SemanticModel.Compilation.GetTypeByMetadataName(
+                unionCase.TypeName.Replace("global::", ""));
+
+            responses.Add(new ResponseSchemaModel(
+                unionCase.Status,
+                HttpResponseDescription.For(unionCase.Status),
+                unionCase.HasBody ? OpenApiDocument.JsonSchemaWriter.Write(symbol) : null));
+        }
+
+        return responses;
     }
 
     /// <summary>
