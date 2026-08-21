@@ -12,11 +12,15 @@ namespace Hardened.SourceGenerator.Requests;
 /// </summary>
 public readonly struct UnionCaseModel {
 
-    public UnionCaseModel(string typeName, int status, bool appliesHeaders, bool hasBody) {
+    public UnionCaseModel(
+        string typeName, int status, bool appliesHeaders, bool hasBody,
+        bool carriesBody = false, string? bodyTypeName = null) {
         TypeName = typeName;
         Status = status;
         AppliesHeaders = appliesHeaders;
         HasBody = hasBody;
+        CarriesBody = carriesBody;
+        BodyTypeName = bodyTypeName;
     }
 
     /// <summary>The case type, fully qualified with <c>global::</c>, ready to emit.</summary>
@@ -30,6 +34,27 @@ public readonly struct UnionCaseModel {
 
     /// <summary>Whether anything is serialized for this case.</summary>
     public bool HasBody { get; }
+
+    /// <summary>
+    /// Whether the case's body is one of its members rather than the case itself.
+    /// </summary>
+    /// <remarks>
+    /// <c>Created&lt;T&gt;</c> and the generic problem types wrap a payload the caller supplied.
+    /// Sending the wrapper would nest that payload under a member and ship the wrapper's own fields
+    /// beside it.
+    /// </remarks>
+    public bool CarriesBody { get; }
+
+    /// <summary>
+    /// The type actually sent for this case, where that is not the case type itself.
+    /// </summary>
+    /// <remarks>
+    /// What the document has to describe. A <c>NotFound&lt;ApiError&gt;</c> puts an
+    /// <c>ApiError</c> on the wire, so a schema written from the wrapper would describe a shape no
+    /// client ever receives - the same defect writing <c>Response&lt;T1..Tn&gt;</c>'s own schema
+    /// would have been.
+    /// </remarks>
+    public string? BodyTypeName { get; }
 }
 
 /// <summary>
@@ -64,6 +89,8 @@ public static class UnionResponseSelector {
     private const string HttpStatusAttributeName = "HttpStatusAttribute";
 
     private const string HeaderInterfaceName = "IProvidesResponseHeaders";
+
+    private const string BodyInterfaceName = "ICarriesResponseBody";
 
     private const string ResponsesNamespace = "Hardened.Requests.Abstract.Responses";
 
@@ -266,7 +293,9 @@ public static class UnionResponseSelector {
                 name,
                 Status(caseType, successStatus),
                 AppliesHeaders(caseType),
-                HasBody(Status(caseType, successStatus))));
+                HasBody(Status(caseType, successStatus)),
+                Implements(caseType, BodyInterfaceName),
+                BodyType(caseType)));
         }
 
         return cases;
@@ -307,8 +336,31 @@ public static class UnionResponseSelector {
     /// being an interface.
     /// </remarks>
     private static bool AppliesHeaders(ITypeSymbol caseType) =>
+        Implements(caseType, HeaderInterfaceName);
+
+    /// <summary>
+    /// The single type argument of a case that wraps a body, or null.
+    /// </summary>
+    /// <remarks>
+    /// Every wrapping response is generic in exactly the thing it carries -
+    /// <c>Created&lt;T&gt;</c>, <c>NotFound&lt;T&gt;</c> - so the argument is the body. A wrapper
+    /// with more than one is not a shape anything here produces, and guessing which argument was
+    /// the payload would be worse than describing the wrapper.
+    /// </remarks>
+    private static string? BodyType(ITypeSymbol caseType) {
+        if (!Implements(caseType, BodyInterfaceName)) {
+            return null;
+        }
+
+        return caseType is INamedTypeSymbol { TypeArguments.Length: 1 } generic
+            ? generic.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+            : null;
+    }
+
+    /// <summary>Whether the case implements one of the response interfaces.</summary>
+    private static bool Implements(ITypeSymbol caseType, string interfaceName) =>
         caseType.AllInterfaces.Any(i =>
-            i.Name == HeaderInterfaceName &&
+            i.Name == interfaceName &&
             i.ContainingNamespace?.ToDisplayString() == ResponsesNamespace);
 
     /// <summary>
@@ -352,7 +404,9 @@ public static class UnionResponseSelector {
             builder.Append(cases[i].TypeName)
                 .Append(FieldSeparator).Append(cases[i].Status)
                 .Append(FieldSeparator).Append(cases[i].AppliesHeaders ? '1' : '0')
-                .Append(cases[i].HasBody ? '1' : '0');
+                .Append(cases[i].HasBody ? '1' : '0')
+                .Append(cases[i].CarriesBody ? '1' : '0')
+                .Append(FieldSeparator).Append(cases[i].BodyTypeName ?? "");
         }
 
         return builder.ToString();
@@ -368,7 +422,7 @@ public static class UnionResponseSelector {
         foreach (var part in encoded!.Split(CaseSeparator)) {
             var fields = part.Split(FieldSeparator);
 
-            if (fields.Length != 3 || fields[2].Length != 2) {
+            if (fields.Length != 4 || fields[2].Length != 3) {
                 continue;
             }
 
@@ -377,7 +431,8 @@ public static class UnionResponseSelector {
             }
 
             cases.Add(new UnionCaseModel(
-                fields[0], status, fields[2][0] == '1', fields[2][1] == '1'));
+                fields[0], status, fields[2][0] == '1', fields[2][1] == '1', fields[2][2] == '1',
+                fields[3].Length == 0 ? null : fields[3]));
         }
 
         return cases;

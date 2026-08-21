@@ -66,8 +66,13 @@ public abstract class BaseRequestModelGenerator {
         var responses = new List<ResponseSchemaModel>();
 
         foreach (var unionCase in UnionResponseSelector.Decode(response.UnionCases)) {
+            // The body's type where the case wraps one, because that is what reaches the wire. A
+            // schema written from NotFound<ApiError> would describe a shape carrying the payload
+            // under a member, which no client ever receives.
+            var described = unionCase.BodyTypeName ?? unionCase.TypeName;
+
             var symbol = context.SemanticModel.Compilation.GetTypeByMetadataName(
-                unionCase.TypeName.Replace("global::", ""));
+                described.Replace("global::", ""));
 
             responses.Add(new ResponseSchemaModel(
                 unionCase.Status,

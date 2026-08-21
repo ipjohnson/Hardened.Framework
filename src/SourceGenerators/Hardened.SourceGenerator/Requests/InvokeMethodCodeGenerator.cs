@@ -94,12 +94,14 @@ public static class InvokeMethodCodeGenerator {
         for (var i = 0; i < cases.Count; i++) {
             var unionCase = cases[i];
 
-            // A named binding only where an arm reads it. `case T _:` is a declaration pattern with
+            // A named binding where an arm reads it - to apply headers, or to take the body off a
+            // case that wraps one. `case T _:` is a declaration pattern with
             // a discard, which has been legal since C# 7 - lower than the bare type pattern `case
             // T:` a reader might reach for, and the difference matters because this is a consumer's
             // build rather than ours. The alternative was naming every binding and discarding the
             // unread ones, which put a `_ = __case0;` line in most arms of every handler.
-            var binding = unionCase.AppliesHeaders ? CaseVariable + i : "_";
+            var reads = unionCase.AppliesHeaders || (unionCase.CarriesBody && unionCase.HasBody);
+            var binding = reads ? CaseVariable + i : "_";
 
             var caseBlock = switchBlock.AddCase(
                 CodeOutputComponent.Get(unionCase.TypeName + " " + binding));
@@ -111,6 +113,18 @@ public static class InvokeMethodCodeGenerator {
                 caseBlock.AddIndentedStatement(
                     CodeOutputComponent.Get(binding)
                         .Invoke("ApplyHeaders", context.Property("Response.Headers")));
+            }
+
+            // Overrides the assignment made before the switch, for a case whose body is one of its
+            // members rather than the case itself - Created<T> and the generic problem types.
+            // Sending the wrapper would nest the caller's payload under a member and ship the
+            // wrapper's own fields beside it.
+            if (unionCase.CarriesBody && unionCase.HasBody) {
+                caseBlock
+                    .Assign(CodeOutputComponent.Get(
+                        "((global::Hardened.Requests.Abstract.Responses.ICarriesResponseBody)" +
+                        binding + ").Body"))
+                    .To(context.Property("Response.ResponseValue"));
             }
 
             if (!unionCase.HasBody) {
