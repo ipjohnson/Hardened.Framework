@@ -68,6 +68,26 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     public bool ExcludeFromCoverage { get; set; } = true;
 
     /// <summary>
+    /// How a generated service interface states an operation's declared responses - "Standard",
+    /// "Response" or "Union".
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A build property rather than <c>[ResponseModel]</c> on the entry point, which is what the
+    /// plan named. That attribute is not readable here: this task runs before the compiler - the
+    /// same ordering that stops it from seeing routes - and an attribute is something a compiler
+    /// reads. <c>HardenedOpenApiVersion</c> is already the precedent for a build property deciding
+    /// what the emitter writes.
+    /// </para>
+    /// <para>
+    /// An unrecognised value is Standard rather than a build failure. The property is set by hand
+    /// in a csproj with no completion behind it, and failing every build of a project that
+    /// mistyped it would be a worse trade than generating the interfaces it had yesterday.
+    /// </para>
+    /// </remarks>
+    public string ResponseModel { get; set; } = "";
+
+    /// <summary>
     /// Whether the source document is embedded so the application can serve it.
     /// </summary>
     /// <remarks>
@@ -440,7 +460,49 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// file per type is not.
     /// </remarks>
     private string Emit(ServiceSpecModel model, string document, string specPath) =>
-        SpecFileEmitter.Emit(model, Namespace, ExcludeFromCoverage, document, specPath);
+        SpecFileEmitter.Emit(
+            model, Namespace, ExcludeFromCoverage, document, specPath, SelectedResponseModel());
+
+    /// <summary>
+    /// The mode <c>$(HardenedResponseModel)</c> names, defaulting to Standard.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Union is refused rather than emitted. CSharpAuthor has no construct for a <c>union</c>
+    /// declaration and no seam to write one at namespace level, so emitting it would mean
+    /// string-concatenating a top-level type declaration - which is the thing this repository does
+    /// not do, and the reason every emitter here goes through CSharpAuthor.
+    /// </para>
+    /// <para>
+    /// Silently emitting the Response struct instead would be worse than refusing: the two are
+    /// structurally identical, so a project that asked for Union would build, run, and answer every
+    /// request correctly, while the exhaustiveness the keyword exists for was never there. That is
+    /// the failure this whole design is arranged to avoid, and nothing about it looks like one.
+    /// </para>
+    /// <para>
+    /// An unrecognised value is Standard rather than an error, because the property is typed by hand
+    /// with no completion behind it and failing every build of a project that mistyped it is a worse
+    /// trade than generating the interfaces it had yesterday. Union is different: it is spelled
+    /// correctly and cannot be honoured.
+    /// </para>
+    /// </remarks>
+    private SpecResponseModel SelectedResponseModel() {
+        if (string.Equals(ResponseModel, "Response", System.StringComparison.OrdinalIgnoreCase)) {
+            return SpecResponseModel.Response;
+        }
+
+        if (string.Equals(ResponseModel, "Union", System.StringComparison.OrdinalIgnoreCase)) {
+            Log.LogError(
+                "HardenedResponseModel is 'Union', which the specification-first generator cannot " +
+                "emit: writing a union declaration needs a CSharpAuthor construct that does not " +
+                "exist, and this generator does not compose C# as text. Use " +
+                "'Response', which generates a struct of the same shape from the same case types.");
+
+            return SpecResponseModel.Standard;
+        }
+
+        return SpecResponseModel.Standard;
+    }
 
     /// <summary>
     /// Rewriting an unchanged file would bump its timestamp, and both the compiler's up-to-date

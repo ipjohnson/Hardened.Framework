@@ -110,6 +110,16 @@ public record ResponseInformationModel {
     public string? UnionCases { get; set; }
 
     /// <summary>
+    /// What is wrong with the declared case set, encoded, or null where nothing is.
+    /// </summary>
+    /// <remarks>
+    /// Found in the syntax transform, where the symbols exist, and reported from the routing
+    /// generator, where a <c>SourceProductionContext</c> does. Carried here for the same reason
+    /// <see cref="StreamFraming"/> is carried rather than rejected in place.
+    /// </remarks>
+    public string? UnionDiagnostic { get; set; }
+
+    /// <summary>
     /// How a streamed response is framed on the wire, or null for newline-delimited JSON.
     /// </summary>
     /// <remarks>
@@ -137,6 +147,6 @@ public record ResponseInformationModel {
     public override string ToString() {
         return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
                $":{DefaultStatusCode}:{NullResponseBodyExpression}:{ProducedContentTypes}" +
-               $":{UnionCases}";
+               $":{UnionCases}:{UnionDiagnostic}";
     }
 }

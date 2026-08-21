@@ -210,7 +210,7 @@ public class ModelComparisonTests {
         Assert.Equal(
             "True:System.Fortunes:text/csv:sse:System.String:201:" +
             "Models.DefaultErrorBodies.NotFoundProblem:text/plain,text/csv:" +
-            "global::App.Todo|201|01;global::App.NotFound|404|01",
+            "global::App.Todo|201|01;global::App.NotFound|404|01:",
             model.ToString());
     }
 

@@ -38,7 +38,8 @@ internal static class SpecFileEmitter {
         string rootNamespace,
         bool excludeFromCoverage,
         string document = "",
-        string specPath = "") {
+        string specPath = "",
+        SpecResponseModel responseModel = SpecResponseModel.Standard) {
         // An unnamed namespace writes no wrapper of its own, so this is the file rather than a
         // namespace in it. Filter types declare their own namespace in the spec and may sit outside
         // the root entirely, which is why the file needs to hold more than one top-level block.
@@ -65,14 +66,21 @@ internal static class SpecFileEmitter {
 
             foreach (var service in model.Services) {
                 Coverage.Apply(
-                    ServiceInterfaceEmitter.Emit(services, service, modelsNamespace),
+                    ServiceInterfaceEmitter.Emit(services, service, modelsNamespace, responseModel),
                     excludeFromCoverage);
 
+                // One of the two, never both. Emitting a thrown exception and a returned case type
+                // for the same declared 404 would offer two ways to answer it and no way to tell
+                // from a handler which it used.
+                //
                 // In the models namespace, beside the payloads they carry, rather than beside the
-                // interfaces - an exception is a type an implementation constructs, not part of the
-                // contract it implements.
-                foreach (var exception in ErrorResponseEmitter.Emit(models, service, modelsNamespace)) {
-                    Coverage.Apply(exception, excludeFromCoverage);
+                // interfaces - neither is part of the contract an implementation implements.
+                var responses = responseModel == SpecResponseModel.Response
+                    ? UnionResponseEmitter.Emit(models, service, modelsNamespace)
+                    : ErrorResponseEmitter.Emit(models, service, modelsNamespace);
+
+                foreach (var definition in responses) {
+                    Coverage.Apply(definition, excludeFromCoverage);
                 }
             }
 

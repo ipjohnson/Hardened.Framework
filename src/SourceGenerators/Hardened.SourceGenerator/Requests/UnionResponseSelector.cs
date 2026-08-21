@@ -82,6 +82,110 @@ public static class UnionResponseSelector {
     }
 
     /// <summary>
+    /// What is wrong with the declared case set, encoded, or null where nothing is.
+    /// </summary>
+    /// <remarks>
+    /// Found here, where the symbols still exist, and reported from the routing generator, where a
+    /// <c>SourceProductionContext</c> does. A syntax transform cannot report a diagnostic, which is
+    /// the same reason a stream framing attribute on a handler that streams nothing is carried
+    /// forward rather than rejected in place.
+    /// </remarks>
+    public static string? Diagnose(
+        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration, int? successStatus) {
+        var returned = Unwrap(context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
+
+        if (returned == null) {
+            return null;
+        }
+
+        var symbols = CaseSymbols(returned);
+
+        if (symbols.Count == 0) {
+            return null;
+        }
+
+        foreach (var symbol in symbols) {
+            if (symbol.SpecialType == SpecialType.System_Object ||
+                symbol.TypeKind == TypeKind.Dynamic) {
+                return UntypedFinding + FieldSeparator + Display(symbol);
+            }
+        }
+
+        // Pairwise over a closed set that is never large. Only across statuses: two cases of one
+        // status share a oneOf and their relationship decides nothing.
+        for (var i = 0; i < symbols.Count; i++) {
+            for (var j = i + 1; j < symbols.Count; j++) {
+                var first = symbols[i];
+                var second = symbols[j];
+
+                var firstStatus = Status(first, successStatus ?? 200);
+                var secondStatus = Status(second, successStatus ?? 200);
+
+                if (firstStatus == secondStatus) {
+                    continue;
+                }
+
+                if (!Assignable(first, second) && !Assignable(second, first)) {
+                    continue;
+                }
+
+                return AssignableFinding + FieldSeparator + Display(first) +
+                       FieldSeparator + firstStatus + FieldSeparator + Display(second) +
+                       FieldSeparator + secondStatus;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The finding kinds, which the reporter switches on.</summary>
+    public const string UntypedFinding = "untyped";
+
+    public const string AssignableFinding = "assignable";
+
+    /// <summary>The fields of an encoded finding, in the order above.</summary>
+    public static IReadOnlyList<string> DecodeFinding(string finding) => finding.Split(FieldSeparator);
+
+    private static string Display(ITypeSymbol symbol) =>
+        symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+
+    private static bool Assignable(ITypeSymbol from, ITypeSymbol to) {
+        for (var current = from.BaseType; current != null; current = current.BaseType) {
+            if (SymbolEqualityComparer.Default.Equals(current, to)) {
+                return true;
+            }
+        }
+
+        foreach (var contract in from.AllInterfaces) {
+            if (SymbolEqualityComparer.Default.Equals(contract, to)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The case types of a response set, or nothing where the type is not one.</summary>
+    private static IReadOnlyList<ITypeSymbol> CaseSymbols(INamedTypeSymbol type) {
+        var value = type
+            .GetMembers(ValuePropertyName)
+            .OfType<IPropertySymbol>()
+            .FirstOrDefault(p =>
+                p.DeclaredAccessibility == Accessibility.Public &&
+                !p.IsStatic &&
+                p.Type.SpecialType == SpecialType.System_Object);
+
+        if (value == null) {
+            return Array.Empty<ITypeSymbol>();
+        }
+
+        return type.InstanceConstructors
+            .Where(c => c.DeclaredAccessibility == Accessibility.Public && c.Parameters.Length == 1)
+            .Select(c => c.Parameters[0].Type)
+            .ToList();
+    }
+
+    /// <summary>
     /// Past <c>Task&lt;T&gt;</c> and <c>ValueTask&lt;T&gt;</c> to the type a handler actually
     /// declares.
     /// </summary>

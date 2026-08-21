@@ -389,7 +389,9 @@ public abstract class BaseRequestModelGenerator {
             // Structural, so this recognises Response<T1..Tn>, a generated response union and a
             // C# 15 union declaration through one check - and returns null for everything else,
             // which is every handler that exists today.
-            UnionCases = UnionResponseSelector.Read(context, methodDeclaration, successStatus)
+            UnionCases = UnionResponseSelector.Read(context, methodDeclaration, successStatus),
+            UnionDiagnostic =
+                UnionResponseSelector.Diagnose(context, methodDeclaration, successStatus)
         };
     }
 
