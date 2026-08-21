@@ -63,9 +63,18 @@
       Test projects get coverlet.collector so that collecting "XPlat Code Coverage" during
       `dotnet test` produces Cobertura reports. Collection settings (what is excluded from
       the numbers) live in coverlet.runsettings at the repository root.
+
+      6.0.2 does not instrument anything under the .NET 11 SDK. It fails silently rather than
+      erroring: every test still runs and passes, and every assembly reports 0.0% - which the
+      coverage gate then reads as the entire codebase having lost its tests. Measured on one project
+      with everything else held equal, 6.0.2 reported 0.0% for Hardened.Requests.Abstract where
+      10.0.1 reported 72.0% line and 68.8% branch.
+
+      This is also what made local coverage runs look unreliable throughout the response-set work.
+      They were not unreliable; src/global.json floated to the preview, so they were hitting this.
     -->
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
-        <PackageReference Include="coverlet.collector" Version="6.0.2">
+        <PackageReference Include="coverlet.collector" Version="10.0.1">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>

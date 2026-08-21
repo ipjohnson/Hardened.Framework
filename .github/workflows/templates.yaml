@@ -25,9 +25,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Both named explicitly rather than leaning on whatever SDK the runner image ships, which is
+      # what "both" used to mean here and moves without notice. 8.0.x is the floor the template
+      # pins; the .NET 11 preview is what src/global.json selects to pack the solution with, and
+      # what the net8.0 test assemblies would otherwise have no runtime under.
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: |
+            8.0.x
+            11.0.100-preview.7.26381.103
 
       # The template pins net8.0 and its generated projects must build on the SDK a reader is
       # most likely to have, not only on the newest one. Both are installed so the verification run

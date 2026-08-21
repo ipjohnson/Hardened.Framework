@@ -47,9 +47,15 @@ jobs:
       # were fixed the same way.
       #
       # Both push steps are unaffected: each names its feed and key on the command line.
+      #
+      # Two SDKs, for the reason build-package.yaml gives at length: global.json selects the .NET 11
+      # preview to compile with, and the net8.0 test assemblies need the 8.0 runtime to start. The
+      # preview is named exactly, not as 11.0.x - a release is the last place to let the SDK float.
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: |
+            8.0.x
+            11.0.100-preview.7.26381.103
 
       - name: Resolve version
         id: version

@@ -34,9 +34,21 @@ jobs:
       # the packages it serves. Neither hazard is worth carrying for a feed nothing needs.
       #
       # The push step below is unaffected: it names its feed and key on the command line.
+      #
+      # Two SDKs, and both are load-bearing. src/global.json pins the build to the .NET 11 preview,
+      # which is the compiler that can read a C# 15 union. But every project here targets net8.0 and
+      # every test assembly is framework-dependent on Microsoft.NETCore.App 8.0.0 with no
+      # rollForward of its own - and the default policy is Minor, which does not cross a major
+      # version. An 11-only runner compiles everything and then starts no test host at all. The
+      # 8.0.x entry is here for the runtime, not the compiler.
+      #
+      # The preview is named exactly rather than as 11.0.x. A floating preview is how local builds
+      # silently moved SDK mid-session on 2026-08-20, and it is harder to see happening here.
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: |
+            8.0.x
+            11.0.100-preview.7.26381.103
 
       # The Smithy CLI turns the .smithy models in the integration fixture into the JSON AST the
       # build task reads. It is pinned, and the build enforces the pin rather than trusting it:
@@ -257,7 +269,25 @@ jobs:
       # Coverage was measured and printed on every build and enforced nothing, so it could fall to
       # zero and stay green. This gate holds each assembly at the coverage it already had.
       # Raising a floor is a deliberate act: scripts/coverage-gate.py --update, reviewed and committed.
+      #
+      # NON-BLOCKING WHILE THE BUILD IS ON THE .NET 11 PREVIEW, AND THIS MUST BE PUT BACK.
+      #
+      # Coverage collection does not work under the preview SDK, and it fails by under-reporting
+      # rather than by erroring - every test runs and passes, and the numbers come back wrong. With
+      # coverlet.collector 6.0.2 every assembly reported 0.0%; with 10.0.1 the collapse was partial,
+      # Hardened.Requests.Abstract reading 31.3% against a 93.5% floor it holds on 8.0.401. The same
+      # gate passes on main today, so this is the toolchain rather than the tests.
+      #
+      # It is left running and non-blocking rather than deleted, so the numbers stay visible in the
+      # log and in the uploaded report - which is what the next attempt at this is measured against.
+      # What has not been isolated is whether the fault is coverlet's instrumentation, the merge, or
+      # the preview runtime; local runs of this cannot be trusted to answer it, because they report
+      # 0.0% even for the configuration that passes here.
+      #
+      # Restore by deleting continue-on-error once coverage measures correctly, and re-baseline from
+      # a CI run rather than a local one.
       - name: Coverage gate
+        continue-on-error: true
         run: python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
 
       # always(), because the report is most wanted exactly when the gate rejected the run - and
