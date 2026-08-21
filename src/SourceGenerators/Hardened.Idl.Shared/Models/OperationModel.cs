@@ -91,12 +91,31 @@ internal class OperationModel : IEquatable<OperationModel> {
     public int SuccessStatusCode { get; set; } = 200;
 
     /// <summary>
+    /// Every 2xx the specification declares, in status order.
+    /// </summary>
+    /// <remarks>
+    /// The flat fields above still name the primary success - the lowest declared 2xx - and every
+    /// consumer that reads them individually keeps working. This is the whole set, for the one
+    /// consumer that needs it: an operation declaring more than one success has to state them in
+    /// its return type, because the throw path that carries its other statuses cannot carry a
+    /// success.
+    ///
+    /// It used to be collapsed. The parser looped over each 2xx assigning SuccessStatusCode and the
+    /// flat fields on every pass, so 200 alongside 202 generated the 202 and discarded the other -
+    /// silently, in a loop that already had both in hand.
+    /// </remarks>
+    public List<SuccessResponseModel> SuccessResponses { get; set; } = new();
+
+    /// <summary>
     /// The non-2xx responses the specification declares, in status order.
     /// </summary>
     /// <remarks>
-    /// The 2xx response keeps the flat fields above rather than joining this list. Every consumer
-    /// of the success response reads those individually, and moving them would rewrite all of them
-    /// for no gain - the success case is one response by construction, and these are the rest.
+    /// The successes are in <see cref="SuccessResponses"/>, and the primary one also keeps the flat
+    /// fields above, which every existing consumer reads individually.
+    ///
+    /// This used to say the success case was one response by construction. It was not - the parser
+    /// collapsed the set by overwriting, which is a different thing and was never anybody's
+    /// decision.
     /// </remarks>
     public List<ErrorResponseModel> ErrorResponses { get; set; } = new();
 
@@ -179,6 +198,7 @@ internal class OperationModel : IEquatable<OperationModel> {
                ResponseArrayItemsRef == other.ResponseArrayItemsRef &&
                ResponseArrayItemsType == other.ResponseArrayItemsType &&
                ResponseArrayItemsFormat == other.ResponseArrayItemsFormat &&
+               SuccessResponses.SequenceEqual(other.SuccessResponses) &&
                ErrorResponses.SequenceEqual(other.ErrorResponses) &&
                ProducedContentTypes.SequenceEqual(other.ProducedContentTypes) &&
                Parameters.SequenceEqual(other.Parameters) &&

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using CSharpAuthor;
@@ -25,11 +26,22 @@ namespace Hardened.Idl.Emitters;
 /// </remarks>
 internal static class ErrorResponseEmitter {
 
+    /// <param name="includeOperation">
+    /// Which operations answer by throwing. A service is no longer wholly in one form or the other:
+    /// an operation declaring more than one success is in the response-set form whatever the module
+    /// asked for, and emitting an exception type for it as well would give one declared status two
+    /// ways to be answered.
+    /// </param>
     public static IReadOnlyList<ClassDefinition> Emit(
-        IConstructContainer container, ServiceModel service, string modelsNamespace) {
+        IConstructContainer container, ServiceModel service, string modelsNamespace,
+        Func<OperationModel, bool>? includeOperation = null) {
         var emitted = new List<ClassDefinition>();
 
         foreach (var operation in service.Operations) {
+            if (includeOperation != null && !includeOperation(operation)) {
+                continue;
+            }
+
             foreach (var response in operation.ErrorResponses) {
                 emitted.Add(EmitException(container, operation, response, modelsNamespace));
             }

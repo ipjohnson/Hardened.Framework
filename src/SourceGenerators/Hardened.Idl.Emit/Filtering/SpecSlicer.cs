@@ -142,6 +142,16 @@ internal static class SpecSlicer {
                 Reach(operation.ResponseRef);
                 Reach(operation.ResponseArrayItemsRef);
 
+                // Every declared success, not only the primary one the flat fields above name. A
+                // schema reachable solely through a second 2xx - the 202's body on a poll endpoint -
+                // is otherwise pruned as unreferenced, and the case type that carries it names a
+                // type nothing declared. That is a CS0234 in generated code, from a document that
+                // declares the schema perfectly well.
+                foreach (var success in operation.SuccessResponses) {
+                    Reach(success.Ref);
+                    Reach(success.ArrayItemsRef);
+                }
+
                 foreach (var error in operation.ErrorResponses) {
                     Reach(error.Ref);
                 }
@@ -254,6 +264,11 @@ internal static class SpecSlicer {
                 Check(operation.RequestBodyRef, from);
                 Check(operation.ResponseRef, from);
                 Check(operation.ResponseArrayItemsRef, from);
+
+                foreach (var success in operation.SuccessResponses) {
+                    Check(success.Ref, from);
+                    Check(success.ArrayItemsRef, from);
+                }
 
                 foreach (var error in operation.ErrorResponses) {
                     Check(error.Ref, from);

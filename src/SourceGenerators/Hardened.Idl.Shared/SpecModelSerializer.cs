@@ -161,6 +161,20 @@ internal static class SpecModelSerializer {
                     operation?.Parameters.Add(ReadParameter(record));
                     break;
 
+                case "successresponse":
+                    operation?.SuccessResponses.Add(new SuccessResponseModel {
+                        StatusCode = record.Int("StatusCode") ?? 0,
+                        Ref = record.String("Ref"),
+                        Type = record.String("Type"),
+                        Format = record.String("Format"),
+                        IsArray = record.Bool("IsArray"),
+                        ArrayItemsRef = record.String("ArrayItemsRef"),
+                        ArrayItemsType = record.String("ArrayItemsType"),
+                        ContentType = record.String("ContentType"),
+                        Description = record.String("Description"),
+                    });
+                    break;
+
                 case "errorresponse":
                     operation?.ErrorResponses.Add(new ErrorResponseModel {
                         StatusCode = record.Int("StatusCode") ?? 0,
@@ -439,6 +453,24 @@ internal static class SpecModelSerializer {
         record.Add("ResponseArrayItemsFormat", operation.ResponseArrayItemsFormat);
         record.Add("SuccessStatusCode", operation.SuccessStatusCode);
         record.WriteTo(builder);
+
+        // Before the errors, so a reader sees an operation's successes in the order the document
+        // declares them and the primary stays first. Written even when there is one, because a
+        // reader that has to infer the list from the flat fields is a second definition of the
+        // set that can disagree with the first.
+        foreach (var successResponse in operation.SuccessResponses) {
+            var successRecord = new Record("successresponse");
+            successRecord.AddAlways("StatusCode", successResponse.StatusCode.ToString(CultureInfo.InvariantCulture));
+            successRecord.Add("Ref", successResponse.Ref);
+            successRecord.Add("Type", successResponse.Type);
+            successRecord.Add("Format", successResponse.Format);
+            successRecord.Add("IsArray", successResponse.IsArray);
+            successRecord.Add("ArrayItemsRef", successResponse.ArrayItemsRef);
+            successRecord.Add("ArrayItemsType", successResponse.ArrayItemsType);
+            successRecord.Add("ContentType", successResponse.ContentType);
+            successRecord.Add("Description", successResponse.Description);
+            successRecord.WriteTo(builder);
+        }
 
         foreach (var errorResponse in operation.ErrorResponses) {
             var record2 = new Record("errorresponse");

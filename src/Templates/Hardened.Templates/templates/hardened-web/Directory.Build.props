@@ -1,12 +1,63 @@
 <Project>
   <PropertyGroup>
+<!--#if (unionMode) -->
+    <!--
+         net11.0, because the union keyword needs it. This is the one place the response model
+         reaches outside the implementation library, so it is worth being exact about why.
+
+         A union is not purely a compiler feature. It lowers to a struct with an object? Value and
+         type tests, but the compiler also requires System.Runtime.CompilerServices.IUnion and
+         UnionAttribute, and those arrive with the .NET 11 reference assemblies. Measured on
+         SDK 11.0.100-preview.7:
+
+           net8.0   LangVersion=15        CS1617  - 15 is not a langversion this compiler knows
+           net8.0   LangVersion=preview   CS0518, CS0656 - IUnion and UnionAttribute missing
+           net11.0  LangVersion=<default> CS1001  - union does not parse; the default is 14.0
+           net11.0  LangVersion=preview   builds
+
+         So both halves are needed, and they are set in the two places they belong: the framework
+         here, because every project in the solution has to agree on it, and LangVersion in
+         src/Hardened1 alone, because that is the only project that declares a union.
+
+         This is why --host aws-lambda is refused with this response model. The Lambda managed
+         runtime is net8.0; a net11.0 assembly does not run on it.
+    -->
+    <TargetFramework>net11.0</TargetFramework>
+<!--#endif -->
+<!--#if (!unionMode) -->
     <TargetFramework>net8.0</TargetFramework>
+<!--#endif -->
+    <!--
+         LangVersion is deliberately absent here and belongs in the project that needs it. It
+         decides whether a union compiles, so setting it solution-wide makes one property in a
+         shared file quietly answer a question the response model is supposed to answer - and
+         answer it for the host and the tests too, which never declare one.
+    -->
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>latest</LangVersion>
     <!-- Hardened writes your routing table, request handlers and parameter binding as ordinary
          C#. Reading it is the fastest way to understand what the framework is doing:
          obj/<configuration>/<tfm>/generated/, one directory per generator. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
+<!--#if (lambdaUnionConflict) -->
+
+  <!--
+    This combination cannot work, and it fails here rather than at deploy time.
+
+    The union response model needs net11.0, because the compiler-required IUnion and UnionAttribute
+    arrive with the .NET 11 reference assemblies. The AWS Lambda managed runtime this host targets
+    is net8.0. A net11.0 assembly does not run on it, and nothing about that is visible until the
+    function is invoked - the build would be green, the package would upload, and the first request
+    would fail to load the assembly.
+
+    dotnet new cannot refuse a combination of parameters, so the refusal is a build error instead.
+    Regenerate with --response-model response, which declares the same set on net8.0 and needs no
+    preview anything.
+  -->
+  <Target Name="HardenedTemplateRejectsLambdaUnion" BeforeTargets="Build">
+    <Error Code="HTPL001"
+           Text="--host aws-lambda cannot be combined with --response-model union: union requires net11.0 and the Lambda managed runtime is net8.0. Regenerate with --response-model response." />
+  </Target>
+<!--#endif -->
 </Project>

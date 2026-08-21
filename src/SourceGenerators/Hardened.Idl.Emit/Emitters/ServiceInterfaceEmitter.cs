@@ -49,10 +49,10 @@ internal static class ServiceInterfaceEmitter {
         // UnionResponseEmitter's own success branch: a streamed body is many responses rather than
         // one of several, and raw bytes is a payload the application already holds encoded, so
         // neither belongs in a union of statuses and neither reaches here.
-        if (responseModel != SpecResponseModel.Standard &&
-            !operation.RawBytesResponse &&
-            operation.ItemSchemaRef == null &&
-            operation.ErrorResponses.Count > 0) {
+        // More than one declared success forces a response set, whatever the module asked for -
+        // see UnionResponseEmitter.RequiresResponseSet, which is the one definition of the rule and
+        // is also what decides whether the type this names gets emitted at all.
+        if (UnionResponseEmitter.RequiresResponseSet(operation, responseModel)) {
             return Task(TypeDefinition.Get(
                 modelsNamespace, UnionResponseEmitter.ContainerName(operation)));
         }

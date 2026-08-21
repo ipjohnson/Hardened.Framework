@@ -111,6 +111,46 @@
     "lambda": {
       "type": "computed",
       "value": "(host == 'aws-lambda')"
+    },
+    "responseModel": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "standard",
+      "description": "How a handler declares more than one kind of response.",
+      "choices": [
+        {
+          "choice": "standard",
+          "description": "One return type per handler; other statuses are reached by throwing. The default, and what an application that says nothing gets."
+        },
+        {
+          "choice": "response",
+          "description": "Handlers return Response<T1..Tn>, a struct any C# compiler can build. The declared set reaches the generated document, so 404 and 409 are described rather than implied."
+        },
+        {
+          "choice": "union",
+          "description": "Handlers return a C# 15 union. Same declared set as response, plus exhaustiveness in your own code. Needs a compiler that can do C# 15 - the .NET 11 SDK - and reports a build error naming LangVersion below it."
+        }
+      ]
+    },
+    "standardMode": {
+      "type": "computed",
+      "value": "(responseModel == 'standard')"
+    },
+    "responseMode": {
+      "type": "computed",
+      "value": "(responseModel == 'response')"
+    },
+    "unionMode": {
+      "type": "computed",
+      "value": "(responseModel == 'union')"
+    },
+    "declaredMode": {
+      "type": "computed",
+      "value": "(responseModel == 'response' || responseModel == 'union')"
+    },
+    "lambdaUnionConflict": {
+      "type": "computed",
+      "value": "(host == 'aws-lambda' && responseModel == 'union')"
     }
   },
   "sources": [

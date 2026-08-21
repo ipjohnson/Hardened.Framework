@@ -1,0 +1,112 @@
+openapi: "3.0.0"
+info:
+  title: Hardened1 API
+  version: "1.0.0"
+
+# The contract. There are no route attributes anywhere in this project - the verb, the path, the
+# shapes and the statuses all come from here, and the build turns them into models, a service
+# interface, a routing table and the validation the constraints describe.
+#
+# Every operation declares what it can answer with, not only what it answers when nothing goes
+# wrong. That is what a declared response model has to work from: an operation listing one status
+# generates one return type however the project is configured.
+paths:
+  /todos/{id}:
+    get:
+      tags:
+        - Todo
+      operationId: getTodo
+      summary: One todo by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+      responses:
+        '200':
+          description: The todo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '404':
+          description: No todo has that id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /todos:
+    post:
+      tags:
+        - Todo
+      operationId: createTodo
+      summary: Creates a todo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTodo'
+      responses:
+        '201':
+          description: Created.
+          headers:
+            Location:
+              description: Where the new todo can be read.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '409':
+          description: A todo with that title already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+  schemas:
+    Todo:
+      type: object
+      required:
+        - id
+        - title
+        - done
+      properties:
+        id:
+          type: integer
+          format: int32
+        title:
+          type: string
+        done:
+          type: boolean
+
+    NewTodo:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          # The constraint is enforced before the handler runs. Nothing in this project validates
+          # anything - the build turns this into a filter in front of the generated handler.
+          type: string
+          minLength: 1
+          maxLength: 64
+
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
