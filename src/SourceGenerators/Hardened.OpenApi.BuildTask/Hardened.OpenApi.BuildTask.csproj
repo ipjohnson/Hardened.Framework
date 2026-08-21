@@ -95,6 +95,31 @@
     -->
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.Net.Http"/>
+
+        <!--
+            Unifies System.Memory, and is the whole of this project's 84 MSB3277 warnings - one
+            conflict reported once per assembly that participates in it.
+
+            Nothing asks for System.Memory directly. The graph settles on 4.5.5, whose assembly
+            version is 4.0.1.2, while every modern package co-loaded here was compiled against
+            4.0.2.0: Microsoft.Build.Framework and Microsoft.Build.Utilities.Core 17.8.43,
+            Microsoft.IO.Redist, Microsoft.NET.StringTools, Microsoft.OpenApi and its YamlReader,
+            System.Collections.Immutable, System.Text.Encodings.Web, System.Text.Json. RAR picks
+            4.0.1.2 anyway, because a package asset is primary and a dependency is not, so the task
+            compiles against an older contract than the host it loads into supplies.
+
+            4.6.0 is the version that carries assembly 4.0.2.0. Unify upward rather than suppress:
+            MSBuild's own reference assemblies are on the 4.0.2.0 side, so the host must supply at
+            least that, and matching it removes a bind that currently only survives on MSBuild.exe's
+            binding redirects. That is the same class of failure the targets file routes the task
+            through TaskHostFactory to avoid - a FileLoadException at task execution rather than a
+            diagnostic at build.
+
+            net472 only; the net8.0 leg has no conflict and no warning. ExcludeAssets=runtime is
+            inherited from the property above, so this changes the compile-time reference and ships
+            nothing beside the task.
+        -->
+        <PackageReference Include="System.Memory" Version="4.6.0"/>
     </ItemGroup>
 
     <ItemGroup>
