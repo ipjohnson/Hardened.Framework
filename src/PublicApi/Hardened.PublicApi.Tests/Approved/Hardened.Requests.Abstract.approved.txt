@@ -741,6 +741,17 @@ namespace Hardened.Requests.Abstract.Responses
         public Hardened.Requests.Abstract.Responses.IHttpStatusResponse Response { get; }
         public override void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
+    public static class ResponseExceptionExtensions
+    {
+        public static Hardened.Requests.Abstract.Responses.ResponseException<T> AsException<T>(this T response, string? message = null)
+            where T : Hardened.Requests.Abstract.Responses.IHttpStatusResponse { }
+    }
+    public class ResponseException<T> : Hardened.Requests.Abstract.Responses.ResponseException
+        where T : Hardened.Requests.Abstract.Responses.IHttpStatusResponse
+    {
+        public ResponseException(T response, string? message = null) { }
+        public new T Response { get; }
+    }
     public enum ResponseModel
     {
         Standard = 0,
