@@ -19,7 +19,7 @@
          here, because every project in the solution has to agree on it, and LangVersion in
          src/Hardened1 alone, because that is the only project that declares a union.
 
-         This is why --host aws-lambda is refused with this response model. The Lambda managed
+         This is why the aws-lambda host is refused with this response model. The Lambda managed
          runtime is net8.0; a net11.0 assembly does not run on it.
     -->
     <TargetFramework>net11.0</TargetFramework>
@@ -52,8 +52,8 @@
     would fail to load the assembly.
 
     dotnet new cannot refuse a combination of parameters, so the refusal is a build error instead.
-    Regenerate with --response-model response, which declares the same set on net8.0 and needs no
-    preview anything.
+    Regenerate with the response model set to `response`, which declares the same set on net8.0
+    and needs no preview anything.
   -->
   <Target Name="HardenedTemplateRejectsLambdaUnion" BeforeTargets="Build">
     <Error Code="HTPL001"

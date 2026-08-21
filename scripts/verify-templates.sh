@@ -40,8 +40,15 @@ COMBOS=("$@")
 if [ ${#COMBOS[@]} -eq 0 ]; then
     # One combination per response model rather than the full cross product: the model is
     # orthogonal to the host, and proving that costs nothing beyond one of each.
+    #
+    # union is in the default list rather than opt-in. It needs the .NET 11 SDK, which this script
+    # already requires for the framework itself, and the reason it is not conditional is that a row
+    # nobody runs is a row nobody notices is broken: the first union generation failed on an XML
+    # comment containing a double hyphen, which every other combination was immune to only because
+    # that comment sat behind #if (unionMode).
     COMBOS=(kestrel:code aspnet:code kestrel:openapi
-            kestrel:code:response kestrel:openapi:response)
+            kestrel:code:response kestrel:openapi:response
+            kestrel:code:union kestrel:openapi:union)
 
     if command -v smithy >/dev/null 2>&1 && [ "$(smithy --version 2>/dev/null)" = "$SMITHY_PIN" ]; then
         COMBOS+=(kestrel:smithy)
