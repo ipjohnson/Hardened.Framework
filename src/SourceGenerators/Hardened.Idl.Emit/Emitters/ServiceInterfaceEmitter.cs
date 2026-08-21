@@ -11,7 +11,8 @@ namespace Hardened.Idl.Emitters;
 internal static class ServiceInterfaceEmitter {
 
     public static InterfaceDefinition Emit(
-        IConstructContainer container, ServiceModel service, string modelsNamespace) {
+        IConstructContainer container, ServiceModel service, string modelsNamespace,
+        SpecResponseModel responseModel = SpecResponseModel.Standard) {
         var interfaceDefinition = container.AddInterface(NamingHelper.ToInterfaceName(service.TypeBaseName));
 
         interfaceDefinition.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
@@ -32,7 +33,7 @@ internal static class ServiceInterfaceEmitter {
                 Deprecation.Apply(method);
             }
 
-            method.SetReturnType(GetReturnType(operation, modelsNamespace));
+            method.SetReturnType(GetReturnType(operation, modelsNamespace, responseModel));
 
             AddParameters(method, operation, modelsNamespace);
         }
@@ -40,7 +41,22 @@ internal static class ServiceInterfaceEmitter {
         return interfaceDefinition;
     }
 
-    internal static ITypeDefinition GetReturnType(OperationModel operation, string modelsNamespace) {
+    internal static ITypeDefinition GetReturnType(
+        OperationModel operation, string modelsNamespace,
+        SpecResponseModel responseModel = SpecResponseModel.Standard) {
+        // Ahead of everything below, because a declared response set replaces the question the rest
+        // of this method answers. The two overrides that follow are still checked first inside
+        // UnionResponseEmitter's own success branch: a streamed body is many responses rather than
+        // one of several, and raw bytes is a payload the application already holds encoded, so
+        // neither belongs in a union of statuses and neither reaches here.
+        if (responseModel != SpecResponseModel.Standard &&
+            !operation.RawBytesResponse &&
+            operation.ItemSchemaRef == null &&
+            operation.ErrorResponses.Count > 0) {
+            return Task(TypeDefinition.Get(
+                modelsNamespace, UnionResponseEmitter.ContainerName(operation)));
+        }
+
         // Ahead of the schema, because it is a deliberate override of it. x-hardened-raw-bytes says
         // the application holds this payload already encoded, which the schema has no way to say -
         // type: string describes the wire, not what the handler is holding.

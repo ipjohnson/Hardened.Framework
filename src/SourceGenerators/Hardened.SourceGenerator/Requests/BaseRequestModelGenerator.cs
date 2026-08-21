@@ -1,5 +1,6 @@
 ﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -32,9 +33,88 @@ public abstract class BaseRequestModelGenerator {
             response,
             filters) {
             ResponseSchema = OpenApiDocument.JsonSchemaWriter.Write(
-                context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type),
+                SchemaSubject(context, methodDeclaration, response)),
+            ResponseSchemas = DeclaredResponses(context, response),
             RequestSchema = BodySchema(context, methodDeclaration, parameters)
         };
+    }
+
+    /// <summary>
+    /// Every response the handler declares, with the schema of each, or nothing where it declares
+    /// one type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is what makes the code-first document say what a specification-first one says. Until it
+    /// existed the document carried a single hardcoded 200 for every operation, so a handler that
+    /// could answer 404 or 409 published a contract claiming it could not - and a client generated
+    /// from that document had no branch for either.
+    /// </para>
+    /// <para>
+    /// A case with no schema is a case whose type resolves to nothing this compilation can name,
+    /// which should not happen - the type came from the handler's own signature - so the entry is
+    /// still written with its status and no content rather than dropped. A response missing from
+    /// the document is worse than one whose body is unstated.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<ResponseSchemaModel> DeclaredResponses(
+        GeneratorSyntaxContext context, ResponseInformationModel response) {
+        if (response.UnionCases == null) {
+            return Array.Empty<ResponseSchemaModel>();
+        }
+
+        var responses = new List<ResponseSchemaModel>();
+
+        foreach (var unionCase in UnionResponseSelector.Decode(response.UnionCases)) {
+            var symbol = context.SemanticModel.Compilation.GetTypeByMetadataName(
+                unionCase.TypeName.Replace("global::", ""));
+
+            responses.Add(new ResponseSchemaModel(
+                unionCase.Status,
+                HttpResponseDescription.For(unionCase.Status),
+                unionCase.HasBody ? OpenApiDocument.JsonSchemaWriter.Write(symbol) : null));
+        }
+
+        return responses;
+    }
+
+    /// <summary>
+    /// The type the success response's schema is written from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The declared return type for an ordinary handler, and the <em>success case</em> for one
+    /// returning a response set. Writing the wrapper's schema would put a
+    /// <c>Response&lt;Todo, NotFound&gt;</c> component into the document whose only member is an
+    /// untyped <c>Value</c> - a shape no client can use and no handler ever sends, offered as the
+    /// contract for the 200.
+    /// </para>
+    /// <para>
+    /// This is a lockstep site rather than a feature: the document's full response set - the 404 and
+    /// the 409 alongside the 200 - is fed through <c>OperationModel</c> separately. What this does
+    /// is keep the 200 exactly as correct as it was before response sets existed, rather than
+    /// letting a half-done version emit something worse than the thing it replaced.
+    /// </para>
+    /// </remarks>
+    private static ITypeSymbol? SchemaSubject(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        ResponseInformationModel response) {
+        var declared = context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type;
+
+        if (response.UnionCases == null) {
+            return declared;
+        }
+
+        var successStatus = response.DefaultStatusCode ?? 200;
+
+        var success = UnionResponseSelector.Decode(response.UnionCases)
+            .FirstOrDefault(c => c.Status == successStatus);
+
+        return success.TypeName == null
+            ? declared
+            : context.SemanticModel.Compilation.GetTypeByMetadataName(
+                  success.TypeName.Replace("global::", "")) ?? declared;
     }
 
     /// <summary>
@@ -293,6 +373,8 @@ public abstract class BaseRequestModelGenerator {
             ? StreamFramingNames.ServerSentEvents
             : null;
 
+        var successStatus = DeclaredSuccessStatus(context);
+
         return new ResponseInformationModel {
             StreamFraming = framing,
             IsAsync = isAsync,
@@ -301,8 +383,15 @@ public abstract class BaseRequestModelGenerator {
             OutputType = output,
             ReturnType = returnType,
             RawResponseContentType = rawResponse,
-            DefaultStatusCode = DeclaredSuccessStatus(context),
-            ProducedContentTypes = DeclaredContentTypes(context)
+            DefaultStatusCode = successStatus,
+            ProducedContentTypes = DeclaredContentTypes(context),
+
+            // Structural, so this recognises Response<T1..Tn>, a generated response union and a
+            // C# 15 union declaration through one check - and returns null for everything else,
+            // which is every handler that exists today.
+            UnionCases = UnionResponseSelector.Read(context.SemanticModel, methodDeclaration, successStatus),
+            UnionDiagnostic =
+                UnionResponseSelector.Diagnose(context.SemanticModel, methodDeclaration, successStatus)
         };
     }
 

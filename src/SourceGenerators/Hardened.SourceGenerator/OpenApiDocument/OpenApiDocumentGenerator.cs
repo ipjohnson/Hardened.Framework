@@ -285,10 +285,50 @@ public static class OpenApiDocumentGenerator {
             .Append("}}}");
     }
 
+    /// <summary>
+    /// The operation's <c>responses</c>, which is every status it can answer with.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This wrote a single hardcoded <c>"200"</c> for every operation until response sets existed,
+    /// and both halves of that were wrong. Any other status the handler could answer with was
+    /// absent, so a client generated from the document had no branch for a 404 the handler returns
+    /// on every miss. And the success status itself was not read from the model, so a handler
+    /// declaring <c>[Post(SuccessStatus = 201)]</c> published a contract promising 200 - a
+    /// mismatch a conditional-request or a create-then-poll client acts on.
+    /// </para>
+    /// <para>
+    /// The success status now comes from <c>DefaultStatusCode</c>, which is where a description's
+    /// <c>responses:</c> key and <c>[Post(SuccessStatus = 201)]</c> both already land. One field, so
+    /// the two front ends state the same thing.
+    /// </para>
+    /// </remarks>
     private static void WriteResponses(
         StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components,
         OpenApiVersion version) {
-        builder.Append(",\"responses\":{\"200\":{\"description\":\"OK\"");
+        var successStatus = handler.ResponseInformation.DefaultStatusCode ?? 200;
+
+        builder.Append(",\"responses\":{");
+
+        if (handler.ResponseSchemas.Count > 0) {
+            WriteDeclaredResponses(builder, handler, components);
+        }
+        else {
+            WriteSingleResponse(builder, handler, components, version, successStatus);
+        }
+
+        builder.Append('}');
+    }
+
+    /// <summary>
+    /// A handler that returns one type: the status it succeeds with, and the body it sends.
+    /// </summary>
+    private static void WriteSingleResponse(
+        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components,
+        OpenApiVersion version, int successStatus) {
+        builder.Append('"').Append(successStatus).Append("\":{\"description\":\"")
+            .Append(JsonSchemaWriter.Escape(HttpResponseDescription.For(successStatus)))
+            .Append('"');
 
         if (handler.ResponseInformation.IsAsyncEnumerable) {
             WriteStreamedResponse(builder, handler, components, version);
@@ -296,16 +336,87 @@ public static class OpenApiDocumentGenerator {
         else if (handler.ResponseSchema != null) {
             Merge(components, handler.ResponseSchema);
 
-            var contentType = string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
-                ? "application/json"
-                : handler.ResponseInformation.RawResponseContentType!;
-
-            builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(contentType))
+            builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(ContentType(handler)))
                 .Append("\":{\"schema\":").Append(handler.ResponseSchema.Schema).Append("}}");
         }
 
-        builder.Append("}}");
+        builder.Append('}');
     }
+
+    /// <summary>
+    /// A handler whose return type declares a set of responses: one entry per status it can answer.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Grouped by status and written in status order, ordinally, because a document is diffed
+    /// against the last one as often as it is read - and an operation whose responses moved for no
+    /// reason is a diff a reviewer has to work out is empty.
+    /// </para>
+    /// <para>
+    /// Two cases sharing one status become a <c>oneOf</c> rather than the last one silently winning.
+    /// That is a real declaration and not a mistake: it is two shapes under one status, which is
+    /// what a caller writing <c>Response&lt;Todo, Archived&gt;</c> for a 200 means.
+    /// </para>
+    /// </remarks>
+    private static void WriteDeclaredResponses(
+        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components) {
+        var byStatus = handler.ResponseSchemas
+            .GroupBy(response => response.Status)
+            .OrderBy(group => group.Key);
+
+        var contentType = ContentType(handler);
+        var first = true;
+
+        foreach (var group in byStatus) {
+            if (!first) {
+                builder.Append(',');
+            }
+
+            builder.Append('"').Append(group.Key).Append("\":{\"description\":\"")
+                .Append(JsonSchemaWriter.Escape(group.First().Description))
+                .Append('"');
+
+            var bodies = group.Where(response => response.Schema != null).ToList();
+
+            if (bodies.Count > 0) {
+                builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(contentType))
+                    .Append("\":{\"schema\":");
+
+                if (bodies.Count == 1) {
+                    Merge(components, bodies[0].Schema!);
+                    builder.Append(bodies[0].Schema!.Schema);
+                }
+                else {
+                    builder.Append("{\"oneOf\":[");
+
+                    for (var i = 0; i < bodies.Count; i++) {
+                        if (i > 0) {
+                            builder.Append(',');
+                        }
+
+                        Merge(components, bodies[i].Schema!);
+                        builder.Append(bodies[i].Schema!.Schema);
+                    }
+
+                    builder.Append("]}");
+                }
+
+                builder.Append("}}");
+            }
+
+            builder.Append('}');
+
+            first = false;
+        }
+    }
+
+    /// <summary>
+    /// The media type the operation answers with, which is JSON unless it committed to another.
+    /// </summary>
+    private static string ContentType(RequestHandlerModel handler) =>
+        string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
+            ? "application/json"
+            : handler.ResponseInformation.RawResponseContentType!;
 
     /// <summary>
     /// A streamed response: the media type it is framed as, and the shape of one item.

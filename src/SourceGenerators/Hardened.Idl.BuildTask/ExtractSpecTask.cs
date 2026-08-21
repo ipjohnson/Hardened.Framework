@@ -68,6 +68,26 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     public bool ExcludeFromCoverage { get; set; } = true;
 
     /// <summary>
+    /// How a generated service interface states an operation's declared responses - "Standard",
+    /// "Response" or "Union".
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A build property rather than <c>[ResponseModel]</c> on the entry point, which is what the
+    /// plan named. That attribute is not readable here: this task runs before the compiler - the
+    /// same ordering that stops it from seeing routes - and an attribute is something a compiler
+    /// reads. <c>HardenedOpenApiVersion</c> is already the precedent for a build property deciding
+    /// what the emitter writes.
+    /// </para>
+    /// <para>
+    /// An unrecognised value is Standard rather than a build failure. The property is set by hand
+    /// in a csproj with no completion behind it, and failing every build of a project that
+    /// mistyped it would be a worse trade than generating the interfaces it had yesterday.
+    /// </para>
+    /// </remarks>
+    public string ResponseModel { get; set; } = "";
+
+    /// <summary>
     /// Whether the source document is embedded so the application can serve it.
     /// </summary>
     /// <remarks>
@@ -440,7 +460,26 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// file per type is not.
     /// </remarks>
     private string Emit(ServiceSpecModel model, string document, string specPath) =>
-        SpecFileEmitter.Emit(model, Namespace, ExcludeFromCoverage, document, specPath);
+        SpecFileEmitter.Emit(
+            model, Namespace, ExcludeFromCoverage, document, specPath, SelectedResponseModel());
+
+    /// <summary>
+    /// The mode <c>$(HardenedResponseModel)</c> names, defaulting to Standard.
+    /// </summary>
+    /// <remarks>
+    /// An unrecognised value is Standard rather than a build failure. The property is set by hand
+    /// in a csproj with no completion behind it, and failing every build of a project that mistyped
+    /// it would be a worse trade than generating the interfaces it had yesterday.
+    /// </remarks>
+    private SpecResponseModel SelectedResponseModel() {
+        if (string.Equals(ResponseModel, "Response", System.StringComparison.OrdinalIgnoreCase)) {
+            return SpecResponseModel.Response;
+        }
+
+        return string.Equals(ResponseModel, "Union", System.StringComparison.OrdinalIgnoreCase)
+            ? SpecResponseModel.Union
+            : SpecResponseModel.Standard;
+    }
 
     /// <summary>
     /// Rewriting an unchanged file would bump its timestamp, and both the compiler's up-to-date

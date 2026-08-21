@@ -186,6 +186,7 @@
                             GeneratedSourceDirectory="$(HardenedOpenApiGeneratedDir)"
                             Namespace="$(HardenedOpenApiNamespace)"
                             ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)"
+                            ResponseModel="$(HardenedResponseModel)"
                             ApplyServerBasePath="$(HardenedOpenApiApplyServerBasePath)"
                             EmbedDocument="$(HardenedOpenApiEmbedDocument)"
                             GroupUntaggedByPath="$(HardenedOpenApiGroupUntaggedByPath)"

@@ -51,6 +51,7 @@ public class RequestHandlerModel {
             ParametersInterface = ParametersInterface,
             ParametersValidator = ParametersValidator,
             ResponseSchema = ResponseSchema,
+            ResponseSchemas = ResponseSchemas,
             RequestSchema = RequestSchema,
             Tag = Tag,
             Summary = Summary,
@@ -112,6 +113,25 @@ public class RequestHandlerModel {
     /// </remarks>
     public HandlerSchema? ResponseSchema { get; set; }
 
+    /// <summary>
+    /// Every response the handler declares, when its return type declares a set of them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Empty for a handler that returns one type, which is every handler that existed before
+    /// response sets did - and the document writer falls back to <see cref="ResponseSchema"/> for
+    /// those, so nothing about their document changes.
+    /// </para>
+    /// <para>
+    /// Beside <see cref="ResponseSchema"/> rather than replacing it. The streamed-response path
+    /// reads that one to write an <c>itemSchema</c>, which is a different question - the shape of
+    /// one item of many, not one response of several - and folding the two would make the writer
+    /// ask which meaning it held.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<ResponseSchemaModel> ResponseSchemas { get; set; } =
+        Array.Empty<ResponseSchemaModel>();
+
     /// <summary>The request body's JSON Schema, on the same terms.</summary>
     public HandlerSchema? RequestSchema { get; set; }
 
@@ -167,6 +187,10 @@ public class RequestHandlerModel {
         }
 
         if (!ResponseInformation.Equals(requestHandlerModel.ResponseInformation)) {
+            return false;
+        }
+
+        if (!ResponseSchemas.SequenceEqual(requestHandlerModel.ResponseSchemas)) {
             return false;
         }
 
@@ -244,6 +268,7 @@ public class RequestHandlerModel {
             hashCode = (hashCode * 397) ^ InvokeHandlerType.GetHashCode();
             hashCode = (hashCode * 397) ^ RequestParameterInformationList.GetHashCodeAggregation();
             hashCode = (hashCode * 397) ^ ResponseInformation.GetHashCode();
+            hashCode = (hashCode * 397) ^ ResponseSchemas.GetHashCodeAggregation();
             hashCode = (hashCode * 397) ^ Filters.GetHashCodeAggregation();
             hashCode = (hashCode * 397) ^ (Tag?.GetHashCode() ?? 0);
             hashCode = (hashCode * 397) ^ (Summary?.GetHashCode() ?? 0);

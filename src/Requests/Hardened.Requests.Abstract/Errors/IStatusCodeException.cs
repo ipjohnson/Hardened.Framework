@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Responses;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Abstract.Errors;
@@ -19,17 +20,15 @@ namespace Hardened.Requests.Abstract.Errors;
 /// Checked by <c>ExceptionToModelConverter</c> before its type-based classification, because an
 /// exception that states its own status is more specific than "not a client error, so 500".
 /// </para>
+/// <para>
+/// <c>ApplyHeaders</c> now comes from <see cref="IProvidesResponseHeaders"/> rather than being
+/// declared here. Nothing about a thrown status made that member specific to exceptions, and a
+/// returned response type needs it on identical terms - the built-in <c>Unauthorized</c> is the
+/// same 401 with the same challenge whether it was thrown or returned. Moving it up is what keeps
+/// there being one method to call rather than two that must be kept in step.
+/// </para>
 /// </remarks>
-public interface IStatusCodeException {
+public interface IStatusCodeException : IProvidesResponseHeaders {
     /// <summary>The status the response carries.</summary>
     int StatusCode { get; }
-
-    /// <summary>
-    /// Adds whatever headers the status requires. Called before the body is written.
-    /// </summary>
-    /// <remarks>
-    /// Assigns rather than appends, so a retried or forked request that produces the same failure
-    /// twice does not send the header twice.
-    /// </remarks>
-    void ApplyHeaders(IDictionary<string, StringValues> headers);
 }

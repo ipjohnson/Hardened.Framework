@@ -81,6 +81,17 @@ public static class RoutingTableGenerator {
             GetBasePath(models.Left),
             AmbiguousRouteDiagnostics.Severity(options.AmbiguousRoutes));
 
+        // Per handler, and before its dispatch is emitted. A case set the document cannot describe
+        // unambiguously still produces a switch that compiles and runs - the ambiguity is in the
+        // shipped contract rather than in the generated code, which is exactly why nothing else
+        // would ever surface it.
+        foreach (var handler in routable) {
+            ResponseModelDiagnostics.ReportCaseSetFindings(
+                context,
+                handler.ControllerType.Name + "." + handler.HandlerMethod,
+                handler.ResponseInformation.UnionDiagnostic);
+        }
+
         // Before the document is written, because an unrecognised version has no answer to fall
         // back to - see OpenApiVersionDiagnostics.ReportUnknownVersion.
         var version = OpenApiVersionFacts.Parse(options.OpenApiVersion);
