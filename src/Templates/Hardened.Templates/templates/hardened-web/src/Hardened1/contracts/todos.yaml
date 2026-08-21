@@ -38,6 +38,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+    delete:
+      tags:
+        - Todo
+      operationId: removeTodo
+      summary: Removes a todo.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+      responses:
+        # No content, and the generated signature reflects it: the 204 becomes a case
+        # carrying nothing rather than a status with no way to answer it.
+        '204':
+          description: Removed.
+        '404':
+          description: No todo has that id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /todos:
     post:
       tags:

@@ -8,9 +8,9 @@ namespace Hardened1;
 /// What each operation can answer with.
 /// </summary>
 /// <remarks>
-/// A C# 15 union. One case per outcome, and the compiler makes a caller handle all of them - which
-/// is the whole difference between this and the Response mode: the same declared set, plus
-/// exhaustiveness where you match on it.
+/// C# 15 unions. One case per outcome, and the compiler makes a caller handle all of them - which
+/// is the whole difference from the Response mode: the same declared set, plus exhaustiveness
+/// wherever you match on it.
 ///
 /// Per-status wrapper types rather than two bare payloads. Two identical case types in one union
 /// give two identical conversions and the compiler rejects the use site, so NotFound appearing in
@@ -19,6 +19,8 @@ namespace Hardened1;
 public union TodoResult(Todo, NotFound);
 
 public union NewTodoResult(Created<Todo>, Conflict);
+
+public union RemovedTodoResult(NoContent, NotFound);
 
 #endif
 /// <summary>
@@ -39,7 +41,7 @@ public class TodoController {
     /// identical either way - what differs is whether the compiler knows the route can answer it.
     /// </remarks>
     [Get("/{id}")]
-    public Todo ById(TodoStore store, int id) {
+    public Todo ById(ITodoStore store, int id) {
         var todo = store.Find(id);
 
         if (todo is null) {
@@ -49,17 +51,15 @@ public class TodoController {
         return todo;
     }
 
-    /// <summary>
-    /// Creates one, or 409 when the title is taken.
-    /// </summary>
+    /// <summary>Creates one, or 409 when the title is taken.</summary>
     /// <remarks>
     /// This answers 200 rather than 201. A handler in this mode has one success type and no way to
-    /// name a status beside it - Created&lt;Todo&gt; would be serialised as an ordinary body at 200,
-    /// because nothing in the standard dispatch reads IHttpStatusResponse off a returned value.
-    /// The declared modes are where 201 becomes expressible.
+    /// name a status beside it - returning Created&lt;Todo&gt; would serialise it as an ordinary
+    /// body at 200, because the standard dispatch does not read IHttpStatusResponse off a returned
+    /// value. Compare the same method under --response-model response, where 201 is in the type.
     /// </remarks>
     [Post("/")]
-    public Todo Create(TodoStore store, NewTodo request) {
+    public Todo Create(ITodoStore store, NewTodo request) {
         if (store.TitleExists(request.Title)) {
             throw new Conflict($"A todo titled '{request.Title}' already exists.").AsException();
         }
@@ -67,6 +67,17 @@ public class TodoController {
         return store.Add(request.Title);
     }
 
+    /// <summary>Removes one, or 404. Answers 200 with the removed todo, for the reason above.</summary>
+    [Delete("/{id}")]
+    public Todo Remove(ITodoStore store, int id) {
+        var todo = store.Find(id);
+
+        if (todo is null || !store.Remove(id)) {
+            throw new NotFound("todo", $"No todo has id {id}.").AsException();
+        }
+
+        return todo;
+    }
 #endif
 #if (responseMode)
     /// <summary>One todo, or 404.</summary>
@@ -77,7 +88,7 @@ public class TodoController {
     /// signature rather than in a throw somewhere down the call stack.
     /// </remarks>
     [Get("/{id}")]
-    public Response<Todo, NotFound> ById(TodoStore store, int id) {
+    public Response<Todo, NotFound> ById(ITodoStore store, int id) {
         var todo = store.Find(id);
 
         if (todo is null) {
@@ -93,7 +104,7 @@ public class TodoController {
     /// the case rather than from anything this method does.
     /// </remarks>
     [Post("/")]
-    public Response<Created<Todo>, Conflict> Create(TodoStore store, NewTodo request) {
+    public Response<Created<Todo>, Conflict> Create(ITodoStore store, NewTodo request) {
         if (store.TitleExists(request.Title)) {
             return new Conflict($"A todo titled '{request.Title}' already exists.");
         }
@@ -103,6 +114,19 @@ public class TodoController {
         return new Created<Todo>(todo, $"/todos/{todo.Id}");
     }
 
+    /// <summary>Removes one at 204, or 404.</summary>
+    /// <remarks>
+    /// NoContent carries no body and the generated dispatch knows not to serialise one, so this
+    /// answers 204 with an empty body rather than 200 with "null" in it.
+    /// </remarks>
+    [Delete("/{id}")]
+    public Response<NoContent, NotFound> Remove(ITodoStore store, int id) {
+        if (store.Find(id) is null || !store.Remove(id)) {
+            return new NotFound("todo", $"No todo has id {id}.");
+        }
+
+        return new NoContent();
+    }
 #endif
 #if (unionMode)
     /// <summary>One todo, or 404.</summary>
@@ -112,7 +136,7 @@ public class TodoController {
     /// so moving between the two rewrites no handler body and changes no generated dispatch.
     /// </remarks>
     [Get("/{id}")]
-    public TodoResult ById(TodoStore store, int id) {
+    public TodoResult ById(ITodoStore store, int id) {
         var todo = store.Find(id);
 
         if (todo is null) {
@@ -124,7 +148,7 @@ public class TodoController {
 
     /// <summary>Creates one at 201 with a Location header, or 409 when the title is taken.</summary>
     [Post("/")]
-    public NewTodoResult Create(TodoStore store, NewTodo request) {
+    public NewTodoResult Create(ITodoStore store, NewTodo request) {
         if (store.TitleExists(request.Title)) {
             return new Conflict($"A todo titled '{request.Title}' already exists.");
         }
@@ -134,5 +158,14 @@ public class TodoController {
         return new Created<Todo>(todo, $"/todos/{todo.Id}");
     }
 
+    /// <summary>Removes one at 204, or 404.</summary>
+    [Delete("/{id}")]
+    public RemovedTodoResult Remove(ITodoStore store, int id) {
+        if (store.Find(id) is null || !store.Remove(id)) {
+            return new NotFound("todo", $"No todo has id {id}.");
+        }
+
+        return new NoContent();
+    }
 #endif
 }

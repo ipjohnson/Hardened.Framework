@@ -1,0 +1,12 @@
+{
+  "//": [
+    "The union response model needs the .NET 11 SDK: the compiler-required IUnion and UnionAttribute",
+    "arrive with the .NET 11 reference assemblies, and the keyword itself is behind LangVersion",
+    "preview. Pinned to the exact preview rather than a range, because a preview's language surface",
+    "moves between builds and a floating pin turns that into a change nobody made."
+  ],
+  "sdk": {
+    "version": "11.0.100-preview.7.26381.103",
+    "rollForward": "latestPatch"
+  }
+}

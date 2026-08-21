@@ -15,8 +15,21 @@ dotnet run --project src/Hardened1.Host
 It prints its address and listens on **5080**. Set `PORT` to change it.
 
 ```bash
-curl localhost:5080/greeting/world
-{"message":"Hello, world!"}
+curl localhost:5080/todos/1
+{"id":1,"title":"Read the generated code","done":true}
+```
+
+Three routes, and every one of them declares more than one answer:
+
+| | success | and |
+|---|---|---|
+| `GET /todos/{id}` | 200 | 404 when no todo has that id |
+| `POST /todos` | #if (standardMode)#if (codeFirst)200#endif#if (specFirst)201#endif#endif#if (declaredMode)201 with a `Location`#endif | 409 when the title is taken |
+| `DELETE /todos/{id}` | #if (standardMode)200#endif#if (declaredMode)204#endif | 404 when no todo has that id |
+
+```bash
+curl -i -X POST localhost:5080/todos -H 'Content-Type: application/json' \
+     -d '{"title":"Add an endpoint"}'
 ```
 
 #if (OpenApiUi)
@@ -46,37 +59,100 @@ would be tied to a deployment target for no reason.
 ## Adding to it
 
 #if (codeFirst)
-A route is an attribute on a method of a plain class — no base type, no interface, no registration.
-`src/Hardened1/GreetingController.cs` is the whole pattern:
+A route is an attribute on a method of a plain class - no base type, no interface, no registration.
+`src/Hardened1/TodoController.cs` is the whole pattern:
 
 ```csharp
-[Get("/{name}")]
-public Greeting Hello(string name) => new($"Hello, {name}!");
+[Get("/{id}")]
+public #if (standardMode)Todo#endif#if (responseMode)Response<Todo, NotFound>#endif#if (unionMode)TodoResult#endif ById(ITodoStore store, int id)
 ```
 
-`[BasePath]` on `TemplateModuleNameLibrary` prefixes every route in the assembly, so that one is served at
-`/greeting/{name}`. `[Get]`, `[Post]`, `[Put]`, `[Delete]` and `[Patch]` all behave the same way.
+`[BasePath]` on `TemplateModuleNameLibrary` prefixes every route in the assembly, so that one is
+served at `/todos/{id}`. `[Get]`, `[Post]`, `[Put]`, `[Delete]` and `[Patch]` all behave the same
+way.
 
-A service is registered next to the class it belongs to, with `[SingletonService]`,
-`[ScopedService]` or `[TransientService]` — the module lists nothing, so it cannot fall out of step.
+Services arrive as parameters, and you ask for an interface. A parameter typed as a concrete class
+is bound from the request body instead. A service is registered next to the class it belongs to,
+with `[SingletonService]`, `[ScopedService]` or `[TransientService]` - the module lists nothing, so
+it cannot fall out of step.
 #endif
 #if (specFirst)
 #if (openapi)
-The contract is `src/Hardened1/contracts/greeting.yaml`. Add an operation there and the build writes
-the model, the route and the validation its constraints describe, then stops compiling until
-`GreetingService` implements the new method.
+The contract is `src/Hardened1/contracts/todos.yaml`.
 #endif
 #if (smithy)
-The contract is `src/Hardened1/contracts/greeting.smithy`. Add an operation there and the build
-writes the model, the route and the validation its constraints describe, then stops compiling until
-`GreetingService` implements the new method.
+The contract is `src/Hardened1/contracts/todos.smithy`.
 
 Building needs the [Smithy CLI](https://smithy.io/2.0/guides/smithy-cli/index.html) on `PATH`. The
 build names the version it expects if yours differs.
 #endif
+Add an operation there and the build writes the model, the route, the validation its constraints
+describe and the statuses it declares, then stops compiling until `TodoService` implements the new
+method.
 
 That is the trade a contract-first project makes: the specification and the code cannot disagree,
 because disagreeing is a build error. There are no route attributes anywhere in this project.
+#endif
+
+## How responses are declared
+
+#if (standardMode)
+This application is in **standard** mode. A handler names one success type and reaches every other
+status by throwing:
+
+```csharp
+throw new NotFound("todo", $"No todo has id {id}.").AsException();
+```
+
+The 404 body is the same one the declared modes return. What is missing is any statement in the
+signature that the route can answer it - so the generated document describes fewer statuses than
+the application actually has.
+
+#if (codeFirst)
+It also cannot name a status beside its success type, which is why creating a todo answers 200
+rather than 201.
+#endif
+#if (specFirst)
+The contract still names each operation's success status and the dispatch carries it, so creating a
+todo answers 201. What this mode cannot express is more than one success status.
+#endif
+
+Generate with `--response-model response` to put the whole set in the return type.
+#endif
+#if (declaredMode)
+#if (responseMode)
+This application is in **response** mode. A handler returns everything it can answer with:
+
+```csharp
+public Response<Todo, NotFound> ById(ITodoStore store, int id) {
+    var todo = store.Find(id);
+
+    if (todo is null) {
+        return new NotFound("todo", $"No todo has id {id}.");
+    }
+
+    return todo;
+}
+```
+#endif
+#if (unionMode)
+This application is in **union** mode. A handler returns a C# 15 union naming everything it can
+answer with:
+
+```csharp
+public union TodoResult(Todo, NotFound);
+
+public TodoResult ById(ITodoStore store, int id) { ... }
+```
+
+That needs the .NET 11 SDK, pinned in `global.json`, and `LangVersion preview` on the library -
+a union needs `IUnion` and `UnionAttribute` from the .NET 11 reference assemblies, not just the
+keyword. `--response-model response` gives the same declared set on any compiler.
+#endif
+
+One implicit conversion per case, so you return the payload and never name the wrapper. The status
+comes from the case, the compiler makes you handle each one, and the generated document describes
+all of them - because all of them are in the signature.
 #endif
 
 ## Testing
@@ -87,15 +163,16 @@ port, so a test exercises routing, filters, binding and serialisation rather tha
 
 ```csharp
 [HardenedTest]
-public async Task GreetsByName(ITestWebApp app) {
-    var response = await app.Get("/greeting/world");
-
-    response.Assert.Ok();
+public async Task GetTodo_UnknownId_IsNotFound(ITestWebApp app) {
+    (await app.Get("/todos/9999")).Assert.NotFound();
 }
 ```
 
 Mark a parameter `[Mock]` and that service is substituted for the whole graph, including behind a
-route.
+route. Note the argument order on a body: `app.Post(value, path)`.
+
+Every declared status has a test, not only the happy one - a response set exercised only at 200 is
+indistinguishable from having none.
 
 ## Reading the generated code
 

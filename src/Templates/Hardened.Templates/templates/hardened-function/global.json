@@ -1,0 +1,18 @@
+{
+  "//": [
+    "The SDK this application is built with, pinned so it does not move when a preview is installed.",
+    "",
+    "Without this the newest installed SDK wins, and that is not a safe default: a net8.0 project",
+    "built by the .NET 11 preview SDK fails GenerateDepsFile outright, and where it does not, it",
+    "writes a test deps.json missing its own ProjectReference - so the build succeeds and every test",
+    "fails at once with FileNotFoundException on the assembly under test. Nothing in either message",
+    "points at the SDK.",
+    "",
+    "rollForward latestFeature so a newer 8.0.x patch is picked up without editing this file, and a",
+    "different major is not."
+  ],
+  "sdk": {
+    "version": "8.0.401",
+    "rollForward": "latestFeature"
+  }
+}

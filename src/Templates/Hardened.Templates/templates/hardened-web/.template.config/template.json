@@ -159,25 +159,25 @@
         {
           "condition": "(!codeFirst)",
           "exclude": [
-            "src/Hardened1/GreetingController.cs"
+            "src/Hardened1/TodoController.cs"
           ]
         },
         {
           "condition": "(!specFirst)",
           "exclude": [
-            "src/Hardened1/GreetingService.cs"
+            "src/Hardened1/TodoService.cs"
           ]
         },
         {
           "condition": "(!openapi)",
           "exclude": [
-            "src/Hardened1/contracts/greeting.yaml"
+            "src/Hardened1/contracts/todos.yaml"
           ]
         },
         {
           "condition": "(!smithy)",
           "exclude": [
-            "src/Hardened1/contracts/greeting.smithy"
+            "src/Hardened1/contracts/todos.smithy"
           ]
         },
         {
@@ -203,6 +203,22 @@
           "condition": "(!OpenApiUi)",
           "exclude": [
             "src/Hardened1.Host/Properties/launchSettings.json"
+          ]
+        },
+        {
+          "comment": "One global.json reaches the output. The union model needs the .NET 11 SDK for the keyword; every other model pins the 8.0 line, because the newest installed SDK is not a safe default - a net8.0 project built by the 11 preview writes a test deps.json missing its own ProjectReference.",
+          "condition": "(unionMode)",
+          "exclude": [
+            "global.json"
+          ],
+          "rename": {
+            "global.union.json": "global.json"
+          }
+        },
+        {
+          "condition": "(!unionMode)",
+          "exclude": [
+            "global.union.json"
           ]
         }
       ]

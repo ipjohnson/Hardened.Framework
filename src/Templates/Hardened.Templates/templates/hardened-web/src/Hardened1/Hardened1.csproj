@@ -89,7 +89,7 @@
     restated as attributes on the application.
   -->
   <ItemGroup>
-    <HardenedOpenApiSpec Include="contracts\greeting.yaml">
+    <HardenedOpenApiSpec Include="contracts\todos.yaml">
       <PublishUrl>/openapi.yaml</PublishUrl>
 <!--#if (OpenApiUi) -->
       <UiUrl>/docs</UiUrl>
@@ -115,7 +115,7 @@
     two CLI versions can produce different ASTs and therefore different generated C#.
   -->
   <ItemGroup>
-    <HardenedSmithyModel Include="contracts\greeting.smithy">
+    <HardenedSmithyModel Include="contracts\todos.smithy">
       <PublishUrl>/openapi.json</PublishUrl>
 <!--#if (OpenApiUi) -->
       <UiUrl>/docs</UiUrl>

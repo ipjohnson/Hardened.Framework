@@ -12,7 +12,7 @@ namespace com.example.hardened1
 @title("Hardened1 API")
 service Todos {
     version: "2024-01-01"
-    operations: [GetTodo, CreateTodo]
+    operations: [GetTodo, CreateTodo, RemoveTodo]
 }
 
 structure Todo {
@@ -71,4 +71,18 @@ operation CreateTodo {
     output: Todo
 
     errors: [TodoTitleTaken]
+}
+
+@documentation("Removes a todo.")
+@http(method: "DELETE", uri: "/todos/{id}", code: 204)
+@idempotent
+operation RemoveTodo {
+    input := {
+        @httpLabel
+        @required
+        @range(min: 1)
+        id: Integer
+    }
+
+    errors: [TodoNotFound]
 }
