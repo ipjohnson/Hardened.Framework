@@ -13,13 +13,16 @@
                         *.SUT           - systems-under-test that exist only as test fixtures
                         CSharpAuthor    - vendored source, see below
                         ValidationModules - vendored source, see below
+                        DependencyModules - vendored source, see below
 
                       Note that the *.Testing packages (Hardened.Shared.Testing,
                       Hardened.Web.Testing, Hardened.Requests.Testing) are deliberately NOT
                       excluded - they ship to consumers and their coverage counts.
 
-                      CSharpAuthor and ValidationModules ship as source: their build targets
-                      compile src/**/*.cs straight into whichever assembly references them,
+                      CSharpAuthor, ValidationModules and DependencyModules all arrive as
+                      source rather than as a referenced assembly: the first two ship that way
+                      and their build targets compile src/**/*.cs straight into whichever
+                      assembly references them,
                       which is what keeps a Roslyn analyzer self-contained (see
                       SourceGenerators/CSharpAuthor.props). Every generator therefore carries a
                       private copy - 1828 lines of CSharpAuthor, and 1512 more of
@@ -36,13 +39,22 @@
                       becoming less tested - which is what tripped this gate on the routing and
                       templates branch.
 
+                      DependencyModules is the same case and was missed. It is not shipped as
+                      source - Hardened.DependencyModules.SourceGenerator names it in Compile
+                      Include from the sibling checkout - but the effect is identical: that
+                      assembly holds two files of its own and the whole of
+                      DependencyModules.SourceGenerator.Impl, so its coverage number was a
+                      measurement of another repository, gated as though it were Hardened's.
+                      Adding this filter changes that assembly's number substantially, and the
+                      baseline entry is re-measured by CI rather than written from a local run.
+
                       Scoped to [Hardened.*] rather than [*] on purpose. ValidationModules.Runtime
                       is a referenced assembly rather than vendored source, and a bare
                       [*]ValidationModules.* empties it and records a meaningless 0.0 baseline
                       for it. These filters are about copies compiled into Hardened's own
                       assemblies, and say so.
                     -->
-                    <Exclude>[*.Tests]*,[*.SUT]*,[Hardened.*]CSharpAuthor.*,[Hardened.*]ValidationModules.*</Exclude>
+                    <Exclude>[*.Tests]*,[*.SUT]*,[Hardened.*]CSharpAuthor.*,[Hardened.*]ValidationModules.*,[Hardened.*]DependencyModules.*</Exclude>
 
                     <!-- Source-generated output is verified through behaviour in the
                          integration tests, not by line coverage of the emitted files. -->
