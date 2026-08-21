@@ -136,8 +136,8 @@ jobs:
           set -o pipefail
           dotnet test src/Hardened.Framework.sln \
             --no-build --configuration Release \
-            --settings coverlet.runsettings \
-            --collect:"XPlat Code Coverage" \
+            --settings coverage.runsettings \
+            --collect:"Code Coverage" \
             --results-directory ./coverage \
             | tee test-output.log
 

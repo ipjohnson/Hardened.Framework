@@ -219,8 +219,8 @@ jobs:
           set -o pipefail
           dotnet test src/Hardened.Framework.sln \
             --no-build --configuration Release \
-            --settings coverlet.runsettings \
-            --collect:"XPlat Code Coverage" \
+            --settings coverage.runsettings \
+            --collect:"Code Coverage" \
             --results-directory ./coverage \
             | tee test-output.log
 
@@ -259,9 +259,15 @@ jobs:
       - name: Coverage summary
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
+          # +Hardened.* because this collector instruments everything loaded rather than only what
+          # a test project references, so xunit, RazorBlade and PublicApiGenerator all arrive in the
+          # report otherwise. Filtered here rather than in the runsettings: ModulePaths/Include did
+          # not restrict it, and a report-level filter does not depend on one collector's schema -
+          # which is the property being bought by this change in the first place.
           reportgenerator \
             -reports:"coverage/**/*.cobertura.xml" \
             -targetdir:coverage-report \
+            -assemblyfilters:"+Hardened.*" \
             -reporttypes:"TextSummary;MarkdownSummaryGithub;Html;JsonSummary"
           cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
           cat coverage-report/Summary.txt
@@ -270,24 +276,7 @@ jobs:
       # zero and stay green. This gate holds each assembly at the coverage it already had.
       # Raising a floor is a deliberate act: scripts/coverage-gate.py --update, reviewed and committed.
       #
-      # NON-BLOCKING WHILE THE BUILD IS ON THE .NET 11 PREVIEW, AND THIS MUST BE PUT BACK.
-      #
-      # Coverage collection does not work under the preview SDK, and it fails by under-reporting
-      # rather than by erroring - every test runs and passes, and the numbers come back wrong. With
-      # coverlet.collector 6.0.2 every assembly reported 0.0%; with 10.0.1 the collapse was partial,
-      # Hardened.Requests.Abstract reading 31.3% against a 93.5% floor it holds on 8.0.401. The same
-      # gate passes on main today, so this is the toolchain rather than the tests.
-      #
-      # It is left running and non-blocking rather than deleted, so the numbers stay visible in the
-      # log and in the uploaded report - which is what the next attempt at this is measured against.
-      # What has not been isolated is whether the fault is coverlet's instrumentation, the merge, or
-      # the preview runtime; local runs of this cannot be trusted to answer it, because they report
-      # 0.0% even for the configuration that passes here.
-      #
-      # Restore by deleting continue-on-error once coverage measures correctly, and re-baseline from
-      # a CI run rather than a local one.
       - name: Coverage gate
-        continue-on-error: true
         run: python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
 
       # always(), because the report is most wanted exactly when the gate rejected the run - and

@@ -166,7 +166,7 @@ Each workstream owns a disjoint set of directories. Do not add tests to a projec
 workstream owns — see `TESTING-PLAN.md` §6 for the map.
 
 Every test project is already created and registered in the solution. If you find yourself editing
-`.sln`, `Directory.Build.props` or `coverlet.runsettings`, stop: those are shared, and ten agents
+`.sln`, `Directory.Build.props` or `coverage.runsettings`, stop: those are shared, and ten agents
 editing them conflict. `coverage-baseline.json` is the one shared file you are expected to touch,
 and only to raise your own assembly's floor.
 

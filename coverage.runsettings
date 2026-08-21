@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+    <DataCollectionRunSettings>
+        <DataCollectors>
+            <DataCollector friendlyName="Code Coverage"
+                           uri="datacollector://Microsoft/CodeCoverage/2.0"
+                           assemblyQualifiedName="Microsoft.VisualStudio.Coverage.DynamicCoverageDataCollector, Microsoft.VisualStudio.TraceCollector, Version=11.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+                <Configuration>
+                    <!--
+                      Cobertura, so reportgenerator reads this the same way it read coverlet's and
+                      scripts/coverage-gate.py needs no knowledge of which collector produced the
+                      numbers. The default is a binary .coverage file that only Visual Studio opens.
+                    -->
+                    <Format>cobertura</Format>
+
+                    <!--
+                      The same exclusions coverlet.runsettings carries, re-expressed. What they are
+                      for is written out at length there and is unchanged: CSharpAuthor,
+                      ValidationModules and DependencyModules all arrive as source compiled into
+                      Hardened's own assemblies, so without these filters a private copy of someone
+                      else's library counts as Hardened's product code once per assembly that links
+                      it - which was 32% to 79% of each generator, moving whenever a Compile glob
+                      changed rather than when anything became less tested.
+
+                      The mechanism differs and that is the whole risk of this change. coverlet
+                      filters by [Assembly]Namespace.*, which excludes types inside an assembly.
+                      This collector's ModulePaths can only drop a whole assembly - useless here,
+                      since the vendored code lives inside assemblies we do want measured - so the
+                      equivalent is Functions, which matches a fully qualified member name.
+
+                      Anchored with ^ so a Hardened type merely mentioning one of these names in its
+                      own namespace is not swept up.
+                    -->
+                    <CodeCoverage>
+                        <!--
+                          An allow-list rather than a deny-list, which is the one place this differs
+                          from coverlet by more than syntax. coverlet reported only what a test
+                          project referenced; this collector instruments everything loaded, so a
+                          deny-list silently starts measuring the next third-party assembly anything
+                          pulls in - RazorBlade and PublicApiGenerator both turned up on the first
+                          run, neither of which is ours to be judged on.
+                        -->
+                        <ModulePaths>
+                            <Include>
+                                <ModulePath>.*Hardened\..*\.dll$</ModulePath>
+                            </Include>
+                            <Exclude>
+                                <ModulePath>.*\.Tests\.dll$</ModulePath>
+                                <ModulePath>.*\.SUT\.dll$</ModulePath>
+                            </Exclude>
+                        </ModulePaths>
+
+                        <Functions>
+                            <Exclude>
+                                <Function>^CSharpAuthor\..*</Function>
+                                <Function>^ValidationModules\..*</Function>
+                                <Function>^DependencyModules\..*</Function>
+                            </Exclude>
+                        </Functions>
+
+                        <!--
+                          Generated output is verified through behaviour in the integration tests
+                          rather than by line coverage of emitted files, which is what
+                          ExcludeByAttribute and ExcludeByFile said for coverlet.
+                        -->
+                        <Attributes>
+                            <Exclude>
+                                <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+                                <Attribute>^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$</Attribute>
+                                <Attribute>^System\.Runtime\.CompilerServices\.CompilerGeneratedAttribute$</Attribute>
+                                <Attribute>^System\.ObsoleteAttribute$</Attribute>
+                            </Exclude>
+                        </Attributes>
+
+                        <Sources>
+                            <Exclude>
+                                <Source>.*\.g\.cs$</Source>
+                            </Exclude>
+                        </Sources>
+
+                        <!--
+                          Auto-properties carry no logic worth a coverage number, which is what
+                          SkipAutoProps did for coverlet.
+                        -->
+                        <SkipAutoProps>True</SkipAutoProps>
+
+                    </CodeCoverage>
+                </Configuration>
+            </DataCollector>
+        </DataCollectors>
+    </DataCollectionRunSettings>
+</RunSettings>

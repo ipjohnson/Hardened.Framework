@@ -233,13 +233,13 @@ from `Attribute`, shows up as a one-line diff in review. Prioritise
 but building, referenced correctly, added to `Hardened.Framework.sln` / `Hardened.Amz.sln`, with
 `Bootstrap.cs` and `Usings.cs` in place.
 
-`.sln` files, `Directory.Build.props` and `coverlet.runsettings` are shared. If ten agents each add a
+`.sln` files, `Directory.Build.props` and `coverage.runsettings` are shared. If ten agents each add a
 project, every one conflicts. Doing it once up front means each agent afterwards only *adds files to
 a directory it exclusively owns* — no shared-file edits, no merge conflicts.
 
 ### 0.4 Coverage gates in CI
 
-Add per-assembly minimum thresholds to `coverlet.runsettings` and fail the build below them. Set each
+Add per-assembly minimum thresholds to `coverage.runsettings` and fail the build below them. Set each
 threshold at **current measured coverage, rounded down** — a ratchet, not a cliff. Nothing regresses
 from day one, and each workstream raises its own floor as it lands.
 
@@ -507,7 +507,7 @@ the capacity, since they share the Lambda invocation path.
    `ParameterBindingTests` and `HttpMethodTests` for the house style.
 5. **Assert the observable outcome.** For batch handlers that means `BatchItemFailures` identifiers,
    not counts — the count being right while the identifiers are wrong is the actual failure mode.
-6. **Raise your assembly's coverage threshold in `coverlet.runsettings` in the same PR.** The ratchet
+6. **Raise your assembly's coverage threshold in `coverage.runsettings` in the same PR.** The ratchet
    only works if it is turned.
 7. **Report contradictions, do not paper over them.** If a documented behaviour does not exist, say
    so rather than writing a test that asserts the bug. §2.3 is the template.
@@ -537,13 +537,13 @@ kind of work with a different definition of done.
 # Framework
 cd Hardened.Framework/src
 dotnet test Hardened.Framework.sln -c Release \
-  --collect:"XPlat Code Coverage" --settings ../coverlet.runsettings \
+  --collect:"Code Coverage" --settings ../coverage.runsettings \
   --results-directory ./coverage
 
 # AWS
 cd Hardened.Amz
 dotnet test Hardened.Amz.sln -c Release \
-  --collect:"XPlat Code Coverage" --settings coverlet.runsettings \
+  --collect:"Code Coverage" --settings coverage.runsettings \
   --results-directory ./coverage
 
 # Per-assembly summary
