@@ -93,6 +93,11 @@ internal static class UnionResponseEmitter {
         definition.TypeKeyword = ClassKeyword.Record;
         definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Sealed;
 
+        // A case type declares everything in its header, so it ends at the semicolon rather than
+        // carrying an empty body. Legal either way; this is what anyone writing it by hand writes,
+        // and generated code is read more often than it is written.
+        definition.TerminateWithSemicolon = true;
+
         definition.Comment = DocComment.Format(response.Description)
             ?? $"The {response.StatusCode} response declared for {operation.HttpMethod} {operation.Path}.";
 
