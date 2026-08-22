@@ -26,7 +26,9 @@ public class JsonSerializerImpl : IJsonSerializer {
     private readonly JsonSerializerOptions _prettyOptions;
 
     public JsonSerializerImpl(IOptions<IJsonSerializerConfiguration> configuration) {
-        _serializerOptions = JsonTypeInfoLookup.WithReflectionFallback(configuration.Value.Options);
+        // Appended rather than installed only onto an empty chain: this is the reflection-based
+        // serializer, so reflection belongs in its chain whatever else is registered.
+        _serializerOptions = JsonTypeInfoLookup.AppendReflectionFallback(configuration.Value.Options);
         _prettyOptions = new JsonSerializerOptions(_serializerOptions) { WriteIndented = true };
     }
 

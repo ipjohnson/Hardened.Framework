@@ -76,6 +76,15 @@ public class ResolverPrecedenceTests {
         nameof(StreamingJsonResponseSerializer)
     };
 
+    /// <summary>
+    /// The two that carry a reflection tail. <see cref="AotResponseSerializer"/> is absent by
+    /// design - it resolves only out of registered contexts, on every host.
+    /// </summary>
+    public static TheoryData<string> ReflectingResponseSerializers => new() {
+        nameof(SystemTextJsonResponseSerializer),
+        nameof(StreamingJsonResponseSerializer)
+    };
+
     private static IResponseSerializer ResponseSerializerNamed(
         string name, params IJsonTypeInfoResolver[] resolvers) => name switch {
         nameof(SystemTextJsonResponseSerializer) =>
@@ -133,7 +142,7 @@ public class ResolverPrecedenceTests {
     /// wrote and not much else, so putting it first must not amount to withholding the fallback.
     /// </summary>
     [Theory]
-    [MemberData(nameof(ResponseSerializers))]
+    [MemberData(nameof(ReflectingResponseSerializers))]
     public async Task SerializeResponse_StillReflectsATypeNoContextDeclares(string serializerName) {
         var serializer = ResponseSerializerNamed(serializerName, CatalogContext.Default);
         var context = ResponseContext(new Undeclared("only reflection knows this"), out var body);
@@ -147,7 +156,7 @@ public class ResolverPrecedenceTests {
     /// No resolver registered is still the common case, and still resolves by reflection.
     /// </summary>
     [Theory]
-    [MemberData(nameof(ResponseSerializers))]
+    [MemberData(nameof(ReflectingResponseSerializers))]
     public async Task SerializeResponse_FallsBackToReflectionWhenNothingIsRegistered(string serializerName) {
         var serializer = ResponseSerializerNamed(serializerName);
         var context = ResponseContext(new Undeclared("reflection"), out var body);
@@ -155,6 +164,47 @@ public class ResolverPrecedenceTests {
         await serializer.SerializeResponse(context);
 
         Assert.Contains("reflection", Encoding.UTF8.GetString(body.ToArray()));
+    }
+
+    /// <summary>
+    /// The Aot serializers never reflect, on any host.
+    /// </summary>
+    /// <remarks>
+    /// A class named for AOT that resolves by reflection wherever reflection happens to be
+    /// available makes the developer's build the one configuration in which a missing
+    /// <c>[JsonSerializable]</c> is invisible: it works locally and is a
+    /// <c>NotSupportedException</c> after publishing. A type no registered context declares has to
+    /// fail here too, which is what this asserts.
+    /// </remarks>
+    [Fact]
+    public async Task AotResponseSerializer_RefusesATypeNoContextDeclares() {
+        var serializer = new AotResponseSerializer(
+            Config(), new IJsonTypeInfoResolver[] { CatalogContext.Default });
+        var context = ResponseContext(new Undeclared("nothing declares this"), out _);
+
+        await Assert.ThrowsAsync<NotSupportedException>(
+            () => serializer.SerializeResponse(context));
+    }
+
+    [Fact]
+    public async Task AotResponseSerializer_RefusesEvenWithNoResolversRegistered() {
+        var serializer = new AotResponseSerializer(Config(), Array.Empty<IJsonTypeInfoResolver>());
+        var context = ResponseContext(new Undeclared("nothing declares this"), out _);
+
+        await Assert.ThrowsAsync<NotSupportedException>(
+            () => serializer.SerializeResponse(context));
+    }
+
+    /// <summary>
+    /// The shared configuration carries no reflection resolver of its own — the consumer decides,
+    /// because <c>JsonSerializerImpl</c> and <c>AotJsonSerializer</c> want opposite answers from the
+    /// same mutated instance.
+    /// </summary>
+    [Fact]
+    public void SharedJsonSerializerConfiguration_CarriesNoReflectionResolver() {
+        var options = new Hardened.Shared.Runtime.Json.JsonSerializerConfiguration().Options;
+
+        Assert.DoesNotContain(options.TypeInfoResolverChain, r => r is DefaultJsonTypeInfoResolver);
     }
 
     /// <summary>
