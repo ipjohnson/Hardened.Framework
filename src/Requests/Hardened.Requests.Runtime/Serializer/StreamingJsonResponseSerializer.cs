@@ -51,14 +51,14 @@ public class StreamingJsonResponseSerializer : IResponseSerializer {
     public StreamingJsonResponseSerializer(
         IOptions<IJsonSerializerConfiguration> configuration,
         IEnumerable<IJsonTypeInfoResolver> resolvers) {
+        // Resolvers before reflection - see JsonTypeInfoLookup.WithResolvers. A streamed item was
+        // written by whichever of the two answered first, so an enum in an IAsyncEnumerable<T> did
+        // not agree with the same enum in a buffered response.
         _serializerOptions =
-            configuration.Value.SerializeOptions ??
-            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
-                new JsonSerializerOptions(JsonSerializerDefaults.Web));
-
-        foreach (var resolver in resolvers) {
-            _serializerOptions.TypeInfoResolverChain.Add(resolver);
-        }
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
+                configuration.Value.SerializeOptions ??
+                new JsonSerializerOptions(JsonSerializerDefaults.Web),
+                resolvers);
 
         // Last, so a registered context still answers first - see PrimitiveJsonTypeInfoResolver.
         _serializerOptions.TypeInfoResolverChain.Add(

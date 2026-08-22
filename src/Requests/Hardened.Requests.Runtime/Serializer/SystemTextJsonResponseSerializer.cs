@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -43,11 +44,23 @@ public class SystemTextJsonResponseSerializer : IResponseSerializer {
 
     private readonly JsonSerializerOptions _serializerOptions;
 
-    public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration) {
+    /// <param name="resolvers">
+    /// Every <c>IJsonTypeInfoResolver</c> the application registered, ahead of reflection.
+    /// </param>
+    /// <remarks>
+    /// This class used to take the configuration alone, which made
+    /// <c>services.AddSingleton&lt;IJsonTypeInfoResolver&gt;(MyContext.Default)</c> - the way every
+    /// other serializer here is configured, and the only AOT-safe way to say how an enum is written
+    /// - do nothing at all on a JIT host. Nothing reported it: the registration succeeded, the
+    /// context was simply never asked.
+    /// </remarks>
+    public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration,
+        IEnumerable<IJsonTypeInfoResolver> resolvers) {
         _serializerOptions =
-            configuration.Value.SerializeOptions ??
-            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
-                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
+                configuration.Value.SerializeOptions ??
+                new JsonSerializerOptions(JsonSerializerDefaults.Web),
+                resolvers);
     }
 
     public bool IsDefaultSerializer => true;

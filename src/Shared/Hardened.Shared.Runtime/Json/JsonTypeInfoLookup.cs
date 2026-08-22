@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
@@ -42,6 +44,66 @@ public static class JsonTypeInfoLookup {
     /// </summary>
     public static JsonTypeInfo For(JsonSerializerOptions options, object value) =>
         options.GetTypeInfo(value.GetType());
+
+    /// <summary>
+    /// Every registered resolver, in registration order, ahead of reflection.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The order is the whole point, and getting it backwards is silent. A
+    /// <see cref="DefaultJsonTypeInfoResolver"/> answers for very nearly every type, so a chain that
+    /// opens with one never consults anything after it: a registered
+    /// <c>JsonSerializerContext</c> is walked past, and the application serializes by reflection
+    /// while appearing to be configured. That is how a context carrying
+    /// <c>UseStringEnumConverter</c> still wrote <c>{"category":0}</c>.
+    /// </para>
+    /// <para>
+    /// It only shows on a JIT host. Under a trimmed or AOT publish
+    /// <see cref="JsonSerializer.IsReflectionEnabledByDefault"/> is false, nothing is appended, and
+    /// the context answers because it is the only thing in the chain - so production was right and
+    /// the tests covering it were wrong, which is the direction that gets found last.
+    /// </para>
+    /// <para>
+    /// Reflection is appended whenever it is available, rather than only onto an empty chain. A
+    /// context is almost never total - it knows the models the application declared and not
+    /// <c>string</c>, <c>DateTimeOffset</c>, or a framework error body - so "resolvers exist" is not
+    /// a reason to withhold the fallback.
+    /// </para>
+    /// </remarks>
+    public static JsonSerializerOptions WithResolvers(
+        JsonSerializerOptions options, IEnumerable<IJsonTypeInfoResolver> resolvers) {
+        foreach (var resolver in resolvers) {
+            options.TypeInfoResolverChain.Add(resolver);
+        }
+
+        return AppendReflectionFallback(options);
+    }
+
+    /// <summary>
+    /// Reflection at the end of the chain, whatever else is already in it.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="WithReflectionFallback"/>, which installs reflection only onto an
+    /// empty chain. That guard reads as strictness - an application that registered a context gets
+    /// told about a type it forgot - but it cannot be stated that way, because it also silently
+    /// withholds reflection for <c>string</c> and every other type no context declares. This one
+    /// makes no such trade: it is for the serializers whose contract is reflection.
+    /// </remarks>
+    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
+        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch.")]
+    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
+        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch.")]
+    public static JsonSerializerOptions AppendReflectionFallback(JsonSerializerOptions options) {
+        // Idempotent, because the options a serializer is handed may be shared and several
+        // serializers may pass them through here. Checked against the chain rather than against
+        // TypeInfoResolver, which any resolver at all makes non-null.
+        if (JsonSerializer.IsReflectionEnabledByDefault &&
+            !options.TypeInfoResolverChain.Any(r => r is DefaultJsonTypeInfoResolver)) {
+            options.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
+        }
+
+        return options;
+    }
 
     /// <summary>
     /// Puts reflection at the end of the chain, where reflection is available at all.

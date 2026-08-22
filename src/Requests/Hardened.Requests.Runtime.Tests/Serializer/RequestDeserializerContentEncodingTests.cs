@@ -38,7 +38,9 @@ public class RequestDeserializerContentEncodingTests {
     private static IRequestDeserializer DeserializerNamed(string name) => name switch {
         nameof(SystemTextJsonRequestDeserializer) =>
             new SystemTextJsonRequestDeserializer(
-                Config(), NullLogger<SystemTextJsonRequestDeserializer>.Instance),
+                Config(),
+                NullLogger<SystemTextJsonRequestDeserializer>.Instance,
+                Array.Empty<IJsonTypeInfoResolver>()),
         nameof(AotRequestDeserializer) =>
             new AotRequestDeserializer(
                 Config(),

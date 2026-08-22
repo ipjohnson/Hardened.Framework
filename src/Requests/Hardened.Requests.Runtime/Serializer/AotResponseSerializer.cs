@@ -14,14 +14,17 @@ public class AotResponseSerializer : IResponseSerializer {
 
     public AotResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration,
         IEnumerable<IJsonTypeInfoResolver> resolvers) {
+        // Resolvers before reflection, not after. The fallback used to be installed while building
+        // the options above, which put a DefaultJsonTypeInfoResolver at the head of the chain - and
+        // that answers for nearly every type, so the resolvers appended below were never reached on
+        // a JIT host. An AOT publish was unaffected, because reflection is not installed there at
+        // all, so an application's own JsonSerializerContext governed production and did not govern
+        // its tests.
         _serializerOptions =
-            configuration.Value.SerializeOptions ??
-            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
-                new JsonSerializerOptions(JsonSerializerDefaults.Web));
-
-        foreach (var resolver in resolvers) {
-            _serializerOptions.TypeInfoResolverChain.Add(resolver);
-        }
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
+                configuration.Value.SerializeOptions ??
+                new JsonSerializerOptions(JsonSerializerDefaults.Web),
+                resolvers);
 
         // Last, so a registered context still answers first - see PrimitiveJsonTypeInfoResolver.
         _serializerOptions.TypeInfoResolverChain.Add(

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -39,13 +40,20 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
     private readonly JsonSerializerOptions _serializerOptions;
     private readonly ILogger<SystemTextJsonRequestDeserializer> _logger;
 
+    /// <param name="resolvers">
+    /// Every <c>IJsonTypeInfoResolver</c> the application registered, ahead of reflection. The
+    /// response serializer takes the same set — a context that governs how an enum is written has
+    /// to govern how it is read, or the application answers 400 to its own output.
+    /// </param>
     public SystemTextJsonRequestDeserializer(IOptions<IJsonSerializerConfiguration> configuration,
-        ILogger<SystemTextJsonRequestDeserializer> logger) {
+        ILogger<SystemTextJsonRequestDeserializer> logger,
+        IEnumerable<IJsonTypeInfoResolver> resolvers) {
         _logger = logger;
         _serializerOptions =
-            configuration.Value.DeSerializerOptions ??
-            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
-                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
+                configuration.Value.DeSerializerOptions ??
+                new JsonSerializerOptions(JsonSerializerDefaults.Web),
+                resolvers);
     }
 
     public bool IsDefaultSerializer => true;

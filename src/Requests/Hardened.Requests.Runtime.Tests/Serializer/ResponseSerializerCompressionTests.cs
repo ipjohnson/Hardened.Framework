@@ -42,7 +42,8 @@ public class ResponseSerializerCompressionTests {
     }
 
     private static IEnumerable<IResponseSerializer> Serializers() {
-        yield return new SystemTextJsonResponseSerializer(Config());
+        yield return new SystemTextJsonResponseSerializer(
+            Config(), Array.Empty<IJsonTypeInfoResolver>());
         yield return new AotResponseSerializer(
             Config(), new IJsonTypeInfoResolver[] { PayloadContext.Default });
     }

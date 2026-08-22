@@ -263,6 +263,11 @@ namespace Hardened.Shared.Runtime.Json
     }
     public static class JsonTypeInfoLookup
     {
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode", Justification="Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the b" +
+            "ranch.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode", Justification="Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the b" +
+            "ranch.")]
+        public static System.Text.Json.JsonSerializerOptions AppendReflectionFallback(System.Text.Json.JsonSerializerOptions options) { }
         public static System.Text.Json.Serialization.Metadata.JsonTypeInfo For(System.Text.Json.JsonSerializerOptions options, object value) { }
         public static System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> For<T>(System.Text.Json.JsonSerializerOptions options) { }
         [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode", Justification="Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the b" +
@@ -270,6 +275,7 @@ namespace Hardened.Shared.Runtime.Json
         [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode", Justification="Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the b" +
             "ranch.")]
         public static System.Text.Json.JsonSerializerOptions WithReflectionFallback(System.Text.Json.JsonSerializerOptions options) { }
+        public static System.Text.Json.JsonSerializerOptions WithResolvers(System.Text.Json.JsonSerializerOptions options, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
     }
     public sealed class PrimitiveJsonTypeInfoResolver : System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
     {
