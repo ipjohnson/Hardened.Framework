@@ -1535,8 +1535,17 @@ internal static class OpenApiSpecParser {
                 Path = path,
                 HttpMethod = httpMethod,
                 Tag = tag,
-                // Summary first: it is the one-line form, and a doc comment is one line.
-                Description = FirstNonEmpty(operation.Summary, operation.Description),
+                Tags = operation.Tags?.Select(t => t.Name)
+                           .Where(name => !string.IsNullOrWhiteSpace(name))
+                           .Select(name => name!)
+                           .ToList()
+                       ?? new List<string>(),
+                // Both, separately. This was FirstNonEmpty(summary, description), which kept the
+                // summary and discarded the description outright - correct while a doc comment was
+                // the only reader, and a silent loss once the model is what a document is rendered
+                // from. ServiceInterfaceEmitter still prefers the summary; it just does it itself.
+                Summary = FirstNonEmpty(operation.Summary),
+                Description = FirstNonEmpty(operation.Description),
                 IsDeprecated = operation.Deprecated,
                 AuthorizationBranches = ParseSecurity(operation, document, operationId, diagnostics)
             };

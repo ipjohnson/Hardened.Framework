@@ -39,15 +39,46 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// </remarks>
     public string? DispatchKey { get; set; }
 
+    /// <summary>
+    /// The tag an operation is generated under, which is the first one it declares.
+    /// </summary>
+    /// <remarks>
+    /// One, because this is a grouping key: it decides which service interface the operation lands
+    /// on, and an operation has to land on exactly one. <see cref="Tags"/> carries the rest.
+    /// </remarks>
     public string? Tag { get; set; }
+
+    /// <summary>Every tag the operation declares, in declared order.</summary>
+    /// <remarks>
+    /// Separate from <see cref="Tag"/> rather than replacing it, because the two answer different
+    /// questions and only one of them can be a single value. Generation needs one tag and this list
+    /// would not tell it which; a description declares all of them, and dropping the rest silently
+    /// reorganises the reference page a caller reads.
+    /// </remarks>
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>The spec's <c>deprecated</c>, which becomes <c>[Obsolete]</c>.</summary>
     public bool IsDeprecated { get; set; }
 
-    /// <summary>
-    /// The operation's <c>summary</c>, or its <c>description</c> where it has no summary, as the
-    /// generated method's doc comment.
-    /// </summary>
+    /// <summary>The operation's <c>summary</c>: the one-line form.</summary>
+    /// <remarks>
+    /// <para>
+    /// Split from <see cref="Description"/> rather than folded into it. This field held
+    /// <c>FirstNonEmpty(summary, description)</c>, which was right while the only consumer was the
+    /// doc comment on a generated method - that wants one line, and the summary is the one-line
+    /// form. It is wrong as soon as the model is also what a document is rendered from: a summary
+    /// and a description are two fields in OpenAPI, and keeping the first while discarding the
+    /// second published an operation whose long-form prose had silently disappeared.
+    /// </para>
+    /// <para>
+    /// The preference did not go away, it moved to where it belongs -
+    /// <c>ServiceInterfaceEmitter</c> reads summary first and falls back to description, so the
+    /// generated code is unchanged and the model stops deciding for a reader it does not have.
+    /// </para>
+    /// </remarks>
+    public string? Summary { get; set; }
+
+    /// <summary>The operation's <c>description</c>: the long form, carried whole.</summary>
     public string? Description { get; set; }
     public List<ParameterModel> Parameters { get; set; } = new();
     public string? RequestBodyContentType { get; set; }
@@ -205,7 +236,8 @@ internal class OperationModel : IEquatable<OperationModel> {
         if (ReferenceEquals(this, other)) return true;
         return OperationId == other.OperationId && Path == other.Path &&
                HttpMethod == other.HttpMethod && DispatchKey == other.DispatchKey &&
-               Tag == other.Tag &&
+               Tag == other.Tag && Tags.SequenceEqual(other.Tags) &&
+               Summary == other.Summary &&
                Description == other.Description && IsDeprecated == other.IsDeprecated &&
                SuccessStatusCode == other.SuccessStatusCode &&
                RequestBodyContentType == other.RequestBodyContentType &&

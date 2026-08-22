@@ -33,7 +33,15 @@ internal static class SpecModelSerializer {
     /// Bumped when the format changes shape. The reader rejects anything else rather than guessing,
     /// because a half-understood model produces wrong code instead of an error.
     /// </summary>
-    private const string Header = "#hardened-openapi-model 2";
+    /// <remarks>
+    /// 3 splits an operation's <c>Summary</c> from its <c>Description</c>. Bumped rather than
+    /// treated as an additive key, because the meaning of an existing one changed: in 2,
+    /// <c>Description</c> held the summary whenever there was one. A 2 file read by a 3 reader
+    /// would find no <c>Summary</c>, take the summary out of <c>Description</c>, and publish a
+    /// one-line summary as the long-form description - wrong, and silently. Rejecting a stale
+    /// model is what this header is for.
+    /// </remarks>
+    private const string Header = "#hardened-openapi-model 3";
 
     private const char FieldSeparator = '\t';
 
@@ -456,6 +464,8 @@ internal static class SpecModelSerializer {
         record.Add("HttpMethod", operation.HttpMethod);
         record.Add("DispatchKey", operation.DispatchKey);
         record.Add("Tag", operation.Tag);
+        record.Add("Tags", operation.Tags);
+        record.Add("Summary", operation.Summary);
         record.Add("Description", operation.Description);
         record.Add("IsDeprecated", operation.IsDeprecated);
         record.Add("RequestBodyContentType", operation.RequestBodyContentType);
@@ -544,6 +554,8 @@ internal static class SpecModelSerializer {
         HttpMethod = record.String("HttpMethod") ?? "",
         DispatchKey = record.String("DispatchKey"),
         Tag = record.String("Tag"),
+        Tags = record.Strings("Tags") ?? new List<string>(),
+        Summary = record.String("Summary"),
         Description = record.String("Description"),
         IsDeprecated = record.Bool("IsDeprecated"),
         RequestBodyContentType = record.String("RequestBodyContentType"),
