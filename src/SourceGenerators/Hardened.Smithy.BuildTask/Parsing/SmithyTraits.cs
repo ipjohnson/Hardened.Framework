@@ -62,6 +62,30 @@ internal static class SmithyTraits {
     internal const string Mixin = "smithy.api#mixin";
 
     /// <summary>
+    /// The auth traits, which say whether a caller must be someone - and nothing about what they
+    /// must hold.
+    /// </summary>
+    /// <remarks>
+    /// Smithy has no equivalent of an OAuth scope, so a model can require authentication and cannot
+    /// require a permission. That is the whole difference between what this front end can read and
+    /// what the OpenAPI one can: a description carries authorization, a Smithy model carries
+    /// authentication. These were <see cref="Ignorable"/> on the grounds that "authentication is
+    /// Hardened's own story rather than the IDL's", which is right about the <em>scheme</em> - which
+    /// issuer, which token format - and wrong about whether an operation needs one at all. That
+    /// second part is a fact about the operation and belongs to whoever wrote it.
+    /// </remarks>
+    internal const string Auth = "smithy.api#auth";
+
+    internal const string OptionalAuth = "smithy.api#optionalAuth";
+
+    /// <summary>The schemes a service can declare support for.</summary>
+    internal static readonly HashSet<string> AuthSchemes = new(StringComparer.Ordinal) {
+        "smithy.api#httpApiKeyAuth", "smithy.api#httpBasicAuth",
+        "smithy.api#httpBearerAuth", "smithy.api#httpDigestAuth",
+        "aws.auth#sigv4"
+    };
+
+    /// <summary>
     /// Traits read into the IR.
     /// </summary>
     /// <remarks>
@@ -74,6 +98,9 @@ internal static class SmithyTraits {
         Error, Required, Default, ClientOptional, Documentation, Deprecated, Title, Tags,
         EnumValue, JsonName, TimestampFormat, MediaType, Sparse,
         Length, Range, Pattern, UniqueItems,
+        Auth, OptionalAuth,
+        "smithy.api#httpApiKeyAuth", "smithy.api#httpBasicAuth",
+        "smithy.api#httpBearerAuth", "smithy.api#httpDigestAuth",
         Readonly, Idempotent, Input, Output, Private, Internal, Mixin,
         Trait
     };
@@ -101,9 +128,7 @@ internal static class SmithyTraits {
         "smithy.api#noReplace", "smithy.api#nestedProperties", "smithy.api#notProperty",
         "smithy.api#property", "smithy.api#resourceIdentifier", "smithy.api#unitType",
         "smithy.api#addedDefault", "smithy.api#box", "smithy.api#retryable",
-        "smithy.api#auth", "smithy.api#optionalAuth", "smithy.api#authDefinition",
-        "smithy.api#protocolDefinition", "smithy.api#httpApiKeyAuth", "smithy.api#httpBasicAuth",
-        "smithy.api#httpBearerAuth", "smithy.api#httpDigestAuth",
+        "smithy.api#authDefinition", "smithy.api#protocolDefinition",
         "smithy.api#xmlAttribute", "smithy.api#xmlFlattened", "smithy.api#xmlName",
         "smithy.api#xmlNamespace",
         "smithy.api#eventHeader", "smithy.api#eventPayload"

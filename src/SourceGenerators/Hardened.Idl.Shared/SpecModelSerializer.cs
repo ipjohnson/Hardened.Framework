@@ -33,7 +33,7 @@ internal static class SpecModelSerializer {
     /// Bumped when the format changes shape. The reader rejects anything else rather than guessing,
     /// because a half-understood model produces wrong code instead of an error.
     /// </summary>
-    private const string Header = "#hardened-openapi-model 1";
+    private const string Header = "#hardened-openapi-model 2";
 
     private const char FieldSeparator = '\t';
 
@@ -194,6 +194,17 @@ internal static class SpecModelSerializer {
                     operation?.RequestBodyRequired.Add(record.String("Value") ?? "");
                     break;
 
+                // One line per OR-branch. Grants are tab-safe by construction - a scope name
+                // containing a tab would already have broken the format - so they travel joined by
+                // a space rather than as one record each, which keeps a document declaring the same
+                // requirement on 200 operations from doubling the file.
+                case "authbranch":
+                    operation?.AuthorizationBranches.Add(new AuthorizationBranchModel {
+                        RequiresAuthentication = record.Bool("Authenticated"),
+                        Grants = Split(record.String("Grants")),
+                    });
+                    break;
+
                 case "filterinstance":
                     filterInstance = new FilterInstanceModel {
                         FilterTypeName = record.String("FilterTypeName") ?? "",
@@ -304,6 +315,12 @@ internal static class SpecModelSerializer {
     /// barely switches on it - and a trap for any kind added later, which would have been silently
     /// collapsed the same way.
     /// </remarks>
+    /// <summary>A space-joined list back to its parts, with an absent or empty value as empty.</summary>
+    private static List<string> Split(string? value) =>
+        string.IsNullOrEmpty(value)
+            ? new List<string>()
+            : new List<string>(value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
+
     private static SchemaKind ReadSchemaKind(string? value) {
         switch (value) {
             case nameof(SchemaKind.Enum): return SchemaKind.Enum;
@@ -495,6 +512,13 @@ internal static class SpecModelSerializer {
             var required = new Record("bodyrequired");
             required.Add("Value", value);
             required.WriteTo(builder);
+        }
+
+        foreach (var branch in operation.AuthorizationBranches) {
+            var authBranch = new Record("authbranch");
+            authBranch.Add("Authenticated", branch.RequiresAuthentication);
+            authBranch.Add("Grants", string.Join(" ", branch.Grants));
+            authBranch.WriteTo(builder);
         }
 
         foreach (var instance in operation.FilterInstances) {

@@ -343,6 +343,13 @@ public class SpecModelSerializerTests {
                 new ErrorResponseModel { StatusCode = 503 },
             },
             FilterInstances = { filterInstance },
+            // Both shapes, because they serialize differently: one carries grants and the other
+            // carries only the authentication flag, and a reader that dropped the flag would turn
+            // "be someone" into "requires nothing".
+            AuthorizationBranches = {
+                new AuthorizationBranchModel { Grants = { "pets:read", "pets:write" } },
+                new AuthorizationBranchModel { RequiresAuthentication = true },
+            },
             RequestBodyProperties = { property },
             RequestBodyRequired = { "name", "tag" },
         };
