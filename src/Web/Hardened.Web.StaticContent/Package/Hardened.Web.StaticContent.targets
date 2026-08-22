@@ -68,9 +68,29 @@
     <Target Name="HardenedStaticContentStamp" Condition="'@(HardenedStaticContent)' != ''">
         <MakeDir Directories="$(IntermediateOutputPath)staticcontent"/>
 
+
+        <!--
+        The task that will do the writing, as an input in its own right.
+
+        Upgrading the package changes what the task emits and touches no source file, so without
+        this the check below finds every input unmoved, skips the target, and leaves the previous
+        version's generated C# in obj/. It builds, or it fails inside a generated file naming a
+        member the new emitter renamed. Neither says "your generated code is a version behind".
+
+        Both halves are needed. The path carries the package version for a consumer restoring
+        from a feed, which is what makes an upgrade visible even when the new assembly's own
+        timestamp is older than the obj/ it is replacing - a package built last week, installed
+        today, over output written yesterday. ModifiedTime carries a rebuild in place, which is
+        what a ProjectReference gives this repository's own integration tests, where the path
+        never changes.
+        -->
+        <ItemGroup>
+            <_HardenedStaticContentTaskIdentity Include="$(HardenedStaticContentTaskAssembly)"/>
+        </ItemGroup>
+
         <WriteLinesToFile
             File="$(IntermediateOutputPath)staticcontent/options.stamp"
-            Lines="@(HardenedStaticContent->'%(Identity)|%(RoutePrefix)|%(FallBackFile)');$(HardenedStaticContentNamespace)|$(HardenedStaticContentEmbedThresholdBytes)"
+            Lines="@(HardenedStaticContent->'%(Identity)|%(RoutePrefix)|%(FallBackFile)');$(HardenedStaticContentNamespace)|$(HardenedStaticContentEmbedThresholdBytes);@(_HardenedStaticContentTaskIdentity->'%(FullPath)|%(ModifiedTime)')"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>
@@ -96,6 +116,14 @@
             Namespace="$(HardenedStaticContentNamespace)"
             EmbedThresholdBytes="$(HardenedStaticContentEmbedThresholdBytes)"
             ExcludeFromCoverage="$(ExcludeGeneratedCodeFromCoverage)"/>
+
+        <!--
+            So the check above converges when the task had nothing new to write. An output whose
+            timestamp never moves never catches up to an input that did, and the target then re-runs
+            on every build - reachable now that the task assembly is one of those inputs, because an
+            upgrade can move it and still produce byte-identical output.
+        -->
+        <Touch Files="@(_HardenedStaticContentSource)" AlwaysCreate="false"/>
     </Target>
 
     <!--

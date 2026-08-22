@@ -136,9 +136,47 @@ internal static class SchemaEmitter {
         var emitRequired = property.ConstrainedAsRequired &&
                            !TypeMapper.IsNonNullableValueType(csType, allSchemas);
 
+        // The other half of that sentence. A required member of a value type gets no [Required] -
+        // the validation generator would emit `value.x is null` against an int, which is CS0037 -
+        // so absence used to become default(T) in silence: an omitted enum became its first
+        // declared member and the API answered 201 with a value the caller never sent.
+        //
+        // [JsonRequired] rather than a nullable member, so the model's shape is unchanged and a
+        // handler still reads an int. The deserializer is the only layer that still knows the
+        // member was absent, and this is how it is told to care.
+        //
+        // Emitted here *and* as IsRequired in JsonTypeInfoEmitter, because the two deserializers
+        // read different things: the reflection-based one reads this attribute, and the
+        // source-generated resolver builds JsonPropertyInfo by hand and never sees it. readOnly is
+        // enforced twice for the same reason - a null Setter there, [ResponseOnly] here.
+        if (property.ConstrainedAsRequired &&
+            TypeMapper.IsNonNullableValueType(csType, allSchemas)) {
+            parameter.AddAttribute(
+                TypeDefinition.Get("System.Text.Json.Serialization", "JsonRequiredAttribute"))
+                .Target = "property";
+        }
+
         foreach (var constraint in ConstraintAttributes.ForProperty(
                      property, emitRequired, patterns, csType)) {
             ValidationEmitter.Apply(parameter, constraint).Target = "property";
+        }
+
+        // Descend into a value that carries constraints of its own.
+        //
+        // This was emitted on an operation's body parameter and nowhere else, so a constraint on
+        // an array's items or on a nested object was generated, registered in DI, and never
+        // called: `lines: [{quantity: 0}]` against `minimum: 1` was accepted and the order placed.
+        // Only the mark was missing - ValidationModules already validates each element of a
+        // collection and each value of a dictionary, indexed, once told to.
+        //
+        // Guarded rather than unconditional: naming a validator the validation generator declined
+        // to emit is CS0234 in a file nobody can edit. NestedValidation is where both sides ask.
+        if (NestedValidation.Descends(property, allSchemas, patterns)) {
+            ValidationEmitter.Apply(
+                parameter,
+                new ConstraintAttributes.Model(
+                    ConstraintAttributes.ValidateNested(), System.Array.Empty<string>()))
+                .Target = "property";
         }
     }
 

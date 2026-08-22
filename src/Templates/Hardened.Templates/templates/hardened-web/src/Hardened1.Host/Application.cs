@@ -33,14 +33,15 @@ namespace Hardened1.Host;
 [LambdaWebModule]
 #endif
 #if (codeFirst)
-// Embeds the document the build wrote from this application's routes, and serves it at
-// /openapi.json. Spec-first applications do not use this: their document is a build input,
-// published by PublishUrl on the spec item instead.
-[Enable<OpenApiDocumentPublishing>]
 #if (OpenApiUi)
 // Development only. The page describes every operation this service exposes and renders them
 // with a script from a CDN, neither of which a deployed API obviously wants. Widen the list, or
 // drop the attribute, when you have decided otherwise.
+//
+// The page belongs here and the document does not. This attribute names a URL to fetch, which is
+// a hosting decision; [Enable<OpenApiDocumentPublishing>] makes the build write a document from
+// the routes it can see, and this module declares none - so it lives on the library module beside
+// them. Moving it here serves "paths": {} and nothing says so.
 [HardenedOpenApiUi(Title = "Hardened1", Environments = "development")]
 #endif
 #endif

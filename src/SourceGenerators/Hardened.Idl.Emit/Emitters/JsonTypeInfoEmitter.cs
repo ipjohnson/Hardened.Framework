@@ -46,6 +46,10 @@ internal static class JsonTypeInfoEmitter {
         resolver.AddUsingNamespace("System.Text.Json.Serialization");
         resolver.AddUsingNamespace("System.Text.Json.Serialization.Metadata");
 
+        if (AnyRequiresPresenceCheck(schemas)) {
+            AddRequireHelper(resolver);
+        }
+
         AddStringConverters(resolver, schemas, modelsNamespace);
 
         AddGetTypeInfo(resolver, schemas, modelsNamespace);
@@ -301,16 +305,92 @@ internal static class JsonTypeInfoEmitter {
         // the request body it describes unserializable; see ResponseOnlyAttribute.
         var getter = $"static obj => (({declaringTypeName})obj).{propName}";
 
-        sb.AppendLine($"                JsonMetadataServices.CreatePropertyInfo<{genericType}>(options, new JsonPropertyInfoValues<{genericType}>");
+        var required = RequiresPresenceCheck(prop, allSchemas);
+
+        var open = required ? RequireMethodName + "(" : "";
+        var close = required ? ")," : ",";
+
+        sb.AppendLine($"                {open}JsonMetadataServices.CreatePropertyInfo<{genericType}>(options, new JsonPropertyInfoValues<{genericType}>");
         sb.AppendLine("                {");
         sb.AppendLine("                    IsProperty = true,");
         sb.AppendLine("                    IsPublic = true,");
         sb.AppendLine($"                    DeclaringType = typeof({declaringTypeName}),");
         sb.AppendLine($"                    PropertyName = \"{prop.Name}\",");
         sb.AppendLine($"                    Getter = {getter},");
-        sb.AppendLine("                    Setter = null,");
-        sb.AppendLine("                }),");
+
+        // A setter that does nothing, and it has to exist: System.Text.Json refuses IsRequired on a
+        // property with a null setter - "marked required but does not specify a setter" - and these
+        // records are populated through their constructor, whose init-only members cannot be
+        // assigned through a delegate. The constructor still supplies the value; the setter is never
+        // the thing that fills it.
+        sb.AppendLine(required
+            ? $"                    Setter = static (object obj, {genericType} value) => {{ }},"
+            : "                    Setter = null,");
+
+        sb.AppendLine($"                }}){close}");
     }
+
+    /// <summary>
+    /// Whether absence of this member has to be caught by the deserializer.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The exact complement of where <c>[Required]</c> is emitted.</b> A required member of a
+    /// reference type carries <c>[Required]</c> and is checked by the generated validator, which
+    /// aggregates its error with every other failed constraint in the same body. A required member
+    /// of a <em>value</em> type carries nothing: the validation generator answers
+    /// <c>value.x is null</c> against an <c>int</c>, which is CS0037, so the constraint is
+    /// suppressed - correctly - and nothing takes its place.
+    /// </para>
+    /// <para>
+    /// The result was that a missing required value silently became <c>default(T)</c>. An omitted
+    /// enum became its first declared member and the API answered 201 with a value the caller never
+    /// sent; an omitted integer became 0, caught only where some unrelated constraint happened to
+    /// reject 0. This is what closes that, and it is deliberately narrow: reference types keep the
+    /// aggregating validator path they already had.
+    /// </para>
+    /// <para>
+    /// <b>A declared <c>default</c> does not exempt it.</b> <c>required</c> and <c>default</c> are
+    /// contradictory - one says the caller must send the member, the other names what absence means
+    /// - and the contract's <c>required</c> wins. It is not a near miss either: a required member's
+    /// generated parameter carries no <c>= default</c>, so the specification's default is inert
+    /// today. Exempting these would preserve the silent zero for the one shape where the document
+    /// most obviously disagrees with itself.
+    /// </para>
+    /// </remarks>
+    private static bool RequiresPresenceCheck(PropertyModel prop, List<SchemaModel> allSchemas) {
+        if (!prop.ConstrainedAsRequired) {
+            return false;
+        }
+
+        return TypeMapper.IsNonNullableValueType(
+            TypeMapper.MapPropertyToCSharpType(prop), allSchemas);
+    }
+
+    private const string RequireMethodName = "Required";
+
+    /// <summary>
+    /// Marks a property the deserializer must see, as a method because <c>IsRequired</c> is set on
+    /// the built <c>JsonPropertyInfo</c> rather than declared in <c>JsonPropertyInfoValues</c>.
+    /// </summary>
+    private static void AddRequireHelper(ClassDefinition resolver) {
+        var method = resolver.AddMethod(RequireMethodName);
+
+        method.Modifiers |= ComponentModifier.Private | ComponentModifier.Static;
+        method.SetReturnType(
+            TypeDefinition.Get("System.Text.Json.Serialization.Metadata", "JsonPropertyInfo"));
+        method.AddParameter(
+            TypeDefinition.Get("System.Text.Json.Serialization.Metadata", "JsonPropertyInfo"),
+            "property");
+
+        method.AddIndentedStatement(new CodeOutputComponent("property.IsRequired = true") );
+        method.AddIndentedStatement(new CodeOutputComponent("return property"));
+    }
+
+    /// <summary>Whether anything in this specification needs the helper above.</summary>
+    private static bool AnyRequiresPresenceCheck(List<SchemaModel> schemas) =>
+        schemas.Any(schema => schema.Kind == SchemaKind.Object &&
+                              schema.Properties.Any(prop => RequiresPresenceCheck(prop, schemas)));
 
     private static void EmitParameterInfo(StringBuilder sb, PropertyModel prop, int position,
         List<SchemaModel> allSchemas, string ns) {

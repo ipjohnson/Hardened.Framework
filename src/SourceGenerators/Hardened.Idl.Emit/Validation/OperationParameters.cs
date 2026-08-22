@@ -82,17 +82,13 @@ internal static class OperationParameters {
             // Constrained excludes readOnly properties, whose constraints are never emitted - a
             // validator that descends into a body with nothing to check is dead code.
             //
-            // Asked by building the body's attributes rather than by re-deriving the rule. A body
-            // whose only constraint was `required` on a non-nullable value type now gets no
-            // attributes at all, so no validator is generated for it - and a [ValidateNested]
-            // naming a validator that does not exist is CS0234 in a generated file. Both answers
-            // have to come from one place to stay in step.
-            // Only what this type declares. An inherited property is the base's to check, and
-            // the validation generator sees it that way too - counting them here named a validator
-            // it had already declined to generate.
-            var attributes = SchemaShape.Declared(bodySchema, spec.Schemas).Any(
-                property => property.Constrained &&
-                            PropertyAttributes(property, spec, patterns).Count > 0)
+            // Asked by building the body's attributes rather than by re-deriving the rule, and
+            // asked through NestedValidation, which is the same call SchemaEmitter makes for a
+            // property. Both answers have to come from one place to stay in step: a body whose only
+            // constraint was `required` on a non-nullable value type gets no attributes at all, so
+            // no validator is generated for it - and a [ValidateNested] naming a validator that
+            // does not exist is CS0234 in a generated file.
+            var attributes = NestedValidation.HasGeneratedValidator(bodySchema, spec.Schemas, patterns)
                 ? new[] { new ConstraintAttributes.Model(
                     ConstraintAttributes.ValidateNested(), System.Array.Empty<string>()) }
                 : System.Array.Empty<ConstraintAttributes.Model>();
@@ -108,20 +104,6 @@ internal static class OperationParameters {
                 "I" + operation.MethodName + "Parameters",
                 members)
             : null;
-    }
-
-    /// <summary>
-    /// The attributes a property would carry, by the same rules the model emitter applies.
-    /// </summary>
-    private static IReadOnlyList<ConstraintAttributes.Model> PropertyAttributes(
-        PropertyModel property, ServiceSpecModel spec, PatternRegistry patterns) {
-        var csType = TypeMapper.MapPropertyToCSharpType(property);
-
-        return ConstraintAttributes.ForProperty(
-            property,
-            property.ConstrainedAsRequired && !TypeMapper.IsNonNullableValueType(csType, spec.Schemas),
-            patterns,
-            csType);
     }
 
     private static SchemaModel? BodySchema(OperationModel operation, ServiceSpecModel spec) {

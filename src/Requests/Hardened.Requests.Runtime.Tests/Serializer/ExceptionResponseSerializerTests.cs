@@ -24,13 +24,14 @@ public class ExceptionResponseSerializerTests {
 
         public IResponseSerializer Serializer { get; } = Substitute.For<IResponseSerializer>();
 
+        public IRequestLogger Logger { get; } = Substitute.For<IRequestLogger>();
+
         public Fixture() {
             Locator.FindResponseSerializer(Arg.Any<IExecutionContext>()).Returns(Serializer);
             Serializer.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
         }
 
-        public ExceptionResponseSerializer Subject => new(
-            Substitute.For<IRequestLogger>(), Locator, Converter);
+        public ExceptionResponseSerializer Subject => new(Logger, Locator, Converter);
     }
 
     /// <summary>
@@ -107,5 +108,82 @@ public class ExceptionResponseSerializerTests {
         await fixture.Subject.Handle(context, failure);
 
         fixture.Converter.Received(1).ConvertExceptionToModel(context, failure);
+    }
+
+    // ------------------------------------------------------------------------------ logging
+
+    /// <summary>
+    /// The failure is reported, whatever produced it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the whole of the defect it was written for. Four things put an exception on the
+    /// response - a handler fault, a bind failure, an exception thrown by a filter, and a refusal
+    /// recorded by <c>AuthorizationFilter</c> or <c>RateLimitFilter</c> - and only the first two
+    /// logged. A request refused by the validation filter produced <c>started</c>, <c>mapped</c>
+    /// and <c>finished status code '500'</c>, with nothing anywhere naming the exception.
+    /// </para>
+    /// <para>
+    /// Asserted here rather than at each of the four, because the point of the fix is that none of
+    /// them has to know about logging.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task TheFailureIsReportedToTheRequestLogger() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var failure = new InvalidOperationException("thrown by a filter");
+
+        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+            .Returns((500, new ErrorModel()));
+
+        await fixture.Subject.Handle(context, failure);
+
+        fixture.Logger.Received(1).RequestFailed(context, failure);
+    }
+
+    /// <summary>
+    /// Reported after the status is assigned, so the logger can read the status this failure
+    /// answers with.
+    /// </summary>
+    /// <remarks>
+    /// Ordering rather than decoration: severity follows the answer, and a logger that ran first
+    /// would see whatever the response happened to carry before the converter decided.
+    /// </remarks>
+    [Fact]
+    public async Task TheStatusIsOnTheResponseBeforeTheFailureIsReported() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        int? statusWhenLogged = null;
+
+        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+            .Returns((404, new ErrorModel()));
+
+        fixture.Logger
+            .When(logger => logger.RequestFailed(Arg.Any<IExecutionContext>(), Arg.Any<Exception>()))
+            .Do(_ => statusWhenLogged = context.Response.Status);
+
+        await fixture.Subject.Handle(context, new Exception("missing"));
+
+        Assert.Equal(404, statusWhenLogged);
+    }
+
+    /// <summary>
+    /// Reported once. The producers no longer log, so a handler fault that reaches here produces
+    /// one line rather than two.
+    /// </summary>
+    [Fact]
+    public async Task TheFailureIsReportedOnlyOnce() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var failure = new InvalidOperationException("handler failed");
+
+        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+            .Returns((500, new ErrorModel()));
+
+        await ControllerErrorHelper.HandleException(context, failure);
+        await fixture.Subject.Handle(context, context.Response.ExceptionValue!);
+
+        fixture.Logger.Received(1).RequestFailed(Arg.Any<IExecutionContext>(), Arg.Any<Exception>());
     }
 }

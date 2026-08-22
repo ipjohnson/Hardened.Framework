@@ -200,6 +200,30 @@ for COMBO in "${COMBOS[@]}"; do
         BODY=$(curl -s --max-time 2 "http://localhost:$PORT/todos/1" || true)
         DOCS_DEV=$(status_of "http://localhost:$PORT/docs")
 
+        # How many operations the served document actually describes.
+        #
+        # /docs answering 200 was the only thing asserted here, and an empty document renders as a
+        # reference page with zero operations - which is indistinguishable from a working page by
+        # every check above. That is exactly how the template shipped with
+        # [Enable<OpenApiDocumentPublishing>] on the host module, where the generator sees no routes
+        # and writes "paths": {}.
+        #
+        # Counted rather than grepped. The strings "/todos" and "paths" appear in a document that
+        # describes nothing - in its own schema names, or in a Smithy AST's @http uri values - so a
+        # text match credits a document for operations it does not have.
+        #
+        # --compressed because the document is stored and served gzipped; without it this parses the
+        # gzip magic number.
+        #
+        # Code-first only. A spec-first document is the contract file itself, served verbatim, and
+        # cannot be empty without the input being empty.
+        DOC_OPS=-1
+        if [ "$CONTRACT" = "code" ]; then
+            DOC_OPS=$(curl -s --compressed --max-time 5 "http://localhost:$PORT/openapi.json" \
+                | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("paths") or {}))' \
+                2>/dev/null || echo 0)
+        fi
+
         # The declared error paths, over a real socket. A response model exercised only at 200 is
         # indistinguishable from having no declared set at all, which is the thing worth proving
         # here - and the sample's 404 and 409 are the two statuses every mode has to answer the
@@ -257,6 +281,23 @@ for COMBO in "${COMBOS[@]}"; do
 
         if [ "$CREATED" != "$EXPECT_CREATED" ]; then
             echo "   FAILED: $CONTRACT/$MODEL should create at $EXPECT_CREATED, got $CREATED"
+            FAILED=1
+        fi
+
+        if [ "$DOC_OPS" != "-1" ]; then
+            echo "   /openapi.json describes $DOC_OPS path(s)"
+
+            if [ "$DOC_OPS" -lt 1 ] 2>/dev/null; then
+                echo "   FAILED: the published document describes no operations"
+                FAILED=1
+            fi
+        fi
+
+        # Something on the console. A generated application that starts, serves and prints nothing
+        # gives whoever just ran it no reason to believe it is working - and no logging provider is
+        # registered by the framework, so this is the template's to get right.
+        if ! grep -q . "$OUT/run.log" 2>/dev/null; then
+            echo "   FAILED: the application produced no console output"
             FAILED=1
         fi
 
