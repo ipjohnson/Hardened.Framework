@@ -279,9 +279,28 @@
     <Target Name="HardenedSmithyFilterStamp" DependsOnTargets="HardenedSmithyResolveModelDir">
         <MakeDir Directories="$(HardenedSmithyModelDir)"/>
 
+        <!--
+            The task that will do the writing, as an input in its own right.
+
+            Upgrading the package changes what the task emits and touches no source file, so without
+            this the check below finds every input unmoved, skips the target, and leaves the previous
+            version's generated C# in obj/. It builds, or it fails inside a generated file naming a
+            member the new emitter renamed. Neither says "your generated code is a version behind".
+
+            Both halves are needed. The path carries the package version for a consumer restoring
+            from a feed, which is what makes an upgrade visible even when the new assembly's own
+            timestamp is older than the obj/ it is replacing - a package built last week, installed
+            today, over output written yesterday. ModifiedTime carries a rebuild in place, which is
+            what a ProjectReference gives this repository's own integration tests, where the path
+            never changes.
+        -->
+        <ItemGroup>
+            <_HardenedSmithyTaskIdentity Include="$(HardenedSmithyTaskAssembly)"/>
+        </ItemGroup>
+
         <WriteLinesToFile
             File="$(HardenedSmithyModelDir)filters.stamp"
-            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedSmithyServiceShapeId);$(HardenedResponseModel)"
+            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedSmithyServiceShapeId);$(HardenedResponseModel);@(_HardenedSmithyTaskIdentity->'%(FullPath)|%(ModifiedTime)')"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>
@@ -315,6 +334,15 @@
             <Output TaskParameter="ModelFiles" ItemName="_HardenedSmithyModelWritten"/>
             <Output TaskParameter="GeneratedSources" ItemName="_HardenedSmithySourceWritten"/>
         </ExtractSmithySpec>
+
+        <!--
+            So the check above converges when the task had nothing new to write - the same reason
+            HardenedSmithyGenerateAst declares a stamp rather than the AST. An output whose timestamp
+            never moves never catches up to an input that did, and the target then re-runs on every
+            build. That became reachable when the task assembly joined the stamp: an upgrade can move
+            the input and produce byte-identical output.
+        -->
+        <Touch Files="@(_HardenedSmithyModel);@(_HardenedSmithySource)" AlwaysCreate="false"/>
     </Target>
 
     <!--

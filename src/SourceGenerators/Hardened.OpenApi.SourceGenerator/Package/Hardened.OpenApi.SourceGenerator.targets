@@ -174,9 +174,29 @@
     <Target Name="HardenedOpenApiFilterStamp" DependsOnTargets="HardenedOpenApiResolveModelDir">
         <MakeDir Directories="$(HardenedOpenApiModelDir)"/>
 
+        <!--
+            The task that will do the writing, as an input in its own right.
+
+            Upgrading the package changes what the task emits and touches no spec file, so without
+            this the check below finds every input unmoved, skips the target, and leaves the previous
+            version's generated C# in obj/ - against a runtime and a Roslyn generator that have both
+            moved on. It builds, or it fails inside a generated file naming a member the new emitter
+            renamed. Neither says "your generated code is a version behind".
+
+            Both halves are needed. The path carries the package version for a consumer restoring
+            from a feed, which is what makes an upgrade visible even when the new assembly's own
+            timestamp is older than the obj/ it is replacing - a package built last week, installed
+            today, over output written yesterday. ModifiedTime carries a rebuild in place, which is
+            what a ProjectReference gives this repository's own integration tests, where the path
+            never changes.
+        -->
+        <ItemGroup>
+            <_HardenedOpenApiTaskIdentity Include="$(HardenedOpenApiTaskAssembly)"/>
+        </ItemGroup>
+
         <WriteLinesToFile
             File="$(HardenedOpenApiModelDir)filters.stamp"
-            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedResponseModel)"
+            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedResponseModel);@(_HardenedOpenApiTaskIdentity->'%(FullPath)|%(ModifiedTime)')"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>
@@ -202,6 +222,22 @@
             <Output TaskParameter="ModelFiles" ItemName="_HardenedOpenApiModelWritten"/>
             <Output TaskParameter="GeneratedSources" ItemName="_HardenedOpenApiSourceWritten"/>
         </ExtractOpenApiSpec>
+
+        <!--
+            So the check above converges when the task had nothing new to write.
+
+            The task leaves a file alone when its content is unchanged, which is right - rewriting
+            identical bytes would make the compiler redo work for nothing. But an output whose
+            timestamp never moves is an output that never catches up to the input that moved, and
+            the target then re-runs on every single build, parsing every specification each time.
+            That only became reachable when the task assembly joined the stamp: a package upgrade
+            can move the input and produce byte-identical output.
+
+            Touch rather than forcing the task to rewrite, because what has to advance is the
+            timestamp, not the content - and the compiler's own up-to-date check is against the same
+            files, so it reconsiders exactly once rather than on every build afterwards.
+        -->
+        <Touch Files="@(_HardenedOpenApiModel);@(_HardenedOpenApiSource)" AlwaysCreate="false"/>
     </Target>
 
     <!--
