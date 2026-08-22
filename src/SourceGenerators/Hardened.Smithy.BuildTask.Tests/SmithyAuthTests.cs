@@ -113,4 +113,85 @@ public class SmithyAuthTests {
         Assert.DoesNotContain(diagnostics, d => d.Contains("httpBearerAuth"));
         Assert.DoesNotContain(diagnostics, d => d.Contains("optionalAuth"));
     }
+
+    /// <summary>
+    /// Every scheme the prelude defines is recognised, not only the one the other tests happen to
+    /// use.
+    /// </summary>
+    /// <remarks>
+    /// A model picks one of these and never all of them, so a set that recognised four out of five
+    /// would look correct in every test written against a service that chose the fifth.
+    /// </remarks>
+    [Theory]
+    [InlineData("smithy.api#httpApiKeyAuth")]
+    [InlineData("smithy.api#httpBasicAuth")]
+    [InlineData("smithy.api#httpBearerAuth")]
+    [InlineData("smithy.api#httpDigestAuth")]
+    [InlineData("aws.auth#sigv4")]
+    public void EverySchemeTheSetNamesRequiresAuthentication(string scheme) {
+        var branch = Assert.Single(Parse($"\"{scheme}\": {{}}").AuthorizationBranches);
+
+        Assert.True(branch.RequiresAuthentication);
+    }
+
+    /// <summary>
+    /// <c>@auth</c> naming a scheme is a narrowing rather than an opt-out, so it still requires one.
+    /// </summary>
+    [Fact]
+    public void AnAuthListNamingASchemeStillRequiresAuthentication() {
+        var branch = Assert.Single(
+            Parse(BearerAuth + ", \"smithy.api#auth\": [\"smithy.api#httpBearerAuth\"]")
+                .AuthorizationBranches);
+
+        Assert.True(branch.RequiresAuthentication);
+    }
+
+    /// <summary>
+    /// <c>@auth</c> answers on its own: a service narrowing to no scheme requires nothing even while
+    /// it declares one.
+    /// </summary>
+    [Fact]
+    public void AnAuthListTakesPrecedenceOverADeclaredScheme() {
+        Assert.Empty(
+            Parse(BearerAuth + ", \"smithy.api#auth\": []").AuthorizationBranches);
+    }
+
+    /// <summary>
+    /// An operation opting out of an authenticated service leaves every sibling guarded.
+    /// </summary>
+    /// <remarks>
+    /// The failure worth catching is an opt-out that leaks: one public operation making the whole
+    /// service public would be invisible until somebody called a different route.
+    /// </remarks>
+    [Fact]
+    public void AnOperationOptingOutDoesNotOptOutItsSiblings() {
+        var diagnostics = new List<string>();
+
+        var ast = $$"""
+                    { "smithy": "2.0", "shapes": {
+                        "com.example#Svc": {
+                          "type": "service", "version": "1",
+                          "operations": [
+                            { "target": "com.example#Open" }, { "target": "com.example#Shut" } ],
+                          "traits": { {{BearerAuth}} } },
+                        "com.example#Open": {
+                          "type": "operation",
+                          "traits": {
+                            "smithy.api#http": { "method": "GET", "uri": "/open", "code": 200 },
+                            "smithy.api#optionalAuth": {} } },
+                        "com.example#Shut": {
+                          "type": "operation",
+                          "traits": {
+                            "smithy.api#http": { "method": "GET", "uri": "/shut", "code": 200 } } } } }
+                    """;
+
+        var model = SmithySpecParser.Parse(ast, "auth", diagnostics);
+        var operations = Assert.Single(model!.Services).Operations;
+
+        Assert.Empty(
+            Assert.Single(operations, o => o.OperationId == "Open").AuthorizationBranches);
+
+        Assert.Single(
+            Assert.Single(operations, o => o.OperationId == "Shut").AuthorizationBranches);
+    }
 }

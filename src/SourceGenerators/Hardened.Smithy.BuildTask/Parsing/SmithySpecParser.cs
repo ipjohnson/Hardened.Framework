@@ -277,17 +277,18 @@ internal static class SmithySpecParser {
         auth.ValueKind == JsonValueKind.Array &&
         auth.GetArrayLength() == 0;
 
-    private static bool RequiresAuth(JsonElement shape) {
-        if (SmithyAst.HasTrait(shape, SmithyTraits.OptionalAuth)) {
-            return false;
-        }
-
-        if (SmithyAst.TryGetTrait(shape, SmithyTraits.Auth, out var auth)) {
+    private static bool RequiresAuth(JsonElement service) {
+        // @auth narrows the schemes a shape supports, so it answers on its own when present - and
+        // an empty list is how a service supports none.
+        //
+        // No @optionalAuth check here. Smithy defines that trait on operations, so a service
+        // carrying one is not a model this has to answer for, and the operation is asked directly.
+        if (SmithyAst.TryGetTrait(service, SmithyTraits.Auth, out var auth)) {
             return auth.ValueKind == JsonValueKind.Array && auth.GetArrayLength() > 0;
         }
 
         foreach (var scheme in SmithyTraits.AuthSchemes) {
-            if (SmithyAst.HasTrait(shape, scheme)) {
+            if (SmithyAst.HasTrait(service, scheme)) {
                 return true;
             }
         }
