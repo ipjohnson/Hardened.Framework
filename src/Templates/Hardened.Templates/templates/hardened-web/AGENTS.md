@@ -179,6 +179,29 @@ second silently gives you `Production` while everything else says `development`.
 project on xunit 2.x fails with `CS0433` on `Assert`. v3 test projects are also self-executing,
 hence `<OutputType>Exe</OutputType>`.
 
+#if (codeFirst)
+**JSON is configured by registering a resolver, not by editing options.** One line in
+`TemplateModuleNameLibrary.ConfigureServices` registers `TemplateModuleNameJsonContext` as an
+`IJsonTypeInfoResolver`, and every JSON serializer in the pipeline reads it — request body,
+response body, streamed item. Adding a type to the wire means adding a `[JsonSerializable]` line
+to that context.
+
+**An enum is written as a number unless the context says otherwise.** That is System.Text.Json's
+default, not the framework's choice: without `UseStringEnumConverter` a `Priority` property leaves
+as `{"priority":0}` and a client sending `"high"` is answered 400, in an application that builds
+clean. The setting is already on in `TemplateModuleNameJsonContext`. The value written is the C# member name
+— `"High"`, PascalCase inside an otherwise camelCase document, because `PropertyNamingPolicy` does
+not reach enum members. Choose the wire vocabulary before the first client; changing it later
+breaks every consumer.
+
+**Do not reach for `[JsonConverter(typeof(JsonStringEnumConverter))]`.** It works on a JIT host and
+cannot work under Native AOT, so it fails when the application is published rather than when it is
+written. `SYSLIB1034` says so wherever the compiler can see the enum from a context. The generic
+`JsonStringEnumConverter<TEnum>` is the safe form if you want a per-enum attribute, and the context
+is the better answer.
+
+#endif
+
 **`[HardenedTest]` boots the real application.** Test method parameters are resolved from the
 application's own container, and `ITestWebApp` drives the real pipeline — routing, filters,
 binding, serialisation — without a socket or a port. Mark a parameter `[Mock]` to substitute a

@@ -1,7 +1,10 @@
 using Hardened.Shared.Runtime.Attributes;
 #if (codeFirst)
+using System.Text.Json.Serialization.Metadata;
+using DependencyModules.Runtime.Interfaces;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
 #endif
 using Hardened.Web.Runtime.DependencyInjection;
 
@@ -30,5 +33,25 @@ namespace Hardened1;
 // Spec-first applications do not use this at all: their document is a build input, published by
 // PublishUrl on the spec item instead.
 [Enable<OpenApiDocumentPublishing>]
-#endif
+public partial class TemplateModuleNameLibrary : IServiceCollectionConfiguration {
+
+    /// <summary>
+    /// Says how this application's types are written, ahead of reflection.
+    /// </summary>
+    /// <remarks>
+    /// One registration, read by every JSON serializer in the pipeline - the request body, the
+    /// response body, and a streamed item. Enums are not configured here: the build writes a
+    /// converter for each one and registers it alongside this - see
+    /// <see cref="TemplateModuleNameJsonContext"/> and [JsonEnumNaming].
+    ///
+    /// A resolver the container does not know about is a resolver the serializers never ask, and
+    /// nothing reports that - so this line is the difference between a configured context and a
+    /// decorative one.
+    /// </remarks>
+    public void ConfigureServices(IServiceCollection services) {
+        services.AddSingleton<IJsonTypeInfoResolver>(TemplateModuleNameJsonContext.Default);
+    }
+}
+#else
 public partial class TemplateModuleNameLibrary;
+#endif
