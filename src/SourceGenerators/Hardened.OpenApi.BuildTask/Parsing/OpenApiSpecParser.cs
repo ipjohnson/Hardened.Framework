@@ -164,7 +164,7 @@ internal static class OpenApiSpecParser {
             foreach (var pathKvp in document.Paths) {
                 cancellationToken.ThrowIfCancellationRequested();
                 ParsePath(basePath + pathKvp.Key, pathKvp.Value, operationsByTag, synthesized,
-                    groupUntaggedByPath);
+                    groupUntaggedByPath, document, diagnostics);
             }
         }
 
@@ -1407,9 +1407,115 @@ internal static class OpenApiSpecParser {
         return paramModel;
     }
 
+    /// <summary>
+    /// What the description says a caller must hold to invoke this operation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Scopes, not schemes.</b> A scheme names how a caller proves who they are - which issuer,
+    /// which token format - and that is configuration this application already owns; a description
+    /// cannot know it and should not try to. What a description <em>does</em> know is which
+    /// permissions an operation needs, and that maps onto <c>Requirement</c> without an intermediary.
+    /// So the scheme decides only whether the entry carries scopes at all.
+    /// </para>
+    /// <para>
+    /// Only <c>oauth2</c> and <c>openIdConnect</c> may carry them; the specification requires every
+    /// other type to declare an empty array. An entry with no scopes therefore says "be
+    /// authenticated" - which is a requirement, not the absence of one. Reading it as the absence of
+    /// one would be actively unsafe: <c>[{oauth2: [write]}, {apiKey: []}]</c> would become
+    /// "needs write, OR needs nothing", and the OR is then satisfied by everybody.
+    /// </para>
+    /// <para>
+    /// <b>An operation's own <c>security</c> replaces the document's, it does not merge with it.</b>
+    /// That includes an empty one: <c>security: []</c> is how a description opts a single operation
+    /// out of a document-level default, and it is <em>not</em> the same as an empty scope array one
+    /// level down. It produces no branches, which produces no requirement - deliberately not
+    /// <c>[AllowAnonymous]</c>, because a requirement derived from a description is conjoined with
+    /// what the handler declared and must not be able to remove one.
+    /// </para>
+    /// </remarks>
+    private static List<AuthorizationBranchModel> ParseSecurity(
+        OpenApiOperation operation, OpenApiDocument document, string operationId,
+        ICollection<string>? diagnostics) {
+        // Null is "declared nothing, inherit the default"; empty is "declared none, and means it".
+        var declared = operation.Security ?? document.Security;
+
+        if (declared == null || declared.Count == 0) {
+            return new List<AuthorizationBranchModel>();
+        }
+
+        var schemes = document.Components?.SecuritySchemes;
+        var branches = new List<AuthorizationBranchModel>();
+
+        foreach (var requirement in declared) {
+            var branch = new AuthorizationBranchModel();
+
+            foreach (var entry in requirement) {
+                var name = entry.Key?.Reference?.Id;
+                var scopes = entry.Value;
+
+                // A name that resolves to nothing is the document's own error, and a silent
+                // fallback to "be authenticated" is a downgrade nobody asked for: the operation
+                // stops requiring the permission it named. Reported so the misspelling is a build
+                // message rather than a discovery in production.
+                if (!string.IsNullOrEmpty(name) && !Declares(schemes, name!)) {
+                    diagnostics?.Add(
+                        $"operation '{operationId}' requires security scheme '{name}', which " +
+                        "'components.securitySchemes' does not declare. Its scopes were not read, " +
+                        "so the operation requires an authenticated caller and none of the " +
+                        "permissions it names.");
+                }
+
+                if (!string.IsNullOrEmpty(name) &&
+                    scopes is { Count: > 0 } &&
+                    CarriesScopes(schemes, name!)) {
+                    foreach (var scope in scopes) {
+                        if (!string.IsNullOrEmpty(scope) && !branch.Grants.Contains(scope)) {
+                            branch.Grants.Add(scope);
+                        }
+                    }
+                } else {
+                    // Either a scheme that cannot carry scopes, or one that can and declared none.
+                    // Both say the same thing about the caller.
+                    branch.RequiresAuthentication = true;
+                }
+            }
+
+            // An entry naming no schemes at all is not a way in. Dropping it rather than admitting
+            // an empty AND, which would be satisfied by anyone and would take the whole OR with it.
+            if (branch.Grants.Count > 0 || branch.RequiresAuthentication) {
+                branches.Add(branch);
+            }
+        }
+
+        return branches;
+    }
+
+    /// <summary>
+    /// Whether a named scheme is one the specification lets carry scopes.
+    /// </summary>
+    /// <remarks>
+    /// A scheme the document never declared is treated as not carrying them. The reference is
+    /// dangling, which is the document's own error, and reading its scope list would invent
+    /// authorization out of a name that resolves to nothing.
+    /// </remarks>
+    private static bool CarriesScopes(
+        IDictionary<string, IOpenApiSecurityScheme>? schemes, string name) {
+        if (schemes == null || !schemes.TryGetValue(name, out var scheme)) {
+            return false;
+        }
+
+        return scheme.Type is SecuritySchemeType.OAuth2 or SecuritySchemeType.OpenIdConnect;
+    }
+
+    /// <summary>Whether the document declares the named scheme at all.</summary>
+    private static bool Declares(
+        IDictionary<string, IOpenApiSecurityScheme>? schemes, string name) =>
+        schemes != null && schemes.ContainsKey(name);
+
     private static void ParsePath(string path, IOpenApiPathItem pathItem,
         Dictionary<string, List<OperationModel>> operationsByTag, SchemaCollector collector,
-        bool groupUntaggedByPath) {
+        bool groupUntaggedByPath, OpenApiDocument document, ICollection<string>? diagnostics) {
         if (pathItem.Operations == null) {
             return;
         }
@@ -1431,7 +1537,8 @@ internal static class OpenApiSpecParser {
                 Tag = tag,
                 // Summary first: it is the one-line form, and a doc comment is one line.
                 Description = FirstNonEmpty(operation.Summary, operation.Description),
-                IsDeprecated = operation.Deprecated
+                IsDeprecated = operation.Deprecated,
+                AuthorizationBranches = ParseSecurity(operation, document, operationId, diagnostics)
             };
 
             foreach (var param in MergeParameters(pathItem.Parameters, operation.Parameters)) {

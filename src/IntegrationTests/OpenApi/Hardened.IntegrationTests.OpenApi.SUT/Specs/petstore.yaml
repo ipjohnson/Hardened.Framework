@@ -69,6 +69,38 @@ paths:
   # declared member and nothing rejects a zero, so omitting either used to be answered 201 with a
   # value the caller never sent. `lines` carries constraints on its *items*, which were generated,
   # registered in DI, and never called.
+  # Two operations whose only job is to be guarded. Kept apart from the routes the validation and
+  # enum suites drive: a requirement on one of those turns every test that calls it into an
+  # authorization test, which is how the first attempt at this broke fourteen of them.
+  /secured/scoped:
+    get:
+      tags:
+        - Secured
+      operationId: securedScoped
+      security:
+        - petstoreOAuth: ["pets:read"]
+      responses:
+        '200':
+          description: Allowed.
+          content:
+            application/json:
+              schema:
+                type: string
+  /secured/either:
+    get:
+      tags:
+        - Secured
+      operationId: securedEither
+      security:
+        - petstoreOAuth: ["pets:read"]
+        - petstoreApiKey: []
+      responses:
+        '200':
+          description: Allowed.
+          content:
+            application/json:
+              schema:
+                type: string
   /orders:
     post:
       tags:
@@ -245,6 +277,7 @@ paths:
       tags:
         - Store
       operationId: listStores
+      security: []
       responses:
         '200':
           description: A list of stores
@@ -255,6 +288,22 @@ paths:
                 items:
                   $ref: '#/components/schemas/Store'
 components:
+  securitySchemes:
+    # Carries scopes, so its entries become grants.
+    petstoreOAuth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://example.invalid/token
+          scopes:
+            "pets:read": Read pets.
+            "pets:write": Create and change pets.
+    # Cannot carry scopes - the specification requires the array to be empty - so an entry naming
+    # this one says "be authenticated" and nothing more.
+    petstoreApiKey:
+      type: apiKey
+      name: X-Api-Key
+      in: header
   schemas:
     # readOnly and writeOnly, which make one schema describe two directions: the server assigns
     # the id and never accepts one, and the password is accepted and never returned.

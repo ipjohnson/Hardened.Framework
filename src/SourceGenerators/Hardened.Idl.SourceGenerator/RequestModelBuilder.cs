@@ -188,6 +188,20 @@ internal static class RequestModelBuilder {
                 ""));
         }
 
+        // What the description said this operation requires of its caller.
+        //
+        // Emitted as one more entry in the handler's metadata rather than handed to
+        // ExecutionRequestHandlerInfo directly, because that reads
+        // `requirement ?? RequirementFrom(Metadata)` - passing it there would silence an
+        // [AuthorizeGrants] written on the implementation instead of composing with it.
+        if (AuthorizationExpression(operation) is { } authorization) {
+            filters.Add(new AttributeModel(
+                TypeDefinition.Get(
+                    "Hardened.Requests.Runtime.Authorization", "DescribedAuthorization"),
+                authorization,
+                ""));
+        }
+
         // Wire in x-filters as typed attribute instances
         foreach (var filterInstance in operation.FilterInstances) {
             if (filterTypeLookup.TryGetValue(filterInstance.FilterTypeName, out var filterType)) {
@@ -410,6 +424,56 @@ internal static class RequestModelBuilder {
     }
 
 
+
+    /// <summary>
+    /// The described authorization as a <c>Requirement</c> expression, or null where the description
+    /// declared none.
+    /// </summary>
+    /// <remarks>
+    /// An OR of ANDs, which is the shape both sides already have: <c>security</c> is an array of
+    /// alternatives whose entries are conjoined, and <c>Requirement</c> is a boolean algebra over
+    /// grants. Written out rather than reduced - a single branch with a single grant emits
+    /// <c>Grant("x")</c> and not <c>AnyOf(AllOf(Grant("x")))</c> - because this lands in a generated
+    /// file somebody will read.
+    /// </remarks>
+    private static string? AuthorizationExpression(OperationModel operation) {
+        if (operation.AuthorizationBranches.Count == 0) {
+            return null;
+        }
+
+        var branches = new List<string>();
+
+        foreach (var branch in operation.AuthorizationBranches) {
+            var terms = new List<string>();
+
+            foreach (var grant in branch.Grants) {
+                terms.Add(RequirementType + ".Grant(\"" + grant.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\")");
+            }
+
+            if (branch.RequiresAuthentication) {
+                terms.Add(RequirementType + ".Authenticated()");
+            }
+
+            if (terms.Count == 0) {
+                continue;
+            }
+
+            branches.Add(terms.Count == 1
+                ? terms[0]
+                : RequirementType + ".AllOf(" + string.Join(", ", terms) + ")");
+        }
+
+        if (branches.Count == 0) {
+            return null;
+        }
+
+        return branches.Count == 1
+            ? branches[0]
+            : RequirementType + ".AnyOf(" + string.Join(", ", branches) + ")";
+    }
+
+    private const string RequirementType =
+        "global::Hardened.Requests.Abstract.Authorization.Requirement";
 
     /// <summary>
     /// The operation's declared response set, encoded for the shared dispatch emitter, or null

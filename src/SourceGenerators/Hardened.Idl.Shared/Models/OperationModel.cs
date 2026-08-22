@@ -152,6 +152,27 @@ internal class OperationModel : IEquatable<OperationModel> {
     // x-filters: typed filter attribute instances applied to this operation
     public List<FilterInstanceModel> FilterInstances { get; set; } = new();
 
+    /// <summary>
+    /// The alternatives a caller may satisfy this operation's declared authorization by, as an OR of
+    /// ANDs. Empty where the description declares none, or declares only what this cannot model.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only <c>oauth2</c> and <c>openIdConnect</c> carry scopes, and a scope name is read as a grant
+    /// name. Every other scheme type is required by the specification to declare an empty array, so
+    /// it says "be authenticated" and nothing more.
+    /// </para>
+    /// <para>
+    /// <b>Empty is not the same as public.</b> An operation declaring <c>security: []</c> - the
+    /// specification's way of opting out of a document-level default - lands here as empty, and so
+    /// does one that declares nothing at all. Neither produces a requirement, and neither may
+    /// <em>remove</em> one: a requirement derived from a description is conjoined with whatever the
+    /// handler declared, exactly as a convention's is, so a description cannot open a route the code
+    /// protected. <c>[AllowAnonymous]</c> stays the only thing that can.
+    /// </para>
+    /// </remarks>
+    public List<AuthorizationBranchModel> AuthorizationBranches { get; set; } = new();
+
     // Validation: body schema properties for validation filter generation
     public List<PropertyModel> RequestBodyProperties { get; set; } = new();
     public List<string> RequestBodyRequired { get; set; } = new();
@@ -203,6 +224,7 @@ internal class OperationModel : IEquatable<OperationModel> {
                ProducedContentTypes.SequenceEqual(other.ProducedContentTypes) &&
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&
+               AuthorizationBranches.SequenceEqual(other.AuthorizationBranches) &&
                RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&
                RequestBodyRequired.SequenceEqual(other.RequestBodyRequired);
     }

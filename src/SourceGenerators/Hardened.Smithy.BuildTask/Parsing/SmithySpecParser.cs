@@ -188,7 +188,8 @@ internal static class SmithySpecParser {
                 continue;
             }
 
-            var parsed = ParseOperation(context, operationId, operation, tag, protocol);
+            var parsed = ParseOperation(
+                context, operationId, operation, tag, protocol, RequiresAuth(service));
 
             if (parsed != null) {
                 operations.Add(parsed);
@@ -253,12 +254,54 @@ internal static class SmithySpecParser {
         }
     }
 
+    /// <summary>
+    /// Whether a shape's own traits say a caller must be authenticated.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two ways to say no, and they mean different things to a reader of the model even though they
+    /// mean the same thing here. <c>@auth([])</c> narrows the supported schemes to none, which is how
+    /// an operation on an authenticated service is made public. <c>@optionalAuth</c> says a caller
+    /// may authenticate and need not - which, for a server deciding whether to refuse, is the same
+    /// answer.
+    /// </para>
+    /// <para>
+    /// A service that declares a scheme and an operation that neither opts out is the only shape
+    /// that requires anything. Smithy cannot say more than that: it has no scopes, so it can never
+    /// produce a grant.
+    /// </para>
+    /// </remarks>
+    /// <summary>Whether the shape narrows its supported schemes to none - <c>@auth([])</c>.</summary>
+    private static bool DeclaresNoAuth(JsonElement shape) =>
+        SmithyAst.TryGetTrait(shape, SmithyTraits.Auth, out var auth) &&
+        auth.ValueKind == JsonValueKind.Array &&
+        auth.GetArrayLength() == 0;
+
+    private static bool RequiresAuth(JsonElement shape) {
+        if (SmithyAst.HasTrait(shape, SmithyTraits.OptionalAuth)) {
+            return false;
+        }
+
+        if (SmithyAst.TryGetTrait(shape, SmithyTraits.Auth, out var auth)) {
+            return auth.ValueKind == JsonValueKind.Array && auth.GetArrayLength() > 0;
+        }
+
+        foreach (var scheme in SmithyTraits.AuthSchemes) {
+            if (SmithyAst.HasTrait(shape, scheme)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static OperationModel? ParseOperation(
         ParseContext context,
         string operationId,
         JsonElement operation,
         string tag,
-        ProtocolBinding protocol) {
+        ProtocolBinding protocol,
+        bool serviceRequiresAuth) {
         Note(context, operation);
 
         var name = SmithyPrelude.LocalName(operationId);
@@ -305,6 +348,16 @@ internal static class SmithySpecParser {
 
         model.Description = Text(operation, SmithyTraits.Documentation);
         model.IsDeprecated = SmithyAst.HasTrait(operation, SmithyTraits.Deprecated);
+
+        // Authentication only, because that is all the language carries. An operation may opt out of
+        // an authenticated service; it cannot opt in to one that declares no scheme, because there
+        // would be nothing to authenticate against.
+        if (serviceRequiresAuth &&
+            !SmithyAst.HasTrait(operation, SmithyTraits.OptionalAuth) &&
+            !DeclaresNoAuth(operation)) {
+            model.AuthorizationBranches.Add(
+                new AuthorizationBranchModel { RequiresAuthentication = true });
+        }
 
         ParseInput(context, operation, model, name, protocol);
         ParseOutput(context, operation, model, name, protocol);
