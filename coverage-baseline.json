@@ -4,12 +4,12 @@
     "branch": 87.5
   },
   "Hardened.Idl.SourceGenerator": {
-    "line": 62.0,
-    "branch": 49.1
+    "line": 61.1,
+    "branch": 48.2
   },
   "Hardened.Library.SourceGenerator": {
-    "line": 36.5,
-    "branch": 15.6
+    "line": 34.2,
+    "branch": 13.8
   },
   "Hardened.OpenApi.BuildTask": {
     "line": 45.0,
@@ -56,8 +56,8 @@
     "branch": 100.0
   },
   "Hardened.Validation.SourceGenerator": {
-    "line": 21.6,
-    "branch": 14.2
+    "line": 20.2,
+    "branch": 12.4
   },
   "Hardened.Web.AspNetCore.Runtime": {
     "line": 97.1,
