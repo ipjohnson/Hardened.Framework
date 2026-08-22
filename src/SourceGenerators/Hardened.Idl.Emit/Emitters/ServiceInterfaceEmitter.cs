@@ -23,7 +23,15 @@ internal static class ServiceInterfaceEmitter {
             // The route line first, so it stays where a reader and the existing tests expect it,
             // and the spec's own prose below it after a blank line. A spec that says nothing reads
             // as it always did.
-            var description = DocComment.Format(operation.Description);
+            //
+            // Summary first, because a doc comment is one line and the summary is the one-line
+            // form. The parser used to make this choice by collapsing the two into one field,
+            // which also threw the description away for anything else that reads the model - so
+            // the choice moved here, where it is one reader's preference rather than the model's.
+            var description = DocComment.Format(
+                string.IsNullOrWhiteSpace(operation.Summary)
+                    ? operation.Description
+                    : operation.Summary);
 
             method.Comment =
                 $"{operation.HttpMethod} {operation.Path} &rarr; {operation.SuccessStatusCode}" +
