@@ -63,6 +63,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Account'
+  # Two defects meet on this one operation, and neither is visible in a green build.
+  #
+  # `species` and `weightGrams` are required members of value types: nothing rejects an enum's first
+  # declared member and nothing rejects a zero, so omitting either used to be answered 201 with a
+  # value the caller never sent. `lines` carries constraints on its *items*, which were generated,
+  # registered in DI, and never called.
+  /orders:
+    post:
+      tags:
+        - Order
+      operationId: placeOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '200':
+          description: The order as accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderRequest'
   /pets/search:
     get:
       tags:
@@ -317,6 +341,40 @@ components:
     # A value that is not a valid C# identifier. Reachable as a body value and a response value
     # since the generated converter existed; unreachable as a query parameter until the binder
     # stopped calling Enum.Parse on the member name.
+    OrderRequest:
+      type: object
+      required:
+        - species
+        - weightGrams
+        - lines
+      properties:
+        # An enum, and the reason this one matters: [Required] cannot be emitted against a value
+        # type, and nothing else rejects `dog` - the enum's first declared member. An omitted
+        # species was stored as a dog and answered 200.
+        species:
+          $ref: '#/components/schemas/PetSpecies'
+        # Deliberately unbounded. A `minimum: 1` here would catch the absence by accident, which is
+        # how the integer case stayed hidden while the enum case did not.
+        weightGrams:
+          type: integer
+          format: int32
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLine'
+    # Constraints one level down from the body, which is where they stopped being run.
+    OrderLine:
+      type: object
+      required:
+        - sku
+      properties:
+        sku:
+          type: string
+          minLength: 1
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
     PetSpecies:
       type: string
       enum:

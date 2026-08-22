@@ -42,6 +42,20 @@ internal static class EmitterHarness {
         Write(ns => SchemaEmitter.Emit(
             ns, schema, ModelsNamespace, new PatternRegistry(RootNamespace + ".Validation", "petstore")));
 
+    /// <summary>
+    /// The same, with the schemas a property's <c>$ref</c> can resolve against.
+    /// </summary>
+    /// <remarks>
+    /// Needed to emit <c>[ValidateNested]</c> at all: whether a property is descended into depends
+    /// on whether the schema behind its ref will get a validator, and that cannot be answered from
+    /// the property alone.
+    /// </remarks>
+    internal static string Schema(
+        SchemaModel schema, System.Collections.Generic.List<SchemaModel> allSchemas) =>
+        Write(ns => SchemaEmitter.Emit(
+            ns, schema, ModelsNamespace,
+            new PatternRegistry(RootNamespace + ".Validation", "petstore"), allSchemas));
+
     internal static string ServiceInterface(ServiceModel service) =>
         Write(ns => ServiceInterfaceEmitter.Emit(ns, service, ModelsNamespace),
             RootNamespace + ".Services");

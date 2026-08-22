@@ -117,7 +117,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         new() {
             Type = "ValidationError",
             Message = "One or more validation errors occurred.",
-            Errors = [
+            Errors = MissingMembers(exception.Message) ?? [
                 new RequestValidationFieldError {
                     Field = FieldFrom(exception.Path),
                     Code = "invalid",
@@ -125,6 +125,70 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
                 }
             ]
         };
+
+    /// <summary>
+    /// The members a required-member failure names, as the errors <c>[Required]</c> would have
+    /// produced - or null where this is some other <c>JsonException</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Why the deserializer reports this at all.</b> A required member of a value type carries no
+    /// <c>[Required]</c>: the validation generator emits <c>value.x is null</c>, which is CS0037
+    /// against an <c>int</c>, so the constraint is suppressed and the validator never sees the
+    /// absence. <c>JsonTypeInfoEmitter</c> marks those members required on the deserializer instead,
+    /// and this is where the answer is shaped. Without it, an omitted enum silently became its first
+    /// declared member and the API answered 201 with a value the caller never sent.
+    /// </para>
+    /// <para>
+    /// <b>Indistinguishable from the validator's own answer, deliberately.</b> Same field spelling,
+    /// same <c>required</c> code, same <c>"{field} is required."</c> wording - so which layer caught
+    /// a missing member is this framework's business and not the caller's. System.Text.Json
+    /// aggregates, listing every member it missed, so the list is complete rather than first-only.
+    /// </para>
+    /// <para>
+    /// <b>Read from the message, which is the part worth being uneasy about.</b> There is no typed
+    /// exception for this and no structured member list on <c>JsonException</c>; the path is
+    /// <c>$</c>, because the object rather than any one member is what failed. So the shape is
+    /// matched conservatively and anything unrecognised falls through to the general branch above -
+    /// a caller gets a less precise 400, never a wrong one. <c>MissingRequiredMembersMessageTests</c>
+    /// pins the .NET behaviour, so an SDK that changes the wording fails a test here rather than
+    /// silently degrading in production.
+    /// </para>
+    /// </remarks>
+    private static List<RequestValidationFieldError>? MissingMembers(string message) {
+        const string prefix = "JSON deserialization for type ";
+        const string marker = "missing required properties";
+
+        if (!message.StartsWith(prefix, StringComparison.Ordinal) ||
+            message.IndexOf(marker, StringComparison.Ordinal) == -1) {
+            return null;
+        }
+
+        var listStart = message.IndexOf(": ", message.IndexOf(marker, StringComparison.Ordinal),
+            StringComparison.Ordinal);
+
+        if (listStart == -1) {
+            return null;
+        }
+
+        var errors = new List<RequestValidationFieldError>();
+
+        foreach (var name in message.Substring(listStart + 2).Split(',')) {
+            var member = name.Trim();
+
+            if (member.Length == 0) {
+                continue;
+            }
+
+            var field = "body." + member;
+
+            errors.Add(new RequestValidationFieldError {
+                Field = field, Code = "required", Message = field + " is required."
+            });
+        }
+
+        return errors.Count == 0 ? null : errors;
+    }
 
     /// <summary>
     /// <c>$.genre</c>, as <c>body.genre</c> - the spelling the constraint validators use.
