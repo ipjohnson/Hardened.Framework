@@ -111,7 +111,16 @@ public static class RoutingTableGenerator {
         // Only for an entry point that asked. The document used to be emitted unconditionally on
         // the grounds that it cost one string, which understated it - see OpenApiDocumentSource -
         // and an application that does not serve one now does not carry one.
-        if (OpenApiDocumentFeature.Path(models.Left) != null) {
+        if (OpenApiDocumentFeature.Path(models.Left) is { } documentPath) {
+            // An empty document is the one outcome that looks like success from every angle: the
+            // build is clean, the route answers 200, and the reference page renders an API with no
+            // operations. Said out loud, because the alternative is discovering it from a client
+            // generator that produced nothing.
+            if (routable.Count == 0) {
+                OpenApiDocumentDiagnostics.ReportEmptyDocument(
+                    context, models.Left.EntryPointType.Name, documentPath);
+            }
+
             // A streamed response has no spelling before 3.2, so the document is emitted without one
             // and the handler is named rather than the omission being silent.
             if (!OpenApiVersionFacts.SupportsItemSchema(documentVersion)) {
