@@ -14,10 +14,21 @@ public class AotResponseSerializer : IResponseSerializer {
 
     public AotResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration,
         IEnumerable<IJsonTypeInfoResolver> resolvers) {
-        _serializerOptions =
-            configuration.Value.SerializeOptions ??
-            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithReflectionFallback(
-                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        // No reflection resolver, on any host. This used to install one while building the options,
+        // which did two things wrong at once: it sat at the head of the chain, where it answered for
+        // nearly every type and the resolvers added below were never reached; and it meant the class
+        // named for AOT resolved by reflection whenever reflection happened to be available.
+        //
+        // The second is the one that matters. A type missing from every registered context is a
+        // NotSupportedException after publishing, and reflecting over it on a JIT host turns that
+        // into a defect the tests cannot see - the developer's build is the one configuration where
+        // the mistake is invisible. Matching AotRequestDeserializer, which has always built its
+        // options this way and says so.
+        //
+        // StreamingJsonResponseSerializer deliberately does not do this: it has no Aot twin and
+        // serves both hosts from one class, so it keeps a reflection tail that the trimmer removes.
+        _serializerOptions = configuration.Value.SerializeOptions ??
+                             new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
         foreach (var resolver in resolvers) {
             _serializerOptions.TypeInfoResolverChain.Add(resolver);

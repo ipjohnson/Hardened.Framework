@@ -179,6 +179,43 @@ second silently gives you `Production` while everything else says `development`.
 project on xunit 2.x fails with `CS0433` on `Assert`. v3 test projects are also self-executing,
 hence `<OutputType>Exe</OutputType>`.
 
+#if (codeFirst)
+**JSON is configured by registering a resolver, not by editing options.** One line in
+`TemplateModuleNameLibrary.ConfigureServices` registers `TemplateModuleNameJsonContext` as an
+`IJsonTypeInfoResolver`, and every JSON serializer in the pipeline reads it — request body,
+response body, streamed item. Adding a type to the wire means adding a `[JsonSerializable]` line
+to that context.
+
+**An enum's wire vocabulary is `[JsonEnumNaming]`, and it governs the document too.** The build
+writes a converter for every enum this application serializes and registers it for both the JSON
+body and the parameter binder, and the `enum` array in the generated OpenAPI description is written
+from the same setting — so the contract a client generates against cannot disagree with the bytes
+this application produces.
+
+The default is camelCase: `InProgress` goes out as `"inProgress"`. To choose something else, set it
+for the assembly, for one enum, or both:
+
+```csharp
+[assembly: JsonEnumNaming(EnumNaming.KebabCaseLower)]   // "in-progress"
+
+[JsonEnumNaming(EnumNaming.MemberName)]                 // opts out: "AB12"
+public enum LegacyCode { AB12, CD34 }
+```
+
+**Decide this before the first client.** Changing an enum's vocabulary later breaks every consumer
+and no compiler will say so.
+
+Only enums this assembly declares are given a vocabulary. A `[Flags]` enum is left alone — a
+combination of members has no single member name to write — and so is anything from a referenced
+framework, since renaming those would redefine a contract that is not this application's.
+
+**Do not reach for `[JsonConverter(typeof(JsonStringEnumConverter))]`.** It writes the C# member
+name rather than a wire value, it never reaches the published document, and the non-generic form
+cannot work under Native AOT — so it fails when the application is published rather than when it is
+written. `SYSLIB1034` says so where the compiler can see it.
+
+#endif
+
 **`[HardenedTest]` boots the real application.** Test method parameters are resolved from the
 application's own container, and `ITestWebApp` drives the real pipeline — routing, filters,
 binding, serialisation — without a socket or a port. Mark a parameter `[Mock]` to substitute a

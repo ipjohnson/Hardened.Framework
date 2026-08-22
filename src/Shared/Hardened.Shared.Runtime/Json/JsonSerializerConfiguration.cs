@@ -49,7 +49,16 @@ public class JsonSerializerConfiguration : IJsonSerializerConfiguration {
             options.Converters.Add(new DeclaredEnumsFirstConverter());
         }
 
-        return JsonTypeInfoLookup.WithReflectionFallback(options);
+        // No reflection resolver here. This is the shared options instance, and both consumers of it
+        // mutate it in place - so installing reflection at construction put it at the head of the
+        // chain for whichever serializer was resolved, including AotJsonSerializer, which then
+        // reflected on a JIT host and did not after publishing.
+        //
+        // The consumer decides instead, because the two want opposite things: JsonSerializerImpl is
+        // the reflection-based serializer and appends it; AotJsonSerializer resolves out of
+        // registered contexts and a missing type is a NotSupportedException on every host, which is
+        // the answer AOT gives and the one its tests should get.
+        return options;
     }
 }
 

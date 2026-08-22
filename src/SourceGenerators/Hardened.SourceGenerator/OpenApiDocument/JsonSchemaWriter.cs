@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.OpenApiDocument;
@@ -27,20 +28,36 @@ public static class JsonSchemaWriter {
     /// <summary>
     /// The schema for <paramref name="type"/>, and every named schema it depends on.
     /// </summary>
-    public static HandlerSchema? Write(ITypeSymbol? type) {
+    /// <param name="compilationAssembly">
+    /// The assembly being compiled, which decides which enums this application owns - see
+    /// <c>EnumWireNaming.IsOwned</c>.
+    /// <para>
+    /// The compilation's assembly rather than the root type's. A handler whose response is itself a
+    /// framework type anchors the walk in that framework's assembly, and every enum below it then
+    /// looks locally declared - which is how <c>System.Reflection.MethodImplAttributes</c> and
+    /// <c>TaskStatus</c> acquired generated converters renaming their members.
+    /// </para>
+    /// </param>
+    public static HandlerSchema? Write(ITypeSymbol? type, IAssemblySymbol? compilationAssembly = null) {
         if (type == null || type.SpecialType == SpecialType.System_Void) {
             return null;
         }
 
         var components = new Dictionary<string, string>();
+        var enums = new Dictionary<string, EnumVocabulary>(System.StringComparer.Ordinal);
 
-        var root = SchemaFor(Unwrap(type), components, new HashSet<string>());
+        var root = SchemaFor(
+            Unwrap(type), components, new HashSet<string>(), enums, compilationAssembly);
 
         return new HandlerSchema(
             root,
             components
                 .OrderBy(pair => pair.Key, System.StringComparer.Ordinal)
                 .Select(pair => new SchemaComponent(pair.Key, pair.Value))
+                .ToList(),
+            enums
+                .OrderBy(pair => pair.Key, System.StringComparer.Ordinal)
+                .Select(pair => pair.Value)
                 .ToList());
     }
 
@@ -74,10 +91,11 @@ public static class JsonSchemaWriter {
     }
 
     private static string SchemaFor(
-        ITypeSymbol type, Dictionary<string, string> components, HashSet<string> inProgress) {
+        ITypeSymbol type, Dictionary<string, string> components, HashSet<string> inProgress,
+        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
         if (type is INamedTypeSymbol { IsGenericType: true } nullable &&
             nullable.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T) {
-            return SchemaFor(nullable.TypeArguments[0], components, inProgress);
+            return SchemaFor(nullable.TypeArguments[0], components, inProgress, enums, compilationAssembly);
         }
 
         var primitive = Primitive(type);
@@ -88,22 +106,22 @@ public static class JsonSchemaWriter {
 
         if (type is IArrayTypeSymbol array) {
             return "{\"type\":\"array\",\"items\":" +
-                   SchemaFor(array.ElementType, components, inProgress) + "}";
+                   SchemaFor(array.ElementType, components, inProgress, enums, compilationAssembly) + "}";
         }
 
         if (type is INamedTypeSymbol named) {
-            var collection = Collection(named, components, inProgress);
+            var collection = Collection(named, components, inProgress, enums, compilationAssembly);
 
             if (collection != null) {
                 return collection;
             }
 
             if (named.TypeKind == TypeKind.Enum) {
-                return EnumSchema(named);
+                return EnumSchema(named, enums, compilationAssembly);
             }
 
             if (named.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface) {
-                return ObjectRef(named, components, inProgress);
+                return ObjectRef(named, components, inProgress, enums, compilationAssembly);
             }
         }
 
@@ -112,7 +130,8 @@ public static class JsonSchemaWriter {
     }
 
     private static string? Collection(
-        INamedTypeSymbol named, Dictionary<string, string> components, HashSet<string> inProgress) {
+        INamedTypeSymbol named, Dictionary<string, string> components, HashSet<string> inProgress,
+        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
         if (!named.IsGenericType) {
             return null;
         }
@@ -122,31 +141,64 @@ public static class JsonSchemaWriter {
         if (name is "List" or "IList" or "IReadOnlyList" or "ICollection" or "IReadOnlyCollection"
             or "IEnumerable" or "HashSet" or "ISet") {
             return "{\"type\":\"array\",\"items\":" +
-                   SchemaFor(named.TypeArguments[0], components, inProgress) + "}";
+                   SchemaFor(named.TypeArguments[0], components, inProgress, enums, compilationAssembly) + "}";
         }
 
         if (name is "Dictionary" or "IDictionary" or "IReadOnlyDictionary") {
             return "{\"type\":\"object\",\"additionalProperties\":" +
-                   SchemaFor(named.TypeArguments[1], components, inProgress) + "}";
+                   SchemaFor(named.TypeArguments[1], components, inProgress, enums, compilationAssembly) + "}";
         }
 
         return null;
     }
 
-    private static string EnumSchema(INamedTypeSymbol named) {
+    /// <summary>
+    /// The enum's declared values, in the vocabulary the serializer will actually write.
+    /// </summary>
+    /// <remarks>
+    /// This used to write <c>member.Name</c> unconditionally, and the JSON serializer wrote the
+    /// ordinal - so the published description said <c>{"type":"string","enum":["ScienceFiction"]}</c>
+    /// about a property that went out as <c>0</c>. The document is the deliverable here, and a
+    /// client generated from it could not talk to the application it was generated from.
+    ///
+    /// Resolved through <see cref="EnumWireNaming"/> rather than formatted here, because the
+    /// converter and the parameter binder resolve the same way from the same place. A document that
+    /// disagrees with the wire is the defect; two implementations of one policy is how it returns.
+    /// </remarks>
+    private static string EnumSchema(
+        INamedTypeSymbol named, Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
+        var owned = EnumWireNaming.IsOwned(named, compilationAssembly);
+
+        // An enum the application does not own keeps the member name it always had here, and gets
+        // no converter. A model graph reaches further than it looks - a property typed Exception
+        // pulls in System.Reflection.MethodAttributes - and renaming those is redefining a
+        // vocabulary that is not the application's to redefine.
+        var naming = owned
+            ? EnumWireNaming.For(named, EnumWireNaming.AssemblyDefault(named))
+            : "MemberName";
+
+        var members = EnumWireNaming.Members(named, naming);
+        var qualified = "global::" + named.ToDisplayString();
+
+        // Recorded whether or not it is new: the same enum reached from two handlers resolves to the
+        // same vocabulary, and the dictionary is what keeps one converter emitted for it.
+        if (owned && members.Count > 0) {
+            enums[qualified] = new EnumVocabulary(
+                qualified,
+                named.Name,
+                naming,
+                members.Select(pair => new EnumWireValue(pair.Member, pair.Wire)).ToList());
+        }
+
         var builder = new StringBuilder("{\"type\":\"string\",\"enum\":[");
         var first = true;
 
-        foreach (var member in named.GetMembers().OfType<IFieldSymbol>()) {
-            if (!member.IsConst) {
-                continue;
-            }
-
+        foreach (var (_, wire) in members) {
             if (!first) {
                 builder.Append(',');
             }
 
-            builder.Append('"').Append(Escape(member.Name)).Append('"');
+            builder.Append('"').Append(Escape(wire)).Append('"');
             first = false;
         }
 
@@ -154,7 +206,8 @@ public static class JsonSchemaWriter {
     }
 
     private static string ObjectRef(
-        INamedTypeSymbol named, Dictionary<string, string> components, HashSet<string> inProgress) {
+        INamedTypeSymbol named, Dictionary<string, string> components, HashSet<string> inProgress,
+        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
         var name = named.Name;
         var reference = "{\"$ref\":\"#/components/schemas/" + Escape(name) + "\"}";
 
@@ -181,7 +234,7 @@ public static class JsonSchemaWriter {
             properties
                 .Append('"').Append(Escape(CamelCase(property.Name))).Append("\":")
                 .Append(SchemaConstraintWriter.Apply(
-                    SchemaFor(property.Type, components, inProgress), property));
+                    SchemaFor(property.Type, components, inProgress, enums, compilationAssembly), property));
 
             // A non-nullable reference type is one the author said would always be there, and so
             // is one carrying [Required] - which is the only way to say it about a value type.

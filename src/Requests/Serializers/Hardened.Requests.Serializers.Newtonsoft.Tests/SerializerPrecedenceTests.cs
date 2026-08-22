@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization.Metadata;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Serializer;
@@ -40,14 +41,17 @@ public class SerializerPrecedenceTests {
         Pipeline.ResponseSerializer(Pipeline.Pool());
 
     private static IResponseSerializer SystemTextJson() =>
-        new SystemTextJsonResponseSerializer(JsonConfiguration());
+        new SystemTextJsonResponseSerializer(
+            JsonConfiguration(), Array.Empty<IJsonTypeInfoResolver>());
 
     private static IRequestDeserializer NewtonsoftReader() =>
         Pipeline.Deserializer(Pipeline.Pool());
 
     private static IRequestDeserializer SystemTextJsonReader() =>
         new SystemTextJsonRequestDeserializer(
-            JsonConfiguration(), NullLogger<SystemTextJsonRequestDeserializer>.Instance);
+            JsonConfiguration(),
+            NullLogger<SystemTextJsonRequestDeserializer>.Instance,
+            Array.Empty<IJsonTypeInfoResolver>());
 
     private static SerializationLocatorService Locator(
         IEnumerable<IRequestDeserializer> deserializers,

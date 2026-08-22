@@ -719,7 +719,7 @@ namespace Hardened.Requests.Runtime.Serializer
         "stead.")]
     public class SystemTextJsonRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
     {
-        public SystemTextJsonRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.SystemTextJsonRequestDeserializer> logger) { }
+        public SystemTextJsonRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.SystemTextJsonRequestDeserializer> logger, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
         public bool IsDefaultSerializer { get; }
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
@@ -732,7 +732,7 @@ namespace Hardened.Requests.Runtime.Serializer
         "stead.")]
     public class SystemTextJsonResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
     {
-        public SystemTextJsonResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration) { }
+        public SystemTextJsonResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
         public bool IsDefaultSerializer { get; }
         public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }

@@ -29,7 +29,9 @@ public class JsonSerializerImplTests {
             PropertyNameCaseInsensitive = true
         });
 
-        return new JsonSerializerImpl(Options.Create(configuration));
+        return new JsonSerializerImpl(
+            Options.Create(configuration),
+            System.Array.Empty<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver>());
     }
 
     private static MemoryStream Json(string json) => new(Encoding.UTF8.GetBytes(json));

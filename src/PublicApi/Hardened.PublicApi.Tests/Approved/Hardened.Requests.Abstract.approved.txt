@@ -6,6 +6,14 @@ namespace Hardened.Requests.Abstract.Attributes
         public ContentNegotiationAttribute(Hardened.Requests.Abstract.Serializer.ContentNegotiationMode mode) { }
         public Hardened.Requests.Abstract.Serializer.ContentNegotiationMode Mode { get; }
     }
+    public enum EnumNaming
+    {
+        MemberName = 0,
+        CamelCase = 1,
+        KebabCaseLower = 2,
+        SnakeCaseLower = 3,
+        SnakeCaseUpper = 4,
+    }
     public class FromBodyAttribute : System.Attribute
     {
         public FromBodyAttribute() { }
@@ -27,6 +35,12 @@ namespace Hardened.Requests.Abstract.Attributes
     public interface ICustomBindingAttribute
     {
         System.Threading.Tasks.ValueTask<T> BindValue<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter);
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Enum, AllowMultiple=false)]
+    public class JsonEnumNamingAttribute : System.Attribute
+    {
+        public JsonEnumNamingAttribute(Hardened.Requests.Abstract.Attributes.EnumNaming naming) { }
+        public Hardened.Requests.Abstract.Attributes.EnumNaming Naming { get; }
     }
     [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false, Inherited=false)]
     public sealed class OutputAttribute<TOutput> : System.Attribute
