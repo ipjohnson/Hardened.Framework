@@ -112,18 +112,23 @@ public class ErrorHandlingTests {
     }
 
     /// <summary>
-    /// The failure is logged through <see cref="IRequestLogger"/> so it lands in the
-    /// application's request log rather than only in the response body.
+    /// The helper records and does not log. Logging is <c>ExceptionResponseSerializer</c>'s, because
+    /// that is where every failure arrives - a filter throw and an authorization refusal set the
+    /// same field and never come through here.
     /// </summary>
+    /// <remarks>
+    /// Pinned rather than left implied: this used to log, and a handler fault was the only failure
+    /// that produced a line. Restoring it here would report a handler fault twice.
+    /// </remarks>
     [Fact]
-    public async Task AHandlerExceptionIsReportedToTheRequestLogger() {
+    public async Task AHandlerExceptionIsNotLoggedHere() {
         var logger = Substitute.For<IRequestLogger>();
         var context = Pipeline.Context(configureServices: services => services.AddSingleton(logger));
         var failure = new InvalidOperationException("handler failed");
 
         await ControllerErrorHelper.HandleException(context, failure);
 
-        logger.Received(1).RequestFailed(context, failure);
+        logger.DidNotReceive().RequestFailed(Arg.Any<IExecutionContext>(), Arg.Any<Exception>());
     }
 
     /// <summary>

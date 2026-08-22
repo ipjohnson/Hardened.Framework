@@ -1,6 +1,9 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Runtime.Execution;
+using Hardened.Requests.Runtime.Serializer;
+using Hardened.Requests.Runtime.Errors;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Tests.Support;
 using Microsoft.Extensions.DependencyInjection;
@@ -238,6 +241,48 @@ public class IoFilterTests {
 
         Assert.Same(failure, context.Response.ExceptionValue);
         Assert.Equal(new[] { "wrapper-enter", "wrapper-exit", "serialize" }, log);
+    }
+
+    /// <summary>
+    /// An exception thrown by a <em>filter</em> is reported, the same as one thrown by a handler.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The defect this was written for. A handler fault reached <c>ControllerErrorHelper</c>, which
+    /// logged it; anything thrown earlier in the chain was caught here, recorded on the response and
+    /// never mentioned again. A request refused by the validation filter produced <c>started</c>,
+    /// <c>mapped</c> and <c>finished status code '500'</c>, with nothing naming the exception - so
+    /// the one failure a developer could not see was the one their own filter caused.
+    /// </para>
+    /// <para>
+    /// Wired to the real <c>ExceptionResponseSerializer</c> rather than a substitute, because what
+    /// is being asserted is that the two meet. A test that stubbed the serializer would pass against
+    /// the defect.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task AnExceptionThrownByAFilterIsReported() {
+        var failure = new InvalidOperationException("thrown by a filter");
+
+        var logger = Substitute.For<IRequestLogger>();
+        var context = Pipeline.Context(
+            configureServices: services => services.AddSingleton(logger));
+
+        var responseSerializer = Substitute.For<IResponseSerializer>();
+        responseSerializer.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
+
+        var locator = Substitute.For<ISerializationLocatorService>();
+        locator.FindResponseSerializer(Arg.Any<IExecutionContext>()).Returns(responseSerializer);
+
+        var exceptions = new ExceptionResponseSerializer(
+            logger, locator, new ExceptionToModelConverter());
+
+        var filter = Filter(serialize: c => exceptions.Handle(c, c.Response.ExceptionValue!));
+
+        await Pipeline.Chain(context, filter, new Pipeline.Inline(_ => throw failure)).Next();
+
+        Assert.Same(failure, context.Response.ExceptionValue);
+        Assert.Equal(500, context.Response.Status);
 
         logger.Received(1).RequestFailed(context, failure);
     }

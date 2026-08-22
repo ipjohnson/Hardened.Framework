@@ -112,8 +112,6 @@ public class InvokeFilterTests {
 
         Assert.NotNull(context.Response.ExceptionValue);
         Assert.Contains(nameof(Controller), context.Response.ExceptionValue!.Message);
-
-        logger.Received(1).RequestFailed(context, context.Response.ExceptionValue);
     }
 
     /// <summary>
