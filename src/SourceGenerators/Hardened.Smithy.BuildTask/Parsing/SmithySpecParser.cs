@@ -681,8 +681,40 @@ internal static class SmithySpecParser {
         }
 
         ApplyTo(ReadConstraints(context, member, target), property);
+        NoteUnmappedTraits(context, member, name);
 
         return property;
+    }
+
+    /// <summary>
+    /// Traits this parser knows about and does not map, noted where they are met.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The Smithy half of the same rule the OpenAPI parser applies: a constraint the model declares
+    /// and the application does not enforce is a promise to a caller that nothing keeps, and the
+    /// build should say so rather than read past it.
+    /// </para>
+    /// <para>
+    /// Both of these are already named in <c>SmithyTraits.Mapped</c>, which is what makes them worth
+    /// reporting rather than leaving to the unknown-trait path - the parser declares them as traits
+    /// it handles, and then <c>ReadConstraints</c> asks for <c>@length</c>, <c>@range</c> and
+    /// <c>@pattern</c> and nothing else. Being on that list and unread is the gap.
+    /// </para>
+    /// <para>
+    /// <c>@default</c> is deliberately absent. It is read - it decides nullability a few lines above
+    /// - so it is not this class; that its <i>value</i> never reaches the model is a collapse, and
+    /// belongs to the audit that finds those.
+    /// </para>
+    /// </remarks>
+    private static void NoteUnmappedTraits(ParseContext context, JsonElement member, string name) {
+        if (SmithyAst.HasTrait(member, SmithyTraits.UniqueItems)) {
+            context.Model.UnmappedKeywords.Add(new UnmappedKeywordModel("@uniqueItems", name));
+        }
+
+        if (SmithyAst.HasTrait(member, SmithyTraits.Sparse)) {
+            context.Model.UnmappedKeywords.Add(new UnmappedKeywordModel("@sparse", name));
+        }
     }
 
     /// <summary>Where a shape id lands in the IR: an inlined primitive, a reference, or a collection.</summary>
