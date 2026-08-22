@@ -183,7 +183,13 @@ public static class RoutingTableGenerator {
         var routingType = TypeDefinition.Get(appModel.EntryPointType.Namespace,
             appModel.EntryPointType.Name + ".RoutingTable");
 
-        GenerateDependencyInjection(appClass, routingType, appModel, endPointModels, cancellationToken);
+        // Before the DI method, which registers what this emits.
+        var enums = EnumWireConverterEmitter.Collect(endPointModels);
+
+        EnumWireConverterEmitter.Emit(appClass, enums);
+
+        GenerateDependencyInjection(
+            appClass, routingType, appModel, endPointModels, enums, cancellationToken);
     }
 
     private static void CreateConstructor(ClassDefinition appClass) {
@@ -199,6 +205,7 @@ public static class RoutingTableGenerator {
     private static void GenerateDependencyInjection(ClassDefinition classDefinition,
         ITypeDefinition routingTableType,
         EntryPointSelector.Model applicationModel, IReadOnlyList<RequestHandlerModel> webEndPointModels,
+        IReadOnlyList<EnumVocabulary> enums,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -246,8 +253,44 @@ public static class RoutingTableGenerator {
 
         RegisterAuthorizationPosture(diMethod, serviceCollection, applicationModel);
 
+        RegisterEnumWireConverters(diMethod, serviceCollection, applicationModel, enums);
+
         Validation.ParameterValidatorRegistration.Write(
             diMethod, serviceCollection, webEndPointModels, cancellationToken);
+    }
+
+    /// <summary>
+    /// The generated enum converters, as the serializers and the parameter binder consume them.
+    /// </summary>
+    /// <remarks>
+    /// Two registrations for one vocabulary, because a value reaches the application by two routes
+    /// that share nothing: a JSON body resolves through the type-info chain, and a path or query
+    /// value is text the binder converts. An enum registered for only the first is one whose body
+    /// accepts <c>"in-progress"</c> while <c>?priority=in-progress</c> is answered 400.
+    /// </remarks>
+    private static void RegisterEnumWireConverters(
+        MethodDefinition diMethod,
+        ParameterDefinition serviceCollection,
+        EntryPointSelector.Model applicationModel,
+        IReadOnlyList<EnumVocabulary> enums) {
+        if (enums.Count == 0) {
+            return;
+        }
+
+        var container = "global::" + applicationModel.EntryPointType.Namespace + "." +
+                        applicationModel.EntryPointType.Name + "." +
+                        EnumWireConverterEmitter.ContainerName;
+
+        diMethod.AddIndentedStatement(new CodeOutputComponent(
+            serviceCollection.Name +
+            ".AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), " +
+            container + ".Resolver.Instance)"));
+
+        diMethod.AddIndentedStatement(new CodeOutputComponent(
+            "foreach (var stringConverter in " + container + ".StringConverters) { " +
+            serviceCollection.Name +
+            ".AddSingleton(typeof(global::Hardened.Requests.Abstract.Serializer.IStringConverter), " +
+            "stringConverter); }"));
     }
 
     /// <summary>

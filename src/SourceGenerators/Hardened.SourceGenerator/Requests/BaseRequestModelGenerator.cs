@@ -33,7 +33,8 @@ public abstract class BaseRequestModelGenerator {
             response,
             filters) {
             ResponseSchema = OpenApiDocument.JsonSchemaWriter.Write(
-                SchemaSubject(context, methodDeclaration, response)),
+                SchemaSubject(context, methodDeclaration, response),
+                context.SemanticModel.Compilation.Assembly),
             ResponseSchemas = DeclaredResponses(context, response),
             RequestSchema = BodySchema(context, methodDeclaration, parameters)
         };
@@ -77,7 +78,10 @@ public abstract class BaseRequestModelGenerator {
             responses.Add(new ResponseSchemaModel(
                 unionCase.Status,
                 HttpResponseDescription.For(unionCase.Status),
-                unionCase.HasBody ? OpenApiDocument.JsonSchemaWriter.Write(symbol) : null));
+                unionCase.HasBody
+                    ? OpenApiDocument.JsonSchemaWriter.Write(
+                        symbol, context.SemanticModel.Compilation.Assembly)
+                    : null));
         }
 
         return responses;
@@ -140,7 +144,9 @@ public abstract class BaseRequestModelGenerator {
 
         return syntax?.Type == null
             ? null
-            : OpenApiDocument.JsonSchemaWriter.Write(context.SemanticModel.GetTypeInfo(syntax.Type).Type);
+            : OpenApiDocument.JsonSchemaWriter.Write(
+                context.SemanticModel.GetTypeInfo(syntax.Type).Type,
+                context.SemanticModel.Compilation.Assembly);
     }
 
     protected abstract RequestHandlerNameModel GetRequestNameModel(

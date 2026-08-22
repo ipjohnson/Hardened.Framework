@@ -1,5 +1,6 @@
 ﻿using DependencyModules.Runtime.Attributes;
 using Microsoft.Extensions.Options;
+using System.Text.Json.Serialization.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,10 +26,21 @@ public class JsonSerializerImpl : IJsonSerializer {
     private readonly JsonSerializerOptions _serializerOptions;
     private readonly JsonSerializerOptions _prettyOptions;
 
-    public JsonSerializerImpl(IOptions<IJsonSerializerConfiguration> configuration) {
-        // Appended rather than installed only onto an empty chain: this is the reflection-based
-        // serializer, so reflection belongs in its chain whatever else is registered.
-        _serializerOptions = JsonTypeInfoLookup.AppendReflectionFallback(configuration.Value.Options);
+    /// <param name="resolvers">
+    /// Every registered <c>IJsonTypeInfoResolver</c>, ahead of reflection.
+    /// </param>
+    /// <remarks>
+    /// This is the serializer the test host writes a request body with, so a resolver it does not
+    /// see is one the harness does not honour while the application does - the harness then posts a
+    /// body its own application answers 400 to, and the test reads as a defect in the handler.
+    /// </remarks>
+    public JsonSerializerImpl(
+        IOptions<IJsonSerializerConfiguration> configuration,
+        IEnumerable<IJsonTypeInfoResolver> resolvers) {
+        // Resolvers first, then reflection - and appended rather than installed only onto an empty
+        // chain, because this is the reflection-based serializer and reflection belongs in its
+        // chain whatever else is registered.
+        _serializerOptions = JsonTypeInfoLookup.WithResolvers(configuration.Value.Options, resolvers);
         _prettyOptions = new JsonSerializerOptions(_serializerOptions) { WriteIndented = true };
     }
 

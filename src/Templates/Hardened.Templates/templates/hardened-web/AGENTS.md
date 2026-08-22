@@ -186,19 +186,33 @@ hence `<OutputType>Exe</OutputType>`.
 response body, streamed item. Adding a type to the wire means adding a `[JsonSerializable]` line
 to that context.
 
-**An enum is written as a number unless the context says otherwise.** That is System.Text.Json's
-default, not the framework's choice: without `UseStringEnumConverter` a `Priority` property leaves
-as `{"priority":0}` and a client sending `"high"` is answered 400, in an application that builds
-clean. The setting is already on in `TemplateModuleNameJsonContext`. The value written is the C# member name
-— `"High"`, PascalCase inside an otherwise camelCase document, because `PropertyNamingPolicy` does
-not reach enum members. Choose the wire vocabulary before the first client; changing it later
-breaks every consumer.
+**An enum's wire vocabulary is `[JsonEnumNaming]`, and it governs the document too.** The build
+writes a converter for every enum this application serializes and registers it for both the JSON
+body and the parameter binder, and the `enum` array in the generated OpenAPI description is written
+from the same setting — so the contract a client generates against cannot disagree with the bytes
+this application produces.
 
-**Do not reach for `[JsonConverter(typeof(JsonStringEnumConverter))]`.** It works on a JIT host and
-cannot work under Native AOT, so it fails when the application is published rather than when it is
-written. `SYSLIB1034` says so wherever the compiler can see the enum from a context. The generic
-`JsonStringEnumConverter<TEnum>` is the safe form if you want a per-enum attribute, and the context
-is the better answer.
+The default is camelCase: `InProgress` goes out as `"inProgress"`. To choose something else, set it
+for the assembly, for one enum, or both:
+
+```csharp
+[assembly: JsonEnumNaming(EnumNaming.KebabCaseLower)]   // "in-progress"
+
+[JsonEnumNaming(EnumNaming.MemberName)]                 // opts out: "AB12"
+public enum LegacyCode { AB12, CD34 }
+```
+
+**Decide this before the first client.** Changing an enum's vocabulary later breaks every consumer
+and no compiler will say so.
+
+Only enums this assembly declares are given a vocabulary. A `[Flags]` enum is left alone — a
+combination of members has no single member name to write — and so is anything from a referenced
+framework, since renaming those would redefine a contract that is not this application's.
+
+**Do not reach for `[JsonConverter(typeof(JsonStringEnumConverter))]`.** It writes the C# member
+name rather than a wire value, it never reaches the published document, and the non-generic form
+cannot work under Native AOT — so it fails when the application is published rather than when it is
+written. `SYSLIB1034` says so where the compiler can see it.
 
 #endif
 

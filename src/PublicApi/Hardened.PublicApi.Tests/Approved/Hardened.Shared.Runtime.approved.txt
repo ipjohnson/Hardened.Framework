@@ -255,7 +255,7 @@ namespace Hardened.Shared.Runtime.Json
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class JsonSerializerImpl : Hardened.Shared.Runtime.Json.IJsonSerializer
     {
-        public JsonSerializerImpl(Microsoft.Extensions.Options.IOptions<Hardened.Shared.Runtime.Json.IJsonSerializerConfiguration> configuration) { }
+        public JsonSerializerImpl(Microsoft.Extensions.Options.IOptions<Hardened.Shared.Runtime.Json.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
         public T Deserialize<T>(string json) { }
         public System.Threading.Tasks.Task<T> DeserializeAsync<T>(System.IO.Stream jsonStream, System.Threading.CancellationToken cancellationToken = default) { }
         public string Serialize(object obj, bool pretty) { }
