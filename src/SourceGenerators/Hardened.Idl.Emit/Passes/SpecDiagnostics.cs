@@ -83,6 +83,71 @@ internal static class SpecDiagnostics {
     /// caller may send - which is the shape of defect the whole enum vocabulary work exists to
     /// close. The document has to say which it means.
     /// </remarks>
+    /// <summary>
+    /// Keywords the description declared and the parser did not map.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A warning, not an error. The application is correct in every other respect and refusing to
+    /// build it would be worse than the omission; what it must not do is accept the keyword in
+    /// silence, which is what happened for every keyword in this class until now. A caller reading
+    /// the description sees <c>multipleOf: 5</c> and expects 3 to be refused, and nothing anywhere
+    /// said otherwise.
+    /// </para>
+    /// <para>
+    /// <b>One warning per distinct keyword, not per site.</b> A large description declaring
+    /// <c>uniqueItems</c> on forty arrays has one thing wrong with it and forty messages would bury
+    /// it - the same failure as a Smithy CLI error emitting one MSBuild line per line of output.
+    /// The count and a representative location carry what the extra thirty-nine would have.
+    /// </para>
+    /// <para>
+    /// This does not catch a keyword that was read and then flattened. That is a different class,
+    /// found by auditing the parser rather than by asking the model, and the difference is worth
+    /// keeping straight: nothing here would have found <c>summary</c> being folded into
+    /// <c>description</c>, because the parser mapped it.
+    /// </para>
+    /// </remarks>
+    private static void FindUnmappedKeywords(ServiceSpecModel model, List<Problem> problems) {
+        if (model.UnmappedKeywords.Count == 0) {
+            return;
+        }
+
+        var byKeyword = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        var order = new List<string>();
+
+        foreach (var unmapped in model.UnmappedKeywords) {
+            if (!byKeyword.TryGetValue(unmapped.Keyword, out var locations)) {
+                locations = new List<string>();
+                byKeyword[unmapped.Keyword] = locations;
+                order.Add(unmapped.Keyword);
+            }
+
+            locations.Add(unmapped.Location);
+        }
+
+        // Declared order rather than alphabetical, so the first message names the first thing the
+        // author would find reading their own document top to bottom.
+        foreach (var keyword in order) {
+            var locations = byKeyword[keyword];
+
+            var where = locations.Count == 1
+                ? $"at {locations[0]}"
+                : $"at {locations[0]} and {locations.Count - 1} other " +
+                  (locations.Count == 2 ? "place" : "places");
+
+            problems.Add(new Problem(
+                "HOAT013",
+                $"'{keyword}' is declared {where} and is not enforced. The description promises it " +
+                "and the generated application does not apply it, so a payload this rejects on " +
+                "paper is accepted at runtime. Remove it, or keep it and enforce the rule in the " +
+                "handler.",
+                // Explicitly, because the constructor's default is fatal. An application declaring
+                // a keyword this does not honour is otherwise correct, and refusing to build it
+                // would be a worse answer than the omission it is reporting.
+                fatal: false));
+        }
+    }
+
     private static void FindMixedEnums(ServiceSpecModel model, List<Problem> problems) {
         foreach (var schema in model.Schemas) {
             if (schema.Kind == SchemaKind.Enum && schema.Type == MixedEnumType) {
@@ -109,6 +174,7 @@ internal static class SpecDiagnostics {
         FindDuplicateSchemaNames(model, problems);
         FindUnresolvableChoices(model, problems);
         FindMixedEnums(model, problems);
+        FindUnmappedKeywords(model, problems);
 
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);

@@ -172,6 +172,11 @@ internal static class OpenApiSpecParser {
             model.Schemas.Add(schema);
         }
 
+        // Emptied onto the model beside the schemas, because SpecDiagnostics is handed a model and
+        // nothing else - and what the parser declined to map is the one thing a model cannot be
+        // asked about, since a dropped keyword left no field to look at.
+        model.UnmappedKeywords.AddRange(synthesized.Unmapped);
+
         foreach (var kvp in operationsByTag) {
             model.Services.Add(new ServiceModel {
                 Tag = kvp.Key,
@@ -1096,6 +1101,9 @@ internal static class OpenApiSpecParser {
         // Extract validation constraints
         ExtractValidationConstraints(prop, model);
 
+        // And note the ones it does not extract, while the document's own schema is still in hand.
+        NoteUnmappedConstraints(prop, parentName + "." + name, collector.Unmapped);
+
         // What the payload is allowed to be. Recorded whether or not it becomes a type of its own,
         // because the branches would otherwise leave no trace in the model - and a schema nothing
         // in the model points at is not generated.
@@ -1180,6 +1188,43 @@ internal static class OpenApiSpecParser {
         model.Type = SchemaType(prop);
         model.Format = prop.Format;
         return model;
+    }
+
+    /// <summary>
+    /// The constraint keywords this parser knows about and does not map, noted where they are met.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Sited here rather than in a walk of its own because this is the one place a property's own
+    /// schema is in hand, which is also why <c>ExtractValidationConstraints</c> reads readOnly and
+    /// writeOnly here despite neither being a constraint. A second walk would drift from this one.
+    /// </para>
+    /// <para>
+    /// An explicit list rather than "anything not read". The reader hands back a typed object model
+    /// and there is no way to ask it which keywords the document actually spelled, so a diff is not
+    /// available; each line here is a deliberate statement that the keyword is understood and not
+    /// honoured. The cost is that a keyword nobody has thought about is still silent - which is
+    /// the same position as before for that keyword, and better for these.
+    /// </para>
+    /// </remarks>
+    private static void NoteUnmappedConstraints(
+        IOpenApiSchema schema, string location, ICollection<UnmappedKeywordModel>? unmapped) {
+        if (unmapped == null) {
+            return;
+        }
+
+        if (schema.MultipleOf.HasValue) {
+            unmapped.Add(new UnmappedKeywordModel("multipleOf", location));
+        }
+
+        // True is the declaration; false is the default and says nothing.
+        if (schema.UniqueItems == true) {
+            unmapped.Add(new UnmappedKeywordModel("uniqueItems", location));
+        }
+
+        if (schema.Not != null) {
+            unmapped.Add(new UnmappedKeywordModel("not", location));
+        }
     }
 
     private static void ExtractValidationConstraints(IOpenApiSchema schema, PropertyModel model) {

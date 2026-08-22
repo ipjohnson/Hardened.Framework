@@ -80,6 +80,18 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// </remarks>
     public SpecResponseModel ResponseModel { get; set; } = SpecResponseModel.Standard;
 
+    /// <summary>
+    /// Keywords the description declared that the parser did not map, in the order they were met.
+    /// </summary>
+    /// <remarks>
+    /// Filled by the parser and read by <c>SpecDiagnostics</c>, which is the only reason it hangs
+    /// off the model at all: that pass takes a model and nothing else, and a dropped keyword is
+    /// invisible in one by definition. It is not serialized and it is deliberately absent from
+    /// <see cref="Equals(ServiceSpecModel?)"/> - a keyword nobody mapped generates no C#, so two
+    /// models differing only here generate the same code and must not miss a cache hit over it.
+    /// </remarks>
+    public List<UnmappedKeywordModel> UnmappedKeywords { get; set; } = new();
+
     public bool Equals(ServiceSpecModel? other) {
         if (other is not null && ContentNegotiation != other.ContentNegotiation) return false;
         if (other is not null && ResponseModel != other.ResponseModel) return false;

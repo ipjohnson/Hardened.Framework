@@ -31,6 +31,16 @@ internal sealed class SchemaCollector {
 
     private readonly HashSet<string> _taken = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Keywords met while reading schemas that the parser does not map.
+    /// </summary>
+    /// <remarks>
+    /// Here because this is already the parse-scoped accumulator threaded through every schema
+    /// method, so noting a dropped keyword costs no new parameter on any of them. It is emptied
+    /// onto the model at the end of <c>Parse</c>, alongside the synthesized schemas.
+    /// </remarks>
+    public List<UnmappedKeywordModel> Unmapped { get; } = new();
+
     /// <param name="declared">
     /// The document's own schema names, reserved before anything is parsed - an inline object
     /// inside a declared schema is lifted while that schema is still being read, so seeding this
