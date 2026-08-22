@@ -75,15 +75,6 @@ internal static class SpecDiagnostics {
     }
 
     /// <summary>
-    /// An <c>enum</c> declaring both strings and numbers, which is not a C# enum in either form.
-    /// </summary>
-    /// <remarks>
-    /// Fatal rather than resolved. Honouring the strings puts the numbers out of reach and honouring
-    /// the numbers puts the strings out of reach, so either choice silently drops half the values a
-    /// caller may send - which is the shape of defect the whole enum vocabulary work exists to
-    /// close. The document has to say which it means.
-    /// </remarks>
-    /// <summary>
     /// Keywords the description declared and the parser did not map.
     /// </summary>
     /// <remarks>
@@ -115,7 +106,18 @@ internal static class SpecDiagnostics {
         var byKeyword = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         var order = new List<string>();
 
+        // Deduped on keyword and location together, because a parser may meet the same member more
+        // than once and one member is one place however many times it was read. Smithy's does: an
+        // operation's input structure is walked for the schema and walked again for the request
+        // body's properties, so every member of it is built twice. Counting that as two sites would
+        // put "and 1 other place" on a message about one, which is worse than not counting at all.
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var unmapped in model.UnmappedKeywords) {
+            if (!seen.Add(unmapped.Keyword + "\u001f" + unmapped.Location)) {
+                continue;
+            }
+
             if (!byKeyword.TryGetValue(unmapped.Keyword, out var locations)) {
                 locations = new List<string>();
                 byKeyword[unmapped.Keyword] = locations;
@@ -148,6 +150,15 @@ internal static class SpecDiagnostics {
         }
     }
 
+    /// <summary>
+    /// An <c>enum</c> declaring both strings and numbers, which is not a C# enum in either form.
+    /// </summary>
+    /// <remarks>
+    /// Fatal rather than resolved. Honouring the strings puts the numbers out of reach and honouring
+    /// the numbers puts the strings out of reach, so either choice silently drops half the values a
+    /// caller may send - which is the shape of defect the whole enum vocabulary work exists to
+    /// close. The document has to say which it means.
+    /// </remarks>
     private static void FindMixedEnums(ServiceSpecModel model, List<Problem> problems) {
         foreach (var schema in model.Schemas) {
             if (schema.Kind == SchemaKind.Enum && schema.Type == MixedEnumType) {
