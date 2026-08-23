@@ -146,15 +146,20 @@ public static class RoutingTableGenerator {
     }
     
     public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
-        IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken) {
+        IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken,
+        RoutingTableOptions? options = null) {
+        options ??= RoutingTableOptions.Default;
+
         _caseInsensitive = IsCaseInsensitive(appModel);
-        _basePath = GetBasePath(appModel);
+        _basePath = options.UseEntryPointBasePath ? GetBasePath(appModel) : "";
 
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
-        CreateRoutingTable(appModel, handlers, applicationFile, cancellationToken);
+        CreateRoutingTable(appModel, handlers, applicationFile, cancellationToken, options);
 
-        var outputContext = new OutputContext();
+        var outputContext = options.TypeOutputMode is { } mode
+            ? new OutputContext(new OutputContextOptions { TypeOutputMode = mode })
+            : new OutputContext();
 
         applicationFile.WriteOutput(outputContext);
 
@@ -163,14 +168,15 @@ public static class RoutingTableGenerator {
 
     private static void CreateRoutingTable(EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> endPointModels,
-        CSharpFileDefinition applicationFile, CancellationToken cancellationToken) {
+        CSharpFileDefinition applicationFile, CancellationToken cancellationToken,
+        RoutingTableOptions options) {
         cancellationToken.ThrowIfCancellationRequested();
 
         var appClass = applicationFile.AddClass(appModel.EntryPointType.Name);
 
         appClass.Modifiers |= ComponentModifier.Partial;
 
-        var routingClass = appClass.AddClass("RoutingTable");
+        var routingClass = appClass.AddClass(options.ClassName);
 
         CreateConstructor(routingClass);
 
@@ -178,10 +184,15 @@ public static class RoutingTableGenerator {
 
         routingClass.AddBaseType(KnownTypes.Web.IWebExecutionRequestHandlerProvider);
 
+        if (options.ExcludeFromCodeCoverage) {
+            routingClass.AddAttribute(
+                TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "ExcludeFromCodeCoverage"));
+        }
+
         ImplementHandlerMethod(appModel, routingClass, endPointModels, cancellationToken);
 
         var routingType = TypeDefinition.Get(appModel.EntryPointType.Namespace,
-            appModel.EntryPointType.Name + ".RoutingTable");
+            appModel.EntryPointType.Name + "." + options.ClassName);
 
         // Before the DI method, which registers what this emits.
         var enums = EnumWireConverterEmitter.Collect(endPointModels);
@@ -189,7 +200,7 @@ public static class RoutingTableGenerator {
         EnumWireConverterEmitter.Emit(appClass, enums);
 
         GenerateDependencyInjection(
-            appClass, routingType, appModel, endPointModels, enums, cancellationToken);
+            appClass, routingType, appModel, endPointModels, enums, cancellationToken, options);
     }
 
     private static void CreateConstructor(ClassDefinition appClass) {
@@ -206,10 +217,11 @@ public static class RoutingTableGenerator {
         ITypeDefinition routingTableType,
         EntryPointSelector.Model applicationModel, IReadOnlyList<RequestHandlerModel> webEndPointModels,
         IReadOnlyList<EnumVocabulary> enums,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        RoutingTableOptions options) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var templateField = classDefinition.AddField(typeof(int), "_routingTableDependencies");
+        var templateField = classDefinition.AddField(typeof(int), options.DependencyFieldName);
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime.Helpers);
@@ -257,6 +269,12 @@ public static class RoutingTableGenerator {
 
         Validation.ParameterValidatorRegistration.Write(
             diMethod, serviceCollection, webEndPointModels, cancellationToken);
+
+        // Last, and already emitted by the caller. See RoutingTableOptions for why this is a list
+        // of statements rather than a hook.
+        foreach (var registration in options.AdditionalRegistrations) {
+            diMethod.AddIndentedStatement(registration);
+        }
     }
 
     /// <summary>
