@@ -85,6 +85,18 @@
         <Compile Include="../Hardened.SourceGenerator/Web/Routing/**/*">
             <Link>Web\Routing\%(RecursiveDir)/%(FileName)%(Extension)</Link>
         </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/Authorization/**/*">
+            <Link>Web/Authorization/%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/WebGeneratorOptions.cs">
+            <Link>Web/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/EnumWireConverterEmitter.cs">
+            <Link>Web/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Validation/ParameterValidatorRegistration.cs">
+            <Link>Validation/%(FileName)%(Extension)</Link>
+        </Compile>
         <Compile Include="../Hardened.SourceGenerator/Web/WebExecutionHandlerCodeGenerator.cs">
             <Link>Web\WebExecutionHandlerCodeGenerator.cs</Link>
         </Compile>
