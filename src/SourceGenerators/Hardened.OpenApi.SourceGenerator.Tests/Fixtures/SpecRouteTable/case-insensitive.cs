@@ -27,6 +27,8 @@ namespace Test.Api
         {
             private global::System.IServiceProvider _rootServiceProvider;
             private global::Test.Api.Generated.PetController_GetPet? _fieldPetController_GetPet;
+            private readonly static string[] _pathTokenNamesPetController_GetPet =             new string[] { "PetId" }
+;
             private readonly static global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
 
@@ -107,10 +109,8 @@ namespace Test.Api
                             _fieldPetController_GetPet ??= new global::Test.Api.Generated.PetController_GetPet(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "PetId",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_GetPet,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:

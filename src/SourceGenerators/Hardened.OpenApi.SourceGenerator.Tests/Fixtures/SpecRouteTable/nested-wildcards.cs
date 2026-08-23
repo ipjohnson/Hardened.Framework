@@ -27,9 +27,13 @@ namespace Test.Api
         {
             private global::System.IServiceProvider _rootServiceProvider;
             private global::Test.Api.Generated.PetController_ThreeTokens? _fieldPetController_ThreeTokens;
+            private readonly static string[] _pathTokenNamesPetController_ThreeTokens =             new string[] { "x", "y", "z" }
+;
             private readonly static global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
             private global::Test.Api.Generated.PetController_TwoTokens? _fieldPetController_TwoTokens;
+            private readonly static string[] _pathTokenNamesPetController_TwoTokens =             new string[] { "x", "y" }
+;
 
             public SpecRoutingTable(global::System.IServiceProvider serviceProvider)
             {
@@ -107,16 +111,16 @@ namespace Test.Api
                         );
                         if (handlerInfo != null)
                         {
-                            handlerInfo.PathTokens.Set(
-                                0,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "x",
+                            if (handlerInfo.Handler != null)
+                            {
+                                handlerInfo.PathTokens.SetValue(
+                                    0,
                                     charSpan.Slice(
                                         index,
                                         (currentIndex - index)
                                     ).ToString()
-                                )
-                            );
+                                );
+                            }
                             return handlerInfo;
                         }
                     }
@@ -179,16 +183,16 @@ namespace Test.Api
                         );
                         if (handlerInfo != null)
                         {
-                            handlerInfo.PathTokens.Set(
-                                1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "y",
+                            if (handlerInfo.Handler != null)
+                            {
+                                handlerInfo.PathTokens.SetValue(
+                                    1,
                                     charSpan.Slice(
                                         index,
                                         (currentIndex - index)
                                     ).ToString()
-                                )
-                            );
+                                );
+                            }
                             return handlerInfo;
                         }
                     }
@@ -244,10 +248,8 @@ namespace Test.Api
                             _fieldPetController_ThreeTokens ??= new global::Test.Api.Generated.PetController_ThreeTokens(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 3,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "z",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_ThreeTokens,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:
@@ -273,10 +275,8 @@ namespace Test.Api
                             _fieldPetController_TwoTokens ??= new global::Test.Api.Generated.PetController_TwoTokens(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 2,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "y",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_TwoTokens,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:

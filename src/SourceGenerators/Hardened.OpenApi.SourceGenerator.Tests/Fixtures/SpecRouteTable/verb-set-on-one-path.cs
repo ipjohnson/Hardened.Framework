@@ -27,8 +27,14 @@ namespace Test.Api
         {
             private global::System.IServiceProvider _rootServiceProvider;
             private global::Test.Api.Generated.PetController_GetPet? _fieldPetController_GetPet;
+            private readonly static string[] _pathTokenNamesPetController_GetPet =             new string[] { "petId" }
+;
             private global::Test.Api.Generated.PetController_UpdatePet? _fieldPetController_UpdatePet;
+            private readonly static string[] _pathTokenNamesPetController_UpdatePet =             new string[] { "petId" }
+;
             private global::Test.Api.Generated.PetController_DeletePet? _fieldPetController_DeletePet;
+            private readonly static string[] _pathTokenNamesPetController_DeletePet =             new string[] { "petId" }
+;
             private readonly static global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedDELETEGETHEADPUT =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("DELETE, GET, HEAD, PUT")
 ;
 
@@ -109,10 +115,8 @@ namespace Test.Api
                             _fieldPetController_GetPet ??= new global::Test.Api.Generated.PetController_GetPet(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "petId",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_GetPet,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     case "PUT":
@@ -120,10 +124,8 @@ namespace Test.Api
                             _fieldPetController_UpdatePet ??= new global::Test.Api.Generated.PetController_UpdatePet(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "petId",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_UpdatePet,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     case "DELETE":
@@ -131,10 +133,8 @@ namespace Test.Api
                             _fieldPetController_DeletePet ??= new global::Test.Api.Generated.PetController_DeletePet(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "petId",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_DeletePet,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:

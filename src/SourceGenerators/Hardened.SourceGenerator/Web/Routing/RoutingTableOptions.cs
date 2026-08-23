@@ -36,6 +36,20 @@ public sealed class RoutingTableOptions {
     /// <summary>Name of the static field that anchors the table's dependency registration.</summary>
     public string DependencyFieldName { get; init; } = "_routingTableDependencies";
 
+    /// <summary>Name of the generated dependency-registration method.</summary>
+    public string DependencyMethodName { get; init; } = "RoutingTableDI";
+
+    /// <summary>
+    /// Whether each distinct controller type is registered as a transient service.
+    /// </summary>
+    /// <remarks>
+    /// The attribute-routed path registers the controller type itself, because the handler class is
+    /// the service. The description-driven path registers interface-to-implementation pairs from the
+    /// descriptions instead, so doing both would additionally register an interface with nothing
+    /// behind it — clean at build time, and a resolve failure on the first request.
+    /// </remarks>
+    public bool RegisterControllerTypes { get; init; } = true;
+
     /// <summary>
     /// How type names are written, or null for the writer's own default.
     /// </summary>

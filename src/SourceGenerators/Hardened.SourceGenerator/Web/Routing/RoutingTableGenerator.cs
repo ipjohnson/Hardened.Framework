@@ -225,10 +225,10 @@ public static class RoutingTableGenerator {
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime.Helpers);
-        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add(RoutingTableDI)");
-        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(RoutingTableDI)");
+        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add({options.DependencyMethodName})");
+        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), $"nameof({options.DependencyMethodName})");
 
-        var diMethod = classDefinition.AddMethod("RoutingTableDI");
+        var diMethod = classDefinition.AddMethod(options.DependencyMethodName);
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
@@ -247,14 +247,16 @@ public static class RoutingTableGenerator {
             diMethod.AddIndentedStatement(new CodeOutputComponent(negotiation));
         }
 
-        var distinctControllers =
-            webEndPointModels.Select(model => model.ControllerType).Distinct();
+        if (options.RegisterControllerTypes) {
+            var distinctControllers =
+                webEndPointModels.Select(model => model.ControllerType).Distinct();
 
-        foreach (var controllerType in distinctControllers) {
-            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var controllerType in distinctControllers) {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
-                new[] { controllerType }));
+                diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
+                    new[] { controllerType }));
+            }
         }
 
         RegisterLinks(diMethod, serviceCollection, applicationModel, webEndPointModels);

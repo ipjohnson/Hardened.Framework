@@ -26,10 +26,12 @@ namespace Test.Api
         private class SpecRoutingTable : global::Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
         {
             private global::System.IServiceProvider _rootServiceProvider;
-            private global::Test.Api.Generated.PetController_Special? _fieldPetController_Special;
+            private global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? _infoPetController_Special;
             private readonly static global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
             private global::Test.Api.Generated.PetController_GetPet? _fieldPetController_GetPet;
+            private readonly static string[] _pathTokenNamesPetController_GetPet =             new string[] { "petId" }
+;
 
             public SpecRoutingTable(global::System.IServiceProvider serviceProvider)
             {
@@ -111,8 +113,8 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                                    _fieldPetController_Special ??= new global::Test.Api.Generated.PetController_Special(_rootServiceProvider),
+                                return _infoPetController_Special ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
+                                    new global::Test.Api.Generated.PetController_Special(_rootServiceProvider),
                                     global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection.Empty
                                 );
                             default:
@@ -152,10 +154,8 @@ namespace Test.Api
                             _fieldPetController_GetPet ??= new global::Test.Api.Generated.PetController_GetPet(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "petId",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_GetPet,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:

@@ -27,11 +27,19 @@ namespace Test.Api
         {
             private global::System.IServiceProvider _rootServiceProvider;
             private global::Test.Api.Generated.PetController_GetFlag? _fieldPetController_GetFlag;
+            private readonly static string[] _pathTokenNamesPetController_GetFlag =             new string[] { "on" }
+;
             private readonly static global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
             private global::Test.Api.Generated.PetController_GetItem? _fieldPetController_GetItem;
+            private readonly static string[] _pathTokenNamesPetController_GetItem =             new string[] { "id" }
+;
             private global::Test.Api.Generated.PetController_GetByKey? _fieldPetController_GetByKey;
+            private readonly static string[] _pathTokenNamesPetController_GetByKey =             new string[] { "key" }
+;
             private global::Test.Api.Generated.PetController_GetPrice? _fieldPetController_GetPrice;
+            private readonly static string[] _pathTokenNamesPetController_GetPrice =             new string[] { "value" }
+;
 
             public SpecRoutingTable(global::System.IServiceProvider serviceProvider)
             {
@@ -160,10 +168,8 @@ namespace Test.Api
                             _fieldPetController_GetFlag ??= new global::Test.Api.Generated.PetController_GetFlag(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "on:bool",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_GetFlag,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:
@@ -233,10 +239,8 @@ namespace Test.Api
                             _fieldPetController_GetItem ??= new global::Test.Api.Generated.PetController_GetItem(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "id:int",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_GetItem,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:
@@ -306,10 +310,8 @@ namespace Test.Api
                             _fieldPetController_GetByKey ??= new global::Test.Api.Generated.PetController_GetByKey(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "key:guid",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_GetByKey,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:
@@ -379,10 +381,8 @@ namespace Test.Api
                             _fieldPetController_GetPrice ??= new global::Test.Api.Generated.PetController_GetPrice(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "value:decimal",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_GetPrice,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:

@@ -28,7 +28,7 @@ namespace Test.Api
             private global::System.IServiceProvider _rootServiceProvider;
             private global::Test.Api.Generated.PetController_GetBalance? _fieldPetController_GetBalance;
             private global::Test.Api.Generated.PetController_Transfer? _fieldPetController_Transfer;
-            private global::Test.Api.Generated.PetController_Health? _fieldPetController_Health;
+            private global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? _infoPetController_Health;
             private readonly static global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
 
@@ -90,8 +90,8 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                                    _fieldPetController_Health ??= new global::Test.Api.Generated.PetController_Health(_rootServiceProvider),
+                                return _infoPetController_Health ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
+                                    new global::Test.Api.Generated.PetController_Health(_rootServiceProvider),
                                     global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection.Empty
                                 );
                             default:

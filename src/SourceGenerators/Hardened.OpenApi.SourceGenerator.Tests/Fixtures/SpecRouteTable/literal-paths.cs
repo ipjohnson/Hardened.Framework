@@ -4,7 +4,6 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Test.Api.Generated;
 
 namespace Test.Api
 {
@@ -26,11 +25,11 @@ namespace Test.Api
         private class SpecRoutingTable : global::Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
         {
             private global::System.IServiceProvider _rootServiceProvider;
-            private global::Test.Api.Generated.PetController_ListPets? _fieldPetController_ListPets;
+            private global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? _infoPetController_ListPets;
             private readonly static global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
-            private global::Test.Api.Generated.PetController_Featured? _fieldPetController_Featured;
-            private global::Test.Api.Generated.PetController_Store? _fieldPetController_Store;
+            private global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? _infoPetController_Featured;
+            private global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? _infoPetController_Store;
 
             public SpecRoutingTable(global::System.IServiceProvider serviceProvider)
             {
@@ -108,8 +107,8 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                                    _fieldPetController_ListPets ??= new global::Test.Api.Generated.PetController_ListPets(_rootServiceProvider),
+                                return _infoPetController_ListPets ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
+                                    new global::Test.Api.Generated.PetController_ListPets(_rootServiceProvider),
                                     global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection.Empty
                                 );
                             default:
@@ -152,8 +151,8 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                                    _fieldPetController_Featured ??= new global::Test.Api.Generated.PetController_Featured(_rootServiceProvider),
+                                return _infoPetController_Featured ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
+                                    new global::Test.Api.Generated.PetController_Featured(_rootServiceProvider),
                                     global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection.Empty
                                 );
                             default:
@@ -187,8 +186,8 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                                    _fieldPetController_Store ??= new global::Test.Api.Generated.PetController_Store(_rootServiceProvider),
+                                return _infoPetController_Store ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
+                                    new global::Test.Api.Generated.PetController_Store(_rootServiceProvider),
                                     global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection.Empty
                                 );
                             default:

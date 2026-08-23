@@ -27,6 +27,8 @@ namespace Test.Api
         {
             private global::System.IServiceProvider _rootServiceProvider;
             private global::Test.Api.Generated.PetController_GetFile? _fieldPetController_GetFile;
+            private readonly static string[] _pathTokenNamesPetController_GetFile =             new string[] { "path" }
+;
             private readonly static global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
 
@@ -95,10 +97,6 @@ namespace Test.Api
                 {
                     return null;
                 }
-                if (charSpan.Slice(index).IndexOf('/') >= 0)
-                {
-                    return null;
-                }
                 switch (methodString)
                 {
                     case "HEAD":
@@ -107,10 +105,8 @@ namespace Test.Api
                             _fieldPetController_GetFile ??= new global::Test.Api.Generated.PetController_GetFile(_rootServiceProvider),
                             new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
                                 1,
-                                new global::Hardened.Requests.Abstract.PathTokens.PathToken(
-                                    "*path",
-                                    charSpan.Slice(index).ToString()
-                                )
+                                _pathTokenNamesPetController_GetFile,
+                                charSpan.Slice(index).ToString()
                             )
                         );
                     default:
