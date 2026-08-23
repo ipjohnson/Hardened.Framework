@@ -91,4 +91,9 @@
         </None>
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Remove="Fixtures/**/*.cs"/>
+        <None Include="Fixtures/**/*.cs"/>
+    </ItemGroup>
+
 </Project>
