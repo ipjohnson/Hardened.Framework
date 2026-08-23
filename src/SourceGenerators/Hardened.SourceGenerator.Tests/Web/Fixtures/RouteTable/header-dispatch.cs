@@ -30,10 +30,8 @@ namespace Test.Api
         private class RoutingTable : IWebExecutionRequestHandlerProvider
         {
             private IServiceProvider _rootServiceProvider;
-            private RequestHandlerInfo? _infoPetController_GetBalance;
-            private RequestHandlerInfo? _infoPetController_Transfer;
-            private readonly static RequestHandlerInfo _methodNotAllowedPOST =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("POST")
-;
+            private PetController_GetBalance? _fieldPetController_GetBalance;
+            private PetController_Transfer? _fieldPetController_Transfer;
             private RequestHandlerInfo? _infoPetController_Health;
             private readonly static RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
@@ -45,6 +43,22 @@ namespace Test.Api
 
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
+                if (context.Request.Headers.TryGetValue("X-Amz-Target", out var dispatchValues))
+                {
+                    switch (dispatchValues.ToString())
+                    {
+                        case "Bank.GetBalance":
+                            return new RequestHandlerInfo(
+                                _fieldPetController_GetBalance ??= new PetController_GetBalance(_rootServiceProvider),
+                                PathTokenCollection.Empty
+                            );
+                        case "Bank.Transfer":
+                            return new RequestHandlerInfo(
+                                _fieldPetController_Transfer ??= new PetController_Transfer(_rootServiceProvider),
+                                PathTokenCollection.Empty
+                            );
+                    }
+                }
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_Slash(
                     pathSpan,
@@ -59,25 +73,7 @@ namespace Test.Api
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
                 {
                     index += 1;
-                    if (charSpan.Length == index)
-                    {
-                        switch (methodString)
-                        {
-                            case "POST":
-                                return _infoPetController_GetBalance ??= new RequestHandlerInfo(
-                                    new PetController_GetBalance(_rootServiceProvider),
-                                    PathTokenCollection.Empty
-                                );
-                            case "POST":
-                                return _infoPetController_Transfer ??= new RequestHandlerInfo(
-                                    new PetController_Transfer(_rootServiceProvider),
-                                    PathTokenCollection.Empty
-                                );
-                            default:
-                                return _methodNotAllowedPOST;
-                        }
-                    }
-                    handlerInfo = TestPath_h(
+                    handlerInfo = TestPath_health(
                         charSpan,
                         index,
                         methodString
@@ -86,27 +82,12 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_h(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_health(ReadOnlySpan<Char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == 'h'))
+                if ((charSpan.Length >= index + 6) && (charSpan[index + 0] == 'h') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'a') && (charSpan[index + 3] == 'l') && (charSpan[index + 4] == 't') && (charSpan[index + 5] == 'h'))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_ealth(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_ealth(ReadOnlySpan<Char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'e') && (charSpan[index + 1] == 'a') && (charSpan[index + 2] == 'l') && (charSpan[index + 3] == 't') && (charSpan[index + 4] == 'h'))
-                {
-                    index += 5;
+                    index += 6;
                     if (charSpan.Length == index)
                     {
                         switch (methodString)
