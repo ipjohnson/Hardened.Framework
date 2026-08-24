@@ -45,4 +45,14 @@
         <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
     </ItemGroup>
 
+    <!--
+      Recorded generator output, not source. They are .cs so a reviewer reads them with syntax
+      highlighting in the diff, and every one of them declares the same TestApp.RoutingTable - so
+      compiling them merges ten partial classes and collides.
+    -->
+    <ItemGroup>
+        <Compile Remove="Web/Fixtures/**/*.cs"/>
+        <None Include="Web/Fixtures/**/*.cs"/>
+    </ItemGroup>
+
 </Project>

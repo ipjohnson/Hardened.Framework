@@ -146,15 +146,20 @@ public static class RoutingTableGenerator {
     }
     
     public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
-        IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken) {
+        IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken,
+        RoutingTableOptions? options = null) {
+        options ??= RoutingTableOptions.Default;
+
         _caseInsensitive = IsCaseInsensitive(appModel);
-        _basePath = GetBasePath(appModel);
+        _basePath = options.UseEntryPointBasePath ? GetBasePath(appModel) : "";
 
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
-        CreateRoutingTable(appModel, handlers, applicationFile, cancellationToken);
+        CreateRoutingTable(appModel, handlers, applicationFile, cancellationToken, options);
 
-        var outputContext = new OutputContext();
+        var outputContext = options.TypeOutputMode is { } mode
+            ? new OutputContext(new OutputContextOptions { TypeOutputMode = mode })
+            : new OutputContext();
 
         applicationFile.WriteOutput(outputContext);
 
@@ -163,14 +168,15 @@ public static class RoutingTableGenerator {
 
     private static void CreateRoutingTable(EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> endPointModels,
-        CSharpFileDefinition applicationFile, CancellationToken cancellationToken) {
+        CSharpFileDefinition applicationFile, CancellationToken cancellationToken,
+        RoutingTableOptions options) {
         cancellationToken.ThrowIfCancellationRequested();
 
         var appClass = applicationFile.AddClass(appModel.EntryPointType.Name);
 
         appClass.Modifiers |= ComponentModifier.Partial;
 
-        var routingClass = appClass.AddClass("RoutingTable");
+        var routingClass = appClass.AddClass(options.ClassName);
 
         CreateConstructor(routingClass);
 
@@ -178,10 +184,15 @@ public static class RoutingTableGenerator {
 
         routingClass.AddBaseType(KnownTypes.Web.IWebExecutionRequestHandlerProvider);
 
+        if (options.ExcludeFromCodeCoverage) {
+            routingClass.AddAttribute(
+                TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "ExcludeFromCodeCoverage"));
+        }
+
         ImplementHandlerMethod(appModel, routingClass, endPointModels, cancellationToken);
 
         var routingType = TypeDefinition.Get(appModel.EntryPointType.Namespace,
-            appModel.EntryPointType.Name + ".RoutingTable");
+            appModel.EntryPointType.Name + "." + options.ClassName);
 
         // Before the DI method, which registers what this emits.
         var enums = EnumWireConverterEmitter.Collect(endPointModels);
@@ -189,7 +200,7 @@ public static class RoutingTableGenerator {
         EnumWireConverterEmitter.Emit(appClass, enums);
 
         GenerateDependencyInjection(
-            appClass, routingType, appModel, endPointModels, enums, cancellationToken);
+            appClass, routingType, appModel, endPointModels, enums, cancellationToken, options);
     }
 
     private static void CreateConstructor(ClassDefinition appClass) {
@@ -206,17 +217,18 @@ public static class RoutingTableGenerator {
         ITypeDefinition routingTableType,
         EntryPointSelector.Model applicationModel, IReadOnlyList<RequestHandlerModel> webEndPointModels,
         IReadOnlyList<EnumVocabulary> enums,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        RoutingTableOptions options) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var templateField = classDefinition.AddField(typeof(int), "_routingTableDependencies");
+        var templateField = classDefinition.AddField(typeof(int), options.DependencyFieldName);
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime.Helpers);
-        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add(RoutingTableDI)");
-        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), "nameof(RoutingTableDI)");
+        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add({options.DependencyMethodName})");
+        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), $"nameof({options.DependencyMethodName})");
 
-        var diMethod = classDefinition.AddMethod("RoutingTableDI");
+        var diMethod = classDefinition.AddMethod(options.DependencyMethodName);
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
@@ -235,14 +247,16 @@ public static class RoutingTableGenerator {
             diMethod.AddIndentedStatement(new CodeOutputComponent(negotiation));
         }
 
-        var distinctControllers =
-            webEndPointModels.Select(model => model.ControllerType).Distinct();
+        if (options.RegisterControllerTypes) {
+            var distinctControllers =
+                webEndPointModels.Select(model => model.ControllerType).Distinct();
 
-        foreach (var controllerType in distinctControllers) {
-            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var controllerType in distinctControllers) {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
-                new[] { controllerType }));
+                diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
+                    new[] { controllerType }));
+            }
         }
 
         RegisterLinks(diMethod, serviceCollection, applicationModel, webEndPointModels);
@@ -257,6 +271,12 @@ public static class RoutingTableGenerator {
 
         Validation.ParameterValidatorRegistration.Write(
             diMethod, serviceCollection, webEndPointModels, cancellationToken);
+
+        // Last, and already emitted by the caller. See RoutingTableOptions for why this is a list
+        // of statements rather than a hook.
+        foreach (var registration in options.AdditionalRegistrations) {
+            diMethod.AddIndentedStatement(registration);
+        }
     }
 
     /// <summary>
@@ -415,10 +435,100 @@ public static class RoutingTableGenerator {
 
         var context = handlerMethod.AddParameter(KnownTypes.Requests.IExecutionContext, "context");
 
+        // Two ways a request can name an operation, and an application may serve both.
+        var dispatched = new List<RequestHandlerModel>();
+        var routed = new List<RequestHandlerModel>();
+
+        foreach (var model in endPointModels) {
+            (model.Name.IsDispatched ? dispatched : routed).Add(model);
+        }
+
+        // Header dispatch first, and that order is a decision rather than an accident: an awsJson
+        // service sends every operation to POST /, so a path tree consulted first would match that
+        // route for one of them and answer the wrong handler for all the others.
+        if (dispatched.Count > 0) {
+            WriteDispatchTable(routingClass, handlerMethod, context, dispatched);
+        }
+
+        // Nothing left to route: no tree is built over an empty list.
+        if (routed.Count == 0) {
+            handlerMethod.Return(Null());
+
+            return;
+        }
+
         handlerMethod.Assign(context.Property("Request").Property("Path").Invoke("AsSpan")).ToVar("pathSpan");
 
-        WriteRoutingTable(appModel, routingClass, handlerMethod, endPointModels,
+        WriteRoutingTable(appModel, routingClass, handlerMethod, routed,
             context.Property("Request").Property("Method"), cancellationToken);
+    }
+
+    /// <summary>
+    /// Selects a handler by an exact token carried in a request header.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the whole of RPC-style routing, and it is cheaper than the route tree rather than an
+    /// addition to it: a switch over string literals is compiled to a computed hash and a jump, with
+    /// no span slicing, no wildcard nodes, no ambiguity to diagnose and no verb fallback. The
+    /// existing tree exists because a path has structure; a target does not.
+    /// </para>
+    /// <para>
+    /// Grouped by header because the header is a property of the protocol and an application may
+    /// serve two, which is the same reason the header is carried on the model rather than assumed to
+    /// be X-Amz-Target.
+    /// </para>
+    /// <para>
+    /// Without this, a dispatched model reaching this generator was routed by its path instead —
+    /// and every awsJson operation declares POST /, so the switch came out with the same case label
+    /// on each one. That is CS0152, so the failure was a build error rather than a wrong route.
+    /// </para>
+    /// </remarks>
+    private static void WriteDispatchTable(
+        ClassDefinition routingClass,
+        MethodDefinition handlerMethod,
+        ParameterDefinition context,
+        IReadOnlyList<RequestHandlerModel> dispatched) {
+        var headers = new List<string>();
+
+        foreach (var model in dispatched) {
+            if (!headers.Contains(model.Name.DispatchHeader!)) {
+                headers.Add(model.Name.DispatchHeader!);
+            }
+        }
+
+        for (var i = 0; i < headers.Count; i++) {
+            var header = headers[i];
+            var values = "dispatchValues" + (i == 0 ? "" : i.ToString());
+
+            var ifHeader = handlerMethod.If(
+                $"{context.Name}.Request.Headers.TryGetValue(\"{header}\", out var {values})");
+
+            var switchBlock = ifHeader.Switch(
+                new CodeOutputComponent($"{values}.ToString()") { Indented = false });
+
+            foreach (var model in dispatched) {
+                if (model.Name.DispatchHeader != header) {
+                    continue;
+                }
+
+                var caseStatement = switchBlock.AddCase(QuoteString(model.Name.DispatchKey!));
+
+                // The same lazily constructed singleton the route leaves use, so a dispatched
+                // handler and a routed one are built and reused identically.
+                var field = routingClass.AddField(
+                    model.InvokeHandlerType.MakeNullable(),
+                    "_field" + model.InvokeHandlerType.Name);
+
+                var coalesceHandler = NullCoalesceEqual(field.Instance,
+                    New(model.InvokeHandlerType, "_rootServiceProvider"));
+                coalesceHandler.PrintParentheses = false;
+
+                // No path tokens by construction: the route carries no template.
+                caseStatement.Return(
+                    New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, EmptyTokens));
+            }
+        }
     }
 
     private static void WriteRoutingTable(EntryPointSelector.Model appModel, ClassDefinition routingClass,
