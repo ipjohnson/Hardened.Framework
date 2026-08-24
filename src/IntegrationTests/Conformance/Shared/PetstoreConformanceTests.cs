@@ -66,6 +66,18 @@ public abstract class PetstoreConformanceTests {
     /// </remarks>
     protected virtual string AbsentPetId => "999";
 
+    /// <summary>
+    /// Where this application serves its API description.
+    /// </summary>
+    /// <remarks>
+    /// The path is overridable because each front-end asks for publishing in its own vocabulary and
+    /// picks its own default: code-first enables a feature marker carrying
+    /// <c>[OpenApiDocumentPath("/openapi.json")]</c>, while a described application sets
+    /// <c>PublishUrl</c> metadata on its spec item. What is not negotiable is that a description
+    /// gets served at all, which is what the test below asserts.
+    /// </remarks>
+    protected abstract string DocumentPath { get; }
+
     private string Because(string what) => $"[{FrontEnd}] {what}";
 
     [HardenedTest]
@@ -134,4 +146,37 @@ public abstract class PetstoreConformanceTests {
             Because("A 405 carried no Allow header, so a client cannot learn what the path accepts."));
     }
 
+    /// <summary>
+    /// A description is served at the path this application declared.
+    /// </summary>
+    /// <remarks>
+    /// This is the row that prompted the suite. Publishing was reported as working for OpenAPI and
+    /// missing for Smithy, and neither claim had ever been checked: the implementation lives in the
+    /// shared ExtractSpecTask base that both formats derive from, and the Smithy fixture simply
+    /// never set PublishUrl. It does now.
+    /// </remarks>
+    [HardenedTest]
+    public async Task Description_IsServedAtTheDeclaredPath(ITestWebApp app) {
+        var response = await app.Get(DocumentPath);
+
+        Assert.True(response.StatusCode == 200,
+            Because($"GET {DocumentPath} answered {response.StatusCode}, expected 200 - " +
+                    "this application declares that it publishes its description there."));
+
+        var body = await response.ReadTextAsync();
+
+        Assert.True(body.Length > 0,
+            Because($"GET {DocumentPath} answered 200 with an empty body, which reads as success " +
+                    "from every angle and describes nothing."));
+
+        // Formats differ - OpenAPI serves YAML, Smithy serves its JSON AST - so this asserts the
+        // one thing both must contain rather than trying to parse either. Without it the test
+        // passes against any 200, which is how a published document can be empty and unnoticed.
+        Assert.True(body.Contains("/pets", StringComparison.Ordinal),
+            Because($"The description served at {DocumentPath} does not mention /pets, so it is " +
+                    $"not describing this application. First 200 characters: {Head(body)}"));
+    }
+
+    private static string Head(string value) =>
+        value.Length <= 200 ? value : value.Substring(0, 200) + "…";
 }

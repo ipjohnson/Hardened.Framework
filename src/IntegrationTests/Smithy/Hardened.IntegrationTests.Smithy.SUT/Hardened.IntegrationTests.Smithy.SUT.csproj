@@ -59,7 +59,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <HardenedSmithyModel Include="Specs\petstore.smithy"/>
+        <!--
+          No Smithy fixture has ever set PublishUrl, so nothing has exercised document publishing
+          on this front-end. The base task that implements it is shared with OpenAPI, so this is
+          either free or a real gap - and until now there was no way to know which.
+        -->
+        <HardenedSmithyModel Include="Specs\petstore.smithy">
+            <PublishUrl>/smithy.json</PublishUrl>
+        </HardenedSmithyModel>
 
         <HardenedSmithyAst Include="Specs\bank.json"/>
         <None Include="Specs\bank.smithy"/>

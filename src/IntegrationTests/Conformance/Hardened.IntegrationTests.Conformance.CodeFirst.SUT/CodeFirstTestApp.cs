@@ -1,5 +1,6 @@
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
 
 namespace Hardened.IntegrationTests.Conformance.CodeFirst.SUT;
 
@@ -14,5 +15,9 @@ namespace Hardened.IntegrationTests.Conformance.CodeFirst.SUT;
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
+// Code-first asks for a published description with a feature marker carrying the path.
+// The described front-ends ask with <PublishUrl> metadata on the spec item. Three vocabularies,
+// one behaviour - which is the row of the conformance suite this enables.
+[Enable<OpenApiDocumentPublishing>]
 public partial class CodeFirstTestApp {
 }

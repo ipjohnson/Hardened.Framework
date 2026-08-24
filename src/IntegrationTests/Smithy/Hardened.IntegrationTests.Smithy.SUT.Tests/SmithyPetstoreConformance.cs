@@ -7,4 +7,7 @@ namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 /// </summary>
 public class SmithyPetstoreConformance : PetstoreConformanceTests {
     protected override string FrontEnd => "Smithy";
+
+    /// <summary>From PublishUrl metadata, set for the first time by this suite.</summary>
+    protected override string DocumentPath => "/smithy.json";
 }

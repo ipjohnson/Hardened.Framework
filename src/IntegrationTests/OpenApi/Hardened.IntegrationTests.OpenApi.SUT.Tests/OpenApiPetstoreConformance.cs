@@ -13,4 +13,7 @@ public class OpenApiPetstoreConformance : PetstoreConformanceTests {
     /// <c>/pets/7</c> answering 200.
     /// </summary>
     protected override string AbsentPetId => "missing";
+
+    /// <summary>From PublishUrl metadata on the spec item.</summary>
+    protected override string DocumentPath => "/openapi.yaml";
 }
