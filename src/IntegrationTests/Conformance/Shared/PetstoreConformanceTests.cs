@@ -91,6 +91,32 @@ public abstract class PetstoreConformanceTests {
     /// </remarks>
     protected abstract string SecuredPath { get; }
 
+    /// <summary>
+    /// A pet id whose lookup raises the operation's declared 429 rather than answering.
+    /// </summary>
+    protected virtual string ThrottledPetId => "throttled";
+
+    /// <summary>A pet id that violates the constraint the operation declares on it.</summary>
+    protected virtual string MalformedPetId => "NOT_A_VALID_ID";
+
+    /// <summary>
+    /// What this front-end answers when a path token violates its declared constraint.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is a known divergence, not a settled design.</b> Given the same declared intent —
+    /// <c>{petId:slug}</c> code-first, <c>pattern: '^[a-z0-9-]+$'</c> in OpenAPI,
+    /// <c>@pattern("^[a-z0-9-]+$")</c> in Smithy — the described front-ends answer 400 and
+    /// code-first answers 404. Both are defensible on their own terms: code-first compiles a
+    /// constraint into the route table, so violating it means the route did not match; a described
+    /// front-end treats the same constraint as a validation rule on a route that did match.
+    /// <para>
+    /// They cannot both be right for one declaration, and a client cannot tell which it will get.
+    /// Pinning the value per front-end keeps the divergence from widening while the question is
+    /// open; when it is answered, the override below is deleted rather than the test.
+    /// </para>
+    /// </remarks>
+    protected virtual int MalformedTokenStatus => 400;
+
     private string Because(string what) => $"[{FrontEnd}] {what}";
 
     [HardenedTest]
@@ -201,6 +227,41 @@ public abstract class PetstoreConformanceTests {
             Because($"GET {SecuredPath} answered {response.StatusCode}, expected 401 or 403 — " +
                     "this application declares that route as requiring an authenticated caller. " +
                     "A 200 means the declaration was read and then not enforced."));
+    }
+
+    /// <summary>
+    /// A handler raising an error its operation declares answers with that status, not 500.
+    /// </summary>
+    /// <remarks>
+    /// Three spellings again. A described front-end generates one exception per operation and
+    /// status — <c>GetPetTooManyRequestsException</c>, carrying the declared body type — while
+    /// code-first throws a built-in response type wrapped in <c>ResponseException</c>. Both derive
+    /// from <c>StatusCodeException</c>, which is where the two vocabularies already meet.
+    /// </remarks>
+    [HardenedTest]
+    public async Task DeclaredError_AnswersItsDeclaredStatus(ITestWebApp app) {
+        var response = await app.Get($"/pets/{ThrottledPetId}");
+
+        Assert.True(response.StatusCode == 429,
+            Because($"GET /pets/{ThrottledPetId} answered {response.StatusCode}, expected 429. " +
+                    "A 500 means the declared error was raised and not recognised as a response."));
+    }
+
+    /// <summary>
+    /// A path token violating its declared constraint is refused rather than reaching the handler.
+    /// </summary>
+    /// <remarks>
+    /// The status is <see cref="MalformedTokenStatus"/> because the three front-ends currently
+    /// disagree about it. What they agree on, and what this pins, is that the request is refused —
+    /// a 200 would mean the constraint was declared and then not applied.
+    /// </remarks>
+    [HardenedTest]
+    public async Task MalformedPathToken_IsRefused(ITestWebApp app) {
+        var response = await app.Get($"/pets/{MalformedPetId}");
+
+        Assert.True(response.StatusCode == MalformedTokenStatus,
+            Because($"GET /pets/{MalformedPetId} answered {response.StatusCode}, expected " +
+                    $"{MalformedTokenStatus}. A 200 means the declared constraint was not applied."));
     }
 
     private static string Head(string value) =>

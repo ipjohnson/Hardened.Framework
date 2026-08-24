@@ -176,6 +176,7 @@ paths:
           required: true
           schema:
             type: string
+            pattern: '^[a-z0-9-]+$'
       responses:
         '200':
           description: A single pet
@@ -185,6 +186,12 @@ paths:
                 $ref: '#/components/schemas/Pet'
         '404':
           description: No pet with that id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: The caller is being throttled.
           content:
             application/json:
               schema:

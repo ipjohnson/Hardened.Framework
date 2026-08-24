@@ -73,6 +73,12 @@ public class PetServiceImpl : IPetService {
     /// why this handler found nothing.
     /// </remarks>
     public Task<Pet?> GetPet(string petId) {
+        // The declared 429, raised. The generated exception is named for the operation and status
+        // it belongs to, so what a handler may throw is discoverable from the handler.
+        if (petId == "throttled") {
+            throw new GetPetTooManyRequestsException(new Problem { Title = "Slow down." });
+        }
+
         return Task.FromResult<Pet?>(
             petId == "missing" ? null : new Pet(petId, "TestPet"));
     }

@@ -46,6 +46,12 @@ public class PetStoreServiceImpl : IPetStoreService {
     /// answers 404; throwing the generated exception type is how a handler says more than that.
     /// </remarks>
     public Task<GetPetOutput?> GetPet(string petId, bool? verbose, string? xTraceId) {
+        // The declared Throttled error, raised. The generated exception is named for the operation
+        // and status it belongs to, so what a handler may throw is discoverable from the handler.
+        if (petId == "throttled") {
+            throw new GetPetTooManyRequestsException(new Throttled("Slow down."));
+        }
+
         var pet = Pets.FirstOrDefault(p => p.Id == petId);
 
         if (pet == null) {

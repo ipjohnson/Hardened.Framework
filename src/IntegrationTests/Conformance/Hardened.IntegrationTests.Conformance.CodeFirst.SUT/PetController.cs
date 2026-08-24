@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Web.Runtime.Attributes;
 
@@ -17,9 +18,17 @@ public class PetController {
         Task.FromResult(Pets.ToList());
 
     /// <summary>Null for an absent pet, which the framework answers as 404.</summary>
-    [Get("/pets/{petId}")]
-    public Task<Pet?> GetPet(string petId) =>
-        Task.FromResult(Pets.FirstOrDefault(pet => pet.Id == petId));
+    [Get("/pets/{petId:slug}")]
+    public Task<Pet?> GetPet(string petId) {
+        // Code-first declares an error by throwing one of the built-in response types. The
+        // described front-ends generate an exception per operation and status; both land on
+        // StatusCodeException, which is the shared spine.
+        if (petId == "throttled") {
+            throw new ResponseException(new RateLimited(TimeSpan.FromSeconds(30), "Slow down."));
+        }
+
+        return Task.FromResult(Pets.FirstOrDefault(pet => pet.Id == petId));
+    }
 
     /// <summary>
     /// 201, declared the way code-first declares it.
