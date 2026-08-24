@@ -24,21 +24,47 @@ public abstract class BaseRequestModelGenerator {
 
         var parameters = GetParameters(context, methodDeclaration, nameModel, cancellationToken);
 
-        return new RequestHandlerModel(
+        return Compose(
             nameModel,
             controllerType,
             methodName,
             GetInvokeHandlerType(context, methodDeclaration, cancellationToken),
             parameters,
             response,
-            filters) {
-            ResponseSchema = OpenApiDocument.JsonSchemaWriter.Write(
+            filters,
+            OpenApiDocument.JsonSchemaWriter.Write(
                 SchemaSubject(context, methodDeclaration, response),
                 context.SemanticModel.Compilation.Assembly),
-            ResponseSchemas = DeclaredResponses(context, response),
-            RequestSchema = BodySchema(context, methodDeclaration, parameters)
-        };
+            DeclaredResponses(context, response),
+            BodySchema(context, methodDeclaration, parameters));
     }
+
+    /// <summary>
+    /// Assembles the extracted pieces into the model the emitters consume.
+    /// </summary>
+    /// <remarks>
+    /// A seam rather than a constructor call, because the two front-ends built on this assemble
+    /// differently. Function handlers build the model directly. Web handlers describe themselves
+    /// first and let the shared bridge build it, so that a description and a C# declaration reach
+    /// the emitters by one path rather than two - which is the whole of what stops a feature
+    /// landing on one and not the other.
+    /// </remarks>
+    protected virtual RequestHandlerModel Compose(
+        RequestHandlerNameModel nameModel,
+        ITypeDefinition controllerType,
+        string methodName,
+        ITypeDefinition invokeHandlerType,
+        IReadOnlyList<RequestParameterInformation> parameters,
+        ResponseInformationModel response,
+        IReadOnlyList<AttributeModel> filters,
+        HandlerSchema? responseSchema,
+        IReadOnlyList<ResponseSchemaModel> responseSchemas,
+        HandlerSchema? requestSchema) =>
+        new(nameModel, controllerType, methodName, invokeHandlerType, parameters, response, filters) {
+            ResponseSchema = responseSchema,
+            ResponseSchemas = responseSchemas,
+            RequestSchema = requestSchema
+        };
 
     /// <summary>
     /// Every response the handler declares, with the schema of each, or nothing where it declares

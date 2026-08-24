@@ -27,21 +27,6 @@ public static class WebIncrementalGenerator {
             requestModelGenerator,
             requestModelGenerator.SelectWebRequestMethods);
 
-        // Through the shared bridge, the same one the described front-ends use. This changes no
-        // emitted byte - the round trip is asserted lossless by SpecRoundTripTests - and exists so
-        // the bridge is load-bearing for attribute-routed applications before the analysis behind it
-        // moves onto the spec model. Every existing test then exercises it, rather than only the
-        // corpus that suite covers.
-        //
-        // Per handler rather than per application, so editing one does not rebuild all of them.
-        modelProvider = modelProvider.Select((model, _) =>
-            CodeFirstSpecProjection.RoundTrip(
-                model,
-                model.ControllerType.Namespace,
-                model.ControllerType.Namespace,
-                model.InvokeHandlerType.Namespace,
-                model.ControllerType.Namespace));
-
         // Every [RouteConstraint] the application declares, flattened and ordered so the value is
         // stable between runs - an unordered collection would rebuild everything downstream on any
         // edit that reshuffled the syntax provider.
