@@ -76,6 +76,15 @@
             <Link>OpenApiDocument\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
+        <!--
+          The bridge from a description's OperationModel to a RequestHandlerModel, and the model it
+          reads. In its own folder rather than Requests/** because every generator wrapper links
+          that one - including Hardened.Function.SourceGenerator, which has no descriptions and no
+          reason to carry the model for them.
+        -->
+        <Compile Include="../Hardened.SourceGenerator/SpecBridge/**/*.cs">
+            <Link>SpecBridge/%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
         <Compile Include="../Hardened.SourceGenerator/Requests/**/*">
             <Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>
         </Compile>
