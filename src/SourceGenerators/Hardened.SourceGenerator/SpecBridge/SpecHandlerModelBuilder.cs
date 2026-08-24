@@ -28,7 +28,8 @@ internal static class SpecHandlerModelBuilder {
         string modelsNamespace,
         string servicesNamespace,
         string generatedNamespace,
-        string validationNamespace) {
+        string validationNamespace,
+        IReadOnlyDictionary<string, OperationSymbols>? symbols = null) {
         var models = new List<RequestHandlerModel>();
 
         // Build lookup for x-filter-types by short name
@@ -47,7 +48,7 @@ internal static class SpecHandlerModelBuilder {
                     modelsNamespace, generatedNamespace, validationNamespace,
                     spec.ResponseModel,
                     spec.ValidatedOperations, filterTypeLookup, spec.Schemas,
-                    service.DispatchHeader);
+                    service.DispatchHeader, Symbols(symbols, operation));
                 models.Add(model);
             }
         }
@@ -89,17 +90,18 @@ internal static class SpecHandlerModelBuilder {
         IReadOnlyList<ValidatedOperationModel> validatedOperations,
         Dictionary<string, FilterTypeModel> filterTypeLookup,
         IReadOnlyList<SchemaModel> schemas,
-        string? dispatchHeader = null) {
+        string? dispatchHeader = null,
+        OperationSymbols? symbols = null) {
         var methodName = operation.MethodName;
 
         // Derived by convention from the service's name for a described application, because a
         // description names no C# types. An application that declared its own says so through
         // OperationSymbols, and its names are not guessable from anything in the model - the
         // handler class is named for a controller nobody wrote down here.
-        var invokeHandlerType = operation.Symbols?.InvokeHandlerType
+        var invokeHandlerType = symbols?.InvokeHandlerType
                                 ?? TypeDefinition.Get(generatedNamespace, $"{handlerClassPrefix}_{methodName}");
 
-        var declaringType = operation.Symbols?.ControllerType ?? serviceType;
+        var declaringType = symbols?.ControllerType ?? serviceType;
 
         // The header comes from the service and the token from the operation, because that is where
         // each is declared - a protocol names the header once and every operation carries its own
@@ -107,8 +109,9 @@ internal static class SpecHandlerModelBuilder {
         var nameModel = new RequestHandlerNameModel(
             ConstrainedPath(operation), operation.HttpMethod, dispatchHeader, operation.DispatchKey);
 
-        var parameters = BuildParameters(operation, modelsNamespace);
-        var responseInfo = BuildResponseInfo(operation, schemas, modelsNamespace, responseModel);
+        var parameters = BuildParameters(operation, modelsNamespace, symbols);
+        var responseInfo = symbols?.ResponseInformation
+                           ?? BuildResponseInfo(operation, schemas, modelsNamespace, responseModel);
 
         var filters = new List<AttributeModel>();
 
@@ -197,7 +200,7 @@ internal static class SpecHandlerModelBuilder {
     }
 
     private static IReadOnlyList<RequestParameterInformation> BuildParameters(
-        OperationModel operation, string modelsNamespace) {
+        OperationModel operation, string modelsNamespace, OperationSymbols? symbols = null) {
         var parameters = new List<RequestParameterInformation>();
         var index = 0;
 
@@ -207,13 +210,16 @@ internal static class SpecHandlerModelBuilder {
 
             // A model built from a compilation already holds the type; only a described one has to
             // spell it and map it back. See OperationSymbols.
-            var typeDefinition = operation.Symbols?.Parameter(param.Name)
+            var typeDefinition = symbols?.Parameter(param.Name)
                                  ?? TypeMapper.GetTypeDefinition(modelsNamespace, csType, param.IsCSharpNullable);
 
             // Every location the specification allows is bound. The interface emitter and the
             // validation parameters interface take the same set - widen one without the others and
             // the generated Parameters class stops implementing its own interface.
-            var bindType = param.In switch {
+            var bindType = symbols?.ParameterBindings != null &&
+                           symbols.ParameterBindings.TryGetValue(param.Name, out var recorded)
+                ? recorded
+                : param.In switch {
                 "path" => ParameterBindType.Path,
                 "query" => ParameterBindType.QueryString,
                 "header" => ParameterBindType.Header,
@@ -233,7 +239,7 @@ internal static class SpecHandlerModelBuilder {
                 index++));
         }
 
-        if (operation.Symbols?.RequestBodyType is { } knownBodyType) {
+        if (symbols?.RequestBodyType is { } knownBodyType) {
             parameters.Add(new RequestParameterInformation(
                 knownBodyType,
                 "body",
@@ -565,4 +571,9 @@ internal static class SpecHandlerModelBuilder {
 
         return path;
     }
+
+    /// <summary>The symbols recorded for one operation, if any.</summary>
+    private static OperationSymbols? Symbols(
+        IReadOnlyDictionary<string, OperationSymbols>? symbols, OperationModel operation) =>
+        symbols != null && symbols.TryGetValue(operation.OperationId, out var found) ? found : null;
 }
