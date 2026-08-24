@@ -59,4 +59,11 @@ public class PetStoreServiceImpl : IPetStoreService {
     public Task<ListPetsOutput> ListPets(int? limit) =>
         Task.FromResult(new ListPetsOutput(
             limit.HasValue ? Pets.Take(limit.Value).ToList() : Pets.ToList()));
+
+    /// <summary>
+    /// Reached only by an authenticated caller — the service declares @httpBearerAuth and this
+    /// operation does not opt out with @auth([]).
+    /// </summary>
+    public Task<GetSecuredPetOutput> GetSecuredPet() =>
+        Task.FromResult(new GetSecuredPetOutput(Pets[0]));
 }

@@ -16,4 +16,7 @@ public class OpenApiPetstoreConformance : PetstoreConformanceTests {
 
     /// <summary>From PublishUrl metadata on the spec item.</summary>
     protected override string DocumentPath => "/openapi.yaml";
+
+    /// <summary>From a security requirement in the description.</summary>
+    protected override string SecuredPath => "/secured/scoped";
 }

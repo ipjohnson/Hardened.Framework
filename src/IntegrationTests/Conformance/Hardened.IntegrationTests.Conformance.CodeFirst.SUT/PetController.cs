@@ -1,3 +1,4 @@
+using Hardened.Requests.Runtime.Authorization;
 using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.Conformance.CodeFirst.SUT;
@@ -31,4 +32,10 @@ public class PetController {
     [Post("/pets", SuccessStatus = 201)]
     public Task<Pet> CreatePet(CreatePetRequest body) =>
         Task.FromResult(new Pet("3", body.Name, body.Tag));
+
+    /// <summary>Requires a caller holding pets:read.</summary>
+    [Get("/pets/secured")]
+    [AuthorizeGrants("pets:read")]
+    public Task<Pet> GetSecuredPet() =>
+        Task.FromResult(Pets[0]);
 }

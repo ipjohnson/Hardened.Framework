@@ -78,6 +78,19 @@ public abstract class PetstoreConformanceTests {
     /// </remarks>
     protected abstract string DocumentPath { get; }
 
+    /// <summary>
+    /// A route this application declares as requiring an authenticated caller.
+    /// </summary>
+    /// <remarks>
+    /// The path differs because each front-end declares authorization in its own vocabulary:
+    /// <c>[AuthorizeGrants("pets:read")]</c> code-first, a <c>security</c> requirement in OpenAPI,
+    /// and an auth scheme on the service in Smithy. What they can express also differs — Smithy has
+    /// no scopes and so can require authentication but never a particular grant — which is why the
+    /// assertion below is that an anonymous caller is refused, and not that a named scope is
+    /// demanded. That is the behaviour all three can carry.
+    /// </remarks>
+    protected abstract string SecuredPath { get; }
+
     private string Because(string what) => $"[{FrontEnd}] {what}";
 
     [HardenedTest]
@@ -175,6 +188,19 @@ public abstract class PetstoreConformanceTests {
         Assert.True(body.Contains("/pets", StringComparison.Ordinal),
             Because($"The description served at {DocumentPath} does not mention /pets, so it is " +
                     $"not describing this application. First 200 characters: {Head(body)}"));
+    }
+
+    /// <summary>
+    /// A declared-secure route refuses a caller who presents nothing.
+    /// </summary>
+    [HardenedTest]
+    public async Task SecuredRoute_RefusesAnAnonymousCaller(ITestWebApp app) {
+        var response = await app.Get(SecuredPath);
+
+        Assert.True(response.StatusCode is 401 or 403,
+            Because($"GET {SecuredPath} answered {response.StatusCode}, expected 401 or 403 — " +
+                    "this application declares that route as requiring an authenticated caller. " +
+                    "A 200 means the declaration was read and then not enforced."));
     }
 
     private static string Head(string value) =>

@@ -8,4 +8,7 @@ public class CodeFirstPetstoreConformance : PetstoreConformanceTests {
 
     /// <summary>From [OpenApiDocumentPath] on the enabled feature marker.</summary>
     protected override string DocumentPath => "/openapi.json";
+
+    /// <summary>From [AuthorizeGrants("pets:read")] on the handler.</summary>
+    protected override string SecuredPath => "/pets/secured";
 }

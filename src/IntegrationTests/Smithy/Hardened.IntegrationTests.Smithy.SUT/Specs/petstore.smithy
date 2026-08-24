@@ -2,13 +2,32 @@ $version: "2"
 namespace com.example.petstore
 
 @title("Pet Store")
+// The scheme is declared on the service, so every operation requires a caller to authenticate
+// unless it opts out. The three below opt out with @auth([]) and stay public; GetSecuredPet does
+// not, and is the arm of the front-end conformance suite that covers authorization.
+//
+// Smithy has no scopes, so it can require authentication and never a particular grant - which is
+// why the shared assertion is that a secured route refuses an anonymous caller, and not that it
+// demands pets:read the way the OpenAPI and code-first fixtures can.
+@httpBearerAuth
 service PetStore {
     version: "2024-01-01"
-    operations: [GetPet, ListPets, CreatePet]
+    operations: [GetPet, ListPets, CreatePet, GetSecuredPet]
+}
+
+@documentation("Requires an authenticated caller.")
+@http(method: "GET", uri: "/pets/secured", code: 200)
+@readonly
+operation GetSecuredPet {
+    output := {
+        @required
+        pet: Pet
+    }
 }
 
 @documentation("Fetch one pet by id.")
 @http(method: "GET", uri: "/pets/{petId}", code: 200)
+@auth([])
 @readonly
 operation GetPet {
     input := {
@@ -31,6 +50,7 @@ operation GetPet {
 }
 
 @http(method: "GET", uri: "/pets", code: 200)
+@auth([])
 @readonly
 operation ListPets {
     input := {
@@ -46,6 +66,7 @@ operation ListPets {
     }
 }
 
+@auth([])
 @http(method: "POST", uri: "/pets", code: 201)
 operation CreatePet {
     input := {
