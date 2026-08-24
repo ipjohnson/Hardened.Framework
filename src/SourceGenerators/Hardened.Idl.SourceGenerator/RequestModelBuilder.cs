@@ -255,8 +255,13 @@ internal static class RequestModelBuilder {
         var index = 0;
 
         foreach (var param in operation.Parameters) {
+            // Still needed either way: the default literal is formatted against the C# spelling.
             var csType = TypeMapper.MapParameterToCSharpType(param);
-            var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, param.IsCSharpNullable);
+
+            // A model built from a compilation already holds the type; only a described one has to
+            // spell it and map it back. See OperationSymbols.
+            var typeDefinition = operation.Symbols?.Parameter(param.Name)
+                                 ?? TypeMapper.GetTypeDefinition(modelsNamespace, csType, param.IsCSharpNullable);
 
             // Every location the specification allows is bound. The interface emitter and the
             // validation parameters interface take the same set - widen one without the others and
@@ -281,7 +286,16 @@ internal static class RequestModelBuilder {
                 index++));
         }
 
-        if (operation.RequestBodyRef != null) {
+        if (operation.Symbols?.RequestBodyType is { } knownBodyType) {
+            parameters.Add(new RequestParameterInformation(
+                knownBodyType,
+                "body",
+                true,
+                null,
+                ParameterBindType.Body,
+                "",
+                index++));
+        } else if (operation.RequestBodyRef != null) {
             var bodyTypeName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.RequestBodyRef));
             var bodyType = TypeDefinition.Get(modelsNamespace, bodyTypeName);
 

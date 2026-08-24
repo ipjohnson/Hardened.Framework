@@ -208,6 +208,16 @@ internal class OperationModel : IEquatable<OperationModel> {
     public List<PropertyModel> RequestBodyProperties { get; set; } = new();
     public List<string> RequestBodyRequired { get; set; } = new();
 
+    /// <summary>
+    /// The types this operation names, when whoever built the model already knew them.
+    /// </summary>
+    /// <remarks>
+    /// Null for a description-driven model, which has no compilation to resolve against and spells
+    /// its types instead. Never serialized, and outside this type's equality - see
+    /// <see cref="OperationSymbols"/> for both reasons.
+    /// </remarks>
+    public OperationSymbols? Symbols { get; set; }
+
     public bool HasValidationConstraints {
         get {
             foreach (var p in Parameters) {
