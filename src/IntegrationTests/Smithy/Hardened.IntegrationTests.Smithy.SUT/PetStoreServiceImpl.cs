@@ -46,6 +46,12 @@ public class PetStoreServiceImpl : IPetStoreService {
     /// answers 404; throwing the generated exception type is how a handler says more than that.
     /// </remarks>
     public Task<GetPetOutput?> GetPet(string petId, bool? verbose, string? xTraceId) {
+        // The declared Throttled error, raised. The generated exception is named for the operation
+        // and status it belongs to, so what a handler may throw is discoverable from the handler.
+        if (petId == "throttled") {
+            throw new GetPetTooManyRequestsException(new Throttled("Slow down."));
+        }
+
         var pet = Pets.FirstOrDefault(p => p.Id == petId);
 
         if (pet == null) {
@@ -59,4 +65,11 @@ public class PetStoreServiceImpl : IPetStoreService {
     public Task<ListPetsOutput> ListPets(int? limit) =>
         Task.FromResult(new ListPetsOutput(
             limit.HasValue ? Pets.Take(limit.Value).ToList() : Pets.ToList()));
+
+    /// <summary>
+    /// Reached only by an authenticated caller — the service declares @httpBearerAuth and this
+    /// operation does not opt out with @auth([]).
+    /// </summary>
+    public Task<GetSecuredPetOutput> GetSecuredPet() =>
+        Task.FromResult(new GetSecuredPetOutput(Pets[0]));
 }

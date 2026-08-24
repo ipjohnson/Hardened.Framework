@@ -1,0 +1,106 @@
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Execution;
+using System;
+using System.Threading.Tasks;
+using TestApp;
+
+namespace TestApp.Generated
+{
+    public partial class SessionController_Read_1893 : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::TestApp.SessionController>
+    {
+        private readonly static global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
+;
+        private readonly static global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new ExecutionRequestHandlerInfo("/session", "GET", typeof(SessionController), "Read", _parameterInfo)
+;
+
+        public SessionController_Read_1893(global::System.IServiceProvider serviceProvider, string? routePath = null)
+             : base(global::Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncStandardFilterWithParameters<
+            global::TestApp.SessionController,
+            Parameters
+        >(
+            serviceProvider,
+            _handlerInfo.WithPath(routePath),
+            BindRequestParameters,
+            InvokeMethod,
+            global::Hardened.Requests.Runtime.Execution.ExecutionHelper.GetFilterInfo()
+        ), null)
+        {
+        }
+
+        private static global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] CreateParameterInfo()
+        {
+            var returnArray = new global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[2];
+            returnArray[0] = new global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameter(
+                "sessionId",
+                0,
+                typeof(global::System.String)
+            );
+            returnArray[1] = new global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameter(
+                "traceId",
+                1,
+                typeof(global::System.String)
+            );
+            return returnArray;
+        }
+
+        private static async global::System.Threading.Tasks.Task InvokeMethod(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, global::TestApp.SessionController controller, Parameters parameters)
+        {
+            context.Response.ResponseValue = await controller.Read(
+                parameters.sessionId,
+                parameters.traceId
+            );
+        }
+
+        private static global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
+        {
+            var parameters = new Parameters();
+            parameters.sessionId = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
+                context.Request.Cookies.Get("sid")!,
+                "sid"
+            );
+            parameters.traceId = context.KnownServices.StringConverterService.ParseOptional<global::System.String?>(
+                context.Request.Headers.Get("X-Trace-Id")!,
+                "X-Trace-Id"
+            );
+            return global::System.Threading.Tasks.Task.FromResult<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>(parameters);
+        }
+
+        public partial class Parameters : global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameters
+        {
+
+            public global::System.String sessionId { get; set; } = default!;
+
+            public global::System.String? traceId { get; set; } = default!;
+
+            public override object this[int index]
+            {
+                get
+                {
+                    switch (index)
+                    {
+                        case 0:
+                            return this.sessionId!;
+                        case 1:
+                            return this.traceId!;
+                    }
+                    throw new global::System.IndexOutOfRangeException("Index out of range, parameters count 2, index was " + index);
+                }
+                set
+                {
+                    switch (index)
+                    {
+                        case 0:
+                            this.sessionId = (global::System.String)value;
+                            return;
+                        case 1:
+                            this.traceId = (global::System.String?)value;
+                            return;
+                    }
+                    throw new global::System.IndexOutOfRangeException("Index out of range, parameters count 2, index was " + index);
+                }
+            }
+
+            public override global::System.Collections.Generic.IReadOnlyList<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Info => _parameterInfo;
+        }
+    }
+}

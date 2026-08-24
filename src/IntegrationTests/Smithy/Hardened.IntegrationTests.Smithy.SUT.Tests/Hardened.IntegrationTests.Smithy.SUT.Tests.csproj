@@ -21,4 +21,10 @@
         <ProjectReference Include="..\Hardened.IntegrationTests.Smithy.SUT\Hardened.IntegrationTests.Smithy.SUT.csproj"/>
     </ItemGroup>
 
+    <!-- The shared front-end conformance suite. Linked rather than referenced - see the remarks on
+         PetstoreConformanceTests for why a shared assembly cannot work with this harness. -->
+    <ItemGroup>
+        <Compile Include="..\..\Conformance\Shared\*.cs" Link="Conformance\%(FileName)%(Extension)"/>
+    </ItemGroup>
+
 </Project>

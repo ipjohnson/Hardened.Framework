@@ -1,0 +1,87 @@
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Execution;
+using System;
+using System.Threading.Tasks;
+using TestApp;
+
+namespace TestApp.Generated
+{
+    public partial class WidgetController_Find_329 : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::TestApp.WidgetController>
+    {
+        private readonly static global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
+;
+        private readonly static global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new ExecutionRequestHandlerInfo("/widgets/{id}", "GET", typeof(WidgetController), "Find", _parameterInfo)
+;
+
+        public WidgetController_Find_329(global::System.IServiceProvider serviceProvider, string? routePath = null)
+             : base(global::Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncStandardFilterWithParameters<
+            global::TestApp.WidgetController,
+            Parameters
+        >(
+            serviceProvider,
+            _handlerInfo.WithPath(routePath),
+            BindRequestParameters,
+            InvokeMethod,
+            global::Hardened.Requests.Runtime.Execution.ExecutionHelper.GetFilterInfo()
+        ), null)
+        {
+        }
+
+        private static global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] CreateParameterInfo()
+        {
+            var returnArray = new global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[1];
+            returnArray[0] = new global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameter(
+                "id",
+                0,
+                typeof(global::System.String)
+            );
+            return returnArray;
+        }
+
+        private static async global::System.Threading.Tasks.Task InvokeMethod(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, global::TestApp.WidgetController controller, Parameters parameters)
+        {
+            context.Response.ResponseValue = await controller.Find(parameters.id);
+        }
+
+        private static global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
+        {
+            var parameters = new Parameters();
+            parameters.id = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
+                context.Request.PathTokens.Get("id")!,
+                "id"
+            );
+            return global::System.Threading.Tasks.Task.FromResult<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>(parameters);
+        }
+
+        public partial class Parameters : global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameters
+        {
+
+            public global::System.String id { get; set; } = default!;
+
+            public override object this[int index]
+            {
+                get
+                {
+                    switch (index)
+                    {
+                        case 0:
+                            return this.id!;
+                    }
+                    throw new global::System.IndexOutOfRangeException("Index out of range, parameters count 1, index was " + index);
+                }
+                set
+                {
+                    switch (index)
+                    {
+                        case 0:
+                            this.id = (global::System.String)value;
+                            return;
+                    }
+                    throw new global::System.IndexOutOfRangeException("Index out of range, parameters count 1, index was " + index);
+                }
+            }
+
+            public override global::System.Collections.Generic.IReadOnlyList<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Info => _parameterInfo;
+        }
+    }
+}

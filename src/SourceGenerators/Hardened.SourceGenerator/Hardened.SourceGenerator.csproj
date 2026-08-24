@@ -42,6 +42,33 @@
         already used in the other direction for OpenApiDocument/**.
     -->
     <ItemGroup>
+        <!--
+          The description model and the helpers that read it. Linked here rather than referenced
+          because this project is the spine both generator wrappers compile in, and the bridge from
+          an OperationModel to a RequestHandlerModel has to reach both: the described front-ends
+          have always used it, and code-first is moving onto it.
+        -->
+        <Compile Include="../Hardened.Idl.Shared/Models/**/*.cs">
+            <Link>Idl/Models/%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.Idl.Shared/TypeMapper.cs">
+            <Link>Idl/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.Idl.Shared/NamingHelper.cs">
+            <Link>Idl/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.Idl.Shared/DefaultLiteral.cs">
+            <Link>Idl/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.Idl.Shared/SchemaShape.cs">
+            <Link>Idl/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.Idl.Shared/EnumWireForm.cs">
+            <Link>Idl/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="../Hardened.Idl.Shared/DefaultErrorBody.cs">
+            <Link>Idl/%(FileName)%(Extension)</Link>
+        </Compile>
         <Compile Include="../Hardened.Idl.Shared/GZipLiteral.cs">
             <Link>Shared/GZipLiteral.cs</Link>
         </Compile>

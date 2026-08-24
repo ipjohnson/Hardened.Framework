@@ -1,4 +1,6 @@
 ﻿using CSharpAuthor;
+using Hardened.Idl.Models;
+using System.Linq;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
@@ -252,8 +254,19 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     protected override bool IsFilterAttribute(AttributeSyntax attribute) {
         var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
+        // A generic attribute's name carries its arguments - "Throws<RateLimited>" - so the
+        // exclusions below have to be matched against the bare name. Anything not recognised is
+        // taken for a filter and constructed into the handler's filter chain, which is not
+        // somewhere a response declaration belongs.
+        var generic = attributeName.IndexOf('<');
+
+        if (generic >= 0) {
+            attributeName = attributeName.Substring(0, generic);
+        }
+
         switch (attributeName) {
             case "RawResponse":
+            case "Throws":
                 return false;
 
             default:
@@ -302,4 +315,118 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
         return returnSet;
     }
+
+    /// <summary>
+    /// Describes the handler, then lets the shared bridge build the model from that description.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the point of the pipeline unification. An attribute-routed handler and an operation
+    /// in a description now reach the emitters by one path: both become an <c>OperationModel</c>
+    /// with its symbols, and <see cref="SpecHandlerModelBuilder"/> turns either into the model
+    /// everything downstream consumes. A feature added below this line arrives on all of them.
+    /// </para>
+    /// <para>
+    /// What the description cannot state travels in <see cref="OperationSymbols"/> and nowhere else:
+    /// the resolved types, how each parameter binds and under what name, the body parameter's name,
+    /// declaration order, defaults already written as C#, custom binding attributes, and the
+    /// response shape read off the return type. Each of those was found by putting this path into
+    /// the live pipeline and watching an existing test fail.
+    /// </para>
+    /// </remarks>
+    protected override RequestHandlerModel Compose(
+        RequestHandlerNameModel nameModel,
+        ITypeDefinition controllerType,
+        string methodName,
+        ITypeDefinition invokeHandlerType,
+        IReadOnlyList<RequestParameterInformation> parameters,
+        ResponseInformationModel response,
+        IReadOnlyList<AttributeModel> filters,
+        HandlerSchema? responseSchema,
+        IReadOnlyList<ResponseSchemaModel> responseSchemas,
+        bool responsesAreComplete,
+        HandlerSchema? requestSchema) {
+        var operationId = controllerType.Name + "." + methodName + "." + nameModel.Method;
+
+        var body = parameters.FirstOrDefault(p => p.BindingType == ParameterBindType.Body);
+        var described = parameters.Where(p => p.BindingType != ParameterBindType.Body).ToList();
+
+        string Wire(RequestParameterInformation p) =>
+            string.IsNullOrEmpty(p.BindingName) ? p.Name : p.BindingName;
+
+        var spec = new ServiceSpecModel();
+
+        spec.Services.Add(new ServiceModel {
+            Tag = controllerType.Name,
+            TypeBaseName = controllerType.Name,
+            DispatchHeader = nameModel.DispatchHeader,
+            Operations = {
+                new OperationModel {
+                    OperationId = operationId,
+                    MethodName = methodName,
+                    Path = nameModel.Path,
+                    HttpMethod = nameModel.Method,
+                    DispatchKey = nameModel.DispatchKey,
+                    Parameters = described.Select(p => new ParameterModel {
+                        Name = Wire(p),
+                        MemberNameOverride = p.Name,
+                        In = Location(p.BindingType),
+                        IsRequired = p.Required
+                    }).ToList()
+                }
+            }
+        });
+
+        var symbols = new Dictionary<string, OperationSymbols> {
+            [operationId] = new() {
+                ControllerType = controllerType,
+                InvokeHandlerType = invokeHandlerType,
+                ResponseInformation = response,
+                RequestBodyType = body?.ParameterType,
+                RequestBodyName = body?.Name,
+                ParameterOrder = parameters.OrderBy(p => p.ParameterIndex).Select(Wire).ToList(),
+                ParameterTypes = described.ToDictionary(Wire, p => p.ParameterType, StringComparer.Ordinal),
+                ParameterBindings = described.ToDictionary(Wire, p => p.BindingType, StringComparer.Ordinal),
+                ParameterDefaults = described.Where(p => p.DefaultValue != null)
+                    .ToDictionary(Wire, p => p.DefaultValue!, StringComparer.Ordinal),
+                ParameterAttributes = described.Where(p => p.CustomAttribute != null)
+                    .ToDictionary(Wire, p => p.CustomAttribute!, StringComparer.Ordinal)
+            }
+        };
+
+        var built = SpecHandlerModelBuilder.BuildModels(
+            spec,
+            controllerType.Namespace,
+            controllerType.Namespace,
+            invokeHandlerType.Namespace,
+            controllerType.Namespace,
+            symbols);
+
+        var model = built.Count == 1 ? built[0] : null;
+
+        if (model == null) {
+            return base.Compose(nameModel, controllerType, methodName, invokeHandlerType,
+                parameters, response, filters, responseSchema, responseSchemas,
+                responsesAreComplete, requestSchema);
+        }
+
+        // Schemas are read from the compilation and have no description to come from. Filters are
+        // C# attributes the author wrote.
+        model.ResponseSchema = responseSchema;
+        model.ResponseSchemas = responseSchemas;
+        model.DeclaredResponsesAreComplete = responsesAreComplete;
+        model.RequestSchema = requestSchema;
+
+        return filters.Count == 0 ? model : model.WithFilters(filters);
+    }
+
+    /// <summary>Where a parameter lives, for the bindings a description has a word for.</summary>
+    private static string Location(ParameterBindType bindType) =>
+        bindType switch {
+            ParameterBindType.Path => "path",
+            ParameterBindType.QueryString => "query",
+            ParameterBindType.Header => "header",
+            ParameterBindType.Cookie => "cookie",
+            _ => "internal"
+        };
 }

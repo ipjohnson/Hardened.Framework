@@ -6,6 +6,7 @@ using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Templates;
 using Hardened.SourceGenerator.Web;
+using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 using Hardened.Idl;
 
@@ -188,14 +189,32 @@ public class SpecSourceGenerator : IIncrementalGenerator {
             (ctx, pair) => HandlerBindingDiagnostics.Report(
                 ctx, pair.Left, pair.Right.Where(info => info != null).Select(info => info!).ToList()));
 
+        // Every [RouteConstraint] the compilation declares, including the ones the build task
+        // emitted for this specification's own path constraints. Ordered so the value is stable
+        // between runs, for the same reason the attribute-routed generator orders its copy.
+        var constraints = context.SyntaxProvider.CreateSyntaxProvider(
+                RouteConstraintSelector.Predicate,
+                RouteConstraintSelector.Transform)
+            .SelectMany((declared, _) => declared)
+            .Collect()
+            .Select((declared, _) =>
+                declared.OrderBy(constraint => constraint.Name, StringComparer.Ordinal)
+                    .ThenBy(constraint => constraint.Call, StringComparer.Ordinal)
+                    .ToImmutableArray());
+
         // Combine enriched models with config for handler generation
         var excludeFromCoverageProvider = configProvider.Select((cfg, _) => cfg.ExcludeFromCoverage);
-        var enrichedModelsWithConfig = enrichedModels.Combine(excludeFromCoverageProvider);
+        // Constraints too: a described path parameter can now contribute one, and the handler
+        // generator is what reports a route naming a constraint nothing declares.
+        var enrichedModelsWithConfig = enrichedModels
+            .Combine(excludeFromCoverageProvider)
+            .Combine(constraints);
 
         // Emit handler classes (one per operation) using enriched models
         context.RegisterSourceOutput(enrichedModelsWithConfig, (ctx, pair) => {
-            var models = pair.Left;
-            var excludeCoverage = pair.Right;
+            var models = pair.Left.Left;
+            var excludeCoverage = pair.Left.Right;
+            var declaredConstraints = pair.Right;
             var invokeGenerator = new WebExecutionHandlerCodeGenerator();
             foreach (var model in models) {
                 ctx.CancellationToken.ThrowIfCancellationRequested();
@@ -205,7 +224,7 @@ public class SpecSourceGenerator : IIncrementalGenerator {
                     // here rather than arriving as a 500 on the first request.
                     model.ReportIfMarkupWithoutAView(ctx);
 
-                    invokeGenerator.GenerateSource(ctx, model, excludeCoverage);
+                    invokeGenerator.GenerateSource(ctx, model, excludeCoverage, declaredConstraints);
                 } catch (Exception exp) {
                     ReportError(ctx, $"Error generating handler: {exp.Message}");
                 }
@@ -223,12 +242,14 @@ public class SpecSourceGenerator : IIncrementalGenerator {
             .Combine(enrichedModels)
             .Combine(handlerInfoProvider)
             .Combine(specRegistrations)
-            .Combine(excludeFromCoverageProvider);
+            .Combine(excludeFromCoverageProvider)
+            .Combine(constraints);
 
         context.RegisterSourceOutput(routeProvider,
-            SourceGeneratorWrapper.Wrap<((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<SpecRegistration> Right) Left, bool Right)>(
+            SourceGeneratorWrapper.Wrap<(((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<SpecRegistration> Right) Left, bool Right) Left, ImmutableArray<RouteConstraintModel> Right)>(
                 (ctx, pair) => SpecRoutingTableGenerator.GenerateRoute(
-                    ctx, pair.Left.Left.Left, pair.Left.Left.Right!, pair.Left.Right, pair.Right)));
+                    ctx, pair.Left.Left.Left.Left, pair.Left.Left.Left.Right!, pair.Left.Left.Right,
+                    pair.Right, pair.Left.Right)));
 
         // One abstract template base per [Enable<T>] marker, the same registration the attribute
         // generator makes. Duplicated across the two handler generators rather than moved somewhere

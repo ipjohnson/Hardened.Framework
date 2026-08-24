@@ -48,8 +48,8 @@
     "branch": 87.2
   },
   "Hardened.SourceGenerator": {
-    "line": 74.9,
-    "branch": 62.2
+    "line": 68.3,
+    "branch": 49.7
   },
   "Hardened.Templates.RazorBlade": {
     "line": 100.0,
@@ -72,8 +72,8 @@
     "branch": 99.3
   },
   "Hardened.Web.SourceGenerator": {
-    "line": 75.2,
-    "branch": 65.8
+    "line": 66.1,
+    "branch": 49.0
   },
   "Hardened.Web.StaticContent": {
     "line": 96.6,

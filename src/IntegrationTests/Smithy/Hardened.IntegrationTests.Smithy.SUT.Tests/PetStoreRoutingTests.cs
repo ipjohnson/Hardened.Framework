@@ -42,15 +42,35 @@ public class PetStoreRoutingTests {
     }
 
     /// <summary>
-    /// <c>@pattern</c> on the label reached the generated validator as a <c>[GeneratedRegex]</c>,
-    /// which a source generator cannot emit for itself - it works because the build task writes the
-    /// file before the compiler runs.
+    /// <c>@pattern</c> on a path label narrows which URLs name a resource, so a value violating it
+    /// does not match the route and the answer is 404.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This asserted 400 until the front-end conformance suite showed the three front-ends
+    /// disagreeing about it: code-first compiled <c>{petId:slug}</c> into the routing table and
+    /// answered 404, while both described paths treated the same declared constraint as validation
+    /// on a route that had already matched, and answered 400. One declaration cannot have two
+    /// answers, and a client cannot tell which it will get.
+    /// </para>
+    /// <para>
+    /// 404 is the settled answer because it is the one already given for the degenerate case:
+    /// <c>/pets/</c> against <c>/pets/{petId}</c> is a 404 rather than a 400 about a URL that names
+    /// no resource. The pattern still reaches the generated validator as a
+    /// <c>[GeneratedRegex]</c> - which a source generator cannot emit for itself, and works here
+    /// because the build task writes the file before the compiler runs - and now also backs a
+    /// <c>[RouteConstraint]</c> the routing table compiles in.
+    /// </para>
+    /// <para>
+    /// Query, header and body constraints are unaffected. Those judge a request that did name a
+    /// resource, and still answer 400.
+    /// </para>
+    /// </remarks>
     [HardenedTest]
-    public async Task GetPet_RejectsAPathLabelFailingThePattern(ITestWebApp app) {
+    public async Task GetPet_DoesNotMatchAPathLabelFailingThePattern(ITestWebApp app) {
         var response = await app.Get("/pets/NOT_VALID");
 
-        response.Assert.BadRequest();
+        response.Assert.NotFound();
     }
 
     [HardenedTest]

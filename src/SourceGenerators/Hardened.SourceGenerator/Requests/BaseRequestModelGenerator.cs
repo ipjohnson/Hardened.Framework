@@ -24,21 +24,64 @@ public abstract class BaseRequestModelGenerator {
 
         var parameters = GetParameters(context, methodDeclaration, nameModel, cancellationToken);
 
-        return new RequestHandlerModel(
+        // Read before Compose, because the unresolved ones ride on the response model and the
+        // emit step is where there is a context to report them into.
+        var unresolved = new List<string>();
+        var thrown = ThrownResponseSelector.Read(context, methodDeclaration, unresolved, cancellationToken);
+
+        if (unresolved.Count > 0) {
+            response.ThrowsDiagnostic = string.Join(",", unresolved);
+        }
+
+        return Compose(
             nameModel,
             controllerType,
             methodName,
             GetInvokeHandlerType(context, methodDeclaration, cancellationToken),
             parameters,
             response,
-            filters) {
-            ResponseSchema = OpenApiDocument.JsonSchemaWriter.Write(
+            filters,
+            OpenApiDocument.JsonSchemaWriter.Write(
                 SchemaSubject(context, methodDeclaration, response),
                 context.SemanticModel.Compilation.Assembly),
-            ResponseSchemas = DeclaredResponses(context, response),
-            RequestSchema = BodySchema(context, methodDeclaration, parameters)
-        };
+            // Both kinds of declaration in one list: what a Response or union return type says,
+            // and what [Throws<T>] says. The document writer groups by status and does not care
+            // which produced an entry.
+            DeclaredResponses(context, response).Concat(thrown).ToList(),
+            // Complete unless the only declarations came from [Throws], which names failures and
+            // leaves the success to the return type.
+            response.UnionCases != null || thrown.Count == 0,
+            BodySchema(context, methodDeclaration, parameters));
     }
+
+    /// <summary>
+    /// Assembles the extracted pieces into the model the emitters consume.
+    /// </summary>
+    /// <remarks>
+    /// A seam rather than a constructor call, because the two front-ends built on this assemble
+    /// differently. Function handlers build the model directly. Web handlers describe themselves
+    /// first and let the shared bridge build it, so that a description and a C# declaration reach
+    /// the emitters by one path rather than two - which is the whole of what stops a feature
+    /// landing on one and not the other.
+    /// </remarks>
+    protected virtual RequestHandlerModel Compose(
+        RequestHandlerNameModel nameModel,
+        ITypeDefinition controllerType,
+        string methodName,
+        ITypeDefinition invokeHandlerType,
+        IReadOnlyList<RequestParameterInformation> parameters,
+        ResponseInformationModel response,
+        IReadOnlyList<AttributeModel> filters,
+        HandlerSchema? responseSchema,
+        IReadOnlyList<ResponseSchemaModel> responseSchemas,
+        bool responsesAreComplete,
+        HandlerSchema? requestSchema) =>
+        new(nameModel, controllerType, methodName, invokeHandlerType, parameters, response, filters) {
+            ResponseSchema = responseSchema,
+            ResponseSchemas = responseSchemas,
+            DeclaredResponsesAreComplete = responsesAreComplete,
+            RequestSchema = requestSchema
+        };
 
     /// <summary>
     /// Every response the handler declares, with the schema of each, or nothing where it declares

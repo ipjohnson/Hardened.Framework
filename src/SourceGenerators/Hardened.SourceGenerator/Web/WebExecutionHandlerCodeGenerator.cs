@@ -37,6 +37,11 @@ public class WebExecutionHandlerCodeGenerator {
         // what is actually wrong. The build fails either way; this way it fails legibly.
         requestHandlerModel.ReportUnsupportedTokens(sourceProductionContext, constraints);
 
+        ThrownResponseSelector.Report(
+            sourceProductionContext,
+            requestHandlerModel.ControllerType.Name + "." + requestHandlerModel.HandlerMethod,
+            requestHandlerModel.ResponseInformation.ThrowsDiagnostic);
+
         // Same treatment as an unsupported token: an error, and emit anyway. The handler compiles
         // and routes correctly - one of its two readings of the body just comes back empty - so
         // skipping it would replace one legible diagnostic with a routing table pointing at a

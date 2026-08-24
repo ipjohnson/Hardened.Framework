@@ -41,10 +41,11 @@ internal static class SpecRoutingTableGenerator {
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
         ImmutableArray<HandlerInfo?> handlerInfos,
         ImmutableArray<SpecRegistration> specRegistrations,
+        IReadOnlyList<RouteConstraintModel> constraints,
         bool excludeFromCoverage = false) {
         var outputString = GenerateCSharpRouteFile(
             models.Left, models.Right, handlerInfos, specRegistrations,
-            context.CancellationToken, excludeFromCoverage);
+            context.CancellationToken, excludeFromCoverage, constraints);
 
         context.AddSource(models.Left.EntryPointType.Name + ".SpecRouting", outputString);
 
@@ -60,7 +61,8 @@ internal static class SpecRoutingTableGenerator {
         ImmutableArray<HandlerInfo?> handlerInfos,
         ImmutableArray<SpecRegistration> specRegistrations,
         CancellationToken cancellationToken,
-        bool excludeFromCoverage = false) {
+        bool excludeFromCoverage = false,
+        IReadOnlyList<RouteConstraintModel>? constraints = null) {
         // Ordered so the emitted table does not reshuffle between builds.
         var ordered = specRegistrations
             .OrderBy(registration => registration.ResolverName, StringComparer.Ordinal)
@@ -83,6 +85,11 @@ internal static class SpecRoutingTableGenerator {
 
             // Interface-to-implementation pairs are registered below instead.
             RegisterControllerTypes = false,
+
+            // A description can now contribute a route constraint, so the declarations the
+            // compilation carries - including the ones the build task emitted for this spec - have
+            // to reach the table that compiles them in.
+            Constraints = constraints,
 
             AdditionalRegistrations =
                 Registrations(appModel, handlers, handlerInfos, ordered, cancellationToken)

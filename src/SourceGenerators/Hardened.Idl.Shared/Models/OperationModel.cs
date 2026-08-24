@@ -208,6 +208,7 @@ internal class OperationModel : IEquatable<OperationModel> {
     public List<PropertyModel> RequestBodyProperties { get; set; } = new();
     public List<string> RequestBodyRequired { get; set; } = new();
 
+
     public bool HasValidationConstraints {
         get {
             foreach (var p in Parameters) {

@@ -1,0 +1,156 @@
+using DependencyModules.Runtime.Helpers;
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Web.Runtime.Handlers;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using TestApp;
+using TestApp.Generated;
+
+namespace TestApp
+{
+    public partial class Application
+    {
+        [DynamicDependency(nameof(RoutingTableDI))]
+        private static int _routingTableDependencies =         DependencyRegistry<Application>.Add(RoutingTableDI)
+;
+
+        private static void RoutingTableDI(IServiceCollection serviceCollection)
+        {
+            serviceCollection.AddSingleton<
+                IWebExecutionRequestHandlerProvider,
+                Application.RoutingTable
+            >();
+            serviceCollection.AddTransient<WidgetController>();
+            serviceCollection.AddTransient<ApplicationLinks>();
+        }
+
+        private class RoutingTable : IWebExecutionRequestHandlerProvider
+        {
+            private IServiceProvider _rootServiceProvider;
+            private RequestHandlerInfo? _infoWidgetController_Create;
+            private readonly static RequestHandlerInfo _methodNotAllowedPOST =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("POST")
+;
+            private WidgetController_Find_329? _fieldWidgetController_Find_329;
+            private readonly static string[] _pathTokenNamesWidgetController_Find_329 =             new string[] { "id" }
+;
+            private readonly static RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
+;
+
+            public RoutingTable(IServiceProvider serviceProvider)
+            {
+                _rootServiceProvider = serviceProvider;
+            }
+
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            {
+                var pathSpan = context.Request.Path.AsSpan();
+                return TestPath_Slash(
+                    pathSpan,
+                    0,
+                    context.Request.Method
+                );
+            }
+
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                {
+                    index += 1;
+                    handlerInfo = TestPath_widgets(
+                        charSpan,
+                        index,
+                        methodString
+                    );
+                }
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_widgets(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 'w') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'd') && (charSpan[index + 3] == 'g') && (charSpan[index + 4] == 'e') && (charSpan[index + 5] == 't') && (charSpan[index + 6] == 's'))
+                {
+                    index += 7;
+                    if (charSpan.Length == index)
+                    {
+                        switch (methodString)
+                        {
+                            case "POST":
+                                return _infoWidgetController_Create ??= new RequestHandlerInfo(
+                                    new WidgetController_Create(_rootServiceProvider),
+                                    PathTokenCollection.Empty
+                                );
+                            default:
+                                return _methodNotAllowedPOST;
+                        }
+                    }
+                    handlerInfo = TestPath_Slash2(
+                        charSpan,
+                        index,
+                        methodString
+                    );
+                }
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                {
+                    index += 1;
+                    if (handlerInfo == null)
+                    {
+                        handlerInfo = TestPath_SlashWildCard(
+                            charSpan,
+                            index,
+                            methodString
+                        );
+                    }
+                }
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_SlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                handlerInfo = TestPath_NoPathWildCardMatch(
+                    charSpan,
+                    index,
+                    methodString
+                );
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                if (charSpan.Length <= index)
+                {
+                    return null;
+                }
+                if (charSpan.Slice(index).IndexOf('/') >= 0)
+                {
+                    return null;
+                }
+                switch (methodString)
+                {
+                    case "HEAD":
+                    case "GET":
+                        return new RequestHandlerInfo(
+                            _fieldWidgetController_Find_329 ??= new WidgetController_Find_329(_rootServiceProvider),
+                            new PathTokenCollection(
+                                1,
+                                _pathTokenNamesWidgetController_Find_329,
+                                charSpan.Slice(index).ToString()
+                            )
+                        );
+                    default:
+                        return _methodNotAllowedGETHEAD;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,149 @@
+using DependencyModules.Runtime.Helpers;
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Web.Runtime.Handlers;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using TestApp;
+using TestApp.Generated;
+
+namespace TestApp
+{
+    public partial class Application
+    {
+        [DynamicDependency(nameof(RoutingTableDI))]
+        private static int _routingTableDependencies =         DependencyRegistry<Application>.Add(RoutingTableDI)
+;
+
+        private static void RoutingTableDI(IServiceCollection serviceCollection)
+        {
+            serviceCollection.AddSingleton<
+                IWebExecutionRequestHandlerProvider,
+                Application.RoutingTable
+            >();
+            serviceCollection.AddTransient<TicketController>();
+            serviceCollection.AddTransient<ApplicationLinks>();
+        }
+
+        private class RoutingTable : IWebExecutionRequestHandlerProvider
+        {
+            private IServiceProvider _rootServiceProvider;
+            private TicketController_Get_329? _fieldTicketController_Get_329;
+            private readonly static string[] _pathTokenNamesTicketController_Get_329 =             new string[] { "id" }
+;
+            private TicketController_Replace_329? _fieldTicketController_Replace_329;
+            private readonly static string[] _pathTokenNamesTicketController_Replace_329 =             new string[] { "id" }
+;
+            private TicketController_Remove_329? _fieldTicketController_Remove_329;
+            private readonly static string[] _pathTokenNamesTicketController_Remove_329 =             new string[] { "id" }
+;
+            private readonly static RequestHandlerInfo _methodNotAllowedDELETEGETHEADPUT =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("DELETE, GET, HEAD, PUT")
+;
+
+            public RoutingTable(IServiceProvider serviceProvider)
+            {
+                _rootServiceProvider = serviceProvider;
+            }
+
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            {
+                var pathSpan = context.Request.Path.AsSpan();
+                return TestPath_Slash(
+                    pathSpan,
+                    0,
+                    context.Request.Method
+                );
+            }
+
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                {
+                    index += 1;
+                    handlerInfo = TestPath_ticketsSlash(
+                        charSpan,
+                        index,
+                        methodString
+                    );
+                }
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_ticketsSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                if ((charSpan.Length >= index + 8) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'c') && (charSpan[index + 3] == 'k') && (charSpan[index + 4] == 'e') && (charSpan[index + 5] == 't') && (charSpan[index + 6] == 's') && (charSpan[index + 7] == '/'))
+                {
+                    index += 8;
+                    if (handlerInfo == null)
+                    {
+                        handlerInfo = TestPath_ticketsSlashWildCard(
+                            charSpan,
+                            index,
+                            methodString
+                        );
+                    }
+                }
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_ticketsSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                handlerInfo = TestPath_NoPathWildCardMatch(
+                    charSpan,
+                    index,
+                    methodString
+                );
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                if (charSpan.Length <= index)
+                {
+                    return null;
+                }
+                if (charSpan.Slice(index).IndexOf('/') >= 0)
+                {
+                    return null;
+                }
+                switch (methodString)
+                {
+                    case "HEAD":
+                    case "GET":
+                        return new RequestHandlerInfo(
+                            _fieldTicketController_Get_329 ??= new TicketController_Get_329(_rootServiceProvider),
+                            new PathTokenCollection(
+                                1,
+                                _pathTokenNamesTicketController_Get_329,
+                                charSpan.Slice(index).ToString()
+                            )
+                        );
+                    case "PUT":
+                        return new RequestHandlerInfo(
+                            _fieldTicketController_Replace_329 ??= new TicketController_Replace_329(_rootServiceProvider),
+                            new PathTokenCollection(
+                                1,
+                                _pathTokenNamesTicketController_Replace_329,
+                                charSpan.Slice(index).ToString()
+                            )
+                        );
+                    case "DELETE":
+                        return new RequestHandlerInfo(
+                            _fieldTicketController_Remove_329 ??= new TicketController_Remove_329(_rootServiceProvider),
+                            new PathTokenCollection(
+                                1,
+                                _pathTokenNamesTicketController_Remove_329,
+                                charSpan.Slice(index).ToString()
+                            )
+                        );
+                    default:
+                        return _methodNotAllowedDELETEGETHEADPUT;
+                }
+            }
+        }
+    }
+}
