@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.SourceGeneration.Testing;
+using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web;
 using Hardened.Web.Runtime.Attributes;
@@ -32,6 +33,35 @@ public class RequestGenerator : IIncrementalGenerator {
 }
 
 /// <summary>
+/// Runs the same model-building step the pipeline does and hands the models back instead of
+/// emitting from them.
+/// </summary>
+/// <remarks>
+/// A GeneratorSyntaxContext cannot be constructed outside a driver, so the models cannot be built
+/// by calling the generator directly - they have to be collected from inside a real run. This
+/// registers no source output: the point is the models, not what would be written from them.
+/// </remarks>
+public class HandlerModelCapture : IIncrementalGenerator {
+    private readonly List<RequestHandlerModel> _models;
+
+    public HandlerModelCapture(List<RequestHandlerModel> models) => _models = models;
+
+    public void Initialize(IncrementalGeneratorInitializationContext context) {
+        var generator = new WebRequestHandlerModelGenerator();
+
+        var models = context.SyntaxProvider.CreateSyntaxProvider(
+            generator.SelectWebRequestMethods,
+            (syntaxContext, cancellationToken) =>
+                generator.GenerateRequestModel(syntaxContext, cancellationToken));
+
+        context.RegisterSourceOutput(models.Collect(), (_, collected) => {
+            _models.Clear();
+            _models.AddRange(collected.Where(model => model != null)!);
+        });
+    }
+}
+
+/// <summary>
 /// The reference set generated request handlers bind against, and the entry point every test in
 /// this suite goes through.
 /// </summary>
@@ -57,6 +87,17 @@ public static class RequestGeneratorHarness {
     /// </summary>
     public static GeneratorResult Generate(string source) =>
         GeneratorTestHarness.Run(source, new RequestGenerator(), Anchors);
+
+    /// <summary>
+    /// The handler models the attribute-routed pipeline builds for <paramref name="source"/>.
+    /// </summary>
+    public static IReadOnlyList<RequestHandlerModel> HandlerModels(string source) {
+        var models = new List<RequestHandlerModel>();
+
+        GeneratorTestHarness.Run(source, new HandlerModelCapture(models), Anchors);
+
+        return models;
+    }
 
     /// <summary>Runs the generator over several source files.</summary>
     public static GeneratorResult Generate(IReadOnlyDictionary<string, string> sources) =>
