@@ -96,6 +96,16 @@ public abstract class PetstoreConformanceTests {
     /// </summary>
     protected virtual string ThrottledPetId => "throttled";
 
+    /// <summary>
+    /// The status of the error the operation declares, as it appears in the published description.
+    /// </summary>
+    /// <remarks>
+    /// A plain status rather than a schema name, because the three descriptions are not one format:
+    /// OpenAPI is served as YAML keyed by status, and Smithy as its JSON AST where the status is an
+    /// <c>@httpError</c> trait on a named shape. What both spell the same way is the number.
+    /// </remarks>
+    protected virtual string DeclaredErrorStatus => "429";
+
     /// <summary>A pet id that violates the constraint the operation declares on it.</summary>
     protected virtual string MalformedPetId => "NOT_A_VALID_ID";
 
@@ -262,6 +272,36 @@ public abstract class PetstoreConformanceTests {
         Assert.True(response.StatusCode == MalformedTokenStatus,
             Because($"GET /pets/{MalformedPetId} answered {response.StatusCode}, expected " +
                     $"{MalformedTokenStatus}. A 200 means the declared constraint was not applied."));
+    }
+
+    /// <summary>
+    /// An error the operation declares is in the description it publishes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The other half of <see cref="DeclaredError_AnswersItsDeclaredStatus"/>. That one asserts the
+    /// handler answers the status; this one asserts a client reading the published contract can
+    /// find out it might. A framework can do the first and not the second, and that is the worse
+    /// failure of the two: the API behaves correctly and documents itself as unable to.
+    /// </para>
+    /// <para>
+    /// The three declare it differently — <c>[Throws&lt;RateLimited&gt;]</c> code-first, a response
+    /// key in OpenAPI, an <c>errors</c> list with <c>@httpError</c> in Smithy — which is the point
+    /// of asserting it here rather than in each front-end's own tests.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task DeclaredError_AppearsInTheDescription(ITestWebApp app) {
+        var response = await app.Get(DocumentPath);
+
+        response.Assert.Ok();
+
+        var description = await response.ReadTextAsync();
+
+        Assert.True(description.Contains(DeclaredErrorStatus, StringComparison.Ordinal),
+            Because($"The description at {DocumentPath} does not mention {DeclaredErrorStatus}, so " +
+                    "a client reading it cannot learn the operation can answer that. " +
+                    $"First 200 characters: {Head(description)}"));
     }
 
     private static string Head(string value) =>
