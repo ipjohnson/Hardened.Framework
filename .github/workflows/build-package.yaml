@@ -264,10 +264,16 @@ jobs:
           # report otherwise. Filtered here rather than in the runsettings: ModulePaths/Include did
           # not restrict it, and a report-level filter does not depend on one collector's schema -
           # which is the property being bought by this change in the first place.
+          #
+          # Hardened.DependencyModules.SourceGenerator is excluded because it is not this
+          # repository's code. It holds two files of its own - 148 lines - and compiles in the whole
+          # of DependencyModules.SourceGenerator.Impl, 8,554 lines, via Compile Include. A floor on
+          # that assembly is a floor on a sibling repository's source, moved by edits nobody here
+          # made, and it says nothing about whether the 148 lines are tested.
           reportgenerator \
             -reports:"coverage/**/*.cobertura.xml" \
             -targetdir:coverage-report \
-            -assemblyfilters:"+Hardened.*" \
+            -assemblyfilters:"+Hardened.*;-Hardened.DependencyModules.SourceGenerator" \
             -reporttypes:"TextSummary;MarkdownSummaryGithub;Html;JsonSummary"
           cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
           cat coverage-report/Summary.txt
