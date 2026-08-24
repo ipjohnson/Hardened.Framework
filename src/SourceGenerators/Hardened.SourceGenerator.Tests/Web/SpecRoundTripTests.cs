@@ -75,6 +75,16 @@ public class SpecRoundTripTests {
             Assert.True(parameter.BindingType == rebuilt!.BindingType,
                 Where($"parameter '{parameter.Name}' bound {parameter.BindingType}, rebuilt as {rebuilt.BindingType}"));
 
+            // The gap that let a real defect through: the corpus compared parameters by C# name
+            // and never checked what they bind to, so [FromHeader("X-Trace-Id")] string traceId
+            // round-tripped as a header called traceId and the suite was green.
+            // Effective name: code-first leaves BindingName empty when it matches the parameter,
+            // and the emitter treats the two identically. Comparing them literally would fail on a
+            // difference nothing downstream can observe.
+            Assert.True(Bound(parameter) == Bound(rebuilt),
+                Where($"parameter '{parameter.Name}' binds '{Bound(parameter)}', " +
+                      $"rebuilt binding '{Bound(rebuilt)}'"));
+
             Assert.True(parameter.ParameterType.Name == rebuilt.ParameterType.Name,
                 Where($"parameter '{parameter.Name}' typed {parameter.ParameterType.Name}, " +
                       $"rebuilt as {rebuilt.ParameterType.Name}"));
@@ -84,6 +94,10 @@ public class SpecRoundTripTests {
             before.ResponseInformation.ToString() == after.ResponseInformation.ToString(),
             Where("response information differs after the round trip"));
     }
+
+    /// <summary>What a parameter actually binds to, empty BindingName meaning its own name.</summary>
+    private static string Bound(RequestParameterInformation parameter) =>
+        string.IsNullOrEmpty(parameter.BindingName) ? parameter.Name : parameter.BindingName;
 
     /// <summary>
     /// The handler models the attribute-routed pipeline builds for one corpus application.

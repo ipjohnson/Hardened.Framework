@@ -72,16 +72,31 @@ internal static class CodeFirstSpecProjection {
                     RequestBodyType = handler.RequestParameterInformationList
                         .FirstOrDefault(parameter => parameter.BindingType == ParameterBindType.Body)
                         ?.ParameterType,
+                    RequestBodyName = handler.RequestParameterInformationList
+                        .FirstOrDefault(parameter => parameter.BindingType == ParameterBindType.Body)
+                        ?.Name,
                     ParameterTypes = handler.RequestParameterInformationList
                         .Where(parameter => parameter.BindingType != ParameterBindType.Body)
                         .ToDictionary(
-                            parameter => parameter.Name,
+                            WireName,
                             parameter => parameter.ParameterType,
+                            System.StringComparer.Ordinal),
+                    ParameterOrder = handler.RequestParameterInformationList
+                        .OrderBy(parameter => parameter.ParameterIndex)
+                        .Select(WireName)
+                        .ToList(),
+                    ParameterDefaults = handler.RequestParameterInformationList
+                        .Where(parameter => parameter.DefaultValue != null)
+                        .ToDictionary(WireName, parameter => parameter.DefaultValue!,
+                            System.StringComparer.Ordinal),
+                    ParameterAttributes = handler.RequestParameterInformationList
+                        .Where(parameter => parameter.CustomAttribute != null)
+                        .ToDictionary(WireName, parameter => parameter.CustomAttribute!,
                             System.StringComparer.Ordinal),
                     ParameterBindings = handler.RequestParameterInformationList
                         .Where(parameter => parameter.BindingType != ParameterBindType.Body)
                         .ToDictionary(
-                            parameter => parameter.Name,
+                            WireName,
                             parameter => parameter.BindingType,
                             System.StringComparer.Ordinal)
                 };
@@ -109,11 +124,24 @@ internal static class CodeFirstSpecProjection {
     /// </summary>
     private static ParameterModel Parameter(RequestParameterInformation parameter) =>
         new() {
-            Name = parameter.Name,
+            // Name is the wire name and MemberName the C# one, which the spec model already
+            // separates - a description calls a parameter one thing and the generated member
+            // another. Code-first separates them too: [FromHeader("X-Trace-Id")] string traceId
+            // binds a header nobody would name traceId. Putting the C# name in Name loses the
+            // header, silently, and the generated binder reads the wrong key.
+            Name = WireName(parameter),
+            MemberNameOverride = parameter.Name,
             In = In(parameter.BindingType),
             IsRequired = parameter.Required,
             Default = parameter.DefaultValue
         };
+
+    /// <summary>
+    /// What the parameter is called on the wire, falling back to the member name for the bindings
+    /// that have no wire presence at all.
+    /// </summary>
+    private static string WireName(RequestParameterInformation parameter) =>
+        string.IsNullOrEmpty(parameter.BindingName) ? parameter.Name : parameter.BindingName;
 
     private static string In(ParameterBindType bindType) =>
         bindType switch {
@@ -126,4 +154,52 @@ internal static class CodeFirstSpecProjection {
             // carried in OperationSymbols and this value is never read back.
             _ => "internal"
         };
+
+    /// <summary>
+    /// One handler, described and rebuilt through the shared bridge.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Per handler rather than per application, deliberately. Projecting the whole set would mean
+    /// collecting every model before any could be emitted, so editing one handler would rebuild all
+    /// of them - a real incrementality regression for a build-time round trip that changes nothing.
+    /// The bridge needs only the owning type's name and dispatch header to name what it names, and
+    /// both are on the handler.
+    /// </para>
+    /// <para>
+    /// This is the step that puts code-first on the shared path before the analysis moves onto it.
+    /// Every existing attribute-routed test then exercises the bridge, rather than only the corpus
+    /// the round-trip suite covers.
+    /// </para>
+    /// </remarks>
+    public static RequestHandlerModel RoundTrip(
+        RequestHandlerModel handler,
+        string modelsNamespace,
+        string servicesNamespace,
+        string generatedNamespace,
+        string validationNamespace) {
+        var (spec, symbols) = Project(new[] { handler });
+
+        var rebuilt = SpecHandlerModelBuilder.BuildModels(
+            spec, modelsNamespace, servicesNamespace, generatedNamespace, validationNamespace, symbols);
+
+        return rebuilt.Count == 1 ? Carry(handler, rebuilt[0]) : handler;
+    }
+
+    /// <summary>
+    /// What the spec model has no field for yet, carried across so the round trip is lossless while
+    /// the remaining gaps are closed one at a time.
+    /// </summary>
+    /// <remarks>
+    /// Each of these is a description the spec model cannot make. Listing them here rather than
+    /// silently reusing the original model is what keeps the size of the remaining work visible.
+    /// </remarks>
+    private static RequestHandlerModel Carry(RequestHandlerModel from, RequestHandlerModel to) {
+        to.ParametersValidator = from.ParametersValidator;
+        to.ResponseSchema = from.ResponseSchema;
+        to.ResponseSchemas = from.ResponseSchemas;
+        to.RequestSchema = from.RequestSchema;
+
+        return from.Filters.Count == 0 ? to : to.WithFilters(from.Filters);
+    }
 }

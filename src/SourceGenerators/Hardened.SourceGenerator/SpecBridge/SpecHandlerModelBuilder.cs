@@ -175,6 +175,14 @@ internal static class SpecHandlerModelBuilder {
             responseInfo,
             filters) {
             ParametersInterface = parametersInterface,
+
+            // What the operation says about itself. Carried here rather than left to each caller,
+            // because a handler model that has lost its summary cannot be told from one whose
+            // operation never had a summary - and the document written from it is silently poorer.
+            Tag = operation.Tag,
+            Summary = operation.Summary,
+            Description = operation.Description,
+            IsDeprecated = operation.IsDeprecated,
         };
     }
 
@@ -233,16 +241,17 @@ internal static class SpecHandlerModelBuilder {
                 param.IsRequired,
                 // Drives ParseWithDefault in the binder, so an absent value arrives as the
                 // specification's default rather than as null.
-                DefaultLiteral.Format(param.Default, csType),
+                Default(symbols, param.Name) ?? DefaultLiteral.Format(param.Default, csType),
                 bindType,
                 param.Name,
-                index++));
+                index++,
+                Attribute(symbols, param.Name)));
         }
 
         if (symbols?.RequestBodyType is { } knownBodyType) {
             parameters.Add(new RequestParameterInformation(
                 knownBodyType,
-                "body",
+                symbols?.RequestBodyName ?? "body",
                 true,
                 null,
                 ParameterBindType.Body,
@@ -274,7 +283,7 @@ internal static class SpecHandlerModelBuilder {
                 index++));
         }
 
-        return parameters;
+        return Ordered(parameters, symbols);
     }
 
     private static ResponseInformationModel BuildResponseInfo(
@@ -576,4 +585,40 @@ internal static class SpecHandlerModelBuilder {
     private static OperationSymbols? Symbols(
         IReadOnlyDictionary<string, OperationSymbols>? symbols, OperationModel operation) =>
         symbols != null && symbols.TryGetValue(operation.OperationId, out var found) ? found : null;
+
+    private static string? Default(OperationSymbols? symbols, string name) =>
+        symbols?.ParameterDefaults != null &&
+        symbols.ParameterDefaults.TryGetValue(name, out var value) ? value : null;
+
+    private static AttributeModel? Attribute(OperationSymbols? symbols, string name) =>
+        symbols?.ParameterAttributes != null &&
+        symbols.ParameterAttributes.TryGetValue(name, out var attribute) ? attribute : null;
+
+    /// <summary>
+    /// Declaration order, when the builder recorded it.
+    /// </summary>
+    /// <remarks>
+    /// A description lists its parameters and names its body separately, so recombining them can
+    /// only ever put the body first or last. A method signature interleaves them, and the generated
+    /// binder reads positionally.
+    /// </remarks>
+    private static IReadOnlyList<RequestParameterInformation> Ordered(
+        List<RequestParameterInformation> parameters, OperationSymbols? symbols) {
+        if (symbols?.ParameterOrder == null) {
+            return parameters;
+        }
+
+        var order = symbols.ParameterOrder;
+
+        return parameters
+            .OrderBy(parameter => {
+                var at = order.IndexOf(parameter.BindingName);
+
+                return at < 0 ? order.IndexOf(parameter.Name) : at;
+            })
+            .Select((parameter, index) => new RequestParameterInformation(
+                parameter.ParameterType, parameter.Name, parameter.Required, parameter.DefaultValue,
+                parameter.BindingType, parameter.BindingName, index, parameter.CustomAttribute))
+            .ToList();
+    }
 }

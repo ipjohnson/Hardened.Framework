@@ -1,0 +1,30 @@
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Execution;
+using System;
+using System.Threading.Tasks;
+using TestApp;
+
+namespace TestApp.Generated
+{
+    public partial class BlobController_Blob : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::TestApp.BlobController>
+    {
+        private readonly static global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new ExecutionRequestHandlerInfo("/blob", "GET", typeof(BlobController), "Blob")
+;
+
+        public BlobController_Blob(global::System.IServiceProvider serviceProvider, string? routePath = null)
+             : base(global::Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncStandardFilterEmptyParameters<global::TestApp.BlobController>(
+            serviceProvider,
+            _handlerInfo.WithPath(routePath),
+            InvokeMethod,
+            global::Hardened.Requests.Runtime.Execution.ExecutionHelper.GetFilterInfo()
+        ), null)
+        {
+        }
+
+        private static async global::System.Threading.Tasks.Task InvokeMethod(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, global::TestApp.BlobController controller)
+        {
+            context.Response.ContentType = "application/octet-stream";
+            context.Response.ResponseValue = await controller.Blob();
+        }
+    }
+}

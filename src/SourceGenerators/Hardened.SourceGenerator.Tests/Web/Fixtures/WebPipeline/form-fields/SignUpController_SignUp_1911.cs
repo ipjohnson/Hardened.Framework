@@ -1,0 +1,107 @@
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Execution;
+using System;
+using System.Threading.Tasks;
+using TestApp;
+
+namespace TestApp.Generated
+{
+    public partial class SignUpController_SignUp_1911 : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::TestApp.SignUpController>
+    {
+        private readonly static global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
+;
+        private readonly static global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new ExecutionRequestHandlerInfo("/sign-up", "POST", typeof(SignUpController), "SignUp", _parameterInfo)
+;
+
+        public SignUpController_SignUp_1911(global::System.IServiceProvider serviceProvider, string? routePath = null)
+             : base(global::Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncStandardFilterWithParameters<
+            global::TestApp.SignUpController,
+            Parameters
+        >(
+            serviceProvider,
+            _handlerInfo.WithPath(routePath),
+            BindRequestParameters,
+            InvokeMethod,
+            global::Hardened.Requests.Runtime.Execution.ExecutionHelper.GetFilterInfo()
+        ), null)
+        {
+        }
+
+        private static global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] CreateParameterInfo()
+        {
+            var returnArray = new global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[2];
+            returnArray[0] = new global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameter(
+                "email",
+                0,
+                typeof(global::System.String)
+            );
+            returnArray[1] = new global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameter(
+                "displayName",
+                1,
+                typeof(global::System.String)
+            );
+            return returnArray;
+        }
+
+        private static async global::System.Threading.Tasks.Task InvokeMethod(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, global::TestApp.SignUpController controller, Parameters parameters)
+        {
+            context.Response.ResponseValue = await controller.SignUp(
+                parameters.email,
+                parameters.displayName
+            );
+        }
+
+        private static async global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
+        {
+            var parameters = new Parameters();
+            var form = await context.KnownServices.FormReader.ReadForm(context);
+            parameters.email = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
+                form.Get("email")!,
+                "email"
+            );
+            parameters.displayName = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
+                form.Get("display_name")!,
+                "display_name"
+            );
+            return parameters;
+        }
+
+        public partial class Parameters : global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameters
+        {
+
+            public global::System.String email { get; set; } = default!;
+
+            public global::System.String displayName { get; set; } = default!;
+
+            public override object this[int index]
+            {
+                get
+                {
+                    switch (index)
+                    {
+                        case 0:
+                            return this.email!;
+                        case 1:
+                            return this.displayName!;
+                    }
+                    throw new global::System.IndexOutOfRangeException("Index out of range, parameters count 2, index was " + index);
+                }
+                set
+                {
+                    switch (index)
+                    {
+                        case 0:
+                            this.email = (global::System.String)value;
+                            return;
+                        case 1:
+                            this.displayName = (global::System.String)value;
+                            return;
+                    }
+                    throw new global::System.IndexOutOfRangeException("Index out of range, parameters count 2, index was " + index);
+                }
+            }
+
+            public override global::System.Collections.Generic.IReadOnlyList<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Info => _parameterInfo;
+        }
+    }
+}

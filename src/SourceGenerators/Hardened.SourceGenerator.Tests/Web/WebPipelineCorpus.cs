@@ -17,7 +17,12 @@ public static class WebPipelineCorpus {
         "constrained-token",
         "verb-set",
         "declared-status",
-        "injected-service"
+        "injected-service",
+        "cookie-and-header",
+        "form-fields",
+        "execution-context",
+        "streaming-response",
+        "raw-response"
     ];
 
     public static string Source(string scenario) =>
@@ -88,6 +93,53 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
+            "cookie-and-header" => """
+                public class SessionController {
+                    [Get("/session")]
+                    public Task<string> Read(
+                        [FromCookie("sid")] string sessionId,
+                        [FromHeader("X-Trace-Id")] string? traceId) =>
+                        Task.FromResult(sessionId + traceId);
+                }
+                """,
+
+            "form-fields" => """
+                public class SignUpController {
+                    [Post("/sign-up")]
+                    public Task<string> SignUp(
+                        [FromForm] string email,
+                        [FromForm("display_name")] string displayName) =>
+                        Task.FromResult(email + displayName);
+                }
+                """,
+
+            "execution-context" => """
+                public class ContextController {
+                    [Get("/whoami")]
+                    public Task<string> WhoAmI(IExecutionContext context) =>
+                        Task.FromResult(context.CorrelationId);
+                }
+                """,
+
+            "streaming-response" => """
+                public class FeedController {
+                    [Get("/feed")]
+                    [ServerSentEvents]
+                    public async IAsyncEnumerable<string> Feed() {
+                        yield return "one";
+                        await Task.CompletedTask;
+                    }
+                }
+                """,
+
+            "raw-response" => """
+                public class BlobController {
+                    [Get("/blob")]
+                    [RawResponse("application/octet-stream")]
+                    public Task<byte[]> Blob() => Task.FromResult(new byte[] { 1, 2, 3 });
+                }
+                """,
+
             _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, "Unknown scenario.")
         });
 
@@ -99,6 +151,7 @@ public static class WebPipelineCorpus {
         using System.Collections.Generic;
         using System.Threading.Tasks;
         using Hardened.Requests.Abstract.Attributes;
+        using Hardened.Requests.Abstract.Execution;
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Attributes;
 

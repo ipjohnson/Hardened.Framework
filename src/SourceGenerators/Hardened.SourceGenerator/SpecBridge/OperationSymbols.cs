@@ -1,5 +1,6 @@
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Requests;
 
@@ -48,6 +49,16 @@ public sealed class OperationSymbols {
     /// <summary>The request body's type, if the operation takes one.</summary>
     public ITypeDefinition? RequestBodyType { get; set; }
 
+    /// <summary>
+    /// What the body parameter is called.
+    /// </summary>
+    /// <remarks>
+    /// A description has no name for its body - there is one, and the generated signature calls it
+    /// "body". A method signature names it whatever the author chose, and the generated binder
+    /// passes arguments positionally by that name, so losing it transposes the call.
+    /// </remarks>
+    public string? RequestBodyName { get; set; }
+
     /// <summary>Parameter types by parameter name, for the ones already resolved.</summary>
     public Dictionary<string, ITypeDefinition>? ParameterTypes { get; set; }
 
@@ -61,6 +72,36 @@ public sealed class OperationSymbols {
     /// a code-first handler signature routinely asks for.
     /// </remarks>
     public Dictionary<string, ParameterBindType>? ParameterBindings { get; set; }
+
+    /// <summary>
+    /// A parameter's default, already written as C#.
+    /// </summary>
+    /// <remarks>
+    /// A description states a default as a value and the bridge formats it into a literal for the
+    /// declared type. A code-first default is read off the syntax and is a literal already -
+    /// formatting it a second time is how <c>5</c> stops being a default at all.
+    /// </remarks>
+    public Dictionary<string, string>? ParameterDefaults { get; set; }
+
+    /// <summary>
+    /// The binding attribute a parameter carries, for the ones a description cannot describe.
+    /// </summary>
+    /// <remarks>
+    /// A custom binding attribute is C# a handler author wrote, constructed into the generated
+    /// binder verbatim. There is nothing in a wire contract it could be derived from.
+    /// </remarks>
+    public Dictionary<string, AttributeModel>? ParameterAttributes { get; set; }
+
+    /// <summary>
+    /// The parameter names in declaration order.
+    /// </summary>
+    /// <remarks>
+    /// A description keeps its parameters in a list and its body in a separate field, so a body
+    /// parameter can only ever come first or last when the two are recombined. A method signature
+    /// interleaves them freely, and the generated binder reads positionally - so losing the order
+    /// binds the right values to the wrong parameters.
+    /// </remarks>
+    public List<string>? ParameterOrder { get; set; }
 
     /// <summary>
     /// The response shape, when the builder resolved it from a compilation.

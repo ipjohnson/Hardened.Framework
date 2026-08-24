@@ -1,0 +1,33 @@
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Execution;
+using System;
+using TestApp;
+
+namespace TestApp.Generated
+{
+    public partial class FeedController_Feed : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::TestApp.FeedController>
+    {
+        private readonly static object[] _metadata = new object[] { new global::Hardened.Web.Runtime.Attributes.ServerSentEventsAttribute() };
+        private readonly static global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new ExecutionRequestHandlerInfo("/feed", "GET", typeof(FeedController), "Feed", null, _metadata)
+;
+
+        public FeedController_Feed(global::System.IServiceProvider serviceProvider, string? routePath = null)
+             : base(global::Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncEnumerableFilterEmptyParameters<
+            global::TestApp.FeedController,
+            string
+        >(
+            serviceProvider,
+            _handlerInfo.WithPath(routePath),
+            InvokeMethod,
+            global::Hardened.Requests.Runtime.Execution.ExecutionHelper.GetFilterInfo(_metadata),
+            Hardened.Requests.Runtime.Filters.SseFraming.Instance
+        ), null)
+        {
+        }
+
+        private static void InvokeMethod(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, global::TestApp.FeedController controller)
+        {
+            context.Response.ResponseValue = controller.Feed();
+        }
+    }
+}
