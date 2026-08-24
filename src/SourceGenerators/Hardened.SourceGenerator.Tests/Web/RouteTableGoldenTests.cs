@@ -24,10 +24,16 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// </summary>
 public class RouteTableGoldenTests {
     /// <summary>
-    /// Set to true, run the suite once, and every fixture is rewritten from current output. Must
-    /// never be committed as true — <see cref="RecordingIsOff"/> fails the build if it is.
+    /// Set <c>HARDENED_RECORD_FIXTURES=1</c> to rewrite every fixture from current output.
     /// </summary>
-    private const bool Recording = false;
+    /// <remarks>
+    /// An environment variable rather than a constant in this file. A constant makes the recording
+    /// branch provably unreachable, which is CS0162 and therefore a build error under
+    /// ContinuousIntegrationBuild - and, worse, it can be committed as true, which turns every
+    /// assertion below into a no-op silently. CI never sets the variable, so recording cannot reach it.
+    /// </remarks>
+    private static readonly bool Recording =
+        Environment.GetEnvironmentVariable("HARDENED_RECORD_FIXTURES") == "1";
 
     private static string FixtureDirectory() {
         // The fixtures live beside the source rather than in the output directory: they are
@@ -41,13 +47,6 @@ public class RouteTableGoldenTests {
         Assert.NotNull(directory);
 
         return Path.Combine(directory!.FullName, "Web", "Fixtures", "RouteTable");
-    }
-
-    [Fact]
-    public void RecordingIsOff() {
-        // Recording left on would make every other test in this class assert nothing at all, and
-        // it would do it silently.
-        Assert.False(Recording, "Recording must be false in committed source.");
     }
 
     [Theory]

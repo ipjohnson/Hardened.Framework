@@ -18,7 +18,17 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// </para>
 /// </summary>
 public class SpecRouteTableGoldenTests {
-    private const bool Recording = false;
+    /// <summary>
+    /// Set <c>HARDENED_RECORD_FIXTURES=1</c> to rewrite every fixture from current output.
+    /// </summary>
+    /// <remarks>
+    /// An environment variable rather than a constant in this file. A constant makes the recording
+    /// branch provably unreachable, which is CS0162 and therefore a build error under
+    /// ContinuousIntegrationBuild - and, worse, it can be committed as true, which turns every
+    /// assertion below into a no-op silently. CI never sets the variable, so recording cannot reach it.
+    /// </remarks>
+    private static readonly bool Recording =
+        Environment.GetEnvironmentVariable("HARDENED_RECORD_FIXTURES") == "1";
 
     private static string FixtureDirectory() {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -31,11 +41,6 @@ public class SpecRouteTableGoldenTests {
         Assert.NotNull(directory);
 
         return Path.Combine(directory!.FullName, "Fixtures", "SpecRouteTable");
-    }
-
-    [Fact]
-    public void RecordingIsOff() {
-        Assert.False(Recording, "Recording must be false in committed source.");
     }
 
     [Theory]
