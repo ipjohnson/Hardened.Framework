@@ -1,0 +1,237 @@
+using DependencyModules.Runtime.Helpers;
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Web.Runtime.Handlers;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using TestApp;
+using TestApp.Generated;
+
+namespace TestApp
+{
+    public partial class Application
+    {
+        [DynamicDependency(nameof(RoutingTableDI))]
+        private static int _routingTableDependencies =         DependencyRegistry<Application>.Add(RoutingTableDI)
+;
+
+        private static void RoutingTableDI(IServiceCollection serviceCollection)
+        {
+            serviceCollection.AddSingleton<
+                IWebExecutionRequestHandlerProvider,
+                Application.RoutingTable
+            >();
+            serviceCollection.AddTransient<ItemController>();
+            serviceCollection.AddTransient<ApplicationLinks>();
+        }
+
+        private class RoutingTable : IWebExecutionRequestHandlerProvider
+        {
+            private IServiceProvider _rootServiceProvider;
+            private ItemController_Get_329? _fieldItemController_Get_329;
+            private readonly static string[] _pathTokenNamesItemController_Get_329 =             new string[] { "id" }
+;
+            private readonly static RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
+;
+            private ItemController_BySlug_541? _fieldItemController_BySlug_541;
+            private readonly static string[] _pathTokenNamesItemController_BySlug_541 =             new string[] { "name" }
+;
+
+            public RoutingTable(IServiceProvider serviceProvider)
+            {
+                _rootServiceProvider = serviceProvider;
+            }
+
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            {
+                var pathSpan = context.Request.Path.AsSpan();
+                return TestPath_Slash(
+                    pathSpan,
+                    0,
+                    context.Request.Method
+                );
+            }
+
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                {
+                    index += 1;
+                    handlerInfo = TestPath_SlashCaseStatement(
+                        charSpan,
+                        index,
+                        methodString
+                    );
+                }
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_SlashCaseStatement(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                if (charSpan.Length > index)
+                {
+                    switch (charSpan[index])
+                    {
+                        case 'i':
+                            return TestPath_NoPath(
+                                charSpan,
+                                index + 1,
+                                methodString
+                            );
+                        case 's':
+                            return TestPath_NoPath2(
+                                charSpan,
+                                index + 1,
+                                methodString
+                            );
+                    }
+                }
+                return null;
+            }
+
+            public RequestHandlerInfo? TestPath_NoPath(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                handlerInfo = TestPath_temsSlash(
+                    charSpan,
+                    index,
+                    methodString
+                );
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_temsSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'm') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
+                {
+                    index += 5;
+                    if (handlerInfo == null)
+                    {
+                        handlerInfo = TestPath_temsSlashWildCard(
+                            charSpan,
+                            index,
+                            methodString
+                        );
+                    }
+                }
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_temsSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                handlerInfo = TestPath_NoPathWildCardMatch(
+                    charSpan,
+                    index,
+                    methodString
+                );
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                if (charSpan.Length <= index)
+                {
+                    return null;
+                }
+                if (charSpan.Slice(index).IndexOf('/') >= 0)
+                {
+                    return null;
+                }
+                if (!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsInt(charSpan.Slice(index)))
+                {
+                    return null;
+                }
+                switch (methodString)
+                {
+                    case "HEAD":
+                    case "GET":
+                        return new RequestHandlerInfo(
+                            _fieldItemController_Get_329 ??= new ItemController_Get_329(_rootServiceProvider),
+                            new PathTokenCollection(
+                                1,
+                                _pathTokenNamesItemController_Get_329,
+                                charSpan.Slice(index).ToString()
+                            )
+                        );
+                    default:
+                        return _methodNotAllowedGETHEAD;
+                }
+            }
+
+            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                handlerInfo = TestPath_lugsSlash(
+                    charSpan,
+                    index,
+                    methodString
+                );
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_lugsSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'l') && (charSpan[index + 1] == 'u') && (charSpan[index + 2] == 'g') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
+                {
+                    index += 5;
+                    if (handlerInfo == null)
+                    {
+                        handlerInfo = TestPath_lugsSlashWildCard(
+                            charSpan,
+                            index,
+                            methodString
+                        );
+                    }
+                }
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_lugsSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                RequestHandlerInfo? handlerInfo = null;
+                handlerInfo = TestPath_NoPath3(
+                    charSpan,
+                    index,
+                    methodString
+                );
+                return handlerInfo;
+            }
+
+            public RequestHandlerInfo? TestPath_NoPath3(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            {
+                if (charSpan.Length <= index)
+                {
+                    return null;
+                }
+                if (charSpan.Slice(index).IndexOf('/') >= 0)
+                {
+                    return null;
+                }
+                if (!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsSlug(charSpan.Slice(index)))
+                {
+                    return null;
+                }
+                switch (methodString)
+                {
+                    case "HEAD":
+                    case "GET":
+                        return new RequestHandlerInfo(
+                            _fieldItemController_BySlug_541 ??= new ItemController_BySlug_541(_rootServiceProvider),
+                            new PathTokenCollection(
+                                1,
+                                _pathTokenNamesItemController_BySlug_541,
+                                charSpan.Slice(index).ToString()
+                            )
+                        );
+                    default:
+                        return _methodNotAllowedGETHEAD;
+                }
+            }
+        }
+    }
+}

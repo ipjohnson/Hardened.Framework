@@ -1,0 +1,28 @@
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Execution;
+using System;
+using TestApp;
+
+namespace TestApp.Generated
+{
+    public partial class HomeController_Hello : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::TestApp.HomeController>
+    {
+        private readonly static global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new ExecutionRequestHandlerInfo("/hello", "GET", typeof(HomeController), "Hello")
+;
+
+        public HomeController_Hello(global::System.IServiceProvider serviceProvider, string? routePath = null)
+             : base(global::Hardened.Requests.Runtime.Execution.ExecutionHelper.StandardFilterEmptyParameters<global::TestApp.HomeController>(
+            serviceProvider,
+            _handlerInfo.WithPath(routePath),
+            InvokeMethod,
+            global::Hardened.Requests.Runtime.Execution.ExecutionHelper.GetFilterInfo()
+        ), null)
+        {
+        }
+
+        private static void InvokeMethod(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, global::TestApp.HomeController controller)
+        {
+            context.Response.ResponseValue = controller.Hello();
+        }
+    }
+}

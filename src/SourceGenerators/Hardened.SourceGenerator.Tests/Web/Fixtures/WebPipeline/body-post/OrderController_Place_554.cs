@@ -1,0 +1,86 @@
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.Execution;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
+using TestApp;
+
+namespace TestApp.Generated
+{
+    public partial class OrderController_Place_554 : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::TestApp.OrderController>
+    {
+        private readonly static global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
+;
+        private readonly static global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new ExecutionRequestHandlerInfo("/orders", "POST", typeof(OrderController), "Place", _parameterInfo)
+;
+
+        public OrderController_Place_554(global::System.IServiceProvider serviceProvider, string? routePath = null)
+             : base(global::Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncStandardFilterWithParameters<
+            global::TestApp.OrderController,
+            Parameters
+        >(
+            serviceProvider,
+            _handlerInfo.WithPath(routePath),
+            BindRequestParameters,
+            InvokeMethod,
+            global::Hardened.Requests.Runtime.Execution.ExecutionHelper.GetFilterInfo()
+        ), null)
+        {
+        }
+
+        private static global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] CreateParameterInfo()
+        {
+            var returnArray = new global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[1];
+            returnArray[0] = new global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameter(
+                "body",
+                0,
+                typeof(global::TestApp.Order)
+            );
+            return returnArray;
+        }
+
+        private static async global::System.Threading.Tasks.Task InvokeMethod(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, global::TestApp.OrderController controller, Parameters parameters)
+        {
+            context.Response.ResponseValue = await controller.Place(parameters.body);
+        }
+
+        private static async global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
+        {
+            var parameters = new Parameters();
+            var contentSerializationService = context.KnownServices.ContextSerializationService;
+            parameters.body = (await contentSerializationService.DeserializeRequestBody<global::TestApp.Order>(context))!;
+            return parameters;
+        }
+
+        public partial class Parameters : global::Hardened.Requests.Runtime.Execution.ExecutionRequestParameters
+        {
+
+            public global::TestApp.Order body { get; set; } = default!;
+
+            public override object this[int index]
+            {
+                get
+                {
+                    switch (index)
+                    {
+                        case 0:
+                            return this.body!;
+                    }
+                    throw new global::System.IndexOutOfRangeException("Index out of range, parameters count 1, index was " + index);
+                }
+                set
+                {
+                    switch (index)
+                    {
+                        case 0:
+                            this.body = (global::TestApp.Order)value;
+                            return;
+                    }
+                    throw new global::System.IndexOutOfRangeException("Index out of range, parameters count 1, index was " + index);
+                }
+            }
+
+            public override global::System.Collections.Generic.IReadOnlyList<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Info => _parameterInfo;
+        }
+    }
+}
