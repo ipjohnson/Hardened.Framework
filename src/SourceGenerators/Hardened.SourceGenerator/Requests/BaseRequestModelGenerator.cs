@@ -24,6 +24,15 @@ public abstract class BaseRequestModelGenerator {
 
         var parameters = GetParameters(context, methodDeclaration, nameModel, cancellationToken);
 
+        // Read before Compose, because the unresolved ones ride on the response model and the
+        // emit step is where there is a context to report them into.
+        var unresolved = new List<string>();
+        var thrown = ThrownResponseSelector.Read(context, methodDeclaration, unresolved, cancellationToken);
+
+        if (unresolved.Count > 0) {
+            response.ThrowsDiagnostic = string.Join(",", unresolved);
+        }
+
         return Compose(
             nameModel,
             controllerType,
@@ -35,7 +44,13 @@ public abstract class BaseRequestModelGenerator {
             OpenApiDocument.JsonSchemaWriter.Write(
                 SchemaSubject(context, methodDeclaration, response),
                 context.SemanticModel.Compilation.Assembly),
-            DeclaredResponses(context, response),
+            // Both kinds of declaration in one list: what a Response or union return type says,
+            // and what [Throws<T>] says. The document writer groups by status and does not care
+            // which produced an entry.
+            DeclaredResponses(context, response).Concat(thrown).ToList(),
+            // Complete unless the only declarations came from [Throws], which names failures and
+            // leaves the success to the return type.
+            response.UnionCases != null || thrown.Count == 0,
             BodySchema(context, methodDeclaration, parameters));
     }
 
@@ -59,10 +74,12 @@ public abstract class BaseRequestModelGenerator {
         IReadOnlyList<AttributeModel> filters,
         HandlerSchema? responseSchema,
         IReadOnlyList<ResponseSchemaModel> responseSchemas,
+        bool responsesAreComplete,
         HandlerSchema? requestSchema) =>
         new(nameModel, controllerType, methodName, invokeHandlerType, parameters, response, filters) {
             ResponseSchema = responseSchema,
             ResponseSchemas = responseSchemas,
+            DeclaredResponsesAreComplete = responsesAreComplete,
             RequestSchema = requestSchema
         };
 

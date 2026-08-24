@@ -254,8 +254,19 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     protected override bool IsFilterAttribute(AttributeSyntax attribute) {
         var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
+        // A generic attribute's name carries its arguments - "Throws<RateLimited>" - so the
+        // exclusions below have to be matched against the bare name. Anything not recognised is
+        // taken for a filter and constructed into the handler's filter chain, which is not
+        // somewhere a response declaration belongs.
+        var generic = attributeName.IndexOf('<');
+
+        if (generic >= 0) {
+            attributeName = attributeName.Substring(0, generic);
+        }
+
         switch (attributeName) {
             case "RawResponse":
+            case "Throws":
                 return false;
 
             default:
@@ -333,6 +344,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         IReadOnlyList<AttributeModel> filters,
         HandlerSchema? responseSchema,
         IReadOnlyList<ResponseSchemaModel> responseSchemas,
+        bool responsesAreComplete,
         HandlerSchema? requestSchema) {
         var operationId = controllerType.Name + "." + methodName + "." + nameModel.Method;
 
@@ -394,13 +406,15 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
         if (model == null) {
             return base.Compose(nameModel, controllerType, methodName, invokeHandlerType,
-                parameters, response, filters, responseSchema, responseSchemas, requestSchema);
+                parameters, response, filters, responseSchema, responseSchemas,
+                responsesAreComplete, requestSchema);
         }
 
         // Schemas are read from the compilation and have no description to come from. Filters are
         // C# attributes the author wrote.
         model.ResponseSchema = responseSchema;
         model.ResponseSchemas = responseSchemas;
+        model.DeclaredResponsesAreComplete = responsesAreComplete;
         model.RequestSchema = requestSchema;
 
         return filters.Count == 0 ? model : model.WithFilters(filters);

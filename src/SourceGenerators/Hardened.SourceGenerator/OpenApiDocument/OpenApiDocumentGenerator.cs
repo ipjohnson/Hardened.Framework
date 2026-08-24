@@ -310,11 +310,26 @@ public static class OpenApiDocumentGenerator {
 
         builder.Append(",\"responses\":{");
 
-        if (handler.ResponseSchemas.Count > 0) {
+        // Which declaration produced the set decides whether it is the whole of it. A Response or
+        // union return type names every status the handler answers, success included - and that
+        // success need not be 200: Response<NoContent, NotFound> declares 204 and 404 and nothing
+        // else. [Throws<T>] names only failures, and the success still comes from the return type.
+        //
+        // Asking instead whether the declared set happens to contain the default success status
+        // gets the union case wrong, and writes a 200 beside a 204 for a handler that answers one
+        // of them.
+        var returnTypeDeclaredThem = handler.DeclaredResponsesAreComplete;
+
+        if (handler.ResponseSchemas.Count == 0) {
+            WriteSingleResponse(builder, handler, components, version, successStatus);
+        }
+        else if (returnTypeDeclaredThem) {
             WriteDeclaredResponses(builder, handler, components);
         }
         else {
             WriteSingleResponse(builder, handler, components, version, successStatus);
+            builder.Append(',');
+            WriteDeclaredResponses(builder, handler, components);
         }
 
         builder.Append('}');

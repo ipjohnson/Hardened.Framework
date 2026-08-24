@@ -204,13 +204,16 @@ public class ModelComparisonTests {
             DefaultStatusCode = 201,
             NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem",
             ProducedContentTypes = "text/plain,text/csv",
-            UnionCases = "global::App.Todo|201|01;global::App.NotFound|404|01"
+            UnionCases = "global::App.Todo|201|01;global::App.NotFound|404|01",
+            ThrowsDiagnostic = "OutOfStock"
         };
 
+        // Every field, because this string is what the incremental caches compare to decide
+        // whether to rerun. A field left out of it is a change the generator does not notice.
         Assert.Equal(
             "True:System.Fortunes:text/csv:sse:System.String:201:" +
             "Models.DefaultErrorBodies.NotFoundProblem:text/plain,text/csv:" +
-            "global::App.Todo|201|01;global::App.NotFound|404|01:",
+            "global::App.Todo|201|01;global::App.NotFound|404|01::OutOfStock",
             model.ToString());
     }
 

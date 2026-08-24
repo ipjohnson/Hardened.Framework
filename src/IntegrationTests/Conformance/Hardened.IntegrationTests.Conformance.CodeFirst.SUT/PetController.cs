@@ -19,6 +19,7 @@ public class PetController {
 
     /// <summary>Null for an absent pet, which the framework answers as 404.</summary>
     [Get("/pets/{petId:slug}")]
+    [Throws<RateLimited>]
     public Task<Pet?> GetPet(string petId) {
         // Code-first declares an error by throwing one of the built-in response types. The
         // described front-ends generate an exception per operation and status; both land on

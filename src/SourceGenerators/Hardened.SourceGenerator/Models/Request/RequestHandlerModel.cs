@@ -52,6 +52,7 @@ public class RequestHandlerModel {
             ParametersValidator = ParametersValidator,
             ResponseSchema = ResponseSchema,
             ResponseSchemas = ResponseSchemas,
+            DeclaredResponsesAreComplete = DeclaredResponsesAreComplete,
             RequestSchema = RequestSchema,
             Tag = Tag,
             Summary = Summary,
@@ -129,6 +130,18 @@ public class RequestHandlerModel {
     /// ask which meaning it held.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Whether <see cref="ResponseSchemas"/> is every status the handler answers.
+    /// </summary>
+    /// <remarks>
+    /// True for a described operation and for a Response or union return type: both name the whole
+    /// set, success included - and that success need not be 200, since Response&lt;NoContent,
+    /// NotFound&gt; declares 204 and 404 and nothing else. False when the only declarations came
+    /// from [Throws&lt;T&gt;], which names failures while the success still comes from the return
+    /// type, so the document has to write that one as well.
+    /// </remarks>
+    public bool DeclaredResponsesAreComplete { get; set; } = true;
+
     public IReadOnlyList<ResponseSchemaModel> ResponseSchemas { get; set; } =
         Array.Empty<ResponseSchemaModel>();
 

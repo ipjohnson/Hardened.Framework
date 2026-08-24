@@ -120,6 +120,16 @@ public record ResponseInformationModel {
     public string? UnionDiagnostic { get; set; }
 
     /// <summary>
+    /// <c>[Throws&lt;T&gt;]</c> declarations naming a type with no status and stating none.
+    /// </summary>
+    /// <remarks>
+    /// Carried rather than reported where it is found, for the same reason UnionDiagnostic is: the
+    /// model is built in a syntax transform, which has no SourceProductionContext to report into.
+    /// The emit step has one and reports it there.
+    /// </remarks>
+    public string? ThrowsDiagnostic { get; set; }
+
+    /// <summary>
     /// How a streamed response is framed on the wire, or null for newline-delimited JSON.
     /// </summary>
     /// <remarks>
@@ -147,6 +157,6 @@ public record ResponseInformationModel {
     public override string ToString() {
         return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
                $":{DefaultStatusCode}:{NullResponseBodyExpression}:{ProducedContentTypes}" +
-               $":{UnionCases}:{UnionDiagnostic}";
+               $":{UnionCases}:{UnionDiagnostic}:{ThrowsDiagnostic}";
     }
 }

@@ -970,6 +970,14 @@ namespace Hardened.Requests.Abstract.Responses
         public string Type { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=true, Inherited=false)]
+    public sealed class ThrowsAttribute<TError> : System.Attribute
+    {
+        public ThrowsAttribute() { }
+        public ThrowsAttribute(int statusCode) { }
+        public string? Description { get; set; }
+        public int? StatusCode { get; }
+    }
     [Hardened.Requests.Abstract.Responses.HttpStatus(401)]
     public sealed class Unauthorized : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Unauthorized>
     {
