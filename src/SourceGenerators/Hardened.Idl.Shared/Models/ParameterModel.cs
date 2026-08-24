@@ -65,6 +65,24 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     public bool ExclusiveMinimum { get; set; }
     public bool ExclusiveMaximum { get; set; }
     public string? Pattern { get; set; }
+
+    /// <summary>
+    /// The route-constraint name this parameter contributes to its route template, or null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Set only for <c>path</c> parameters. A constraint on a path segment narrows which URLs name
+    /// a resource, so a violation means the route did not match and the answer is 404 - the same
+    /// reasoning that makes <c>/pets/</c> a 404 against <c>/pets/{petId}</c> rather than a 400 from
+    /// the binder. A constraint on a query, header or body parameter is a judgement about a request
+    /// that did name a resource, stays on the validation path, and answers 400.
+    /// </para>
+    /// <para>
+    /// Additive to the serialized model rather than a version bump: an older file yields null,
+    /// which is the behaviour before this existed.
+    /// </para>
+    /// </remarks>
+    public string? RouteConstraint { get; set; }
     public int? MinItems { get; set; }
     public int? MaxItems { get; set; }
     public List<string>? EnumValues { get; set; }

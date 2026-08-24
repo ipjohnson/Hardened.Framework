@@ -174,12 +174,28 @@ public static class RouteConstraintSelector {
     private static string Call(MethodDeclarationSyntax method) =>
         "global::" + Owner(method) + "." + method.Identifier.Text;
 
+    /// <summary>
+    /// The fully qualified type the method is declared on.
+    /// </summary>
+    /// <remarks>
+    /// Every enclosing namespace, outermost first. Taking only the nearest one names a type in
+    /// <c>namespace A.B { namespace Validation { ... } }</c> as <c>Validation</c>, which resolves
+    /// nowhere - the emitted call fails with CS0400 against the global namespace. Nested namespace
+    /// declarations are ordinary C#, and a build task composing one file out of several namespaces
+    /// writes them, so this is reachable rather than theoretical.
+    /// </remarks>
     private static string Owner(MethodDeclarationSyntax method) {
         var type = method.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
-        var containing = method.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().FirstOrDefault();
 
         var name = type?.Identifier.Text ?? "";
-        var ns = containing?.Name.ToFullString().TrimEnd() ?? "";
+
+        var namespaces = method.Ancestors()
+            .OfType<BaseNamespaceDeclarationSyntax>()
+            .Select(declaration => declaration.Name.ToFullString().TrimEnd())
+            .Reverse()
+            .ToList();
+
+        var ns = string.Join(".", namespaces);
 
         return ns.Length == 0 ? name : ns + "." + name;
     }

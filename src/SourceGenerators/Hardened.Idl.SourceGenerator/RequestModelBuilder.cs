@@ -158,7 +158,7 @@ internal static class RequestModelBuilder {
         // each is declared - a protocol names the header once and every operation carries its own
         // target. Both null is ordinary path routing.
         var nameModel = new RequestHandlerNameModel(
-            operation.Path, operation.HttpMethod, dispatchHeader, operation.DispatchKey);
+            ConstrainedPath(operation), operation.HttpMethod, dispatchHeader, operation.DispatchKey);
 
         var parameters = BuildParameters(operation, modelsNamespace);
         var responseInfo = BuildResponseInfo(operation, schemas, modelsNamespace, responseModel);
@@ -572,4 +572,36 @@ internal static class RequestModelBuilder {
         typeName.StartsWith("System.", System.StringComparison.Ordinal)
             ? "global::" + typeName
             : "global::" + modelsNamespace + "." + typeName;
+
+    /// <summary>
+    /// The operation's path with each constrained path parameter carrying its route constraint.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The description says <c>/pets/{petId}</c> and declares the constraint separately; a route
+    /// template says <c>/pets/{petId:slug}</c>. Composing them here is what puts a described
+    /// constraint into the routing table rather than only into a validator - so a value that
+    /// violates it means the route did not match, and the answer is 404 rather than a 400 about a
+    /// URL naming no resource.
+    /// </para>
+    /// <para>
+    /// Path parameters only. A query, header or body constraint judges a request that did name a
+    /// resource and stays on the validation path, where 400 is the right answer.
+    /// </para>
+    /// </remarks>
+    private static string ConstrainedPath(OperationModel operation) {
+        var path = operation.Path;
+
+        foreach (var parameter in operation.Parameters) {
+            if (parameter.RouteConstraint == null) {
+                continue;
+            }
+
+            path = path.Replace(
+                "{" + parameter.Name + "}",
+                "{" + parameter.Name + ":" + parameter.RouteConstraint + "}");
+        }
+
+        return path;
+    }
 }

@@ -85,4 +85,16 @@ public sealed class RoutingTableOptions {
     /// </summary>
     public IReadOnlyList<IOutputComponent> AdditionalRegistrations { get; init; } =
         Array.Empty<IOutputComponent>();
+
+    /// <summary>
+    /// The <c>[RouteConstraint]</c> methods the compilation declares, or null to leave whatever the
+    /// caller already established.
+    /// </summary>
+    /// <remarks>
+    /// The attribute-routed path sets these on its own before emitting, so it passes null here. The
+    /// described path had no way to know about them at all until a description could contribute a
+    /// route constraint - which is why a described route carrying one used to fail the build with
+    /// HRDR002 rather than compile.
+    /// </remarks>
+    public IReadOnlyList<RouteConstraintModel>? Constraints { get; init; }
 }

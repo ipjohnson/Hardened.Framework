@@ -126,6 +126,10 @@ internal static class SpecFileEmitter {
         var validation = root.AddNamespace(ValidationNamespace);
         var operations = ValidationEmitter.Emit(validation, model, modelsNamespace, patterns);
 
+        // Before the patterns are written, because assigning route constraints registers the
+        // patterns they compile to and EmitPatterns writes from what was registered.
+        RouteConstraintEmitter.Emit(validation, model, patterns);
+
         ValidationEmitter.EmitPatterns(validation, patterns);
 
         // Recorded so the generator is told which interface each handler implements, rather than

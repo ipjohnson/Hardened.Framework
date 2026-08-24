@@ -150,6 +150,10 @@ public static class RoutingTableGenerator {
         RoutingTableOptions? options = null) {
         options ??= RoutingTableOptions.Default;
 
+        if (options.Constraints != null) {
+            _constraints = options.Constraints;
+        }
+
         _caseInsensitive = IsCaseInsensitive(appModel);
         _basePath = options.UseEntryPointBasePath ? GetBasePath(appModel) : "";
 

@@ -597,6 +597,7 @@ internal static class SpecModelSerializer {
         record.Add("ExclusiveMinimum", parameter.ExclusiveMinimum);
         record.Add("ExclusiveMaximum", parameter.ExclusiveMaximum);
         record.Add("Pattern", parameter.Pattern);
+        record.Add("RouteConstraint", parameter.RouteConstraint);
         record.Add("MinItems", parameter.MinItems);
         record.Add("MaxItems", parameter.MaxItems);
         record.WriteTo(builder);
@@ -624,6 +625,7 @@ internal static class SpecModelSerializer {
         ExclusiveMinimum = record.Bool("ExclusiveMinimum"),
         ExclusiveMaximum = record.Bool("ExclusiveMaximum"),
         Pattern = record.String("Pattern"),
+        RouteConstraint = record.String("RouteConstraint"),
         MinItems = record.Int("MinItems"),
         MaxItems = record.Int("MaxItems"),
     };

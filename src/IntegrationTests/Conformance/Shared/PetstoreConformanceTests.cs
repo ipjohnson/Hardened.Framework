@@ -115,7 +115,7 @@ public abstract class PetstoreConformanceTests {
     /// open; when it is answered, the override below is deleted rather than the test.
     /// </para>
     /// </remarks>
-    protected virtual int MalformedTokenStatus => 400;
+    protected virtual int MalformedTokenStatus => 404;
 
     private string Because(string what) => $"[{FrontEnd}] {what}";
 
