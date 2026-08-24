@@ -1,8 +1,4 @@
 {
-  "Hardened.DependencyModules.SourceGenerator": {
-    "line": 97.2,
-    "branch": 87.5
-  },
   "Hardened.Idl.SourceGenerator": {
     "line": 59.5,
     "branch": 48.0
