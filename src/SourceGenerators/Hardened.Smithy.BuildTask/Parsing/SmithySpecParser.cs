@@ -534,6 +534,10 @@ internal static class SmithySpecParser {
 
         // Under a dispatch protocol the response is the output structure as a body and the
         // specification requires the binding traits to be ignored, so nothing is bound out.
+        //
+        // member name -> the name it goes out under, which the trait carries and the member does not.
+        var boundOut = new Dictionary<string, string>(StringComparer.Ordinal);
+
         if (!protocol.Dispatches) {
             foreach (var member in SmithyAst.Members(output)) {
                 Note(context, member.Value);
@@ -549,6 +553,7 @@ internal static class SmithySpecParser {
                         Description = Text(member.Value, SmithyTraits.Documentation)
                     });
 
+                    boundOut[JsonName(member.Value) ?? member.Key] = wireName;
                 }
             }
         }
@@ -570,11 +575,46 @@ internal static class SmithySpecParser {
         }
 
         // The output structure, whole and under its own name. The header-bound members stay on it -
-        // the handler sets them, and BuildProperty has marked them so the schema emitter implements
+        // the handler sets them - and are marked so the schema emitter implements
         // IProvidesResponseHeaders and leaves them out of the body.
         model.ResponseRef = ReferenceTo(context, outputId);
 
+        MarkHeaderBound(context, outputId, boundOut);
+
         return headers;
+    }
+
+    /// <summary>
+    /// Marks the schema's members that this operation binds to headers.
+    /// </summary>
+    /// <remarks>
+    /// Here rather than in <c>BuildProperty</c>, which is where it started and where it was wrong
+    /// twice over: that runs for every schema without knowing the protocol, so an output under a
+    /// dispatch protocol - which honours no HTTP binding at all - had its member taken out of the
+    /// body anyway, and the parser disagreed with the protocol it implements. It also runs once per
+    /// shape, so a structure reached by two operations would take the first one's bindings.
+    /// </remarks>
+    private static void MarkHeaderBound(
+        ParseContext context, string outputId, IReadOnlyDictionary<string, string> boundOut) {
+        if (boundOut.Count == 0) {
+            return;
+        }
+
+        var name = SmithyPrelude.LocalName(outputId);
+
+        foreach (var schema in context.Model.Schemas) {
+            if (schema.Name != name) {
+                continue;
+            }
+
+            foreach (var property in schema.Properties) {
+                if (boundOut.TryGetValue(property.Name, out var wireName)) {
+                    property.HeaderName = wireName;
+                }
+            }
+
+            return;
+        }
     }
 
     private static void ParseErrors(
@@ -708,15 +748,6 @@ internal static class SmithySpecParser {
             IsRequired = SmithyAst.HasTrait(member, SmithyTraits.Required),
             Description = Text(member, SmithyTraits.Documentation)
         };
-
-        // @httpHeader on an output member. The member keeps its place on the record and stops being
-        // serialized, because it leaves as a header instead. Input members carrying the trait never
-        // reach here - ParseInput routes them to a parameter before a property is built.
-        if (SmithyAst.TryGetTrait(member, SmithyTraits.HttpHeader, out var boundHeader)) {
-            property.HeaderName = boundHeader.ValueKind == JsonValueKind.String
-                ? boundHeader.GetString() ?? name
-                : name;
-        }
 
         // As with parameters, the C# name is NameAllocator's to assign - from Name, which @jsonName
         // has already set to the wire spelling where the two differ.

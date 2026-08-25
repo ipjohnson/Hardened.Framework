@@ -150,6 +150,30 @@ public class SmithyResponseHeaderTests {
     /// the body schema, where no type holds both and a case type has to be generated; Smithy binds
     /// them to members of the output, where one already does.
     /// </remarks>
+    /// <summary>
+    /// A dispatch protocol binds nothing out, because it honours no HTTP binding at all.
+    /// </summary>
+    /// <remarks>
+    /// Under awsJson every operation is POST / and the operation is named in a header, and the
+    /// specification requires the binding traits be ignored rather than honoured. So an
+    /// <c>@httpHeader</c> member of an output stays in the body there, and reading it out would be
+    /// this parser disagreeing with the protocol it is implementing.
+    /// </remarks>
+    [Fact]
+    public void ADispatchProtocolLeavesHeaderMembersInTheBody() {
+        var model = SmithySpecParser.Parse(Fixture(), "response-headers", new List<string>());
+
+        var operation = model!.Services
+            .SelectMany(service => service.Operations)
+            .Single(candidate => candidate.OperationId == "DispatchedJob");
+
+        Assert.Empty(Assert.Single(operation.SuccessResponses).Headers);
+
+        var output = model.Schemas.Single(schema => schema.Name == "DispatchedJobOutput");
+
+        Assert.False(output.Properties.Single(property => property.Name == "etag").IsHeaderBound);
+    }
+
     [Fact]
     public void AHeaderBindingDoesNotForceAResponseSet() {
         var operation = Operation("CreateJob");

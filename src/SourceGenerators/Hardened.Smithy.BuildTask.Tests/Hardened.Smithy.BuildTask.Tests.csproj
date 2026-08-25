@@ -53,4 +53,17 @@
               CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
+
+    <!--
+      The shared emitters are compiled into this assembly too, and a test over the OpenAPI build
+      task's copy says nothing about this one. UnionResponseEmitter's header path is the reason:
+      Smithy binds a response header to a member of the output structure, so it never emits a
+      header-carrying case type of its own and nothing here reached that code.
+    -->
+    <ItemGroup>
+        <Compile Include="../Hardened.OpenApi.BuildTask.Tests/UnionResponseEmitterTests.cs"
+                 Link="Shared/UnionResponseEmitterTests.cs"/>
+        <Compile Include="../Hardened.OpenApi.BuildTask.Tests/EmitterHarness.cs"
+                 Link="Shared/EmitterHarness.cs"/>
+    </ItemGroup>
 </Project>

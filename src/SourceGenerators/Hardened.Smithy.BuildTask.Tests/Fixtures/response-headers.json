@@ -5,31 +5,56 @@
       "type": "service",
       "version": "1.0",
       "operations": [
-        { "target": "com.example.test#CreateJob" },
-        { "target": "com.example.test#GetJob" },
-        { "target": "com.example.test#TouchJob" }
+        {
+          "target": "com.example.test#CreateJob"
+        },
+        {
+          "target": "com.example.test#GetJob"
+        },
+        {
+          "target": "com.example.test#TouchJob"
+        }
       ]
     },
-
     "com.example.test#CreateJob": {
       "type": "operation",
-      "input": { "target": "com.example.test#CreateJobInput" },
-      "output": { "target": "com.example.test#CreateJobOutput" },
+      "input": {
+        "target": "com.example.test#CreateJobInput"
+      },
+      "output": {
+        "target": "com.example.test#CreateJobOutput"
+      },
       "traits": {
-        "smithy.api#http": { "method": "POST", "uri": "/jobs", "code": 201 }
+        "smithy.api#http": {
+          "method": "POST",
+          "uri": "/jobs",
+          "code": 201
+        }
       }
     },
     "com.example.test#CreateJobInput": {
       "type": "structure",
       "members": {
-        "title": { "target": "smithy.api#String", "traits": { "smithy.api#required": {} } }
+        "title": {
+          "target": "smithy.api#String",
+          "traits": {
+            "smithy.api#required": {}
+          }
+        }
       }
     },
     "com.example.test#CreateJobOutput": {
       "type": "structure",
       "members": {
-        "id": { "target": "smithy.api#Integer", "traits": { "smithy.api#required": {} } },
-        "title": { "target": "smithy.api#String" },
+        "id": {
+          "target": "smithy.api#Integer",
+          "traits": {
+            "smithy.api#required": {}
+          }
+        },
+        "title": {
+          "target": "smithy.api#String"
+        },
         "location": {
           "target": "smithy.api#String",
           "traits": {
@@ -39,17 +64,26 @@
         },
         "etag": {
           "target": "smithy.api#String",
-          "traits": { "smithy.api#httpHeader": "ETag" }
+          "traits": {
+            "smithy.api#httpHeader": "ETag"
+          }
         }
       }
     },
-
     "com.example.test#GetJob": {
       "type": "operation",
-      "input": { "target": "com.example.test#GetJobInput" },
-      "output": { "target": "com.example.test#Job" },
+      "input": {
+        "target": "com.example.test#GetJobInput"
+      },
+      "output": {
+        "target": "com.example.test#Job"
+      },
       "traits": {
-        "smithy.api#http": { "method": "GET", "uri": "/jobs/{id}", "code": 200 },
+        "smithy.api#http": {
+          "method": "GET",
+          "uri": "/jobs/{id}",
+          "code": 200
+        },
         "smithy.api#readonly": {}
       }
     },
@@ -58,24 +92,41 @@
       "members": {
         "id": {
           "target": "smithy.api#Integer",
-          "traits": { "smithy.api#required": {}, "smithy.api#httpLabel": {} }
+          "traits": {
+            "smithy.api#required": {},
+            "smithy.api#httpLabel": {}
+          }
         }
       }
     },
     "com.example.test#Job": {
       "type": "structure",
       "members": {
-        "id": { "target": "smithy.api#Integer", "traits": { "smithy.api#required": {} } },
-        "title": { "target": "smithy.api#String" }
+        "id": {
+          "target": "smithy.api#Integer",
+          "traits": {
+            "smithy.api#required": {}
+          }
+        },
+        "title": {
+          "target": "smithy.api#String"
+        }
       }
     },
-
     "com.example.test#TouchJob": {
       "type": "operation",
-      "input": { "target": "com.example.test#GetJobInput" },
-      "output": { "target": "com.example.test#TouchJobOutput" },
+      "input": {
+        "target": "com.example.test#GetJobInput"
+      },
+      "output": {
+        "target": "com.example.test#TouchJobOutput"
+      },
       "traits": {
-        "smithy.api#http": { "method": "POST", "uri": "/jobs/{id}/touch", "code": 204 }
+        "smithy.api#http": {
+          "method": "POST",
+          "uri": "/jobs/{id}/touch",
+          "code": 204
+        }
       }
     },
     "com.example.test#TouchJobOutput": {
@@ -83,7 +134,54 @@
       "members": {
         "etag": {
           "target": "smithy.api#String",
-          "traits": { "smithy.api#httpHeader": "ETag" }
+          "traits": {
+            "smithy.api#httpHeader": "ETag"
+          }
+        }
+      }
+    },
+    "com.example.test#Dispatch": {
+      "type": "service",
+      "version": "1.0",
+      "operations": [
+        {
+          "target": "com.example.test#DispatchedJob"
+        }
+      ],
+      "traits": {
+        "aws.protocols#awsJson1_0": {}
+      }
+    },
+    "com.example.test#DispatchedJob": {
+      "type": "operation",
+      "input": {
+        "target": "smithy.api#Unit"
+      },
+      "output": {
+        "target": "com.example.test#DispatchedJobOutput"
+      },
+      "traits": {
+        "smithy.api#http": {
+          "method": "POST",
+          "uri": "/dispatched",
+          "code": 200
+        }
+      }
+    },
+    "com.example.test#DispatchedJobOutput": {
+      "type": "structure",
+      "members": {
+        "id": {
+          "target": "smithy.api#Integer",
+          "traits": {
+            "smithy.api#required": {}
+          }
+        },
+        "etag": {
+          "target": "smithy.api#String",
+          "traits": {
+            "smithy.api#httpHeader": "ETag"
+          }
         }
       }
     }

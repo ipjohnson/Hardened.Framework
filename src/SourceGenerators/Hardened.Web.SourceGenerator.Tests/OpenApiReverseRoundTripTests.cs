@@ -1,11 +1,15 @@
+extern alias buildtask;
+
+// The build task's copy of the shared generation model, reached through its alias: this
+// project also links the web generator's copy, and both in the global namespace is CS0433.
 using System.Text.RegularExpressions;
-using Hardened.OpenApi.SourceGenerator;
-using Hardened.Generation.Models;
+using buildtask::Hardened.OpenApi.SourceGenerator;
+using buildtask::Hardened.Generation.Models;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.SourceGenerator.Tests.Routing;
 using Xunit;
-using Hardened.Idl;
-using Hardened.Generation;
+using buildtask::Hardened.Idl;
+using buildtask::Hardened.Generation;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
