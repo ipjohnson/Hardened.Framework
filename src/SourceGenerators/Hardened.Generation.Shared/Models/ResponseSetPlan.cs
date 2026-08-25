@@ -46,10 +46,58 @@ internal static class ResponseSetPlan {
     public static bool RequiresResponseSet(OperationModel operation, SpecResponseModel responseModel) {
         var declaresMultipleSuccesses = operation.SuccessResponses.Count > 1;
 
-        return (responseModel != SpecResponseModel.Standard || declaresMultipleSuccesses) &&
+        // A declared header forces a set the same way a second success does, and for the same
+        // reason: the bare payload type cannot express it. Standard mode is already dragged into a
+        // set by a second success - "there is no way to throw a 202" - and there is no way to put a
+        // Location on a returned Pet either. Without this the fix reaches two response models of
+        // three and standard-mode documents go on declaring headers nothing sends.
+        var declaresResponseHeaders = DeclaresResponseHeaders(operation);
+
+        return (responseModel != SpecResponseModel.Standard ||
+                declaresMultipleSuccesses ||
+                declaresResponseHeaders) &&
                !operation.RawBytesResponse &&
                operation.ItemSchemaRef == null &&
-               (operation.ErrorResponses.Count > 0 || declaresMultipleSuccesses);
+               (operation.ErrorResponses.Count > 0 ||
+                declaresMultipleSuccesses ||
+                declaresResponseHeaders);
+    }
+
+    /// <summary>
+    /// Whether the primary success's payload type carries headers of its own.
+    /// </summary>
+    public static bool PrimarySuccessCarriesHeaders(OperationModel operation) {
+        foreach (var response in operation.SuccessResponses) {
+            if (response.StatusCode == operation.SuccessStatusCode) {
+                return response.HeadersOnPayload && response.Headers.Count > 0;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether any response this operation declares needs a case type built to carry a header.
+    /// </summary>
+    /// <remarks>
+    /// A payload that carries its own headers needs nothing: the type the handler already returns
+    /// implements the interface, so the response set it would otherwise be forced into buys nothing
+    /// and costs the signature.
+    /// </remarks>
+    public static bool DeclaresResponseHeaders(OperationModel operation) {
+        foreach (var response in operation.SuccessResponses) {
+            if (response.Headers.Count > 0 && !response.HeadersOnPayload) {
+                return true;
+            }
+        }
+
+        foreach (var response in operation.ErrorResponses) {
+            if (response.Headers.Count > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>The name the service interface returns for this operation.</summary>
@@ -128,5 +176,31 @@ internal static class ResponseSetPlan {
     /// </remarks>
     public static bool NeedsSuccessCaseType(OperationModel operation, SuccessResponseModel response) =>
         response.StatusCode != operation.SuccessStatusCode ||
-        !HasNamedSuccessPayload(operation);
+        !HasNamedSuccessPayload(operation) ||
+        (response.Headers.Count > 0 && !response.HeadersOnPayload);
+
+    /// <summary>
+    /// Whether the primary success reaches the union as the payload type itself.
+    /// </summary>
+    /// <remarks>
+    /// It does, unless it declares headers. The payload type cannot carry them: <c>Part</c> is the
+    /// same type a 200 with no <c>Location</c> answers with, so implementing
+    /// <c>IProvidesResponseHeaders</c> on it would put the 201's header on every response that ever
+    /// sends a Part. A declared header is therefore what turns the primary success into a wrapper -
+    /// and only a declared header does, so an operation that declares none keeps the bare payload
+    /// and the signature it already had.
+    /// </remarks>
+    public static bool PrimarySuccessIsBarePayload(OperationModel operation) {
+        if (!HasNamedSuccessPayload(operation)) {
+            return false;
+        }
+
+        foreach (var response in operation.SuccessResponses) {
+            if (response.StatusCode == operation.SuccessStatusCode) {
+                return response.Headers.Count == 0 || response.HeadersOnPayload;
+            }
+        }
+
+        return true;
+    }
 }

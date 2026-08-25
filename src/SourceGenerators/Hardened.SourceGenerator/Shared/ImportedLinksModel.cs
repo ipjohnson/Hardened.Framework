@@ -49,8 +49,11 @@ public record ImportedLinksModel(string PropertyName, ITypeDefinition LinksType)
                 continue;
             }
 
-            var linksName = moduleName + "Links";
-            var metadataName = attribute.TypeDefinition.Namespace + "." + linksName;
+            // Nested in the module rather than named after it, so the C# spelling is a dot and the
+            // metadata spelling is a plus. GetTypeByMetadataName takes the second and silently finds
+            // nothing when handed the first, which would read as "that module publishes no links".
+            var linksName = moduleName + ".Links";
+            var metadataName = attribute.TypeDefinition.Namespace + "." + moduleName + "+Links";
 
             // The one question that cannot be answered from syntax: does that module actually
             // publish links?

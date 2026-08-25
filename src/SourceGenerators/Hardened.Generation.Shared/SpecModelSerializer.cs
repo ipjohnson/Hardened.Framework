@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Hardened.Generation.Models;
@@ -34,14 +35,22 @@ internal static class SpecModelSerializer {
     /// because a half-understood model produces wrong code instead of an error.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// 3 splits an operation's <c>Summary</c> from its <c>Description</c>. Bumped rather than
     /// treated as an additive key, because the meaning of an existing one changed: in 2,
     /// <c>Description</c> held the summary whenever there was one. A 2 file read by a 3 reader
     /// would find no <c>Summary</c>, take the summary out of <c>Description</c>, and publish a
     /// one-line summary as the long-form description - wrong, and silently. Rejecting a stale
     /// model is what this header is for.
+    /// </para>
+    /// <para>
+    /// 4 adds the headers a response declares, as <c>respheader</c> records belonging to the
+    /// response above them. Additive, and bumped anyway: a 3 reader handed a 4 file throws on the
+    /// unrecognised tag rather than skipping it, which is the reader working as designed and not
+    /// something to leave to chance.
+    /// </para>
     /// </remarks>
-    private const string Header = "#hardened-openapi-model 3";
+    private const string Header = "#hardened-openapi-model 4";
 
     private const char FieldSeparator = '\t';
 
@@ -89,6 +98,10 @@ internal static class SpecModelSerializer {
         OperationModel? operation = null;
         FilterTypeModel? filterType = null;
         FilterInstanceModel? filterInstance = null;
+
+        // The response a "respheader" attaches to. Reset by every record that starts a new parent,
+        // so a header can never drift onto a response in a different operation.
+        List<ResponseHeaderModel>? lastResponseHeaders = null;
 
         var sawHeader = false;
 
@@ -166,6 +179,7 @@ internal static class SpecModelSerializer {
                 case "op":
                     operation = ReadOperation(record);
                     service?.Operations.Add(operation);
+                    lastResponseHeaders = null;
                     break;
 
                 case "param":
@@ -173,6 +187,7 @@ internal static class SpecModelSerializer {
                     break;
 
                 case "successresponse":
+                    lastResponseHeaders = null;
                     operation?.SuccessResponses.Add(new SuccessResponseModel {
                         StatusCode = record.Int("StatusCode") ?? 0,
                         Ref = record.String("Ref"),
@@ -183,13 +198,32 @@ internal static class SpecModelSerializer {
                         ArrayItemsType = record.String("ArrayItemsType"),
                         ContentType = record.String("ContentType"),
                         Description = record.String("Description"),
+                        HeadersOnPayload = record.Bool("HeadersOnPayload"),
                     });
+                    lastResponseHeaders = operation?.SuccessResponses[operation.SuccessResponses.Count - 1].Headers;
                     break;
 
                 case "errorresponse":
+                    lastResponseHeaders = null;
                     operation?.ErrorResponses.Add(new ErrorResponseModel {
                         StatusCode = record.Int("StatusCode") ?? 0,
                         Ref = record.String("Ref"),
+                        Description = record.String("Description"),
+                    });
+                    lastResponseHeaders = operation?.ErrorResponses[operation.ErrorResponses.Count - 1].Headers;
+                    break;
+
+                // Belongs to the response above it rather than to the operation, so it is written
+                // immediately after its parent and read against a cursor. A respheader with no
+                // response before it is a corrupt file, not a header on nothing.
+                case "respheader":
+                    if (lastResponseHeaders == null) {
+                        throw new FormatException("A 'respheader' record appeared before any response.");
+                    }
+
+                    lastResponseHeaders.Add(new ResponseHeaderModel {
+                        Name = record.String("Name") ?? "",
+                        ParameterName = record.String("ParameterName") ?? "",
                         Description = record.String("Description"),
                     });
                     break;
@@ -339,6 +373,20 @@ internal static class SpecModelSerializer {
         }
     }
 
+    /// <summary>
+    /// A response's declared headers, written immediately after the response they belong to.
+    /// </summary>
+    private static void WriteResponseHeaders(
+        StringBuilder builder, List<ResponseHeaderModel> headers) {
+        foreach (var header in headers) {
+            var record = new Record("respheader");
+            record.AddAlways("Name", header.Name);
+            record.AddAlways("ParameterName", header.ParameterName);
+            record.Add("Description", header.Description);
+            record.WriteTo(builder);
+        }
+    }
+
     private static SchemaModel ReadSchema(Record record) => new() {
         Name = record.String("Name") ?? "",
         Kind = ReadSchemaKind(record.String("Kind")),
@@ -359,6 +407,7 @@ internal static class SpecModelSerializer {
     private static void WriteProperty(StringBuilder builder, string tag, PropertyModel property) {
         var record = new Record(tag);
         record.Add("Name", property.Name);
+        record.Add("HeaderName", property.HeaderName);
         record.Add("Description", property.Description);
         record.Add("Type", property.Type);
         record.Add("Format", property.Format);
@@ -415,6 +464,7 @@ internal static class SpecModelSerializer {
 
     private static PropertyModel ReadProperty(Record record) => new() {
         Name = record.String("Name") ?? "",
+        HeaderName = record.String("HeaderName"),
         Description = record.String("Description"),
         Type = record.String("Type"),
         Format = record.String("Format"),
@@ -499,7 +549,10 @@ internal static class SpecModelSerializer {
             successRecord.Add("ArrayItemsType", successResponse.ArrayItemsType);
             successRecord.Add("ContentType", successResponse.ContentType);
             successRecord.Add("Description", successResponse.Description);
+            successRecord.Add("HeadersOnPayload", successResponse.HeadersOnPayload);
             successRecord.WriteTo(builder);
+
+            WriteResponseHeaders(builder, successResponse.Headers);
         }
 
         foreach (var errorResponse in operation.ErrorResponses) {
@@ -508,6 +561,8 @@ internal static class SpecModelSerializer {
             record2.Add("Ref", errorResponse.Ref);
             record2.Add("Description", errorResponse.Description);
             record2.WriteTo(builder);
+
+            WriteResponseHeaders(builder, errorResponse.Headers);
         }
 
         foreach (var parameter in operation.Parameters) {

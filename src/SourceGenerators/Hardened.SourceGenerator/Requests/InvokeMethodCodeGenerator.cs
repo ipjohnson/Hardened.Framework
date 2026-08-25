@@ -39,11 +39,51 @@ public static class InvokeMethodCodeGenerator {
         }
         else if (requestHandlerModel.ResponseInformation.ReturnType != null &&
                  requestHandlerModel.ResponseInformation.ReturnType.Name != typeof(void).Name) {
-            invokeMethod.Assign(invokeStatement).To(context.Property("Response.ResponseValue"));
+            EmitSingleResponseDispatch(
+                invokeMethod, invokeStatement, context,
+                requestHandlerModel.ResponseInformation.ReturnTypeProvidesHeaders);
         }
         else {
             invokeMethod.AddIndentedStatement(invokeStatement);
         }
+    }
+
+    /// <summary>
+    /// The glue for a handler that returns one thing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The returned value goes to <c>ResponseValue</c>, and it applies its own headers first if it
+    /// has any. A response set reaches <c>ApplyHeaders</c> through its switch, and this path had no
+    /// switch to reach it through - so a type carrying a header answered without one, which is what
+    /// a Smithy output binding <c>@httpHeader</c> and a hand-written <c>Created&lt;T&gt;</c> both
+    /// looked like in standard mode.
+    /// </para>
+    /// <para>
+    /// A run-time test rather than a generated decision, because the generator does not always know:
+    /// a code-first handler can return any type, including one an application wrote and implemented
+    /// the interface on. It is a single <c>isinst</c> against a value already in hand.
+    /// </para>
+    /// </remarks>
+    private static void EmitSingleResponseDispatch(
+        MethodDefinition invokeMethod,
+        IOutputComponent invokeStatement,
+        ParameterDefinition context,
+        bool providesHeaders) {
+        if (!providesHeaders) {
+            invokeMethod.Assign(invokeStatement).To(context.Property("Response.ResponseValue"));
+
+            return;
+        }
+
+        var result = invokeMethod.Assign(invokeStatement).ToVar(ResultVariable);
+
+        invokeMethod.AddIndentedStatement(
+            CodeOutputComponent.Get(
+                "if (" + ResultVariable + " is global::Hardened.Requests.Abstract.Responses." +
+                "IProvidesResponseHeaders __headerProvider) __headerProvider.ApplyHeaders(context.Response.Headers)"));
+
+        invokeMethod.Assign(result).To(context.Property("Response.ResponseValue"));
     }
 
     /// <summary>

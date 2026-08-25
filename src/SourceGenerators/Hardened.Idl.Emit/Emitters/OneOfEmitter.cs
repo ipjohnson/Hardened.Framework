@@ -73,7 +73,10 @@ internal static class OneOfEmitter {
         var type = container.AddClass(name);
 
         type.TypeKeyword = ClassKeyword.Struct;
-        type.Modifiers |= ComponentModifier.Public;
+
+        // Partial, like every other type this build writes into a consumer's compilation. A
+        // generated type an application cannot extend is one it has to wrap instead.
+        type.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
         type.Comment = DocComment.Format(schema.Description) ?? $"One of {readable}.";
 
         EmitValue(type);

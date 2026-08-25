@@ -362,7 +362,8 @@ internal static class SmithySpecParser {
         }
 
         ParseInput(context, operation, model, name, protocol);
-        ParseOutput(context, operation, model, name, protocol);
+
+        var responseHeaders = ParseOutput(context, operation, model, name, protocol);
 
         // The success as a declared response, mirroring what the OpenAPI parser records. Smithy
         // models one output per operation, so there is always exactly one and never the multiple
@@ -370,7 +371,7 @@ internal static class SmithySpecParser {
         // fields when they build a response set, and an operation missing from it gets a set
         // carrying only its errors and no case a handler can return to say it succeeded. That is
         // what a Smithy operation answering 204 did: RemoveTodoNoContent was never emitted.
-        model.SuccessResponses.Add(new SuccessResponseModel {
+        var success = new SuccessResponseModel {
             StatusCode = model.SuccessStatusCode,
             Ref = model.ResponseRef,
             Type = model.ResponseType,
@@ -379,7 +380,15 @@ internal static class SmithySpecParser {
             ArrayItemsRef = model.ResponseArrayItemsRef,
             ArrayItemsType = model.ResponseArrayItemsType,
             ContentType = model.ResponseContentType
-        });
+        };
+
+        success.Headers.AddRange(responseHeaders);
+
+        // Smithy binds a header to a member of the output structure, so the type the handler returns
+        // is the type that carries it. Nothing has to be wrapped, and the signature does not move.
+        success.HeadersOnPayload = responseHeaders.Count > 0;
+
+        model.SuccessResponses.Add(success);
 
         ParseErrors(context, operation, model, protocol);
 
@@ -473,35 +482,78 @@ internal static class SmithySpecParser {
         }
     }
 
-    private static void ParseOutput(
+    /// <summary>
+    /// The output structure, split into the headers it binds and the body that is left.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>@httpHeader</c> on an output member used to be read by nothing here. The member stayed in
+    /// the output structure, the structure became the response schema whole, and the header went out
+    /// as a JSON property with the header's name lower-cased - so a model saying <c>ETag</c> sent
+    /// <c>{"etag": "..."}</c> and no header. Silent, because the trait is in
+    /// <see cref="SmithyTraits.Mapped"/>, which is the set that suppresses the unhandled-trait
+    /// report: it was classified as handled and then not handled, which is the one outcome that
+    /// list exists to make impossible.
+    /// </para>
+    /// <para>
+    /// The bound members have to leave the body as well as reach the wire. Sending both would be a
+    /// second defect rather than half a fix, and the schema cannot simply be filtered in place -
+    /// <see cref="BuildSchema"/> is keyed on the shape id, so an output structure also used as a
+    /// nested type would lose the member everywhere. A derived schema is built instead, and only
+    /// when something is actually bound out.
+    /// </para>
+    /// </remarks>
+    private static List<ResponseHeaderModel> ParseOutput(
         ParseContext context,
         JsonElement operation,
         OperationModel model,
         string operationName,
         ProtocolBinding protocol) {
+        var headers = new List<ResponseHeaderModel>();
+
         if (!operation.TryGetProperty("output", out var outputRef)) {
-            return;
+            return headers;
         }
 
         var outputId = SmithyAst.Target(outputRef);
 
         if (outputId == null || outputId == SmithyPrelude.Unit) {
-            return;
+            return headers;
         }
 
         if (!context.Ast.TryGetShape(outputId, out var output)) {
             context.Diagnostics.Add(
                 $"operation '{operationName}' returns '{outputId}', which the model does not declare.");
 
-            return;
+            return headers;
         }
 
         Note(context, output);
 
         model.ResponseContentType ??= "application/json";
 
+        // Under a dispatch protocol the response is the output structure as a body and the
+        // specification requires the binding traits to be ignored, so nothing is bound out.
+        if (!protocol.Dispatches) {
+            foreach (var member in SmithyAst.Members(output)) {
+                Note(context, member.Value);
+
+                if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpHeader, out var header)) {
+                    var wireName = header.ValueKind == JsonValueKind.String
+                        ? header.GetString() ?? member.Key
+                        : member.Key;
+
+                    headers.Add(new ResponseHeaderModel {
+                        Name = wireName,
+                        ParameterName = NamingHelper.ToPascalCase(wireName),
+                        Description = Text(member.Value, SmithyTraits.Documentation)
+                    });
+
+                }
+            }
+        }
+
         // An @httpPayload member is the whole response body; otherwise the output structure is.
-        // Under a dispatch protocol the trait is ignored, so the structure always is.
         foreach (var member in SmithyAst.Members(output)) {
             if (protocol.Dispatches ||
                 !SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpPayload, out _)) {
@@ -513,11 +565,16 @@ internal static class SmithySpecParser {
             if (target != null) {
                 model.ResponseRef = ReferenceTo(context, target);
 
-                return;
+                return headers;
             }
         }
 
+        // The output structure, whole and under its own name. The header-bound members stay on it -
+        // the handler sets them, and BuildProperty has marked them so the schema emitter implements
+        // IProvidesResponseHeaders and leaves them out of the body.
         model.ResponseRef = ReferenceTo(context, outputId);
+
+        return headers;
     }
 
     private static void ParseErrors(
@@ -651,6 +708,15 @@ internal static class SmithySpecParser {
             IsRequired = SmithyAst.HasTrait(member, SmithyTraits.Required),
             Description = Text(member, SmithyTraits.Documentation)
         };
+
+        // @httpHeader on an output member. The member keeps its place on the record and stops being
+        // serialized, because it leaves as a header instead. Input members carrying the trait never
+        // reach here - ParseInput routes them to a parameter before a property is built.
+        if (SmithyAst.TryGetTrait(member, SmithyTraits.HttpHeader, out var boundHeader)) {
+            property.HeaderName = boundHeader.ValueKind == JsonValueKind.String
+                ? boundHeader.GetString() ?? name
+                : name;
+        }
 
         // As with parameters, the C# name is NameAllocator's to assign - from Name, which @jsonName
         // has already set to the wire spelling where the two differ.

@@ -86,6 +86,10 @@ operation CreatePet {
     output := {
         @required
         pet: Pet
+
+        /// Where the created pet can be read. Bound to a header, so it leaves the body.
+        @httpHeader("Location")
+        location: String
     }
     errors: [PetNotFound]
 }

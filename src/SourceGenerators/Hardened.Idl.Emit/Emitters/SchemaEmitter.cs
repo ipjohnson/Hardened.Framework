@@ -81,10 +81,21 @@ internal static class SchemaEmitter {
         var parameters = SchemaShape.Constructor(schema);
         var members = SchemaShape.Members(schema, allSchemas);
 
+        // A member bound to a response header keeps its place on the record and leaves as a header
+        // instead of in the body. The type the handler already returns is therefore the type that
+        // carries the header, so nothing has to be wrapped to hold it.
+        var headerBound = new List<PropertyModel>();
+
+        foreach (var property in schema.Properties) {
+            if (property.IsHeaderBound) {
+                headerBound.Add(property);
+            }
+        }
+
         // A record with a body cannot be terminated with a semicolon - the two are alternative
         // declaration forms, and TerminateWithSemicolon writes the signature and stops, so members
         // set on it would never be written at all.
-        record.TerminateWithSemicolon = members.Count == 0;
+        record.TerminateWithSemicolon = members.Count == 0 && headerBound.Count == 0;
 
         // No parameters means no parameter list at all - "record Empty;" rather than "record
         // Empty();". The two are different declarations, and the second gives the type a constructor
@@ -102,7 +113,53 @@ internal static class SchemaEmitter {
             EmitInitOnlyMember(record, property, modelsNamespace);
         }
 
+        EmitApplyHeaders(record, headerBound);
+
         return record;
+    }
+
+    /// <summary>
+    /// The interface the dispatch calls, implemented from the members bound to headers.
+    /// </summary>
+    /// <remarks>
+    /// The same interface <c>Created&lt;T&gt;</c> implements by hand, so a generated payload and a
+    /// hand-written response type reach the wire through one path. The members stay on the record
+    /// and are excluded from serialization instead - see <c>EmitDirection</c> and
+    /// <c>JsonTypeInfoEmitter</c> - because the handler still has to set them.
+    /// </remarks>
+    private static void EmitApplyHeaders(ClassDefinition record, IReadOnlyList<PropertyModel> headerBound) {
+        if (headerBound.Count == 0) {
+            return;
+        }
+
+        record.AddBaseType(
+            TypeDefinition.Get(
+                "Hardened.Requests.Abstract.Responses", "IProvidesResponseHeaders"));
+
+        var method = record.AddMethod("ApplyHeaders");
+
+        method.Modifiers |= ComponentModifier.Public;
+        method.AddParameter(
+            new GenericTypeDefinition(
+                typeof(IDictionary<,>),
+                new ITypeDefinition[] {
+                    TypeDefinition.Get(typeof(string)),
+                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues")
+                }),
+            "headers");
+
+        foreach (var property in headerBound) {
+            // Null is a header the handler chose not to send, which is different from sending an
+            // empty one - a nullable member with no value has to leave no header behind.
+            if (property.IsNullable || !property.IsRequired) {
+                method.AddIndentedStatement(
+                    "if (" + property.MemberName + " is not null) headers[\"" + property.HeaderName +
+                    "\"] = " + property.MemberName);
+            } else {
+                method.AddIndentedStatement(
+                    "headers[\"" + property.HeaderName + "\"] = " + property.MemberName);
+            }
+        }
     }
 
     /// <summary>One property, as a positional record parameter.</summary>
@@ -309,6 +366,13 @@ internal static class SchemaEmitter {
     /// </remarks>
     private static AttributeDefinition? EmitDirection(
         BaseOutputComponent target, PropertyModel property) {
+        // Bound to a header, so it is not in the body in either direction. [JsonIgnore] rather than
+        // one of the direction attributes, which say "one direction only" rather than "neither".
+        if (property.IsHeaderBound) {
+            return target.AddAttribute(
+                TypeDefinition.Get("System.Text.Json.Serialization", "JsonIgnoreAttribute"));
+        }
+
         if (!property.IsReadOnly && !property.IsWriteOnly) {
             return null;
         }

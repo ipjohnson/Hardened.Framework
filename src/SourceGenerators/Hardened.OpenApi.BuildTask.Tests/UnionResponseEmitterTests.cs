@@ -105,13 +105,18 @@ public class UnionResponseEmitterTests {
 
     /// <summary>
     /// Sealed, because a case type assignable to another case in the same set has no unambiguous
-    /// match order.
+    /// match order. Partial, because that is a different question.
     /// </summary>
+    /// <remarks>
+    /// Sealing forbids deriving; it never needed to forbid extending in place. A generated type an
+    /// application cannot add an interface or a computed member to is one it has to wrap instead,
+    /// and the two modifiers together give the match-order guarantee without that cost.
+    /// </remarks>
     [Fact]
-    public void CaseTypesAreSealedRecords() {
+    public void CaseTypesAreSealedPartialRecords() {
         var emitted = Emit(Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
 
-        Assert.Contains("public sealed record GetPetNotFound", emitted);
+        Assert.Contains("public sealed partial record GetPetNotFound", emitted);
     }
 
     #endregion
@@ -209,9 +214,9 @@ public class UnionResponseEmitterTests {
         var asUnion = Emit(asLanguageUnion: true, operation);
 
         foreach (var line in new[] {
-                     "public sealed record GetPetNotFound",
+                     "public sealed partial record GetPetNotFound",
                      "HttpStatus(404)",
-                     "public sealed record GetPetServiceUnavailable",
+                     "public sealed partial record GetPetServiceUnavailable",
                      "HttpStatus(503)"
                  }) {
             Assert.Contains(line, asStruct);

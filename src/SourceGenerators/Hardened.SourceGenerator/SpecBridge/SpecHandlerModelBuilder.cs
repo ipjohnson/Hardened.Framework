@@ -349,6 +349,11 @@ internal static class SpecHandlerModelBuilder {
             ReturnType = returnType,
             DeclaredContentType = operation.ResponseContentType,
 
+            // The payload carries its own headers where the contract binds them to its members,
+            // which is Smithy's @httpHeader on an output. There is no response set on this path, so
+            // the dispatch has to apply them beside the assignment or they never reach the wire.
+            ReturnTypeProvidesHeaders = ResponseSetPlan.PrimarySuccessCarriesHeaders(operation),
+
             // Carried so the implementation can be checked against the contract: a document
             // promising rendered HTML for a model needs a view, and there is nothing to serialize
             // an object as text/html without one.
@@ -484,11 +489,17 @@ internal static class SpecHandlerModelBuilder {
 
         var cases = new List<UnionCaseModel>();
 
-        if (ResponseSetPlan.HasNamedSuccessPayload(operation)) {
+        // The payload type itself, and only while it stays bare. A primary success whose headers
+        // are declared beside the body rather than on it is emitted as a wrapper instead, and the
+        // loop below picks it up - adding it here as well would put two branches in the union for
+        // one status.
+        if (ResponseSetPlan.PrimarySuccessIsBarePayload(operation)) {
             cases.Add(new UnionCaseModel(
                 Qualified(modelsNamespace, PrimarySuccessTypeName(operation)),
                 operation.SuccessStatusCode,
-                appliesHeaders: false,
+                // A bare payload applies headers when the headers are its own members, which is what
+                // Smithy's @httpHeader on an output produces.
+                appliesHeaders: ResponseSetPlan.PrimarySuccessCarriesHeaders(operation),
                 hasBody: true));
         }
 
@@ -504,7 +515,7 @@ internal static class SpecHandlerModelBuilder {
             cases.Add(new UnionCaseModel(
                 Qualified(modelsNamespace, ResponseSetPlan.CaseName(operation, success.StatusCode)),
                 success.StatusCode,
-                appliesHeaders: false,
+                appliesHeaders: success.Headers.Count > 0,
                 hasBody: hasBody,
                 carriesBody: hasBody,
                 bodyTypeName: hasBody
@@ -518,7 +529,7 @@ internal static class SpecHandlerModelBuilder {
             cases.Add(new UnionCaseModel(
                 Qualified(modelsNamespace, ResponseSetPlan.CaseName(operation, error.StatusCode)),
                 error.StatusCode,
-                appliesHeaders: false,
+                appliesHeaders: error.Headers.Count > 0,
                 hasBody: true,
                 carriesBody: true,
                 bodyTypeName: error.Ref == null

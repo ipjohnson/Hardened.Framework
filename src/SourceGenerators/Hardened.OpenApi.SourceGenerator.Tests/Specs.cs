@@ -706,6 +706,71 @@ internal static class Specs {
     /// <summary>
     /// Declared error responses, with and without a payload.
     /// </summary>
+    /// <summary>
+    /// A 201 declaring a Location, a 200 declaring an ETag, and a 429 declaring a Retry-After.
+    /// </summary>
+    /// <remarks>
+    /// The three shapes that matter: a primary success that has to become a wrapper to carry its
+    /// header, a second success that was already a wrapper, and an error - because
+    /// <c>Retry-After</c> on a 429 is the case RFC 9110 names and an error case is the one place a
+    /// header needed no new decision.
+    /// </remarks>
+    internal const string DeclaredResponseHeaders =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets:
+            post:
+              tags: [Pet]
+              operationId: createPet
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Pet'
+              responses:
+                '201':
+                  description: Created
+                  headers:
+                    Location:
+                      description: Where the new pet can be read.
+                      schema: { type: string }
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+                '202':
+                  description: Accepted for later creation
+                  headers:
+                    ETag:
+                      schema: { type: string }
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+                '429':
+                  description: Too many requests
+                  headers:
+                    Retry-After:
+                      schema: { type: string }
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/ApiError'
+        components:
+          schemas:
+            Pet:
+              type: object
+              properties:
+                id: { type: string }
+                name: { type: string }
+            ApiError:
+              type: object
+              properties:
+                message: { type: string }
+        """;
+
     internal const string DeclaredErrors =
         """
         openapi: "3.0.0"

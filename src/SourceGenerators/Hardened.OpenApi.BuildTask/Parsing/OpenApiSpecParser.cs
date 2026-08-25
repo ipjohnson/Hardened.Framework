@@ -1380,6 +1380,42 @@ internal static class OpenApiSpecParser {
     /// <c>SpecModelSerializer</c> - so a description present but blank has to arrive as null rather
     /// than as "", or it round-trips into a doc comment with nothing in it.
     /// </remarks>
+    /// <summary>
+    /// The headers a response declares, in document order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Read off the same <c>OpenApiResponse</c> the description and the content come from. It was
+    /// the one member of that object nothing looked at, which is why a document could declare
+    /// <c>Location</c> on every 201 it had and generate no trace of it - and why the omission was
+    /// silent: an unread property has no branch to report from.
+    /// </para>
+    /// <para>
+    /// <c>Content-Type</c> is dropped rather than carried. The content map already decides it, the
+    /// serializer already writes it, and a case type taking it as a constructor parameter would let
+    /// a handler contradict the negotiation that chose it.
+    /// </para>
+    /// </remarks>
+    private static void ReadResponseHeaders(
+        IOpenApiResponse? response, List<ResponseHeaderModel> into) {
+        if (response?.Headers == null) {
+            return;
+        }
+
+        foreach (var header in response.Headers) {
+            if (string.IsNullOrWhiteSpace(header.Key) ||
+                string.Equals(header.Key, "Content-Type", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            into.Add(new ResponseHeaderModel {
+                Name = header.Key,
+                ParameterName = NamingHelper.ToPascalCase(header.Key),
+                Description = FirstNonEmpty(header.Value?.Description)
+            });
+        }
+    }
+
     private static string? FirstNonEmpty(params string?[] candidates) {
         foreach (var candidate in candidates) {
             if (!string.IsNullOrWhiteSpace(candidate)) {
@@ -1644,11 +1680,15 @@ internal static class OpenApiSpecParser {
                         ? SelectMediaType(respKvp.Value.Content)
                         : default;
 
-                    opModel.ErrorResponses.Add(new ErrorResponseModel {
+                    var errorResponse = new ErrorResponseModel {
                         StatusCode = errorStatus,
                         Ref = SchemaRef(errorContent.Value?.Schema),
                         Description = FirstNonEmpty(respKvp.Value?.Description)
-                    });
+                    };
+
+                    ReadResponseHeaders(respKvp.Value, errorResponse.Headers);
+
+                    opModel.ErrorResponses.Add(errorResponse);
                 }
 
                 // Every 2xx, not the first one.
@@ -1734,6 +1774,8 @@ internal static class OpenApiSpecParser {
                             }
                         }
                     }
+
+                    ReadResponseHeaders(response, success.Headers);
 
                     opModel.SuccessResponses.Add(success);
                     isPrimarySuccess = false;

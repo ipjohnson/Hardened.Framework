@@ -23,9 +23,9 @@ public class LinkTests {
     /// </summary>
     [HardenedTest]
     public Task RoutesBuildThePathFromTheTemplate(ITestWebApp testWebApp) {
-        Assert.Equal("/binding/path/42", ApplicationRoutes.Binding.FromPath("42"));
-        Assert.Equal("/binding/pair/a/b", ApplicationRoutes.Binding.FromMultiplePathTokens("a", "b"));
-        Assert.Equal("/", ApplicationRoutes.Home.HelloWorld());
+        Assert.Equal("/binding/path/42", Application.Routes.Binding.FromPath("42"));
+        Assert.Equal("/binding/pair/a/b", Application.Routes.Binding.FromMultiplePathTokens("a", "b"));
+        Assert.Equal("/", Application.Routes.Home.HelloWorld());
 
         return Task.CompletedTask;
     }
@@ -37,7 +37,7 @@ public class LinkTests {
     /// </summary>
     [HardenedTest]
     public Task ATokenValueIsEscaped(ITestWebApp testWebApp) {
-        Assert.Equal("/binding/path/a%2Fb", ApplicationRoutes.Binding.FromPath("a/b"));
+        Assert.Equal("/binding/path/a%2Fb", Application.Routes.Binding.FromPath("a/b"));
 
         return Task.CompletedTask;
     }
@@ -48,7 +48,7 @@ public class LinkTests {
     /// </summary>
     [HardenedTest]
     public Task ATypedTokenIsFormattedInvariantly(ITestWebApp testWebApp) {
-        Assert.Equal("/binding/path-typed/-7", ApplicationRoutes.Binding.TypedPathToken(-7));
+        Assert.Equal("/binding/path-typed/-7", Application.Routes.Binding.TypedPathToken(-7));
 
         return Task.CompletedTask;
     }
@@ -58,7 +58,7 @@ public class LinkTests {
     /// </summary>
     [HardenedTest]
     public Task TheLinksTypeResolvesFromTheContainer(ITestWebApp testWebApp) {
-        Assert.NotNull(testWebApp.RootServiceProvider.GetRequiredService<ApplicationLinks>());
+        Assert.NotNull(testWebApp.RootServiceProvider.GetRequiredService<Application.Links>());
 
         return Task.CompletedTask;
     }
@@ -69,7 +69,7 @@ public class LinkTests {
     /// </summary>
     [HardenedTest]
     public Task ALinkGoesThroughTheLinkContext(ITestWebApp testWebApp) {
-        var links = new ApplicationLinks(new StageContext());
+        var links = new Application.Links(new StageContext());
 
         Assert.Equal("/prod/binding/path/42", links.Binding.FromPath("42"));
         Assert.Equal("https://api.example.com/prod/binding/path/42", links.Binding.FromPathAbsolute("42"));
@@ -80,7 +80,7 @@ public class LinkTests {
     /// <summary>The default context is the identity, which is right for a host serving the root.</summary>
     [HardenedTest]
     public Task TheDefaultContextLeavesThePathAlone(ITestWebApp testWebApp) {
-        var links = testWebApp.RootServiceProvider.GetRequiredService<ApplicationLinks>();
+        var links = testWebApp.RootServiceProvider.GetRequiredService<Application.Links>();
 
         Assert.Equal("/binding/path/42", links.Binding.FromPath("42"));
 
@@ -106,7 +106,7 @@ public class LinkTests {
     /// <remarks>
     /// <para>
     /// Links are generated per module, so <c>WebLibrary</c>'s routes live on
-    /// <c>WebLibraryLinks</c> rather than on <c>ApplicationLinks</c>. A generated template base
+    /// <c>WebLibrary.Links</c> rather than on <c>Application.Links</c>. A generated template base
     /// hard-types its <c>Links</c> property to the application's, so before this an application
     /// whose routes all lived in libraries handed its views an empty links type and
     /// <c>@Links.Something.Route()</c> did not compile - the build-time guarantee was unavailable
@@ -118,7 +118,7 @@ public class LinkTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public Task AnImportedModulesRoutesAreReachableFromTheApplicationsLinks(ApplicationLinks links) {
+    public Task AnImportedModulesRoutesAreReachableFromTheApplicationsLinks(Application.Links links) {
         Assert.Equal(
             "/web-library/string-methods/concat/a/b",
             links.WebLibrary.Some.Concat("a", "b"));
@@ -130,8 +130,8 @@ public class LinkTests {
     /// The property is named for the module, which is the name already written at the import site.
     /// </summary>
     [HardenedTest]
-    public Task TheImportedPropertyIsNamedForTheModule(ApplicationLinks links) {
-        Assert.IsType<Hardened.IntegrationTests.Web.SUT.WebLibraryLinks>(links.WebLibrary);
+    public Task TheImportedPropertyIsNamedForTheModule(Application.Links links) {
+        Assert.IsType<Hardened.IntegrationTests.Web.SUT.WebLibrary.Links>(links.WebLibrary);
 
         return Task.CompletedTask;
     }

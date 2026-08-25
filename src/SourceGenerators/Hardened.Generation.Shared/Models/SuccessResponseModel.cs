@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Hardened.Generation.Models;
 
 /// <summary>
@@ -65,6 +68,28 @@ internal class SuccessResponseModel : IEquatable<SuccessResponseModel> {
 
     public string? Description { get; set; }
 
+    /// <summary>The headers this response declares it carries.</summary>
+    /// <remarks>
+    /// Empty for almost every response, and the emitters branch on that: a success declaring no
+    /// header stays the bare payload type it has always been, so nothing that worked before grows a
+    /// wrapper. A success declaring one gets a case type that implements
+    /// <c>IProvidesResponseHeaders</c>, because the payload type cannot - <c>Part</c> is the same
+    /// type a 200 with no Location returns, and putting the header on it would apply it to both.
+    /// </remarks>
+    public List<ResponseHeaderModel> Headers { get; } = new();
+
+    /// <summary>
+    /// Whether the payload type carries these headers itself.
+    /// </summary>
+    /// <remarks>
+    /// Smithy binds a header to a member of the output structure, so the type the handler already
+    /// returns can implement <c>IProvidesResponseHeaders</c> and nothing needs wrapping. OpenAPI
+    /// declares headers beside the body schema rather than in it, so there is no type holding both
+    /// and a case type has to be generated to carry the value. Same HTTP behaviour, and the
+    /// difference is the language's, not a choice.
+    /// </remarks>
+    public bool HeadersOnPayload { get; set; }
+
     public bool Equals(SuccessResponseModel? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -77,7 +102,9 @@ internal class SuccessResponseModel : IEquatable<SuccessResponseModel> {
                ArrayItemsRef == other.ArrayItemsRef &&
                ArrayItemsType == other.ArrayItemsType &&
                ContentType == other.ContentType &&
-               Description == other.Description;
+               Description == other.Description &&
+               HeadersOnPayload == other.HeadersOnPayload &&
+               Headers.SequenceEqual(other.Headers);
     }
 
     public override bool Equals(object? obj) => Equals(obj as SuccessResponseModel);

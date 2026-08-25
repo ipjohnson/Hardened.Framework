@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Hardened.Generation.Models;
 
 /// <summary>
@@ -16,10 +19,20 @@ internal class ErrorResponseModel : IEquatable<ErrorResponseModel> {
 
     public string? Description { get; set; }
 
+    /// <summary>The headers this response declares it carries.</summary>
+    /// <remarks>
+    /// A declared error carries headers as readily as a success does - <c>Retry-After</c> on a 429
+    /// and a 503 is the case RFC 9110 names, and a <c>WWW-Authenticate</c> on a 401 is the one the
+    /// framework already writes by hand. An error case is always a wrapper, so unlike a success
+    /// there is nothing to decide here: the type to hang the interface on already exists.
+    /// </remarks>
+    public List<ResponseHeaderModel> Headers { get; } = new();
+
     public bool Equals(ErrorResponseModel? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return StatusCode == other.StatusCode && Ref == other.Ref && Description == other.Description;
+        return StatusCode == other.StatusCode && Ref == other.Ref && Description == other.Description &&
+               Headers.SequenceEqual(other.Headers);
     }
 
     public override bool Equals(object? obj) => Equals(obj as ErrorResponseModel);
