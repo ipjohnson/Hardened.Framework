@@ -264,6 +264,10 @@ namespace Hardened.Requests.Runtime.Execution
         public int? SuccessStatus { get; }
         public Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo WithPath(string? path) { }
     }
+    public static class ExecutionRequestHandlerInfoExtensions
+    {
+        public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithRequirement(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Abstract.Authorization.Requirement? requirement) { }
+    }
     public class ExecutionRequestParameter : Hardened.Requests.Abstract.Execution.IExecutionRequestParameter
     {
         public ExecutionRequestParameter(string name, int index, System.Type type) { }

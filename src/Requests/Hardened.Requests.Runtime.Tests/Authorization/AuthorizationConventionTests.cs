@@ -168,6 +168,56 @@ public class AuthorizationConventionTests {
         Assert.Same(declared, Setup(declared, []).HandlerInfo);
     }
 
+    /// <summary>
+    /// Amending a handler keeps every member the convention did not speak about.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The regression this file did not have. Applying a convention rebuilt the handler from seven
+    /// of its ten arguments, so <c>SuccessStatus</c>, <c>NullResponseBody</c> and
+    /// <c>ProducedContentTypes</c> were dropped the moment an application registered one: a route
+    /// declaring 201 answered 200, from a contract that said 201, with a clean build and no warning.
+    /// </para>
+    /// <para>
+    /// Asserted through <c>ExecutionHelper</c> rather than on the amendment directly, because the
+    /// defect was in the call rather than in the type it called - a test written against
+    /// <c>WithRequirement</c> would have passed against the broken version too.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void AnAmendedHandlerKeepsWhatTheConventionDidNotTouch() {
+        var declared = new ExecutionRequestHandlerInfo(
+            "/admin/users", "POST", typeof(Controller), "Create",
+            parameters: null,
+            metadata: [new AuthorizeGrantsAttribute("users:write")],
+            requirement: null,
+            successStatus: 201,
+            nullResponseBody: EmptyBody,
+            producedContentTypes: new[] { "application/json" });
+
+        var amended = Setup(declared, [new PrefixConvention("/admin", "admin:access")]).HandlerInfo;
+
+        // The convention did apply, so this is the rebuilt instance rather than the declared one.
+        Assert.NotSame(declared, amended);
+        Assert.Contains("admin:access", amended.Requirement!.RequiredGrants);
+        Assert.Contains("users:write", amended.Requirement!.RequiredGrants);
+
+        Assert.Equal(201, amended.SuccessStatus);
+        Assert.Same(EmptyBody, amended.NullResponseBody);
+        Assert.Equal(new[] { "application/json" }, amended.ProducedContentTypes);
+
+        // And the members that were being carried correctly stay carried.
+        Assert.Equal("/admin/users", amended.Path);
+        Assert.Equal("POST", amended.Method);
+        Assert.Equal(typeof(Controller), amended.HandlerType);
+        Assert.Equal("Create", amended.InvokeMethod);
+    }
+
+    /// <summary>
+    /// Reference-compared in the assertion above, so it has to be the same instance both times.
+    /// </summary>
+    private static readonly object EmptyBody = new();
+
     #endregion
 
     /// <summary>

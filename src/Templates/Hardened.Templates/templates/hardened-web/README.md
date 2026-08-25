@@ -109,8 +109,9 @@ signature that the route can answer it - so the generated document describes few
 the application actually has.
 
 #if (codeFirst)
-It also cannot name a status beside its success type, which is why creating a todo answers 200
-rather than 201.
+A single success status is nameable — `[Post("/todos", SuccessStatus = 201)]` answers 201 and says
+so in the generated document. Creating a todo is left at the default 200 here so the three response
+models differ in one thing at a time. What this mode cannot express is more than one success status.
 #endif
 #if (specFirst)
 The contract still names each operation's success status and the dispatch carries it, so creating a

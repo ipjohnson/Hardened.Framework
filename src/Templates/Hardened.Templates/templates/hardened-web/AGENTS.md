@@ -106,8 +106,16 @@ The thrown value is an ordinary response record, so the body a client sees is th
 declared modes return. What differs is that nothing in the signature says the route can answer it.
 
 #if (codeFirst)
-This mode cannot put a status beside its success type, which is why `Create` answers 200 rather
-than 201. Regenerate with `--response-model response` and the same route answers 201.
+A single success status is nameable here: `SuccessStatus` on the verb attribute carries it, and it
+reaches the generated document.
+
+```csharp
+[Post("/todos", SuccessStatus = 201)]
+```
+
+`Create` is left at the default 200 so the three response models differ in one thing at a time, not
+because the mode cannot say 201. What this mode cannot express is *more than one* success status -
+for that, regenerate with `--response-model response`.
 #endif
 #if (specFirst)
 The contract still names each operation's success status and the dispatch carries it, so `POST

@@ -32,7 +32,13 @@ public class HardenedTestEntryPointAttribute
         var environment = BuildEnvironment(attributeCollection, methodInfo);
 
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton<IHardenedEnvironment>(environment);
+
+        // AddHardenedEnvironment rather than AddSingleton, which registers only IHardenedEnvironment
+        // and leaves IModuleEnvironment unanswered - so the module system read Production however the
+        // test was annotated, and [IfEnvironment], a template-default feature, could not be exercised
+        // from a test at all. TestApplication has always done it this way; this is the path that had
+        // not caught up.
+        serviceCollection.AddHardenedEnvironment(environment);
         serviceCollection.AddSingleton<IApplicationRoot>(sp => new ServiceProviderApplicationRoot(sp));
         serviceCollection.AddSingleton<ITestContext>(sp => {
             var loggerType = typeof(ILogger<>).MakeGenericType(methodInfo.DeclaringType!);

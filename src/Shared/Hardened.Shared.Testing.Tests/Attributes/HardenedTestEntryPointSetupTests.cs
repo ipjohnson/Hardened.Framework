@@ -1,3 +1,4 @@
+using DependencyModules.Runtime.Interfaces;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing.Attributes;
@@ -356,5 +357,35 @@ public class HardenedTestEntryPointSetupTests {
         var (provider, _) = Setup<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method));
 
         Assert.IsType<TestEnvironment>(provider.GetRequiredService<IHardenedEnvironment>());
+    }
+
+    /// <summary>
+    /// The same environment answers under both service types, so the module system and application
+    /// code agree about which environment a test is running in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The harness used to register the environment under <see cref="IHardenedEnvironment"/> alone.
+    /// <see cref="IModuleEnvironment"/> then fell back to its own default and reported
+    /// <c>Production</c> however the test was annotated, which made <c>[IfEnvironment]</c> — a
+    /// shipped, template-default feature — impossible to exercise from a test at all.
+    /// </para>
+    /// <para>
+    /// Asserted as identity rather than as two equal names, because two objects agreeing today is
+    /// what the previous version looked like from the outside right up until one of them was asked
+    /// something the other would have answered differently.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void TheEnvironmentIsRegisteredUnderBothInterfaces() {
+        var (provider, _) = Setup<DeclaresClassLevelEnvironment>(
+            nameof(DeclaresClassLevelEnvironment.Method));
+
+        var hardened = provider.GetRequiredService<IHardenedEnvironment>();
+        var module = provider.GetRequiredService<IModuleEnvironment>();
+
+        Assert.Same(hardened, module);
+        Assert.Equal("class-environment", hardened.Name);
+        Assert.Equal("class-environment", module.EnvironmentName);
     }
 }
