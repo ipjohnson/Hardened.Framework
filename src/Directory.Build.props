@@ -58,6 +58,20 @@
     </PropertyGroup>
 
     <!--
+      CS8785 is "a source generator threw", and Roslyn reports it as a warning. That is the wrong
+      severity everywhere, not just on CI: a generator that dies mid-run has emitted some of its
+      output and none of the rest, so the assembly that comes out is missing wiring nobody asked it
+      to leave out. Hardened's whole proposition is that the wiring is written during the build, and
+      a build that half-writes it must not be green.
+
+      This one is deliberately not scoped to ContinuousIntegrationBuild. The local build is where
+      the edit that broke the generator was just made, and it is the run that should say so.
+    -->
+    <PropertyGroup>
+        <WarningsAsErrors>$(WarningsAsErrors);CS8785</WarningsAsErrors>
+    </PropertyGroup>
+
+    <!--
       Applies to every project under src/.
 
       Test projects get Microsoft.CodeCoverage, so collecting "Code Coverage" during `dotnet test`
