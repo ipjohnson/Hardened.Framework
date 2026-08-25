@@ -41,37 +41,68 @@
         Hardened.Idl.Emit share no project - so the source is linked in, which is the arrangement
         already used in the other direction for OpenApiDocument/**.
     -->
+    <!--
+        The description model and the helpers that read it. Linked here rather than referenced
+        because this project is the spine both generator wrappers compile in, and the bridge from
+        an OperationModel to a RequestHandlerModel has to reach both: the described front-ends
+        have always used it, and code-first is moving onto it.
+
+        One list, feeding both <Compile> and <Content>, because they have to agree and twice they
+        have not. This package ships as source, and the <Content Include="**\*.cs"> glob below
+        matches relative to this project directory - so a file linked in from Hardened.Idl.Shared
+        compiles here and is absent from the package unless it is packed by name. That is invisible
+        in this repository, where the project reference makes it resolve either way, and it fails
+        in the consumer that compiles the shipped source:
+
+          hardened.sourcegenerator/<v>/src/Hardened.SourceGenerator/SpecBridge/SpecHandlerModelBuilder.cs(2,20):
+            error CS0234: The type or namespace name 'Models' does not exist in the namespace 'Hardened.Idl'
+
+        GZipLiteral.cs was packed by name after Hardened.Amz 0.8.0-rc1000 hit it. The Models/ files
+        and the helpers beside them were added later and were not, so Hardened.Amz hit the same
+        thing again. Deriving both item lists from this one is what stops a third time: a file added
+        here is compiled and packed by construction, and cannot be added to one and not the other.
+
+        LinkDir is the directory the file takes inside this project, and PackagePath below puts it
+        at the same place inside the package - so the shipped source finds it exactly where the
+        `using` written against the linked layout expects.
+    -->
     <ItemGroup>
-        <!--
-          The description model and the helpers that read it. Linked here rather than referenced
-          because this project is the spine both generator wrappers compile in, and the bridge from
-          an OperationModel to a RequestHandlerModel has to reach both: the described front-ends
-          have always used it, and code-first is moving onto it.
-        -->
-        <Compile Include="../Hardened.Idl.Shared/Models/**/*.cs">
+        <HardenedIdlModelSource Include="../Hardened.Idl.Shared/Models/**/*.cs"/>
+
+        <HardenedIdlHelperSource Include="../Hardened.Idl.Shared/TypeMapper.cs"/>
+        <HardenedIdlHelperSource Include="../Hardened.Idl.Shared/NamingHelper.cs"/>
+        <HardenedIdlHelperSource Include="../Hardened.Idl.Shared/DefaultLiteral.cs"/>
+        <HardenedIdlHelperSource Include="../Hardened.Idl.Shared/SchemaShape.cs"/>
+        <HardenedIdlHelperSource Include="../Hardened.Idl.Shared/EnumWireForm.cs"/>
+        <HardenedIdlHelperSource Include="../Hardened.Idl.Shared/DefaultErrorBody.cs"/>
+
+        <HardenedIdlSharedDirSource Include="../Hardened.Idl.Shared/GZipLiteral.cs"/>
+    </ItemGroup>
+
+    <!--
+        PackagePath is a literal per group rather than item metadata. %(LinkDir)-style metadata does
+        not expand inside PackagePath - NuGet reads it as a plain string - and the files land flat in
+        the package root, where they are one same-named file away from colliding with this project's
+        own. Three groups is the price of that being checkable by reading it.
+    -->
+    <ItemGroup>
+        <Compile Include="@(HardenedIdlModelSource)">
             <Link>Idl/Models/%(RecursiveDir)%(FileName)%(Extension)</Link>
         </Compile>
-        <Compile Include="../Hardened.Idl.Shared/TypeMapper.cs">
+        <Content Include="@(HardenedIdlModelSource)" Pack="true"
+                 PackagePath="src\Hardened.SourceGenerator\Idl\Models\" PackageCopyToOutput="true"/>
+
+        <Compile Include="@(HardenedIdlHelperSource)">
             <Link>Idl/%(FileName)%(Extension)</Link>
         </Compile>
-        <Compile Include="../Hardened.Idl.Shared/NamingHelper.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
+        <Content Include="@(HardenedIdlHelperSource)" Pack="true"
+                 PackagePath="src\Hardened.SourceGenerator\Idl\" PackageCopyToOutput="true"/>
+
+        <Compile Include="@(HardenedIdlSharedDirSource)">
+            <Link>Shared/%(FileName)%(Extension)</Link>
         </Compile>
-        <Compile Include="../Hardened.Idl.Shared/DefaultLiteral.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/SchemaShape.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/EnumWireForm.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/DefaultErrorBody.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/GZipLiteral.cs">
-            <Link>Shared/GZipLiteral.cs</Link>
-        </Compile>
+        <Content Include="@(HardenedIdlSharedDirSource)" Pack="true"
+                 PackagePath="src\Hardened.SourceGenerator\Shared\" PackageCopyToOutput="true"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -98,25 +129,10 @@
         </Content>
 
         <!--
-            Packed separately because the glob above cannot reach it: it matches relative to this
-            project directory, and GZipLiteral.cs lives outside it. The <Compile> link above is
-            enough to build this assembly, so the omission is invisible in this repository - but
-            this package ships as source, and OpenApiDocument/OpenApiDocumentSource.cs opens with
-            `using Hardened.Idl;`. A consumer that sets PackageHardenedIncludeSource=true compiles
-            src/**/*.cs from the package and nothing else, so without this the only file defining
-            that namespace is absent and the consumer fails with
-
-              OpenApiDocument/OpenApiDocumentSource.cs(3,16): error CS0234: The type or namespace
-                name 'Idl' does not exist in the namespace 'Hardened'
-
-            Hardened.Amz 0.8.0-rc1000 is where that surfaced. PackagePath matches the <Compile>
-            Link, so the file lands where the shipped source expects it.
+            GZipLiteral.cs and the rest of the linked Hardened.Idl.Shared source are packed with the
+            <Compile> entries that pull them in, above - the glob here matches relative to this
+            project directory and cannot reach outside it.
         -->
-        <Content Include="../Hardened.Idl.Shared/GZipLiteral.cs">
-            <Pack>true</Pack>
-            <PackagePath>src\Hardened.SourceGenerator\Shared\</PackagePath>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-        </Content>
     </ItemGroup>
 
     <!--
