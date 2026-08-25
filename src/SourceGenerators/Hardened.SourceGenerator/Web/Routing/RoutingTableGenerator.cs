@@ -104,7 +104,7 @@ public static class RoutingTableGenerator {
 
         var fileName = models.Left.EntryPointType.Name + ".Routing";
 
-        context.AddSource(fileName, outputString);
+        context.AddSource(fileName, GeneratedSource.Header(outputString));
 
         var documentVersion = version ?? OpenApiVersionFacts.Default;
 
@@ -134,9 +134,9 @@ public static class RoutingTableGenerator {
                 }
             }
 
-            context.AddSource(
-                models.Left.EntryPointType.Name + ".OpenApiDocument",
-                OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left), documentVersion));
+            context.AddSource(models.Left.EntryPointType.Name + ".OpenApiDocument",
+                GeneratedSource.Header(
+                    OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left), documentVersion)));
         }
 
         // From the same models the table came from, and unconditionally: links have no third-party

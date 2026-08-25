@@ -1,4 +1,5 @@
-﻿using CSharpAuthor;
+﻿using Hardened.SourceGenerator.Shared;
+using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Web.Routing;
@@ -50,7 +51,7 @@ public class WebExecutionHandlerCodeGenerator {
 
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 
-        sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, sourceFile);
+        sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, GeneratedSource.Header(sourceFile));
     }
 
     public string GenerateFile(RequestHandlerModel requestHandlerModel, CancellationToken cancellationToken, bool excludeFromCoverage = false) {

@@ -33,10 +33,151 @@ internal static class XmlDocumentation {
             .FirstOrDefault();
 
         if (comment == null) {
-            return (null, null);
+            return FromRawTrivia(node);
         }
 
         return (Element(comment, "summary"), Element(comment, "remarks"));
+    }
+
+    /// <summary>
+    /// The prose a doc comment gives one named parameter, or null.
+    /// </summary>
+    /// <remarks>
+    /// <c>&lt;param name="petId"&gt;</c> is where a developer has already written what a parameter
+    /// means, and an OpenAPI parameter has a <c>description</c> for exactly that. Read through the
+    /// same two paths as the summary, for the same reason.
+    /// </remarks>
+    public static string? ReadParameter(SyntaxNode node, string parameterName) {
+        var comment = node.GetLeadingTrivia()
+            .Select(trivia => trivia.GetStructure())
+            .OfType<DocumentationCommentTriviaSyntax>()
+            .FirstOrDefault();
+
+        if (comment == null) {
+            return RawParameter(node, parameterName);
+        }
+
+        foreach (var element in comment.ChildNodes().OfType<XmlElementSyntax>()) {
+            if (element.StartTag.Name.LocalName.ValueText != "param") {
+                continue;
+            }
+
+            foreach (var attribute in element.StartTag.Attributes.OfType<XmlNameAttributeSyntax>()) {
+                if (attribute.Identifier.Identifier.ValueText != parameterName) {
+                    continue;
+                }
+
+                var text = Flatten(element);
+
+                return text.Length > 0 ? text : null;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? RawParameter(SyntaxNode node, string parameterName) {
+        var text = RawText(node);
+
+        if (text == null) {
+            return null;
+        }
+
+        var open = text.IndexOf("<param name=\"" + parameterName + "\">", System.StringComparison.Ordinal);
+
+        if (open < 0) {
+            return null;
+        }
+
+        var start = text.IndexOf('>', open) + 1;
+        var close = text.IndexOf("</param>", start, System.StringComparison.Ordinal);
+
+        if (close < 0) {
+            return null;
+        }
+
+        var inner = StripTags(text.Substring(start, close - start));
+
+        return inner.Length > 0 ? inner : null;
+    }
+
+    /// <summary>
+    /// The same two elements, read out of unstructured <c>///</c> trivia.
+    /// </summary>
+    /// <remarks>
+    /// Reached when the compilation was parsed with <c>DocumentationMode.None</c>, where the lines
+    /// are present as comments and carry no structure. Matched rather than parsed as XML: the
+    /// content is prose that may not be well-formed, and a doc comment that fails to parse should
+    /// contribute nothing rather than fail a build that was otherwise fine.
+    /// </remarks>
+    private static (string? Summary, string? Description) FromRawTrivia(SyntaxNode node) {
+        var text = RawText(node);
+
+        return text == null
+            ? (null, null)
+            : (RawElement(text, "summary"), RawElement(text, "remarks"));
+    }
+
+    /// <summary>The <c>///</c> lines above a node, joined, with the slashes removed.</summary>
+    private static string? RawText(SyntaxNode node) {
+        var builder = new StringBuilder();
+
+        foreach (var trivia in node.GetLeadingTrivia()) {
+            if (!trivia.IsKind(SyntaxKind.SingleLineCommentTrivia)) {
+                continue;
+            }
+
+            var line = trivia.ToString().TrimStart();
+
+            if (!line.StartsWith("///", System.StringComparison.Ordinal)) {
+                continue;
+            }
+
+            builder.Append(line.Substring(3)).Append(' ');
+        }
+
+        return builder.Length == 0 ? null : builder.ToString();
+    }
+
+    private static string? RawElement(string text, string name) {
+        var open = text.IndexOf("<" + name + ">", System.StringComparison.Ordinal);
+
+        if (open < 0) {
+            return null;
+        }
+
+        var start = open + name.Length + 2;
+        var close = text.IndexOf("</" + name + ">", start, System.StringComparison.Ordinal);
+
+        if (close < 0) {
+            return null;
+        }
+
+        var inner = StripTags(text.Substring(start, close - start));
+
+        return inner.Length > 0 ? inner : null;
+    }
+
+    /// <summary>The prose inside an element, with any nested markup removed.</summary>
+    private static string StripTags(string text) {
+        var builder = new StringBuilder(text.Length);
+        var depth = 0;
+
+        foreach (var character in text) {
+            if (character == '<') {
+                depth++;
+            }
+            else if (character == '>') {
+                if (depth > 0) {
+                    depth--;
+                }
+            }
+            else if (depth == 0) {
+                builder.Append(character);
+            }
+        }
+
+        return Collapse(builder.ToString());
     }
 
     private static string? Element(DocumentationCommentTriviaSyntax comment, string name) {

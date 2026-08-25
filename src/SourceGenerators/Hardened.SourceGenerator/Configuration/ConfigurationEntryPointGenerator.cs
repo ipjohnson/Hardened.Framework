@@ -26,7 +26,7 @@ public static class ConfigurationEntryPointGenerator {
 
         cSharpFile.WriteOutput(outputContext);
 
-        arg1.AddSource(arg2.AppModel.EntryPointType.Name + ".Configuration.cs", outputContext.Output());
+        arg1.AddSource(arg2.AppModel.EntryPointType.Name + ".Configuration.cs", GeneratedSource.Header(outputContext.Output()));
     }
 
     private static void GenerateConfiguration(

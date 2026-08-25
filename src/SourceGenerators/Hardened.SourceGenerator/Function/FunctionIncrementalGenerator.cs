@@ -54,7 +54,7 @@ public static class FunctionIncrementalGenerator {
 
         csharpFile.WriteOutput(outputContext);
 
-        context.AddSource(model.Name.Path + ".FunctionHandler.cs", outputContext.Output());
+        context.AddSource(model.Name.Path + ".FunctionHandler.cs", GeneratedSource.Header(outputContext.Output()));
     }
 
     private static void GenerateFunctionHandlerProvider(SourceProductionContext context,
@@ -79,7 +79,7 @@ public static class FunctionIncrementalGenerator {
 
         csharpFile.WriteOutput(output);
 
-        context.AddSource(appModel.EntryPointType.Name + ".FunctionHandlers.cs", output.Output());
+        context.AddSource(appModel.EntryPointType.Name + ".FunctionHandlers.cs", GeneratedSource.Header(output.Output()));
     }
 
     private static void CreateFunctionHandlerProviderClass(

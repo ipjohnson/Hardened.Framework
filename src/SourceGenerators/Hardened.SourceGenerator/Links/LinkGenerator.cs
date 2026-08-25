@@ -81,9 +81,8 @@ public static class LinkGenerator {
         // generator that references it a way to find out.
         var groups = Group(appModel, handlers, basePath);
 
-        context.AddSource(
-            appModel.EntryPointType.Name + ".Links",
-            Write(appModel, groups));
+        context.AddSource(appModel.EntryPointType.Name + ".Links",
+            GeneratedSource.Header(Write(appModel, groups)));
     }
 
     /// <summary>One entry per link method, in a stable order.</summary>

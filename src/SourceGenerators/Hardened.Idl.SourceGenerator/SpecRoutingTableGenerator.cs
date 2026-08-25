@@ -48,7 +48,8 @@ internal static class SpecRoutingTableGenerator {
             models.Left, models.Right, handlerInfos, specRegistrations,
             context.CancellationToken, excludeFromCoverage, constraints);
 
-        context.AddSource(models.Left.EntryPointType.Name + ".SpecRouting", outputString);
+        context.AddSource(
+            models.Left.EntryPointType.Name + ".SpecRouting", GeneratedSource.Header(outputString));
 
         // The document this application serves, generated from the normalised model - the same
         // function, over the same models, that an attribute-routed application uses.

@@ -84,6 +84,6 @@ internal static class RegistrationWriter {
 
         file.WriteOutput(outputContext);
 
-        context.AddSource(entryPoint.EntryPointType.Name + ".ValidationModule.g.cs", outputContext.Output());
+        context.AddSource(entryPoint.EntryPointType.Name + ".ValidationModule.g.cs", GeneratedSource.Header(outputContext.Output()));
     }
 }

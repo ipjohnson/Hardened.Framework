@@ -16,6 +16,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Models;
 /// </remarks>
 public class RegistrationModel {
 
+    /// <summary>The name the registration is filed under.</summary>
     [DataAnnotations.Required]
     [DataAnnotations.StringLength(20, MinimumLength = 3)]
     public string? Name { get; set; }

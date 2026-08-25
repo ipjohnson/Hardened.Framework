@@ -61,9 +61,8 @@ public static class TemplateBaseGenerator {
                 continue;
             }
 
-            context.AddSource(
-                appModel.EntryPointType.Name + "." + TypeName(appModel, feature),
-                Write(appModel, feature, baseType));
+            context.AddSource(appModel.EntryPointType.Name + "." + TypeName(appModel, feature),
+                GeneratedSource.Header(Write(appModel, feature, baseType)));
         }
     }
 

@@ -205,6 +205,45 @@ public static class JsonSchemaWriter {
         return builder.Append("]}").ToString();
     }
 
+    /// <summary>
+    /// The <c>&lt;summary&gt;</c> on a type or a property, from wherever it was declared.
+    /// </summary>
+    /// <remarks>
+    /// Through the syntax the symbol came from rather than <c>GetDocumentationCommentXml</c>, which
+    /// answers nothing unless the compilation was parsed with <c>DocumentationMode.Parse</c> - the
+    /// same dependency that kept every handler's prose out of the document until
+    /// <see cref="XmlDocumentation"/> learned to read raw trivia. A symbol from another assembly has
+    /// no syntax here and contributes nothing, which is correct: its prose is in its own document.
+    /// </remarks>
+    private static string? DocumentationOf(ISymbol symbol) {
+        foreach (var reference in symbol.DeclaringSyntaxReferences) {
+            var summary = XmlDocumentation.Read(reference.GetSyntax()).Summary;
+
+            if (summary != null) {
+                return summary;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Adds a description to a schema that has been written already.</summary>
+    /// <remarks>
+    /// A <c>$ref</c> takes no siblings in OpenAPI 3.0 - they are ignored - so a described reference
+    /// is wrapped in <c>allOf</c>, which every tool reads. Anything else takes the key directly.
+    /// </remarks>
+    private static string Describe(string schema, string? description) {
+        if (description == null) {
+            return schema;
+        }
+
+        var suffix = ",\"description\":\"" + Escape(description) + "\"}";
+
+        return schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal)
+            ? "{\"allOf\":[" + schema + "]" + suffix
+            : schema.Substring(0, schema.Length - 1) + suffix;
+    }
+
     private static string ObjectRef(
         INamedTypeSymbol named, Dictionary<string, string> components, HashSet<string> inProgress,
         Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
@@ -233,8 +272,11 @@ public static class JsonSchemaWriter {
 
             properties
                 .Append('"').Append(Escape(CamelCase(property.Name))).Append("\":")
-                .Append(SchemaConstraintWriter.Apply(
-                    SchemaFor(property.Type, components, inProgress, enums, compilationAssembly), property));
+                .Append(Describe(
+                    SchemaConstraintWriter.Apply(
+                        SchemaFor(property.Type, components, inProgress, enums, compilationAssembly),
+                        property),
+                    DocumentationOf(property)));
 
             // A non-nullable reference type is one the author said would always be there, and so
             // is one carrying [Required] - which is the only way to say it about a value type.
@@ -248,6 +290,12 @@ public static class JsonSchemaWriter {
         }
 
         var schema = new StringBuilder("{\"type\":\"object\"");
+
+        var summary = DocumentationOf(named);
+
+        if (summary != null) {
+            schema.Append(",\"description\":\"").Append(Escape(summary)).Append('"');
+        }
 
         if (required.Count > 0) {
             schema.Append(",\"required\":[")
