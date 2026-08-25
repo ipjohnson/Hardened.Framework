@@ -56,7 +56,13 @@
             rather than as a UTF-16 string literal, which is what made it too expensive to default.
         -->
         <HardenedOpenApiSpec Include="Specs\petstore.yaml">
-            <PublishUrl>/openapi.yaml</PublishUrl>
+            <!--
+                PublishUrl serves the document generated from the normalised model - what the build
+                understood. SourceUrl serves this file, comments and all - what the author wrote.
+                Both, here, because the difference between them is the thing worth having a test on.
+            -->
+            <PublishUrl>/openapi.json</PublishUrl>
+            <SourceUrl>/openapi.yaml</SourceUrl>
             <UiUrl>/docs</UiUrl>
         </HardenedOpenApiSpec>
     </ItemGroup>

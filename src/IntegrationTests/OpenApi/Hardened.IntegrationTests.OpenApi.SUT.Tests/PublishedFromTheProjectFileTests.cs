@@ -48,23 +48,34 @@ public class PublishedFromTheProjectFileTests {
     /// And it points at the document this application actually serves, which is the correspondence
     /// the metadata exists to keep - both URLs come from the same item, so they cannot disagree.
     /// </summary>
+    /// <remarks>
+    /// <c>PublishUrl</c>, which is the generated document, rather than <c>SourceUrl</c>. The page
+    /// renders operations, and the source is whatever the author wrote - for a Smithy model that is
+    /// an AST, which is what the page used to be handed and why it rendered nothing.
+    /// </remarks>
     [HardenedTest]
     public async Task ThePageReadsTheDocumentThatWasPublished(ITestWebApp testWebApp) {
         var page = await (await testWebApp.Get("/docs")).ReadTextAsync();
 
-        Assert.Contains("data-url=\"/openapi.yaml\"", page);
+        Assert.Contains("data-url=\"/openapi.json\"", page);
 
-        var document = await testWebApp.Get("/openapi.yaml");
+        var document = await testWebApp.Get("/openapi.json");
 
         document.Assert.Ok();
     }
 
     /// <summary>
-    /// Nothing was published anywhere else. A page and a document at paths nobody asked for would
+    /// Nothing was published anywhere else. A page or a document at a path nobody asked for would
     /// mean the defaults were leaking through rather than the metadata being read.
     /// </summary>
+    /// <remarks>
+    /// This item names <c>/openapi.json</c>, <c>/openapi.yaml</c> and <c>/docs</c>, so the paths
+    /// worth asserting on are the conventional ones it did not name.
+    /// </remarks>
     [HardenedTest]
     public async Task NothingIsServedAtTheDefaultPaths(ITestWebApp testWebApp) {
-        Assert.Equal(404, (await testWebApp.Get("/openapi.json")).StatusCode);
+        Assert.Equal(404, (await testWebApp.Get("/openapi")).StatusCode);
+        Assert.Equal(404, (await testWebApp.Get("/swagger.json")).StatusCode);
+        Assert.Equal(404, (await testWebApp.Get("/swagger")).StatusCode);
     }
 }

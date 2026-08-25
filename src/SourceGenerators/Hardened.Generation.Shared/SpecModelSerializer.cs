@@ -64,6 +64,7 @@ internal static class SpecModelSerializer {
         spec.Add("ContentNegotiation", model.ContentNegotiation);
         spec.Add("ResponseModel", model.ResponseModel.ToString());
         spec.Add("PublishUrl", model.PublishUrl);
+        spec.Add("SourceUrl", model.SourceUrl);
         spec.Add("UiUrl", model.UiUrl);
         spec.Add("UiEnvironments", model.UiEnvironments);
         spec.WriteTo(builder);
@@ -131,6 +132,7 @@ internal static class SpecModelSerializer {
                     model.ContentNegotiation = record.String("ContentNegotiation") ?? "";
                     model.ResponseModel = ParseResponseModel(record.String("ResponseModel"));
                     model.PublishUrl = record.String("PublishUrl") ?? "";
+                    model.SourceUrl = record.String("SourceUrl") ?? "";
                     model.UiUrl = record.String("UiUrl") ?? "";
                     model.UiEnvironments = record.String("UiEnvironments") ?? "";
                     break;

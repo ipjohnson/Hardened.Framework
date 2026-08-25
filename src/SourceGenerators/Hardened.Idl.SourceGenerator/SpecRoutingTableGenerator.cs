@@ -4,6 +4,7 @@ using CSharpAuthor;
 using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Links;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web;
 using Hardened.SourceGenerator.Web.Routing;
@@ -48,6 +49,20 @@ internal static class SpecRoutingTableGenerator {
             context.CancellationToken, excludeFromCoverage, constraints);
 
         context.AddSource(models.Left.EntryPointType.Name + ".SpecRouting", outputString);
+
+        // The document this application serves, generated from the normalised model - the same
+        // function, over the same models, that an attribute-routed application uses.
+        //
+        // Not the contract file. A specification-first application used to serve its source text
+        // verbatim, which is only an OpenAPI document when the source happens to be one: Smithy
+        // served a Smithy AST at a path named openapi.json, and no OpenAPI client could read it.
+        // The source is also the wrong thing to serve even where it is an OpenAPI document, because
+        // it describes what the author wrote rather than what the build understood - a header or a
+        // constraint the front end dropped goes on being advertised. A generated document cannot
+        // over-promise, because the model holds only what was actually read.
+        context.AddSource(
+            models.Left.EntryPointType.Name + ".OpenApiDocument",
+            OpenApiDocumentSource.Write(models.Left, models.Right, ""));
 
         // The same links an attribute-routed application gets, from the same models. A document
         // generates the routes, so a link built from one is checked against the document rather
@@ -136,7 +151,7 @@ internal static class SpecRoutingTableGenerator {
                 "{ serviceCollection.AddSingleton(typeof(global::Hardened.Requests.Abstract.Serializer.IStringConverter), stringConverter); }"));
         }
 
-        AddPublishedSpecs(statements, ordered);
+        AddPublishedSpecs(applicationModel, statements, ordered);
 
         // The service-wide negotiation policy, from the entry point or from a description's root.
         var negotiation = ContentNegotiationRegistration.Statement(
@@ -178,19 +193,36 @@ internal static class SpecRoutingTableGenerator {
     }
 
     private static void AddPublishedSpecs(
+        EntryPointSelector.Model appModel,
         List<IOutputComponent> statements,
         IReadOnlyList<SpecRegistration> registrations) {
         foreach (var registration in registrations) {
+            // The contract itself, where the application asked for it. Its own content type, because
+            // a YAML contract is served as YAML - converting it to JSON to fit a conventional path
+            // would put an emitter back in the path this exists to keep out of.
+            if (registration.SourceUrl.Length > 0) {
+                statements.Add(new CodeOutputComponent(
+                    $"serviceCollection.AddSingleton<{Global(KnownTypes.Web.IWebExecutionRequestHandlerProvider)}>(" +
+                    "new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(global::" +
+                    registration.SpecificationTypeName + ".DocumentGZip, " +
+                    Quote(registration.SourceUrl) + ", global::" +
+                    registration.SpecificationTypeName + ".ContentType))"));
+            }
+
             if (registration.PublishUrl.Length == 0) {
                 continue;
             }
 
+            // The document generated from the model, not the contract file. Serving the source is
+            // SourceUrl's job above - and the source is an OpenAPI document only when the contract
+            // happens to be one, which is how a Smithy model came to publish a Smithy AST at a path
+            // named openapi.json.
             statements.Add(new CodeOutputComponent(
                 $"serviceCollection.AddSingleton<{Global(KnownTypes.Web.IWebExecutionRequestHandlerProvider)}>(" +
                 "new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(global::" +
-                registration.SpecificationTypeName + ".DocumentGZip, " +
-                Quote(registration.PublishUrl) + ", global::" +
-                registration.SpecificationTypeName + ".ContentType))"));
+                appModel.EntryPointType.Namespace + "." + appModel.EntryPointType.Name + "." +
+                OpenApiDocumentSource.DocumentPropertyName + ", " +
+                Quote(registration.PublishUrl) + "))"));
 
             if (registration.UiUrl.Length == 0) {
                 continue;

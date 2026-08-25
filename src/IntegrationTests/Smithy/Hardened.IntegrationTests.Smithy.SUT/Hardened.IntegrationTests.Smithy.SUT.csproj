@@ -60,12 +60,17 @@
 
     <ItemGroup>
         <!--
-          No Smithy fixture has ever set PublishUrl, so nothing has exercised document publishing
-          on this front-end. The base task that implements it is shared with OpenAPI, so this is
-          either free or a real gap - and until now there was no way to know which.
+          No Smithy fixture had ever set PublishUrl, so nothing exercised document publishing on
+          this front-end, and it was not knowable whether that was free or a real gap. It was a real
+          gap: what publishing served was the contract itself, which for a Smithy model is a Smithy
+          AST - a document no OpenAPI client can read and no Smithy tool would look for, and the
+          reason the reference page over it rendered nothing at all.
+
+          It now serves the OpenAPI document generated from the normalised model, which is what every
+          other mode publishes, so the path says openapi.json and means it. Publishing stays opt-in.
         -->
         <HardenedSmithyModel Include="Specs\petstore.smithy">
-            <PublishUrl>/smithy.json</PublishUrl>
+            <PublishUrl>/openapi.json</PublishUrl>
         </HardenedSmithyModel>
 
         <HardenedSmithyAst Include="Specs\bank.json"/>
