@@ -85,6 +85,7 @@ export default defineConfig({
             { text: 'Authorization', link: '/guide/authorization' },
             { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
             { text: 'Generating from OpenAPI', link: '/guide/openapi' },
+            { text: 'The OpenAPI document', link: '/guide/openapi-document' },
             { text: 'Declared responses', link: '/guide/responses' },
             { text: 'Content negotiation', link: '/guide/content-negotiation' },
             { text: 'JSON serialization', link: '/guide/json' },
