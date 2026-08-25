@@ -65,8 +65,11 @@ public sealed class ValidationFilterProvider<TValidated> : IRequestFilterProvide
         if (validators.Length == 0) {
             throw new InvalidOperationException(
                 $"No IValidatorFor<{typeof(TValidated).Name}> is registered, but the handler declares " +
-                "constraints. The generated validators register themselves through the application's " +
-                "entry point, so this usually means the entry point was not the one built against.");
+                "constraints. Check the build log for a source generator failure first - a generator " +
+                "that throws is reported as warning CS8785 and leaves the build green having emitted " +
+                "no validators at all. Failing that, the generated validators register themselves " +
+                "through the application's entry point, so the entry point may not be the one built " +
+                "against.");
         }
 
         return validators;

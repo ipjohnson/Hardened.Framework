@@ -66,8 +66,26 @@ public class HardenedValidationGenerator : IIncrementalGenerator {
         var candidates = context.SyntaxProvider
             .CreateSyntaxProvider(
                 static (node, _) => node is TypeDeclarationSyntax,
-                static (syntaxContext, _) =>
-                    syntaxContext.SemanticModel.GetDeclaredSymbol(syntaxContext.Node) as INamedTypeSymbol)
+                static (syntaxContext, _) => {
+                    var symbol = syntaxContext.SemanticModel.GetDeclaredSymbol(syntaxContext.Node)
+                        as INamedTypeSymbol;
+
+                    // One declaration per type, not one per declaration site.
+                    //
+                    // The predicate above fires for every TypeDeclarationSyntax, and a partial type
+                    // has one of those per file it is declared in - while GetDeclaredSymbol returns
+                    // the same merged symbol for all of them. BuildModel reads only the symbol, so
+                    // each declaration produced an identical model, an identical hint name, and
+                    // AddSource threw on the second.
+                    //
+                    // Roslyn reports that as CS8785, a *warning*: the generator died, every
+                    // validator in the compilation went with it, and the build succeeded. Five legal
+                    // lines - a computed property on a generated partial record - were enough, and
+                    // generating models as partial is an invitation to write exactly those lines.
+                    return symbol is not null && DeclaresPrimarily(symbol, syntaxContext.Node)
+                        ? symbol
+                        : null;
+                })
             .Where(static symbol => symbol is not null)
             .Select(static (symbol, _) => symbol!);
 
@@ -82,7 +100,17 @@ public class HardenedValidationGenerator : IIncrementalGenerator {
             }
 
             if (result.Model is { } model) {
-                production.AddSource(HintNameFor(model), GeneratedSource.Header(new ValidatorEmitter().Emit(model)));
+                // Guarded because the alternative is silence. An AddSource that throws takes the
+                // generator down mid-run, Roslyn reports the death as CS8785 - a warning - and the
+                // build succeeds having emitted no validators at all. A named diagnostic costs one
+                // catch and means the next occurrence of this shape says what happened.
+                try {
+                    production.AddSource(
+                        HintNameFor(model), GeneratedSource.Header(new ValidatorEmitter().Emit(model)));
+                } catch (ArgumentException exception) {
+                    production.ReportDiagnostic(
+                        ValidationGeneratorDiagnostics.DuplicateValidatorSource(model, exception));
+                }
             }
         });
 
@@ -99,6 +127,33 @@ public class HardenedValidationGenerator : IIncrementalGenerator {
 
         context.RegisterSourceOutput(entryPoint.Combine(validators), static (production, pair) =>
             RegistrationWriter.Write(production, pair.Left, pair.Right));
+    }
+
+    /// <summary>
+    /// Whether <paramref name="node"/> is the declaration this generator answers for
+    /// <paramref name="symbol"/>, so a partial type is emitted once rather than once per file.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The first declaring reference wins, arbitrarily but consistently - every declaration of a
+    /// partial type resolves to the same symbol, and the model is built from the symbol alone, so
+    /// which one is chosen cannot change what is emitted. Only how many times.
+    /// </para>
+    /// <para>
+    /// Compared by tree and span rather than by node identity: the reference holds a position, and
+    /// resolving it with <c>GetSyntax()</c> would reparse for a comparison two integers answer.
+    /// </para>
+    /// </remarks>
+    private static bool DeclaresPrimarily(INamedTypeSymbol symbol, SyntaxNode node) {
+        var references = symbol.DeclaringSyntaxReferences;
+
+        if (references.Length <= 1) {
+            return true;
+        }
+
+        var first = references[0];
+
+        return first.SyntaxTree == node.SyntaxTree && first.Span == node.Span;
     }
 
     /// <summary>

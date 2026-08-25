@@ -194,6 +194,97 @@ public class ValidationGeneratorTests {
         result.AssertNoErrors();
     }
 
+    /// <summary>
+    /// A model the application extends in a second file still gets its validator.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The generator sees one <c>TypeDeclarationSyntax</c> per declaring file and one merged symbol
+    /// for all of them, and the model is built from the symbol - so a partial type split across two
+    /// files produced two identical models, two identical hint names, and an <c>AddSource</c> that
+    /// threw on the second.
+    /// </para>
+    /// <para>
+    /// What made it worth a regression test rather than a fix is where it landed. Roslyn reports a
+    /// generator that throws as <c>CS8785</c>, a warning: the build succeeded, <em>every</em>
+    /// validator in the compilation was gone rather than just this one, and the application answered
+    /// 500 on the first request that validated anything. Models are generated <c>partial</c>, which
+    /// is an invitation to write exactly the five lines that triggered it.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void AModelExtendedInASecondFileStillGetsItsValidator() {
+        const string generatedHalf = """
+            using ValidationModules.Constraints;
+
+            namespace TestApp.Models;
+
+            public partial class Part {
+                [Required]
+                [StringLength(Min = 1, Max = 64)]
+                public string Sku { get; set; } = "";
+            }
+            """;
+
+        // What a developer adds. No constraints, no attributes - just a second declaration.
+        const string userHalf = """
+            namespace TestApp.Models;
+
+            public partial class Part {
+                public string Display => Sku.ToUpperInvariant();
+            }
+            """;
+
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Part.g.cs", generatedHalf),
+            ("Part.cs", userHalf));
+
+        Assert.Empty(result.DuplicateHintNames);
+        Assert.Empty(result.GeneratorExceptions);
+
+        Assert.Single(
+            result.GeneratedSources,
+            pair => pair.Key.Contains("PartValidator", StringComparison.Ordinal));
+
+        // The registration file is the tell for the wider blast radius: it is emitted from the
+        // collected validators, so a generator that died before reaching it leaves none at all.
+        Assert.True(HasRegistrationFile(result));
+
+        result.AssertNoErrors();
+    }
+
+    /// <summary>
+    /// And the same across three declarations, because "the first one wins" has to mean one winner
+    /// rather than one loser.
+    /// </summary>
+    [Fact]
+    public void AModelDeclaredInThreeFilesStillGetsExactlyOneValidator() {
+        const string part = """
+            using ValidationModules.Constraints;
+
+            namespace TestApp.Models;
+
+            public partial class Part {
+                [Required]
+                public string Sku { get; set; } = "";
+            }
+            """;
+
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Part.g.cs", part),
+            ("Part.Display.cs", "namespace TestApp.Models;\n\npublic partial class Part {\n    public int Length => Sku.Length;\n}"),
+            ("Part.Equality.cs", "namespace TestApp.Models;\n\npublic partial class Part {\n    public bool IsBlank => Sku.Length == 0;\n}"));
+
+        Assert.Empty(result.DuplicateHintNames);
+        Assert.Single(
+            result.GeneratedSources,
+            pair => pair.Key.Contains("PartValidator", StringComparison.Ordinal));
+
+        result.AssertNoErrors();
+    }
+
     #endregion
 
     #region registration into the entry point
