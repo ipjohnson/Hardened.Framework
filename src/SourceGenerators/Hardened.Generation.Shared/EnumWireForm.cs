@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Globalization;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 
-namespace Hardened.Idl;
+namespace Hardened.Generation;
 
 /// <summary>
 /// What an enum looks like on the wire, which is whatever the description declared.

@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Hardened.Idl;
-using Hardened.Idl.Models;
+using Hardened.Generation;
+using Hardened.Generation.Models;
 
 namespace Hardened.OpenApi.SourceGenerator;
 

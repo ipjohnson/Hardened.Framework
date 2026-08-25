@@ -1,3 +1,4 @@
+using Hardened.Generation;
 using Hardened.SourceGeneration.Testing;
 using Microsoft.CodeAnalysis;
 using Xunit;

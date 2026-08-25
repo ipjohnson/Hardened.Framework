@@ -2,7 +2,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-namespace Hardened.Idl;
+namespace Hardened.Generation;
 
 /// <summary>
 /// A document, compressed and written as a C# byte-array initializer.

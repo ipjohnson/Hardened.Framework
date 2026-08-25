@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 /// <summary>
 /// Represents a filter attribute type defined in x-filter-types.

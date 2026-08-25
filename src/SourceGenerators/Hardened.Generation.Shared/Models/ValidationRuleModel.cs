@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 internal class ValidationRuleModel {
     public string ParameterName { get; set; } = "";

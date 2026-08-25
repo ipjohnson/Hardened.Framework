@@ -10,7 +10,7 @@
     <ItemGroup>
         <!--
             The task only, and for the same reason its OpenAPI counterpart references only that one:
-            every front end links the same Hardened.Idl.Shared sources, so referencing two would put
+            every front end links the same Hardened.Generation.Shared sources, so referencing two would put
             two copies of ServiceSpecModel in scope and every use would be ambiguous.
         -->
         <ProjectReference Include="..\Hardened.Smithy.BuildTask\Hardened.Smithy.BuildTask.csproj"

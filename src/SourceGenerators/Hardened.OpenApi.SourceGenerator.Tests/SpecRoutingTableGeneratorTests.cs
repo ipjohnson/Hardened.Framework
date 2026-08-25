@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using CSharpAuthor;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Xunit;

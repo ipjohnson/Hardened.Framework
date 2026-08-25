@@ -1,4 +1,4 @@
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Xunit;
 
 namespace Hardened.Smithy.BuildTask.Tests;

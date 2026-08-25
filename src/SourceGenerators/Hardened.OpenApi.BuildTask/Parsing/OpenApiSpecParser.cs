@@ -5,8 +5,9 @@ using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using Microsoft.OpenApi.YamlReader;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.Idl;
+using Hardened.Generation;
 
 namespace Hardened.OpenApi.SourceGenerator;
 

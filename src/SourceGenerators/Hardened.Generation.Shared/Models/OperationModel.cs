@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 internal class OperationModel : IEquatable<OperationModel> {
     public string OperationId { get; set; } = "";
@@ -13,7 +13,7 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// the two C# names have to be made so.
     /// </remarks>
     public string MethodName {
-        get => _methodName.Length > 0 ? _methodName : Idl.NamingHelper.ToPascalCase(OperationId);
+        get => _methodName.Length > 0 ? _methodName : Generation.NamingHelper.ToPascalCase(OperationId);
         set => _methodName = value ?? "";
     }
 

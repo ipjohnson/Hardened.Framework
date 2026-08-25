@@ -1,5 +1,6 @@
 using Xunit;
 using Hardened.Idl;
+using Hardened.Generation;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 

@@ -53,14 +53,7 @@
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
 
-    <!-- Shared with every build task. See Hardened.Idl.Shared for why this is source and not a reference. -->
-    <ItemGroup>
-        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
-                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
-            <Link>Shared\Idl\%(RecursiveDir)%(FileName)%(Extension)</Link>
-        </Compile>
-    </ItemGroup>
-
+    <!-- Shared with every build task. See Hardened.Generation.Shared for why this is source and not a reference. -->
     <!-- Link shared code from Hardened.SourceGenerator -->
     <ItemGroup>
         <Compile Include="../Hardened.SourceGenerator/Shared/**/*">
@@ -119,5 +112,11 @@
     <PropertyGroup>
         <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
     </PropertyGroup>
+
+    <PropertyGroup>
+        <HardenedGenerationScope>Full</HardenedGenerationScope>
+    </PropertyGroup>
+
+    <Import Project="../Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
 
 </Project>

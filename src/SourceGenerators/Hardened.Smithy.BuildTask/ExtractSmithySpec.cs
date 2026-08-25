@@ -1,5 +1,5 @@
 using Hardened.Idl.BuildTask;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.Smithy.BuildTask.Parsing;
 
 namespace Hardened.Smithy.BuildTask;

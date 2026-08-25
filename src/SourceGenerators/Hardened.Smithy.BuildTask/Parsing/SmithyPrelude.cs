@@ -12,7 +12,7 @@ namespace Hardened.Smithy.BuildTask.Parsing;
 /// </para>
 /// <para>
 /// So the prelude is a table, and it maps onto the same <c>(type, format)</c> vocabulary the IR
-/// already uses, because <see cref="Hardened.Idl.TypeMapper"/> is what turns that pair into a C#
+/// already uses, because <see cref="Hardened.Generation.TypeMapper"/> is what turns that pair into a C#
 /// type. Nothing here needs the type mapper to learn Smithy.
 /// </para>
 /// </remarks>

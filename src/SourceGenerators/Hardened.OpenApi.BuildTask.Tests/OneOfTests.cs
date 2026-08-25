@@ -1,6 +1,7 @@
+using Hardened.Generation;
 using System.Collections.Generic;
 using System.Threading;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 
@@ -59,7 +60,7 @@ public class OneOfTests {
         var payload = Assert.Single(holder.Properties, property => property.Name == "payload");
 
         Assert.NotNull(payload.Ref);
-        Assert.Equal("HolderPayload", Hardened.Idl.TypeMapper.GetRefName(payload.Ref!));
+        Assert.Equal("HolderPayload", Hardened.Generation.TypeMapper.GetRefName(payload.Ref!));
     }
 
     /// <summary>

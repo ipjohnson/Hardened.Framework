@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 internal class SchemaModel : IEquatable<SchemaModel> {
     public string Name { get; set; } = "";
@@ -57,7 +57,7 @@ internal class SchemaModel : IEquatable<SchemaModel> {
     public IReadOnlyList<string> EnumMembers =>
         EnumMemberNames.Count == EnumValues.Count
             ? EnumMemberNames
-            : EnumValues.ConvertAll(Idl.NamingHelper.ToPascalCase);
+            : EnumValues.ConvertAll(Generation.NamingHelper.ToPascalCase);
     public List<string> Required { get; set; } = new();
     public string? ArrayItemsRef { get; set; }
     public string? ArrayItemsType { get; set; }

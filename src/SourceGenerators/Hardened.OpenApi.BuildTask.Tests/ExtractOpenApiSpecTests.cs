@@ -1,3 +1,4 @@
+using Hardened.Generation;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 using Hardened.Idl;

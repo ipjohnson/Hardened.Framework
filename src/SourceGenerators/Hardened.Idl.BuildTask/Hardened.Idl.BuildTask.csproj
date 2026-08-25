@@ -16,7 +16,7 @@
         <!--
             Nothing binds against this assembly's output. It exists so the shared task shell compiles
             standalone, which is what catches a dependency creeping in that a front end would then
-            fail to load at task execution - the same guard Hardened.Idl.Shared provides for the IR.
+            fail to load at task execution - the same guard Hardened.Generation.Shared provides for the IR.
         -->
         <IsPackable>false</IsPackable>
 
@@ -56,16 +56,15 @@
         </Compile>
     </ItemGroup>
 
-    <ItemGroup>
-        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
-                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
-            <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
-        </Compile>
-    </ItemGroup>
-
     <!-- CSharpAuthor ships as source and predates nullable reference types. -->
     <PropertyGroup>
         <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
     </PropertyGroup>
+
+    <PropertyGroup>
+        <HardenedGenerationScope>Full</HardenedGenerationScope>
+    </PropertyGroup>
+
+    <Import Project="../Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
 
 </Project>

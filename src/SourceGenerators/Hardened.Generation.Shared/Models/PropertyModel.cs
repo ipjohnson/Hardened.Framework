@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public string Name { get; set; } = "";
@@ -16,7 +16,7 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public string? MemberNameOverride { get; set; }
 
     /// <summary>The name this property carries in generated C#.</summary>
-    public string MemberName => MemberNameOverride ?? Idl.NamingHelper.ToPascalCase(Name);
+    public string MemberName => MemberNameOverride ?? Generation.NamingHelper.ToPascalCase(Name);
 
     /// <summary>The property's <c>description</c>, as its <c>&lt;param&gt;</c> doc comment.</summary>
     public string? Description { get; set; }

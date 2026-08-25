@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     public string Name { get; set; } = "";
@@ -50,7 +50,7 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     public string? MemberNameOverride { get; set; }
 
     /// <summary>The name this parameter carries in generated C#.</summary>
-    public string MemberName => MemberNameOverride ?? Idl.NamingHelper.ToParameterName(Name);
+    public string MemberName => MemberNameOverride ?? Generation.NamingHelper.ToParameterName(Name);
 
     public string? Ref { get; set; }
     public bool IsArray { get; set; }

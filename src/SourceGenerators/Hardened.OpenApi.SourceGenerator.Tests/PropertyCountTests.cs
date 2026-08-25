@@ -1,4 +1,4 @@
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.SourceGeneration.Testing;
 using Xunit;
 

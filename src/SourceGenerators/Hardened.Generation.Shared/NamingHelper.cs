@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace Hardened.Idl;
+namespace Hardened.Generation;
 
 internal static class NamingHelper {
     private static readonly HashSet<string> CSharpKeywords = new() {

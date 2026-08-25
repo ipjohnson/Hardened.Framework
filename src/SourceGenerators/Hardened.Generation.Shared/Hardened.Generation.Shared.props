@@ -1,0 +1,74 @@
+<Project>
+
+    <!--
+        The shared generation model: the operations, parameters, schemas and responses every front
+        end produces and every emitter consumes, plus the helpers that read them.
+
+        Imported rather than referenced. Nothing project-references this - the two build tasks are
+        net472;net8.0 and run out of process, the generators are netstandard2.0 Roslyn analyzers, and
+        neither can take an assembly dependency on the other - so every consumer compiles the source
+        in. That is the arrangement; what went wrong twice was doing it by hand.
+
+        Each consumer used to list the files itself, and Hardened.SourceGenerator - which ships as
+        source - had to list them a second time under <Content> to pack them. Fourteen hand-kept
+        lists across seven projects, and a file added to one was not added to the others: the pack
+        list drifted from the compile list at 0.8.0-rc1000, was patched for GZipLiteral.cs alone, and
+        drifted again when the shared model arrived. Both times it built here and failed in
+        Hardened.Amz, because a project reference resolves what a package has to actually carry.
+
+        One declaration now feeds both, so a file added below is compiled and packed by construction.
+
+        HardenedGenerationScope picks how much a consumer takes:
+          Full     everything, including the serializer that moves the model between a build task
+                   and the generator that reads what it wrote. The IDL front ends.
+          Model    the model and its helpers, without the serializer. Code-first, which builds an
+                   OperationModel in memory and never writes one out.
+          Minimal  GZipLiteral only, for a generator that just embeds a compressed document.
+
+        HardenedGenerationPack=true additionally packs what was compiled, at the same relative path
+        the <Link> gives it, so the shipped source finds it where its `using` expects.
+    -->
+
+    <PropertyGroup>
+        <HardenedGenerationSharedDir>$(MSBuildThisFileDirectory)</HardenedGenerationSharedDir>
+        <HardenedGenerationScope Condition="'$(HardenedGenerationScope)' == ''">Full</HardenedGenerationScope>
+        <_HardenedGenerationPackRoot>src\Hardened.SourceGenerator\Generation\</_HardenedGenerationPackRoot>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Always. The compressed-document literal is the one piece even Minimal needs. -->
+        <HardenedGenerationCore Include="$(HardenedGenerationSharedDir)GZipLiteral.cs"/>
+
+        <HardenedGenerationModel Condition="'$(HardenedGenerationScope)' != 'Minimal'"
+                                 Include="$(HardenedGenerationSharedDir)Models/**/*.cs"/>
+
+        <HardenedGenerationHelper Condition="'$(HardenedGenerationScope)' != 'Minimal'"
+                                  Include="$(HardenedGenerationSharedDir)*.cs"
+                                  Exclude="$(HardenedGenerationSharedDir)GZipLiteral.cs;$(HardenedGenerationSharedDir)SpecModelSerializer.cs"/>
+
+        <HardenedGenerationSerializer Condition="'$(HardenedGenerationScope)' == 'Full'"
+                                      Include="$(HardenedGenerationSharedDir)SpecModelSerializer.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="@(HardenedGenerationCore);@(HardenedGenerationHelper);@(HardenedGenerationSerializer)">
+            <Link>Generation/%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="@(HardenedGenerationModel)">
+            <Link>Generation/Models/%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+
+    <!--
+        PackagePath is a literal per group. %(LinkDir)-style metadata does not expand inside it -
+        NuGet reads it as a plain string - and the files land flat in the package root, one
+        same-named file away from colliding with the packing project's own.
+    -->
+    <ItemGroup Condition="'$(HardenedGenerationPack)' == 'true'">
+        <Content Include="@(HardenedGenerationCore);@(HardenedGenerationHelper);@(HardenedGenerationSerializer)"
+                 Pack="true" PackagePath="$(_HardenedGenerationPackRoot)" PackageCopyToOutput="true"/>
+        <Content Include="@(HardenedGenerationModel)"
+                 Pack="true" PackagePath="$(_HardenedGenerationPackRoot)Models\" PackageCopyToOutput="true"/>
+    </ItemGroup>
+
+</Project>

@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 /// <summary>
 /// Which operations answer with a declared response set, and what the generated types are called.

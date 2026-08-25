@@ -8,7 +8,7 @@
         referencing the assembly, because the build task runs in MSBuild and the source generator
         runs in Roslyn and neither can reference the other.
 
-        Separate from Hardened.Idl.Shared rather than folded into it, because the two answer
+        Separate from Hardened.Generation.Shared rather than folded into it, because the two answer
         different questions. The spine is what a description means - models, naming, type mapping,
         the serialized form. This is what C# is written from it. A front end for a second
         description language needs both; a consumer that only reads the model needs one.
@@ -27,13 +27,6 @@
     </PropertyGroup>
 
     <!-- The spine these operate on, compiled in for the same reason the consumers compile both. -->
-    <ItemGroup>
-        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
-                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
-            <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
-        </Compile>
-    </ItemGroup>
-
     <!--
         CSharpAuthor ships as source and is compiled in, so its files are analysed as if they were
         ours - and it predates nullable reference types. Under ContinuousIntegrationBuild every
@@ -43,5 +36,11 @@
     <PropertyGroup>
         <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
     </PropertyGroup>
+
+    <PropertyGroup>
+        <HardenedGenerationScope>Full</HardenedGenerationScope>
+    </PropertyGroup>
+
+    <Import Project="../Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
 
 </Project>

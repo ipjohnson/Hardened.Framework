@@ -1,10 +1,11 @@
 using System.Text.RegularExpressions;
 using Hardened.OpenApi.SourceGenerator;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.SourceGenerator.Tests.Routing;
 using Xunit;
 using Hardened.Idl;
+using Hardened.Generation;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
