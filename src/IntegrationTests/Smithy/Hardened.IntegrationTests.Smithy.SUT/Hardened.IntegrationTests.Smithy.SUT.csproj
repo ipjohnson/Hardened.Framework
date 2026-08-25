@@ -71,6 +71,7 @@
         -->
         <HardenedSmithyModel Include="Specs\petstore.smithy">
             <PublishUrl>/openapi.json</PublishUrl>
+            <UiUrl>/docs</UiUrl>
         </HardenedSmithyModel>
 
         <HardenedSmithyAst Include="Specs\bank.json"/>

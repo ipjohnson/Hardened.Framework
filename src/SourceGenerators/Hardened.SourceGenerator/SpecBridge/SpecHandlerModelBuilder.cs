@@ -176,6 +176,16 @@ internal static class SpecHandlerModelBuilder {
             filters) {
             ParametersInterface = parametersInterface,
 
+            // The payload shapes, from the model. JsonSchemaWriter cannot produce these here - it
+            // walks a type symbol, and these types are written by the build task rather than
+            // declared in the consumer's source - so the published document carried paths and
+            // operation ids and no schemas at all.
+            RequestSchema = SpecSchemaWriter.ForRef(operation.RequestBodyRef, schemas),
+            ResponseSchemas = BuildResponseSchemas(operation, schemas),
+
+            Summary = operation.Summary,
+            Description = operation.Description,
+
             // What the operation says about itself. Carried here rather than left to each caller,
             // because a handler model that has lost its summary cannot be told from one whose
             // operation never had a summary - and the document written from it is silently poorer.
@@ -632,4 +642,35 @@ internal static class SpecHandlerModelBuilder {
                 parameter.BindingType, parameter.BindingName, index, parameter.CustomAttribute))
             .ToList();
     }
+    /// <summary>
+    /// Every status the operation declares, with the payload declared for it.
+    /// </summary>
+    /// <remarks>
+    /// Successes and errors both, because a document that describes only the happy path leaves a
+    /// generated client with no branch for the 404 the contract promised. The response's own
+    /// description wins over the status's standard wording.
+    /// </remarks>
+    private static IReadOnlyList<ResponseSchemaModel> BuildResponseSchemas(
+        OperationModel operation, IReadOnlyList<SchemaModel> schemas) {
+        var result = new List<ResponseSchemaModel>();
+
+        foreach (var success in operation.SuccessResponses) {
+            result.Add(new ResponseSchemaModel(
+                success.StatusCode,
+                SpecSchemaWriter.DescriptionFor(success.Description, success.StatusCode),
+                success.IsArray
+                    ? SpecSchemaWriter.ForArrayOf(success.ArrayItemsRef, schemas)
+                    : SpecSchemaWriter.ForRef(success.Ref, schemas)));
+        }
+
+        foreach (var error in operation.ErrorResponses) {
+            result.Add(new ResponseSchemaModel(
+                error.StatusCode,
+                SpecSchemaWriter.DescriptionFor(error.Description, error.StatusCode),
+                SpecSchemaWriter.ForRef(error.Ref, schemas)));
+        }
+
+        return result;
+    }
+
 }

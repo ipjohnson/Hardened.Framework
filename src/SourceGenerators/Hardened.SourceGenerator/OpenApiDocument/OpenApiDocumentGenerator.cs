@@ -264,7 +264,11 @@ public static class OpenApiDocumentGenerator {
 
             builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(name))
                 .Append("\",\"in\":\"").Append(Location(parameter.BindingType))
-                .Append("\",\"required\":").Append(parameter.Required ? "true" : "false")
+                .Append("\",\"required\":").Append(parameter.Required ? "true" : "false");
+
+            WriteText(builder, "description", parameter.Description);
+
+            builder.Append("")
                 .Append(",\"schema\":").Append(ScalarSchema(parameter.ParameterType))
                 .Append('}');
         }

@@ -511,6 +511,7 @@ internal static class SpecModelSerializer {
     private static void WriteOperation(StringBuilder builder, OperationModel operation) {
         var record = new Record("op");
         record.Add("OperationId", operation.OperationId);
+        record.Add("Summary", operation.Summary);
         record.Add("MethodName", operation.MethodName);
         record.Add("Path", operation.Path);
         record.Add("HttpMethod", operation.HttpMethod);
@@ -607,6 +608,7 @@ internal static class SpecModelSerializer {
     private static OperationModel ReadOperation(Record record) => new() {
         MethodName = record.String("MethodName") ?? "",
         OperationId = record.String("OperationId") ?? "",
+        Summary = record.String("Summary"),
         Path = record.String("Path") ?? "",
         HttpMethod = record.String("HttpMethod") ?? "",
         DispatchKey = record.String("DispatchKey"),

@@ -37,6 +37,16 @@ public class RequestParameterInformation {
 
     public string BindingName { get; }
 
+    /// <summary>
+    /// The prose the contract carries for this parameter, or null.
+    /// </summary>
+    /// <remarks>
+    /// Settable rather than a constructor argument: every call site builds one of these positionally
+    /// and most have nothing to say here. A description reaches the published document and nothing
+    /// else - the binder does not read it.
+    /// </remarks>
+    public string? Description { get; set; }
+
     public int ParameterIndex {
         get;
     }
