@@ -58,8 +58,22 @@
                       in the ~170 lines that are actually its own. Match by namespace, not by
                       assembly: this source is compiled into Hardened.Amz.* assemblies, so there is
                       no separate assembly to filter on.
+
+                      Hardened.Generation.* is the same borrowed source under the name it took in
+                      Hardened.Framework 0.13.0-rc1000. It had been Hardened.Idl.Shared, which was
+                      wrong twice over: nothing referenced it as an assembly, and it held the
+                      operation model code-first builds as well - so the rename says what it is.
+                      The filter has to follow, and the cost of it not following is the same
+                      failure as before, larger, because the shared model is 26 files rather than
+                      one:
+
+                        Hardened.Amz.Function.Lambda.SourceGenerator  line 97.7 -> 23.9, branch 84.3 -> 2.4
+                        Hardened.Amz.Web.Lambda.SourceGenerator       line 97.7 -> 21.0, branch 83.3 -> 3.7
+
+                      Hardened.Idl.* stays listed. The IDL front ends keep that namespace for what
+                      is genuinely IDL, and a later package may ship some of it as source again.
                     -->
-                    <Exclude>[*.Tests]*,[LambdaWebTest*]*,[Hardened.Amz.*]CSharpAuthor.*,[Hardened.Amz.*]Hardened.SourceGenerator.*,[Hardened.Amz.*]Hardened.Idl.*,[Hardened.Amz.*]ValidationModules.*</Exclude>
+                    <Exclude>[*.Tests]*,[LambdaWebTest*]*,[Hardened.Amz.*]CSharpAuthor.*,[Hardened.Amz.*]Hardened.SourceGenerator.*,[Hardened.Amz.*]Hardened.Idl.*,[Hardened.Amz.*]Hardened.Generation.*,[Hardened.Amz.*]ValidationModules.*</Exclude>
 
                     <!--
                       Source-generated output is verified through behaviour, not by line
