@@ -1557,6 +1557,28 @@ internal static class OpenApiSpecParser {
                         }
                     }
                 } else {
+                    // Naming permissions on a scheme that has nowhere to put them is a document
+                    // error, and a silent one in the worst direction: the operation keeps only
+                    // "be authenticated", so every caller who can log in passes a check the
+                    // document says needs a permission. A 403 becomes a 200 and the build is clean.
+                    //
+                    // `type: http, scheme: bearer` is what a real bearer API declares, so this is
+                    // not an exotic mistake - it is the shape somebody writes when they expect the
+                    // obvious reading. Reported rather than honoured because OpenAPI gives the
+                    // array no meaning outside oauth2 and openIdConnect, and inventing one here
+                    // would make Hardened enforce something no other tool reads.
+                    if (!string.IsNullOrEmpty(name) &&
+                        scopes is { Count: > 0 } &&
+                        Declares(schemes, name!)) {
+                        diagnostics?.Add(
+                            $"operation '{operationId}' names {DescribeScopes(scopes)} on security " +
+                            $"scheme '{name}', which is declared as " +
+                            $"'{TypeOf(schemes, name!)}' and cannot carry them. They were not read, " +
+                            "so the operation requires an authenticated caller and none of the " +
+                            "permissions it names. Declare the scheme as 'oauth2' or " +
+                            "'openIdConnect' to keep them, or move the check into the handler.");
+                    }
+
                     // Either a scheme that cannot carry scopes, or one that can and declared none.
                     // Both say the same thing about the caller.
                     branch.RequiresAuthentication = true;
@@ -1594,6 +1616,44 @@ internal static class OpenApiSpecParser {
     private static bool Declares(
         IDictionary<string, IOpenApiSecurityScheme>? schemes, string name) =>
         schemes != null && schemes.ContainsKey(name);
+
+    /// <summary>
+    /// How a declared scheme names its own type, for a message that quotes the document back.
+    /// </summary>
+    private static string TypeOf(
+        IDictionary<string, IOpenApiSecurityScheme>? schemes, string name) =>
+        schemes != null && schemes.TryGetValue(name, out var scheme)
+            ? scheme.Type?.ToString() ?? "unknown"
+            : "unknown";
+
+    /// <summary>
+    /// The dropped scopes, quoted, so the message names what was lost rather than counting it.
+    /// </summary>
+    /// <remarks>
+    /// Listed in full up to three and summarised past that. A document declaring a long scope list
+    /// on the wrong scheme has one mistake, not eight, and a message that prints all of them buries
+    /// the sentence explaining what happened.
+    /// </remarks>
+    private static string DescribeScopes(IList<string> scopes) {
+        var named = new List<string>();
+
+        foreach (var scope in scopes) {
+            if (!string.IsNullOrEmpty(scope)) {
+                named.Add("'" + scope + "'");
+            }
+        }
+
+        if (named.Count == 0) {
+            return "scopes";
+        }
+
+        if (named.Count <= 3) {
+            return (named.Count == 1 ? "scope " : "scopes ") + string.Join(", ", named.ToArray());
+        }
+
+        return "scopes " + string.Join(", ", named.GetRange(0, 3).ToArray()) +
+               $" and {named.Count - 3} more";
+    }
 
     private static void ParsePath(string path, IOpenApiPathItem pathItem,
         Dictionary<string, List<OperationModel>> operationsByTag, SchemaCollector collector,
