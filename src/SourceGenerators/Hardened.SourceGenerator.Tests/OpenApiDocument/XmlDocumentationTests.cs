@@ -37,8 +37,9 @@ public class XmlDocumentationTests {
 
     private static MethodDeclarationSyntax Method(DocumentationMode mode) =>
         CSharpSyntaxTree
-            .ParseText(Source, new CSharpParseOptions(documentationMode: mode))
-            .GetRoot()
+            .ParseText(Source, new CSharpParseOptions(documentationMode: mode),
+                cancellationToken: TestContext.Current.CancellationToken)
+            .GetRoot(TestContext.Current.CancellationToken)
             .DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
             .Single();
@@ -72,8 +73,10 @@ public class XmlDocumentationTests {
     [MemberData(nameof(Modes))]
     public void AMemberWithNoCommentReadsAsNothing(DocumentationMode mode) {
         var method = CSharpSyntaxTree
-            .ParseText("class C { public string M() => \"\"; }", new CSharpParseOptions(documentationMode: mode))
-            .GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single();
+            .ParseText("class C { public string M() => \"\"; }",
+                new CSharpParseOptions(documentationMode: mode),
+                cancellationToken: TestContext.Current.CancellationToken)
+            .GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>().Single();
 
         var (summary, description) = XmlDocumentation.Read(method);
 
