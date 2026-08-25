@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Hardened.Idl;
+namespace Hardened.Generation;
 
 /// <summary>
 /// A specification's <c>default</c>, as a C# literal.

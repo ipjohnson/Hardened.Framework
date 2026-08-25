@@ -121,7 +121,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.IntegrationTests.B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.IntegrationTests.Benchmark.SUT.Tests", "IntegrationTests\Benchmark\Hardened.IntegrationTests.Benchmark.SUT.Tests\Hardened.IntegrationTests.Benchmark.SUT.Tests.csproj", "{F0112DD0-3621-407B-9183-FF9B6E9F1DF8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Idl.Shared", "SourceGenerators\Hardened.Idl.Shared\Hardened.Idl.Shared.csproj", "{2E5FC810-5AD2-4BA8-94BB-5C446E24BFAB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.Generation.Shared", "SourceGenerators\Hardened.Generation.Shared\Hardened.Generation.Shared.csproj", "{2E5FC810-5AD2-4BA8-94BB-5C446E24BFAB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardened.IntegrationTests.Aot.SUT", "IntegrationTests\Aot\Hardened.IntegrationTests.Aot.SUT\Hardened.IntegrationTests.Aot.SUT.csproj", "{92A7FB34-6ACB-44A7-BBAA-C17D9D0B5BDC}"
 EndProject

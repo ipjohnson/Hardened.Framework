@@ -1,6 +1,7 @@
+using Hardened.Generation;
 using System.Collections.Generic;
 using CSharpAuthor;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 
 namespace Hardened.Idl.Emitters;
 

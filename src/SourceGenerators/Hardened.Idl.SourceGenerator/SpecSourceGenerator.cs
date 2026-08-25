@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using System.Linq;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
@@ -9,6 +9,7 @@ using Hardened.SourceGenerator.Web;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 using Hardened.Idl;
+using Hardened.Generation;
 
 namespace Hardened.Idl.SourceGenerator;
 

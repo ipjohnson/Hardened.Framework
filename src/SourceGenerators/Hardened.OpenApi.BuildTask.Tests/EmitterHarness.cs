@@ -1,6 +1,6 @@
 using System;
 using CSharpAuthor;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.Idl.Validation;
 using Hardened.Idl.Emitters;
 

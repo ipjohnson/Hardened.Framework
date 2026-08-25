@@ -1,7 +1,8 @@
+using Hardened.Generation;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 
 namespace Hardened.Idl;
 

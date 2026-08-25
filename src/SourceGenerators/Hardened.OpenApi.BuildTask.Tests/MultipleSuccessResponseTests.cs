@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Hardened.Idl.Emitters;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.Idl.Filtering;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;

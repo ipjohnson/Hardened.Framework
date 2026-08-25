@@ -1,9 +1,10 @@
 using CSharpAuthor;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.Idl;
+using Hardened.Generation;
 
 namespace Hardened.Idl.SourceGenerator;
 

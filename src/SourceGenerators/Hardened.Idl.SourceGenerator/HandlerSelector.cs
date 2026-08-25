@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using CSharpAuthor;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;

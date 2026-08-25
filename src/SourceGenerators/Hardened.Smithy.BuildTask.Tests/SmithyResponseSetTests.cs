@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.Smithy.BuildTask.Parsing;
 using Xunit;
 

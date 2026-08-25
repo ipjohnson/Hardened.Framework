@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;

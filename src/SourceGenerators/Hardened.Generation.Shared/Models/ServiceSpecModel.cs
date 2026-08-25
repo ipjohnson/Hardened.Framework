@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public string FileName { get; set; } = "";

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 
 namespace Hardened.Idl.Validation;
 

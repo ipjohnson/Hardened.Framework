@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 /// <summary>
 /// How a generated service interface states the responses an operation declares.

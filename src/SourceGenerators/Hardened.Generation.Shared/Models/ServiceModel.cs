@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 internal class ServiceModel : IEquatable<ServiceModel> {
     public string Tag { get; set; } = "";
@@ -11,7 +11,7 @@ internal class ServiceModel : IEquatable<ServiceModel> {
     /// document's, and two tags may differ only in ways C# naming removes.
     /// </remarks>
     public string TypeBaseName {
-        get => _typeBaseName.Length > 0 ? _typeBaseName : Idl.NamingHelper.ToPascalCase(Tag ?? "Default");
+        get => _typeBaseName.Length > 0 ? _typeBaseName : Generation.NamingHelper.ToPascalCase(Tag ?? "Default");
         set => _typeBaseName = value ?? "";
     }
 

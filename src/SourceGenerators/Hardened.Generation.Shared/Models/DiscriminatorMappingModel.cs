@@ -1,4 +1,4 @@
-namespace Hardened.Idl.Models;
+namespace Hardened.Generation.Models;
 
 /// <summary>
 /// One entry of a <c>discriminator.mapping</c>: the value that appears on the wire, and the schema

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.Idl.Validation;
 using Xunit;
 

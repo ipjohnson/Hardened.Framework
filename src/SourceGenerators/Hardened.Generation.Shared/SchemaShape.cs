@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Hardened.Idl.Models;
-using Hardened.Idl;
+using Hardened.Generation.Models;
+using Hardened.Generation;
 
-namespace Hardened.Idl.Emitters;
+namespace Hardened.Generation;
 
 /// <summary>
 /// How a schema's properties are divided between a record's constructor and its body.

@@ -10,7 +10,7 @@ namespace Hardened.SourceGenerator.Requests;
 /// <remarks>
 /// <para>
 /// <b>Why this exists.</b> A description names types as strings and <c>$ref</c>s, because the build
-/// task that reads one has no compilation to resolve against — <see cref="Hardened.Idl.TypeMapper"/>
+/// task that reads one has no compilation to resolve against — <see cref="Hardened.Generation.TypeMapper"/>
 /// is 300 lines of spelling them back. A code-first application has the types already: the generator
 /// reading its attributes holds a Roslyn compilation and can name any of them exactly.
 /// </para>

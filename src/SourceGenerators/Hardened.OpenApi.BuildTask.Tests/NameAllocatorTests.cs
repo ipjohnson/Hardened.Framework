@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
 using Hardened.Idl;
-using Hardened.Idl.Models;
+using Hardened.Generation;
+using Hardened.Generation.Models;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 

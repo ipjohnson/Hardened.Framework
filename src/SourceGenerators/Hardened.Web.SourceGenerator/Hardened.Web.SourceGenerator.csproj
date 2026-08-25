@@ -52,7 +52,7 @@
     </PropertyGroup>
 
     <!--
-        Linked alongside OpenApiDocument/**, which uses it. Hardened.Idl.Shared owns it because the
+        Linked alongside OpenApiDocument/**, which uses it. Hardened.Generation.Shared owns it because the
         specification-first emitter compresses the same way.
     -->
     <ItemGroup>
@@ -68,30 +68,6 @@
         <!--
           The description model itself, which SpecBridge above reads.
         -->
-        <Compile Include="../Hardened.Idl.Shared/Models/**/*.cs">
-            <Link>Idl/Models/%(RecursiveDir)%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/TypeMapper.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/NamingHelper.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/DefaultLiteral.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/SchemaShape.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/EnumWireForm.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/DefaultErrorBody.cs">
-            <Link>Idl/%(FileName)%(Extension)</Link>
-        </Compile>
-        <Compile Include="../Hardened.Idl.Shared/GZipLiteral.cs">
-            <Link>Shared/GZipLiteral.cs</Link>
-        </Compile>
     </ItemGroup>
 
     <ItemGroup>
@@ -142,5 +118,11 @@
     </ItemGroup>
 
     <Import Project="../ValidationModulesImpl.props"/>
+
+    <PropertyGroup>
+        <HardenedGenerationScope>Model</HardenedGenerationScope>
+    </PropertyGroup>
+
+    <Import Project="../Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
 
 </Project>

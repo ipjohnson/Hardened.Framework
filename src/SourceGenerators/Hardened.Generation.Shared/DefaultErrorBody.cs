@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Hardened.Idl.Emitters;
-using Hardened.Idl.Models;
+using Hardened.Generation;
+using Hardened.Generation.Models;
 
-namespace Hardened.Idl;
+namespace Hardened.Generation;
 
 /// <summary>
 /// The body a handler's null return writes, decided once for both sides that need to agree.

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Hardened.Idl.Filtering;
 using Hardened.OpenApi.SourceGenerator;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;

@@ -1,9 +1,9 @@
 using System;
 using System.Globalization;
 using System.Text;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 
-namespace Hardened.Idl;
+namespace Hardened.Generation;
 
 /// <summary>
 /// Writes an <see cref="ServiceSpecModel"/> to text and reads it back. The private contract between

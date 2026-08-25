@@ -52,13 +52,6 @@
         </Compile>
     </ItemGroup>
 
-    <ItemGroup>
-        <Compile Include="../Hardened.Idl.Shared/**/*.cs"
-                 Exclude="../Hardened.Idl.Shared/obj/**/*;../Hardened.Idl.Shared/bin/**/*">
-            <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
-        </Compile>
-    </ItemGroup>
-
     <!-- The task shell. Its own files only - not its links, which are the two above. -->
     <ItemGroup>
         <Compile Include="../Hardened.Idl.BuildTask/*.cs"
@@ -70,5 +63,11 @@
     <PropertyGroup>
         <NoWarn>$(NoWarn);CS8603;CS8604;CS8765;CS8767</NoWarn>
     </PropertyGroup>
+
+    <PropertyGroup>
+        <HardenedGenerationScope>Full</HardenedGenerationScope>
+    </PropertyGroup>
+
+    <Import Project="../Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
 
 </Project>

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Hardened.Idl;
-using Hardened.Idl.Models;
+using Hardened.Generation;
+using Hardened.Generation.Models;
 
 namespace Hardened.Smithy.BuildTask.Parsing;
 

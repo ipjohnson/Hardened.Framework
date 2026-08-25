@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.Idl.SourceGenerator;
 using Hardened.SourceGenerator.Requests;
 using Xunit;

@@ -1,7 +1,8 @@
 using Hardened.Idl;
+using Hardened.Generation;
 using Hardened.Idl.Emitters;
 using Hardened.Idl.Filtering;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 

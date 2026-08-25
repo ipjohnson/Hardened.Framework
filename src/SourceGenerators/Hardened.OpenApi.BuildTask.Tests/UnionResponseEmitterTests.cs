@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Hardened.Idl.Emitters;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;

@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
 using Hardened.Idl.Emitters;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Idl;
+using Hardened.Generation;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 

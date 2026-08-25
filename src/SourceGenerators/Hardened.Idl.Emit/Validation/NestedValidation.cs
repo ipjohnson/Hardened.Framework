@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Hardened.Idl;
+using Hardened.Generation;
 using Hardened.Idl.Emitters;
-using Hardened.Idl.Models;
+using Hardened.Generation.Models;
 
 namespace Hardened.Idl.Validation;
 
