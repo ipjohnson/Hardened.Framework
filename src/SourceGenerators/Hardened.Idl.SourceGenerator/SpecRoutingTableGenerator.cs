@@ -152,7 +152,7 @@ internal static class SpecRoutingTableGenerator {
                 "{ serviceCollection.AddSingleton(typeof(global::Hardened.Requests.Abstract.Serializer.IStringConverter), stringConverter); }"));
         }
 
-        AddPublishedSpecs(applicationModel, statements, ordered);
+        AddPublishedSpecs(appModel, statements, ordered);
 
         // The service-wide negotiation policy, from the entry point or from a description's root.
         var negotiation = ContentNegotiationRegistration.Statement(

@@ -24,7 +24,7 @@ namespace Test.Api
                 TestApp.RoutingTable
             >();
             serviceCollection.AddTransient<IPetService>();
-            serviceCollection.AddTransient<TestAppLinks>();
+            serviceCollection.AddTransient<TestApp.Links>();
         }
 
         private class RoutingTable : IWebExecutionRequestHandlerProvider

@@ -90,6 +90,27 @@ public class GeneratedDocumentTests {
         Assert.Equal("id", pet.GetProperty("required")[0].GetString());
     }
 
+    /// <summary>
+    /// Every verb declared at one path reaches the document, including where they disagree about
+    /// the token's constraint.
+    /// </summary>
+    /// <remarks>
+    /// The document keys its paths on the template and the router keys its routes on the route, and
+    /// the two differ wherever a token carries a constraint - <c>ToTemplate</c> strips it. Grouping
+    /// on the route wrote <c>"/pets/{petId}"</c> twice, and every JSON parser keeps the last, so the
+    /// GET declared beside a constrained DELETE was absent from the document while continuing to
+    /// serve. Nothing failed: the document parsed, the route worked, and only a client reading the
+    /// description was wrong about the API.
+    /// </remarks>
+    [HardenedTest]
+    public async Task EveryVerbAtOnePathReachesTheDocument(ITestWebApp app) {
+        var item = (await Document(app)).GetProperty("paths").GetProperty("/pets/{petId}");
+
+        foreach (var verb in new[] { "get", "delete", "patch", "put" }) {
+            Assert.True(item.TryGetProperty(verb, out _), $"the document has no {verb} at /pets/{{petId}}");
+        }
+    }
+
     [HardenedTest]
     public async Task AParameterCarriesItsDescription(ITestWebApp app) {
         var parameter = (await Document(app))

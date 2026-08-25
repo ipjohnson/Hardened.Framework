@@ -608,7 +608,6 @@ internal static class SpecModelSerializer {
     private static OperationModel ReadOperation(Record record) => new() {
         MethodName = record.String("MethodName") ?? "",
         OperationId = record.String("OperationId") ?? "",
-        Summary = record.String("Summary"),
         Path = record.String("Path") ?? "",
         HttpMethod = record.String("HttpMethod") ?? "",
         DispatchKey = record.String("DispatchKey"),

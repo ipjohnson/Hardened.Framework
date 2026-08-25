@@ -56,8 +56,14 @@ public static class OpenApiDocumentGenerator {
 
         // Grouped by path, because a document keys operations under one path entry rather than
         // repeating the path per verb.
+        // Grouped by the template, which is what the document keys on - not by the route, which is
+        // what the router keys on. The two differ wherever a token carries a constraint: ToTemplate
+        // strips it, so /pets/{petId:guid} and /pets/{petId} are one path item in a document and two
+        // routes in a table. Grouping on the route emitted the same key twice, and every parser
+        // keeps the last - so a GET declared beside a constrained DELETE vanished from the document
+        // while continuing to serve.
         var byPath = handlers
-            .GroupBy(handler => RoutePath.Combine(basePath, handler.Name.Path))
+            .GroupBy(handler => ToTemplate(RoutePath.Combine(basePath, handler.Name.Path)))
             .OrderBy(group => group.Key, System.StringComparer.Ordinal);
 
         var firstPath = true;
@@ -67,7 +73,7 @@ public static class OpenApiDocumentGenerator {
                 builder.Append(',');
             }
 
-            builder.Append('"').Append(JsonSchemaWriter.Escape(ToTemplate(group.Key))).Append("\":{");
+            builder.Append('"').Append(JsonSchemaWriter.Escape(group.Key)).Append("\":{");
 
             var firstOperation = true;
 

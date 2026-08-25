@@ -183,9 +183,6 @@ internal static class SpecHandlerModelBuilder {
             RequestSchema = SpecSchemaWriter.ForRef(operation.RequestBodyRef, schemas),
             ResponseSchemas = BuildResponseSchemas(operation, schemas),
 
-            Summary = operation.Summary,
-            Description = operation.Description,
-
             // What the operation says about itself. Carried here rather than left to each caller,
             // because a handler model that has lost its summary cannot be told from one whose
             // operation never had a summary - and the document written from it is silently poorer.
@@ -255,7 +252,11 @@ internal static class SpecHandlerModelBuilder {
                 bindType,
                 param.Name,
                 index++,
-                Attribute(symbols, param.Name)));
+                Attribute(symbols, param.Name)) {
+                // The prose the contract gives this parameter, for the published document. The
+                // binder does not read it.
+                Description = param.Description,
+            });
         }
 
         if (symbols?.RequestBodyType is { } knownBodyType) {

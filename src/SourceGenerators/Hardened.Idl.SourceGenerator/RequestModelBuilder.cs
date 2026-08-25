@@ -77,6 +77,18 @@ internal static class RequestModelBuilder {
                     // typed on - so the filter's type test fails and validation silently does not
                     // run, on a build that is otherwise green.
                     ParametersInterface = model.ParametersInterface,
+
+                    // Everything else the builder decided, for the same reason: this constructor
+                    // takes seven of the model's members and an object initialiser is the only
+                    // thing carrying the rest, so anything not restated here is dropped. The
+                    // schemas going missing is what published a document describing no payloads.
+                    Summary = model.Summary,
+                    Description = model.Description,
+                    Tag = model.Tag,
+                    IsDeprecated = model.IsDeprecated,
+                    RequestSchema = model.RequestSchema,
+                    ResponseSchemas = model.ResponseSchemas,
+                    DeclaredResponsesAreComplete = model.DeclaredResponsesAreComplete,
                 });
             } else {
                 result.Add(model);

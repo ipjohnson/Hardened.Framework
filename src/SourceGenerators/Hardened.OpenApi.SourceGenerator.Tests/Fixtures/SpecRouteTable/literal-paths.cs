@@ -19,7 +19,7 @@ namespace Test.Api
                 global::Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider,
                 global::Test.Api.TestApp.SpecRoutingTable
             >();
-            serviceCollection.AddTransient<global::Test.Api.TestAppLinks>();
+            serviceCollection.AddTransient<global::Test.Api.TestApp.Links>();
         }
 
         private class SpecRoutingTable : global::Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
