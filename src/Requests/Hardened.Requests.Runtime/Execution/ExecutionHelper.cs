@@ -248,11 +248,12 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
     /// at startup and nothing at all per request.
     /// </para>
     /// <para>
-    /// The amended handler is a plain <see cref="ExecutionRequestHandlerInfo"/> rather than a
-    /// wrapper delegating to the declared one. Every member of the interface is copied, so the two
-    /// carry the same answers - and the status members, the only ones with default implementations
-    /// an implementation could have overridden, are answered by that default everywhere in the tree.
-    /// A wrapper would be the right shape only once something needs to override one.
+    /// The amendment goes through <see cref="ExecutionRequestHandlerInfoExtensions.WithRequirement"/>
+    /// rather than reconstructing the handler here. Reconstructing here is what dropped
+    /// <c>SuccessStatus</c>, <c>NullResponseBody</c> and <c>ProducedContentTypes</c> for every
+    /// application that registered a convention: the call listed seven of the ten arguments, and
+    /// nothing about it looked incomplete. One copy path, in the type that owns the members, is
+    /// what keeps the next added member from going the same way.
     /// </para>
     /// </remarks>
     private static IExecutionRequestHandlerInfo ApplyConventions(
@@ -286,14 +287,7 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
             requirements.Insert(0, handlerInfo.Requirement);
         }
 
-        return new ExecutionRequestHandlerInfo(
-            handlerInfo.Path,
-            handlerInfo.Method,
-            handlerInfo.HandlerType,
-            handlerInfo.InvokeMethod,
-            handlerInfo.Parameters,
-            handlerInfo.Metadata,
-            Requirement.AllOf([..requirements]));
+        return handlerInfo.WithRequirement(Requirement.AllOf([..requirements]));
     }
 
     #endregion

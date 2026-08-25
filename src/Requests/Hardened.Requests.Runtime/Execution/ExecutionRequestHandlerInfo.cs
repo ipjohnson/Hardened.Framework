@@ -27,6 +27,42 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         ProducedContentTypes = producedContentTypes ?? Array.Empty<string>();
     }
 
+    /// <summary>
+    /// A copy of <paramref name="source"/> with the named members replaced.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The one place that enumerates every member of the interface. <see cref="WithPath"/> and
+    /// <see cref="ExecutionRequestHandlerInfoExtensions.WithRequirement"/> both route through it, so
+    /// a member added to <see cref="IExecutionRequestHandlerInfo"/> is carried by both amendments or
+    /// by neither, rather than by whichever one somebody remembered.
+    /// </para>
+    /// <para>
+    /// That is the defect this closes. Applying a convention used to rebuild the handler from seven
+    /// of the ten arguments, dropping <see cref="SuccessStatus"/>, <see cref="NullResponseBody"/>
+    /// and <see cref="ProducedContentTypes"/> on the floor - so a route declaring 201 answered 200
+    /// as soon as any authorization convention was registered, from a contract that said otherwise,
+    /// and nothing warned.
+    /// </para>
+    /// <para>
+    /// A null override keeps what the source carried. <see cref="Requirement"/> falls back to the
+    /// primary constructor's derivation from metadata, which is the same answer the source reached.
+    /// </para>
+    /// </remarks>
+    internal ExecutionRequestHandlerInfo(
+        IExecutionRequestHandlerInfo source, string? path, Requirement? requirement)
+        : this(
+            path ?? source.Path,
+            source.Method,
+            source.HandlerType,
+            source.InvokeMethod,
+            source.Parameters,
+            source.Metadata,
+            requirement ?? source.Requirement,
+            source.SuccessStatus,
+            source.NullResponseBody,
+            source.ProducedContentTypes) { }
+
     public string Path { get; }
 
     public string Method { get; }
@@ -83,7 +119,33 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
     public ExecutionRequestHandlerInfo WithPath(string? path) =>
         string.IsNullOrEmpty(path) || string.Equals(path, Path, StringComparison.Ordinal)
             ? this
-            : new ExecutionRequestHandlerInfo(
-                path!, Method, HandlerType, InvokeMethod, Parameters, Metadata, Requirement,
-                SuccessStatus, NullResponseBody, ProducedContentTypes);
+            : new ExecutionRequestHandlerInfo(this, path, requirement: null);
+}
+
+/// <summary>
+/// Amendments to a handler that carry every other member across unchanged.
+/// </summary>
+public static class ExecutionRequestHandlerInfoExtensions {
+
+    /// <summary>
+    /// The same handler, requiring <paramref name="requirement"/> of its caller.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An extension rather than an interface member, because the amendment has to work on whatever
+    /// implementation reached it and the interface is one an application may implement. The result
+    /// is a plain <see cref="ExecutionRequestHandlerInfo"/>: every member of the source is copied,
+    /// so nothing an implementation answered differently is lost except the identity of the type
+    /// that answered it.
+    /// </para>
+    /// <para>
+    /// Returns <c>this</c> when there is nothing to change, so a handler no convention spoke about
+    /// costs nothing.
+    /// </para>
+    /// </remarks>
+    public static IExecutionRequestHandlerInfo WithRequirement(
+        this IExecutionRequestHandlerInfo handlerInfo, Requirement? requirement) =>
+        requirement is null || ReferenceEquals(requirement, handlerInfo.Requirement)
+            ? handlerInfo
+            : new ExecutionRequestHandlerInfo(handlerInfo, path: null, requirement);
 }
