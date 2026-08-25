@@ -18,6 +18,21 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     /// <summary>The name this property carries in generated C#.</summary>
     public string MemberName => MemberNameOverride ?? Generation.NamingHelper.ToPascalCase(Name);
 
+    /// <summary>
+    /// The response header this member is bound to, or null where it is part of the body.
+    /// </summary>
+    /// <remarks>
+    /// Smithy's <c>@httpHeader</c> on an output member. The member stays on the record - it is one
+    /// of the structure's members and the handler sets it - and stops being serialized, because it
+    /// leaves as a header instead. Reading the trait and leaving the member in the body sent the
+    /// value as a JSON property with the header's name lower-cased, which is the state this
+    /// replaces.
+    /// </remarks>
+    public string? HeaderName { get; set; }
+
+    /// <summary>Whether this member leaves as a header rather than in the body.</summary>
+    public bool IsHeaderBound => HeaderName != null;
+
     /// <summary>The property's <c>description</c>, as its <c>&lt;param&gt;</c> doc comment.</summary>
     public string? Description { get; set; }
     public string? Type { get; set; }
@@ -151,7 +166,8 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
                MinLength == other.MinLength && MaxLength == other.MaxLength &&
                Minimum == other.Minimum && Maximum == other.Maximum &&
                ExclusiveMinimum == other.ExclusiveMinimum && ExclusiveMaximum == other.ExclusiveMaximum &&
-               Pattern == other.Pattern && MinItems == other.MinItems && MaxItems == other.MaxItems;
+               Pattern == other.Pattern && MinItems == other.MinItems && MaxItems == other.MaxItems &&
+               HeaderName == other.HeaderName;
     }
 
     public override bool Equals(object? obj) => Equals(obj as PropertyModel);

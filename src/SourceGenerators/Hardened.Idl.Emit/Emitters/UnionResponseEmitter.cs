@@ -66,7 +66,7 @@ internal static class UnionResponseEmitter {
 
                 var successCase = EmitCaseType(
                     container, operation, response.StatusCode, response.Ref, response.Description,
-                    modelsNamespace);
+                    modelsNamespace, response.Headers);
 
                 emitted.Add(successCase.Definition);
                 cases.Add(successCase);
@@ -75,7 +75,7 @@ internal static class UnionResponseEmitter {
             foreach (var response in operation.ErrorResponses) {
                 var caseType = EmitCaseType(
                     container, operation, response.StatusCode, response.Ref, response.Description,
-                    modelsNamespace);
+                    modelsNamespace, response.Headers);
 
                 emitted.Add(caseType.Definition);
                 cases.Add(caseType);
@@ -95,17 +95,21 @@ internal static class UnionResponseEmitter {
     /// A record rather than a class, so two responses carrying equal bodies compare equal - which is
     /// what a test asserting on a handler's result wants, and what an exception could never give it.
     /// Sealed, because a case type assignable to another case type in the same set has no
-    /// unambiguous match order.
+    /// unambiguous match order - and partial alongside it, because those are different questions.
+    /// Sealed forbids deriving; partial permits extending in place, which is how an application adds
+    /// an interface or a computed member to a type it did not write. Sealing to keep the match order
+    /// unambiguous never required refusing that.
     /// </remarks>
     private static CaseType EmitCaseType(
         IConstructContainer container, OperationModel operation, int statusCode, string? bodyRef,
-        string? description, string modelsNamespace) {
+        string? description, string modelsNamespace,
+        IReadOnlyList<ResponseHeaderModel>? headers = null) {
         var name = ResponseSetPlan.CaseName(operation, statusCode);
 
         var definition = container.AddClass(name);
 
         definition.TypeKeyword = ClassKeyword.Record;
-        definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Sealed;
+        definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Sealed | ComponentModifier.Partial;
 
         // A case type declares everything in its header, so it ends at the semicolon rather than
         // carrying an empty body. Legal either way; this is what anyone writing it by hand writes,
@@ -125,7 +129,22 @@ internal static class UnionResponseEmitter {
                 Indented = false
             });
 
+        var headerParameters = ResolveHeaderParameters(headers, carriesBody: bodyRef != null);
+
         if (bodyRef == null) {
+            // A 204 declaring a Location, or a 304 declaring an ETag - a case with nothing to
+            // serialize and something to send. The constructor exists only where there are headers
+            // to take, so a bodyless case that declares none is the parameterless record it was.
+            if (headerParameters.Count > 0) {
+                var headerOnlyConstructor = definition.AddConstructor();
+
+                headerOnlyConstructor.IsPrimary = true;
+                headerOnlyConstructor.Modifiers |= ComponentModifier.Public;
+
+                AddHeaderParameters(headerOnlyConstructor, headerParameters);
+                EmitApplyHeaders(definition, headerParameters);
+            }
+
             return new CaseType(definition, name, hasBody: false);
         }
 
@@ -140,6 +159,10 @@ internal static class UnionResponseEmitter {
         constructor.IsPrimary = true;
         constructor.Modifiers |= ComponentModifier.Public;
         constructor.AddParameter(payload, "Body");
+
+        // After Body, so adding a header to a document does not renumber the positional arguments
+        // every existing call site already passes.
+        AddHeaderParameters(constructor, headerParameters);
 
         // The contract the shared dispatch reads a wrapper's payload through, and the same one
         // Created<T> and the generic problem types implement by hand. Without it the emitted switch
@@ -163,7 +186,117 @@ internal static class UnionResponseEmitter {
                 Indented = true
             });
 
+        EmitApplyHeaders(definition, headerParameters);
+
         return new CaseType(definition, name, hasBody: true);
+    }
+
+    /// <summary>
+    /// The parameter each declared header contributes, with collisions resolved.
+    /// </summary>
+    /// <remarks>
+    /// A header's name is not a C# identifier - <c>X-Rate-Limit</c> has no spelling of its own, and
+    /// <c>Content-Location</c> PascalCases onto nothing that clashes while <c>Body</c> would land
+    /// exactly on the payload parameter. Suffixed rather than rejected, because a document is
+    /// entitled to a header called Body and refusing to generate for it would be the generator
+    /// imposing a C# rule on a wire format.
+    /// </remarks>
+    private static List<ResponseHeaderModel> ResolveHeaderParameters(
+        IReadOnlyList<ResponseHeaderModel>? headers, bool carriesBody) {
+        var resolved = new List<ResponseHeaderModel>();
+
+        if (headers == null || headers.Count == 0) {
+            return resolved;
+        }
+
+        var taken = new HashSet<string>(System.StringComparer.Ordinal);
+
+        if (carriesBody) {
+            taken.Add("Body");
+        }
+
+        foreach (var header in headers) {
+            var candidate = string.IsNullOrEmpty(header.ParameterName)
+                ? NamingHelper.ToPascalCase(header.Name)
+                : header.ParameterName;
+
+            if (string.IsNullOrEmpty(candidate)) {
+                continue;
+            }
+
+            var unique = candidate;
+            var suffix = 2;
+
+            while (!taken.Add(unique)) {
+                unique = candidate + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                suffix++;
+            }
+
+            resolved.Add(new ResponseHeaderModel {
+                Name = header.Name,
+                ParameterName = unique,
+                Description = header.Description
+            });
+        }
+
+        return resolved;
+    }
+
+    /// <summary>
+    /// One string parameter per declared header.
+    /// </summary>
+    /// <remarks>
+    /// String whatever the document types the header as. A header is a string on the wire, and an
+    /// integer one still has to be formatted by whoever knows its units - an <c>ETag</c> is quoted,
+    /// a <c>Retry-After</c> is either seconds or a date. Typing these would take that choice away
+    /// from the only code that can make it.
+    /// </remarks>
+    private static void AddHeaderParameters(
+        ConstructorDefinition constructor, IReadOnlyList<ResponseHeaderModel> headers) {
+        foreach (var header in headers) {
+            constructor.AddParameter(TypeDefinition.Get(typeof(string)), header.ParameterName);
+        }
+    }
+
+    /// <summary>
+    /// The interface the shared dispatch calls, implemented against the declared headers.
+    /// </summary>
+    /// <remarks>
+    /// The same interface <c>Created&lt;T&gt;</c> implements by hand, so a generated case and a
+    /// hand-written one reach the wire through one path. <c>UnionResponseSelector</c> already
+    /// decides code-first's <c>AppliesHeaders</c> by asking whether the type implements this;
+    /// emitting it here is what lets the specification-first builder ask the same question instead
+    /// of answering it with a literal.
+    /// </remarks>
+    private static void EmitApplyHeaders(
+        ClassDefinition definition, IReadOnlyList<ResponseHeaderModel> headers) {
+        if (headers.Count == 0) {
+            return;
+        }
+
+        // A record ending at its semicolon has nowhere for a method to go, and CSharpAuthor drops
+        // one added to it silently.
+        definition.TerminateWithSemicolon = false;
+
+        definition.AddBaseType(
+            TypeDefinition.Get(ResponsesNamespace, "IProvidesResponseHeaders"));
+
+        var method = definition.AddMethod("ApplyHeaders");
+
+        method.Modifiers |= ComponentModifier.Public;
+        method.AddParameter(
+            new GenericTypeDefinition(
+                typeof(IDictionary<,>),
+                new ITypeDefinition[] {
+                    TypeDefinition.Get(typeof(string)),
+                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues")
+                }),
+            "headers");
+
+        foreach (var header in headers) {
+            method.AddIndentedStatement(
+                "headers[\"" + header.Name + "\"] = " + header.ParameterName);
+        }
     }
 
     /// <summary>
@@ -289,7 +422,10 @@ internal static class UnionResponseEmitter {
     /// </remarks>
     private static ITypeDefinition? SuccessBranchType(
         OperationModel operation, string modelsNamespace) {
-        if (!ResponseSetPlan.HasNamedSuccessPayload(operation)) {
+        // Not HasNamedSuccessPayload: a primary success that declares headers is emitted as a
+        // wrapper by the loop above and is already in `cases`, so naming the payload here too would
+        // give the union two branches for one status.
+        if (!ResponseSetPlan.PrimarySuccessIsBarePayload(operation)) {
             return null;
         }
 

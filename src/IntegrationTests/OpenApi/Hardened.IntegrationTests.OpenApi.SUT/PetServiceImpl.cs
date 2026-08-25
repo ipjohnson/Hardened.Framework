@@ -39,8 +39,21 @@ public class PetServiceImpl : IPetService {
     public Task<List<string>> ListPetNames() =>
         Task.FromResult(Pets.Select(pet => pet.Name).ToList());
 
-    public Task<Pet> CreatePet(CreatePetRequest body) {
-        return Task.FromResult(new Pet("3", body.Name, body.Tag));
+    /// <summary>
+    /// The 201 the description declares, and the <c>Location</c> it declares beside it.
+    /// </summary>
+    /// <remarks>
+    /// The signature is a response set rather than <c>Task&lt;Pet&gt;</c> because the 201 declares a
+    /// header, and a returned <c>Pet</c> has nowhere to put one - <c>Pet</c> is the type
+    /// <c>GET /pets/{petId}</c> answers with too, so a header on it would go out on every read.
+    /// The description says which header; this says what is in it, which is the half a document
+    /// cannot carry.
+    /// </remarks>
+    public Task<CreatePetResponse> CreatePet(CreatePetRequest body) {
+        var created = new Pet("3", body.Name, body.Tag);
+
+        return Task.FromResult<CreatePetResponse>(
+            new CreatePetCreated(created, "/pets/" + created.Id));
     }
 
     /// <summary>

@@ -172,7 +172,7 @@ public class MultipleSuccessResponseTests {
     public void Emit_ABodylessSuccessGetsACaseWithNoBody() {
         var result = Emit(Operation("cancelJob"));
 
-        Assert.Contains("public sealed record CancelJobNoContent;", result);
+        Assert.Contains("public sealed partial record CancelJobNoContent;", result);
         Assert.Contains("public CancelJobResponse(Test.Api.Models.CancelJobNoContent value)", result);
     }
 

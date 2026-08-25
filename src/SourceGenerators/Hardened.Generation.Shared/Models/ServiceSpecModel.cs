@@ -36,6 +36,19 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public string UiUrl { get; set; } = "";
 
     /// <summary>
+    /// Where the contract file itself is served, from <c>SourceUrl</c> metadata. Empty by default.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <c>PublishUrl</c>, which serves the document generated from the model. The two
+    /// answer different questions: the generated document says what the build understood, and the
+    /// source says what the author wrote - including the comments, examples, vendor extensions and
+    /// ordering that no model represents, and including anything the front end dropped. Publishing
+    /// the second is a deliberate choice rather than the default it used to be, and it is only
+    /// meaningful where the source is a document a client can read.
+    /// </remarks>
+    public string SourceUrl { get; set; } = "";
+
+    /// <summary>
     /// The environments the reference page is served in, comma separated, or empty for all of them.
     /// </summary>
     /// <remarks>
@@ -102,6 +115,7 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
         if (JsonTypeInfoResolverName != other.JsonTypeInfoResolverName) return false;
         if (PublishUrl != other.PublishUrl) return false;
         if (UiUrl != other.UiUrl) return false;
+        if (SourceUrl != other.SourceUrl) return false;
         if (UiEnvironments != other.UiEnvironments) return false;
         if (Schemas.Count != other.Schemas.Count) return false;
         if (Services.Count != other.Services.Count) return false;

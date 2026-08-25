@@ -37,6 +37,7 @@ internal record SpecRegistration(
     string ResolverName,
     string SpecificationTypeName,
     string PublishUrl,
+    string SourceUrl,
     string UiUrl,
     string UiEnvironments,
 

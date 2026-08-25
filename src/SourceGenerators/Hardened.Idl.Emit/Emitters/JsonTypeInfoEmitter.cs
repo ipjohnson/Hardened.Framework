@@ -203,6 +203,13 @@ internal static class JsonTypeInfoEmitter {
         sb.AppendLine("            {");
 
         foreach (var prop in schema.Properties.OrderByDescending(p => !p.HasDefault)) {
+            // A member bound to a response header leaves as a header, so it has no place in the
+            // body's metadata. The constructor parameter below stays - the positions have to match
+            // the constructor the schema emitter wrote, and the handler still sets the member.
+            if (prop.IsHeaderBound) {
+                continue;
+            }
+
             EmitPropertyInfo(sb, prop, typeName, allSchemas, ns);
         }
 

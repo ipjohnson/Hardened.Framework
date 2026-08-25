@@ -12,6 +12,17 @@ public record ResponseInformationModel {
     public ITypeDefinition? ReturnType { get; set; }
 
     /// <summary>
+    /// Whether the returned value can carry response headers of its own.
+    /// </summary>
+    /// <remarks>
+    /// A response set reaches <c>ApplyHeaders</c> through the switch its cases are dispatched on.
+    /// A handler returning one thing has no switch, so the call has to be emitted beside the
+    /// assignment - and only where the type could satisfy it, because <c>is</c> against a type that
+    /// provably cannot implement an interface is CS8121 rather than a test that returns false.
+    /// </remarks>
+    public bool ReturnTypeProvidesHeaders { get; set; }
+
+    /// <summary>
     /// What writes this response, named by <c>[Output&lt;T&gt;]</c>, or null.
     /// </summary>
     /// <remarks>

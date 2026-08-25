@@ -36,13 +36,35 @@ namespace Hardened.SourceGenerator.Links;
 /// </remarks>
 public static class LinkGenerator {
 
+    /// <summary>
+    /// Both types are nested in the entry point rather than named after it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>App.Routes</c> and <c>App.Links</c> rather than <c>AppRoutes</c> and <c>AppLinks</c>. The
+    /// suffix form only reads as "the routes of App" to someone who already knows the convention,
+    /// and it puts two more types in the namespace beside the application for every application
+    /// there is. Nesting also makes the pair visibly siblings, which the suffixes did not - they
+    /// differ by a word that says nothing about one being static paths and the other resolved
+    /// links.
+    /// </para>
+    /// <para>
+    /// The entry point is already <c>partial</c>: <c>DependencyModules.SourceGenerator</c> emits
+    /// <c>partial class App : IDependencyModule</c> into it, so a module that was not partial would
+    /// fail there long before reaching here.
+    /// </para>
+    /// </remarks>
+    private const string RoutesMemberName = "Routes";
+
+    private const string LinksMemberName = "Links";
+
     /// <summary>The static path builder's type name, for a given entry point.</summary>
     public static string RoutesTypeName(EntryPointSelector.Model appModel) =>
-        appModel.EntryPointType.Name + "Routes";
+        appModel.EntryPointType.Name + "." + RoutesMemberName;
 
     /// <summary>The context-aware links type's name, for a given entry point.</summary>
     public static string LinksTypeName(EntryPointSelector.Model appModel) =>
-        appModel.EntryPointType.Name + "Links";
+        appModel.EntryPointType.Name + "." + LinksMemberName;
 
     /// <summary>The links type as a reference, for generated code that has to name it.</summary>
     public static ITypeDefinition LinksType(EntryPointSelector.Model appModel) =>
@@ -59,9 +81,8 @@ public static class LinkGenerator {
         // generator that references it a way to find out.
         var groups = Group(appModel, handlers, basePath);
 
-        context.AddSource(
-            appModel.EntryPointType.Name + ".Links",
-            Write(appModel, groups));
+        context.AddSource(appModel.EntryPointType.Name + ".Links",
+            GeneratedSource.Header(Write(appModel, groups)));
     }
 
     /// <summary>One entry per link method, in a stable order.</summary>
@@ -251,8 +272,14 @@ public static class LinkGenerator {
         EntryPointSelector.Model appModel, IReadOnlyList<IGrouping<string, Link>> groups) {
         var file = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
-        WriteRoutes(file, appModel, groups);
-        WriteLinks(file, appModel, groups);
+        // One more partial declaration of the application, carrying both types. The module
+        // generator writes its own into the same class from a different file.
+        var app = file.AddClass(appModel.EntryPointType.Name);
+
+        app.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
+
+        WriteRoutes(app, appModel, groups);
+        WriteLinks(app, appModel, groups);
 
         var outputContext = new OutputContext(new OutputContextOptions {
             TypeOutputMode = TypeOutputMode.Global
@@ -267,10 +294,10 @@ public static class LinkGenerator {
     /// The static half: the route, with no idea where the application is deployed.
     /// </summary>
     private static void WriteRoutes(
-        CSharpFileDefinition file,
+        IConstructContainer file,
         EntryPointSelector.Model appModel,
         IReadOnlyList<IGrouping<string, Link>> groups) {
-        var routes = file.AddClass(RoutesTypeName(appModel));
+        var routes = file.AddClass(RoutesMemberName);
 
         routes.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         routes.Comment =
@@ -301,10 +328,10 @@ public static class LinkGenerator {
     /// The instance half: the same routes, through whatever the transport did to the path.
     /// </summary>
     private static void WriteLinks(
-        CSharpFileDefinition file,
+        IConstructContainer file,
         EntryPointSelector.Model appModel,
         IReadOnlyList<IGrouping<string, Link>> groups) {
-        var links = file.AddClass(LinksTypeName(appModel));
+        var links = file.AddClass(LinksMemberName);
 
         links.Modifiers |= ComponentModifier.Public | ComponentModifier.Sealed;
         links.Comment =

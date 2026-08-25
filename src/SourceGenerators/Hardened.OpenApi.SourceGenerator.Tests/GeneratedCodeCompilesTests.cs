@@ -801,7 +801,9 @@ public class GeneratedCodeCompilesTests {
     public void AComponentThatIsAChoiceGeneratesTheWrapperAndTypesTheOperation() {
         var generated = Undent(OpenApiGenerator.Run(Specs.ComponentChoice).AssertNoErrors());
 
-        Assert.Contains("public struct Pet", generated);
+        // Partial, like every generated type - an application extends it in place rather
+        // than wrapping it.
+        Assert.Contains("public partial struct Pet", generated);
         Assert.Contains("Task<global::TestNamespace.Models.Pet> GetPet(string petId);", generated);
 
         // The wrapper is not an empty object: it carries the branches and its own converter.

@@ -125,4 +125,13 @@
 
     <Import Project="../Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
 
+
+    <!--
+      The shared generator sources compiled in here are internal, and this assembly's copy of them is
+      covered from its own test project - a test over another assembly's copy says nothing about
+      this one, which is the whole reason the sources are linked rather than referenced.
+    -->
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Web.SourceGenerator.Tests"/>
+    </ItemGroup>
 </Project>

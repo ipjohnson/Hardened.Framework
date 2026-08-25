@@ -65,9 +65,7 @@ public static class HandlerValidationGenerator {
                 }
 
                 if (result.Validator is { } validator) {
-                    production.AddSource(
-                        $"{validator.Namespace}.{validator.ValidatorName}.g.cs",
-                        new ValidatorEmitter().Emit(validator));
+                    production.AddSource($"{validator.Namespace}.{validator.ValidatorName}.g.cs", GeneratedSource.Header(new ValidatorEmitter().Emit(validator)));
                 }
             });
 

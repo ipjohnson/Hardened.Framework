@@ -58,6 +58,36 @@ public class TodoService : ITodosService {
     public Task<Todo?> GetTodo(int id) =>
         Task.FromResult(_store.Find(id));
 
+#if (openapi)
+    /// <summary>
+    /// A 201 carrying the Location the contract declares, or a 409.
+    /// </summary>
+    /// <remarks>
+    /// The one operation here that names a response set in standard mode, and the contract is why:
+    /// its 201 declares a Location, and a returned Todo has nowhere to put one - Todo is the type
+    /// GetTodo answers with too, so a header on it would go out on every read. Declaring a header is
+    /// the only thing that does this. Every other operation below declares none and keeps the bare
+    /// return type that standard mode is chosen for.
+    ///
+    /// The 409 is a case rather than a throw for the same reason: once an operation has a set, the
+    /// set is where all of its statuses live.
+    /// </remarks>
+    public Task<CreateTodoResponse> CreateTodo(NewTodo body) {
+        if (_store.TitleExists(body.Title)) {
+            return Task.FromResult<CreateTodoResponse>(
+                new CreateTodoConflict(
+                    ConflictBody($"A todo titled '{body.Title}' already exists.")));
+        }
+
+        var created = _store.Add(body.Title);
+
+        // Routes is generated from the same contract, so this link cannot drift from the route it
+        // points at - rename the path in the contract and this stops compiling.
+        return Task.FromResult<CreateTodoResponse>(
+            new CreateTodoCreated(created, TemplateModuleNameLibrary.Routes.Todos.GetTodo(created.Id)));
+    }
+#endif
+#if (smithy)
     /// <summary>
     /// 409 by throwing, because this operation declares one success and the signature names it.
     /// </summary>
@@ -69,6 +99,7 @@ public class TodoService : ITodosService {
 
         return Task.FromResult(_store.Add(body.Title));
     }
+#endif
 
     /// <summary>204 on success - the contract declares no body, so the signature has no result.</summary>
     public Task RemoveTodo(int id) {
@@ -108,7 +139,17 @@ public class TodoService : ITodosService {
                     ConflictBody($"A todo titled '{body.Title}' already exists.")));
         }
 
-        return Task.FromResult<CreateTodoResponse>(_store.Add(body.Title));
+        var created = _store.Add(body.Title);
+
+#if (openapi)
+        // The 201 declares a Location, so its case carries one beside the payload. Routes is
+        // generated from the same contract, so the link cannot drift from the route it points at.
+        return Task.FromResult<CreateTodoResponse>(
+            new CreateTodoCreated(created, TemplateModuleNameLibrary.Routes.Todos.GetTodo(created.Id)));
+#endif
+#if (smithy)
+        return Task.FromResult<CreateTodoResponse>(created);
+#endif
     }
 
     /// <summary>

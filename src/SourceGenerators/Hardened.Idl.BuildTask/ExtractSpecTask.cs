@@ -276,8 +276,16 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// <c>Tags</c> and <c>EmbedDocument</c>, which are facts about the same file for the same reason.
     /// </para>
     /// <para>
-    /// Both are absent by default. Embedding a document is not publishing it - what the application
-    /// serves is a decision about public surface, and it stays one.
+    /// Both are absent by default. Publishing stays a decision about public surface rather than
+    /// something a build input turns on.
+    /// </para>
+    /// <para>
+    /// <b>PublishUrl no longer needs EmbedDocument.</b> What it serves is the document generated
+    /// from the normalised model, not the contract file - so there is nothing to embed for it. It
+    /// used to serve the source text, which is an OpenAPI document only when the source happens to
+    /// be one: a Smithy model published a Smithy AST at a path named openapi.json, and the pairing
+    /// made a mode that could not opt in to a usable document at all. Embedding is now only about
+    /// serving the contract itself, which is its own opt-in.
     /// </para>
     /// </remarks>
     private bool Published(ITaskItem spec, string path, ServiceSpecModel model) {
@@ -294,15 +302,20 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             return false;
         }
 
-        if (publishUrl.Length > 0 && !Embedded(spec)) {
+        var sourceUrl = spec.GetMetadata("SourceUrl").Trim();
+
+        // Here rather than on PublishUrl: serving the contract itself is the one thing that needs
+        // the contract in the assembly.
+        if (sourceUrl.Length > 0 && !Embedded(spec)) {
             Log.LogError(null, DiagnosticPrefix + "011", null, path, 0, 0, 0, 0,
-                "'{0}' sets PublishUrl but EmbedDocument is off, so there is no document to serve. " +
-                "Remove EmbedDocument or drop PublishUrl.", path);
+                "'{0}' sets SourceUrl but EmbedDocument is off, so there is no source to serve. " +
+                "Remove EmbedDocument or drop SourceUrl.", path);
 
             return false;
         }
 
         model.PublishUrl = Absolute(publishUrl);
+        model.SourceUrl = Absolute(sourceUrl);
         model.UiUrl = Absolute(uiUrl);
         model.UiEnvironments = spec.GetMetadata("UiEnvironments").Trim();
 

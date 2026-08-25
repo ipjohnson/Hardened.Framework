@@ -84,13 +84,19 @@
 <!--#if (openapi) -->
 
   <!--
-    The contract. PublishUrl serves the document itself, UiUrl serves a reference page over it -
-    both facts about this file, so both live on the item that declares it rather than being
-    restated as attributes on the application.
+    The contract. PublishUrl serves the OpenAPI document generated from it, UiUrl serves a reference
+    page over that document - both facts about this file, so both live on the item that declares it
+    rather than being restated as attributes on the application.
+
+    SourceUrl, below, serves this file itself. The two are different answers: the generated document
+    says what the build understood, and the source says what you wrote - comments, examples, vendor
+    extensions and anything the front end does not read. Publishing the source is opt-in; drop the
+    line if the generated document is the only one this API should describe itself with.
   -->
   <ItemGroup>
     <HardenedOpenApiSpec Include="contracts\todos.yaml">
-      <PublishUrl>/openapi.yaml</PublishUrl>
+      <PublishUrl>/openapi.json</PublishUrl>
+      <SourceUrl>/openapi.yaml</SourceUrl>
 <!--#if (OpenApiUi) -->
       <UiUrl>/docs</UiUrl>
       <!--
@@ -106,9 +112,13 @@
 <!--#if (smithy) -->
 
   <!--
-    The contract. PublishUrl serves the document itself, UiUrl serves a reference page over it -
-    both facts about this model, so both live on the item that declares it, exactly as they do for
-    an OpenAPI spec.
+    The contract. PublishUrl serves the OpenAPI document generated from it, UiUrl serves a reference
+    page over that document - both facts about this model, so both live on the item that declares
+    it, exactly as they do for an OpenAPI spec.
+
+    There is no SourceUrl here. A Smithy model is not a document an OpenAPI client can read, and
+    serving the AST at a path named openapi.json is what made this mode's reference page render
+    nothing at all.
 
     The Smithy CLI turns this into the JSON AST the generator reads, so a build needs it on PATH at
     the pinned version - the build fails with HSMT011 naming both if the version differs, because

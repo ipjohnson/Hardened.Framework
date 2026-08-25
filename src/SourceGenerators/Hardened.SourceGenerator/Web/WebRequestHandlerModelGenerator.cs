@@ -33,6 +33,11 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         model.Summary = summary;
         model.Description = description;
 
+        // <param name="x"> is where a developer has already said what a parameter means.
+        foreach (var parameter in model.RequestParameterInformationList) {
+            parameter.Description = XmlDocumentation.ReadParameter(context.Node, parameter.Name);
+        }
+
         // An obsolete controller deprecates everything on it: the operations are still served, and
         // that is exactly what `deprecated` means in a document.
         model.IsDeprecated =

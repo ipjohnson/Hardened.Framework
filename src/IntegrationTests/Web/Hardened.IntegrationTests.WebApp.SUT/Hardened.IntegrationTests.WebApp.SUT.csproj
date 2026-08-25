@@ -14,7 +14,13 @@
              per-handler classes can be read directly. This app exercises the widest set of
              generator features in the repository, which makes it the useful one to inspect. -->
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    </PropertyGroup>
+  
+    <!--
+      Deliberately not set. The doc comments on this project's handlers reach its published document
+      either way - XmlDocumentation falls back to reading the raw /// trivia where the parse options
+      did not build structured trivia - and this project is the test that it does.
+    -->
+  </PropertyGroup>
 
     <ItemGroup>
         <CompilerVisibleProperty Include="DependencyModules_AutoGenerateModule"/>

@@ -176,6 +176,13 @@ internal static class SpecHandlerModelBuilder {
             filters) {
             ParametersInterface = parametersInterface,
 
+            // The payload shapes, from the model. JsonSchemaWriter cannot produce these here - it
+            // walks a type symbol, and these types are written by the build task rather than
+            // declared in the consumer's source - so the published document carried paths and
+            // operation ids and no schemas at all.
+            RequestSchema = SpecSchemaWriter.ForRef(operation.RequestBodyRef, schemas),
+            ResponseSchemas = BuildResponseSchemas(operation, schemas),
+
             // What the operation says about itself. Carried here rather than left to each caller,
             // because a handler model that has lost its summary cannot be told from one whose
             // operation never had a summary - and the document written from it is silently poorer.
@@ -245,7 +252,11 @@ internal static class SpecHandlerModelBuilder {
                 bindType,
                 param.Name,
                 index++,
-                Attribute(symbols, param.Name)));
+                Attribute(symbols, param.Name)) {
+                // The prose the contract gives this parameter, for the published document. The
+                // binder does not read it.
+                Description = param.Description,
+            });
         }
 
         if (symbols?.RequestBodyType is { } knownBodyType) {
@@ -348,6 +359,11 @@ internal static class SpecHandlerModelBuilder {
             IsAsync = true,
             ReturnType = returnType,
             DeclaredContentType = operation.ResponseContentType,
+
+            // The payload carries its own headers where the contract binds them to its members,
+            // which is Smithy's @httpHeader on an output. There is no response set on this path, so
+            // the dispatch has to apply them beside the assignment or they never reach the wire.
+            ReturnTypeProvidesHeaders = ResponseSetPlan.PrimarySuccessCarriesHeaders(operation),
 
             // Carried so the implementation can be checked against the contract: a document
             // promising rendered HTML for a model needs a view, and there is nothing to serialize
@@ -484,11 +500,17 @@ internal static class SpecHandlerModelBuilder {
 
         var cases = new List<UnionCaseModel>();
 
-        if (ResponseSetPlan.HasNamedSuccessPayload(operation)) {
+        // The payload type itself, and only while it stays bare. A primary success whose headers
+        // are declared beside the body rather than on it is emitted as a wrapper instead, and the
+        // loop below picks it up - adding it here as well would put two branches in the union for
+        // one status.
+        if (ResponseSetPlan.PrimarySuccessIsBarePayload(operation)) {
             cases.Add(new UnionCaseModel(
                 Qualified(modelsNamespace, PrimarySuccessTypeName(operation)),
                 operation.SuccessStatusCode,
-                appliesHeaders: false,
+                // A bare payload applies headers when the headers are its own members, which is what
+                // Smithy's @httpHeader on an output produces.
+                appliesHeaders: ResponseSetPlan.PrimarySuccessCarriesHeaders(operation),
                 hasBody: true));
         }
 
@@ -504,7 +526,7 @@ internal static class SpecHandlerModelBuilder {
             cases.Add(new UnionCaseModel(
                 Qualified(modelsNamespace, ResponseSetPlan.CaseName(operation, success.StatusCode)),
                 success.StatusCode,
-                appliesHeaders: false,
+                appliesHeaders: success.Headers.Count > 0,
                 hasBody: hasBody,
                 carriesBody: hasBody,
                 bodyTypeName: hasBody
@@ -518,7 +540,7 @@ internal static class SpecHandlerModelBuilder {
             cases.Add(new UnionCaseModel(
                 Qualified(modelsNamespace, ResponseSetPlan.CaseName(operation, error.StatusCode)),
                 error.StatusCode,
-                appliesHeaders: false,
+                appliesHeaders: error.Headers.Count > 0,
                 hasBody: true,
                 carriesBody: true,
                 bodyTypeName: error.Ref == null
@@ -621,4 +643,35 @@ internal static class SpecHandlerModelBuilder {
                 parameter.BindingType, parameter.BindingName, index, parameter.CustomAttribute))
             .ToList();
     }
+    /// <summary>
+    /// Every status the operation declares, with the payload declared for it.
+    /// </summary>
+    /// <remarks>
+    /// Successes and errors both, because a document that describes only the happy path leaves a
+    /// generated client with no branch for the 404 the contract promised. The response's own
+    /// description wins over the status's standard wording.
+    /// </remarks>
+    private static IReadOnlyList<ResponseSchemaModel> BuildResponseSchemas(
+        OperationModel operation, IReadOnlyList<SchemaModel> schemas) {
+        var result = new List<ResponseSchemaModel>();
+
+        foreach (var success in operation.SuccessResponses) {
+            result.Add(new ResponseSchemaModel(
+                success.StatusCode,
+                SpecSchemaWriter.DescriptionFor(success.Description, success.StatusCode),
+                success.IsArray
+                    ? SpecSchemaWriter.ForArrayOf(success.ArrayItemsRef, schemas)
+                    : SpecSchemaWriter.ForRef(success.Ref, schemas)));
+        }
+
+        foreach (var error in operation.ErrorResponses) {
+            result.Add(new ResponseSchemaModel(
+                error.StatusCode,
+                SpecSchemaWriter.DescriptionFor(error.Description, error.StatusCode),
+                SpecSchemaWriter.ForRef(error.Ref, schemas)));
+        }
+
+        return result;
+    }
+
 }

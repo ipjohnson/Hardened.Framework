@@ -22,7 +22,7 @@ public class ServiceProviderFileGenerator {
 
         var fileName = model.EntryPointType.Name + ".ServiceProvider.cs";
 
-        sourceProductionContext.AddSource(fileName, outputContext.Output());
+        sourceProductionContext.AddSource(fileName, GeneratedSource.Header(outputContext.Output()));
     }
 
     private void GenerateCode(EntryPointSelector.Model model, CSharpFileDefinition diFile) {

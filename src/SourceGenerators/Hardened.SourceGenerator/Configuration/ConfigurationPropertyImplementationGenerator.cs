@@ -1,4 +1,5 @@
-﻿using CSharpAuthor;
+﻿using Hardened.SourceGenerator.Shared;
+using CSharpAuthor;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Configuration;
@@ -26,7 +27,7 @@ public static class ConfigurationPropertyImplementationGenerator {
 
         csharpFile.WriteOutput(outputContext);
 
-        arg1.AddSource("ConfigurationModels_" + arg2.ModelType.Name + ".Properties.cs", outputContext.Output());
+        arg1.AddSource("ConfigurationModels_" + arg2.ModelType.Name + ".Properties.cs", GeneratedSource.Header(outputContext.Output()));
     }
 
     private static void ProcessModelDefinition(

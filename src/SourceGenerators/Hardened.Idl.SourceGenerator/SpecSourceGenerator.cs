@@ -143,16 +143,18 @@ public class SpecSourceGenerator : IIncrementalGenerator {
                     spec.JsonTypeInfoResolverName.Length > 0
                         ? $"{pair.Right}.Models.{spec.JsonTypeInfoResolverName}"
                         : "",
-                    spec.PublishUrl.Length > 0
+                    spec.SourceUrl.Length > 0
                         ? $"{pair.Right}.{NamingHelper.SpecificationTypeName(spec.FileName)}"
                         : "",
                     spec.PublishUrl,
+                    spec.SourceUrl,
                     spec.UiUrl,
                     spec.UiEnvironments,
                     spec.ContentNegotiation);
 
                 return registration.ResolverName.Length > 0 ||
                        registration.PublishUrl.Length > 0 ||
+                       registration.SourceUrl.Length > 0 ||
                        registration.ContentNegotiation.Length > 0
                     ? registration
                     : null;

@@ -33,6 +33,10 @@ paths:
       tags:
         - Pet
       operationId: createPet
+      summary: Add a pet to the store
+      description: >-
+        The prose a description carries, into the document the application publishes.
+        This reached the generated C# and stopped there until the handler model carried it.
       requestBody:
         content:
           application/json:
@@ -41,6 +45,10 @@ paths:
       responses:
         '201':
           description: Pet created
+          headers:
+            Location:
+              description: Where the created pet can be read.
+              schema: { type: string }
           content:
             application/json:
               schema:
@@ -174,6 +182,7 @@ paths:
         - name: petId
           in: path
           required: true
+          description: The pet's identifier, as assigned by the server.
           schema:
             type: string
             pattern: '^[a-z0-9-]+$'
@@ -331,12 +340,14 @@ components:
           type: string
           writeOnly: true
     Pet:
+      description: A pet in the store, as the store knows it.
       type: object
       required:
         - id
         - name
       properties:
         id:
+          description: Assigned by the store when the pet is created.
           type: string
         name:
           type: string

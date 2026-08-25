@@ -11,6 +11,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 [BasePath("/binding")]
 public class BindingController {
 
+    /// <summary>Echoes a path token back.</summary>
+    /// <param name="id">The token to echo, taken from the path.</param>
     [Get("/path/{id}")]
     public string FromPath(string id) => id;
 

@@ -73,12 +73,34 @@
             type - only Hardened.OpenApi.SourceGenerator.OpenApiSpecParser and the spec model, which
             exist in this assembly alone.
         -->
+        <!--
+            Aliased, because this project reaches the shared generation model through two assemblies
+            that each compile their own copy: the build task's, and the web generator's. Both in the
+            global namespace is CS0433 on every use. The web generator's is the one this project
+            tests, so that one stays unaliased and this one is reached through buildtask::.
+        -->
         <ProjectReference Include="..\Hardened.OpenApi.BuildTask\Hardened.OpenApi.BuildTask.csproj"
-                          SetTargetFramework="TargetFramework=net8.0"/>
+                          SetTargetFramework="TargetFramework=net8.0"
+                          Aliases="buildtask"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
     </ItemGroup>
 
+
+    <!--
+      This assembly's copy of the shared spec bridge, covered here. SpecSchemaWriter is 111 lines of
+      it and was reachable from no test this project had.
+
+      GeneratedSourceTests is not linked: GeneratedSource is compiled into the validation generator
+      too, so naming it here is ambiguous again - and GeneratedFileHeaderTests already covers this
+      assembly's copy through the generator, which is the better test anyway.
+    -->
+    <ItemGroup>
+        <Compile Include="../Hardened.SourceGenerator.Tests/SpecBridge/*.cs"
+                 Link="SpecBridge/%(Filename)%(Extension)"/>
+        <Compile Include="../Hardened.SourceGenerator.Tests/OpenApiDocument/XmlDocumentationTests.cs"
+                 Link="SpecBridge/XmlDocumentationTests.cs"/>
+    </ItemGroup>
 </Project>

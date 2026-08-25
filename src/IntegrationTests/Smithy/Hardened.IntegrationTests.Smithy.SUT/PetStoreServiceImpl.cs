@@ -32,8 +32,15 @@ public class PetStoreServiceImpl : IPetStoreService {
     /// Takes the whole input structure as the body, which is what an operation whose members carry
     /// no binding trait means.
     /// </summary>
-    public Task<CreatePetOutput> CreatePet(CreatePetInput body) =>
-        Task.FromResult(new CreatePetOutput(new Pet("3", body.Name, body.Kind)));
+    public Task<CreatePetOutput> CreatePet(CreatePetInput body) {
+        var created = new Pet("3", body.Name, body.Kind);
+
+        // location carries @httpHeader("Location"), so it is a member of the output like any other
+        // and the handler sets it - it just leaves as a header rather than in the JSON. The
+        // signature is unchanged by the binding, because the type that carries the header is the
+        // type that was already being returned.
+        return Task.FromResult(new CreatePetOutput(created, "/pets/" + created.Id));
+    }
 
     /// <summary>
     /// The three parameters are the three bindings: <c>@httpLabel</c>, <c>@httpQuery("verbose")</c>

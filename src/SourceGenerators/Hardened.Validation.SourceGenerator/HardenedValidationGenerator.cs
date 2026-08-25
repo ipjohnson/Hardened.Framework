@@ -58,8 +58,7 @@ public class HardenedValidationGenerator : IIncrementalGenerator {
         // Says "this generator is running" to the handler generators, which emit calls to
         // validators this one produces and would otherwise name types nobody declares. Post-init
         // because that is the only generated source another generator can see.
-        context.RegisterPostInitializationOutput(static production => production.AddSource(
-            "Hardened.Validation.Marker.g.cs", MarkerSource));
+        context.RegisterPostInitializationOutput(static production => production.AddSource("Hardened.Validation.Marker.g.cs", GeneratedSource.Header(MarkerSource)));
 
         var options = context.AnalyzerConfigOptionsProvider
             .Select(static (provider, _) => ValidationGeneratorOptions.Read(provider));
@@ -83,7 +82,7 @@ public class HardenedValidationGenerator : IIncrementalGenerator {
             }
 
             if (result.Model is { } model) {
-                production.AddSource(HintNameFor(model), new ValidatorEmitter().Emit(model));
+                production.AddSource(HintNameFor(model), GeneratedSource.Header(new ValidatorEmitter().Emit(model)));
             }
         });
 
