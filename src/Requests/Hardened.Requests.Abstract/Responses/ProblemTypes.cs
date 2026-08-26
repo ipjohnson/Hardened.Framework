@@ -25,6 +25,8 @@ public static class ProblemTypes {
     /// <summary>The namespace every built-in problem type is qualified by.</summary>
     public const string Prefix = "urn:hardened:problem:";
 
+    public const string BadRequest = Prefix + "bad-request";
+
     public const string Unauthorized = Prefix + "unauthorized";
 
     public const string Forbidden = Prefix + "forbidden";
@@ -36,6 +38,8 @@ public static class ProblemTypes {
     public const string Gone = Prefix + "gone";
 
     public const string PreconditionFailed = Prefix + "precondition-failed";
+
+    public const string PreconditionRequired = Prefix + "precondition-required";
 
     public const string RateLimited = Prefix + "rate-limited";
 

@@ -649,6 +649,24 @@ namespace Hardened.Requests.Abstract.Responses
         public int Status { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(400)]
+    public sealed class BadRequest : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadRequest>
+    {
+        public BadRequest(string? Detail = null) { }
+        public string? Detail { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(400)]
+    public sealed class BadRequest<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadRequest<T>>
+    {
+        public BadRequest(T Body) { }
+        public T Body { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+    }
     [Hardened.Requests.Abstract.Responses.HttpStatus(409)]
     public sealed class Conflict : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Conflict>
     {
@@ -757,6 +775,16 @@ namespace Hardened.Requests.Abstract.Responses
         public string Title { get; }
         public string Type { get; }
     }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(200)]
+    public sealed class Ok<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Ok<T>>
+    {
+        public Ok(T Value, System.Collections.Generic.IReadOnlyDictionary<string, string>? Headers = null) { }
+        public Ok(T value, string headerName, string headerValue) { }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string>? Headers { get; init; }
+        public int Status { get; }
+        public T Value { get; init; }
+        public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
     [Hardened.Requests.Abstract.Responses.HttpStatus(412)]
     public sealed class PreconditionFailed : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionFailed>
     {
@@ -775,13 +803,33 @@ namespace Hardened.Requests.Abstract.Responses
         public string Title { get; }
         public string Type { get; }
     }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(428)]
+    public sealed class PreconditionRequired : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionRequired>
+    {
+        public PreconditionRequired(string? Detail = null) { }
+        public string? Detail { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+    }
+    [Hardened.Requests.Abstract.Responses.HttpStatus(428)]
+    public sealed class PreconditionRequired<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionRequired<T>>
+    {
+        public PreconditionRequired(T Body) { }
+        public T Body { get; init; }
+        public int Status { get; }
+        public string Title { get; }
+        public string Type { get; }
+    }
     public static class ProblemTypes
     {
+        public const string BadRequest = "urn:hardened:problem:bad-request";
         public const string Conflict = "urn:hardened:problem:conflict";
         public const string Forbidden = "urn:hardened:problem:forbidden";
         public const string Gone = "urn:hardened:problem:gone";
         public const string NotFound = "urn:hardened:problem:not-found";
         public const string PreconditionFailed = "urn:hardened:problem:precondition-failed";
+        public const string PreconditionRequired = "urn:hardened:problem:precondition-required";
         public const string Prefix = "urn:hardened:problem:";
         public const string RateLimited = "urn:hardened:problem:rate-limited";
         public const string ServiceUnavailable = "urn:hardened:problem:service-unavailable";
