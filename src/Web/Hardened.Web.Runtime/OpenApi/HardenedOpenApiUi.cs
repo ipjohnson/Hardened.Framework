@@ -40,8 +40,9 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// <b>Conventions apply to it.</b> The page has no generated route - a route path is a compile-time
 /// constant and this one is configuration - but <see cref="OpenApiUiProvider"/> builds its chain
 /// through <c>ExecutionHelper</c> rather than hand-rolling one, which is where authorization
-/// conventions are applied. The health endpoints and <see cref="OpenApiDocumentProvider"/> hand-roll
-/// theirs and are invisible to a convention; this is not.
+/// conventions are applied. <see cref="OpenApiDocumentProvider"/> and the health endpoints hand-rolled
+/// theirs and were invisible to a convention, so the page was gate-able and the document it renders
+/// was not; both go through the helper now.
 /// </para>
 ///
 /// <para>

@@ -25,7 +25,8 @@ namespace Hardened.Web.StaticContent;
 /// adds no authorization code: <c>CreateFilterArray</c> applies conventions and then asks
 /// <c>IGlobalFilterRegistry</c>, which is where <c>AuthorizationFilterProvider</c> lives. The same
 /// move <c>OpenApiUiProvider</c> made for a page whose path is configuration rather than a
-/// compile-time constant, which is exactly this situation.
+/// compile-time constant, and the one <c>OpenApiDocumentProvider</c> and <c>HealthCheckProvider</c>
+/// have since made for the same reason.
 /// </para>
 /// <para>
 /// <b>There is deliberately no <c>[AllowAnonymous]</c> in the metadata.</b> That is the one thing a
