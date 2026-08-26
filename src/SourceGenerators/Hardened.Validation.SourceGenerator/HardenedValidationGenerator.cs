@@ -175,7 +175,89 @@ public class HardenedValidationGenerator : IIncrementalGenerator {
 
         var model = frontEnd.Build(symbol, ValidationGeneratorOptions.ValidatorNameFor);
 
-        return new ModelResult(model, frontEnd.Diagnostics.ToImmutableArray());
+        var diagnostics = frontEnd.Diagnostics.ToList();
+
+        diagnostics.AddRange(RequiredValueTypesThatCannotBeMissed(symbol));
+
+        return new ModelResult(model, diagnostics.ToImmutableArray());
+    }
+
+    /// <summary>
+    /// Members declared required whose absence nothing can detect.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>[Required]</c> compiles to a null check and a value type is never null, so an omitted
+    /// <c>int</c> arrives as <c>0</c>, passes, and reaches the handler as a value the caller never
+    /// sent. Sited on the symbol rather than on the built model because what decides this is the
+    /// member's C# type and modifiers, which the validation IR has already abstracted away.
+    /// </para>
+    /// <para>
+    /// Spec-emitted models do not trip it: <c>SchemaEmitter</c> writes <c>[JsonRequired]</c> onto
+    /// exactly this shape, so the check reads that attribute and stays quiet. Nothing here needs to
+    /// know which front end produced the type - the presence of a remedy is the test.
+    /// </para>
+    /// </remarks>
+    private static IEnumerable<Diagnostic> RequiredValueTypesThatCannotBeMissed(
+        INamedTypeSymbol symbol) {
+        foreach (var member in symbol.GetMembers()) {
+            if (member is not IPropertySymbol property || property.IsStatic) {
+                continue;
+            }
+
+            // A nullable value type has somewhere to put "absent", and a reference type is what the
+            // null check was written for. Neither is at risk.
+            if (!property.Type.IsValueType ||
+                property.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T) {
+                continue;
+            }
+
+            if (!DeclaresRequired(property) || CanDetectAbsence(property)) {
+                continue;
+            }
+
+            yield return ValidationGeneratorDiagnostics.RequiredValueTypeCannotBeMissed(
+                symbol, property);
+        }
+    }
+
+    /// <summary>
+    /// Whether the member carries a required constraint, in either vocabulary the front end reads.
+    /// </summary>
+    private static bool DeclaresRequired(IPropertySymbol property) {
+        foreach (var attribute in property.GetAttributes()) {
+            var name = attribute.AttributeClass?.ToDisplayString();
+
+            if (name is "ValidationModules.Constraints.RequiredAttribute"
+                     or "System.ComponentModel.DataAnnotations.RequiredAttribute") {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether anything already makes the deserializer reject an omitted member.
+    /// </summary>
+    /// <remarks>
+    /// The <c>required</c> modifier is checked first because it is the better answer: the
+    /// reflection-based deserializer and the source-generated resolver both honour it, where
+    /// <c>[JsonRequired]</c> is read by the former alone.
+    /// </remarks>
+    private static bool CanDetectAbsence(IPropertySymbol property) {
+        if (property.IsRequired) {
+            return true;
+        }
+
+        foreach (var attribute in property.GetAttributes()) {
+            if (attribute.AttributeClass?.ToDisplayString()
+                == "System.Text.Json.Serialization.JsonRequiredAttribute") {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private sealed record ModelResult(ValidatedTypeModel? Model, ImmutableArray<Diagnostic> Diagnostics);

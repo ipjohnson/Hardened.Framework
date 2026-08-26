@@ -287,6 +287,166 @@ public class ValidationGeneratorTests {
 
     #endregion
 
+    // ---------------------------------------- required members of a value type
+
+    private const string RequiredValueType = """
+        using ValidationModules.Constraints;
+
+        namespace TestApp.Models;
+
+        public class Part {
+            [Required]
+            public int Category { get; set; }
+        }
+        """;
+
+    private static Diagnostic[] Warnings(GeneratorResult result, string id) =>
+        result.GeneratorDiagnostics.Where(d => d.Id == id).ToArray();
+
+    /// <summary>
+    /// A required member of a value type whose absence nothing can detect.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>[Required]</c> compiles to a null check and a value type is never null, so an omitted
+    /// <c>int</c> arrives as <c>0</c>, the check passes, and the API answers 201 carrying a value
+    /// the caller never sent. An omitted enum is worse - it becomes whichever member was declared
+    /// first, so the record reads as a deliberate choice rather than an absence.
+    /// </para>
+    /// <para>
+    /// The study found this fixed in contract-first and still live in code-first, by two agents in
+    /// the same run. It was fixed there because <c>SchemaEmitter</c> writes <c>[JsonRequired]</c>
+    /// onto exactly this shape; a generator cannot write an attribute onto a member somebody else
+    /// wrote, so for a hand-written model the only thing available is to say so.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ARequiredValueTypeMemberIsReported() {
+        var result = Run(("Entry.cs", EntryPoint), ("Part.cs", RequiredValueType));
+
+        var warning = Assert.Single(Warnings(result, "HRDV003"));
+
+        Assert.Contains("Category", warning.GetMessage());
+        Assert.Contains("int", warning.GetMessage());
+    }
+
+    /// <summary>
+    /// An enum is the case worth naming separately: the default is a real member, so the invented
+    /// value is indistinguishable from a chosen one.
+    /// </summary>
+    [Fact]
+    public void ARequiredEnumMemberIsReported() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Part.cs", """
+                using ValidationModules.Constraints;
+
+                namespace TestApp.Models;
+
+                public enum Category { Electrical, Hydraulic }
+
+                public class Part {
+                    [Required]
+                    public Category Category { get; set; }
+                }
+                """));
+
+        Assert.Single(Warnings(result, "HRDV003"));
+    }
+
+    /// <summary>
+    /// Both remedies silence it, because both make the deserializer reject the absence.
+    /// </summary>
+    [Theory]
+    [InlineData("[Required]\n    public required int Category { get; set; }")]
+    [InlineData("[Required]\n    [System.Text.Json.Serialization.JsonRequired]\n    public int Category { get; set; }")]
+    public void AMemberTheDeserializerCanRejectIsNotReported(string declaration) {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Part.cs", $$"""
+                using ValidationModules.Constraints;
+
+                namespace TestApp.Models;
+
+                public class Part {
+                    {{declaration}}
+                }
+                """));
+
+        Assert.Empty(Warnings(result, "HRDV003"));
+    }
+
+    /// <summary>
+    /// A reference type is what the null check was written for, and a nullable value type has
+    /// somewhere to put "absent". Neither is at risk, and reporting either would train people to
+    /// ignore this.
+    /// </summary>
+    [Theory]
+    [InlineData("public string Sku { get; set; } = \"\";")]
+    [InlineData("public int? Category { get; set; }")]
+    public void AMemberThatCanBeNullIsNotReported(string declaration) {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Part.cs", $$"""
+                using ValidationModules.Constraints;
+
+                namespace TestApp.Models;
+
+                public class Part {
+                    [Required]
+                    {{declaration}}
+                }
+                """));
+
+        Assert.Empty(Warnings(result, "HRDV003"));
+    }
+
+    /// <summary>
+    /// An unconstrained value type says nothing about being required, so there is nothing to warn
+    /// about.
+    /// </summary>
+    [Fact]
+    public void AnUnconstrainedValueTypeMemberIsNotReported() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Part.cs", """
+                using ValidationModules.Constraints;
+
+                namespace TestApp.Models;
+
+                public class Part {
+                    [StringLength(Min = 1, Max = 8)]
+                    public string Sku { get; set; } = "";
+
+                    public int Category { get; set; }
+                }
+                """));
+
+        Assert.Empty(Warnings(result, "HRDV003"));
+    }
+
+    /// <summary>
+    /// The DataAnnotations spelling reaches the same place, because the front end reads both
+    /// vocabularies and this has to agree with it.
+    /// </summary>
+    [Fact]
+    public void TheDataAnnotationsSpellingIsReportedToo() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Part.cs", """
+                using System.ComponentModel.DataAnnotations;
+
+                namespace TestApp.Models;
+
+                public class Part {
+                    [Required]
+                    public int Category { get; set; }
+                }
+                """));
+
+        Assert.Single(Warnings(result, "HRDV003"));
+    }
+
     #region registration into the entry point
 
     /// <summary>

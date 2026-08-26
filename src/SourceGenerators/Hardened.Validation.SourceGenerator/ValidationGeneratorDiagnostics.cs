@@ -38,6 +38,56 @@ public static class ValidationGeneratorDiagnostics {
         isEnabledByDefault: true);
 
     /// <summary>
+    /// A required member of a value type that nothing can find missing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>[Required]</c> compiles to a null check, and a value type is never null. So
+    /// <c>[Required] public int Category { get; set; }</c> deserializes an omitted member to
+    /// <c>0</c>, the check passes because <c>0</c> is not null, and the API answers 201 carrying a
+    /// value the caller never sent. An omitted enum is worse: it becomes whichever member was
+    /// declared first, so the record reads as a deliberate choice.
+    /// </para>
+    /// <para>
+    /// <b>Why this is a diagnostic and not a fix.</b> Spec-emitted models get <c>[JsonRequired]</c>
+    /// written onto them by <c>SchemaEmitter</c>, which is why the same defect was closed there and
+    /// not here. A generator cannot add an attribute to a member somebody else wrote, so the only
+    /// thing available for a hand-written model is to say so.
+    /// </para>
+    /// <para>
+    /// Both remedies it names are one word. <c>[JsonRequired]</c> is read by the reflection-based
+    /// deserializer and the <c>required</c> modifier is read by both it and the source-generated
+    /// resolver, which is why the modifier is named first.
+    /// </para>
+    /// </remarks>
+    public static readonly DiagnosticDescriptor RequiredValueTypeCannotBeMissedDescriptor = new(
+        "HRDV003",
+        "A required member of a value type cannot be found missing",
+        "'{0}.{1}' is required and is '{2}', which is a value type - so an omitted member " +
+        "deserializes to default({2}) and the required check passes, because default({2}) is not " +
+        "null. Declare it 'required', or add [JsonRequired], so the deserializer rejects the " +
+        "absence. Making it '{2}?' also works and changes the model's shape.",
+        "Hardened.Validation",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    /// <summary>
+    /// Reports <see cref="RequiredValueTypeCannotBeMissedDescriptor"/> against the member.
+    /// </summary>
+    /// <remarks>
+    /// Located on the member's own declaration rather than the type's, because the fix is one word
+    /// on one property and a diagnostic pointing at the class makes the reader find which.
+    /// </remarks>
+    public static Diagnostic RequiredValueTypeCannotBeMissed(
+        INamedTypeSymbol owner, IPropertySymbol property) =>
+        Diagnostic.Create(
+            RequiredValueTypeCannotBeMissedDescriptor,
+            property.Locations.Length > 0 ? property.Locations[0] : Location.None,
+            owner.Name,
+            property.Name,
+            property.Type.ToDisplayString());
+
+    /// <summary>
     /// Reports <see cref="DuplicateValidatorSourceDescriptor"/> against the type that collided.
     /// </summary>
     /// <remarks>
