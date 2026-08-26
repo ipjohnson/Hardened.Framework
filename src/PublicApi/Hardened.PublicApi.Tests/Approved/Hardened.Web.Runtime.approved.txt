@@ -234,7 +234,14 @@ namespace Hardened.Web.Runtime.Health
         public bool IncludeDetail { get; set; }
         public string LivePath { get; set; }
         public string ReadyPath { get; set; }
+        public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; set; }
         public System.TimeSpan TotalTimeout { get; set; }
+    }
+    public class HealthCheckController
+    {
+        public HealthCheckController(System.IServiceProvider rootProvider, Hardened.Web.Runtime.Health.HealthCheckConfiguration config) { }
+        public System.Threading.Tasks.Task Live(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task Ready(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     public class HealthCheckProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
     {
@@ -307,6 +314,11 @@ namespace Hardened.Web.Runtime.OpenApi
         string ScriptUrl { get; }
         string Title { get; }
     }
+    public class OpenApiDocumentController
+    {
+        public OpenApiDocumentController() { }
+        public System.Threading.Tasks.Task Write(Hardened.Requests.Abstract.Execution.IExecutionContext context, byte[] gzipDocument, string contentType) { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
     public class OpenApiDocumentPathAttribute : System.Attribute
     {
@@ -315,8 +327,8 @@ namespace Hardened.Web.Runtime.OpenApi
     }
     public class OpenApiDocumentProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
     {
-        public OpenApiDocumentProvider(System.ReadOnlySpan<byte> gzipDocument, string path = "/openapi.json", string contentType = "application/json") { }
-        public OpenApiDocumentProvider(string document, string path = "/openapi.json", string contentType = "application/json") { }
+        public OpenApiDocumentProvider(System.IServiceProvider serviceProvider, System.ReadOnlySpan<byte> gzipDocument, string path = "/openapi.json", string contentType = "application/json", Hardened.Requests.Abstract.Authorization.Requirement? requirement = null) { }
+        public OpenApiDocumentProvider(System.IServiceProvider serviceProvider, string document, string path = "/openapi.json", string contentType = "application/json", Hardened.Requests.Abstract.Authorization.Requirement? requirement = null) { }
         public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     [Hardened.Web.Runtime.OpenApi.OpenApiDocumentPath("/openapi.json")]

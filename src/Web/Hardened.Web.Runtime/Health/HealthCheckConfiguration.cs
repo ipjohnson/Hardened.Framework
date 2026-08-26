@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Authorization;
 namespace Hardened.Web.Runtime.Health;
 
 /// <summary>
@@ -45,4 +46,29 @@ public class HealthCheckConfiguration {
     /// behind a private listener, or when the endpoint is not routable from outside.
     /// </remarks>
     public bool IncludeDetail { get; set; }
+
+    /// <summary>
+    /// What a caller must satisfy to read either health endpoint.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Null, which inherits the application's posture rather than overriding it: public where no
+    /// authorization is configured, denied under default-deny, and gate-able by convention
+    /// everywhere else. That is the same choice <c>HardenedOpenApiUi</c> made for the reference
+    /// page, and the reason neither carries an <c>[AllowAnonymous]</c> - it is the one thing a
+    /// convention cannot narrow.
+    /// </para>
+    /// <para>
+    /// Stating one here is the supported way for a handler registered by hand to say what it needs,
+    /// per <c>IExecutionRequestHandlerInfo.Requirement</c>. It conjoins with anything a convention
+    /// adds rather than replacing it, so a requirement set here can only ever narrow.
+    /// </para>
+    /// <para>
+    /// Most deployments should leave this alone. A liveness probe that has to authenticate is a
+    /// liveness probe that reports unhealthy when the identity provider is down, which is the
+    /// opposite of what it is for. Set it when the endpoints are routable from outside and
+    /// <see cref="IncludeDetail"/> is on.
+    /// </para>
+    /// </remarks>
+    public Requirement? Requirement { get; set; }
 }

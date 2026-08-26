@@ -390,7 +390,11 @@ public static class RoutingTableGenerator {
                 "AddSingleton",
                 new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider },
                 CodeOutputComponent.Get(
-                    "new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
+                    // A factory rather than an instance. The provider builds its chain through
+                    // ExecutionHelper - which is where conventions are applied and the global filter
+                    // registry is asked for this handler's guard - and that needs the container.
+                    "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
+                    "serviceProvider, " +
                     classDefinition.Name + "." + OpenApiDocumentSource.DocumentPropertyName +
                     ", \"" + path.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\")")));
     }

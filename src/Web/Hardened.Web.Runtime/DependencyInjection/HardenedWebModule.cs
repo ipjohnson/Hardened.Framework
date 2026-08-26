@@ -7,6 +7,7 @@ using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Cors;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Health;
+using Hardened.Web.Runtime.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -37,6 +38,13 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
         services.AddSingleton<IStartupService, CorsStartupService>();
 
         services.TryAddSingleton<HealthCheckConfiguration>();
+
+        // The controllers the framework's own endpoints invoke through. Registered here rather than
+        // beside each provider because InstanceFilter resolves a controller with GetRequiredService,
+        // and OpenApiDocumentProvider is constructed by generated code with no module of its own to
+        // register from.
+        services.TryAddSingleton<OpenApiDocumentController>();
+        services.TryAddSingleton<HealthCheckController>();
 
         // Registered ahead of anything an application adds, because providers are consulted in
         // reverse registration order - so an application declaring its own route at either health

@@ -204,7 +204,11 @@ internal static class SpecRoutingTableGenerator {
             if (registration.SourceUrl.Length > 0) {
                 statements.Add(new CodeOutputComponent(
                     $"serviceCollection.AddSingleton<{Global(KnownTypes.Web.IWebExecutionRequestHandlerProvider)}>(" +
-                    "new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(global::" +
+                    // A factory rather than an instance. The provider builds its chain through
+                    // ExecutionHelper - which is where conventions are applied and the global filter
+                    // registry is asked for this handler's guard - and that needs the container.
+                    "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
+                    "serviceProvider, global::" +
                     registration.SpecificationTypeName + ".DocumentGZip, " +
                     Quote(registration.SourceUrl) + ", global::" +
                     registration.SpecificationTypeName + ".ContentType))"));
@@ -220,7 +224,8 @@ internal static class SpecRoutingTableGenerator {
             // named openapi.json.
             statements.Add(new CodeOutputComponent(
                 $"serviceCollection.AddSingleton<{Global(KnownTypes.Web.IWebExecutionRequestHandlerProvider)}>(" +
-                "new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(global::" +
+                "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
+                "serviceProvider, global::" +
                 appModel.EntryPointType.Namespace + "." + appModel.EntryPointType.Name + "." +
                 OpenApiDocumentSource.DocumentPropertyName + ", " +
                 Quote(registration.PublishUrl) + "))"));

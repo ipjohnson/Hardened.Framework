@@ -1,13 +1,11 @@
-using System.Globalization;
 using System.IO.Compression;
 using System.Text;
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
-using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.OpenApi;
 
@@ -19,6 +17,22 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// Registered as one more <c>IWebExecutionRequestHandlerProvider</c>, which is how the routing
 /// tables themselves are registered - the pipeline asks each in turn, so this needs no route
 /// attribute and no entry in any generated table.
+/// </para>
+/// <para>
+/// <b>Its chain is built by <see cref="ExecutionHelper"/>.</b> It used to build its own, holding one
+/// filter that wrote the bytes - so nothing that hangs off a handler reached the published document:
+/// no filters, no conventions, no authorization. <c>IGlobalFilterRegistry</c>, which is where
+/// <c>AuthorizationFilterProvider</c> lives, is only consulted inside
+/// <c>ExecutionHelper.CreateFilterArray</c>, so an application on default-deny - whose entire
+/// premise is that an unannotated handler is denied rather than public - served its whole API
+/// description anonymously and got no diagnostic saying so. The reference page at <c>/docs</c> was
+/// gate-able and the document it renders was not.
+/// </para>
+/// <para>
+/// The same move <see cref="OpenApiUiProvider"/> and <c>StaticContentMountProvider</c> already made,
+/// for the same reason. A document that wants a policy of its own states it as its
+/// <c>requirement</c>, which <see cref="IExecutionRequestHandlerInfo"/> documents as the
+/// supported way for a handler registered by hand to say what it needs.
 /// </para>
 /// <para>
 /// The providers are consulted in reverse registration order, so an application that declares its
@@ -35,7 +49,12 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// </remarks>
 public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
     private readonly string _path;
-    private readonly OpenApiDocumentHandler _handler;
+    private readonly byte[] _gzipDocument;
+    private readonly string _contentType;
+    private readonly Requirement? _requirement;
+    private readonly IServiceProvider _serviceProvider;
+
+    private IExecutionRequestHandler? _handler;
 
     /// <summary>
     /// Serves the generated document, which arrives gzip-compressed.
@@ -45,12 +64,17 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
     /// <c>ReadOnlySpan&lt;byte&gt;</c> over a metadata blob, with nothing allocated to hold it - and
     /// copied once here, since a span cannot be stored in a field or cross an await.
     /// </param>
+    /// <param name="requirement">
+    /// What a caller must satisfy to read the document. Null inherits the application's posture,
+    /// which is the same three behaviours <c>HardenedOpenApiUi</c> chose for the page: public where
+    /// no authorization is configured, denied under default-deny, and gate-able by convention
+    /// everywhere else.
+    /// </param>
     public OpenApiDocumentProvider(
+        IServiceProvider serviceProvider,
         ReadOnlySpan<byte> gzipDocument, string path = "/openapi.json",
-        string contentType = "application/json") {
-        _path = path;
-        _handler = new OpenApiDocumentHandler(gzipDocument.ToArray(), path, contentType);
-    }
+        string contentType = "application/json", Requirement? requirement = null)
+        : this(serviceProvider, gzipDocument.ToArray(), path, contentType, requirement) { }
 
     /// <summary>
     /// Serves <paramref name="document"/> at <paramref name="path"/>.
@@ -68,9 +92,19 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
     /// same size a generated one does.
     /// </remarks>
     public OpenApiDocumentProvider(
-        string document, string path = "/openapi.json", string contentType = "application/json") {
+        IServiceProvider serviceProvider,
+        string document, string path = "/openapi.json",
+        string contentType = "application/json", Requirement? requirement = null)
+        : this(serviceProvider, Compress(document), path, contentType, requirement) { }
+
+    private OpenApiDocumentProvider(
+        IServiceProvider serviceProvider,
+        byte[] gzipDocument, string path, string contentType, Requirement? requirement) {
+        _serviceProvider = serviceProvider;
+        _gzipDocument = gzipDocument;
         _path = path;
-        _handler = new OpenApiDocumentHandler(Compress(document), path, contentType);
+        _contentType = contentType;
+        _requirement = requirement;
     }
 
     /// <summary>What a request to this path may do, when it did something else.</summary>
@@ -81,9 +115,8 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
             return null;
         }
 
-        // HEAD as well as GET. The table's usual HEAD-to-GET redirection does not reach a provider
-        // serving its own chain, but WebExecutionHandlerService.Dispatch still drops the body and
-        // reports the length for one - so accepting it here is all that was missing.
+        // HEAD as well as GET. WebExecutionHandlerService.Dispatch drops the body and reports the
+        // length for one, so accepting it here is all that is needed.
         var method = context.Request.Method;
 
         if (!string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
@@ -93,7 +126,12 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
             return RequestHandlerInfo.MethodNotAllowed(Allow);
         }
 
-        return new RequestHandlerInfo(_handler, PathTokenCollection.Empty);
+        // Built once, lazily, rather than per request - conventions are asked per handler
+        // construction, which is the contract they are written against.
+        return new RequestHandlerInfo(
+            _handler ??= new Handler(
+                _serviceProvider, _gzipDocument, _path, _contentType, _requirement),
+            PathTokenCollection.Empty);
     }
 
     private static byte[] Compress(string document) {
@@ -110,79 +148,26 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider {
         return output.ToArray();
     }
 
-    private class OpenApiDocumentHandler : IExecutionRequestHandler {
-        private readonly byte[] _gzipDocument;
-        private readonly string _contentType;
-
-        public OpenApiDocumentHandler(byte[] gzipDocument, string path, string contentType) {
-            _gzipDocument = gzipDocument;
-            _contentType = contentType;
-
-            HandlerInfo = new ExecutionRequestHandlerInfo(
-                path, "GET", typeof(OpenApiDocumentProvider), nameof(GetExecutionChain));
-        }
-
-        public IExecutionRequestHandlerInfo HandlerInfo { get; }
-
-        public IExecutionChain GetExecutionChain(IExecutionContext context) =>
-            new ExecutionChain(
-                new Func<IExecutionContext, IExecutionFilter>[] {
-                    _ => new WriteFilter(_gzipDocument, _contentType)
-                },
-                context);
-    }
-
-    /// <summary>
-    /// Writes the bytes directly rather than going through serialization: the document is already
-    /// JSON, and handing it to a serializer would encode it a second time as a string.
-    /// </summary>
-    private class WriteFilter : IExecutionFilter {
-        private readonly byte[] _gzipDocument;
-        private readonly string _contentType;
-
-        public WriteFilter(byte[] gzipDocument, string contentType) {
-            _gzipDocument = gzipDocument;
-            _contentType = contentType;
-        }
-
-        public async Task Execute(IExecutionChain chain) {
-            var context = chain.Context;
-            var response = context.Response;
-
-            response.Status = 200;
-            response.ContentType = _contentType;
-            response.ShouldSerialize = false;
-            response.Headers[KnownHeaders.CacheControl] = new StringValues("no-cache");
-
-            if (AcceptsGZip(context)) {
-                response.IsBinary = true;
-                response.Headers[KnownHeaders.ContentEncoding] = KnownEncoding.GZipStringValues;
-                response.Headers[KnownHeaders.ContentLength] =
-                    _gzipDocument.Length.ToString(CultureInfo.InvariantCulture);
-
-                await response.Body.WriteAsync(_gzipDocument, 0, _gzipDocument.Length);
-
-                return;
-            }
-
-            using var source = new MemoryStream(_gzipDocument, writable: false);
-            await using var gzip = new GZipStream(source, CompressionMode.Decompress);
-
-            await gzip.CopyToAsync(response.Body);
-        }
+    private sealed class Handler : BaseExecutionHandler<OpenApiDocumentController> {
 
         /// <summary>
-        /// Whether the client said it takes gzip.
+        /// Empty, and load bearing. There is deliberately no <c>[AllowAnonymous]</c>: that is the one
+        /// thing a convention cannot narrow, and without it the document inherits the application's
+        /// posture rather than overriding it.
         /// </summary>
-        /// <remarks>
-        /// The bounded token search this used to spell out inline now lives in
-        /// <see cref="AcceptEncodingHeader"/>, unchanged. It was the only correct reading of
-        /// <c>Accept-Encoding</c> in the codebase and it was private to this file, while
-        /// <c>StaticContentHandler</c> a few directories away asked the question with
-        /// <c>StringValues.Contains</c> and got the wrong answer for every browser.
-        /// </remarks>
-        private static bool AcceptsGZip(IExecutionContext context) =>
-            context.Request.Headers.TryGetValue(KnownHeaders.AcceptEncoding, out var accepted) &&
-            AcceptEncodingHeader.Accepts(accepted, KnownEncoding.GZip);
+        private static readonly object[] Metadata = [];
+
+        public Handler(
+            IServiceProvider serviceProvider,
+            byte[] gzipDocument, string path, string contentType, Requirement? requirement)
+            : base(ExecutionHelper.AsyncStandardFilterEmptyParameters<OpenApiDocumentController>(
+                serviceProvider,
+                new ExecutionRequestHandlerInfo(
+                    path, "GET", typeof(OpenApiDocumentController),
+                    nameof(OpenApiDocumentController.Write), [], Metadata, requirement),
+                // A lambda rather than a static method, because what varies between two published
+                // documents is exactly what it closes over.
+                (context, controller) => controller.Write(context, gzipDocument, contentType),
+                ExecutionHelper.GetFilterInfo(Metadata))) { }
     }
 }
