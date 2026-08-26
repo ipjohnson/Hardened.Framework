@@ -1226,6 +1226,72 @@ internal static class OpenApiSpecParser {
         if (schema.Not != null) {
             unmapped.Add(new UnmappedKeywordModel("not", location));
         }
+
+        NoteUnmappedItemConstraints(schema, location, unmapped);
+    }
+
+    /// <summary>
+    /// Constraints written on an array's inline item schema, which are read by nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An array property keeps three things from its <c>items</c>: the reference, the type and the
+    /// format. Every constraint beside them is dropped - so
+    /// <c>items: { type: string, minLength: 3 }</c> declares a rule, generates
+    /// <c>List&lt;string&gt;</c>, and accepts the empty string at runtime.
+    /// </para>
+    /// <para>
+    /// This is not the nested-array case that was already closed. An <c>items</c> naming a schema
+    /// gets its properties walked and constrained as any other model's are; what is dropped is a
+    /// constraint on the element <em>itself</em>, which is the shape somebody writes for an array of
+    /// primitives - a list of SKUs, of codes, of identifiers - and the shape with nowhere else to
+    /// put the rule.
+    /// </para>
+    /// <para>
+    /// Reported rather than honoured. Honouring means compiling a per-element rule for a primitive,
+    /// which is a validator vocabulary question rather than a parser one, and answering it here
+    /// would put a second constraint compiler beside the one ValidationModules owns. Until then the
+    /// document says the rule and the build says it is not applied, which is the whole point of
+    /// <c>HOAT013</c>.
+    /// </para>
+    /// </remarks>
+    private static void NoteUnmappedItemConstraints(
+        IOpenApiSchema schema, string location, ICollection<UnmappedKeywordModel> unmapped) {
+        if (SchemaType(schema) != "array" || schema.Items is not { } items) {
+            return;
+        }
+
+        // A referenced item schema is generated as a type and constrained through its own
+        // properties, so nothing is lost there and reporting it would be a false positive.
+        if (GetNonPrimitiveRef(items) != null) {
+            return;
+        }
+
+        var at = location + "[]";
+
+        if (items.MinLength.HasValue) {
+            unmapped.Add(new UnmappedKeywordModel("minLength", at));
+        }
+
+        if (items.MaxLength.HasValue) {
+            unmapped.Add(new UnmappedKeywordModel("maxLength", at));
+        }
+
+        if (!string.IsNullOrEmpty(items.Pattern)) {
+            unmapped.Add(new UnmappedKeywordModel("pattern", at));
+        }
+
+        if (Bound(items.Minimum) is not null || Bound(items.ExclusiveMinimum) is not null) {
+            unmapped.Add(new UnmappedKeywordModel("minimum", at));
+        }
+
+        if (Bound(items.Maximum) is not null || Bound(items.ExclusiveMaximum) is not null) {
+            unmapped.Add(new UnmappedKeywordModel("maximum", at));
+        }
+
+        if (items.MultipleOf.HasValue) {
+            unmapped.Add(new UnmappedKeywordModel("multipleOf", at));
+        }
     }
 
     private static void ExtractValidationConstraints(IOpenApiSchema schema, PropertyModel model) {
