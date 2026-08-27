@@ -204,7 +204,7 @@ reference `Hardened.Web.Runtime` and `Hardened.Web.SourceGenerator`.
 Every template writes a `Directory.Packages.props` with one version for all Hardened packages:
 
 ```xml
-<HardenedVersion>0.11.0-rc1000</HardenedVersion>
+<HardenedVersion>0.14.0-rc1000</HardenedVersion>
 ```
 
 That is the version the template package shipped with, stamped in at pack time rather than
@@ -215,7 +215,7 @@ Templates do **not** update themselves. A newer release is a newer template pack
 
 ```bash
 dotnet new install Hardened.Templates          # latest
-dotnet new install Hardened.Templates::0.11.0-rc1000   # a specific one
+dotnet new install Hardened.Templates::0.14.0-rc1000   # a specific one
 ```
 
 Existing projects are unaffected — they keep the version in their own
