@@ -70,6 +70,19 @@ internal static class SchemaEmitter {
 
         record.TypeKeyword = ClassKeyword.Record;
         record.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
+
+        // Sealed unless the document says something derives from it. A validator for a sealed type
+        // needs no rules for a type that might inherit it, which is the whole of the win - and a
+        // request or response model is the case where nothing does inherit it.
+        //
+        // Sealed and partial answer different questions, which is why both are set. Sealed forbids
+        // deriving; partial permits extending in place, which is how an application adds an
+        // interface or a computed member to a type it did not write. The response case types have
+        // been emitted this way since headers landed.
+        if (IsLeaf(schema, allSchemas)) {
+            record.Modifiers |= ComponentModifier.Sealed;
+        }
+
         record.Comment = DocComment.Format(schema.Description);
 
         if (schema.IsDeprecated) {
@@ -295,6 +308,47 @@ internal static class SchemaEmitter {
     /// first.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Whether nothing in the document derives from <paramref name="schema"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two ways a schema is a base, and both disqualify it. Another schema names it as its
+    /// <c>BaseRef</c> - an <c>allOf</c> that composes it - or it declares a discriminator, which
+    /// makes it a polymorphic base whether or not this slice of the document happens to contain
+    /// anything mapped to it.
+    /// </para>
+    /// <para>
+    /// <b>Unknown means unsealed.</b> <paramref name="allSchemas"/> is optional, and a caller that
+    /// passes nothing is not saying the schema is a leaf - it is saying it does not know. Sealing on
+    /// no evidence would emit a type a later slice cannot derive from, and the failure would land in
+    /// the consumer's build rather than here.
+    /// </para>
+    /// <para>
+    /// Compared on the pascal-cased name, the same way <see cref="SchemaShape.Base"/> resolves one,
+    /// so the two agree about what a reference points at rather than agreeing by inspection.
+    /// </para>
+    /// </remarks>
+    private static bool IsLeaf(SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas) {
+        if (allSchemas == null || schema.IsPolymorphicBase) {
+            return false;
+        }
+
+        var name = NamingHelper.ToPascalCase(schema.Name);
+
+        foreach (var candidate in allSchemas) {
+            if (candidate.BaseRef == null) {
+                continue;
+            }
+
+            if (NamingHelper.ToPascalCase(TypeMapper.GetRefName(candidate.BaseRef)) == name) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static void EmitBaseType(
         ClassDefinition record, SchemaModel schema, string modelsNamespace,
         IReadOnlyList<SchemaModel>? allSchemas) {

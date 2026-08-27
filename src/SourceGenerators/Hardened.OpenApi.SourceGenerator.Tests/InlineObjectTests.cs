@@ -63,12 +63,12 @@ public class InlineObjectTests {
         var generated = OpenApiGenerator.Run(Specs.InlineObjects).AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public partial record PetAddress(", generated);
-        Assert.Contains("public partial record PetAddressGeo(", generated);
+        Assert.Contains("public sealed partial record PetAddress(", generated);
+        Assert.Contains("public sealed partial record PetAddressGeo(", generated);
         Assert.Contains("PetAddress Address", generated);
 
         foreach (var line in generated.Split('\n')) {
-            if (line.TrimStart().StartsWith("public partial record ")) {
+            if (line.TrimStart().StartsWith("public sealed partial record ")) {
                 Assert.DoesNotContain("JsonElement", line);
             }
         }
