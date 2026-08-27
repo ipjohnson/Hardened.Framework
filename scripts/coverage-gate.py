@@ -72,6 +72,17 @@ import sys
 # run fails. Hardened.Shared.Runtime's branch coverage moves between 85.2 and 85.8 - wider than
 # this tolerance - and was briefly pinned at 85.8 that way. Where an assembly is known to wobble,
 # the baseline belongs at the bottom of the range rather than at the reading in front of you.
+#
+# Two more are now measured, from a pull request's run and the run of the same code after it
+# merged:
+#
+#   Hardened.Requests.Runtime branch   94.3 then 93.7   0.6 - wider than the tolerance
+#   Hardened.Shared.Testing   branch   84.7 then 84.2   0.5 - exactly the tolerance
+#
+# Pinning the first at 94.3 would have failed the next ordinary run, which is how that pair came
+# to be measured rather than assumed. Neither was raised. Take the summary from a run of main
+# rather than of the branch proposing the raise: they are not the same reading, and the branch's
+# is the one with no run after it to check against.
 TOLERANCE = 0.5
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
