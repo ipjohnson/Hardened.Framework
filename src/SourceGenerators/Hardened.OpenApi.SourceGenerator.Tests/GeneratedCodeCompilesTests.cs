@@ -44,7 +44,7 @@ public class GeneratedCodeCompilesTests {
 
         var record = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public partial record Widget(", record);
+        Assert.Contains("public sealed partial record Widget(", record);
         Assert.Contains("global::System.Collections.Generic.List<global::TestNamespace.Models.Part>? Parts = default", record);
         Assert.Contains("global::System.Collections.Generic.Dictionary<string,string>? Labels = default", record);
     }
@@ -428,7 +428,7 @@ public class GeneratedCodeCompilesTests {
                     id: { type: string }
             """).AssertNoErrors();
 
-        Assert.Contains("public partial record Orphan(", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("public sealed partial record Orphan(", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -449,7 +449,7 @@ public class GeneratedCodeCompilesTests {
                   type: object
             """).AssertNoErrors();
 
-        Assert.Contains("public partial record Empty;", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("public sealed partial record Empty;", result.SourceContaining("petstore.g.cs"));
     }
 
     /// <summary>
@@ -505,7 +505,7 @@ public class GeneratedCodeCompilesTests {
                     tracking_number: { type: string }
             """).AssertNoErrors();
 
-        Assert.Contains("public partial record ShippingLabel(", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains("public sealed partial record ShippingLabel(", result.SourceContaining("petstore.g.cs"));
         Assert.Contains("public partial interface IShippingLabelService", result.SourceContaining("petstore.g.cs"));
         Assert.Contains("ListShippingLabels(", result.SourceContaining("petstore.g.cs"));
     }
@@ -634,7 +634,7 @@ public class GeneratedCodeCompilesTests {
                 "namespace TestNamespace; public class NotAModule { }")
             .AssertNoErrors();
 
-        Assert.Contains("public partial record Pet", result.GeneratedSources["petstore.g.cs"]);
+        Assert.Contains("public sealed partial record Pet", result.GeneratedSources["petstore.g.cs"]);
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("SpecRouting"));
     }
 
@@ -733,16 +733,25 @@ public class GeneratedCodeCompilesTests {
         var generated = Undent(OpenApiGenerator.Run(Specs.DiscriminatedHierarchy).AssertNoErrors());
 
         // The base declares the shared properties; each derived record forwards them.
+        //
+        // Pet is deliberately not sealed. It is the one shape in the emitter that something derives
+        // from, so it is the one that keeps the door open - every leaf beside it seals.
         Assert.Contains("public partial record Pet(", generated);
+        Assert.DoesNotContain("public sealed partial record Pet(", generated);
         Assert.Contains(") : global::TestNamespace.Models.Pet(PetType, Name, Nickname);", generated);
         Assert.Contains("record Dog(", generated);
         Assert.Contains("record Cat(", generated);
+
+        // And the derived ends are leaves, so they do seal.
+        Assert.Contains("public sealed partial record Dog(", generated);
+        Assert.Contains("public sealed partial record Cat(", generated);
 
         // The whole point: the branches are typed, not an untyped blob. Checked on the record
         // declarations rather than the file, because the resolver always carries a JsonElement
         // entry among its primitives whatever the spec says.
         foreach (var line in generated.Split('\n')) {
-            if (line.StartsWith("public partial record ")) {
+            if (line.StartsWith("public partial record ") ||
+                line.StartsWith("public sealed partial record ")) {
                 Assert.DoesNotContain("JsonElement", line);
             }
         }
