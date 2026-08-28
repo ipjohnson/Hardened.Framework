@@ -1,9 +1,4 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="website/public/hardened-mark-dark.svg">
-  <img src="website/public/hardened-mark.svg" alt="" width="72">
-</picture>
-
-# Hardened.Docs
+# <picture><source media="(prefers-color-scheme: dark)" srcset="website/public/hardened-mark-dark.svg"><img src="website/public/hardened-mark.svg" alt="" width="34"></picture> Hardened.Docs
 
 Documentation for the [Hardened](https://ipjohnson.github.io/Hardened.Docs/) ecosystem — a
 compile-time, source-generated .NET framework for web APIs and AWS Lambda.
