@@ -20,7 +20,19 @@
         <!-- licenseUrl is deprecated (NU5125) and pointed at another project's licence.
              Both repositories are MIT. -->
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+        <PackageIcon>hardened-icon-128.png</PackageIcon>
     </PropertyGroup>
+
+    <!--
+      PackageIcon names a file inside the nupkg, so the icon has to be packed into every
+      package alongside declaring it - a declaration without the file is NU5046 at pack time.
+      One icon for the whole Hardened.* family, from assets/ at the repository root.
+    -->
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)../assets/hardened-icon-128.png"
+              Pack="true" PackagePath="/" Visible="false" />
+    </ItemGroup>
 
     <!--
       The ValidationModules version, in one place, because two projects consume it in two
