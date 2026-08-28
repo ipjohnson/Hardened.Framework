@@ -141,18 +141,22 @@ public static class FunctionGeneratorHarness {
     }
 
     /// <summary>
-    /// The attributes the streaming generator selects on. They are normally emitted by
-    /// DependencyModules from the <c>[DependencyModule]</c> classes the streaming runtimes ship —
-    /// that generator does not run here, so they are declared by hand.
+    /// The attribute the streaming generator selects on, plus the three names it stopped selecting
+    /// on. Normally emitted by DependencyModules from the <c>[DependencyModule]</c> class the
+    /// streaming runtime ships — that generator does not run here, so they are declared by hand.
     ///
     /// <para>
-    /// <c>LambdaFunctionApplicationAttribute</c> is declared alongside them because the streaming
-    /// selector matches its name, but nothing in either repository defines it. See
-    /// <c>StreamingFunctionGeneratorTests</c>.
+    /// <c>StreamingLambdaFunctionModuleAttribute</c> is the live one. The other three are kept so
+    /// that the tests asserting they are <em>not</em> selected have something that compiles:
+    /// <c>StreamingLambdaFunction</c> is what the module attribute was called before 2026-08-27,
+    /// and <c>StreamingLambdaFunctionApplication</c> and <c>LambdaFunctionApplication</c> never
+    /// existed outside this string and the selector's predicate.
     /// </para>
     /// </summary>
     public const string StreamingAttributes = """
         namespace TestApp;
+
+        public class StreamingLambdaFunctionModuleAttribute : System.Attribute { }
 
         public class StreamingLambdaFunctionAttribute : System.Attribute { }
 

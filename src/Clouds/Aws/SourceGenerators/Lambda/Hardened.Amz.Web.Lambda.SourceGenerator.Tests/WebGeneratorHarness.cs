@@ -145,15 +145,21 @@ public static class WebGeneratorHarness {
     }
 
     /// <summary>
-    /// The attributes the streaming web selector matches, declared in the test's own namespace.
+    /// The attribute the streaming web selector matches, plus the one it stopped matching, declared
+    /// in the test's own namespace.
     ///
     /// <para>
-    /// <c>StreamingLambdaWebApplicationAttribute</c> is a real type in
-    /// <c>Hardened.Amz.Web.Lambda.Streaming</c> and <c>StreamingLambdaWebModuleAttribute</c> is one
-    /// DependencyModules emits from the <c>[DependencyModule]</c> class beside it — but the selector
-    /// matches <em>simple names in syntax</em> and never resolves a symbol, so these stand in for
-    /// both. That equivalence is not only a test convenience: a consumer's own attribute of either
-    /// name selects the streaming generator just as effectively.
+    /// <c>StreamingLambdaWebModuleAttribute</c> is what DependencyModules emits from the
+    /// <c>[DependencyModule]</c> class the streaming runtime ships, and is the live selector. The
+    /// selector matches <em>simple names in syntax</em> and never resolves a symbol, so a local
+    /// declaration stands in for it — and a consumer's own attribute of that name selects the
+    /// streaming generator just as effectively.
+    /// </para>
+    /// <para>
+    /// <c>StreamingLambdaWebApplicationAttribute</c> is kept only so the test asserting it is no
+    /// longer selected has something that compiles. The real type is
+    /// <c>[Obsolete(error: true)]</c> as of 2026-08-27; it registered no services, so an
+    /// application selected by it threw on construction.
     /// </para>
     /// </summary>
     public const string StreamingAttributes = """

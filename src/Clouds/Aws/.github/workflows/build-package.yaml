@@ -51,12 +51,15 @@ jobs:
           fi
           echo "No silently skipped tests."
 
-      # Some tests skip themselves rather than fail when what they need is not
-      # there - the DynamoDB Local tests skip without a Docker daemon, so that a
-      # developer without one gets a stated reason instead of a container timeout.
-      # On a runner that is never the right answer: every requirement is present
-      # here, so a skip means one stopped being present and the run would go green
-      # with fewer tests than it thinks. Nothing may skip in CI.
+      # Nothing in this repository skips itself today - docs/testing-conventions.md is explicit
+      # that a Docker-dependent test fails rather than skips, and no test carries a Skip
+      # condition. This guard is for the skip that gets added later: a skipped test is one the
+      # suite is not running, and it costs nothing to say so at the point it appears rather than
+      # after a green run has been trusted.
+      #
+      # This comment claimed the opposite until 2026-08-27 - that the DynamoDB Local tests skip
+      # without a daemon - which was never true of the code and contradicted the conventions doc
+      # it sits next to.
       - name: Fail if any test skipped
         run: |
           if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log; then

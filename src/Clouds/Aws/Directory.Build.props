@@ -20,6 +20,43 @@
     </PropertyGroup>
 
     <!--
+      Ship the XML documentation file.
+
+      Until 2026-08-27 no project set this, so every package contained lib/net8.0/<name>.dll and
+      nothing else. That is the whole reason it is worth changing: the prose already exists. Forty
+      three files under src/ carry <summary> blocks, and several of them are the only written
+      record of why an API behaves the way it does - BaseBatchExecutionFilter on why a metric sink
+      is per record rather than per batch, LambdaWebModule on what happens without the module
+      attribute. None of it reached a consumer, because IntelliSense reads the .xml beside the
+      .dll and there was no .xml. The comments were being written for readers of this repository
+      only, which was not the intent.
+
+      CS1591 (missing XML comment on a publicly visible type or member) is suppressed rather than
+      fixed. Turning documentation generation on is what makes the warning appear at all, and it
+      fires per public member rather than per type: 1,833 distinct sites across the solution as of
+      this change. With ContinuousIntegrationBuild escalating warnings to errors, leaving it on
+      would mean either a permanently red build or 1,833 placeholder summaries written to silence
+      a compiler, which is how a codebase ends up with "Gets or sets the Value." on every
+      property. Undocumented members are no worse off than they were yesterday; the documented
+      ones are now visible. Drop this line if the public surface is ever fully documented and the
+      gate is wanted to keep it that way.
+
+      SourceGenerator projects are excluded, for the same reason RS2008 is suppressed for them
+      below. They set IncludeBuildOutput=false and pack their assembly by hand into
+      analyzers/dotnet/cs, so there is no lib/ folder for an .xml to sit beside and nothing would
+      ship even if it were generated. What it does produce is errors: Hardened.SourceGenerator and
+      ValidationModules.SourceGenerator.Impl ship their .cs and are compiled into these projects,
+      so their doc comments are analysed here - and they name types that are not compiled in
+      (CS1574), and document some but not all parameters of a method (CS1573). Eight of them,
+      every one in another repository's file. Nothing here can fix those comments, and buying
+      eight errors for a project that ships no documentation is the wrong trade twice over.
+    -->
+    <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests')) And !$(MSBuildProjectName.Contains('SourceGenerator'))">
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <!--
       The solution builds warning-free. Escalating warnings to errors is what keeps it that way;
       without it the count drifts back up one commit at a time. Copied from Hardened.Framework,
       which has had this since before the split - this repository had no gate at all until

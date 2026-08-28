@@ -55,6 +55,22 @@ public static class GeneratorTestHarness {
     /// <param name="buildProperties">
     /// MSBuild properties visible to the generator, without the <c>build_property.</c> prefix.
     /// </param>
+    /// <param name="outputKind">
+    /// What the test compilation is built as. A library by default, because that is what a Lambda
+    /// assembly is; pass <c>ConsoleApplication</c> when the source under test declares an entry
+    /// point, or the compilation fails for want of <c>Main</c> before a generator has run.
+    /// </param>
+    /// <param name="assemblyName">
+    /// The name of the test compilation. It doubles as the key
+    /// <see cref="CompileLibrary"/> registers a loaded assembly under, so two tests that both
+    /// compile a library must not share one — the second registration replaces the first, and the
+    /// resolver then hands the wrong assembly to whichever test runs later.
+    /// </param>
+    /// <param name="additionalReferences">
+    /// References to add to the ones <paramref name="referenceAnchors"/> produces. For metadata
+    /// with no anchor type to point at — chiefly a library built by <see cref="CompileLibrary"/>,
+    /// which exists only as bytes and so cannot be named by <c>typeof</c>.
+    /// </param>
     public static GeneratorResult Run(
         IReadOnlyDictionary<string, string> sources,
         IReadOnlyList<IIncrementalGenerator> generators,

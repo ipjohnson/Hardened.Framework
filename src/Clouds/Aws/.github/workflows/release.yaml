@@ -102,10 +102,11 @@ jobs:
             --results-directory ./coverage \
             | tee test-output.log
 
-      # The DynamoDB Local tests skip themselves without a Docker daemon, which is right for a
-      # developer machine and never right here: everything the suite needs is present on the
-      # runner, so a skip means a requirement went missing and the run would go green with fewer
-      # tests than it thinks. That matters more at a release than on a branch.
+      # Nothing skips itself today - a Docker-dependent test fails rather than skips, per
+      # docs/testing-conventions.md - so this guards the skip added later rather than one that
+      # exists. A skipped test is one the suite is not running, and a release is the worst place
+      # to find that out afterwards. (This comment described the DynamoDB Local tests as
+      # self-skipping until 2026-08-27; they never did.)
       - name: Fail if any test was skipped
         run: |
           if grep -q "duplicate ID" test-output.log; then
