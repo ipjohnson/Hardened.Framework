@@ -30,7 +30,8 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', href: `${base}favicon.svg`, type: 'image/svg+xml' }],
-    ['meta', { name: 'theme-color', content: '#5b8def' }],
+    // Gunmetal from the Plate mark's tile, so browser chrome matches the favicon.
+    ['meta', { name: 'theme-color', content: '#1B242E' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'Hardened' }],
     [
@@ -44,6 +45,9 @@ export default defineConfig({
 
   themeConfig: {
     siteTitle: 'Hardened',
+    // The Plate mark, light and dark variants. themeConfig paths get `base` applied by the
+    // theme, unlike the head entries above.
+    logo: { light: '/hardened-mark.svg', dark: '/hardened-mark-dark.svg' },
 
     nav: [
       { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
