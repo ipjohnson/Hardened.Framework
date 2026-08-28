@@ -23,8 +23,11 @@ public class StreamingLambdaFunctionApplicationFileWriter : ApplicationEntryPoin
             appClass.Fields.First(f => f.Name == RootServiceProvider).Instance;
 
         var filterProvider =
-            constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-                new[] { KnownTypes.Lambda.ILambdaInvokeFilterProvider })).ToVar("filterProvider");
+            constructor.Assign(RequiredModuleService.Resolve(
+                KnownTypes.Lambda.ILambdaInvokeFilterProvider,
+                RootServiceProvider,
+                entryPoint.EntryPointType.Name,
+                "StreamingLambdaFunctionModule")).ToVar("filterProvider");
 
         constructor.Assign(filterProvider.Invoke("ProvideFilter", RootServiceProvider)).ToVar("handler");
 

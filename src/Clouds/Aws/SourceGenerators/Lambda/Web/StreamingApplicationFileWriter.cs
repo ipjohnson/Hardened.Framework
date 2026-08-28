@@ -23,8 +23,11 @@ public class StreamingLambdaWebApplicationFileWriter : ApplicationEntryPointFile
             appClass.Fields.First(f => f.Name == RootServiceProvider).Instance;
 
         var handler =
-            constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-                new[] { KnownTypes.Web.IWebExecutionHandlerService })).ToVar("handler");
+            constructor.Assign(RequiredModuleService.Resolve(
+                KnownTypes.Web.IWebExecutionHandlerService,
+                RootServiceProvider,
+                entryPoint.EntryPointType.Name,
+                "StreamingLambdaWebModule")).ToVar("handler");
 
         var middleware =
             constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",

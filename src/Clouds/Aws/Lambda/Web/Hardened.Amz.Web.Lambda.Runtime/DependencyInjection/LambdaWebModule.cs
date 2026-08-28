@@ -29,6 +29,11 @@ namespace Hardened.Amz.Web.Lambda.Runtime.DependencyInjection;
 /// same reason; this is the web half of that pairing, absent until 2026-08-15.
 /// <c>StreamingLambdaWebModule</c> imports this module, so it was affected too.
 /// </para>
+/// <para>
+/// The message quoted above is what the container used to produce. Since 2026-08-27 the generated
+/// bootstrap resolves through <c>ApplicationServices.Require</c>, so a missing module attribute is
+/// reported by naming the attribute and the application rather than the interface.
+/// </para>
 /// </summary>
 [DependencyModule]
 [LambdaRuntimeModule]

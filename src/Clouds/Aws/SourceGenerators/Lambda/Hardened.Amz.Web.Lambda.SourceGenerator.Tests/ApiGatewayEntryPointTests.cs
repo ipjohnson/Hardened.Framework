@@ -89,8 +89,9 @@ public class ApiGatewayEntryPointTests {
         var application = Application();
 
         WebGeneratorHarness.AssertEmits(application,
-            "var handler = RootServiceProvider.GetRequiredService<" +
-            "global::Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService>();");
+            "var handler = global::Hardened.Amz.Shared.Lambda.Runtime.ApplicationServices.Require<" +
+            "global::Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService>(" +
+            "RootServiceProvider, \"Application\", \"LambdaWebModule\");");
         WebGeneratorHarness.AssertEmits(application, "middleware.Use(_ => handler);");
     }
 

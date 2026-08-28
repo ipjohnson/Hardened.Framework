@@ -62,8 +62,8 @@ one means taking a direct `AWSSDK.SQS` dependency for now.
 
 `[LambdaFunctionModule]` brings the Lambda invocation path and, through the `[HardenedRequestModule]`
 it carries, the request pipeline. As with `[LambdaWebModule]` below, it is not optional: an
-application without it compiles, and then throws `No service for type
-'...ILambdaInvokeFilterProvider' has been registered` the moment it is constructed.
+application without it compiles, and then throws `'Application' is missing [LambdaFunctionModule]`
+the moment it is constructed.
 
 ```csharp
 using Hardened.Shared.Runtime.Attributes;

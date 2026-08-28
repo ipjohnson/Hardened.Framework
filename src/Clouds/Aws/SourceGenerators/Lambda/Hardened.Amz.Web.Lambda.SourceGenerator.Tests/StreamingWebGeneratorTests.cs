@@ -106,8 +106,9 @@ public class StreamingWebGeneratorTests {
         var application = Streaming("StreamingLambdaWebModule").SourceContaining("StreamingApp");
 
         WebGeneratorHarness.AssertEmits(application,
-            "var handler = RootServiceProvider.GetRequiredService<" +
-            "global::Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService>();");
+            "var handler = global::Hardened.Amz.Shared.Lambda.Runtime.ApplicationServices.Require<" +
+            "global::Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService>(" +
+            "RootServiceProvider, \"Application\", \"StreamingLambdaWebModule\");");
         WebGeneratorHarness.AssertEmits(application, "middleware.Use(_ => handler);");
     }
 

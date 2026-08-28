@@ -71,8 +71,9 @@ public class LambdaApplicationEntryPointTests {
         var application = Application();
 
         FunctionGeneratorHarness.AssertEmits(application,
-            "var filterProvider = RootServiceProvider.GetRequiredService<" +
-            "global::Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaInvokeFilterProvider>();");
+            "var filterProvider = global::Hardened.Amz.Shared.Lambda.Runtime.ApplicationServices.Require<" +
+            "global::Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaInvokeFilterProvider>(" +
+            "RootServiceProvider, \"Application\", \"LambdaFunctionModule\");");
         FunctionGeneratorHarness.AssertEmits(application,
             "var handler = filterProvider.ProvideFilter(RootServiceProvider);");
         FunctionGeneratorHarness.AssertEmits(application, "middleware.Use(_ => handler);");

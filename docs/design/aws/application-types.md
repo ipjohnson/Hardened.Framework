@@ -251,13 +251,21 @@ The DynamoDB client tests need a running Docker daemon. They fail rather than sk
 
 ## Failures
 
-**`No service for type '...IWebExecutionHandlerService' has been registered`**
-A web application with no `[LambdaWebModule]` or `[StreamingLambdaWebModule]`. The generated
-constructor resolves the web pipeline unconditionally, so this fires at construction, before any
-request is served.
+**`'X' is missing [SomeModule]`**
+The transport module attribute is not on the application class. The generated bootstrap resolves
+the transport's services in the constructor, so this fires before any request is served — and on a
+deployed function, on its first invocation. The message names the attribute to add:
 
-**`No service for type '...ILambdaInvokeFilterProvider' has been registered`**
-The same thing on the function path: `[LambdaFunctionModule]` is missing.
+```
+'OrderApp' is missing [LambdaWebModule]. The generated bootstrap resolves
+Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService, which [LambdaWebModule] registers, so
+the application cannot be constructed without it. Add [LambdaWebModule] to the class that carries
+[HardenedModule].
+```
+
+Before 2026-08-27 this was a bare `No service for type '...IWebExecutionHandlerService' has been
+registered`, which named a framework internal and not the attribute. If you see that older form,
+the packages predate the change.
 
 **The handler never runs and nothing throws**
 `[assembly: LambdaFunctionTesting]` is missing from the test project.
