@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hardened-mark-dark.svg">
+  <img src="assets/hardened-mark.svg" alt="" width="72">
+</picture>
+
 # Hardened.Framework
 
 The core framework for the [Hardened](https://ipjohnson.github.io/Hardened.Docs) ecosystem — a compile-time, source-generated .NET framework for building web APIs and AWS Lambda functions.

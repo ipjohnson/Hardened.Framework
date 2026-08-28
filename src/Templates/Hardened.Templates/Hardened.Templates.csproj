@@ -53,13 +53,20 @@
         evaluated when the project loads, which is before anything has been staged - so on a clean
         tree the glob matches nothing and pack fails with NU5017. _PackageFiles is collected here,
         after the Exec has written the staged copy.
+
+        PackagePath is a bare folder, and NuGet preserves the staged tree beneath it. It must not
+        be assembled from %(RecursiveDir)-style metadata: unqualified %() inside a target batches
+        over any project-wide item carrying that metadata rather than the files being created -
+        the repository-wide package-icon None turned the whole expression into the constant
+        "content/hardened-icon-128.png", and every template packed under a directory named after
+        the icon.
     -->
     <Target Name="StageTemplates" BeforeTargets="GenerateNuspec">
         <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/stage-templates.py&quot; &quot;$(MSBuildProjectDirectory)/templates&quot; &quot;$(_TemplateStage)&quot; &quot;$(PackageVersion)&quot;" />
 
         <ItemGroup>
             <_PackageFiles Include="$(_TemplateStage)/**/*">
-                <PackagePath>content/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+                <PackagePath>content/</PackagePath>
                 <BuildAction>Content</BuildAction>
             </_PackageFiles>
         </ItemGroup>
