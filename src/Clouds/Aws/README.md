@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hardened-mark-dark.svg">
+  <img src="assets/hardened-mark.svg" alt="" width="72">
+</picture>
+
 # Hardened.Amz
 
 AWS integrations for the [Hardened](https://ipjohnson.github.io/Hardened.Docs) ecosystem — Lambda

@@ -17,7 +17,19 @@
 
         <!-- licenseUrl is deprecated (NU5125) and pointed at another project's licence. -->
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+        <PackageIcon>hardened-icon-128.png</PackageIcon>
     </PropertyGroup>
+
+    <!--
+      PackageIcon names a file inside the nupkg, so the icon has to be packed into every
+      package alongside declaring it - a declaration without the file is NU5046 at pack time.
+      Same icon as Hardened.Framework's packages, from assets/ at the repository root.
+    -->
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)../assets/hardened-icon-128.png"
+              Pack="true" PackagePath="/" Visible="false" />
+    </ItemGroup>
 
     <!--
       Ship the XML documentation file.
