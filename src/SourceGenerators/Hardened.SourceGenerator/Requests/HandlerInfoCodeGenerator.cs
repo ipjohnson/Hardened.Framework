@@ -105,8 +105,18 @@ public static class HandlerInfoCodeGenerator {
             declaredArgs += $", producedContentTypes: new string[] {{ {string.Join(", ", quoted)} }}";
         }
 
+        // The type is handed over rather than named, so it is still a type when the file is
+        // serialized: written qualified in a file that qualifies, and counted in the using list.
+        // Spelled into the string it was neither, and resolved only while some other part of the
+        // file happened to import the namespace.
         handlerInfoField.InitializeValue =
-            new CodeOutputComponent($"new ExecutionRequestHandlerInfo(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof({handlerModel.ControllerType.Name}), \"{handlerModel.HandlerMethod}\"{parameterInfoField}{metadataArg}{declaredArgs})");
+            CodeOutputComponent.FromParts(new object[] {
+                "new ",
+                KnownTypes.Requests.ExecutionRequestHandlerInfo,
+                $"(\"{handlerModel.Name.Path}\", \"{handlerModel.Name.Method}\", typeof(",
+                handlerModel.ControllerType,
+                $"), \"{handlerModel.HandlerMethod}\"{parameterInfoField}{metadataArg}{declaredArgs})"
+            });
 
         // No HandlerInfo property is emitted, deliberately. The field above is the handler as
         // written; BaseExecutionHandler exposes the one the chain was actually built from, which is

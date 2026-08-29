@@ -159,6 +159,10 @@ public static class RoutingTableGenerator {
 
         var applicationFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
+        // AddSingleton/AddTransient are extension methods, and an extension method is reachable
+        // only through a using of its namespace - global:: cannot name one.
+        applicationFile.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
         CreateRoutingTable(appModel, handlers, applicationFile, cancellationToken, options);
 
         var outputContext = options.TypeOutputMode is { } mode

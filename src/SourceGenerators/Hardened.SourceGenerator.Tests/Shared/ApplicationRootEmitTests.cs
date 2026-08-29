@@ -41,7 +41,7 @@ public class ApplicationRootEmitTests {
         var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application());
 
         Assert.Contains("Hardened.Shared.Runtime.Application.IApplicationRoot", root);
-        Assert.Contains("RootServiceProvider ?? throw new Exception", root);
+        Assert.Contains("RootServiceProvider ?? throw new global::System.Exception", root);
         Assert.Contains("DisposeAsync", root);
     }
 
@@ -266,8 +266,15 @@ public class ApplicationRootEmitTests {
 
             var handler = appClass.AddField(KnownTypes.Requests.IMiddlewareService, "_handler");
 
-            constructor.Assign(provider.InvokeGeneric("GetRequiredService",
-                new[] { KnownTypes.Requests.IMiddlewareService })).To(handler.Instance);
+            var resolve = provider.InvokeGeneric("GetRequiredService",
+                new[] { KnownTypes.Requests.IMiddlewareService });
+
+            // GetRequiredService is an extension method, and an extension method is reachable only
+            // through a using of its namespace - global:: cannot name one. Every derived writer that
+            // resolves a service has to say this, the four in Hardened.Amz included.
+            resolve.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
+            constructor.Assign(resolve).To(handler.Instance);
         }
 
         protected override void CreateDomainMethods(

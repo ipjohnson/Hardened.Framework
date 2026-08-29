@@ -66,6 +66,10 @@ public static class FunctionIncrementalGenerator {
 
         var csharpFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
+        // AddSingleton/AddTransient are extension methods, and an extension method is reachable
+        // only through a using of its namespace - global:: cannot name one.
+        csharpFile.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
         var appClass = csharpFile.AddClass(appModel.EntryPointType.Name);
         appClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
 

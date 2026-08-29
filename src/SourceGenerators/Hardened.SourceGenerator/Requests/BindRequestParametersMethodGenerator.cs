@@ -195,7 +195,16 @@ public static class BindRequestParametersMethodGenerator {
                 break;
         }
 
-        var valueStatement = Bang(context.Property("Request").Property(instance).Invoke("Get", QuoteString(bindingName)));
+        var requestValue = context.Property("Request").Property(instance).Invoke("Get", QuoteString(bindingName));
+
+        // PathTokens and QueryString carry their own Get; Headers is a plain IDictionary and
+        // Cookies a plain IReadOnlyList, so theirs comes from an extension class. An extension
+        // method is reachable only through a using of its namespace - global:: cannot name one.
+        if (parameterInformation.BindingType is ParameterBindType.Header or ParameterBindType.Cookie) {
+            requestValue.AddUsingNamespace(KnownTypes.Namespace.Hardened.Requests.Runtime.Execution);
+        }
+
+        var valueStatement = Bang(requestValue);
 
         var stringInvokeStatement = context.Property("KnownServices").Property("StringConverterService");
 

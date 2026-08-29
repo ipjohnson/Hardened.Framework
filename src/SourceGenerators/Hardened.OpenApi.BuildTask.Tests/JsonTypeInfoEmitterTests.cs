@@ -24,7 +24,8 @@ public class JsonTypeInfoEmitterTests {
 
         Assert.Contains("namespace Test.Api.Models\n{", result);
         Assert.Contains("class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", result);
-        Assert.Contains("public readonly static PetstoreJsonTypeInfoResolver Instance = new();", result);
+        // static readonly, not readonly static: the conventional order, which V1 wrote backwards.
+        Assert.Contains("public static readonly PetstoreJsonTypeInfoResolver Instance = new();", result);
         Assert.Contains("if (type == typeof(global::Test.Api.Models.Pet)) return CreatePetTypeInfo(options);", result);
         Assert.Contains("ObjectWithParameterizedConstructorCreator", result);
         Assert.Contains("(string)args[0]", result);
@@ -109,13 +110,15 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("CreatePropertyInfo<string>(options", result);
         Assert.Contains("CreatePropertyInfo<int>(options", result);
         Assert.Contains("CreatePropertyInfo<long>(options", result);
-        Assert.Contains("CreatePropertyInfo<global::System.Single>(options", result);
+        // float, not global::System.Single. V1's keyword table listed double but not float, so the
+        // one type here whose keyword was missing came out under its reflection name.
+        Assert.Contains("CreatePropertyInfo<float>(options", result);
         Assert.Contains("CreatePropertyInfo<double>(options", result);
         Assert.Contains("CreatePropertyInfo<bool>(options", result);
         Assert.Contains("(string)args[0]", result);
         Assert.Contains("(int)args[1]", result);
         Assert.Contains("(long)args[2]", result);
-        Assert.Contains("(global::System.Single)args[3]", result);
+        Assert.Contains("(float)args[3]", result);
         Assert.Contains("(double)args[4]", result);
         Assert.Contains("(bool)args[5]", result);
     }

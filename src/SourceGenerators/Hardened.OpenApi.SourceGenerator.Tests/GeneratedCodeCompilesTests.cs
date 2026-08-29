@@ -193,13 +193,13 @@ public class GeneratedCodeCompilesTests {
 
         // property:, or the attribute lands on a positional record's parameter and the generator
         // reading properties never sees it.
-        Assert.Contains("[property: Required]", emitted);
-        Assert.Contains("[property: StringLength(", emitted);
-        Assert.Contains("[property: Range(", emitted);
+        Assert.Contains("[property: global::ValidationModules.Constraints.Required]", emitted);
+        Assert.Contains("[property: global::ValidationModules.Constraints.StringLength(", emitted);
+        Assert.Contains("[property: global::ValidationModules.Constraints.Range(", emitted);
 
         // The reference form, pointing at a [GeneratedRegex] member the task also emits. The inline
         // form would root the regex engine at 448 KB on an AOT publish.
-        Assert.Contains("[property: Pattern(typeof(", emitted);
+        Assert.Contains("[property: global::ValidationModules.Constraints.Pattern(typeof(", emitted);
         Assert.Contains("GeneratedRegex(", emitted);
         Assert.DoesNotContain("new Regex(", emitted);
     }

@@ -16,7 +16,7 @@
       excludes analyzers. Every project that writes a [HardenedModule] asks for it.
     -->
     <ItemGroup>
-        <PackageReference Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9230" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="$(DependencyModulesVersion)" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>

@@ -66,7 +66,7 @@
 
     <!-- DependencyModules source: NuGet package or local linked files -->
     <ItemGroup Condition="'$(UseLocalDependencyModules)' != 'true'">
-        <PackageReference Include="DependencyModules.SourceGenerator.Impl" Version="1.0.0-rc9230">
+        <PackageReference Include="DependencyModules.SourceGenerator.Impl" Version="$(DependencyModulesVersion)">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>

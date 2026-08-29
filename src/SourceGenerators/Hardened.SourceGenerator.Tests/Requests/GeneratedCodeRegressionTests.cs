@@ -112,7 +112,7 @@ public class GeneratedCodeRegressionTests {
         var source = result.SourceContaining("Health");
 
         Assert.Contains(
-            "new ExecutionRequestHandlerInfo(\"/health\", \"GET\", typeof(HealthController), \"Health\", null, _metadata)",
+            "new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(\"/health\", \"GET\", typeof(global::TestApp.HealthController), \"Health\", null, _metadata)",
             source);
     }
 
@@ -137,7 +137,7 @@ public class GeneratedCodeRegressionTests {
         var source = result.SourceContaining("GetOrder");
 
         Assert.Contains(
-            "new ExecutionRequestHandlerInfo(\"/orders/{id}\", \"GET\", typeof(OrderController), \"GetOrder\", _parameterInfo)",
+            "new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(\"/orders/{id}\", \"GET\", typeof(global::TestApp.OrderController), \"GetOrder\", _parameterInfo)",
             source);
         Assert.DoesNotContain("_metadata", source);
     }
@@ -183,7 +183,7 @@ public class GeneratedCodeRegressionTests {
             """).AssertNoErrors();
 
         Assert.Contains(
-            "new ExecutionRequestHandlerInfo(\"/health\", \"GET\", typeof(HealthController), \"Health\")",
+            "new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(\"/health\", \"GET\", typeof(global::TestApp.HealthController), \"Health\")",
             result.SourceContaining("Health"));
     }
 
