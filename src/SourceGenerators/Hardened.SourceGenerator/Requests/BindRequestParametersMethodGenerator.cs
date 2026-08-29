@@ -36,7 +36,8 @@ public static class BindRequestParametersMethodGenerator {
         MethodDefinition invokeMethod,
         ParameterDefinition context,
         bool needsAsync) {
-        var parametersVar = invokeMethod.Assign(New(InvokeClassGenerator.GenericParameters)).ToVar("parameters");
+        var parametersVar = invokeMethod.Assign(
+            New(InvokeClassGenerator.ParametersType(requestHandlerModel))).ToVar("parameters");
 
         // Once per handler rather than once per parameter, because reading it reads the body. Two
         // form parameters on one handler must not read the stream twice, and the local is what

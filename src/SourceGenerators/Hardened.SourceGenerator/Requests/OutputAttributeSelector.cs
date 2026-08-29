@@ -45,8 +45,14 @@ public static class OutputAttributeSelector {
                 var argument = TypeArgument(attribute);
 
                 if (argument != null) {
+                    // A TypeParameterDefinition, which is "written as itself in every output
+                    // mode" - not because the name is a type parameter, but because that is the
+                    // contract described above: the text resolves in the generated file's own
+                    // namespace, walking outward the way C# does. An empty-namespace
+                    // TypeDefinition stopped meaning that in CSharpAuthor 2.0, which qualifies it
+                    // to global:: - and prefixing the handler's namespace instead would not walk.
                     return argument.GetTypeDefinition(context) ??
-                           TypeDefinition.Get("", argument.ToString().Trim());
+                           new TypeParameterDefinition(argument.ToString().Trim());
                 }
             }
         }

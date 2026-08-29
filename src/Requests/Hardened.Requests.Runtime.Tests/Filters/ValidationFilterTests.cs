@@ -114,10 +114,12 @@ public class ValidationFilterTests {
 
         private PayloadValidator() { }
 
-        public void Validate(ref ValidationContext ctx, Payload value) {
+        public ValidationFlow Validate(ref ValidationContext ctx, Payload value) {
             if (string.IsNullOrEmpty(value.Name)) {
-                ctx.AddRequired("name");
+                return ctx.ReportRequired("name");
             }
+
+            return ValidationFlow.Continue;
         }
     }
 
@@ -126,7 +128,7 @@ public class ValidationFilterTests {
 
         private SecondPayloadValidator() { }
 
-        public void Validate(ref ValidationContext ctx, Payload value) => ctx.AddRequired("second");
+        public ValidationFlow Validate(ref ValidationContext ctx, Payload value) => ctx.ReportRequired("second");
     }
 
     public abstract class TestParameters : IExecutionRequestParameters {

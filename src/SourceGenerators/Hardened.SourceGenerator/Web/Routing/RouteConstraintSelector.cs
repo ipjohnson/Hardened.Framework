@@ -119,7 +119,15 @@ public static class RouteConstraintSelector {
             foreach (var attribute in attributeList.Attributes) {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var name = attribute.Name.ToString();
+                // The rightmost identifier, not the full spelling: the OpenAPI build task writes
+                // this attribute qualified (global::Hardened.Web.Runtime.Attributes.RouteConstraint)
+                // from CSharpAuthor 2.0 on, and a hand-written declaration may qualify it too.
+                var name = attribute.Name switch {
+                    QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
+                    AliasQualifiedNameSyntax aliased => aliased.Name.Identifier.Text,
+                    SimpleNameSyntax simple => simple.Identifier.Text,
+                    _ => attribute.Name.ToString(),
+                };
 
                 if (name != AttributeName && name != AttributeName + "Attribute") {
                     continue;

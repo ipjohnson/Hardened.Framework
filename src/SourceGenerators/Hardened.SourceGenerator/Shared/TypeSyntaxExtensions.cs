@@ -142,7 +142,9 @@ public static class TypeSyntaxExtensions {
         }
 
         if (typeSymbol is ITypeParameterSymbol typeParameterSymbol) {
-            return TypeDefinition.Get("", typeParameterSymbol.Name);
+            // A TypeParameterDefinition, not TypeDefinition.Get("", name): an empty namespace now
+            // means the global namespace, which Global mode qualifies - and global::T is not a type.
+            return new TypeParameterDefinition(typeParameterSymbol.Name);
         }
 
         if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol) {

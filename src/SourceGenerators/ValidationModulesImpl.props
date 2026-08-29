@@ -46,6 +46,19 @@
         <PackageValidationModulesIncludeSource>true</PackageValidationModulesIncludeSource>
     </PropertyGroup>
 
+    <!--
+        From 1.0.0-rc1012 the Impl sources bridge ITypeSymbol to ITypeDefinition through
+        CSharpAuthor's opt-in Roslyn root (RegionEmitter opens with `using CSharpAuthor.Roslyn`).
+        The Impl package cannot flow this switch to its consumers - it has no CSharpAuthor
+        dependency edge, deliberately - so every generator compiling these sources sets it here.
+        Unconditional because both routes above compile the same files. CSharpAuthor's own
+        machinery reads it: the package targets glob srcRoslyn/, and CSharpAuthor.props globs the
+        checkout's Roslyn/ folder in local mode.
+    -->
+    <PropertyGroup>
+        <PackageCSharpAuthorIncludeRoslyn>true</PackageCSharpAuthorIncludeRoslyn>
+    </PropertyGroup>
+
     <ItemGroup Condition="'$(UseLocalValidationModules)' != 'true'">
         <PackageReference Include="ValidationModules.SourceGenerator.Impl" Version="$(ValidationModulesVersion)">
             <PrivateAssets>all</PrivateAssets>
