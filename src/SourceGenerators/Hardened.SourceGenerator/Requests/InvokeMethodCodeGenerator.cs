@@ -245,7 +245,8 @@ public static class InvokeMethodCodeGenerator {
     private static void ProcessArguments(RequestHandlerModel requestHandlerModel, InvokeDefinition invoke,
         MethodDefinition invokeMethod) {
         if (requestHandlerModel.RequestParameterInformationList.Count > 0) {
-            var parameters = invokeMethod.AddParameter(InvokeClassGenerator.GenericParameters, "parameters");
+            var parameters = invokeMethod.AddParameter(
+                InvokeClassGenerator.ParametersType(requestHandlerModel), "parameters");
 
             foreach (var parameterInformation in requestHandlerModel.RequestParameterInformationList) {
                 invoke.AddArgument(parameters.Property(parameterInformation.Name));

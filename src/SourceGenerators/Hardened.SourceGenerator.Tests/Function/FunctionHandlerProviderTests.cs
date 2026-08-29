@@ -89,7 +89,7 @@ public class FunctionHandlerProviderTests {
         var provider = Provider(OneHandler);
 
         Assert.Contains("DependencyRegistry<TestApplication>.Add(FunctionHandlersDI)", provider);
-        Assert.Contains("[DynamicDependency(nameof(FunctionHandlersDI))]", provider);
+        Assert.Contains("[global::System.Diagnostics.CodeAnalysis.DynamicDependency(nameof(FunctionHandlersDI))]", provider);
     }
 
     /// <summary>

@@ -86,7 +86,12 @@ public class ValidationAttachmentTests {
             }
             """).AssertNoErrors();
 
-        Assert.Contains("ValidationFilterProvider<Parameters>", Handler(result, "OrderController_Create"));
+        // Fully qualified from CSharpAuthor 2.0 on: the nested Parameters class is named by its
+        // full name, because a bare name would be qualified to global:: and resolve nothing.
+        var handler = Handler(result, "OrderController_Create");
+
+        Assert.Contains("ValidationFilterProvider<global::", handler);
+        Assert.Contains(".Parameters>", handler);
     }
 
     /// <summary>

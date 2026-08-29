@@ -8,7 +8,6 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using TestApp;
 using TestApp.Generated;
 
 namespace TestApp
@@ -33,7 +32,7 @@ namespace TestApp
         {
             private IServiceProvider _rootServiceProvider;
             private RequestHandlerInfo? _infoOrderController_Place_554;
-            private readonly static RequestHandlerInfo _methodNotAllowedPOST =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("POST")
+            private static readonly RequestHandlerInfo _methodNotAllowedPOST =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("POST")
 ;
 
             public RoutingTable(IServiceProvider serviceProvider)
@@ -51,7 +50,7 @@ namespace TestApp
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -66,7 +65,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_orders(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_orders(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 6) && (charSpan[index + 0] == 'o') && (charSpan[index + 1] == 'r') && (charSpan[index + 2] == 'd') && (charSpan[index + 3] == 'e') && (charSpan[index + 4] == 'r') && (charSpan[index + 5] == 's'))

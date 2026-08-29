@@ -170,7 +170,7 @@ internal static class JsonTypeInfoEmitter {
         // The bare name identifies the method; the qualified one is what a type reference needs.
         var name = NamingHelper.ToPascalCase(schema.Name);
         var typeName = TypeMapper.QualifiedName(ns, name, false);
-        var method = CreateTypeInfoMethod(resolver, name);
+        var method = CreateTypeInfoMethod(resolver, name, ns);
         var sb = new StringBuilder();
 
         // The same split SchemaEmitter writes the record from. The constructor list drives both the
@@ -470,7 +470,7 @@ internal static class JsonTypeInfoEmitter {
     private static void AddEnumTypeInfo(ClassDefinition resolver, SchemaModel schema, string ns) {
         var name = NamingHelper.ToPascalCase(schema.Name);
         var typeName = TypeMapper.QualifiedName(ns, name, false);
-        var method = CreateTypeInfoMethod(resolver, name);
+        var method = CreateTypeInfoMethod(resolver, name, ns);
         var sb = new StringBuilder();
 
         // Not GetEnumConverter: that is the numeric one, and an OpenAPI enum travels as the string
@@ -487,7 +487,8 @@ internal static class JsonTypeInfoEmitter {
     /// The <c>Create{Type}TypeInfo(JsonSerializerOptions options)</c> factory every schema gets, of
     /// whichever kind.
     /// </summary>
-    private static MethodDefinition CreateTypeInfoMethod(ClassDefinition resolver, string typeName) {
+    private static MethodDefinition CreateTypeInfoMethod(
+        ClassDefinition resolver, string typeName, string ns) {
         var method = resolver.AddMethod("Create" + typeName + "TypeInfo");
 
         method.Modifiers |= ComponentModifier.Private | ComponentModifier.Static;
@@ -495,7 +496,9 @@ internal static class JsonTypeInfoEmitter {
             TypeDefinitionEnum.ClassDefinition,
             "System.Text.Json.Serialization.Metadata",
             "JsonTypeInfo",
-            new[] { TypeDefinition.Get("", typeName) }));
+            // The model's real namespace, not "": an empty namespace now means the global
+            // namespace, which Global mode qualifies - and global::Pet names nothing.
+            new[] { TypeDefinition.Get(ns, typeName) }));
         method.AddParameter(TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"), "options");
 
         return method;

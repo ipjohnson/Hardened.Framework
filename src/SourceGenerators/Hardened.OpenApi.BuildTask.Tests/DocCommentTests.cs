@@ -53,19 +53,16 @@ public class DocCommentTests {
     }
 
     /// <summary>
-    /// A description is XML content once it is inside a doc comment, so the three characters that
-    /// are markup have to stop being markup.
+    /// Markup characters pass through untouched. CSharpAuthor 2.0 escapes comment text when it
+    /// writes the <c>///</c> lines, so exactly one layer owns escaping and it is not this one -
+    /// a second layer here is how <c>&amp;rarr;</c> once reached generated docs as
+    /// <c>&amp;amp;rarr;</c>.
     /// </summary>
     [Fact]
-    public void MarkupCharactersAreEscaped() {
+    public void MarkupCharactersPassThrough() {
         Assert.Equal(
-            "0 &lt; n &lt;= 100 &amp; n &gt; 0",
+            "0 < n <= 100 & n > 0",
             DocComment.Format("0 < n <= 100 & n > 0"));
-    }
-
-    [Fact]
-    public void AmpersandsInEscapesAreThemselvesEscaped() {
-        Assert.Equal("&amp;lt; is a less-than", DocComment.Format("&lt; is a less-than"));
     }
 
     /// <summary>

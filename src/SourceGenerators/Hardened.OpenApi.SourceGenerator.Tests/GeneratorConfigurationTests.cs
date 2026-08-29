@@ -101,7 +101,7 @@ public class GeneratorConfigurationTests {
     public void GeneratedRecordsAreExcludedFromCoverageByDefault() {
         var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
 
-        Assert.Contains("[ExcludeFromCodeCoverage]",
+        Assert.Contains("[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]",
             result.SourceContaining("petstore.g.cs"));
     }
 
@@ -109,7 +109,7 @@ public class GeneratorConfigurationTests {
     public void TheGeneratedJsonResolverIsExcludedFromCoverageByDefault() {
         var result = OpenApiGenerator.Run(Specs.Minimal).AssertNoErrors();
 
-        Assert.Contains("[ExcludeFromCodeCoverage]",
+        Assert.Contains("[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]",
             result.SourceContaining("petstore.g.cs"));
     }
 
@@ -117,14 +117,14 @@ public class GeneratorConfigurationTests {
     public void TheGeneratedRoutingTableIsExcludedFromCoverageByDefault() {
         var result = OpenApiGenerator.Run(Specs.Minimal).AssertNoErrors();
 
-        Assert.Contains("[ExcludeFromCodeCoverage]", result.SourceContaining("SpecRouting"));
+        Assert.Contains("[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]", result.SourceContaining("SpecRouting"));
     }
 
     [Fact]
     public void GeneratedFilterAttributesAreExcludedFromCoverageByDefault() {
         var result = OpenApiGenerator.Run(Specs.FilterTypes).AssertNoErrors();
 
-        Assert.Contains("[ExcludeFromCodeCoverage]",
+        Assert.Contains("[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]",
             result.SourceContaining("petstore.g.cs"));
     }
 

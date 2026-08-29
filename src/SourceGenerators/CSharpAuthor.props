@@ -48,7 +48,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="1.2.0">
+        <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor" Version="2.0.0-preview1005">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>
@@ -57,9 +57,37 @@
             The same glob build/CSharpAuthor.targets applies to the package's src/ folder, against
             the checkout instead. bin and obj are excluded because this points at a working tree
             rather than at package content.
+
+            Roslyn/ is excluded for the same reason it is absent from the package's src/ folder:
+            from CSharpAuthor 2.0 the library ships a second, opt-in source root written against
+            Microsoft.CodeAnalysis, and the package gates it behind
+            PackageCSharpAuthorIncludeRoslyn. It lives *inside* <root>/CSharpAuthor/, so an
+            unqualified recursive glob picks it up - and Hardened.Idl.Emit, Hardened.Idl.Shared and
+            the three build tasks (Hardened.Idl.BuildTask, Hardened.OpenApi.BuildTask,
+            Hardened.Smithy.BuildTask) consume CSharpAuthor with no Roslyn reference at all.
+            Compiling it unconditionally is
+
+                CSharpAuthor/Roslyn/EmitProfileRoslynExtensions.cs(6,54): error CS0234:
+                The type or namespace name 'CSharp' does not exist in the namespace
+                'Microsoft.CodeAnalysis'
+
+            on net472 and net8.0 alike - 720 errors across eight project/TFM combinations, which
+            takes their dependent test assemblies down with them. Excluding it here is what makes
+            the local-checkout glob equal the package's src/ folder again.
         -->
         <Compile Condition="'$(UseLocalCSharpAuthor)' == 'true'"
                  Include="$(CSharpAuthorRoot)/CSharpAuthor/**/*.cs"
+                 Exclude="$(CSharpAuthorRoot)/CSharpAuthor/obj/**/*.cs;$(CSharpAuthorRoot)/CSharpAuthor/bin/**/*.cs;$(CSharpAuthorRoot)/CSharpAuthor/Roslyn/**/*.cs"
+                 Visible="false"/>
+
+        <!--
+            The package's srcRoslyn/ folder, against the checkout, gated on the property the
+            package gates it on. A project that asks for the bridge already references Roslyn, or
+            it could not have asked; a project that does not ask never sees the folder. Without
+            this the opt-in simply would not exist in local-checkout mode.
+        -->
+        <Compile Condition="'$(UseLocalCSharpAuthor)' == 'true' AND '$(PackageCSharpAuthorIncludeRoslyn)' == 'true'"
+                 Include="$(CSharpAuthorRoot)/CSharpAuthor/Roslyn/**/*.cs"
                  Exclude="$(CSharpAuthorRoot)/CSharpAuthor/obj/**/*.cs;$(CSharpAuthorRoot)/CSharpAuthor/bin/**/*.cs"
                  Visible="false"/>
     </ItemGroup>

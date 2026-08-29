@@ -5,7 +5,6 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Test.Api;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -31,7 +30,7 @@ namespace Test.Api
         {
             private IServiceProvider _rootServiceProvider;
             private RequestHandlerInfo? _infoPetController_ListPets;
-            private readonly static RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
+            private static readonly RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
             private RequestHandlerInfo? _infoPetController_Featured;
             private RequestHandlerInfo? _infoPetController_Store;
@@ -51,7 +50,7 @@ namespace Test.Api
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -66,7 +65,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_SlashCaseStatement(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashCaseStatement(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length > index)
                 {
@@ -89,7 +88,7 @@ namespace Test.Api
                 return null;
             }
 
-            public RequestHandlerInfo? TestPath_NoPath(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_ets(
@@ -100,7 +99,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_ets(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_ets(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 3) && (charSpan[index + 0] == 'e') && (charSpan[index + 1] == 't') && (charSpan[index + 2] == 's'))
@@ -129,7 +128,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -144,7 +143,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_featured(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_featured(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 8) && (charSpan[index + 0] == 'f') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'a') && (charSpan[index + 3] == 't') && (charSpan[index + 4] == 'u') && (charSpan[index + 5] == 'r') && (charSpan[index + 6] == 'e') && (charSpan[index + 7] == 'd'))
@@ -168,7 +167,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_tore(
@@ -179,7 +178,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_tore(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_tore(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 4) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'o') && (charSpan[index + 2] == 'r') && (charSpan[index + 3] == 'e'))

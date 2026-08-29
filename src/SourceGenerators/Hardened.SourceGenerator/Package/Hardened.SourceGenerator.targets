@@ -20,6 +20,11 @@
 
     Hardened.Amz hit exactly that, pinned at 1.1.1006 against a framework built on 1.1.1010.
 
+    The floor below must stay a plain dotted number - System.Version.Parse reads it. The framework
+    currently builds against 2.0.0-preview1005; prerelease consumer pins skip the comparison
+    entirely (by design, per the regex below), so until 2.0.0 final ships this floor speaks only
+    to consumers pinning a plain version like 1.2.0.
+
     Set HardenedSkipCSharpAuthorVersionCheck=true to opt out.
   -->
   <Target Name="HardenedVerifyCSharpAuthorVersion"
@@ -27,7 +32,7 @@
           Condition="'$(PackageHardenedIncludeSource)' == 'true' and '$(HardenedSkipCSharpAuthorVersionCheck)' != 'true'">
 
     <PropertyGroup>
-      <_HardenedCSharpAuthorRequired>1.1.1010</_HardenedCSharpAuthorRequired>
+      <_HardenedCSharpAuthorRequired>2.0.0</_HardenedCSharpAuthorRequired>
 
       <!-- A direct reference first; then central package management, where PackageReference
            carries no version and PackageVersion holds it. -->

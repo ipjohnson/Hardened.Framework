@@ -40,6 +40,10 @@ internal static class RegistrationWriter {
 
         var file = new CSharpFileDefinition(entryPoint.EntryPointType.Namespace);
 
+        // AddSingleton is an extension method, and an extension method is reachable only through a
+        // using of its namespace - global:: cannot name one.
+        file.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
         var appClass = file.AddClass(entryPoint.EntryPointType.Name);
         appClass.Modifiers |= ComponentModifier.Partial;
 

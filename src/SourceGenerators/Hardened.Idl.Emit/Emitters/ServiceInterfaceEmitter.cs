@@ -34,8 +34,11 @@ internal static class ServiceInterfaceEmitter {
                     ? operation.Description
                     : operation.Summary);
 
+            // A literal arrow, not the &rarr; entity: CSharpAuthor 2.0 escapes comment text at the
+            // boundary, so an entity written here would render as the text "&rarr;". The character
+            // is XML-safe and reads the same everywhere the entity did.
             method.Comment =
-                $"{operation.HttpMethod} {operation.Path} &rarr; {operation.SuccessStatusCode}" +
+                $"{operation.HttpMethod} {operation.Path} → {operation.SuccessStatusCode}" +
                 (description == null ? "" : "\n\n" + description);
 
             if (operation.IsDeprecated) {

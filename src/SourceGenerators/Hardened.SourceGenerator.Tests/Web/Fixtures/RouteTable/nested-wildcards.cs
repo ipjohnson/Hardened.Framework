@@ -5,7 +5,6 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Test.Api;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -31,12 +30,12 @@ namespace Test.Api
         {
             private IServiceProvider _rootServiceProvider;
             private PetController_ThreeTokens? _fieldPetController_ThreeTokens;
-            private readonly static string[] _pathTokenNamesPetController_ThreeTokens =             new string[] { "x", "y", "z" }
+            private static readonly string[] _pathTokenNamesPetController_ThreeTokens =             new string[] { "x", "y", "z" }
 ;
-            private readonly static RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
+            private static readonly RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
             private PetController_TwoTokens? _fieldPetController_TwoTokens;
-            private readonly static string[] _pathTokenNamesPetController_TwoTokens =             new string[] { "x", "y" }
+            private static readonly string[] _pathTokenNamesPetController_TwoTokens =             new string[] { "x", "y" }
 ;
 
             public RoutingTable(IServiceProvider serviceProvider)
@@ -54,7 +53,7 @@ namespace Test.Api
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -69,7 +68,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_aSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_aSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 2) && (charSpan[index + 0] == 'a') && (charSpan[index + 1] == '/'))
@@ -87,7 +86,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_aSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_aSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_SlashWildCardMatch(
@@ -98,13 +97,13 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_SlashWildCardMatch(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 var handlerInfo = (RequestHandlerInfo?)null;
                 var currentIndex = index;
                 var segmentEnd = charSpan.Slice(index).IndexOf('/');
                 var segmentLimit = segmentEnd < 0 ? charSpan.Length : index + segmentEnd + 1;
-                while((currentIndex < segmentLimit))
+                while ((currentIndex < segmentLimit))
                 {
                     if (currentIndex > index && (charSpan.Length >= currentIndex + 1) && (charSpan[currentIndex + 0] == '/'))
                     {
@@ -133,7 +132,7 @@ namespace Test.Api
                 return null;
             }
 
-            public RequestHandlerInfo? TestPath_bSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_bSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 2) && (charSpan[index + 0] == 'b') && (charSpan[index + 1] == '/'))
@@ -151,7 +150,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_bSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_bSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_Slash2(
@@ -170,13 +169,13 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 var handlerInfo = (RequestHandlerInfo?)null;
                 var currentIndex = index;
                 var segmentEnd = charSpan.Slice(index).IndexOf('/');
                 var segmentLimit = segmentEnd < 0 ? charSpan.Length : index + segmentEnd + 1;
-                while((currentIndex < segmentLimit))
+                while ((currentIndex < segmentLimit))
                 {
                     if (currentIndex > index && (charSpan.Length >= currentIndex + 1) && (charSpan[currentIndex + 0] == '/'))
                     {
@@ -205,7 +204,7 @@ namespace Test.Api
                 return null;
             }
 
-            public RequestHandlerInfo? TestPath_cSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_cSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 2) && (charSpan[index + 0] == 'c') && (charSpan[index + 1] == '/'))
@@ -223,7 +222,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_cSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_cSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
@@ -234,7 +233,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {
@@ -261,7 +260,7 @@ namespace Test.Api
                 }
             }
 
-            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {

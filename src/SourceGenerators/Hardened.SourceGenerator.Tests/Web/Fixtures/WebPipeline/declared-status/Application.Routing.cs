@@ -8,7 +8,6 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using TestApp;
 using TestApp.Generated;
 
 namespace TestApp
@@ -33,12 +32,12 @@ namespace TestApp
         {
             private IServiceProvider _rootServiceProvider;
             private RequestHandlerInfo? _infoWidgetController_Create;
-            private readonly static RequestHandlerInfo _methodNotAllowedPOST =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("POST")
+            private static readonly RequestHandlerInfo _methodNotAllowedPOST =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("POST")
 ;
             private WidgetController_Find_329? _fieldWidgetController_Find_329;
-            private readonly static string[] _pathTokenNamesWidgetController_Find_329 =             new string[] { "id" }
+            private static readonly string[] _pathTokenNamesWidgetController_Find_329 =             new string[] { "id" }
 ;
-            private readonly static RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
+            private static readonly RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
 
             public RoutingTable(IServiceProvider serviceProvider)
@@ -56,7 +55,7 @@ namespace TestApp
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -71,7 +70,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_widgets(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_widgets(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 'w') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'd') && (charSpan[index + 3] == 'g') && (charSpan[index + 4] == 'e') && (charSpan[index + 5] == 't') && (charSpan[index + 6] == 's'))
@@ -99,7 +98,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -117,7 +116,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_SlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
@@ -128,7 +127,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {

@@ -5,7 +5,6 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Test.Api;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -31,10 +30,10 @@ namespace Test.Api
         {
             private IServiceProvider _rootServiceProvider;
             private RequestHandlerInfo? _infoPetController_Special;
-            private readonly static RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
+            private static readonly RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
             private PetController_GetPet? _fieldPetController_GetPet;
-            private readonly static string[] _pathTokenNamesPetController_GetPet =             new string[] { "petId" }
+            private static readonly string[] _pathTokenNamesPetController_GetPet =             new string[] { "petId" }
 ;
 
             public RoutingTable(IServiceProvider serviceProvider)
@@ -52,7 +51,7 @@ namespace Test.Api
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -67,7 +66,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_petsSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_petsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'p') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 't') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
@@ -90,7 +89,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_s(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_s(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == 's'))
@@ -105,7 +104,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_pecial(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_pecial(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 6) && (charSpan[index + 0] == 'p') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'c') && (charSpan[index + 3] == 'i') && (charSpan[index + 4] == 'a') && (charSpan[index + 5] == 'l'))
@@ -129,7 +128,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_petsSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_petsSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
@@ -140,7 +139,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {

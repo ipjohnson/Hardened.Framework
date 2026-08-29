@@ -66,11 +66,16 @@ public static class FunctionIncrementalGenerator {
 
         var csharpFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
+        // AddSingleton/AddTransient are extension methods, and an extension method is reachable
+        // only through a using of its namespace - global:: cannot name one.
+        csharpFile.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
         var appClass = csharpFile.AddClass(appModel.EntryPointType.Name);
         appClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
 
         CreateFunctionHandlerProviderClass(requestHandlers, appClass, context.CancellationToken);
-        SetupDiForFunctionHandlers(requestHandlers, appClass, context.CancellationToken);
+        SetupDiForFunctionHandlers(
+            requestHandlers, appClass, appModel.EntryPointType.Namespace, context.CancellationToken);
 
         var output = new OutputContext(
             new OutputContextOptions {
@@ -131,7 +136,7 @@ public static class FunctionIncrementalGenerator {
 
     private static void SetupDiForFunctionHandlers(
         ImmutableArray<RequestHandlerModel> requestHandlers, ClassDefinition appClass,
-        CancellationToken cancellationToken) {
+        string appNamespace, CancellationToken cancellationToken) {
         var templateField = appClass.AddField(typeof(int), "_functionHandlersDi");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
@@ -150,7 +155,10 @@ public static class FunctionIncrementalGenerator {
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] {
                 KnownTypes.Requests.IFunctionHandlerProvider,
-                TypeDefinition.Get("", "FunctionHandlerProvider")
+                // The nested provider by its full name: an empty-namespace TypeDefinition now
+                // means the global namespace, which Global mode qualifies - and
+                // global::FunctionHandlerProvider names nothing.
+                TypeDefinition.Get(appNamespace, appClass.Name + ".FunctionHandlerProvider")
             }));
 
         var handlerTypes = requestHandlers.Select(m => m.ControllerType).Distinct();

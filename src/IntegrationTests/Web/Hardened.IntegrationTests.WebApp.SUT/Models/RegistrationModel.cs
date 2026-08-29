@@ -29,7 +29,9 @@ public class RegistrationModel {
 }
 
 /// <summary>A second level, so a failure has a path to report rather than a field.</summary>
-public class AddressModel {
+/// <remarks>Sealed because VM0031 (new in ValidationModules rc1012) otherwise asks what should
+/// happen when a more derived value reaches [ValidateNested] - nothing derives from this.</remarks>
+public sealed class AddressModel {
 
     [Required]
     public string? City { get; set; }

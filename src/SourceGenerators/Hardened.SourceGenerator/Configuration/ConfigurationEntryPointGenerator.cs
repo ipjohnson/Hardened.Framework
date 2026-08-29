@@ -13,6 +13,10 @@ public static class ConfigurationEntryPointGenerator {
             ConfigFiles) arg2) {
         var cSharpFile = new CSharpFileDefinition(arg2.AppModel.EntryPointType.Namespace);
 
+        // AddSingleton is an extension method, and an extension method is reachable only through a
+        // using of its namespace - global:: cannot name one.
+        cSharpFile.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
         var classDefinition = cSharpFile.AddClass(arg2.AppModel.EntryPointType.Name);
 
         classDefinition.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;

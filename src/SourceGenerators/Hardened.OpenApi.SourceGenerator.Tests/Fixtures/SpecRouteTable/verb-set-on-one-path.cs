@@ -1,16 +1,11 @@
 using DependencyModules.Runtime.Helpers;
-using Hardened.Requests.Abstract.Execution;
-using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Diagnostics.CodeAnalysis;
-using Test.Api.Generated;
 
 namespace Test.Api
 {
     public partial class TestApp
     {
-        [DynamicDependency(nameof(SpecRoutingTableDI))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(nameof(SpecRoutingTableDI))]
         private static int _openApiRoutingTableDependencies =         DependencyRegistry<TestApp>.Add(SpecRoutingTableDI)
 ;
 
@@ -27,15 +22,15 @@ namespace Test.Api
         {
             private global::System.IServiceProvider _rootServiceProvider;
             private global::Test.Api.Generated.PetController_GetPet? _fieldPetController_GetPet;
-            private readonly static string[] _pathTokenNamesPetController_GetPet =             new string[] { "petId" }
+            private static readonly string[] _pathTokenNamesPetController_GetPet =             new string[] { "petId" }
 ;
             private global::Test.Api.Generated.PetController_UpdatePet? _fieldPetController_UpdatePet;
-            private readonly static string[] _pathTokenNamesPetController_UpdatePet =             new string[] { "petId" }
+            private static readonly string[] _pathTokenNamesPetController_UpdatePet =             new string[] { "petId" }
 ;
             private global::Test.Api.Generated.PetController_DeletePet? _fieldPetController_DeletePet;
-            private readonly static string[] _pathTokenNamesPetController_DeletePet =             new string[] { "petId" }
+            private static readonly string[] _pathTokenNamesPetController_DeletePet =             new string[] { "petId" }
 ;
-            private readonly static global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedDELETEGETHEADPUT =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("DELETE, GET, HEAD, PUT")
+            private static readonly global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedDELETEGETHEADPUT =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("DELETE, GET, HEAD, PUT")
 ;
 
             public SpecRoutingTable(global::System.IServiceProvider serviceProvider)
@@ -53,7 +48,7 @@ namespace Test.Api
                 );
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slash(global::System.ReadOnlySpan<global::System.Char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -68,7 +63,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_petsSlash(global::System.ReadOnlySpan<global::System.Char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_petsSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'p') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 't') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
@@ -86,7 +81,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_petsSlashWildCard(global::System.ReadOnlySpan<global::System.Char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_petsSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
@@ -97,7 +92,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPathWildCardMatch(global::System.ReadOnlySpan<global::System.Char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPathWildCardMatch(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {

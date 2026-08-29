@@ -36,8 +36,12 @@ internal static class OneOfConverterEmitter {
     private static readonly ITypeDefinition Writer =
         TypeDefinition.Get("System.Text.Json", "Utf8JsonWriter");
 
-    /// <summary>The helpers' type parameter, which is a name rather than a type.</summary>
-    private static readonly ITypeDefinition Generic = TypeDefinition.Get("", "T");
+    /// <summary>
+    /// The helpers' type parameter, which is a name rather than a type - and a
+    /// TypeParameterDefinition so it stays one: an empty-namespace TypeDefinition now means the
+    /// global namespace, which Global mode qualifies, and global::T is not a type.
+    /// </summary>
+    private static readonly ITypeDefinition Generic = new TypeParameterDefinition("T");
 
     private static readonly ITypeDefinition Options =
         TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions");

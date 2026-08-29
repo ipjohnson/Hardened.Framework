@@ -55,7 +55,18 @@
       in a reviewable commit rather than on whichever day CI happened to rerun.
     -->
     <PropertyGroup>
-        <ValidationModulesVersion Condition="'$(ValidationModulesVersion)' == ''">1.0.0-rc1006</ValidationModulesVersion>
+        <ValidationModulesVersion Condition="'$(ValidationModulesVersion)' == ''">1.0.0-rc1012</ValidationModulesVersion>
+    </PropertyGroup>
+
+    <!--
+      The DependencyModules version, in one place, for the same reason as above: the runtimes bind
+      against DependencyModules.Runtime, the generator project compiles the source-only Impl
+      package in, and Hardened.Shared.Testing takes DependencyModules.xUnit. The generator emits
+      calls against contracts the runtime supplies, so all of them move together or generated code
+      breaks. Same no-float rationale as ValidationModulesVersion.
+    -->
+    <PropertyGroup>
+        <DependencyModulesVersion Condition="'$(DependencyModulesVersion)' == ''">1.2.2</DependencyModulesVersion>
     </PropertyGroup>
 
     <!--

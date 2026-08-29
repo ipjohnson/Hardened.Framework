@@ -8,7 +8,6 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using TestApp;
 using TestApp.Generated;
 
 namespace TestApp
@@ -33,12 +32,12 @@ namespace TestApp
         {
             private IServiceProvider _rootServiceProvider;
             private ItemController_Get_329? _fieldItemController_Get_329;
-            private readonly static string[] _pathTokenNamesItemController_Get_329 =             new string[] { "id" }
+            private static readonly string[] _pathTokenNamesItemController_Get_329 =             new string[] { "id" }
 ;
-            private readonly static RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
+            private static readonly RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
             private ItemController_BySlug_541? _fieldItemController_BySlug_541;
-            private readonly static string[] _pathTokenNamesItemController_BySlug_541 =             new string[] { "name" }
+            private static readonly string[] _pathTokenNamesItemController_BySlug_541 =             new string[] { "name" }
 ;
 
             public RoutingTable(IServiceProvider serviceProvider)
@@ -56,7 +55,7 @@ namespace TestApp
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -71,7 +70,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_SlashCaseStatement(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashCaseStatement(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length > index)
                 {
@@ -94,7 +93,7 @@ namespace TestApp
                 return null;
             }
 
-            public RequestHandlerInfo? TestPath_NoPath(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_temsSlash(
@@ -105,7 +104,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_temsSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_temsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'm') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
@@ -123,7 +122,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_temsSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_temsSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
@@ -134,7 +133,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {
@@ -165,7 +164,7 @@ namespace TestApp
                 }
             }
 
-            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_lugsSlash(
@@ -176,7 +175,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_lugsSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_lugsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'l') && (charSpan[index + 1] == 'u') && (charSpan[index + 2] == 'g') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
@@ -194,7 +193,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_lugsSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_lugsSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPath3(
@@ -205,7 +204,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPath3(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath3(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {

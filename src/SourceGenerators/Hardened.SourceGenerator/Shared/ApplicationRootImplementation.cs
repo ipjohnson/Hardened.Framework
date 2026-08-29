@@ -12,8 +12,11 @@ public static class ApplicationRootImplementation {
         var provider = appClass.AddProperty(KnownTypes.DI.IServiceProvider, "Provider");
 
         provider.Get.LambdaSyntax = true;
+        // {arg1} keeps Exception a type until the file is serialized. Spelled into the string it
+        // was text, and resolved only where something else had already imported System.
         provider.Get.AddCode(
-            "RootServiceProvider ?? throw new Exception(\"RootServiceProvider not initialized yet\");");
+            "RootServiceProvider ?? throw new {arg1}(\"RootServiceProvider not initialized yet\");",
+            typeof(Exception));
         provider.Set = null;
 
         var disposeAsync = appClass.AddMethod("DisposeAsync");

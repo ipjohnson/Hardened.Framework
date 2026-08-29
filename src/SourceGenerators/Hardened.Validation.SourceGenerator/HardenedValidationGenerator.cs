@@ -91,7 +91,8 @@ public class HardenedValidationGenerator : IIncrementalGenerator {
 
         var models = candidates
             .Combine(options)
-            .Select(static (pair, _) => BuildModel(pair.Left, pair.Right))
+            .Combine(context.CompilationProvider)
+            .Select(static (pair, _) => BuildModel(pair.Left.Left, pair.Left.Right, pair.Right))
             .Where(static result => result.Model is not null || result.Diagnostics.Length > 0);
 
         context.RegisterSourceOutput(models, static (production, result) => {
@@ -169,9 +170,10 @@ public class HardenedValidationGenerator : IIncrementalGenerator {
             ? $"{model.ValidatorName}.g.cs"
             : $"{model.Namespace}.{model.ValidatorName}.g.cs";
 
-    private static ModelResult BuildModel(INamedTypeSymbol symbol, ValidationGeneratorOptions options) {
+    private static ModelResult BuildModel(
+        INamedTypeSymbol symbol, ValidationGeneratorOptions options, Compilation compilation) {
         var frontEnd = new AttributeFrontEnd(
-            options.CompileDataAnnotations, options.FieldNamer, options.ResolvedPatternPolicy);
+            compilation, options.CompileDataAnnotations, options.FieldNamer, options.ResolvedPatternPolicy);
 
         var model = frontEnd.Build(symbol, ValidationGeneratorOptions.ValidatorNameFor);
 

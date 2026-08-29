@@ -8,7 +8,6 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using TestApp;
 using TestApp.Generated;
 
 namespace TestApp
@@ -33,15 +32,15 @@ namespace TestApp
         {
             private IServiceProvider _rootServiceProvider;
             private TicketController_Get_329? _fieldTicketController_Get_329;
-            private readonly static string[] _pathTokenNamesTicketController_Get_329 =             new string[] { "id" }
+            private static readonly string[] _pathTokenNamesTicketController_Get_329 =             new string[] { "id" }
 ;
             private TicketController_Replace_329? _fieldTicketController_Replace_329;
-            private readonly static string[] _pathTokenNamesTicketController_Replace_329 =             new string[] { "id" }
+            private static readonly string[] _pathTokenNamesTicketController_Replace_329 =             new string[] { "id" }
 ;
             private TicketController_Remove_329? _fieldTicketController_Remove_329;
-            private readonly static string[] _pathTokenNamesTicketController_Remove_329 =             new string[] { "id" }
+            private static readonly string[] _pathTokenNamesTicketController_Remove_329 =             new string[] { "id" }
 ;
-            private readonly static RequestHandlerInfo _methodNotAllowedDELETEGETHEADPUT =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("DELETE, GET, HEAD, PUT")
+            private static readonly RequestHandlerInfo _methodNotAllowedDELETEGETHEADPUT =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("DELETE, GET, HEAD, PUT")
 ;
 
             public RoutingTable(IServiceProvider serviceProvider)
@@ -59,7 +58,7 @@ namespace TestApp
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -74,7 +73,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_ticketsSlash(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_ticketsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 8) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'c') && (charSpan[index + 3] == 'k') && (charSpan[index + 4] == 'e') && (charSpan[index + 5] == 't') && (charSpan[index + 6] == 's') && (charSpan[index + 7] == '/'))
@@ -92,7 +91,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_ticketsSlashWildCard(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_ticketsSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
@@ -103,7 +102,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<Char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {

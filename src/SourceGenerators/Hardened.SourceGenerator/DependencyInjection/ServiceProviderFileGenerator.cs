@@ -11,6 +11,11 @@ public class ServiceProviderFileGenerator {
         EntryPointSelector.Model model) {
         var diFile = new CSharpFileDefinition(model.EntryPointType.Namespace);
 
+        // AddLogging, BuildServiceProvider and GetRequiredService are extension methods, and an
+        // extension method is reachable only through a using of its namespace - global:: cannot
+        // name one.
+        diFile.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
         GenerateCode(model, diFile);
 
         var outputContext = new OutputContext(

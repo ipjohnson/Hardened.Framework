@@ -9,7 +9,15 @@ using System.Threading;
 namespace Hardened.SourceGenerator.Requests;
 
 public static class InvokeClassGenerator {
-    public static readonly ITypeDefinition GenericParameters = TypeDefinition.Get("", "Parameters");
+    /// <summary>
+    /// The handler's nested <c>Parameters</c> class, by its full name. This was an empty-namespace
+    /// <c>TypeDefinition</c> meaning "resolves here, in the wrapper" - until CSharpAuthor 2.0,
+    /// which qualifies global-namespace types in Global mode, and <c>global::Parameters</c> names
+    /// nothing.
+    /// </summary>
+    public static ITypeDefinition ParametersType(RequestHandlerModel handlerModel) =>
+        TypeDefinition.Get(handlerModel.InvokeHandlerType.Namespace,
+            handlerModel.InvokeHandlerType.Name + ".Parameters");
 
     public static void GenerateInvokeClass(RequestHandlerModel handlerModel, IConstructContainer constructContainer,
         CancellationToken cancellationToken, bool excludeFromCoverage = false) {
@@ -144,7 +152,7 @@ public static class InvokeClassGenerator {
             KnownTypes.Requests.ExecutionHelper,
             "AsyncStandardFilterWithParameters",
             new[] {
-                handlerModel.ControllerType, GenericParameters
+                handlerModel.ControllerType, ParametersType(handlerModel)
             },
             "serviceProvider",
             "_handlerInfo.WithPath(routePath)",
@@ -184,7 +192,7 @@ public static class InvokeClassGenerator {
             KnownTypes.Requests.ExecutionHelper,
             "StandardFilterWithParameters",
             new[] {
-                handlerModel.ControllerType, GenericParameters
+                handlerModel.ControllerType, ParametersType(handlerModel)
             },
             "serviceProvider",
             "_handlerInfo.WithPath(routePath)",
@@ -226,7 +234,7 @@ public static class InvokeClassGenerator {
             KnownTypes.Requests.ExecutionHelper,
             "AsyncEnumerableFilterWithParameters",
             new[] {
-                handlerModel.ControllerType, GenericParameters,
+                handlerModel.ControllerType, ParametersType(handlerModel),
                 handlerModel.ResponseInformation.AsyncEnumerableItemType!
             },
             "serviceProvider",

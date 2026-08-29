@@ -91,9 +91,13 @@ public static class HandlerValidationGenerator {
         var methodDeclaration = (MethodDeclarationSyntax)context.Node;
         var handler = modelGenerator.GenerateRequestModel(context, cancellationToken);
 
+        // The compilation rides with the symbols it produced rather than arriving through a
+        // Combine, so the front end asks its accessibility questions of the same snapshot the
+        // parameter types came from.
         return new Candidate(
             handler,
             HandlerValidationFrontEnd.ParameterTypesOf(context, methodDeclaration),
+            context.SemanticModel.Compilation,
             UncompiledConstraints(context, methodDeclaration));
     }
 
@@ -110,7 +114,8 @@ public static class HandlerValidationGenerator {
         }
 
         var validator = HandlerValidationFrontEnd.Build(
-            candidate.Handler, candidate.ParameterTypes, options, cancellationToken);
+            candidate.Handler, candidate.ParameterTypes, candidate.Compilation, options,
+            cancellationToken);
 
         if (validator is null) {
             return new Resolved(candidate.Handler, null, candidate.Diagnostics);
@@ -142,7 +147,7 @@ public static class HandlerValidationGenerator {
                     TypeDefinitionEnum.ClassDefinition,
                     "Hardened.Requests.Runtime.Validation",
                     "ValidationFilterProvider",
-                    new[] { InvokeClassGenerator.GenericParameters }),
+                    new[] { InvokeClassGenerator.ParametersType(handler) }),
                 "",
                 "")
         };
@@ -190,6 +195,7 @@ public static class HandlerValidationGenerator {
     private sealed record Candidate(
         RequestHandlerModel Handler,
         ImmutableArray<ITypeSymbol?> ParameterTypes,
+        Compilation Compilation,
         ImmutableArray<Diagnostic> Diagnostics);
 
     public sealed record Resolved(

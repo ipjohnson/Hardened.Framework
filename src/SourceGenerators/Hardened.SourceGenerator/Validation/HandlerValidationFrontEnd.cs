@@ -51,9 +51,14 @@ public static class HandlerValidationFrontEnd {
     /// which are not reachable from inside a syntax transform - so the symbols have to survive one
     /// pipeline stage to meet them.
     /// </param>
+    /// <param name="compilation">
+    /// The compilation the parameter symbols came from - the front end walks inherited members and
+    /// answers accessibility questions against it, so it must be the same snapshot.
+    /// </param>
     public static ValidatedTypeModel? Build(
         RequestHandlerModel handler,
         ImmutableArray<ITypeSymbol?> parameterTypes,
+        Compilation compilation,
         ValidationGeneratorOptions options,
         CancellationToken cancellationToken) {
 
@@ -79,7 +84,7 @@ public static class HandlerValidationFrontEnd {
                 continue;
             }
 
-            if (BuildProperty(type, parameter, options) is { } property) {
+            if (BuildProperty(type, parameter, compilation, options) is { } property) {
                 properties.Add(property);
             }
         }
@@ -141,7 +146,8 @@ public static class HandlerValidationFrontEnd {
     /// <see cref="HandlerValidationDiagnostics"/> rather than compiled; see the note there.
     /// </remarks>
     private static ValidatedPropertyModel? BuildProperty(
-        ITypeSymbol type, RequestParameterInformation parameter, ValidationGeneratorOptions options) {
+        ITypeSymbol type, RequestParameterInformation parameter, Compilation compilation,
+        ValidationGeneratorOptions options) {
 
         var shape = PropertyShape.Scalar;
         string? elementTypeName = null;
@@ -150,15 +156,15 @@ public static class HandlerValidationFrontEnd {
         var dictionary = TypeFacts.DictionaryTypesOf(type);
         var elementType = TypeFacts.ElementTypeOf(type);
 
-        if (dictionary is { } entry && HasValidator(entry.Value, options)) {
+        if (dictionary is { } entry && HasValidator(entry.Value, compilation, options)) {
             shape = PropertyShape.Dictionary;
             elementTypeName = Qualified(entry.Value);
             elementValidatorName = QualifiedValidator((INamedTypeSymbol)entry.Value);
-        } else if (elementType is not null && HasValidator(elementType, options)) {
+        } else if (elementType is not null && HasValidator(elementType, compilation, options)) {
             shape = PropertyShape.Collection;
             elementTypeName = Qualified(elementType);
             elementValidatorName = QualifiedValidator((INamedTypeSymbol)elementType);
-        } else if (dictionary is null && elementType is null && HasValidator(type, options)) {
+        } else if (dictionary is null && elementType is null && HasValidator(type, compilation, options)) {
             shape = PropertyShape.Object;
             elementValidatorName = QualifiedValidator((INamedTypeSymbol)type);
         } else {
@@ -198,13 +204,13 @@ public static class HandlerValidationFrontEnd {
     /// from both places would double every one of them.
     /// </para>
     /// </remarks>
-    private static bool HasValidator(ITypeSymbol type, ValidationGeneratorOptions options) {
+    private static bool HasValidator(ITypeSymbol type, Compilation compilation, ValidationGeneratorOptions options) {
         if (type is not INamedTypeSymbol named || named.SpecialType != SpecialType.None) {
             return false;
         }
 
         var frontEnd = new AttributeFrontEnd(
-            options.CompileDataAnnotations, options.FieldNamer, options.ResolvedPatternPolicy);
+            compilation, options.CompileDataAnnotations, options.FieldNamer, options.ResolvedPatternPolicy);
 
         return frontEnd.Build(named, ValidationGeneratorOptions.ValidatorNameFor) is not null;
     }

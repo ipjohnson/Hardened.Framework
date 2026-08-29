@@ -93,13 +93,29 @@ public static class AttributeModelHelper {
                 TypeDefinitionEnum.ClassDefinition,
                 type.Namespace,
                 type.Name,
-                genericAttribute.TypeArguments.Select(argument => argument.GetTypeDefinition()).ToArray());
+                genericAttribute.TypeArguments.Select(GenericArgument).ToArray());
         }
 
         return new AttributeModel(type,
             arguments,
             propertyAssignment);
     }
+
+    /// <summary>
+    /// A generic attribute's type argument, ready to re-emit.
+    /// </summary>
+    /// <remarks>
+    /// An argument the semantic model cannot resolve - <c>[Output&lt;Views.Fortunes&gt;]</c>, where
+    /// the view is another generator's output and generators see only the original compilation - is
+    /// kept as written, in a <see cref="TypeParameterDefinition"/> so it stays relative. The symbol
+    /// route would hand CSharpAuthor 2.0 an empty namespace, which Global mode now qualifies, and
+    /// <c>global::Views.Fortunes</c> names nothing. The as-written name resolves in the generated
+    /// file's own namespace, which sits beside the handler that declared it.
+    /// </remarks>
+    private static ITypeDefinition GenericArgument(ITypeSymbol argument) =>
+        argument is IErrorTypeSymbol
+            ? new TypeParameterDefinition(argument.ToDisplayString())
+            : argument.GetTypeDefinition();
 
     /// <summary>
     /// Rewrites every name in an attribute argument to its <c>global::</c>-qualified form.
