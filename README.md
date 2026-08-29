@@ -271,7 +271,14 @@ the test, injects them, and substitutes a mock wherever a parameter is marked `[
 socket, port or running host: `ITestWebApp` sends the request through the actual pipeline, meaning
 routing, filters, binding, the handler and serialization.
 
+Two assembly attributes are the whole wiring: the harness, and the module under test. The real
+module graph is applied and startup services run, so there is no separate test setup to keep in
+step with the application.
+
 ```csharp
+[assembly: WebTesting]
+[assembly: HardenedTestEntryPoint(typeof(TodoLibrary))]
+
 public class TodoTests {
     [HardenedTest]
     public async Task GetTodo_ReturnsTheTodo(ITestWebApp app) {
