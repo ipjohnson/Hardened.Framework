@@ -143,6 +143,73 @@ or NSwag pointed at it does the rest. See
 [the OpenAPI document](https://ipjohnson.github.io/Hardened.Docs/guide/openapi-document) and
 [generating from OpenAPI](https://ipjohnson.github.io/Hardened.Docs/guide/openapi).
 
+## Three return models
+
+A handler that can answer more than one way has to say so somewhere. There are three places to say
+it. The choice decides what the compiler checks and what the generated document describes, and all
+three work side by side.
+
+| | The handler says | Other statuses | Needs |
+|---|---|---|---|
+| **Standard** | one success type | thrown | any SDK |
+| **Response** | the whole set, as `Response<T1..Tn>` | in the return type | any SDK |
+| **Union** | the whole set, as a C# `union` | in the return type | .NET 11, `LangVersion` preview |
+
+**Standard** is the default, and not a legacy mode. The signature names the success type and every
+other status is thrown. Nothing in the signature says the route can answer a 404, so nothing checks
+that you handled it, and the document describes only the 200.
+
+```csharp
+[Get("/todos/{id}")]
+public Todo ById(ITodoStore store, int id) {
+    var todo = store.Find(id);
+
+    if (todo is null) {
+        throw new NotFound("todo", $"No todo has id {id}.").AsException();
+    }
+
+    return todo;
+}
+```
+
+**Response** puts the whole set in the return type. `Response<T1..Tn>` is an ordinary struct with
+an implicit conversion per case, so the handler returns payloads and never names the wrapper. The
+compiler knows the set, the document describes all of it, and it compiles on any SDK.
+
+```csharp
+[Get("/todos/{id}")]
+public Response<Todo, NotFound> ById(ITodoStore store, int id) {
+    var todo = store.Find(id);
+
+    if (todo is null) {
+        return new NotFound("todo", $"No todo has id {id}.");
+    }
+
+    return todo;
+}
+```
+
+**Union** declares the same set as a C# language union, which adds exhaustiveness wherever you
+pattern-match on the result. The handler body is identical to the `Response` version.
+
+```csharp
+public union TodoResult(Todo, NotFound);
+
+[Get("/todos/{id}")]
+public TodoResult ById(ITodoStore store, int id) { /* same body */ }
+```
+
+Unions need `net11.0` and `<LangVersion>preview</LangVersion>`, which rules out Lambda's `net8.0`
+managed runtime today. Hardened matches `Response` and `union` structurally, so moving between them
+rewrites no handler. Cases like `NotFound`, `Created<T>` and `RateLimited` are built-in records
+that carry their status; each has a `<T>` form for your own error body.
+
+The return type alone decides, code-first. Contract-first, the statuses come from the contract and
+`<HardenedResponseModel>Standard|Response|Union</HardenedResponseModel>` decides the generated
+interface's shape. The full story, including declared 404s as nullable returns and operations with
+two success statuses, is in
+[declared responses](https://ipjohnson.github.io/Hardened.Docs/guide/responses).
+
 ## Filters
 
 Every request runs through the same pipeline, whatever the transport: an HTTP call, a Lambda
@@ -182,8 +249,6 @@ The same generate-don't-reflect treatment runs through the rest of the framework
 - **[Configuration](https://ipjohnson.github.io/Hardened.Docs/guide/configuration)** — a
   configuration model is a partial class of private fields; the generator writes the interface,
   the implementation and the environment-variable reads.
-- **[Declared responses](https://ipjohnson.github.io/Hardened.Docs/guide/responses)** — a handler
-  that can answer more than one way says so in its signature, and the document reflects it.
 - **[Authorization](https://ipjohnson.github.io/Hardened.Docs/guide/authorization)** — a handler
   says what it needs; the pipeline decides whether the caller has it.
 - **[Streaming responses](https://ipjohnson.github.io/Hardened.Docs/guide/streaming)** — return
