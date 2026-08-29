@@ -39,7 +39,8 @@ public class FunctionValidationTests {
             public sealed class OrderValidator : IValidatorFor<Order> {
                 public OrderValidator() { }
 
-                public void Validate(ref ValidationContext ctx, Order value) { }
+                public ValidationFlow Validate(ref ValidationContext ctx, Order value) =>
+                    ValidationFlow.Continue;
             }
         }
 
@@ -77,7 +78,10 @@ public class FunctionValidationTests {
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
-        Assert.Contains("ValidationFilterProvider<Parameters>", handler);
+        // Fully qualified from CSharpAuthor 2.0 on: the nested Parameters class is named by its
+        // full name, because a bare name would be qualified to global:: and resolve nothing.
+        Assert.Contains("ValidationFilterProvider<global::", handler);
+        Assert.Contains(".Parameters>", handler);
     }
 
     /// <summary>

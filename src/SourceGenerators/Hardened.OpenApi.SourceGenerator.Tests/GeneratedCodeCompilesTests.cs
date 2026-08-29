@@ -339,8 +339,10 @@ public class GeneratedCodeCompilesTests {
     public void OperationProseBecomesADocComment() {
         var generated = Undent(OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors());
 
-        // The route line keeps its place; the spec's prose follows it.
-        Assert.Contains("/// GET /pets &rarr; 200\n///\n/// Lists every pet.\n", generated);
+        // The route line keeps its place; the spec's prose follows it. A literal arrow, because
+        // CSharpAuthor escapes comment text at the boundary and an &rarr; entity would render
+        // as its own spelling.
+        Assert.Contains("/// GET /pets → 200\n///\n/// Lists every pet.\n", generated);
         Assert.Contains("""<param name="limit">How many to return.</param>""", generated);
     }
 
@@ -405,7 +407,7 @@ public class GeneratedCodeCompilesTests {
 
         var generated = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("/// GET /pets/undocumented &rarr; 200\n", generated.Replace("\r\n", "\n"));
+        Assert.Contains("/// GET /pets/undocumented → 200\n", generated.Replace("\r\n", "\n"));
     }
 
     /// <summary>
