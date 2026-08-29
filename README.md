@@ -1,9 +1,13 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="assets/hardened-mark-dark.svg"><img src="assets/hardened-mark.svg" alt="" width="34"></picture> Hardened.Framework
 
-A compile-time, source-generated .NET framework for web APIs and AWS Lambda. The dependency
-injection, routing, parameter binding, configuration and request filters are written by source
-generators during the build, not resolved by reflection at startup. What runs is ordinary C# you
-can open and read.
+A compile-time, source-generated .NET framework for web APIs and serverless functions. The
+dependency injection, routing, parameter binding, configuration and request filters are written by
+source generators during the build, not resolved by reflection at startup. What runs is ordinary
+C# you can open and read.
+
+The core is provider-agnostic: a handler never learns what host it runs on, and swapping the
+runtime module is the whole migration. AWS Lambda is the function compute supported today, through
+[Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
 
 Full documentation: **[ipjohnson.github.io/Hardened.Docs](https://ipjohnson.github.io/Hardened.Docs)**
 
@@ -31,7 +35,7 @@ can be swapped without touching the code.
 | Template | What you get |
 |---|---|
 | `hardened-web` | An implementation library, a host, and tests. `--host kestrel\|aspnet\|aws-lambda`, `--contract code\|openapi\|smithy` |
-| `hardened-function` | An AWS Lambda function and tests. `--trigger invoke\|sqs` |
+| `hardened-function` | A serverless function and tests, on AWS Lambda today. `--trigger invoke\|sqs` |
 | `hardened-library` | A reusable module an application picks up with one attribute |
 
 See the [templates guide](https://ipjohnson.github.io/Hardened.Docs/guide/project-templates) for
@@ -199,8 +203,8 @@ public union TodoResult(Todo, NotFound);
 public TodoResult ById(ITodoStore store, int id) { /* same body */ }
 ```
 
-Unions need `net11.0` and `<LangVersion>preview</LangVersion>`, which rules out Lambda's `net8.0`
-managed runtime today. Hardened matches `Response` and `union` structurally, so moving between them
+Unions need `net11.0` and `<LangVersion>preview</LangVersion>`, which rules out AWS Lambda's
+`net8.0` managed runtime today. Hardened matches `Response` and `union` structurally, so moving between them
 rewrites no handler. Cases like `NotFound`, `Created<T>` and `RateLimited` are built-in records
 that carry their status; each has a `<T>` form for your own error body.
 
@@ -212,8 +216,8 @@ two success statuses, is in
 
 ## Filters
 
-Every request runs through the same pipeline, whatever the transport: an HTTP call, a Lambda
-invocation, an SQS message. A pipeline is an ordered list of filters, and the handler you wrote is
+Every request runs through the same pipeline, whatever the transport: an HTTP call, a function
+invocation, a queue message. A pipeline is an ordered list of filters, and the handler you wrote is
 the last one. A filter does its work around `chain.Next()`; not calling it short-circuits
 everything after it, which is how authorization and caching return without reaching the handler.
 
@@ -298,5 +302,5 @@ full list, and which project references what, is in the
 
 ## Related repositories
 
-- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — AWS Lambda runtimes, test harnesses, DynamoDB client, CDK constructs
+- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — the AWS provider: Lambda runtimes, test harnesses, DynamoDB client, CDK constructs
 - [Hardened.Docs](https://github.com/ipjohnson/Hardened.Docs) — the documentation site
