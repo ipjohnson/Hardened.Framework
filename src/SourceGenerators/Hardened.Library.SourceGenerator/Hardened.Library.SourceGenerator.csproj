@@ -2,17 +2,6 @@
 
     <Import Project="../CSharpAuthor.props"/>
 
-    <!--
-        Model scope, because this project compiles ../Hardened.SourceGenerator/Models/**, and
-        RequestParameterInformation now carries the contract's ParameterModel for the document
-        writer. The serializer is the IDL front ends' concern and is not taken.
-    -->
-    <PropertyGroup>
-        <HardenedGenerationScope>Model</HardenedGenerationScope>
-    </PropertyGroup>
-
-    <Import Project="../Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
-
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Source generator for Hardened library and module projects: dependency injection registrations and configuration implementations.</Description>
@@ -67,7 +56,13 @@
             <Link>DependencyInjection\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
-        <Compile Include="../Hardened.SourceGenerator/Models/**/*">
+        <!--
+            Models/Request is excluded: nothing this generator compiles refers to the request
+            models, and RequestParameterInformation now carries the contract's ParameterModel -
+            taking the folder would mean taking Hardened.Generation.Shared with it, twenty files
+            of spec model this assembly never executes, purely as coverage denominator.
+        -->
+        <Compile Include="../Hardened.SourceGenerator/Models/**/*" Exclude="../Hardened.SourceGenerator/Models/Request/**/*">
             <Link>Models\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>

@@ -47,7 +47,10 @@ public class OpenApiRoundTripTests {
         [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
         [Server("https://api.example.com", "Production")]
         [Server("https://staging.example.com")]
+        [OpenApiInfo("Orders API", "3.5.0")]
         public partial class TestApplication { }
+
+        public enum Priority { Standard, Express, NextDay }
 
         public class Order {
             [StringLength(3, 12)]
@@ -62,6 +65,8 @@ public class OpenApiRoundTripTests {
 
             [ItemCount(0, 8)]
             public List<string>? Tags { get; set; }
+
+            public Priority Priority { get; set; }
         }
 
         public class OrderSummary {
@@ -83,7 +88,9 @@ public class OpenApiRoundTripTests {
             [Get("/")]
             public List<OrderSummary> List(
                 [FromQueryString] int page,
-                [FromHeader("X-Tenant")] string tenant) => new();
+                [FromHeader("X-Tenant")] string tenant,
+                [FromQueryString] Priority? priority = null,
+                [FromQueryString] int limit = 20) => new();
 
             [Post("/")]
             public OrderSummary Create(Order order) => new();
@@ -219,7 +226,10 @@ public class OpenApiRoundTripTests {
     public void TheEmittedDocumentIsValidOpenApi() {
         var document = RoundTrip();
 
-        Assert.Equal("TestApplication", document.Info.Title);
+        // [OpenApiInfo] names the document; the class-name fallback is what an application
+        // declaring nothing gets.
+        Assert.Equal("Orders API", document.Info.Title);
+        Assert.Equal("3.5.0", document.Info.Version);
         Assert.NotEmpty(document.Paths);
     }
 
@@ -546,4 +556,24 @@ public class OpenApiRoundTripTests {
 
         Assert.All(used, tag => Assert.Contains(tag, declared));
     }
+
+    /// <summary>
+    /// A parameter the binder answers with a default is not required, and an enum parameter
+    /// carries the vocabulary the wire converters are generated from.
+    /// </summary>
+    [Fact]
+    public void DefaultedAndEnumParametersKeepTheirFacts() {
+        var list = Operation(RoundTrip(), "/orders", HttpMethod.Get);
+        var parameters = Parameters(list).ToDictionary(p => p.Name!);
+
+        Assert.False(parameters["limit"].Required);
+        Assert.Equal(JsonSchemaType.Integer, parameters["limit"].Schema!.Type);
+
+        var priority = parameters["priority"].Schema!;
+
+        Assert.Equal(
+            new[] { "standard", "express", "nextDay" },
+            priority.Enum!.Select(value => value.GetValue<string>()));
+    }
+
 }
