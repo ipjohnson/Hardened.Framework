@@ -12,7 +12,7 @@ namespace com.example.hardened1
 @title("Hardened1 API")
 service Todos {
     version: "2024-01-01"
-    operations: [GetTodo, CreateTodo, RemoveTodo]
+    operations: [ListTodos, GetTodo, CreateTodo, RemoveTodo]
 }
 
 /// What a client sends to create one. Named rather than inline, so the generated model is called
@@ -37,6 +37,17 @@ structure Todo {
     done: Boolean
 }
 
+// A named list, which does not become a C# type of its own - the generated signature is
+// List<Todo>. @httpPayload on the member below is what makes the list the whole response body
+// rather than a member of an object wrapping it, so this answers the same array the OpenAPI
+// contract does.
+//
+// // rather than ///, because /// becomes @documentation and then a C# XML comment, where the
+// angle brackets would not be well-formed.
+list TodoList {
+    member: Todo
+}
+
 /// The shape of an error body. @error is what makes it a declared failure rather than an output.
 @error("client")
 @httpError(404)
@@ -50,6 +61,17 @@ structure TodoNotFound {
 structure TodoTitleTaken {
     @required
     message: String
+}
+
+@documentation("Every todo.")
+@http(method: "GET", uri: "/todos", code: 200)
+@readonly
+operation ListTodos {
+    output := {
+        @required
+        @httpPayload
+        todos: TodoList
+    }
 }
 
 @documentation("One todo by id.")

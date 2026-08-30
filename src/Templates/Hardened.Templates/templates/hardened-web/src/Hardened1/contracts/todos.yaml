@@ -63,6 +63,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   /todos:
+    get:
+      tags:
+        - Todos
+      operationId: listTodos
+      summary: Every todo.
+      responses:
+        '200':
+          description: The todos.
+          content:
+            application/json:
+              schema:
+                # An array response, so the generated signature is List<Todo> rather than a wrapper
+                # type. The only operation here that declares one status, which is why it is the
+                # same in every response model.
+                type: array
+                items:
+                  $ref: '#/components/schemas/Todo'
     post:
       tags:
         - Todos

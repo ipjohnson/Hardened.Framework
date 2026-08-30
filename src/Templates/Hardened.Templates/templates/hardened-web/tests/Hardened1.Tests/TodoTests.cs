@@ -21,6 +21,16 @@ public class TodoTests {
     private record NewTodoRequest(string Title);
 
     [HardenedTest]
+    public async Task ListTodos_ReturnsEveryTodo(ITestWebApp app) {
+        var response = await app.Get("/todos");
+
+        response.Assert.Ok();
+
+        Assert.Equal(
+            [1, 2], response.Deserialize<List<TodoResponse>>().Select(todo => todo.Id));
+    }
+
+    [HardenedTest]
     public async Task GetTodo_ReturnsTheTodo(ITestWebApp app) {
         var response = await app.Get("/todos/1");
 

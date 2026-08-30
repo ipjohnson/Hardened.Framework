@@ -43,6 +43,17 @@ public class TodoService : ITodosService {
     private static TodoTitleTaken ConflictBody(string message) => new(message);
 #endif
 
+    /// <summary>
+    /// Every todo, as the array the contract declares.
+    /// </summary>
+    /// <remarks>
+    /// Outside the response-model split below, because this operation declares one status and there
+    /// is nothing for a declared set to hold. A named list is not a C# type of its own in either
+    /// contract language, so both generate List&lt;Todo&gt; and this method is written once.
+    /// </remarks>
+    public Task<List<Todo>> ListTodos() =>
+        Task.FromResult(_store.All().ToList());
+
 #if (standardMode)
     /// <summary>
     /// Null is the 404.

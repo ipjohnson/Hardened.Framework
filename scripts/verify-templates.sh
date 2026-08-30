@@ -228,6 +228,11 @@ for COMBO in "${COMBOS[@]}"; do
         # indistinguishable from having no declared set at all, which is the thing worth proving
         # here - and the sample's 404 and 409 are the two statuses every mode has to answer the
         # same way, whether it reaches them by returning a case or by throwing.
+        # The list route, and asserted as an array rather than as 200. A Smithy @httpPayload list
+        # generated an empty record and answered {} - a 200 with nothing in it, which every check
+        # phrased as a status code passes.
+        LISTED=$(curl -s --max-time 5 "http://localhost:$PORT/todos" || true)
+
         MISSING=$(status_of "http://localhost:$PORT/todos/9999")
         DUPLICATE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
             -X POST -H 'Content-Type: application/json' \
@@ -278,6 +283,14 @@ for COMBO in "${COMBOS[@]}"; do
             echo "   FAILED: expected 404 and 409, got $MISSING and $DUPLICATE"
             FAILED=1
         fi
+
+        case "$LISTED" in
+            \[*\]) echo "   list: $LISTED" ;;
+            *)
+                echo "   FAILED: GET /todos should answer a JSON array, got '$LISTED'"
+                FAILED=1
+                ;;
+        esac
 
         if [ "$CREATED" != "$EXPECT_CREATED" ]; then
             echo "   FAILED: $CONTRACT/$MODEL should create at $EXPECT_CREATED, got $CREATED"

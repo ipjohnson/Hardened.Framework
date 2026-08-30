@@ -30,6 +30,8 @@ public record NewTodo(string Title);
 /// </remarks>
 public interface ITodoStore {
 
+    IReadOnlyList<Todo> All();
+
     Todo? Find(int id);
 
     bool TitleExists(string title);
@@ -61,6 +63,8 @@ public class TodoStore : ITodoStore {
     };
 
     private int _nextId = 3;
+
+    public IReadOnlyList<Todo> All() => _todos.Values.ToList();
 
     public Todo? Find(int id) => _todos.TryGetValue(id, out var todo) ? todo : null;
 

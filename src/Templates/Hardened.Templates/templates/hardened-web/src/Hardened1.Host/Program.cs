@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 // WaitForShutdownAsync is an IHost extension rather than a WebApplication member.
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 #endif
 
 // Listens on 5080. Override with PORT.
@@ -39,9 +40,18 @@ await using var app = HardenedKestrelApplication.Create(
 await app.StartAsync();
 
 // Printed, so the address is read rather than guessed. The ASP.NET host does this for you.
-app.Services.GetRequiredService<ILoggerFactory>()
-    .CreateLogger("Hardened1.Host")
-    .LogInformation("Listening on http://localhost:{Port}", port);
+var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Hardened1.Host");
+
+logger.LogInformation("Listening on http://localhost:{Port}", port);
+#if (OpenApiUi)
+
+// Where to start, rather than an address and a guess about what is under it. Gated on the
+// environment because the reference page is: printing a URL that answers 404 is worse than
+// printing nothing.
+if (environment.Matches("development")) {
+    logger.LogInformation("Browse http://localhost:{Port}/docs to access your API.", port);
+}
+#endif
 
 await app.RunAsync();
 #endif
@@ -66,6 +76,14 @@ await ApplicationLogic.Start(app.Services, null);
 app.Urls.Add($"http://localhost:{port}");
 
 await app.StartAsync();
+#if (OpenApiUi)
+
+// ASP.NET prints the address itself, so this adds only the part it cannot know about. Gated on the
+// environment because the reference page is.
+if (environment.Matches("development")) {
+    app.Logger.LogInformation("Browse http://localhost:{Port}/docs to access your API.", port);
+}
+#endif
 
 await app.WaitForShutdownAsync();
 #endif

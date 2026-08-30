@@ -31,5 +31,9 @@ namespace Hardened1;
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(Todo))]
 [JsonSerializable(typeof(NewTodo))]
+// List<Todo> rather than the IReadOnlyList<Todo> the handler declares. The response value reaches
+// the serializer as object, so System.Text.Json resolves the runtime type - and it is the runtime
+// type that needs a JsonTypeInfo here.
+[JsonSerializable(typeof(List<Todo>))]
 public partial class TemplateModuleNameJsonContext : JsonSerializerContext;
 #endif
