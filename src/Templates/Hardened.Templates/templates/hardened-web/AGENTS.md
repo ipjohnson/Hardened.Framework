@@ -102,8 +102,12 @@ compile.
 throw new NotFound("todo", $"No todo has id {id}.").AsException();
 ```
 
-The thrown value is an ordinary response record, so the body a client sees is the same one the
-declared modes return. What differs is that nothing in the signature says the route can answer it.
+The thrown value is an ordinary response record, so for the bare problem types the body a client
+sees is the same one the declared modes return. The generic ones - `NotFound<T>` and friends - are
+unwrapped only by the declared modes' dispatch: thrown, the wrapper itself is serialized, with the
+payload nested under a `body` member. Throw `StatusCodeException` with the payload as its value to
+send a typed body from this mode. What also differs is that nothing in the signature says the
+route can answer it.
 
 #if (codeFirst)
 A single success status is nameable here: `SuccessStatus` on the verb attribute carries it, and it
@@ -152,8 +156,10 @@ wrapper. Returning the wrong status for a route is a compile error rather than a
 the generated document describes every declared status because every one of them is in the
 signature.
 
-To add an error path: add a case to the return type, then return it. The compiler finds every place
-that has to change.
+To add an error path: add a case to the return type, then return it. Removing or renaming a case
+is found by the compiler at every affected line. Adding one is not: the widened set compiles with
+no handler returning the new case, and the document then promises a status the service never
+answers - so after widening a set, check the handler actually returns it.
 
 **A case type may not appear twice in one set.** Two identical type arguments give two identical
 conversions and the compiler rejects the use site — which is why `NotFound` appearing in two
