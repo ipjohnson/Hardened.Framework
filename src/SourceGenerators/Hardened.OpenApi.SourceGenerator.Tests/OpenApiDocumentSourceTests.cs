@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CSharpAuthor;
+using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
@@ -237,6 +238,153 @@ public class OpenApiDocumentSourceTests {
             EntryPoint(), [Handler(path: "/todos", response: Schema("Todo"))], "/api");
 
         Assert.Contains("\"/api/todos\"", json);
+    }
+
+    #endregion
+
+    #region declared parameter schemas
+
+    private static RequestParameterInformation Bound(ParameterModel? spec) =>
+        new(
+            TypeDefinition.Get(typeof(string)), "limit", false, null,
+            ParameterBindType.QueryString, "limit", 0) {
+            SpecParameter = spec
+        };
+
+    private static RequestHandlerModel WithParameter(RequestParameterInformation parameter) =>
+        new(
+            new RequestHandlerNameModel("/todos/{id}", "GET"),
+            Type("TodoController"),
+            "GetTodo",
+            TypeDefinition.Get("TestApp.Generated", "TodoController_GetTodo"),
+            [parameter],
+            new ResponseInformationModel { ReturnType = Type("Todo") },
+            []) {
+            ResponseSchema = Schema("Todo")
+        };
+
+    private static JsonElement LimitSchema(JsonElement document) {
+        foreach (var parameter in document
+                     .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get")
+                     .GetProperty("parameters").EnumerateArray()) {
+            if (parameter.GetProperty("name").GetString() == "limit") {
+                return parameter.GetProperty("schema");
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException("No limit parameter in the document.");
+    }
+
+    /// <summary>
+    /// 3.1 aligned exclusive bounds with JSON Schema 2020-12, where the bound is the number. The
+    /// boolean-in-a-3.2-document spelling is the defect this replaces.
+    /// </summary>
+    [Fact]
+    public void AnExclusiveBoundIsTheNumberFromThreeOne() {
+        var schema = LimitSchema(Document(WithParameter(Bound(new ParameterModel {
+            Name = "limit", In = "query", Type = "number",
+            Minimum = 0, ExclusiveMinimum = true
+        }))));
+
+        Assert.Equal(0, schema.GetProperty("exclusiveMinimum").GetDecimal());
+        Assert.False(schema.TryGetProperty("minimum", out _));
+    }
+
+    /// <summary>3.0 keeps the boolean spelling beside the bound.</summary>
+    [Fact]
+    public void AnExclusiveBoundIsTheBooleanInThreeZero() {
+        var document = JsonDocument.Parse(OpenApiDocumentGenerator.Write(
+            EntryPoint(),
+            [WithParameter(Bound(new ParameterModel {
+                Name = "limit", In = "query", Type = "number",
+                Minimum = 0, ExclusiveMinimum = true
+            }))],
+            "",
+            OpenApiVersion.V3_0)).RootElement;
+
+        var schema = LimitSchema(document);
+
+        Assert.Equal(0, schema.GetProperty("minimum").GetDecimal());
+        Assert.True(schema.GetProperty("exclusiveMinimum").GetBoolean());
+    }
+
+    /// <summary>A declared array parameter keeps its item type and bounds.</summary>
+    [Fact]
+    public void ADeclaredArrayParameterKeepsItsShape() {
+        var schema = LimitSchema(Document(WithParameter(Bound(new ParameterModel {
+            Name = "limit", In = "query",
+            IsArray = true, ArrayItemsType = "string", MinItems = 1, MaxItems = 20
+        }))));
+
+        Assert.Equal("array", schema.GetProperty("type").GetString());
+        Assert.Equal("string", schema.GetProperty("items").GetProperty("type").GetString());
+        Assert.Equal(1, schema.GetProperty("minItems").GetInt32());
+        Assert.Equal(20, schema.GetProperty("maxItems").GetInt32());
+    }
+
+    /// <summary>
+    /// No declaration, no change: the schema still comes from the C# type, so a handler that
+    /// never had a contract publishes exactly what it did before.
+    /// </summary>
+    [Fact]
+    public void AnUndeclaredParameterStillReadsTheCSharpType() {
+        var schema = LimitSchema(Document(WithParameter(
+            new RequestParameterInformation(
+                TypeDefinition.Get("System", "Int32"), "limit", false, null,
+                ParameterBindType.QueryString, "limit", 0))));
+
+        Assert.Equal("integer", schema.GetProperty("type").GetString());
+        Assert.Equal("int32", schema.GetProperty("format").GetString());
+    }
+
+    #endregion
+
+    #region control characters in prose
+
+    /// <summary>
+    /// A description with a second line still yields a document a strict parser accepts.
+    /// </summary>
+    /// <remarks>
+    /// The defect this guards: multi-line contract prose reached <c>description</c> with its
+    /// newlines raw, RFC 8259 forbids that, and <c>System.Text.Json</c>, <c>jq</c> and the served
+    /// reference page all refused the published document. <see cref="Document"/> parses strictly,
+    /// so reaching the assertions at all is most of the test.
+    /// </remarks>
+    [Fact]
+    public void MultiLineDescriptionsSurviveStrictParsing() {
+        var handler = Handler(
+            responses: [
+                new ResponseSchemaModel(
+                    404,
+                    "Which one is in the code member,\nbecause one status carries one body.",
+                    Schema("Problem"))
+            ]);
+
+        handler.Description = "Line one.\nLine two.\r\n\tIndented, with a tab.";
+
+        var document = Document(handler);
+        var operation = document.GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get");
+
+        Assert.Equal(
+            "Line one.\nLine two.\r\n\tIndented, with a tab.",
+            operation.GetProperty("description").GetString());
+        Assert.Equal(
+            "Which one is in the code member,\nbecause one status carries one body.",
+            operation.GetProperty("responses").GetProperty("404")
+                .GetProperty("description").GetString());
+    }
+
+    /// <summary>Anything below U+0020 without a short escape goes out as <c>\u</c>.</summary>
+    [Fact]
+    public void BareControlCharactersAreUnicodeEscaped() {
+        var handler = Handler(response: Schema("Todo"));
+
+        handler.Description = "before\u0001after";
+
+        var operation = Document(handler)
+            .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get");
+
+        Assert.Equal("before\u0001after", operation.GetProperty("description").GetString());
     }
 
     #endregion

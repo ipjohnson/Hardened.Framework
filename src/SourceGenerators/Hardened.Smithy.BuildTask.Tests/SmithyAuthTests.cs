@@ -194,4 +194,54 @@ public class SmithyAuthTests {
         Assert.Single(
             Assert.Single(operations, o => o.OperationId == "Shut").AuthorizationBranches);
     }
+
+    #region what the published document is told
+
+    private static ServiceSpecModel ParseModel(string serviceTraits, string operationTraits = "") {
+        var diagnostics = new List<string>();
+        var model = SmithySpecParser.Parse(Model(serviceTraits, operationTraits), "auth", diagnostics);
+
+        Assert.NotNull(model);
+
+        return model!;
+    }
+
+    /// <summary>
+    /// The scheme the service enforces is registered for the document, in its OpenAPI spelling,
+    /// and the operation that requires it names it. The served document declared no scheme at all,
+    /// so a client generated from it sent unauthenticated requests the service refuses.
+    /// </summary>
+    [Fact]
+    public void ABearerServiceRegistersItsSchemeForTheDocument() {
+        var model = ParseModel(BearerAuth);
+        var scheme = Assert.Single(model.SecuritySchemes);
+
+        Assert.Equal("httpBearerAuth", scheme.Name);
+        Assert.Equal("{\"type\":\"http\",\"scheme\":\"bearer\"}", scheme.Json);
+
+        var operation = Assert.Single(Assert.Single(model.Services).Operations);
+
+        Assert.Equal(
+            "{\"httpBearerAuth\":[]}",
+            Assert.Single(operation.SecurityRequirements));
+    }
+
+    /// <summary>An operation opting out with @auth([]) names no requirement.</summary>
+    [Fact]
+    public void AnOptedOutOperationNamesNoRequirement() {
+        var operation = Parse(BearerAuth, ", \"smithy.api#auth\": []");
+
+        Assert.Empty(operation.SecurityRequirements);
+    }
+
+    /// <summary>@title and the service version are the document's info block.</summary>
+    [Fact]
+    public void TitleAndVersionReachTheModel() {
+        var model = ParseModel(BearerAuth + ", \"smithy.api#title\": \"Pet Store\"");
+
+        Assert.Equal("Pet Store", model.Title);
+        Assert.Equal("1", model.Version);
+    }
+
+    #endregion
 }

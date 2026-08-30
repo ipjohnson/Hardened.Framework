@@ -43,7 +43,8 @@ internal static class SpecRoutingTableGenerator {
         ImmutableArray<HandlerInfo?> handlerInfos,
         ImmutableArray<SpecRegistration> specRegistrations,
         IReadOnlyList<RouteConstraintModel> constraints,
-        bool excludeFromCoverage = false) {
+        bool excludeFromCoverage = false,
+        DocumentIdentity? identity = null) {
         var outputString = GenerateCSharpRouteFile(
             models.Left, models.Right, handlerInfos, specRegistrations,
             context.CancellationToken, excludeFromCoverage, constraints);
@@ -63,7 +64,7 @@ internal static class SpecRoutingTableGenerator {
         // over-promise, because the model holds only what was actually read.
         context.AddSource(
             models.Left.EntryPointType.Name + ".OpenApiDocument",
-            OpenApiDocumentSource.Write(models.Left, models.Right, ""));
+            OpenApiDocumentSource.Write(models.Left, models.Right, "", identity: identity));
 
         // The same links an attribute-routed application gets, from the same models. A document
         // generates the routes, so a link built from one is checked against the document rather

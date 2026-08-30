@@ -190,6 +190,14 @@ internal static class SpecHandlerModelBuilder {
             Summary = operation.Summary,
             Description = operation.Description,
             IsDeprecated = operation.IsDeprecated,
+            SecurityRequirements = operation.SecurityRequirements,
+            // Parameter interfaces and body constraints both end at the same generated 400. Only
+            // for a described operation: everything a description constrains reaches a generated
+            // validator, while a code-first operation's bridge model carries required-ness and no
+            // body facts, so the same test would promise a 400 nothing generates. Symbols are how
+            // code-first announces itself.
+            HasGeneratedValidation = validated != null ||
+                                     (symbols == null && operation.HasValidationConstraints),
         };
     }
 
@@ -256,6 +264,11 @@ internal static class SpecHandlerModelBuilder {
                 // The prose the contract gives this parameter, for the published document. The
                 // binder does not read it.
                 Description = param.Description,
+                // The declaration itself rides along for the same reader. The eight constructor
+                // arguments above are what routing and binding need; the wire type, the constraint
+                // bounds and the enum vocabulary are facts only the document wants, and carrying
+                // the model beats re-deriving them from the C# type, which can only guess.
+                SpecParameter = param,
             });
         }
 
@@ -506,7 +519,7 @@ internal static class SpecHandlerModelBuilder {
         // one status.
         if (ResponseSetPlan.PrimarySuccessIsBarePayload(operation)) {
             cases.Add(new UnionCaseModel(
-                Qualified(modelsNamespace, PrimarySuccessTypeName(operation)),
+                Qualified(modelsNamespace, PrimarySuccessTypeName(operation, modelsNamespace)),
                 operation.SuccessStatusCode,
                 // A bare payload applies headers when the headers are its own members, which is what
                 // Smithy's @httpHeader on an output produces.
@@ -552,10 +565,15 @@ internal static class SpecHandlerModelBuilder {
     }
 
     /// <summary>The primary success's own type name, which the union names directly.</summary>
-    private static string PrimarySuccessTypeName(OperationModel operation) =>
+    /// <remarks>
+    /// The list's item is qualified here, because <see cref="Qualified"/> sees the System. prefix
+    /// and stops at the outer type - which emitted <c>case List&lt;Pet&gt;</c> with a bare
+    /// <c>Pet</c> into a file with no using for it, CS0246 in generated code.
+    /// </remarks>
+    private static string PrimarySuccessTypeName(OperationModel operation, string modelsNamespace) =>
         operation.ResponseRef != null
             ? NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef))
-            : "System.Collections.Generic.List<" +
+            : "System.Collections.Generic.List<global::" + modelsNamespace + "." +
               NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef!)) + ">";
 
     /// <summary>
@@ -661,14 +679,22 @@ internal static class SpecHandlerModelBuilder {
                 SpecSchemaWriter.DescriptionFor(success.Description, success.StatusCode),
                 success.IsArray
                     ? SpecSchemaWriter.ForArrayOf(success.ArrayItemsRef, schemas)
-                    : SpecSchemaWriter.ForRef(success.Ref, schemas)));
+                    // A success the contract types without naming - text/plain's string - still
+                    // has a schema; publishing the status with no content told a client to read
+                    // nothing from a response that carries the body.
+                    : SpecSchemaWriter.ForRef(success.Ref, schemas)
+                      ?? SpecSchemaWriter.ForScalar(success.Type, success.Format)) {
+                Headers = success.Headers
+            });
         }
 
         foreach (var error in operation.ErrorResponses) {
             result.Add(new ResponseSchemaModel(
                 error.StatusCode,
                 SpecSchemaWriter.DescriptionFor(error.Description, error.StatusCode),
-                SpecSchemaWriter.ForRef(error.Ref, schemas)));
+                SpecSchemaWriter.ForRef(error.Ref, schemas)) {
+                Headers = error.Headers
+            });
         }
 
         return result;

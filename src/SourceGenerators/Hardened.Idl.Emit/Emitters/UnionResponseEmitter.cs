@@ -65,7 +65,12 @@ internal static class UnionResponseEmitter {
                 }
 
                 var successCase = EmitCaseType(
-                    container, operation, response.StatusCode, response.Ref, response.Description,
+                    container, operation, response.StatusCode,
+                    PayloadType(
+                        response.Ref, response.Type, response.Format,
+                        response.IsArray, response.ArrayItemsRef, response.ArrayItemsType,
+                        modelsNamespace),
+                    response.Description,
                     modelsNamespace, response.Headers);
 
                 emitted.Add(successCase.Definition);
@@ -74,7 +79,9 @@ internal static class UnionResponseEmitter {
 
             foreach (var response in operation.ErrorResponses) {
                 var caseType = EmitCaseType(
-                    container, operation, response.StatusCode, response.Ref, response.Description,
+                    container, operation, response.StatusCode,
+                    PayloadType(response.Ref, null, null, false, null, null, modelsNamespace),
+                    response.Description,
                     modelsNamespace, response.Headers);
 
                 emitted.Add(caseType.Definition);
@@ -101,7 +108,8 @@ internal static class UnionResponseEmitter {
     /// unambiguous never required refusing that.
     /// </remarks>
     private static CaseType EmitCaseType(
-        IConstructContainer container, OperationModel operation, int statusCode, string? bodyRef,
+        IConstructContainer container, OperationModel operation, int statusCode,
+        ITypeDefinition? payload,
         string? description, string modelsNamespace,
         IReadOnlyList<ResponseHeaderModel>? headers = null) {
         var name = ResponseSetPlan.CaseName(operation, statusCode);
@@ -129,9 +137,9 @@ internal static class UnionResponseEmitter {
                 Indented = false
             });
 
-        var headerParameters = ResolveHeaderParameters(headers, carriesBody: bodyRef != null);
+        var headerParameters = ResolveHeaderParameters(headers, carriesBody: payload != null);
 
-        if (bodyRef == null) {
+        if (payload == null) {
             // A 204 declaring a Location, or a 304 declaring an ETag - a case with nothing to
             // serialize and something to send. The constructor exists only where there are headers
             // to take, so a bodyless case that declares none is the parameterless record it was.
@@ -147,9 +155,6 @@ internal static class UnionResponseEmitter {
 
             return new CaseType(definition, name, hasBody: false);
         }
-
-        var payload = TypeDefinition.Get(
-            modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(bodyRef)));
 
         var constructor = definition.AddConstructor();
 
@@ -327,7 +332,7 @@ internal static class UnionResponseEmitter {
         var branches = new List<string>();
 
         foreach (var branchType in branchTypes) {
-            branches.Add(branchType.Namespace + "." + branchType.Name);
+            branches.Add(QualifiedName(branchType));
         }
 
         var comment = $"Every response {operation.HttpMethod} {operation.Path} declares.";
@@ -420,6 +425,74 @@ internal static class UnionResponseEmitter {
     /// raw-bytes response is not a response set - the first is many bodies and the second is one the
     /// application already holds encoded - and neither belongs in a union of statuses.
     /// </remarks>
+    /// <summary>
+    /// The body a declared response carries: its named schema, a list of one, or the scalar the
+    /// contract typed without naming.
+    /// </summary>
+    /// <remarks>
+    /// The scalar half is what a <c>text/plain</c> success is - <c>type: string</c>, no
+    /// <c>$ref</c> - and it emitted a case record with nowhere to put the body, which compiled
+    /// and could never carry the label it existed to answer with. A shape this still cannot type
+    /// yields null and the bodyless case, which is at least visible at the handler.
+    /// </remarks>
+    private static ITypeDefinition? PayloadType(
+        string? bodyRef, string? type, string? format,
+        bool isArray, string? itemsRef, string? itemsType, string modelsNamespace) {
+        if (bodyRef != null) {
+            return TypeDefinition.Get(
+                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(bodyRef)));
+        }
+
+        if (isArray) {
+            var item = itemsRef != null
+                ? TypeDefinition.Get(
+                    modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(itemsRef)))
+                : ScalarType(itemsType, null);
+
+            return item == null
+                ? null
+                : new GenericTypeDefinition(typeof(List<>), new[] { item });
+        }
+
+        return ScalarType(type, format);
+    }
+
+    private static ITypeDefinition? ScalarType(string? type, string? format) {
+        if (string.IsNullOrEmpty(type) || type == "object") {
+            return null;
+        }
+
+        var csType = TypeMapper.MapToCSharpType(type, format);
+
+        // GetTypeDefinition rather than the primitive lookup alone, because byte[] and the
+        // date types come back from the mapper too. An unmapped name lands in the models
+        // namespace, which is a compile error at the case type rather than a silent empty record.
+        return TypeMapper.GetTypeDefinition("", csType, false);
+    }
+
+    /// <summary>
+    /// A branch as source text, type arguments included.
+    /// </summary>
+    /// <remarks>
+    /// Namespace-plus-name dropped a generic's arguments, so an operation whose success is an
+    /// array emitted constructors taking <c>System.Collections.Generic.List</c> - CS0305, in
+    /// generated code, for a contract the parser accepted. The language-union path never had the
+    /// bug because CSharpAuthor renders the type itself; this is the struct path catching up.
+    /// </remarks>
+    private static string QualifiedName(ITypeDefinition type) {
+        if (type.TypeArguments.Count == 0) {
+            return type.Namespace + "." + type.Name;
+        }
+
+        var arguments = new List<string>();
+
+        foreach (var argument in type.TypeArguments) {
+            arguments.Add(QualifiedName(argument));
+        }
+
+        return type.Namespace + "." + type.Name + "<" + string.Join(",", arguments) + ">";
+    }
+
     private static ITypeDefinition? SuccessBranchType(
         OperationModel operation, string modelsNamespace) {
         // Not HasNamedSuccessPayload: a primary success that declares headers is emitted as a

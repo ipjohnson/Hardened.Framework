@@ -50,6 +50,14 @@ namespace Hardened.Web.Runtime.Attributes
         public string Path { get; }
         public int SuccessStatus { get; set; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited=false)]
+    public class OpenApiInfoAttribute : System.Attribute
+    {
+        public OpenApiInfoAttribute(string title, string version = "1.0.0", string? description = null) { }
+        public string? Description { get; }
+        public string Title { get; }
+        public string Version { get; }
+    }
     public class PatchAttribute : System.Attribute
     {
         public PatchAttribute(string path = "") { }

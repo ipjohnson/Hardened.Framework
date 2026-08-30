@@ -79,8 +79,20 @@ internal static class OpenApiGenerator {
         var models = new Dictionary<string, string>();
         var taskEmitted = new Dictionary<string, string>();
 
+        // $(HardenedResponseModel), exactly as ExtractSpecTask reads it: the property selects
+        // between Standard, Response and Union, and a harness that ignored it could only ever
+        // exercise Standard - which is how the response-set emitters shipped shapes nothing here
+        // compiled.
+        var responseModel = Property(buildProperties, "HardenedResponseModel") switch {
+            "Response" => SpecResponseModel.Response,
+            "Union" => SpecResponseModel.Union,
+            _ => SpecResponseModel.Standard
+        };
+
         foreach (var spec in specs) {
             var model = ParseSpec(spec.Key, spec.Value);
+
+            model.ResponseModel = responseModel;
 
             // Emit before serialising, in that order, because emitting records what it named -
             // the parameter interface and validator per operation - onto the model, and the
@@ -88,7 +100,8 @@ internal static class OpenApiGenerator {
             // doing it the other way round hands the generator a model with no validation in it and
             // nothing wired to any handler, on a build that still compiles.
             var emitted = new KeyValuePair<string, string>(
-                $"{model.FileName}.g.cs", SpecFileEmitter.Emit(model, ns, excludeFromCoverage));
+                $"{model.FileName}.g.cs",
+                SpecFileEmitter.Emit(model, ns, excludeFromCoverage, responseModel: responseModel));
 
             sources[emitted.Key] = emitted.Value;
             taskEmitted[emitted.Key] = emitted.Value;

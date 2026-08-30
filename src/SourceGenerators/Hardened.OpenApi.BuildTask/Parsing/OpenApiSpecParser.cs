@@ -119,6 +119,25 @@ internal static class OpenApiSpecParser {
 
         var model = new ServiceSpecModel { FileName = fileName };
 
+        // The document's identity, for the published document to repeat. It was consumed here and
+        // regenerated downstream as the entry point's class name and "1.0.0", so the served
+        // contract renamed the API its own author had titled.
+        model.Title = document.Info?.Title;
+        model.Version = document.Info?.Version;
+        model.InfoDescription = document.Info?.Description;
+
+        if (document.Components?.SecuritySchemes != null) {
+            foreach (var pair in document.Components.SecuritySchemes) {
+                var json = SecuritySchemeJson(pair.Value);
+
+                if (json != null) {
+                    model.SecuritySchemes.Add(new SecuritySchemeModel {
+                        Name = pair.Key, Json = json
+                    });
+                }
+            }
+        }
+
         // Schemas the document does not name, lifted out of the places they were written inline.
         // Collected separately and appended, so a synthesized name colliding with a declared one is
         // visible to SpecDiagnostics as a duplicate rather than quietly overwriting it.
@@ -1582,6 +1601,229 @@ internal static class OpenApiSpecParser {
     /// what the handler declared and must not be able to remove one.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// The scheme as the OpenAPI JSON the published document will carry, or null for a shape this
+    /// cannot express.
+    /// </summary>
+    /// <remarks>
+    /// Written by hand rather than through the library's serializer so the output is one stable
+    /// line whatever package version parses the document - this string rides the serialized model
+    /// and the incremental cache, where formatting churn is a rebuild.
+    /// </remarks>
+    private static string? SecuritySchemeJson(IOpenApiSecurityScheme scheme) {
+        var builder = new System.Text.StringBuilder("{");
+
+        switch (scheme.Type) {
+            case SecuritySchemeType.Http:
+                builder.Append("\"type\":\"http\"");
+
+                if (!string.IsNullOrEmpty(scheme.Scheme)) {
+                    builder.Append(",\"scheme\":").Append(JsonText(scheme.Scheme!));
+                }
+
+                if (!string.IsNullOrEmpty(scheme.BearerFormat)) {
+                    builder.Append(",\"bearerFormat\":").Append(JsonText(scheme.BearerFormat!));
+                }
+
+                break;
+
+            case SecuritySchemeType.ApiKey:
+                builder.Append("\"type\":\"apiKey\"");
+
+                if (!string.IsNullOrEmpty(scheme.Name)) {
+                    builder.Append(",\"name\":").Append(JsonText(scheme.Name!));
+                }
+
+                if (scheme.In != null) {
+                    builder.Append(",\"in\":\"")
+                        .Append(scheme.In.Value.ToString().ToLowerInvariant()).Append('"');
+                }
+
+                break;
+
+            case SecuritySchemeType.OAuth2:
+                builder.Append("\"type\":\"oauth2\"");
+                AppendFlows(builder, scheme.Flows);
+                break;
+
+            case SecuritySchemeType.OpenIdConnect:
+                builder.Append("\"type\":\"openIdConnect\"");
+
+                if (scheme.OpenIdConnectUrl != null) {
+                    builder.Append(",\"openIdConnectUrl\":")
+                        .Append(JsonText(scheme.OpenIdConnectUrl.ToString()));
+                }
+
+                break;
+
+            default:
+                return null;
+        }
+
+        if (!string.IsNullOrEmpty(scheme.Description)) {
+            builder.Append(",\"description\":").Append(JsonText(scheme.Description!));
+        }
+
+        return builder.Append('}').ToString();
+    }
+
+    private static void AppendFlows(System.Text.StringBuilder builder, OpenApiOAuthFlows? flows) {
+        if (flows == null) {
+            return;
+        }
+
+        builder.Append(",\"flows\":{");
+
+        var first = true;
+
+        AppendFlow(builder, "implicit", flows.Implicit, ref first);
+        AppendFlow(builder, "password", flows.Password, ref first);
+        AppendFlow(builder, "clientCredentials", flows.ClientCredentials, ref first);
+        AppendFlow(builder, "authorizationCode", flows.AuthorizationCode, ref first);
+
+        builder.Append('}');
+    }
+
+    private static void AppendFlow(
+        System.Text.StringBuilder builder, string name, OpenApiOAuthFlow? flow, ref bool first) {
+        if (flow == null) {
+            return;
+        }
+
+        if (!first) {
+            builder.Append(',');
+        }
+
+        first = false;
+        builder.Append('"').Append(name).Append("\":{");
+
+        var inner = true;
+
+        if (flow.AuthorizationUrl != null) {
+            builder.Append("\"authorizationUrl\":").Append(JsonText(flow.AuthorizationUrl.ToString()));
+            inner = false;
+        }
+
+        if (flow.TokenUrl != null) {
+            builder.Append(inner ? "" : ",").Append("\"tokenUrl\":").Append(JsonText(flow.TokenUrl.ToString()));
+            inner = false;
+        }
+
+        if (flow.RefreshUrl != null) {
+            builder.Append(inner ? "" : ",").Append("\"refreshUrl\":").Append(JsonText(flow.RefreshUrl.ToString()));
+            inner = false;
+        }
+
+        builder.Append(inner ? "" : ",").Append("\"scopes\":{");
+
+        var firstScope = true;
+
+        if (flow.Scopes != null) {
+            foreach (var scope in flow.Scopes) {
+                if (!firstScope) {
+                    builder.Append(',');
+                }
+
+                builder.Append(JsonText(scope.Key)).Append(':').Append(JsonText(scope.Value ?? ""));
+                firstScope = false;
+            }
+        }
+
+        builder.Append("}}");
+    }
+
+    /// <summary>A string as a quoted JSON value, control characters escaped.</summary>
+    private static string JsonText(string value) {
+        var builder = new System.Text.StringBuilder(value.Length + 2).Append('"');
+
+        foreach (var ch in value) {
+            switch (ch) {
+                case '\\': builder.Append("\\\\"); break;
+                case '"': builder.Append("\\\""); break;
+                case '\n': builder.Append("\\n"); break;
+                case '\r': builder.Append("\\r"); break;
+                case '\t': builder.Append("\\t"); break;
+                default:
+                    if (ch < ' ') {
+                        builder.Append("\\u").Append(((int)ch).ToString("x4"));
+                    } else {
+                        builder.Append(ch);
+                    }
+
+                    break;
+            }
+        }
+
+        return builder.Append('"').ToString();
+    }
+
+    /// <summary>
+    /// The operation's declared security as requirement objects, one JSON object per entry.
+    /// </summary>
+    /// <remarks>
+    /// The contract's statement, scopes and all, kept apart from
+    /// <see cref="ParseSecurity"/>'s enforcement reading: what the filter checks and what the
+    /// document repeats are different questions with different failure modes. Entries naming a
+    /// scheme the document never declares are dropped here exactly as enforcement drops them -
+    /// the dangling reference is already reported there.
+    /// </remarks>
+    private static List<string> SecurityRequirementJson(
+        OpenApiOperation operation, OpenApiDocument document) {
+        var declared = operation.Security ?? document.Security;
+        var requirements = new List<string>();
+
+        if (declared == null) {
+            return requirements;
+        }
+
+        var schemes = document.Components?.SecuritySchemes;
+
+        foreach (var requirement in declared) {
+            var builder = new System.Text.StringBuilder("{");
+            var first = true;
+
+            foreach (var entry in requirement) {
+                var name = entry.Key?.Reference?.Id;
+
+                if (string.IsNullOrEmpty(name) || !Declares(schemes, name!)) {
+                    continue;
+                }
+
+                if (!first) {
+                    builder.Append(',');
+                }
+
+                builder.Append(JsonText(name!)).Append(":[");
+
+                if (entry.Value is { Count: > 0 } scopes) {
+                    var firstScope = true;
+
+                    foreach (var scope in scopes) {
+                        if (string.IsNullOrEmpty(scope)) {
+                            continue;
+                        }
+
+                        if (!firstScope) {
+                            builder.Append(',');
+                        }
+
+                        builder.Append(JsonText(scope!));
+                        firstScope = false;
+                    }
+                }
+
+                builder.Append(']');
+                first = false;
+            }
+
+            if (!first) {
+                requirements.Add(builder.Append('}').ToString());
+            }
+        }
+
+        return requirements;
+    }
+
     private static List<AuthorizationBranchModel> ParseSecurity(
         OpenApiOperation operation, OpenApiDocument document, string operationId,
         ICollection<string>? diagnostics) {
@@ -1755,7 +1997,8 @@ internal static class OpenApiSpecParser {
                 Summary = FirstNonEmpty(operation.Summary),
                 Description = FirstNonEmpty(operation.Description),
                 IsDeprecated = operation.Deprecated,
-                AuthorizationBranches = ParseSecurity(operation, document, operationId, diagnostics)
+                AuthorizationBranches = ParseSecurity(operation, document, operationId, diagnostics),
+                SecurityRequirements = SecurityRequirementJson(operation, document)
             };
 
             foreach (var param in MergeParameters(pathItem.Parameters, operation.Parameters)) {

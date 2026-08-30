@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
+using Hardened.Generation.Models;
+
 namespace Hardened.SourceGenerator.Models.Request;
 
 /// <summary>
@@ -37,6 +41,17 @@ public sealed class ResponseSchemaModel : System.IEquatable<ResponseSchemaModel>
     public HandlerSchema? Schema { get; }
 
     /// <summary>
+    /// The headers the contract declares this response carries, for the published document.
+    /// </summary>
+    /// <remarks>
+    /// The runtime already applies these - the generated case type takes each as a constructor
+    /// parameter - so a document that omitted them described a response as bare that always
+    /// carries its Location. Empty for a response declaring none.
+    /// </remarks>
+    internal IReadOnlyList<ResponseHeaderModel> Headers { get; set; } =
+        System.Array.Empty<ResponseHeaderModel>();
+
+    /// <summary>
     /// By value, because this reaches <c>RequestHandlerModel</c>'s equality and that is a Roslyn
     /// incremental cache key. A reference comparison here would report two identical response sets
     /// as different on every edit, and - worse - is one refactor away from reporting two different
@@ -46,7 +61,8 @@ public sealed class ResponseSchemaModel : System.IEquatable<ResponseSchemaModel>
         other is not null &&
         Status == other.Status &&
         Description == other.Description &&
-        Equals(Schema, other.Schema);
+        Equals(Schema, other.Schema) &&
+        Headers.SequenceEqual(other.Headers);
 
     public override bool Equals(object? obj) => Equals(obj as ResponseSchemaModel);
 
