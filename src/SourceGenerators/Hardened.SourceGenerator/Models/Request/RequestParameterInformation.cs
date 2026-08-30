@@ -1,4 +1,5 @@
 ﻿using CSharpAuthor;
+using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Models.Request;
@@ -47,6 +48,18 @@ public class RequestParameterInformation {
     /// </remarks>
     public string? Description { get; set; }
 
+    /// <summary>
+    /// The contract's declaration of this parameter, when the handler came from one.
+    /// </summary>
+    /// <remarks>
+    /// The document writer prefers these facts - the declared wire type, the constraint bounds,
+    /// the enum vocabulary, the default - over re-deriving a schema from
+    /// <see cref="ParameterType"/>, which can only guess. The binder does not read it: binding and
+    /// validation are generated from the spec model before it is narrowed to this type, so a
+    /// handler with no contract behaves exactly as it did when this was absent.
+    /// </remarks>
+    internal ParameterModel? SpecParameter { get; set; }
+
     public int ParameterIndex {
         get;
     }
@@ -82,6 +95,17 @@ public class RequestParameterInformation {
 
         if (CustomAttribute != null &&
             !CustomAttribute.Equals(requestParameterInformation.CustomAttribute)) {
+            return false;
+        }
+
+        // Both reach the published document and nothing else. Left out of equality, an edit to a
+        // parameter's prose or its declared constraints compares equal and the cached document
+        // keeps the old text - the exact staleness ResponseModelSelector's remarks warn about.
+        if (Description != requestParameterInformation.Description) {
+            return false;
+        }
+
+        if (!Equals(SpecParameter, requestParameterInformation.SpecParameter)) {
             return false;
         }
 

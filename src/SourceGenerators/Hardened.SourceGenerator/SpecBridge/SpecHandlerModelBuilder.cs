@@ -256,6 +256,11 @@ internal static class SpecHandlerModelBuilder {
                 // The prose the contract gives this parameter, for the published document. The
                 // binder does not read it.
                 Description = param.Description,
+                // The declaration itself rides along for the same reader. The eight constructor
+                // arguments above are what routing and binding need; the wire type, the constraint
+                // bounds and the enum vocabulary are facts only the document wants, and carrying
+                // the model beats re-deriving them from the C# type, which can only guess.
+                SpecParameter = param,
             });
         }
 

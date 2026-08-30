@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CSharpAuthor;
+using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
@@ -139,7 +140,7 @@ public static class OpenApiDocumentGenerator {
             builder.Append(",\"deprecated\":true");
         }
 
-        WriteParameters(builder, handler);
+        WriteParameters(builder, handler, version);
         WriteRequestBody(builder, handler, components);
         WriteResponses(builder, handler, components, version);
 
@@ -246,7 +247,8 @@ public static class OpenApiDocumentGenerator {
         builder.Append(']');
     }
 
-    private static void WriteParameters(StringBuilder builder, RequestHandlerModel handler) {
+    private static void WriteParameters(
+        StringBuilder builder, RequestHandlerModel handler, OpenApiVersion version) {
         var bound = handler.RequestParameterInformationList
             .Where(p => Location(p.BindingType) != null)
             .ToList();
@@ -275,7 +277,7 @@ public static class OpenApiDocumentGenerator {
             WriteText(builder, "description", parameter.Description);
 
             builder.Append("")
-                .Append(",\"schema\":").Append(ScalarSchema(parameter.ParameterType))
+                .Append(",\"schema\":").Append(ParameterSchema(parameter, version))
                 .Append('}');
         }
 
@@ -662,6 +664,160 @@ public static class OpenApiDocumentGenerator {
     /// arrive as text, so the schema is unspecific rather than wrong.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// The schema for a bound value: the contract's declaration when the handler came from one,
+    /// <see cref="ScalarSchema"/>'s reading of the C# type when it did not.
+    /// </summary>
+    /// <remarks>
+    /// The declaration wins because it is the only one of the two that knows anything. A described
+    /// parameter's wire type, format, enum vocabulary, bounds and default all survive to the
+    /// handler model now; deriving the schema from the C# type instead is how every parameter came
+    /// to be published as <c>{"type":"string"}</c> - the enum fell through the name switch, and a
+    /// nullable scalar arrives as a <c>Nullable</c> with no argument to read.
+    /// </remarks>
+    private static string ParameterSchema(RequestParameterInformation parameter, OpenApiVersion version) {
+        var spec = parameter.SpecParameter;
+
+        if (spec == null || (string.IsNullOrEmpty(spec.Type) &&
+                             spec.EnumValues is not { Count: > 0 } &&
+                             !spec.IsArray)) {
+            return ScalarSchema(parameter.ParameterType);
+        }
+
+        var builder = new StringBuilder();
+
+        builder.Append('{');
+
+        if (spec.IsArray) {
+            builder.Append("\"type\":\"array\"");
+
+            if (spec.MinItems.HasValue) {
+                builder.Append(",\"minItems\":").Append(spec.MinItems.Value);
+            }
+
+            if (spec.MaxItems.HasValue) {
+                builder.Append(",\"maxItems\":").Append(spec.MaxItems.Value);
+            }
+
+            builder.Append(",\"items\":");
+            AppendScalarFacets(
+                builder, spec.ArrayItemsType ?? "string", spec.Format, spec, version, openObject: true);
+        } else {
+            AppendScalarFacets(
+                builder,
+                string.IsNullOrEmpty(spec.Type) ? "string" : spec.Type!,
+                spec.Format, spec, version, openObject: false);
+        }
+
+        builder.Append('}');
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// The scalar half of a declared schema: type, format, enum, bounds, pattern and default.
+    /// </summary>
+    /// <remarks>
+    /// The exclusive bounds change spelling with the document version: 3.0 writes
+    /// <c>"minimum": n, "exclusiveMinimum": true</c> and 3.1 aligned with JSON Schema 2020-12,
+    /// where <c>exclusiveMinimum</c> is itself the number. Writing the boolean form into a 3.2
+    /// document is the defect this replaces.
+    /// </remarks>
+    private static void AppendScalarFacets(
+        StringBuilder builder, string type, string? format, ParameterModel spec,
+        OpenApiVersion version, bool openObject) {
+        if (openObject) {
+            builder.Append('{');
+        }
+
+        builder.Append("\"type\":\"").Append(JsonSchemaWriter.Escape(type)).Append('"');
+
+        if (!string.IsNullOrEmpty(format)) {
+            builder.Append(",\"format\":\"").Append(JsonSchemaWriter.Escape(format!)).Append('"');
+        }
+
+        if (spec.EnumValues is { Count: > 0 }) {
+            builder.Append(",\"enum\":[");
+
+            for (var i = 0; i < spec.EnumValues.Count; i++) {
+                if (i > 0) {
+                    builder.Append(',');
+                }
+
+                builder.Append('"').Append(JsonSchemaWriter.Escape(spec.EnumValues[i])).Append('"');
+            }
+
+            builder.Append(']');
+        }
+
+        if (spec.Minimum.HasValue) {
+            builder.Append(version == OpenApiVersion.V3_0
+                    ? ",\"minimum\":"
+                    : spec.ExclusiveMinimum ? ",\"exclusiveMinimum\":" : ",\"minimum\":")
+                .Append(Number(spec.Minimum.Value));
+
+            if (version == OpenApiVersion.V3_0 && spec.ExclusiveMinimum) {
+                builder.Append(",\"exclusiveMinimum\":true");
+            }
+        }
+
+        if (spec.Maximum.HasValue) {
+            builder.Append(version == OpenApiVersion.V3_0
+                    ? ",\"maximum\":"
+                    : spec.ExclusiveMaximum ? ",\"exclusiveMaximum\":" : ",\"maximum\":")
+                .Append(Number(spec.Maximum.Value));
+
+            if (version == OpenApiVersion.V3_0 && spec.ExclusiveMaximum) {
+                builder.Append(",\"exclusiveMaximum\":true");
+            }
+        }
+
+        if (spec.MinLength.HasValue) {
+            builder.Append(",\"minLength\":").Append(spec.MinLength.Value);
+        }
+
+        if (spec.MaxLength.HasValue) {
+            builder.Append(",\"maxLength\":").Append(spec.MaxLength.Value);
+        }
+
+        if (!string.IsNullOrEmpty(spec.Pattern)) {
+            builder.Append(",\"pattern\":\"").Append(JsonSchemaWriter.Escape(spec.Pattern!)).Append('"');
+        }
+
+        if (!string.IsNullOrEmpty(spec.Default)) {
+            builder.Append(",\"default\":").Append(DefaultLiteralJson(type, spec.Default!));
+        }
+
+        if (openObject) {
+            builder.Append('}');
+        }
+    }
+
+    /// <summary>A decimal as JSON, which never means the culture's decimal separator.</summary>
+    private static string Number(decimal value) =>
+        value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// The declared default as a JSON literal of the schema's type, quoted only when the type is
+    /// textual. A default that does not parse as its declared type is written as a string rather
+    /// than invalidating the document over it.
+    /// </summary>
+    private static string DefaultLiteralJson(string type, string value) {
+        switch (type) {
+            case "integer":
+            case "number":
+                return decimal.TryParse(
+                    value, System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture, out var number)
+                    ? Number(number)
+                    : "\"" + JsonSchemaWriter.Escape(value) + "\"";
+            case "boolean" when value is "true" or "false":
+                return value;
+            default:
+                return "\"" + JsonSchemaWriter.Escape(value) + "\"";
+        }
+    }
+
     private static string ScalarSchema(ITypeDefinition type) {
         // int? and friends: the schema describes the value, and "required" already says whether one
         // has to be there. Two spellings reach here - Nullable<T> with a type argument, and the
