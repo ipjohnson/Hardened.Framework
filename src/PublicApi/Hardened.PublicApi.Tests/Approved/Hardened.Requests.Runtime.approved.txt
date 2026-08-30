@@ -487,6 +487,13 @@ namespace Hardened.Requests.Runtime.Logging
     public class RequestLogger : Hardened.Requests.Abstract.Logging.IRequestLogger
     {
         public RequestLogger(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Logging.RequestLogger> logger) { }
+        [Microsoft.Extensions.Logging.LoggerMessage(EventId=78005, Message="{httpMethod} {path} failed with {statusCode}: {exceptionType} - {exceptionMessage" +
+            "}")]
+        protected void LogDeclaredFailure(Microsoft.Extensions.Logging.LogLevel level, System.Exception? cause, string httpMethod, string path, int statusCode, string exceptionType, string exceptionMessage) { }
+        [Microsoft.Extensions.Logging.LoggerMessage(EventId=78004, Message="{httpMethod} {path} failed with {statusCode}: {failure}")]
+        protected void LogKnownFailure(Microsoft.Extensions.Logging.LogLevel level, System.Exception? cause, string httpMethod, string path, int statusCode, string failure) { }
+        [Microsoft.Extensions.Logging.LoggerMessage(EventId=78006, Level=Microsoft.Extensions.Logging.LogLevel.Error, Message="{httpMethod} {path} request failed")]
+        protected void LogRequestFailed(System.Exception exception, string httpMethod, string path) { }
         [Microsoft.Extensions.Logging.LoggerMessage(EventId=78002, Level=Microsoft.Extensions.Logging.LogLevel.Information, Message="{httpMethod} {path}  finished status code \'{statusCode}\'  duration {durationMs}")]
         protected void LogRequestFinished(string httpMethod, string path, int? statusCode, System.TimeSpan durationMs) { }
         [Microsoft.Extensions.Logging.LoggerMessage(EventId=78001, Level=Microsoft.Extensions.Logging.LogLevel.Information, Message="{httpMethod} {path} mapped to {typeName}.{methodName}")]

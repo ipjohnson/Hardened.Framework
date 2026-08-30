@@ -1,9 +1,16 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
+using Hardened.Requests.Abstract.Responses;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Diagnostics;
+using Hardened.Requests.Runtime.Errors;
+using Hardened.Requests.Runtime.RateLimiting;
+using Hardened.Requests.Runtime.Validation;
 using Microsoft.Extensions.Logging;
 
 namespace Hardened.Requests.Runtime.Logging;
@@ -293,23 +300,189 @@ public partial class RequestLogger : IRequestLogger {
     }
 
     public void RequestFailed(IExecutionContext context, Exception exp) {
-        _logger.LogError(exp, "{method} {path} request failed", context.Request.Method, context.Request.Path);
+        var description = Describe(exp);
+
+        var tier = description is not null
+            ? FailureTier.Known
+            : exp is IStatusCodeException or BadRequestException
+                ? FailureTier.Declared
+                : FailureTier.Unhandled;
+
+        var status = StatusOf(context, exp);
+
+        // A fault is the server's problem; everything else is the caller's, and answering it is this
+        // service working. Error is reserved for the first, which is the same line RequestEnd
+        // already draws when it decides whether to mark a span.
+        var fault = tier == FailureTier.Unhandled || status >= 500;
+        var level = fault ? LogLevel.Error : LogLevel.Information;
+
+        // An inner exception is the one stack a recognised failure has worth keeping.
+        // ValidationException carries one for exactly this - "abc is not in a correct format" is the
+        // difference between a diagnosable failure and a bare assertion that something was wrong -
+        // and says so in its own documentation. The exception itself is not passed, because for a
+        // deliberate throw its stack is only the line that threw.
+        var cause = exp.InnerException;
+
+        switch (tier) {
+            case FailureTier.Known:
+                LogKnownFailure(
+                    level, cause, context.Request.Method, context.Request.Path, status, description!);
+                break;
+
+            case FailureTier.Declared:
+                LogDeclaredFailure(
+                    level, cause, context.Request.Method, context.Request.Path, status,
+                    exp.GetType().Name, exp.Message);
+                break;
+
+            default:
+                LogRequestFailed(exp, context.Request.Method, context.Request.Path);
+                break;
+        }
 
         if (!_spans.TryGetValue(context, out var span)) {
             return;
         }
 
         span.SetTag("error.type", exp.GetType().FullName);
-        span.SetStatus(ActivityStatusCode.Error, exp.Message);
 
-        // The stack repeats what the log line above already carries, deliberately: logs and traces
-        // are sampled and retained separately, and a trace that says only "it failed" sends whoever
-        // is reading it looking for a log line that may no longer exist.
-        span.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection {
+        // Unset for a client error, which is what RequestEnd does with the same status and for the
+        // same reason: a trace backend's error rate should mean "this service failed" rather than
+        // "somebody asked for a row that is not there". This marked every failure errored, so a
+        // declared 404 landed on that count while the identical 404 that was returned rather than
+        // thrown did not.
+        if (fault) {
+            span.SetStatus(ActivityStatusCode.Error, exp.Message);
+        }
+
+        // The type and message repeat what the log line above already carries, deliberately: logs
+        // and traces are sampled and retained separately, and a trace that says only "it failed"
+        // sends whoever is reading it looking for a log line that may no longer exist.
+        var tags = new ActivityTagsCollection {
             { "exception.type", exp.GetType().FullName },
-            { "exception.message", exp.Message },
-            { "exception.stacktrace", exp.ToString() }
-        }));
+            { "exception.message", exp.Message }
+        };
+
+        // The stack goes where the log line put one, so the two agree about what was worth keeping.
+        if (tier == FailureTier.Unhandled) {
+            tags.Add("exception.stacktrace", exp.ToString());
+        }
+
+        span.AddEvent(new ActivityEvent("exception", tags: tags));
+    }
+
+    /// <summary>
+    /// How much of a failed request is worth writing down.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every failure was reported the same way: <c>LogError</c> with the exception, so a stack
+    /// trace. Most of them are not faults. A declared 404, a validation failure, an authorization
+    /// refusal and a rate-limit refusal all arrive here, and a stack for those is noise in the log
+    /// and a false entry on whatever counts errors.
+    /// </para>
+    /// <para>
+    /// What separates the tiers is how much this class knows about the exception, not how bad it
+    /// is. Severity is decided separately, from the status the caller is answered with, so a
+    /// deliberately thrown 503 is still an Error and a thrown 404 is not.
+    /// </para>
+    /// </remarks>
+    private enum FailureTier {
+        /// <summary>
+        /// An exception this framework defines and can describe: the response a
+        /// <see cref="ResponseException"/> carries, the fields a validation failure names, the
+        /// challenge behind a refusal. Reported as that description.
+        /// </summary>
+        Known,
+
+        /// <summary>
+        /// An application's own exception, deriving from a base that states what it means -
+        /// <see cref="IStatusCodeException"/> or <see cref="BadRequestException"/>. Nothing here
+        /// can describe it, but deriving from one of those says the throw was deliberate, so it is
+        /// reported by type and message rather than as a fault.
+        /// </summary>
+        Declared,
+
+        /// <summary>Anything else, which is a fault, and gets the exception and its stack.</summary>
+        Unhandled
+    }
+
+    /// <summary>
+    /// The failure as the sentence an operator wants, or null where this class has nothing better
+    /// to say about it than its type and its message.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Each arm prints the part that carries the information. A <see cref="ResponseException"/>
+    /// holds a record, whose own <c>ToString</c> already names the case type and every member it
+    /// was given - so <c>NotFound { Resource = order 42, Detail = }</c> rather than the base's
+    /// "The request produced status 404.". A validation failure's information is the field list,
+    /// which is what the caller was answered with and what lets the log line say which field
+    /// without anyone opening the response body. A refusal's is the challenge, which names the
+    /// scheme and the grants that would have worked.
+    /// </para>
+    /// <para>
+    /// The types are named rather than matched by namespace. A namespace test would take in an
+    /// application's own exception that happened to be declared in one of ours and describe it
+    /// with a message this class did not write.
+    /// </para>
+    /// </remarks>
+    private static string? Describe(Exception exp) =>
+        exp switch {
+            ResponseException response => response.Response.ToString(),
+
+            // Both routes to a validation failure, the same two ExceptionToModelConverter maps: the
+            // filter throws Hardened's, a handler calling ValidateAndThrow throws ValidationModules'.
+            ValidationException hardened => Fields(hardened.ValidationResult, exp),
+            ValidationModules.ValidationException validationModules =>
+                Fields(validationModules.Result, exp),
+
+            AuthorizationException authorization => authorization.Challenge.HeaderValue,
+
+            // Types whose message was written for this line. NotAcceptableException says so in its
+            // own remarks - it repeats its body as its message because it reaches a log as well as
+            // a client.
+            RateLimitExceededException or NotAcceptableException or BadContentEncodingException =>
+                exp.Message,
+
+            _ => null
+        };
+
+    /// <summary>
+    /// The fields that failed, or the exception's own message where the result names none.
+    /// </summary>
+    /// <remarks>
+    /// A result carrying no errors is a validation failure that cannot say what failed. It should
+    /// not happen, and reporting an empty string if it did would be the one line nobody could act
+    /// on.
+    /// </remarks>
+    private static string Fields(ValidationModules.ValidationResult result, Exception exp) {
+        var fields = string.Join("; ", result.Errors.Select(error => error.Field + ": " + error.Message));
+
+        return fields.Length == 0 ? exp.Message : fields;
+    }
+
+    /// <summary>
+    /// The status this failure is answered with.
+    /// </summary>
+    /// <remarks>
+    /// Taken from the exception first, because that is where <c>ExceptionToModelConverter</c> takes
+    /// it from too, so the log line and the response cannot disagree. The response's own status
+    /// covers every other exception, since <c>ExceptionResponseSerializer</c> assigns it before
+    /// reporting the failure - which is the reason its documentation gives for that order. What is
+    /// left is a host's catch-all reporting an exception that reached neither, and 500 is what such
+    /// a request is answered with.
+    /// </remarks>
+    private static int StatusOf(IExecutionContext context, Exception exp) {
+        if (exp is IStatusCodeException declared) {
+            return declared.StatusCode;
+        }
+
+        if (context.Response.Status is { } assigned) {
+            return assigned;
+        }
+
+        return exp is BadRequestException or ValidationModules.ValidationException ? 400 : 500;
     }
 
     public void ResourceNotFound(IExecutionContext context) {
@@ -340,4 +513,32 @@ public partial class RequestLogger : IRequestLogger {
         Level = LogLevel.Information,
         Message = "{httpMethod} {path} Resource Not Found")]
     protected partial void LogResourceNotFound(string httpMethod, string path);
+
+    /// <summary>
+    /// A failure this class recognised, as what it recognised about it.
+    /// </summary>
+    /// <remarks>
+    /// The level is a parameter rather than fixed on the attribute because it follows the status
+    /// rather than the message: the same call reports a 404 at Information and a thrown 503 at
+    /// Error.
+    /// </remarks>
+    [LoggerMessage(
+        EventId = 78004,
+        Message = "{httpMethod} {path} failed with {statusCode}: {failure}")]
+    protected partial void LogKnownFailure(
+        LogLevel level, Exception? cause, string httpMethod, string path, int statusCode,
+        string failure);
+
+    [LoggerMessage(
+        EventId = 78005,
+        Message = "{httpMethod} {path} failed with {statusCode}: {exceptionType} - {exceptionMessage}")]
+    protected partial void LogDeclaredFailure(
+        LogLevel level, Exception? cause, string httpMethod, string path, int statusCode,
+        string exceptionType, string exceptionMessage);
+
+    [LoggerMessage(
+        EventId = 78006,
+        Level = LogLevel.Error,
+        Message = "{httpMethod} {path} request failed")]
+    protected partial void LogRequestFailed(Exception exception, string httpMethod, string path);
 }

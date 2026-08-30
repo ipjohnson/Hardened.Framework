@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.Logging;
 using Hardened.Requests.Runtime.Headers;
 using Hardened.Shared.Runtime.Metrics;
@@ -274,6 +275,62 @@ public class RequestLoggerSpanTests {
         Assert.Equal("System.InvalidOperationException", recorded.Tags.Single(t => t.Key == "exception.type").Value);
         Assert.Equal("handler blew up", recorded.Tags.Single(t => t.Key == "exception.message").Value);
         Assert.Contains("InvalidOperationException", (string)recorded.Tags.Single(t => t.Key == "exception.stacktrace").Value!);
+    }
+
+    /// <summary>
+    /// A thrown client error leaves the span Unset, which is what <see cref="RequestEnd"/> does with
+    /// the same status. Marking it errored put a declared 404 on a trace backend's error rate while
+    /// the identical 404 returned rather than thrown did not - so whether an application threw or
+    /// returned its response changed what the service looked like.
+    /// </summary>
+    [Fact]
+    public void AThrownClientErrorLeavesTheSpanUnset() {
+        using var listening = new Listening();
+
+        var logger = Logger();
+        var context = Context();
+
+        logger.RequestBegin(context);
+        logger.RequestFailed(context, new NotFound("order 42").AsException());
+
+        Assert.Equal(ActivityStatusCode.Unset, Assert.Single(listening.Started).Status);
+    }
+
+    /// <summary>
+    /// And carries no stack, because the log line for the same failure carries none either. The
+    /// throw site of a deliberate throw is the line that threw.
+    /// </summary>
+    [Fact]
+    public void AThrownClientErrorRecordsNoStackOnTheSpan() {
+        using var listening = new Listening();
+
+        var logger = Logger();
+        var context = Context();
+
+        logger.RequestBegin(context);
+        logger.RequestFailed(context, new NotFound("order 42").AsException());
+
+        var recorded = Assert.Single(Assert.Single(listening.Started).Events);
+
+        Assert.Equal("exception", recorded.Name);
+        Assert.DoesNotContain(recorded.Tags, t => t.Key == "exception.stacktrace");
+    }
+
+    /// <summary>
+    /// A thrown 503 is a fault whoever threw it, so the span says so. Severity follows the status
+    /// rather than whether the exception was recognised.
+    /// </summary>
+    [Fact]
+    public void AThrownServerErrorMarksTheSpanErrored() {
+        using var listening = new Listening();
+
+        var logger = Logger();
+        var context = Context();
+
+        logger.RequestBegin(context);
+        logger.RequestFailed(context, new ServiceUnavailable(Detail: "maintenance").AsException());
+
+        Assert.Equal(ActivityStatusCode.Error, Assert.Single(listening.Started).Status);
     }
 
     /// <summary>
