@@ -22,7 +22,15 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>        
+        <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
+
+        <!--
+          From ValidationModules 1.0.0-rc1012 the Impl sources compiled in below bridge ITypeSymbol
+          to ITypeDefinition through CSharpAuthor's opt-in Roslyn root, so RegionEmitter opens with
+          a using of CSharpAuthor.Roslyn. Neither source-only package can flow this switch to the
+          project compiling it - that is what PrivateAssets=all costs - so the consumer sets it.
+        -->
+        <PackageCSharpAuthorIncludeRoslyn>true</PackageCSharpAuthorIncludeRoslyn>
     </PropertyGroup>
     <PropertyGroup>
         <PackageHardenedIncludeSource>true</PackageHardenedIncludeSource>

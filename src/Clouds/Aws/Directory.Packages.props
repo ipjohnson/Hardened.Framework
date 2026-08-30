@@ -42,34 +42,43 @@
       rather than silent.
     -->
     <ItemGroup Label="Hardened.Framework">
-        <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.14.0-rc1000" />
-        <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.14.0-rc1000" />
-        <PackageVersion Include="Hardened.Requests.Abstract" Version="0.14.0-rc1000" />
-        <PackageVersion Include="Hardened.Requests.Runtime" Version="0.14.0-rc1000" />
-        <PackageVersion Include="Hardened.Shared.Runtime" Version="0.14.0-rc1000" />
-        <PackageVersion Include="Hardened.Shared.Testing" Version="0.14.0-rc1000" />
-        <PackageVersion Include="Hardened.SourceGenerator" Version="0.14.0-rc1000" />
-        <PackageVersion Include="Hardened.Web.Runtime" Version="0.14.0-rc1000" />
-        <PackageVersion Include="Hardened.Web.SourceGenerator" Version="0.14.0-rc1000" />
+        <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.15.0-rc1000" />
+        <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.15.0-rc1000" />
+        <PackageVersion Include="Hardened.Requests.Abstract" Version="0.15.0-rc1000" />
+        <PackageVersion Include="Hardened.Requests.Runtime" Version="0.15.0-rc1000" />
+        <PackageVersion Include="Hardened.Shared.Runtime" Version="0.15.0-rc1000" />
+        <PackageVersion Include="Hardened.Shared.Testing" Version="0.15.0-rc1000" />
+        <PackageVersion Include="Hardened.SourceGenerator" Version="0.15.0-rc1000" />
+        <PackageVersion Include="Hardened.Web.Runtime" Version="0.15.0-rc1000" />
+        <PackageVersion Include="Hardened.Web.SourceGenerator" Version="0.15.0-rc1000" />
     </ItemGroup>
 
     <ItemGroup Label="DependencyModules and code generation">
         <!--
-          Must be at least what Hardened.Framework builds its generators against, currently
-          1.1.1010. Hardened.SourceGenerator ships as source and is compiled into this
+          Must be exactly what Hardened.Framework builds its generators against, currently
+          2.0.0-preview1005. Hardened.SourceGenerator ships as source and is compiled into this
           repository's assemblies, so its use of CSharpAuthor is compiled here too - and
           PrivateAssets=all on the framework side means no dependency constraint arrives to say
           so. At 1.1.1006 the framework's own LinkGenerator and TemplateBaseGenerator failed to
           compile here for want of ComponentModifier.Sealed, TypeParameterDefinition and
           ClassDefinition.AddGenericParameter.
+
+          "At least" became "exactly" with 2.0. The Global output mode now qualifies types in the
+          global namespace, so the version decides what the compiled-in generators *emit* and not
+          only whether they compile - and the framework's HARDENED001 guard cannot say so either,
+          because it skips any prerelease version.
+
+          ValidationModules.SourceGenerator.Impl moves with them: from 1.0.0-rc1012 its emitters
+          are authored with CSharpAuthor rather than a StringBuilder, and it needs 2.0's Roslyn
+          bridge, which the two generator projects opt into.
         -->
-        <PackageVersion Include="CSharpAuthor" Version="1.1.1010" />
-        <PackageVersion Include="DependencyModules.Runtime" Version="1.0.0-rc9230" />
-        <PackageVersion Include="DependencyModules.SourceGenerator" Version="1.0.0-rc9230" />
-        <PackageVersion Include="DependencyModules.Testing" Version="1.0.0-rc9230" />
+        <PackageVersion Include="CSharpAuthor" Version="2.0.0-preview1005" />
+        <PackageVersion Include="DependencyModules.Runtime" Version="1.2.2" />
+        <PackageVersion Include="DependencyModules.SourceGenerator" Version="1.2.2" />
+        <PackageVersion Include="DependencyModules.Testing" Version="1.2.2" />
         <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
         <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
-        <PackageVersion Include="ValidationModules.SourceGenerator.Impl" Version="0.1.0-alpha.1" />
+        <PackageVersion Include="ValidationModules.SourceGenerator.Impl" Version="1.0.0-rc1012" />
     </ItemGroup>
 
     <ItemGroup Label="AWS">

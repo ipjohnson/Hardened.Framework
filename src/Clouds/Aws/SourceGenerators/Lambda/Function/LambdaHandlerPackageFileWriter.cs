@@ -18,10 +18,10 @@ public class LambdaHandlerPackageFileWriter {
 
         CreateHandlerPackageClass(appClass);
 
-        SetupDiForPackageClass(appClass);
+        SetupDiForPackageClass(appClass, appModel.EntryPointType.Namespace);
     }
 
-    private void SetupDiForPackageClass(ClassDefinition appClass) {
+    private void SetupDiForPackageClass(ClassDefinition appClass, string appNamespace) {
         var templateField = appClass.AddField(typeof(int), "_lambdaPackageDi");
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
@@ -38,8 +38,18 @@ public class LambdaHandlerPackageFileWriter {
 
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
 
+        // AddSingleton is an extension method, and an extension method is reachable only through a
+        // using of its namespace - global:: cannot name one.
+        diMethod.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-            new[] { KnownTypes.Lambda.ILambdaHandlerPackage, TypeDefinition.Get("", "LambdaHandlerPackage") }));
+            new[] {
+                KnownTypes.Lambda.ILambdaHandlerPackage,
+                // The nested package class by its full name: an empty-namespace TypeDefinition
+                // means the global namespace from CSharpAuthor 2.0 on, which Global mode
+                // qualifies - and global::LambdaHandlerPackage names nothing.
+                TypeDefinition.Get(appNamespace, appClass.Name + ".LambdaHandlerPackage")
+            }));
     }
 
     private void CreateHandlerPackageClass(ClassDefinition appClass) {

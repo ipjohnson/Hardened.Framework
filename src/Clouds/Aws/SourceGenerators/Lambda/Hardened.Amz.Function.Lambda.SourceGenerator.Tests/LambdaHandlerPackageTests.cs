@@ -85,9 +85,12 @@ public class LambdaHandlerPackageTests {
             "global::Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaHandlerPackage",
             package);
 
+        // The implementation is named in full. It is a nested private class, and from CSharpAuthor
+        // 2.0 a bare name would be written global::LambdaHandlerPackage, which resolves to nothing.
         FunctionGeneratorHarness.AssertEmits(package,
             "serviceCollection.AddSingleton<" +
-            "global::Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaHandlerPackage, LambdaHandlerPackage>();");
+            "global::Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaHandlerPackage, " +
+            "global::TestApp.Application.LambdaHandlerPackage>();");
     }
 
     /// <summary>
@@ -102,7 +105,9 @@ public class LambdaHandlerPackageTests {
 
         FunctionGeneratorHarness.AssertEmits(package,
             "private static int _lambdaPackageDi = DependencyRegistry<Application>.Add(LambdaPackageDi)");
-        Assert.Contains("[DynamicDependency(nameof(LambdaPackageDi))]", package);
+        Assert.Contains(
+            "[global::System.Diagnostics.CodeAnalysis.DynamicDependency(nameof(LambdaPackageDi))]",
+            package);
     }
 
     /// <summary>

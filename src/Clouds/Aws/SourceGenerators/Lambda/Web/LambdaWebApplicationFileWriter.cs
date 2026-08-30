@@ -17,17 +17,27 @@ public class LambdaWebApplicationFileWriter : ApplicationEntryPointFileWriter {
                 entryPoint.EntryPointType.Name,
                 "LambdaWebModule")).ToVar("handler");
 
-        var middleware =
-            constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-                new[] { KnownTypes.Requests.IMiddlewareService })).ToVar("middleware");
+        // GetRequiredService is an extension method, and an extension method is reachable only
+        // through a using of its namespace - global:: cannot name one. CSharpAuthor 2.0 derives
+        // the using list from the types actually written, so nothing supplies this for us.
+        var resolveMiddleware = providerInstanceDefinition.InvokeGeneric("GetRequiredService",
+            new[] { KnownTypes.Requests.IMiddlewareService });
+
+        resolveMiddleware.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
+        var middleware = constructor.Assign(resolveMiddleware).ToVar("middleware");
 
         constructor.AddIndentedStatement(middleware.Invoke("Use", "_ => handler"));
 
         var eventProcessor =
             appClass.AddField(KnownTypes.Lambda.IApiGatewayEventProcessor, "_eventProcessor");
 
-        constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-            new[] { KnownTypes.Lambda.IApiGatewayEventProcessor })).To(eventProcessor.Instance);
+        var resolveProcessor = providerInstanceDefinition.InvokeGeneric("GetRequiredService",
+            new[] { KnownTypes.Lambda.IApiGatewayEventProcessor });
+
+        resolveProcessor.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
+        constructor.Assign(resolveProcessor).To(eventProcessor.Instance);
     }
 
     protected override ITypeDefinition LoggerHelper => KnownTypes.Lambda.LambdaLoggerHelper;

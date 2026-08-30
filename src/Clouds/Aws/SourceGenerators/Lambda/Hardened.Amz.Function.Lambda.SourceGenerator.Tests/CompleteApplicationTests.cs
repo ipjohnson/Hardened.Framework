@@ -141,9 +141,12 @@ public class CompleteApplicationTests {
 
         var registrations = result.SourceContaining("FunctionHandlers");
 
+        // The provider is named in full. It is a nested private class, and from CSharpAuthor 2.0 a
+        // bare name would be written global::FunctionHandlerProvider, which resolves to nothing.
         FunctionGeneratorHarness.AssertEmits(registrations,
             "serviceCollection.AddSingleton<" +
-            "global::Hardened.Requests.Abstract.Execution.IFunctionHandlerProvider, FunctionHandlerProvider>();");
+            "global::Hardened.Requests.Abstract.Execution.IFunctionHandlerProvider, " +
+            "global::TestApp.Application.FunctionHandlerProvider>();");
         FunctionGeneratorHarness.AssertEmits(registrations,
             "serviceCollection.AddTransient<global::TestApp.Impl.SqsFunctionHandler>();");
     }

@@ -19,17 +19,27 @@ public class LambdaApplicationEntryPointWriter : ApplicationEntryPointFileWriter
 
         constructor.Assign(filterProvider.Invoke("ProvideFilter", RootServiceProvider)).ToVar("handler");
 
-        var middleware =
-            constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-                new[] { KnownTypes.Requests.IMiddlewareService })).ToVar("middleware");
+        // GetRequiredService is an extension method, and an extension method is reachable only
+        // through a using of its namespace - global:: cannot name one. CSharpAuthor 2.0 derives
+        // the using list from the types actually written, so nothing supplies this for us.
+        var resolveMiddleware = providerInstanceDefinition.InvokeGeneric("GetRequiredService",
+            new[] { KnownTypes.Requests.IMiddlewareService });
+
+        resolveMiddleware.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
+        var middleware = constructor.Assign(resolveMiddleware).ToVar("middleware");
 
         constructor.AddIndentedStatement(middleware.Invoke("Use", "_ => handler"));
 
         var lambdaFunctionImplField = appClass.AddField(KnownTypes.Lambda.ILambdaFunctionImplService,
             "_lambdaFunctionImplService");
 
-        constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-            new[] { KnownTypes.Lambda.ILambdaFunctionImplService })).To(lambdaFunctionImplField.Instance);
+        var resolveImpl = providerInstanceDefinition.InvokeGeneric("GetRequiredService",
+            new[] { KnownTypes.Lambda.ILambdaFunctionImplService });
+
+        resolveImpl.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
+        constructor.Assign(resolveImpl).To(lambdaFunctionImplField.Instance);
     }
 
     protected override void CreateDomainMethods(EntryPointSelector.Model model, ClassDefinition classDefinition) {

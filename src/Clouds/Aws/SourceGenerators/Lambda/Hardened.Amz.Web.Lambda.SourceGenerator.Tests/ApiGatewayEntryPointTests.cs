@@ -37,8 +37,10 @@ public class ApiGatewayEntryPointTests {
     /// </summary>
     [Fact]
     public void TheHandlerDeclaresTheLambdaJsonSerialiser() {
+        // The attribute type is qualified from CSharpAuthor 2.0 on. Its argument is not: it is
+        // handed over as text rather than as a type, so it is written exactly as spelled.
         Assert.Contains(
-            "[LambdaSerializer(typeof(" +
+            "[global::Amazon.Lambda.Core.LambdaSerializer(typeof(" +
             "Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]",
             Application());
     }
@@ -104,7 +106,7 @@ public class ApiGatewayEntryPointTests {
         var application = Application();
 
         Assert.Contains("global::Hardened.Shared.Runtime.Application.IApplicationRoot", application);
-        Assert.Contains("RootServiceProvider ?? throw new Exception", application);
+        Assert.Contains("RootServiceProvider ?? throw new global::System.Exception", application);
         Assert.Contains("public async global::System.Threading.Tasks.ValueTask DisposeAsync()", application);
     }
 

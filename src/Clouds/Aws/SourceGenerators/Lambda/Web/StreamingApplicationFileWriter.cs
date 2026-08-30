@@ -29,9 +29,15 @@ public class StreamingLambdaWebApplicationFileWriter : ApplicationEntryPointFile
                 entryPoint.EntryPointType.Name,
                 "StreamingLambdaWebModule")).ToVar("handler");
 
-        var middleware =
-            constructor.Assign(providerInstanceDefinition.InvokeGeneric("GetRequiredService",
-                new[] { KnownTypes.Requests.IMiddlewareService })).ToVar("middleware");
+        // GetRequiredService is an extension method, and an extension method is reachable only
+        // through a using of its namespace - global:: cannot name one. CSharpAuthor 2.0 derives
+        // the using list from the types actually written, so nothing supplies this for us.
+        var resolveMiddleware = providerInstanceDefinition.InvokeGeneric("GetRequiredService",
+            new[] { KnownTypes.Requests.IMiddlewareService });
+
+        resolveMiddleware.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
+        var middleware = constructor.Assign(resolveMiddleware).ToVar("middleware");
 
         constructor.AddIndentedStatement(middleware.Invoke("Use", "_ => handler"));
     }
@@ -50,10 +56,12 @@ public class StreamingLambdaWebApplicationFileWriter : ApplicationEntryPointFile
 
         var providerInstance = classDefinition.Fields.First(f => f.Name == RootServiceProvider).Instance;
 
-        var engine = mainMethod.Assign(
-            app.Property(RootServiceProvider).InvokeGeneric("GetRequiredService",
-                new[] { StreamingKnownTypes.ILambdaInvokeEngine })
-        ).ToVar("engine");
+        var resolveEngine = app.Property(RootServiceProvider).InvokeGeneric("GetRequiredService",
+            new[] { StreamingKnownTypes.ILambdaInvokeEngine });
+
+        resolveEngine.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
+        var engine = mainMethod.Assign(resolveEngine).ToVar("engine");
 
         mainMethod.AddIndentedStatement(
             Await(engine.Invoke("InvokeAsync",

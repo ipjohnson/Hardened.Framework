@@ -88,7 +88,7 @@ public class LambdaApplicationEntryPointTests {
         var application = Application();
 
         Assert.Contains("global::Hardened.Shared.Runtime.Application.IApplicationRoot", application);
-        Assert.Contains("RootServiceProvider ?? throw new Exception", application);
+        Assert.Contains("RootServiceProvider ?? throw new global::System.Exception", application);
         Assert.Contains("public async global::System.Threading.Tasks.ValueTask DisposeAsync()", application);
     }
 
