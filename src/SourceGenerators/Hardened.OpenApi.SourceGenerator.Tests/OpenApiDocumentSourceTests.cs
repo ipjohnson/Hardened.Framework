@@ -240,4 +240,54 @@ public class OpenApiDocumentSourceTests {
     }
 
     #endregion
+
+    #region control characters in prose
+
+    /// <summary>
+    /// A description with a second line still yields a document a strict parser accepts.
+    /// </summary>
+    /// <remarks>
+    /// The defect this guards: multi-line contract prose reached <c>description</c> with its
+    /// newlines raw, RFC 8259 forbids that, and <c>System.Text.Json</c>, <c>jq</c> and the served
+    /// reference page all refused the published document. <see cref="Document"/> parses strictly,
+    /// so reaching the assertions at all is most of the test.
+    /// </remarks>
+    [Fact]
+    public void MultiLineDescriptionsSurviveStrictParsing() {
+        var handler = Handler(
+            responses: [
+                new ResponseSchemaModel(
+                    404,
+                    "Which one is in the code member,\nbecause one status carries one body.",
+                    Schema("Problem"))
+            ]);
+
+        handler.Description = "Line one.\nLine two.\r\n\tIndented, with a tab.";
+
+        var document = Document(handler);
+        var operation = document.GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get");
+
+        Assert.Equal(
+            "Line one.\nLine two.\r\n\tIndented, with a tab.",
+            operation.GetProperty("description").GetString());
+        Assert.Equal(
+            "Which one is in the code member,\nbecause one status carries one body.",
+            operation.GetProperty("responses").GetProperty("404")
+                .GetProperty("description").GetString());
+    }
+
+    /// <summary>Anything below U+0020 without a short escape goes out as <c>\u</c>.</summary>
+    [Fact]
+    public void BareControlCharactersAreUnicodeEscaped() {
+        var handler = Handler(response: Schema("Todo"));
+
+        handler.Description = "before\u0001after";
+
+        var operation = Document(handler)
+            .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get");
+
+        Assert.Equal("before\u0001after", operation.GetProperty("description").GetString());
+    }
+
+    #endregion
 }

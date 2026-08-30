@@ -345,6 +345,50 @@ public static class JsonSchemaWriter {
             ? name
             : char.ToLowerInvariant(name[0]) + name.Substring(1);
 
-    internal static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    /// <summary>
+    /// A string as JSON string content: backslash, quote, and every control character.
+    /// </summary>
+    /// <remarks>
+    /// The control characters are not decoration. RFC 8259 forbids anything below U+0020 raw in a
+    /// string, and <c>System.Text.Json</c>, <c>jq</c> and the reference page's own parser all
+    /// refuse a document carrying one - which a multi-line description delivers the moment a
+    /// contract's prose has a second line. The fast path returns the original string, because
+    /// almost every value written here is a name or a single sentence.
+    /// </remarks>
+    internal static string Escape(string value) {
+        var clean = true;
+
+        foreach (var ch in value) {
+            if (ch == '\\' || ch == '"' || ch < ' ') {
+                clean = false;
+                break;
+            }
+        }
+
+        if (clean) {
+            return value;
+        }
+
+        var builder = new StringBuilder(value.Length + 8);
+
+        foreach (var ch in value) {
+            switch (ch) {
+                case '\\': builder.Append("\\\\"); break;
+                case '"': builder.Append("\\\""); break;
+                case '\n': builder.Append("\\n"); break;
+                case '\r': builder.Append("\\r"); break;
+                case '\t': builder.Append("\\t"); break;
+                default:
+                    if (ch < ' ') {
+                        builder.Append("\\u").Append(((int)ch).ToString("x4"));
+                    } else {
+                        builder.Append(ch);
+                    }
+
+                    break;
+            }
+        }
+
+        return builder.ToString();
+    }
 }
