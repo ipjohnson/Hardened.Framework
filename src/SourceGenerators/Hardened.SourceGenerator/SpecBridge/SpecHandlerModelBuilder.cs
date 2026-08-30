@@ -519,7 +519,7 @@ internal static class SpecHandlerModelBuilder {
         // one status.
         if (ResponseSetPlan.PrimarySuccessIsBarePayload(operation)) {
             cases.Add(new UnionCaseModel(
-                Qualified(modelsNamespace, PrimarySuccessTypeName(operation)),
+                Qualified(modelsNamespace, PrimarySuccessTypeName(operation, modelsNamespace)),
                 operation.SuccessStatusCode,
                 // A bare payload applies headers when the headers are its own members, which is what
                 // Smithy's @httpHeader on an output produces.
@@ -565,10 +565,15 @@ internal static class SpecHandlerModelBuilder {
     }
 
     /// <summary>The primary success's own type name, which the union names directly.</summary>
-    private static string PrimarySuccessTypeName(OperationModel operation) =>
+    /// <remarks>
+    /// The list's item is qualified here, because <see cref="Qualified"/> sees the System. prefix
+    /// and stops at the outer type - which emitted <c>case List&lt;Pet&gt;</c> with a bare
+    /// <c>Pet</c> into a file with no using for it, CS0246 in generated code.
+    /// </remarks>
+    private static string PrimarySuccessTypeName(OperationModel operation, string modelsNamespace) =>
         operation.ResponseRef != null
             ? NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef))
-            : "System.Collections.Generic.List<" +
+            : "System.Collections.Generic.List<global::" + modelsNamespace + "." +
               NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef!)) + ">";
 
     /// <summary>
