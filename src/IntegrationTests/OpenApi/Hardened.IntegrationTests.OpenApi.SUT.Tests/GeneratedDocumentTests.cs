@@ -122,4 +122,72 @@ public class GeneratedDocumentTests {
             "The pet's identifier, as assigned by the server.",
             parameter.GetProperty("description").GetString());
     }
+
+    #region what the trial found missing
+
+    /// <summary>
+    /// The contract's own info block, not the module class name and "1.0.0" the generator used to
+    /// substitute for it.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheContractsInfoBlockIsServed(ITestWebApp app) {
+        var info = (await Document(app)).GetProperty("info");
+
+        Assert.Equal("Petstore API", info.GetProperty("title").GetString());
+        Assert.Equal("1.0.0", info.GetProperty("version").GetString());
+    }
+
+    /// <summary>
+    /// The oauth2 scheme the contract declares, flows and scopes included, and the requirement on
+    /// the operation that names it. Nothing was published, so a generated client sent every
+    /// request anonymous and had no token URL to go to.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheDeclaredSchemeAndScopesAreServed(ITestWebApp app) {
+        var document = await Document(app);
+
+        var scheme = document
+            .GetProperty("components").GetProperty("securitySchemes").GetProperty("petstoreOAuth");
+
+        Assert.Equal("oauth2", scheme.GetProperty("type").GetString());
+        Assert.True(scheme.GetProperty("flows").GetProperty("clientCredentials")
+            .GetProperty("scopes").TryGetProperty("pets:read", out _));
+
+        var secured = document
+            .GetProperty("paths").GetProperty("/secured/scoped").GetProperty("get");
+        var requirement = Assert.Single(secured.GetProperty("security").EnumerateArray());
+
+        Assert.Equal(
+            "pets:read",
+            Assert.Single(requirement.GetProperty("petstoreOAuth").EnumerateArray()).GetString());
+    }
+
+    /// <summary>The Location the 201 declares and the service sends, as a headers block.</summary>
+    [HardenedTest]
+    public async Task TheDeclaredResponseHeaderIsServed(ITestWebApp app) {
+        var created = CreatePet(await Document(app))
+            .GetProperty("responses").GetProperty("201");
+
+        var location = created.GetProperty("headers").GetProperty("Location");
+
+        Assert.Equal("string", location.GetProperty("schema").GetProperty("type").GetString());
+    }
+
+    /// <summary>
+    /// The 400 the generated validator answers, declared with its body's schema. Every constraint
+    /// failure was a status the document never mentioned.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheValidationResponseIsDeclared(ITestWebApp app) {
+        var document = await Document(app);
+
+        var badRequest = CreatePet(document).GetProperty("responses").GetProperty("400");
+
+        Assert.Equal(
+            "#/components/schemas/RequestValidationError",
+            badRequest.GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString());
+    }
+
+    #endregion
 }

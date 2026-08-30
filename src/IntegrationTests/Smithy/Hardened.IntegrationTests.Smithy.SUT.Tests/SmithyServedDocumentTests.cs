@@ -67,4 +67,71 @@ public class SmithyServedDocumentTests {
 
         Assert.True(responses.TryGetProperty("201", out _));
     }
+
+    /// <summary>
+    /// The model's own identity: @title and the service version, not the module class name and
+    /// "1.0.0" the generator used to substitute.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheServedDocumentCarriesTheModelsIdentity(ITestWebApp app) {
+        var info = (await Document(app)).GetProperty("info");
+
+        Assert.Equal("Pet Store", info.GetProperty("title").GetString());
+        Assert.Equal("2024-01-01", info.GetProperty("version").GetString());
+    }
+
+    /// <summary>
+    /// The scheme the service enforces is declared, and the operations split exactly as the model
+    /// splits them: the secured operation names its requirement, an @auth([]) one declares none.
+    /// A generated client used to be told nothing and sent every request anonymous.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheServedDocumentDeclaresTheEnforcedScheme(ITestWebApp app) {
+        var document = await Document(app);
+
+        var scheme = document
+            .GetProperty("components").GetProperty("securitySchemes").GetProperty("httpBearerAuth");
+
+        Assert.Equal("http", scheme.GetProperty("type").GetString());
+        Assert.Equal("bearer", scheme.GetProperty("scheme").GetString());
+
+        var secured = document
+            .GetProperty("paths").GetProperty("/pets/secured").GetProperty("get");
+        var requirement = Assert.Single(secured.GetProperty("security").EnumerateArray());
+
+        Assert.Equal(0, requirement.GetProperty("httpBearerAuth").GetArrayLength());
+
+        var open = document.GetProperty("paths").GetProperty("/pets").GetProperty("get");
+
+        Assert.False(open.TryGetProperty("security", out _));
+    }
+
+    /// <summary>
+    /// The declared bounds and pattern the validators enforce, on the parameters that declare
+    /// them. Every query and header parameter was published as a bare string.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheServedDocumentCarriesParameterFacts(ITestWebApp app) {
+        var document = await Document(app);
+
+        var parameters = document
+            .GetProperty("paths").GetProperty("/pets").GetProperty("get")
+            .GetProperty("parameters");
+
+        foreach (var parameter in parameters.EnumerateArray()) {
+            if (parameter.GetProperty("name").GetString() != "limit") {
+                continue;
+            }
+
+            var schema = parameter.GetProperty("schema");
+
+            Assert.Equal("integer", schema.GetProperty("type").GetString());
+            Assert.Equal(1, schema.GetProperty("minimum").GetDecimal());
+            Assert.Equal(100, schema.GetProperty("maximum").GetDecimal());
+
+            return;
+        }
+
+        Assert.Fail("No limit parameter in the served document.");
+    }
 }

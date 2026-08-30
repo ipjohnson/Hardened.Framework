@@ -57,7 +57,12 @@ public class RequestHandlerModel {
             Tag = Tag,
             Summary = Summary,
             Description = Description,
-            IsDeprecated = IsDeprecated
+            IsDeprecated = IsDeprecated,
+            // Every settable member, because this copy is what enrichment hands downstream - a
+            // field left out here is a field the document loses only when the application has
+            // [Handler] filters, which is the worst kind of sometimes.
+            SecurityRequirements = SecurityRequirements,
+            HasGeneratedValidation = HasGeneratedValidation
         };
 
     public RequestHandlerNameModel Name { get; }
