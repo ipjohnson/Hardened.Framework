@@ -46,8 +46,8 @@ error above it. Capture to a file and test `$?`.
 version — so a machine with only the .NET 11 SDK compiles everything and then starts no test host
 at all. Install both.
 
-The preview is named exactly rather than as `11.0.x`. A floating preview moved the SDK mid-session
-once.
+The preview is named exactly rather than as `11.0.x`. Keep it that way — a floating preview moves
+the SDK underneath a session.
 
 ## Generators
 
