@@ -293,4 +293,112 @@ public class OpenApiDocumentEmissionTests {
         Assert.Contains("\"/spec.json\"", result.SourceContaining("Routing"));
         Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("OpenApiDocument"));
     }
+
+    #region what the document says about code-first parameters and members
+
+    /// <summary>The application the fidelity tests drive: enums, defaults, constraints, nulls.</summary>
+    private const string FidelityControllers = """
+        public enum Carrier { Dhl, Fedex, RoyalMail }
+
+        public record Shipment(string Id, int Quantity, string? Note, Carrier Carrier);
+
+        public record NewShipment(
+            [property: ValidationModules.Constraints.Range("0.5", "30", ExclusiveMin = true)]
+            decimal WeightKg);
+
+        public class ShipmentController {
+            [Get("/shipments")]
+            public Task<List<Shipment>> List(
+                [FromQueryString] int limit = 20, [FromQueryString] Carrier? carrier = null) =>
+                Task.FromResult(new List<Shipment>());
+
+            [Post("/shipments")]
+            public Task<Shipment> Create([FromBody] NewShipment body) =>
+                Task.FromResult(new Shipment("1", 1, null, Carrier.Dhl));
+        }
+        """;
+
+    private static JsonElement FidelityDocument() =>
+        JsonDocument.Parse(Extract(
+            RequestGeneratorHarness
+                .Generate(Application(FidelityControllers, Enable))
+                .AssertNoErrors()
+                .SourceContaining("OpenApiDocument"))).RootElement;
+
+    private static JsonElement ListParameter(JsonElement document, string name) {
+        foreach (var parameter in document
+                     .GetProperty("paths").GetProperty("/shipments").GetProperty("get")
+                     .GetProperty("parameters").EnumerateArray()) {
+            if (parameter.GetProperty("name").GetString() == name) {
+                return parameter;
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"No parameter named '{name}'.");
+    }
+
+    /// <summary>
+    /// A parameter the binder answers with a default is one the caller may omit, and the document
+    /// now says so. It said required: true.
+    /// </summary>
+    [Fact]
+    public void AParameterWithADefaultIsNotRequired() {
+        Assert.False(ListParameter(FidelityDocument(), "limit").GetProperty("required").GetBoolean());
+    }
+
+    /// <summary>
+    /// An enum parameter carries the same vocabulary the wire converters are generated from.
+    /// It carried {"type":"string"} and nothing else.
+    /// </summary>
+    [Fact]
+    public void AnEnumParameterCarriesItsVocabulary() {
+        var schema = ListParameter(FidelityDocument(), "carrier").GetProperty("schema");
+
+        Assert.Equal("string", schema.GetProperty("type").GetString());
+        Assert.Equal(
+            new[] { "dhl", "fedex", "royalMail" },
+            schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+    }
+
+    /// <summary>
+    /// String-spelled Range bounds are numbers in the document, and an exclusive flag is the
+    /// 2020-12 spelling. They were "minimum": "0.5" and a boolean in a 3.2 document.
+    /// </summary>
+    [Fact]
+    public void StringSpelledBoundsArePublishedAsNumbers() {
+        var weight = FidelityDocument()
+            .GetProperty("components").GetProperty("schemas").GetProperty("NewShipment")
+            .GetProperty("properties").GetProperty("weightKg");
+
+        Assert.Equal(0.5m, weight.GetProperty("exclusiveMinimum").GetDecimal());
+        Assert.Equal(30m, weight.GetProperty("maximum").GetDecimal());
+        Assert.False(weight.TryGetProperty("minimum", out _));
+    }
+
+    /// <summary>
+    /// A nullable member says so, and a non-nullable value member is required. The service sent
+    /// null for members the document typed non-nullable, and always sent members it left optional.
+    /// </summary>
+    [Fact]
+    public void NullabilityReachesTheSchema() {
+        var shipment = FidelityDocument()
+            .GetProperty("components").GetProperty("schemas").GetProperty("Shipment");
+
+        var note = shipment.GetProperty("properties").GetProperty("note").GetProperty("type");
+
+        Assert.Equal(JsonValueKind.Array, note.ValueKind);
+        Assert.Equal(
+            new[] { "string", "null" },
+            note.EnumerateArray().Select(value => value.GetString()));
+
+        var required = shipment.GetProperty("required").EnumerateArray()
+            .Select(value => value.GetString()).ToList();
+
+        Assert.Contains("id", required);
+        Assert.Contains("quantity", required);
+        Assert.Contains("carrier", required);
+        Assert.DoesNotContain("note", required);
+    }
+
+    #endregion
 }

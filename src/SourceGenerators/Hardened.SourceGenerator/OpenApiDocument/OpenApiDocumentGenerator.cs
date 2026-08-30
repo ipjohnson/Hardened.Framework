@@ -55,6 +55,16 @@ public static class OpenApiDocumentGenerator {
         var components = new SortedDictionary<string, string>(System.StringComparer.Ordinal);
         var operationIds = OperationIds(handlers);
 
+        // The wire vocabulary of every enum the application serializes, keyed as emitted code
+        // names the type. Collected once: a parameter whose C# type is one of these is an enum
+        // the name switch below cannot recognise, and its vocabulary belongs in the document
+        // exactly as it does when the same enum sits in a body schema.
+        var enums = new Dictionary<string, EnumVocabulary>(System.StringComparer.Ordinal);
+
+        foreach (var vocabulary in EnumVocabularies.Collect(handlers)) {
+            enums[vocabulary.QualifiedName] = vocabulary;
+        }
+
         // Grouped by path, because a document keys operations under one path entry rather than
         // repeating the path per verb.
         // Grouped by the template, which is what the document keys on - not by the route, which is
@@ -83,7 +93,7 @@ public static class OpenApiDocumentGenerator {
                     builder.Append(',');
                 }
 
-                WriteOperation(builder, handler, components, operationIds, version);
+                WriteOperation(builder, handler, components, operationIds, version, enums);
 
                 firstOperation = false;
             }
@@ -122,7 +132,8 @@ public static class OpenApiDocumentGenerator {
         RequestHandlerModel handler,
         SortedDictionary<string, string> components,
         IReadOnlyDictionary<string, string> operationIds,
-        OpenApiVersion version) {
+        OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums) {
         builder.Append('"').Append(handler.Name.Method.ToLowerInvariant()).Append("\":{");
 
         builder.Append("\"tags\":[\"")
@@ -140,7 +151,7 @@ public static class OpenApiDocumentGenerator {
             builder.Append(",\"deprecated\":true");
         }
 
-        WriteParameters(builder, handler, version);
+        WriteParameters(builder, handler, version, enums);
         WriteRequestBody(builder, handler, components);
         WriteResponses(builder, handler, components, version);
 
@@ -248,7 +259,8 @@ public static class OpenApiDocumentGenerator {
     }
 
     private static void WriteParameters(
-        StringBuilder builder, RequestHandlerModel handler, OpenApiVersion version) {
+        StringBuilder builder, RequestHandlerModel handler, OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums) {
         var bound = handler.RequestParameterInformationList
             .Where(p => Location(p.BindingType) != null)
             .ToList();
@@ -270,14 +282,22 @@ public static class OpenApiDocumentGenerator {
                 ? parameter.Name
                 : parameter.BindingName;
 
+            // A parameter carrying a default is one the caller may omit - the binder answers
+            // with the default rather than a 400 - so publishing it required documents a demand
+            // the service does not make. Path parameters stay required whatever they carry,
+            // because OpenAPI requires it of them and a path segment cannot be absent.
+            var required = parameter.Required &&
+                           (parameter.DefaultValue == null ||
+                            parameter.BindingType == ParameterBindType.Path);
+
             builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(name))
                 .Append("\",\"in\":\"").Append(Location(parameter.BindingType))
-                .Append("\",\"required\":").Append(parameter.Required ? "true" : "false");
+                .Append("\",\"required\":").Append(required ? "true" : "false");
 
             WriteText(builder, "description", parameter.Description);
 
             builder.Append("")
-                .Append(",\"schema\":").Append(ParameterSchema(parameter, version))
+                .Append(",\"schema\":").Append(ParameterSchema(parameter, version, enums))
                 .Append('}');
         }
 
@@ -640,6 +660,40 @@ public static class OpenApiDocumentGenerator {
     }
 
     /// <summary>
+    /// The vocabulary schema for a code-first enum parameter, or null when the type is not one.
+    /// </summary>
+    /// <remarks>
+    /// An attribute-routed application has no declaration to carry the vocabulary, but it does
+    /// have the vocabulary itself: the same collected set the wire converters are generated from.
+    /// Consulting it is what keeps a parameter's <c>enum</c> array agreeing with what the binder
+    /// accepts - the fourth of the four places <c>EnumWireNaming</c>'s remarks require to agree.
+    /// </remarks>
+    private static string? EnumSchema(
+        ITypeDefinition type, IReadOnlyDictionary<string, EnumVocabulary> enums) {
+        var unwrapped = type.Name == "Nullable" && type.TypeArguments.Count == 1
+            ? type.TypeArguments[0]
+            : type;
+
+        var qualified = "global::" + unwrapped.Namespace + "." + unwrapped.Name.TrimEnd('?');
+
+        if (!enums.TryGetValue(qualified, out var vocabulary)) {
+            return null;
+        }
+
+        var builder = new StringBuilder("{\"type\":\"string\",\"enum\":[");
+
+        for (var i = 0; i < vocabulary.Values.Count; i++) {
+            if (i > 0) {
+                builder.Append(',');
+            }
+
+            builder.Append('"').Append(JsonSchemaWriter.Escape(vocabulary.Values[i].Wire)).Append('"');
+        }
+
+        return builder.Append("]}").ToString();
+    }
+
+    /// <summary>
     /// The schema for a value that arrived as text — a path token, a query value, a header, a cookie.
     /// </summary>
     /// <remarks>
@@ -675,13 +729,15 @@ public static class OpenApiDocumentGenerator {
     /// to be published as <c>{"type":"string"}</c> - the enum fell through the name switch, and a
     /// nullable scalar arrives as a <c>Nullable</c> with no argument to read.
     /// </remarks>
-    private static string ParameterSchema(RequestParameterInformation parameter, OpenApiVersion version) {
+    private static string ParameterSchema(
+        RequestParameterInformation parameter, OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums) {
         var spec = parameter.SpecParameter;
 
         if (spec == null || (string.IsNullOrEmpty(spec.Type) &&
                              spec.EnumValues is not { Count: > 0 } &&
                              !spec.IsArray)) {
-            return ScalarSchema(parameter.ParameterType);
+            return EnumSchema(parameter.ParameterType, enums) ?? ScalarSchema(parameter.ParameterType);
         }
 
         var builder = new StringBuilder();

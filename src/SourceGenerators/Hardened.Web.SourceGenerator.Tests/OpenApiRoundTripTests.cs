@@ -285,7 +285,9 @@ public class OpenApiRoundTripTests {
         Assert.Equal(JsonSchemaType.Object, request.Type);
         Assert.True(request.Properties!.ContainsKey("sku"));
         Assert.Equal(JsonSchemaType.Integer, request.Properties!["quantity"].Type);
-        Assert.Equal(JsonSchemaType.Array, request.Properties!["tags"].Type);
+        // Tags is declared List<string>?, and the schema now says so - the type carries "null"
+        // beside "array" rather than describing a nullable member as always present.
+        Assert.Equal(JsonSchemaType.Array | JsonSchemaType.Null, request.Properties!["tags"].Type);
     }
 
     /// <summary>A type reached through another is written once and referenced.</summary>
