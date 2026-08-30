@@ -1,9 +1,8 @@
 # Lambda application types
 
 Every Hardened.Amz application is one entry point class carrying `[HardenedModule]` and exactly one
-transport module attribute. The transport module does two things at once: it registers the runtime
-services, and it selects which bootstrap the source generator emits. There is no separate marker,
-and no configuration flag — the attribute on the class is the whole decision.
+transport module attribute. The transport module registers the runtime services and selects which
+bootstrap the source generator emits. The attribute on the class is the whole decision.
 
 | Transport | Module attribute | Generator package |
 |---|---|---|
@@ -14,18 +13,17 @@ and no configuration flag — the attribute on the class is the whole decision.
 | SQS batch | `[LambdaFunctionModule]` + `[SqsLambda]` | `Hardened.Amz.Function.Lambda.SourceGenerator` |
 | DynamoDB Streams | `[LambdaFunctionModule]` + `[DynamoStreamLambda]` | `Hardened.Amz.Function.Lambda.SourceGenerator` |
 
-SQS and DynamoDB Streams are the two that take a second attribute, because they are event sources
-layered on the direct-invoke path rather than transports of their own. `[SqsLambda]` and
-`[DynamoStreamLambda]` add batch handling; `[LambdaFunctionModule]` underneath is what brings the
-invocation path and the request pipeline.
+SQS and DynamoDB Streams take a second attribute because they are event sources layered on the
+direct-invoke path rather than transports of their own. `[SqsLambda]` and `[DynamoStreamLambda]` add
+batch handling; `[LambdaFunctionModule]` underneath brings the invocation path and the request
+pipeline.
 
 ## Five rules
 
 1. **`[HardenedModule]` is always required.** It is what marks a class as an entry point. Both
    generators ignore a class without it, so a transport module on its own produces nothing.
 2. **The attribute goes on the application class itself.** Attributes on members or nested types
-   select nothing. This was not true before 2026-08-27 — an attribute on a nested class used to
-   switch the enclosing application's transport and emit a second host for the nested one.
+   select nothing.
 3. **One transport module per application.** The buffered and streaming selectors are exact
    complements, so a class gets one bootstrap or the other, never both and never neither.
 4. **Reference the matching source generator as an `Analyzer`**, with
@@ -121,8 +119,8 @@ public class SqsFunctionHandler {
 
 The handler takes the deserialised message body. A record that throws is reported in
 `BatchItemFailures` by `MessageId` and redelivered; the rest of the batch still succeeds. Assert
-partial failures **by identifier, not by count** — the count being right while the identifiers are
-wrong is the failure mode where every message redelivers and the poison one is deleted.
+partial failures **by identifier, not by count**. A right count against the wrong identifiers
+redelivers every message and deletes the poison one.
 
 ## DynamoDB Streams
 
@@ -185,9 +183,9 @@ test method parameter. Two assembly attributes turn it on:
 ```
 
 `[LambdaFunctionTesting]` registers the invoke filter provider and, at startup, puts the invoke
-filter into the middleware chain. **Without it nothing throws** — `MiddlewareService` holds no
+filter into the middleware chain. **Without it nothing throws.** `MiddlewareService` holds no
 filters, the execution chain is empty, the handler never runs, and the invocation returns an empty
-stream. A test that asserts only "no exception" passes against an application that did nothing.
+stream, so a test that asserts only "no exception" passes against an application that did nothing.
 
 Then take the harness and your own services as parameters:
 
@@ -232,8 +230,7 @@ dotnet build Hardened.Amz.sln -p:UseLocalHardenedFramework=false
 dotnet test  Hardened.Amz.sln -p:UseLocalHardenedFramework=false
 ```
 
-`src/Directory.Build.targets` prefers a sibling `../Hardened.Framework` checkout when one exists.
-That is convenient when editing both repositories together and confusing otherwise, because a
+`src/Directory.Build.targets` prefers a sibling `../Hardened.Framework` checkout when one exists. A
 checkout at an incompatible commit fails the build with errors in *the other repository's* files.
 Pass `-p:UseLocalHardenedFramework=false` to build against the pinned packages, which is what CI
 does.
@@ -244,8 +241,7 @@ Before opening a pull request, run a build with the gate CI applies:
 dotnet build Hardened.Amz.sln -p:UseLocalHardenedFramework=false -p:ContinuousIntegrationBuild=true
 ```
 
-That turns warnings into errors. Local builds deliberately do not, so an in-progress edit with an
-unused variable does not block the inner loop.
+That turns warnings into errors. Local builds do not.
 
 The DynamoDB client tests need a running Docker daemon. They fail rather than skip without one.
 
@@ -275,9 +271,8 @@ It registered nothing, so applications using it threw on construction. Use
 `[StreamingLambdaWebModule]`.
 
 **`The type or namespace name 'StreamingLambdaFunctionAttribute' could not be found`**
-Renamed to `[StreamingLambdaFunctionModule]` on 2026-08-27. `[StreamingLambdaFunctionApplication]`
-and `[LambdaFunctionApplication]` were names the generator matched without any type behind them;
-they never worked and are gone.
+Use `[StreamingLambdaFunctionModule]`. `[StreamingLambdaFunctionApplication]` and
+`[LambdaFunctionApplication]` never had a type behind them and are gone.
 
 **Errors in files under `Hardened.Framework/`**
 The sibling-checkout build. Pass `-p:UseLocalHardenedFramework=false`.
