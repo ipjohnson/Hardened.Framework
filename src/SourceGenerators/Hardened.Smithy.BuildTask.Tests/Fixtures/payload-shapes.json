@@ -1,0 +1,148 @@
+{
+  "smithy": "2.0",
+  "shapes": {
+    "com.example.test#Depot": {
+      "type": "service",
+      "version": "1.0",
+      "operations": [
+        { "target": "com.example.test#ListPets" },
+        { "target": "com.example.test#ListNames" },
+        { "target": "com.example.test#GetPet" },
+        { "target": "com.example.test#GetName" },
+        { "target": "com.example.test#GetTags" }
+      ]
+    },
+
+    "com.example.test#Pet": {
+      "type": "structure",
+      "members": {
+        "id": {
+          "target": "smithy.api#Integer",
+          "traits": { "smithy.api#required": {} }
+        },
+        "name": { "target": "smithy.api#String" }
+      }
+    },
+
+    "com.example.test#PetList": {
+      "type": "list",
+      "member": { "target": "com.example.test#Pet" }
+    },
+
+    "com.example.test#NameList": {
+      "type": "list",
+      "member": { "target": "smithy.api#String" }
+    },
+
+    "com.example.test#TagMap": {
+      "type": "map",
+      "key": { "target": "smithy.api#String" },
+      "value": { "target": "smithy.api#String" }
+    },
+
+    "com.example.test#ListPets": {
+      "type": "operation",
+      "output": { "target": "com.example.test#ListPetsOutput" },
+      "traits": {
+        "smithy.api#http": { "method": "GET", "uri": "/pets", "code": 200 },
+        "smithy.api#readonly": {}
+      }
+    },
+    "com.example.test#ListPetsOutput": {
+      "type": "structure",
+      "members": {
+        "pets": {
+          "target": "com.example.test#PetList",
+          "traits": {
+            "smithy.api#required": {},
+            "smithy.api#httpPayload": {}
+          }
+        }
+      }
+    },
+
+    "com.example.test#ListNames": {
+      "type": "operation",
+      "output": { "target": "com.example.test#ListNamesOutput" },
+      "traits": {
+        "smithy.api#http": { "method": "GET", "uri": "/names", "code": 200 },
+        "smithy.api#readonly": {}
+      }
+    },
+    "com.example.test#ListNamesOutput": {
+      "type": "structure",
+      "members": {
+        "names": {
+          "target": "com.example.test#NameList",
+          "traits": {
+            "smithy.api#required": {},
+            "smithy.api#httpPayload": {}
+          }
+        }
+      }
+    },
+
+    "com.example.test#GetPet": {
+      "type": "operation",
+      "output": { "target": "com.example.test#GetPetOutput" },
+      "traits": {
+        "smithy.api#http": { "method": "GET", "uri": "/pets/one", "code": 200 },
+        "smithy.api#readonly": {}
+      }
+    },
+    "com.example.test#GetPetOutput": {
+      "type": "structure",
+      "members": {
+        "pet": {
+          "target": "com.example.test#Pet",
+          "traits": {
+            "smithy.api#required": {},
+            "smithy.api#httpPayload": {}
+          }
+        }
+      }
+    },
+
+    "com.example.test#GetName": {
+      "type": "operation",
+      "output": { "target": "com.example.test#GetNameOutput" },
+      "traits": {
+        "smithy.api#http": { "method": "GET", "uri": "/name", "code": 200 },
+        "smithy.api#readonly": {}
+      }
+    },
+    "com.example.test#GetNameOutput": {
+      "type": "structure",
+      "members": {
+        "name": {
+          "target": "smithy.api#String",
+          "traits": {
+            "smithy.api#required": {},
+            "smithy.api#httpPayload": {}
+          }
+        }
+      }
+    },
+
+    "com.example.test#GetTags": {
+      "type": "operation",
+      "output": { "target": "com.example.test#GetTagsOutput" },
+      "traits": {
+        "smithy.api#http": { "method": "GET", "uri": "/tags", "code": 200 },
+        "smithy.api#readonly": {}
+      }
+    },
+    "com.example.test#GetTagsOutput": {
+      "type": "structure",
+      "members": {
+        "tags": {
+          "target": "com.example.test#TagMap",
+          "traits": {
+            "smithy.api#required": {},
+            "smithy.api#httpPayload": {}
+          }
+        }
+      }
+    }
+  }
+}

@@ -568,7 +568,7 @@ internal static class SmithySpecParser {
             var target = SmithyAst.Target(member.Value);
 
             if (target != null) {
-                model.ResponseRef = ReferenceTo(context, target);
+                DescribePayload(context, model, target, operationName);
 
                 return headers;
             }
@@ -582,6 +582,65 @@ internal static class SmithySpecParser {
         MarkHeaderBound(context, outputId, boundOut);
 
         return headers;
+    }
+
+    /// <summary>
+    /// An <c>@httpPayload</c> target, as whatever it means: a reference, an array, or an inlined
+    /// primitive.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Through <see cref="Describe"/> rather than <see cref="ReferenceTo"/>, and that is the whole
+    /// of it. <c>ReferenceTo</c> builds a schema for a shape id, which is right only for the kinds
+    /// that get a C# type of their own - and <c>Describe</c> is the function that decides which
+    /// those are. Calling it directly asserted the answer instead of asking for it.
+    /// </para>
+    /// <para>
+    /// A list target went to <see cref="BuildSchema"/>, whose default arm reads a <c>members</c> map
+    /// that a list shape does not have - it carries a singular <c>member</c> - so
+    /// <c>list PetList { member: Pet }</c> became <c>record PetList;</c> with no members at all, and
+    /// the service interface asked for a type there was no way to fill. The same shape read as a
+    /// structure member has always inlined to <c>List&lt;Pet&gt;</c>, so one build emitted both.
+    /// Nothing reported it, because that arm has no diagnostic for a kind it does not model.
+    /// </para>
+    /// <para>
+    /// A named simple shape was wrong the same way and a prelude one worse: <c>ReferenceTo</c> found
+    /// no shape for <c>smithy.api#String</c>, added no schema, and returned a reference to a type
+    /// that was never written.
+    /// </para>
+    /// </remarks>
+    private static void DescribePayload(
+        ParseContext context, OperationModel model, string target, string operationName) {
+        Describe(context, target, out var type, out var format, out var reference, out var facts);
+
+        if (reference != null) {
+            model.ResponseRef = reference;
+
+            return;
+        }
+
+        if (facts.IsArray) {
+            model.ResponseIsArray = true;
+            model.ResponseArrayItemsRef = facts.ItemRef;
+            model.ResponseArrayItemsType = facts.ItemType;
+
+            return;
+        }
+
+        // A map has no response field to land in - the shared model carries ResponseIsArray and its
+        // item type, and nothing equivalent for a dictionary - so the emitters fall back to a Task
+        // with no result. Reported rather than left silent, since answering with no body is not what
+        // a model declaring a payload asked for.
+        if (facts.IsDictionary) {
+            context.Diagnostics.Add(
+                $"operation '{operationName}' declares a map as its @httpPayload, which has no " +
+                "declared response shape; it answers with no body.");
+
+            return;
+        }
+
+        model.ResponseType = type;
+        model.ResponseFormat = format;
     }
 
     /// <summary>
