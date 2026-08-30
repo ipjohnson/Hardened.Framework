@@ -2,8 +2,6 @@
 
 A Hardened test boots the real application. The module graph is applied, configuration is resolved,
 startup services run, and the test method's parameters are injected from the resulting provider.
-There is no separate test wiring to keep in step with production wiring, because there is only one
-wiring.
 
 Tests are xUnit tests. `[HardenedTest]` derives from `FactAttribute`, so the runner, the IDE
 integration and `dotnet test` all work unchanged.
@@ -57,7 +55,7 @@ public class OrderServiceTests {
 ```
 
 The mock and the real `IOrderService` are the same graph: `orders` was constructed against the mocked
-`IRateTable`, because the substitution happened while the collection was being built.
+`IRateTable`.
 
 ## `ITestContext`
 
@@ -94,9 +92,8 @@ pass - Create an order - 12ms
 pass - Confirm it - 4ms
 ```
 
-That output is worth more than it looks in a test that is failing on CI and passing locally: the step
-names tell you how far it got, and the durations tell you whether something was slow rather than
-broken.
+In a test failing on CI and passing locally, the step names say how far it got and the durations say
+whether something was slow rather than broken.
 
 ### Retrying
 
@@ -122,7 +119,7 @@ public async Task ProjectionCatchesUp(ITestContext context, IProjection projecti
 }
 ```
 
-`TillValue` returns as soon as the function produces a non-null result, which is what you want against
+`TillValue` returns as soon as the function produces a non-null result, which is what to use against
 anything eventually consistent — a DynamoDB stream, an SQS consumer, a read replica.
 
 ## Environments in tests
@@ -162,12 +159,12 @@ public interface IHardenedTestStartupAttribute {
 }
 ```
 
-`[WebTesting]`, `[LambdaFunctionTesting]` and `[LocalDynamoDb]` are all built this way, and so is
-anything you write. Registration attributes run while the collection is being built — after the
-application's modules, so a registration here overrides one there. Startup attributes run after the
-provider exists, in `Order`, which is where a container is started or a table created.
+`[WebTesting]`, `[LambdaFunctionTesting]` and `[LocalDynamoDb]` are all built this way. Registration
+attributes run while the collection is being built, after the application's modules, so a
+registration here overrides one there. Startup attributes run after the provider exists, in `Order`,
+which is where a container is started or a table created.
 
-A harness of your own is worth writing when several tests need the same setup:
+Write one when several tests need the same setup:
 
 ```csharp
 public class SeededDatabaseAttribute : Attribute, IHardenedTestStartupAttribute {

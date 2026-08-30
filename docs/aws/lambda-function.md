@@ -22,10 +22,12 @@ itself out of the published output.
 ## A function
 
 ```csharp
+using Hardened.Amz.Function.Lambda.Runtime.DependencyInjection;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Shared.Runtime.Attributes;
 
 [HardenedModule]
+[LambdaFunctionModule]
 public partial class Application { }
 
 public class OrderHandler {
@@ -36,9 +38,13 @@ public class OrderHandler {
 }
 ```
 
+`[LambdaFunctionModule]` brings the invocation path and, through the `[HardenedRequestModule]` it
+carries, the request pipeline. It is not optional: an application without it compiles and then fails
+at construction, naming the missing attribute.
+
 The string names the function. Several functions can live in one assembly and one deployment
-artefact, each selected by name — which is how a service ships as a set of Lambdas without a project
-per Lambda. Omit the name and the method name is used.
+artefact, each selected by name, so a service ships as a set of Lambdas without a project per
+Lambda. Omit the name and the method name is used.
 
 The payload is deserialised into `request`. Parameters bind as they do
 [everywhere else](/guide/parameter-binding): a registered service type comes from the container, and
@@ -79,12 +85,11 @@ collection, the same source `[FromHeader]` reads on the web side.
 
 ## Errors
 
-By default an exception is caught, serialised and returned as the function's response. That suits a
-synchronous caller that wants a structured error, and it means the invocation is recorded as a
-success.
+By default an exception is caught, serialised and returned as the function's response, and the
+invocation is recorded as a success. That suits a synchronous caller that wants a structured error.
 
-When the invocation should *fail* — so that the caller's retry policy, a dead letter queue or an
-alarm sees it — apply `[ThrowException]`:
+When the invocation should *fail*, so that the caller's retry policy, a dead letter queue or an
+alarm sees it, apply `[ThrowException]`:
 
 ```csharp
 [HardenedFunction("process-order")]
@@ -97,8 +102,7 @@ Lambda invocation errors.
 
 ::: warning This choice is invisible until something breaks
 An asynchronous Lambda that swallows its exceptions retries nothing and alarms on nothing — the
-invocation succeeded, it just returned an error object nobody reads. Decide deliberately which of
-the two behaviours each function wants.
+invocation succeeded, it just returned an error object nobody reads.
 :::
 
 ## Logging and metrics
@@ -123,8 +127,7 @@ public class OrderHandler {
 }
 ```
 
-Named placeholders become fields in the log line rather than being flattened into the message, which
-is what makes `filter @message like /…/` unnecessary.
+Named placeholders become fields in the log line rather than being flattened into the message.
 
 `IMetricLogger` records to the CloudWatch Embedded Metric Format, emitted through the log stream:
 
@@ -133,7 +136,7 @@ context.RequestMetrics.Record(OrderMetrics.ProcessingDuration, elapsed);
 context.RequestMetrics.Tag("region", "us-west-2");
 ```
 
-No API call, no added latency, and nothing to fail when CloudWatch is throttled.
+No API call, and no added latency.
 
 ## Testing
 

@@ -75,15 +75,14 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 **Every one of these stacks as *and*.** Attributes on a method, attributes on its controller,
 attributes inherited from a base attribute and requirements added by an
 [`IAuthorizationConvention`](/guide/authorization#conventions) are all conjoined into the single
-`Requirement` the pipeline reads. Adding one can only narrow what is admitted. Alternatives are
-expressible only inside a single policy.
+`Requirement` the pipeline reads. Alternatives are expressible only inside a single policy.
 
-`[AuthorizeGrants]` is not sealed — deriving from it is [one of the two ways](/guide/authorization#named-attributes)
-to require grants without writing strings. `IAuthorizeAttribute` is the interface anything the
-pipeline honours implements, including attributes of your own; it is also what the `HAUTH001`
-diagnostic tests, so your own attribute never needs `<NoWarn>`.
+`[AuthorizeGrants]` is not sealed — deriving from it is
+[one of the two ways](/guide/authorization#named-attributes) to require grants without writing
+strings. `IAuthorizeAttribute` is the interface anything the pipeline honours implements, including
+attributes of your own, and it is what the `HAUTH001` diagnostic tests.
 
-See [Authorization](/guide/authorization) for the whole picture.
+See [Authorization](/guide/authorization).
 
 ## Web
 
@@ -101,7 +100,7 @@ See [Authorization](/guide/authorization) for the whole picture.
 | `[FromHeader(name?)]` | Parameter | Binds from a request header |
 | `[CacheControl]` | Method | Sets cache headers. `MaxAge`, `Type` |
 | `[WebLibrary]` | Class | Marks a web library entry point |
-| `[Tag(name)]` | Class | The [OpenAPI tag](/guide/openapi) this controller's operations group under. Defaults to the class name minus `Controller` |
+| `[Tag(name)]` | Class | The [OpenAPI tag](/guide/openapi-document) this controller's operations group under. Defaults to the class name minus `Controller` |
 | `[Server(url, description?)]` | Class, assembly | A base URL the generated document lists under `servers` |
 | `[CaseInsensitiveRoutes]` | Class | Matches this module's routes [without regard to case](/guide/routing#case-and-trailing-slashes) |
 | `[RouteConstraint(name)]` | Method | Declares a [route constraint](/guide/routing#declaring-your-own-constraint). `static bool(ReadOnlySpan<char>)` |
@@ -120,10 +119,10 @@ See [Authorization](/guide/authorization) for the whole picture.
 | `[TemplateBase(typeof(T<>))]` | Class | On an engine's marker: the class a generated base derives from |
 | `[TemplateContentType(type)]` | Class | On an engine's marker: what views on that base produce |
 
-`[Enable<T>]` itself lives in `Hardened.Shared.Runtime.Attributes` — it is the framework's one name
+`[Enable<T>]` itself lives in `Hardened.Shared.Runtime.Attributes` and is the framework's one name
 for every optional generated feature. It requires `new()`, and a marker that is also a
 DependencyModules module has its registrations applied too. A view is named on a handler with
-`[Output<T>]`; there is nothing to register.
+`[Output<T>]`.
 
 ## Console
 
@@ -160,10 +159,13 @@ From [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
 
 | Attribute | Namespace | Purpose |
 |---|---|---|
-| `[LambdaWebApplication(Version)]` | `Hardened.Amz.Web.Lambda.Runtime` | API Gateway runtime. `ProxyIntegrationType.HttpApiV2` or `.ApiGateway` |
-| `[StreamingLambdaWebApplication]` | `Hardened.Amz.Web.Lambda.Streaming` | Response-streaming web runtime |
-| `[SqsLambda]` | `Hardened.Amz.Function.Sqs.Runtime` | SQS batch runtime |
-| `[DynamoStreamLambda]` | `Hardened.Amz.Function.DDB.Runtime` | DynamoDB Streams runtime |
+| `[LambdaFunctionModule]` | `Hardened.Amz.Function.Lambda.Runtime.DependencyInjection` | Lambda invocation runtime and the request pipeline. Required by every function application |
+| `[LambdaWebModule]` | `Hardened.Amz.Web.Lambda.Runtime.DependencyInjection` | API Gateway runtime and the web pipeline. Required by every Lambda web application |
+| `[LambdaWebApplication(Version)]` | `Hardened.Amz.Web.Lambda.Runtime` | States the payload format. `ProxyIntegrationType.HttpApiV2` is the default and the only implemented value; `.ApiGateway` is `HRDAWS001` |
+| `[StreamingLambdaWebModule]` | `Hardened.Amz.Web.Lambda.Streaming` | Response-streaming web runtime |
+| `[StreamingLambdaFunctionModule]` | `Hardened.Amz.Function.Lambda.Streaming` | Response-streaming function runtime |
+| `[SqsLambda]` | `Hardened.Amz.Function.Sqs.Runtime` | SQS batch runtime. Applied alongside `[LambdaFunctionModule]` |
+| `[DynamoStreamLambda]` | `Hardened.Amz.Function.DDB.Runtime` | DynamoDB Streams runtime. Applied alongside `[LambdaFunctionModule]` |
 | `[DynamoDbModule]` | `Hardened.Amz.DynamoDbClient` | Registers `IDynamoDbClientProvider` |
 | `[HardenedCdk]` | `Hardened.Amz.Cdk` | CDK deployment application |
 | `[NewImage]` / `[OldImage]` | `Hardened.Amz.Function.DDB.Runtime.Attributes` | Binds a stream record's images |

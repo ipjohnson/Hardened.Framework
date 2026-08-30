@@ -1,8 +1,8 @@
 # Routing
 
 A route is an attribute on a method of a plain class. There is no base type to inherit and no
-registration to remember — the generator finds the attribute during the build and emits a handler
-bound to that method.
+registration — the generator finds the attribute during the build and emits a handler bound to that
+method.
 
 ```csharp
 using Hardened.Web.Runtime.Attributes;
@@ -16,9 +16,8 @@ public class HomeController {
 }
 ```
 
-The class name means nothing. `Controller` is a convention, not a requirement, and the class is
-never registered as a service — the generator instantiates it through the container when a request
-arrives.
+The class name means nothing. `Controller` is a convention, and the class is never registered as a
+service — the generator instantiates it through the container when a request arrives.
 
 ## The route attributes
 
@@ -30,8 +29,7 @@ arrives.
 | `[Delete(path)]` | `DELETE` |
 | `[Patch(path)]` | `PATCH` |
 
-The verb comes from the attribute's own name, so all five behave identically — same path templates,
-same binding, same filters:
+All five behave identically — same path templates, same binding, same filters:
 
 ```csharp
 [BasePath("/verbs")]
@@ -50,21 +48,15 @@ public class ItemController {
 Two routes may share a path under different verbs — `GET /verbs/item/{id}` and
 `DELETE /verbs/item/{id}` reach different handlers.
 
-### HEAD, and the verb that has no route
+### HEAD, and 405
 
 `HEAD` is `GET` without a body, so every `[Get]` route answers it. The handler, its filters and its
-serializer all run exactly as they would for the `GET` — which is the point, because RFC 9110
-requires a `HEAD` response to carry the header fields the `GET` would have carried. The bytes are
-counted and dropped rather than written, so `Content-Length` is the real number.
+serializer all run, and the bytes are counted and dropped rather than written, so `Content-Length`
+is the real number.
 
 A request whose path matches a route but whose verb has none gets `405 Method Not Allowed` with an
 `Allow` header listing the verbs that path does answer, `HEAD` included. A path nobody declared is
-still `404`. The distinction matters beyond tidiness: API Gateway and CloudFront cache the two
-differently, and a generated client reads them differently.
-
-**Changed 2026-08-15.** Both are new. `HEAD` used to match nothing, so every endpoint answered
-`curl -I` with a 404, and a wrong verb on a real resource was indistinguishable from a URL that did
-not exist.
+`404`.
 
 ## Path tokens
 
@@ -86,21 +78,19 @@ public int Double(int count) => count * 2;
 ```
 
 A value the parameter's type cannot take — `/double/abc` — reaches the handler's binder and comes
-back `400`. That is honest when the value is input being validated. When it is an identifier, and a
-wrong value means "no such URL", say so with a constraint.
+back `400`.
 
 ### Constraining what a token matches
 
-`{name:int}` matches only a segment that passes the test:
+`{name:int}` matches only a segment that passes the test, and rejects it before any filter or binder
+runs:
 
 ```csharp
 [Get("/users/{id:int}")]
 public User ById(int id) => _users.Find(id);
 ```
 
-`/users/abc` is now a `404` rather than a `400`. Both are defensible answers to a bad value, and
-they say different things: `400` means you addressed a real endpoint incorrectly, `404` means there
-is no resource at that URL. The constraint also rejects the value before any filter or binder runs.
+`/users/abc` is now a `404` rather than a `400`.
 
 | Constraint | Matches | Rank |
 |---|---|---|
@@ -115,23 +105,12 @@ is no resource at that URL. The constraint also rejects the value before any fil
 | `alpha` | `^[A-Za-z]+$` | 60 |
 | `slug` | `^[a-z0-9]+(-[a-z0-9]+)*$` | 70 |
 
-Parsing is invariant, so the same request matches on every machine. `date` and `datetime` are ISO
-8601 *only* — not `DateTime.TryParse`, which accepts a large and culture-sensitive grammar. A URL is
-the same string in every locale, and a route that matched `12/06/2026` while disagreeing about which
-number was the month would behave differently on different machines.
-
-A slug is a canonical form, so a leading, trailing or doubled hyphen does not match, and neither does
-upper case. Several URLs for one resource is the thing a slug exists to avoid.
+Parsing is invariant, so the same request matches on every machine. `date` and `datetime` accept
+ISO 8601 only. A slug is a canonical form: a leading, trailing or doubled hyphen does not match, and
+neither does upper case.
 
 **Rank** decides which constraint is tried first where two could match the same segment — lower is
-narrower. The numbers are declared rather than derived, because this vocabulary mostly overlaps: a
-lower-case GUID is a valid slug, `hex` overlaps both `int` and `alpha`, and `123` is a perfectly good
-slug. An order you can look up beats one you have to work out.
-
-The list is short on purpose. The rule is not "what can we convert" but "what can be tested on a
-`ReadOnlySpan<char>` without allocating, and expressed in the contract" — a constraint runs on every
-request that reaches the position it guards, including the ones it rejects, and a matching rule the
-served document cannot describe is one a client has no way to know about.
+narrower.
 
 **Use `:int` when the segment is an identifier and a wrong value means "no such URL". Leave it off
 when the value is input being validated and `400` is the honest answer.**
@@ -144,13 +123,9 @@ public static bool IsIsbn(ReadOnlySpan<char> value) => …
 ```
 
 and then `[Get("/books/{code:isbn}")]`. The generator emits a direct static call — no allocation, no
-reflection, no registry, nothing to look up per request.
+reflection, nothing to look up per request. A declared constraint ranks 90, after every built-in.
 
-A declared constraint ranks 90 — after every built-in — which is the answer that cannot make an
-existing route unreachable when you add one.
-
-For a shape a character loop cannot express, `[GeneratedRegex]` works here and costs nothing per
-request:
+For a shape a character loop cannot express, use `[GeneratedRegex]`:
 
 ```csharp
 [RouteConstraint("isbn")]
@@ -161,15 +136,10 @@ private static partial Regex Isbn();
 ```
 
 The regex is compiled at build time and `IsMatch(ReadOnlySpan<char>)` allocates nothing. There is no
-`{code:regex(...)}` form, deliberately: a source generator cannot emit `[GeneratedRegex]` — its
-output is not in the compilation the regex generator reads — so a regex written in a route template
-could only fall back to a runtime `Regex`, which costs several hundred kilobytes on a native AOT
-publish. Written here, in your own compilation, it is a normal compiled regex.
+`{code:regex(...)}` form.
 
-The signature is the rule rather than a preference, for the same reason the built-in list is short.
 A method that is not a `static bool(ReadOnlySpan<char>)` is a build error, and so is a constraint
-name nothing declares — a route that silently constrains nothing is the failure all of this exists
-to prevent.
+name nothing declares.
 
 ### Two routes that differ only by constraint
 
@@ -178,59 +148,38 @@ to prevent.
 [Get("/users/{name}")]     // -> HRDR001, a build error
 ```
 
-Overloading by type makes which handler you reach depend on the *content* of a value. A user named
-`12345` becomes unreachable, a client cannot reason about which endpoint it hit, caches cannot tell
-the two apart, and the pair is unrepresentable in OpenAPI. The same applies to `{name}` beside
-`{*name}`. A literal beside a token — `/users/me` and `/users/{id}` — is untouched.
+Which handler a request reaches would depend on the *content* of the value, and the pair is
+unrepresentable in OpenAPI. The same applies to `{name}` beside `{*name}`. A literal beside a
+token — `/users/me` and `/users/{id}` — is fine.
 
-The opinion can be overridden where it has to be:
+Override it per file:
 
 ```ini
 # .editorconfig
 dotnet_diagnostic.HRDR001.severity = warning
 ```
 
-which is per file, so one legacy pair can be allowed in one controller without opening the gate
-project-wide. `<HardenedAmbiguousRoutes>warning</HardenedAmbiguousRoutes>` sets the default for a
-project. Prefer `warning` over `none`: silencing leaves no record that the codebase drifted, and CI
-runs `TreatWarningsAsErrors`, so an opt-in still forces a deliberate decision.
+`<HardenedAmbiguousRoutes>warning</HardenedAmbiguousRoutes>` sets the default for a project. Prefer
+`warning` over `none` — CI runs `TreatWarningsAsErrors`, so an opt-in stays a deliberate decision.
 
 ### Brace forms that are not supported
 
-`{id?}` and `{id=5}` are build errors. Neither was ever honoured — the whole brace body became the
-token *name*, so `{id?}` was a mandatory segment called `id?` and bound nothing to `id`.
-
-For a default, give the C# parameter one: the template controls matching, and C# supplies the value.
-For an optional segment, declare the two paths as two routes.
+`{id?}` and `{id=5}` are build errors. For a default, give the C# parameter one. For an optional
+segment, declare the two paths as two routes.
 
 Token names belong to the route, not to the position, so two routes may share a prefix and still
 name their tokens differently — `/users/{id}` alongside `/users/{userId}/posts/{postId}` binds
-correctly in both.
-
-The name is what binds, whatever else the token carries: `{*path}` and `{id:int}` bind to parameters
-called `path` and `id`.
+correctly in both. The name is what binds, whatever else the token carries: `{*path}` and `{id:int}`
+bind to parameters called `path` and `id`.
 
 ### How much a token matches
 
 **A token matches exactly one segment.** `/users/{id}` answers `/users/42` and not `/users/42/posts`
-— a path deeper than the route declares is not a match, and returns 404.
-
-That is what makes a route's shape mean something: an API serves the paths it declares and nothing
-else, so a client can tell a real endpoint from a typo, and a generated OpenAPI document describes
-the same set of paths the router accepts.
+— a path deeper than the route declares returns 404.
 
 **And exactly one segment means at least one character.** `/users/` does not answer `/users/{id}`,
-because the empty string after a trailing slash is not a segment. Neither is the nothing between
-the two slashes of `//`.
-
-**Changed 2026-08-16.** Both used to match, binding the token to `""`. The request reached the
-handler's binder, which rejected the empty value and answered `400` — telling a client it had
-addressed a real endpoint incorrectly, about a URL that addresses no endpoint at all. `404` is the
-truthful answer, and the distinction matters beyond tidiness: API Gateway and CloudFront cache the
-two differently, and a generated client reads them differently.
-
-This is also why `{id?}` is a build error rather than a token that may match nothing — an optional
-segment is two routes.
+because the empty string after a trailing slash is not a segment. Neither is the nothing between the
+two slashes of `//`.
 
 ### Matching the rest of the path
 
@@ -242,32 +191,21 @@ token in the route:
 public Stream Asset(string path) => _files.Open(path);   // /assets/img/logo.png -> "img/logo.png"
 ```
 
-The asterisk says how much to match, not what to call it: `{*path}` binds to a parameter named
-`path`. A literal in the same position still wins, so `/assets/index` reaches an `[Get("/assets/index")]`
+A literal in the same position still wins, so `/assets/index` reaches an `[Get("/assets/index")]`
 handler if one exists.
 
-A catch-all cannot be written in an OpenAPI document — a path template expression is a parameter
-name and nothing more — so a route generated from a specification is always single-segment, and a
-document generated from a `{*path}` route describes it as `{path}`.
-
-**Changed 2026-08-15.** Every token used to match the rest of the path whether or not it was marked,
-so `/users/{id}` accepted `/users/42/anything/at/all` and no route could describe a single segment.
-A route that was relying on it needs the `*`.
+A catch-all cannot be written in an OpenAPI document, so a route generated from a specification is
+always single-segment, and a document generated from a `{*path}` route describes it as `{path}`.
 
 ## Case and trailing slashes
 
-**A path is matched as written.** `/Orders` and `/orders` are different URLs, which is what
-RFC 3986 says a path is and what an OpenAPI document describes — the format has no notion of a
-case-insensitive path. It also removes the duplicate-URL problem that comes of one resource
-answering at every spelling, and halves the matcher's work.
+**A path is matched as written.** `/Orders` and `/orders` are different URLs.
 
 ```csharp
 [HardenedModule]
-[CaseInsensitiveRoutes]          // the old behaviour, for URLs being tidied up rather than rewritten
+[CaseInsensitiveRoutes]          // match without regard to case
 public partial class Application { }
 ```
-
-**Changed 2026-08-15.** Matching used to accept either case for every letter.
 
 `/orders` and `/orders/` are also different URLs, and strict is the default. One knob changes that
 for a module:
@@ -283,8 +221,7 @@ services.Configure<WebRoutingConfiguration>(config =>
 | `Normalise` | the route, with no difference visible to the client |
 | `Redirect` | `308 Permanent Redirect` to the declared path |
 
-`308` rather than `301` because a redirect must not change the method, and most clients rewrite a
-`301` on a `POST` to `GET`, silently dropping the body.
+`308` rather than `301`, so the method and body survive the redirect.
 
 ## Prefixing with `[BasePath]`
 
@@ -314,20 +251,11 @@ public class OrderController {
 }
 ```
 
-**Changed 2026-08-16.** The base path and the route were concatenated, so `[Get("/")]` under
-`[BasePath("/orders")]` produced `/orders/` — and since a path is matched as written and strict is
-the default, the collection did not answer at the address its own controller declares. The same
-composition fed the generated links and the served OpenAPI document, so a generated client called
-`/orders/` and a `@Links` expression built it, which is why nothing looked wrong from inside. A base
-path written with a trailing slash also produced `//` in the middle of every route under it.
-
-Both are now collapsed at the boundary. A trailing slash you write on a real segment is still
-yours — `[Get("/items/")]` is `/orders/items/` — because that is a URL you chose; `/` alone means
+A trailing slash on a real segment is kept — `[Get("/items/")]` is `/orders/items/`. `/` alone means
 "no segment of my own".
 
-Applied to the assembly, it prefixes every route in that assembly — which is what makes a
-[library module](/guide/modules#splitting-an-application-into-libraries) able to own its own URL
-space:
+Applied to the assembly, `[BasePath]` prefixes every route in that assembly, which is how a
+[library module](/guide/modules#splitting-an-application-into-libraries) owns its own URL space:
 
 ```csharp
 [HardenedModule]
@@ -358,28 +286,20 @@ A handler that returns `null` produces a status chosen from the request's method
 | `DELETE` | `200` |
 | Anything else, including `PATCH` | `200` |
 
-So a lookup is a 404 without an `if`, and a delete of something already gone is a 200 rather than a
-404 — which is the idempotent answer, and the one most clients want. A 404 is also logged at
-information level with the method and path.
+So a lookup is a 404 without an `if`, and a delete of something already gone is a 200. A 404 is
+logged at information level with the method and path.
 
 ::: warning The status properties on the route attributes are not read
 `[Get]`, `[Put]`, `[Delete]` and `[Patch]` each declare `SuccessStatus`, `NullReturnStatus`,
-`ValidationErrorStatus` and `ErrorStatus`. The web generator does not currently read any of them —
-it emits only the path and the method into the handler info, so the four properties compile and are
-ignored, and the table above is what actually decides the status.
-
-`[Post]` declares none of them, which is the same behaviour, stated honestly.
-
-To control a status today, set `context.Response.Status` from an
-[execution filter](/guide/execution-pipeline).
+`ValidationErrorStatus` and `ErrorStatus`. The web generator reads none of them — the table above is
+what decides the status. To control a status today, set `context.Response.Status` from an
+[execution filter](/guide/execution-pipeline), or declare the set with
+[a response type](/guide/responses).
 :::
 
 ## Response shape
 
-Two attributes change what happens to the return value:
-
-`[RawResponse]` writes it to the body without serialising, for handlers that produce their own
-payload:
+`[RawResponse]` writes the return value to the body without serialising it:
 
 ```csharp
 [Get("/robots.txt")]
@@ -387,8 +307,8 @@ payload:
 public string Robots() => "User-agent: *\nDisallow:";
 ```
 
-`[Output<T>]` hands the response to something that writes it — a view, most often — instead of
-serialising it. See [Templates](/guide/templates):
+`[Output<T>]` hands the response to something that writes it — a view, most often. See
+[Views](/guide/templates):
 
 ```csharp
 [Get("/orders/{id}")]
@@ -396,9 +316,8 @@ serialising it. See [Templates](/guide/templates):
 public OrderModel Order(string id) => _repository.Get(id);
 ```
 
-Declaring one takes the response out of negotiation: the output either answers what the client
-asked for or the request gets `406`. It never falls back to JSON, because a view usually renders a
-subset of what its model holds.
+Declaring an output takes the response out of negotiation: the output either answers what the client
+asked for, or the request gets `406`.
 
 ## Caching
 
@@ -428,18 +347,10 @@ app.UseHardened();
 app.Run();
 ```
 
-`[AspNetCoreRuntime]` brings `[HardenedWebModule]` with it, and so does `[KestrelRuntime]`. A library
-that carries routes but is not itself the host imports `[HardenedWebModule]` directly, which is also
-what the [Lambda web runtime](/aws/lambda-web) sits on.
-
-**Changed 2026-08-16.** Neither host module actually carried the import, so an application shaped
-like the snippet above — the shape this page and the README both document — threw on its first
-request with `No service for type 'IWebExecutionHandlerService' has been registered`, naming a
-framework internal rather than the missing module. Both in-repo web samples hid it: one declares
-`[HardenedWebModule]` explicitly, the other inherits it from a library referenced for unrelated
-reasons, so a green integration suite never covered the documented shape. `[LambdaWebModule]` had
-the same omission, fixed the day before. Declaring the module yourself as well remains correct and
-costs nothing — modules deduplicate by equality.
+`[AspNetCoreRuntime]` brings `[HardenedWebModule]` with it, and so does `[KestrelRuntime]`. A
+library that carries routes but is not the host imports `[HardenedWebModule]` directly, which is
+also what the [Lambda web runtime](/aws/lambda-web) sits on. Declaring the module yourself as well
+is harmless — modules deduplicate by equality.
 
 ## Links to your own routes
 
@@ -451,18 +362,16 @@ _links.Orders.Order("42")                   // what a client should call
 _links.Orders.OrderAbsolute("42")           // with a scheme and host, for a Location header
 ```
 
-The names come from the controller and the method rather than from route names you declare, so a
-rename is a compile error at every call site. In a view, where RazorBlade compiles `@` expressions
-at build time with exact line and column information, that means a route change breaks the template
-rather than the page:
+The names come from the controller and the method, so a rename is a compile error at every call
+site — including inside a view, where RazorBlade compiles `@` expressions at build time:
 
 ```razor
 <a href="@Links.Orders.Order(Model.Id)">@Model.Reference</a>
 ```
 
-`ApplicationLinks` is in the container, so a handler can take it as a constructor parameter. It goes
-through an `ILinkContext`, which is what makes a link correct on a host that strips a prefix before
-the application sees the path — API Gateway's stage. Configure one with `LinkConfiguration`:
+`ApplicationLinks` is in the container, so a handler can take it as a constructor parameter. It
+resolves through an `ILinkContext`, which is what keeps a link correct on a host that strips a
+prefix before the application sees the path, such as API Gateway's stage:
 
 ```csharp
 services.Configure<LinkConfiguration>(config => {

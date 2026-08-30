@@ -61,21 +61,18 @@ data: {"sensor":"north","reading":12}
 ```
 
 **`Id` is the one to reach for.** A browser `EventSource` reconnects on its own and sends the last
-id it saw as `Last-Event-ID`. A stream that sets ids can resume; one that does not replays from
-wherever the handler starts.
+id it saw as `Last-Event-ID`, so a stream that sets ids can resume.
 
 **`Retry`** sets how long the client waits before reconnecting, in milliseconds. Send it once, not
 on every event.
 
-Only the payload is serialized into `data:`. The wrapper is not — `SseItem<Measurement>` puts the
-`Measurement` on the wire, which is also what the OpenAPI document says.
+Only the payload is serialized into `data:` — `SseItem<Measurement>` puts the `Measurement` on the
+wire, which is also what the OpenAPI document says.
 
 ## Cancellation
 
-Streaming handlers are cancellable without asking. The pipeline enumerates under the request's
-`CancellationToken`, so the `await foreach` inside your handler stops when the client disconnects.
-
-Take the token as a parameter to pass it on:
+The pipeline enumerates under the request's `CancellationToken`, so the `await foreach` inside your
+handler stops when the client disconnects. Take the token as a parameter to pass it on:
 
 ```csharp
 [Get("/live")]
@@ -89,8 +86,7 @@ public async IAsyncEnumerable<Measurement> Live(
 
 ## What the document says
 
-Streaming is described with OpenAPI 3.2's `itemSchema` — the field that means *many of these*
-rather than *one of these*:
+Streaming is described with OpenAPI 3.2's `itemSchema`:
 
 ```yaml
 responses:
@@ -104,9 +100,8 @@ responses:
 This works in both directions. A specification declaring `itemSchema` generates a service interface
 returning `IAsyncEnumerable<T>`, so a spec-first application streams by writing the spec.
 
-`itemSchema` needs a 3.2 document, which is the default. Pin to `3.0.0` or `3.1.0` and you get
-build warning `HRDOA002` naming the handler; the operation is emitted with its media type and no
-schema.
+`itemSchema` needs a 3.2 document, which is the default. Pin to `3.0.0` or `3.1.0` and you get build
+warning `HRDOA002` naming the handler; the operation is emitted with its media type and no schema.
 
 ## Where it works
 
@@ -118,14 +113,11 @@ schema.
 | Lambda, buffered API Gateway | **no** |
 
 The buffered API Gateway runtime accumulates the whole body before returning it, so a streamed
-response arrives all at once at the end. Survivable for NDJSON, useless for server-sent events.
-Deploy streaming endpoints behind the Lambda streaming runtime or behind Kestrel.
+response arrives all at once at the end. Deploy streaming endpoints behind the Lambda streaming
+runtime or behind Kestrel.
 
 ## Compression
 
 Streamed responses are never compressed. The response serializers compress per call, which on a
-stream would put a separate gzip member on the wire for every item — legal, and not something any
-streaming reader unpacks incrementally.
-
-`text/event-stream` is conventionally uncompressed anyway. For NDJSON, ask for compression at the
-transport rather than in the pipeline.
+stream would put a separate gzip member on the wire for every item. For NDJSON, ask for compression
+at the transport.

@@ -6,8 +6,7 @@ hero:
   text: The wiring is written during the build
   tagline: >-
     Mark a method with a route or a function name, and a source generator emits the routing table,
-    the parameter binding and the registration code before the assembly is written. Nothing
-    reflects over your types at startup, so what runs is what you can read.
+    the parameter binding and the registration code before the assembly is written.
   image:
     src: /hero.svg
     alt: Attributed handlers on the left becoming a generated route table on the right
@@ -28,17 +27,16 @@ hero:
 features:
   - title: Handlers, not controllers
     details: >-
-      A route is an attribute on a method of a plain class. No base class to inherit, no
-      IActionResult to wrap a return value in, no AddControllers() to remember. The generator reads
-      the attribute and emits the handler that calls your method.
+      A route is an attribute on a method of a plain class. No base class, no IActionResult, no
+      AddControllers(). The generator reads the attribute and emits the handler that calls your
+      method.
     link: /guide/routing
     linkText: Routing
 
   - title: Binding decided at compile time
     details: >-
       Path tokens, query strings, headers, the body and injected services each bind through code
-      emitted for that one handler's exact signature. A binding that cannot work is a build error,
-      not a null argument in production.
+      emitted for that one handler's exact signature. A binding that cannot work is a build error.
     link: /guide/parameter-binding
     linkText: Parameter binding
 
@@ -53,36 +51,24 @@ features:
   - title: Configuration that names its variables
     details: >-
       A configuration model is a partial class of private fields. The generator writes the
-      interface, the implementation and the environment variable reads, so the set of variables an
-      application consumes is a list you can produce from the source.
+      interface, the implementation and the environment variable reads.
     link: /guide/configuration
     linkText: Configuration
 
   - title: Tests that boot the real application
     details: >-
-      A test method declares the services it wants as parameters and the framework builds the
-      application around it, substituting mocks where you ask for them. The pipeline under test is
-      the pipeline that ships.
+      A test method declares the services it wants as parameters and the framework builds the real
+      application around it, substituting mocks where you ask for them.
     link: /guide/testing
     linkText: Testing
 ---
 
 <div class="hd-sample">
 
-## The cost of finding out at run time
+## A handler and an application
 
-A conventional .NET web application decides most of itself after it has started. Controllers are
-discovered by scanning assemblies, actions are matched to routes by convention, arguments are bound
-by inspecting parameters with reflection, and the container resolves constructor arguments by
-looking at types it was handed.
-
-Each of those is a decision the compiler could have made and didn't. So a typo in a route template,
-a parameter with no binding source, and a service nobody registered all fail the same way: at run
-time, on the first request that happens to reach them, in the environment you deployed to.
-
-## What Hardened does instead
-
-Attribute the method. The rest is emitted during the build.
+Attribute the method. The routing table, the parameter binding and the registration code are
+emitted during the build.
 
 ```csharp
 [HardenedModule]
@@ -110,22 +96,20 @@ await using var app = HardenedKestrelApplication.Create(
 await app.RunAsync();
 ```
 
-Or skip the wiring entirely — `dotnet new hardened-web` writes all of it, with tests:
+Or skip the wiring — `dotnet new hardened-web` writes all of it, with tests:
 
 ```bash
 dotnet new install Hardened.Templates
 dotnet new hardened-web -n Greeter
 ```
 
-There is no `[ApiController]`, no `ControllerBase`, no `AddControllers()`. Set
-`EmitCompilerGeneratedFiles` in the project file and the routing table, the handler and the binding
-code are all sitting under `obj/` as ordinary C# — the same code you would have written by hand, and
-the ground truth for what the application actually does.
+Set `EmitCompilerGeneratedFiles` in the project file and the routing table, the handler and the
+binding code are all under `obj/` as ordinary C#.
 
 ## Two repositories, one framework
 
-The core framework and the AWS integrations version and ship separately, because a web API that
-never touches AWS should not carry the AWS SDK.
+The core framework and the AWS integrations version and ship separately, so an application only
+carries what it uses.
 
 | Repository | What it holds |
 |---|---|

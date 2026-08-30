@@ -58,12 +58,11 @@ filters return without reaching the handler.
 | `CancellationToken` | Where the platform supplies one |
 
 The response carries a *value*, not bytes. `Response.ResponseValue` is what the handler returned;
-serialisation is a filter later in the chain. A filter that wants to change the payload changes the
-value, and does not have to know how it will be written.
+serialisation is a filter later in the chain, so a filter that wants to change the payload changes
+the value.
 
 Which serializer writes it is decided per request from the client's `Accept` header — see
-[Content negotiation](/guide/content-negotiation). That is why a handler can return one model and
-have it serialised as JSON for one caller and [rendered as HTML](/guide/templates) for another.
+[Content negotiation](/guide/content-negotiation).
 
 ## Ordering
 
@@ -128,19 +127,18 @@ public int Add(IMathService<int> mathService, MathAddModel model) =>
 ```
 
 `RequestFilterInfo` takes a *factory*, not an instance, so a filter can depend on request-scoped
-services. `GetFilters` receives the handler's metadata, which lets one attribute behave differently
+services. `GetFilters` receives the handler's metadata, so one attribute can behave differently
 depending on what it was applied to.
 
 ::: tip Retry needs a rewindable body
-`RetryFilter` takes the memory stream pool because retrying a request means replaying its body. This
-is also why retry sits at `HandlerCreation - 10` — early enough to capture the body before anything
-consumes it.
+`RetryFilter` takes the memory stream pool because retrying a request means replaying its body,
+which is also why it sits at `HandlerCreation - 10` — early enough to capture the body before
+anything consumes it.
 :::
 
 ## Attaching a filter to everything
 
-`IGlobalFilterRegistry` registers across all handlers. Do it from an `IStartupService`, which is
-what the web module's own `FilterRegistryStartupService` does:
+`IGlobalFilterRegistry` registers across all handlers. Do it from an `IStartupService`:
 
 ```csharp
 public class RegisterFilters : IStartupService {
@@ -167,8 +165,8 @@ registry.RegisterFilter(handlerInfo =>
 
 `chain.Fork(context)` copies the remainder of the chain so it can be run again — with a cloned
 context, a cloned request, or a fresh response. Retry uses it to re-run the handler after a failure
-without re-running the filters that already succeeded, and it is the mechanism behind anything that
-needs to execute the same handler more than once for one inbound request.
+without re-running the filters that already succeeded, and the batch runtimes use it to run one
+chain per record.
 
 `IExecutionContext.Clone`, `IExecutionRequest.Clone` and `IExecutionResponse.Clone` each take
 optional replacements, so a fork can change one thing and keep the rest.
@@ -177,5 +175,5 @@ optional replacements, so a fork can change one thing and keep the rest.
 
 Above the filters sits `IMiddlewareService`, which is where a host inserts the pipeline. This is
 what `app.UseHardened()` does under ASP.NET Core, and what the Lambda runtimes do when they start.
-Application code rarely touches it; the test harnesses do, which is how
-[a test drives the real pipeline](/guide/testing-web).
+It is also what
+[a test drives the real pipeline](/guide/testing-web) through.

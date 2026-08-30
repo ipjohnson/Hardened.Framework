@@ -10,10 +10,12 @@ that failed.
 ## An application
 
 ```csharp
+using Hardened.Amz.Function.Lambda.Runtime.DependencyInjection;
 using Hardened.Amz.Function.Sqs.Runtime;
 using Hardened.Shared.Runtime.Attributes;
 
 [HardenedModule]
+[LambdaFunctionModule]
 [SqsLambda]
 public partial class Application { }
 ```
@@ -66,8 +68,7 @@ Each message runs on a forked chain with its own request and response. The runti
 outcomes and writes an `SQSBatchResponse` whose `BatchItemFailures` name the failed messages by
 `MessageId`.
 
-That is the behaviour worth understanding, because getting it wrong is expensive in both directions:
-report nothing and one poison message redelivers the whole batch forever; report everything and
+Report nothing and one poison message redelivers the whole batch forever; report everything and
 messages that succeeded are processed twice.
 
 ::: warning Enable it on the trigger too
@@ -136,6 +137,5 @@ public async Task ReportsOnlyTheBadMessage(TestSqsApp sqs) {
 }
 ```
 
-Asserting the identifier rather than just the count is what catches the class of bug where the
-correct *number* of failures is reported against the wrong messages — every one of which would be
-redelivered while the real poison message is deleted.
+Assert the identifier rather than the count. The correct *number* of failures reported against the
+wrong messages redelivers those and deletes the real poison message.

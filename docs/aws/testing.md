@@ -61,10 +61,9 @@ public async Task AcceptsTheWireFormat(LambdaTestApp app) {
 }
 ```
 
-This exercises the exact deserialisation path production uses. `Invoke` serialises your object with
-the same serialiser that will read it back, so the two agree by construction and a gap in an AOT
-serialiser context stays hidden. `InvokeRaw` starts from the bytes the caller will actually send,
-which is the only way to catch that.
+`Invoke` serialises your object with the same serialiser that reads it back, so the two agree by
+construction and a gap in an AOT serialiser context stays hidden. `InvokeRaw` starts from the bytes
+the caller will send.
 
 Both have `Stream`-returning overloads for responses you would rather inspect than deserialise.
 
@@ -106,9 +105,8 @@ public async Task ProjectsAnInsert(TestDynamoDbStream stream) {
 ## DynamoDB Local
 
 `[LocalDynamoDb]` points the application's `IDynamoDbClientProvider` at a real DynamoDB in a
-container, so data tests exercise the engine rather than a fake. Asserting an item shape against a
-mock only confirms the test agrees with itself; DynamoDB Local will reject a malformed key, enforce a
-key schema and fail a conditional write exactly as the service does.
+container, so a test hits an engine that rejects a malformed key, enforces a key schema and fails a
+conditional write exactly as the service does.
 
 Derive from it and override `DdbSetup` to create the tables:
 
@@ -151,13 +149,11 @@ public async Task StoresAnOrder(IOrderRepository repository) {
 [LocalDynamoDb(Image = "amazon/dynamodb-local:3.3.1")]
 ```
 
-The default is `amazon/dynamodb-local:latest`. Pinning is worth doing on anything that has to keep
-working next month.
+The default is `amazon/dynamodb-local:latest`.
 
-One container is started per image and shared by every test in the process that names it — starting
-one costs seconds, and tests that need isolation from one another should use distinct keys rather
-than distinct databases. Every client name resolves to that same container, because a test asserting
-behaviour across two accounts is asserting something DynamoDB Local cannot represent.
+One container is started per image and shared by every test in the process that names it, so tests
+needing isolation from one another should use distinct keys rather than distinct databases. Every
+client name resolves to that same container.
 
 ### Without the rest of the package
 
@@ -173,6 +169,5 @@ Nothing there knows what a table or a key looks like.
 
 ::: warning Docker has to be running
 Testcontainers needs a Docker daemon. On a machine without one, these tests fail at container
-startup rather than skipping — which is deliberate, since a silently skipped data test is worse than
-a failing one.
+startup rather than skipping.
 :::

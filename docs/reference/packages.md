@@ -39,7 +39,7 @@ Source generator packages are referenced as analysers:
 | `Hardened.Web.Runtime` | Routing, CORS, the OpenAPI document and reference page |
 | `Hardened.Web.Kestrel.Runtime` | `[KestrelRuntime]` and `HardenedKestrelApplication`. Kestrel without the ASP.NET Core request pipeline, and the host to reach for first |
 | `Hardened.Web.AspNetCore.Runtime` | `[AspNetCoreRuntime]` and `app.UseHardened()`, when you need ASP.NET Core's middleware, authentication or hosting diagnostics |
-| `Hardened.Web.StaticContent` | Static file serving, manifests and content compression. Separate from the runtime so an API that serves none does not carry it |
+| `Hardened.Web.StaticContent` | Static file serving, manifests and content compression |
 | `Hardened.Web.Testing` | `ITestWebApp`, `TestWebRequest`, `TestWebResponse` |
 
 ### Templates
@@ -53,8 +53,8 @@ Two unrelated senses of the word, in two packages.
 
 `IHardenedResponseOutput<T>` — what a view implements — and the `[TemplateBase]` /
 `[TemplateContentType]` vocabulary a rendering engine's marker declares both live in
-`Hardened.Requests.Abstract`, so nothing depends on RazorBlade to name a view or to ship another
-engine.
+`Hardened.Requests.Abstract`, so naming a view or shipping another engine does not depend on
+RazorBlade.
 
 ### Console
 
@@ -81,8 +81,8 @@ and answers 404 to everything.
 | `Hardened.Web.SourceGenerator` | Route tables and request handlers for `[Get]`, `[Post]`, `[Put]`, `[Delete]`, `[Patch]` |
 | `Hardened.Function.SourceGenerator` | Function handlers for `[HardenedFunction]` |
 | `Hardened.Validation.SourceGenerator` | Validators from constraint attributes, and their registration |
-| `Hardened.OpenApi.SourceGenerator` | Front end: an OpenAPI document into the normalised model |
-| `Hardened.Smithy.SourceGenerator` | Front end: a Smithy model into the normalised model. Needs the Smithy CLI on `PATH` |
+| `Hardened.OpenApi.SourceGenerator` | Front end: an [OpenAPI document](/guide/openapi) into the normalised model |
+| `Hardened.Smithy.SourceGenerator` | Front end: a [Smithy model](/guide/smithy) into the normalised model. Needs the Smithy CLI on `PATH` |
 | `Hardened.Idl.SourceGenerator` | Back end for both front ends: models, service interfaces, handlers, routes and validation |
 | `Hardened.SourceGenerator` | The shared generator library the others build on. Not referenced directly |
 
@@ -95,9 +95,9 @@ and answers 404 to everything.
 | Package | Contents |
 |---|---|
 | `Hardened.Amz.Shared.Lambda.Runtime` | Bootstrap, structured logging, embedded CloudWatch metrics, stage and region types |
-| `Hardened.Amz.Function.Lambda.Runtime` | Function invocation and the batch execution filter base |
+| `Hardened.Amz.Function.Lambda.Runtime` | `[LambdaFunctionModule]`, function invocation and the batch execution filter base |
 | `Hardened.Amz.Function.Lambda.Streaming` | Response streaming for function handlers |
-| `Hardened.Amz.Web.Lambda.Runtime` | API Gateway proxy events onto the pipeline |
+| `Hardened.Amz.Web.Lambda.Runtime` | `[LambdaWebModule]`, API Gateway proxy events onto the pipeline |
 | `Hardened.Amz.Web.Lambda.Streaming` | Response streaming for web applications |
 | `Hardened.Amz.Web.Lambda.Harness` | Runs a Lambda web application behind a local HTTP listener |
 | `Hardened.Amz.Function.DDB.Runtime` | DynamoDB Streams, with `[NewImage]` and `[OldImage]` |
@@ -129,29 +129,24 @@ and answers 404 to everything.
 
 ## Versioning
 
-The two repositories version independently:
+Both repositories release on the same version line, from a `v*` tag:
 
 | Repository | Released | Continuous feed |
 |---|---|---|
-| Hardened.Framework | `{line}-rc1000`, from a `v*` tag | `{line}-preview{build}` on every push to main |
-| Hardened.Amz | `1.0.{build}` | `1.0.{build}` |
+| Hardened.Framework | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
+| Hardened.Amz | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
 
-Releases go to nuget.org; the continuous feed is
+The current line is **`0.15.0-rc1000`**. Releases go to nuget.org; the continuous feed is
 [GitHub Packages](https://nuget.pkg.github.com/ipjohnson/index.json). Under one line, `preview`
 sorts below `rc`, so a preview never shadows the release it precedes.
 
-Pin exact versions across a solution. Mixing framework builds within one application is not a
-supported combination — the generated code and the runtime it targets ship together.
+Pin exact versions across a solution. The generated code and the runtime it targets ship together,
+so mixing framework builds within one application is not a supported combination.
 
-A floating pin is the exception worth avoiding. `{line}` names a release line rather than being
-open-ended, so `1.0.0-preview*` stopped matching anything the day the line moved — and a float that
-matches nothing new does not fail, it silently keeps resolving whatever it last found. Hardened.Amz
-tracked a framework three release lines old that way, with a green build throughout.
+Avoid a floating pin. A float that stops matching anything new does not fail — it keeps resolving
+whatever it last found, with a green build throughout.
 
 The one deliberate float is the `Hardened.Amz` version in the Lambda project templates, which is
-open-ended (`0.*-*`) rather than tied to a line. The two repositories release in sequence, so for a
-short window the framework is ahead of Hardened.Amz — an exact pin there would name a version that
-does not exist yet, and every generated Lambda project would fail to restore until the second
-release landed. It resolves to the newest published Hardened.Amz, which works because the template
-pins the framework packages higher. The template gate prints the version it resolved to, so a float
-that stops resolving is visible rather than silent.
+open-ended (`0.*-*`). The two repositories release in sequence, so for a short window the framework
+is ahead and an exact pin would name a version that does not exist yet. The template gate prints the
+version it resolved to.

@@ -1,7 +1,7 @@
 # API Gateway
 
-`[LambdaWebApplication]` runs the routes you already wrote behind API Gateway. The controllers,
-filters and binding are the same as [any web application](/guide/routing) — only the module attribute
+`[LambdaWebModule]` runs the routes you already wrote behind API Gateway. The controllers, filters
+and binding are the same as [any web application](/guide/routing) — only the module attribute
 changes.
 
 **Source:** [`src/Lambda/Web`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/Web) in
@@ -10,12 +10,12 @@ changes.
 ## An application
 
 ```csharp
-using Hardened.Amz.Web.Lambda.Runtime;
+using Hardened.Amz.Web.Lambda.Runtime.DependencyInjection;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.Runtime.Attributes;
 
 [HardenedModule]
-[LambdaWebApplication(Version = ProxyIntegrationType.HttpApiV2)]
+[LambdaWebModule]
 public partial class Application { }
 
 public class ProductController {
@@ -24,21 +24,25 @@ public class ProductController {
 }
 ```
 
-`Version` picks the payload format:
+`[LambdaWebModule]` brings the API Gateway host and, through the `[HardenedWebModule]` it carries,
+the web pipeline underneath it. It is not optional: an application without it compiles and then
+fails at construction, naming the missing attribute.
 
-| Value | Event |
-|---|---|
-| `ProxyIntegrationType.HttpApiV2` | HTTP API, payload format version 2.0 |
-| `ProxyIntegrationType.ApiGateway` | REST API / HTTP API payload format 1.0 |
+The payload format is API Gateway **HTTP API, version 2.0**. `[LambdaWebApplication]` can state that
+explicitly, and `ProxyIntegrationType.ApiGateway` — REST API, payload format 1.0 — is a build error,
+`HRDAWS001`:
 
-The two formats differ in how the method, path and query string are carried, and mixing them up
-produces a Lambda that returns 404 for every route rather than an error you can read. Match this to
-the integration you configured in the gateway.
+```csharp
+[HardenedModule]
+[LambdaWebModule]
+[LambdaWebApplication(Version = ProxyIntegrationType.HttpApiV2)]   // the default; optional
+public partial class Application { }
+```
 
 ## Configuration
 
-The module is a module, so the usual hooks apply. Response headers are a
-[configuration model](/guide/configuration) the web runtime defines, and an application amends it:
+Response headers are a [configuration model](/guide/configuration) the web runtime defines, and an
+application amends it:
 
 ```csharp
 using DependencyModules.Runtime.Interfaces;
@@ -46,7 +50,7 @@ using Hardened.Requests.Runtime.Configuration;
 using Hardened.Shared.Runtime.Configuration;
 
 [HardenedModule]
-[LambdaWebApplication(Version = ProxyIntegrationType.HttpApiV2)]
+[LambdaWebModule]
 public partial class Application : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         var config = new AppConfig();
@@ -61,10 +65,9 @@ public partial class Application : IServiceCollectionConfiguration {
 
 ## Running it locally
 
-A Lambda web application has no HTTP server, which makes it awkward to point a browser or a
-front-end dev server at. The harness package wraps it in one: a small ASP.NET Core host that converts
-each incoming request into an API Gateway event, invokes the handler, and writes the proxy response
-back out.
+A Lambda web application has no HTTP server. The harness package wraps it in one: a small ASP.NET
+Core host that converts each incoming request into an API Gateway event, invokes the handler, and
+writes the proxy response back out.
 
 ```csharp
 using Hardened.Amz.Web.Lambda.Harness;
@@ -83,11 +86,9 @@ app.Run();
 Keep this in its own project — `MyApi.Harness` beside `MyApi` — so the deployed artefact does not
 carry a web server it will never start.
 
-::: tip This is the closest local approximation of production
-The request goes through the same event conversion, the same routing and the same proxy response
-serialisation that API Gateway will drive. Base64 bodies, header casing and status mapping all behave
-as they will once deployed, which is where local-versus-deployed differences usually hide.
-:::
+The request goes through the same event conversion, routing and proxy response serialisation that
+API Gateway drives, so base64 bodies, header casing and status mapping behave as they will once
+deployed.
 
 ## Response streaming
 
@@ -98,18 +99,19 @@ there is a streaming runtime:
 using Hardened.Amz.Web.Lambda.Streaming;
 
 [HardenedModule]
-[StreamingLambdaWebApplication]
+[StreamingLambdaWebModule]
 public partial class Application { }
 ```
 
-It writes the Lambda response prelude and then streams the body, which requires the function to be
-configured with `RESPONSE_STREAM` invoke mode. A buffered function with a streaming runtime returns
-the prelude as part of the body, so this has to match the deployment.
+It writes the Lambda response prelude and then streams the body, which needs the function deployed
+with the `RESPONSE_STREAM` invoke mode. A buffered function with a streaming runtime returns the
+prelude as part of the body, so this has to match the deployment. `Hardened.Amz.Cdk` does not
+configure the invoke mode for you today.
 
 ## Testing
 
-Routes are ordinary Hardened routes, so [the web test client](/guide/testing-web) drives them without
-any Lambda involvement:
+Routes are ordinary Hardened routes, so [the web test client](/guide/testing-web) drives them
+without any Lambda involvement:
 
 ```csharp
 [assembly: WebTesting]
@@ -126,6 +128,6 @@ public async Task GetsAProduct(ITestWebApp testWebApp) {
 }
 ```
 
-That covers routing, binding, filters and serialisation. What it does not cover is the API Gateway
-event conversion — for that, invoke the function with a real proxy event through
+That covers routing, binding, filters and serialisation. It does not cover the API Gateway event
+conversion — for that, invoke the function with a real proxy event through
 [`LambdaTestApp`](/aws/testing).

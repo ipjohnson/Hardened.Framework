@@ -1,7 +1,7 @@
 # AWS
 
 The AWS integrations live in a separate repository and ship as their own packages, so an application
-that never touches AWS never carries the SDK.
+that never touches AWS does not carry the SDK.
 
 <div class="hd-repo">
 
@@ -26,16 +26,17 @@ CDK constructs; and the test harnesses for all of them.
 
 ## The shape of it
 
-A Lambda application is a [module](/guide/modules) like any other. What changes is which runtime
-module it imports — and that is all that changes, because everything above the runtime is the core
-framework. A handler, its filters, its parameter binding and its configuration do not know they are
-on Lambda.
+A Lambda application is a [module](/guide/modules) like any other, and the runtime module it imports
+is the only thing that changes. A handler, its filters, its parameter binding and its configuration
+do not know they are on Lambda.
 
 ```csharp
+using Hardened.Amz.Function.Lambda.Runtime.DependencyInjection;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Shared.Runtime.Attributes;
 
 [HardenedModule]
+[LambdaFunctionModule]
 public partial class Application { }
 
 public class OrderHandler {
@@ -50,7 +51,7 @@ The same handler behind API Gateway is a route rather than a function name:
 
 ```csharp
 [HardenedModule]
-[LambdaWebApplication(Version = ProxyIntegrationType.HttpApiV2)]
+[LambdaWebModule]
 public partial class Application { }
 
 public class ProductController {
@@ -65,8 +66,7 @@ public class ProductController {
 structured lines CloudWatch Logs Insights can query, with the request id attached.
 
 **Embedded metrics.** `IMetricLogger` writes the CloudWatch Embedded Metric Format, so metrics come
-out of the log stream without an extra API call — and therefore without adding latency to a request
-or failing it when CloudWatch is throttled.
+out of the log stream without an extra API call.
 
 **Partial batch responses.** The SQS and DynamoDB Stream runtimes fork the execution chain per
 record and report exactly which records failed, so a batch of ten with one bad message redelivers
@@ -77,13 +77,12 @@ overridden by `LOG_LEVEL`. See [Environments](/guide/environments#log-level).
 
 ## Cold start
 
-The reason the framework is built this way shows up most clearly here. Routing tables, service
-registrations and parameter binding are all emitted during the build, so a cold start does no
-assembly scanning and no reflection over your types. What the process does on its first invocation
-is construct a service provider from a list of registrations and call a method.
+Routing tables, service registrations and parameter binding are all emitted during the build, so a
+cold start does no assembly scanning and no reflection over your types. On its first invocation the
+process constructs a service provider from a list of registrations and calls a method.
 
-That also makes the runtimes compatible with trimming and Native AOT, because there is nothing for
-the trimmer to lose track of — every registration is a literal `typeof()` it can follow.
+The runtimes are compatible with trimming and Native AOT: every registration is a literal
+`typeof()` the trimmer can follow.
 
 ## The core repository
 

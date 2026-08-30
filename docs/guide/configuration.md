@@ -20,10 +20,8 @@ public partial class DynamoDbOptions {
 
 ## What that becomes
 
-Three things, none of which you write:
-
-**An interface**, named `I` + the class name. `DynamoDbOptions` produces `IDynamoDbOptions`. This is
-what everything else depends on, so a consumer cannot reach past the interface and mutate the model.
+**An interface**, named `I` + the class name. `DynamoDbOptions` produces `IDynamoDbOptions`, and
+that is what everything else depends on.
 
 **A property per field**, named from the field with its leading underscore removed and its first
 letter capitalised. `_serviceUrl` becomes `ServiceUrl`, `_retentionDays` becomes `RetentionDays`.
@@ -40,8 +38,7 @@ public sealed class DynamoDbClientProvider(
 }
 ```
 
-`IOptions<T>` is the familiar shape, so a class that takes configuration looks like any other .NET
-class. `IConfigurationManager.GetConfiguration<T>()` is the direct route when you need one:
+`IConfigurationManager.GetConfiguration<T>()` is the direct route when you need one:
 
 ```csharp
 var options = provider.GetRequiredService<IConfigurationManager>()
@@ -61,16 +58,15 @@ back to the field's initialiser when the variable is unset or empty. The value i
 field's type, so an `int` field backed by `RETENTION_DAYS=90` arrives as `90`.
 
 Reading happens once. Configuration models are cached per type for the life of the application, so a
-variable changed after startup is not picked up — which is what you want on Lambda, where the
-process outlives many invocations.
+variable changed after startup is not picked up.
 
-To keep a field out of the generated interface entirely — a factory, a secret, something with no
-sensible property — mark it `[HideConfigurationField]`.
+To keep a field out of the generated interface — a factory, a secret, something with no sensible
+property — mark it `[HideConfigurationField]`.
 
 ### Fields that are not simple values
 
-A field can hold a delegate, which is how a model expresses "the default is computed, and the
-application may replace it wholesale":
+A field can hold a delegate, for a default that is computed and an application that may replace it
+wholesale:
 
 ```csharp
 [ConfigurationModel]
@@ -83,11 +79,9 @@ public partial class DynamoDbOptions {
 
 ## Amending configuration
 
-An application often needs to change a model a library defined — add a response header, register a
-named client, raise a timeout — without editing the library. That is what an *amender* is for.
-
-`AppConfig` implements both `IAppConfig` (the builder) and `IConfigurationPackage` (what
-`ConfigurationManager` consumes), so an application contributes one from its module:
+An *amender* changes a model a library defined — add a response header, register a named client,
+raise a timeout — without editing the library. `AppConfig` implements both `IAppConfig` and
+`IConfigurationPackage`, so an application contributes one from its module:
 
 ```csharp
 using DependencyModules.Runtime.Interfaces;
@@ -110,14 +104,13 @@ public partial class Application : IServiceCollectionConfiguration {
 }
 ```
 
-Amenders run against the concrete model — `DynamoDbOptions`, not `IDynamoDbOptions` — because
-amending is the one place that is allowed to write. Every registered `IConfigurationPackage`
-contributes its amenders, and all of them run, in registration order, the first time the model is
-resolved.
+Amenders run against the concrete model — `DynamoDbOptions`, not `IDynamoDbOptions`. Every
+registered `IConfigurationPackage` contributes its amenders, and all of them run, in registration
+order, the first time the model is resolved.
 
 ### Amending only in one environment
 
-`Amend` takes an environment name. Passing one restricts the amender to that environment:
+`Amend` takes an environment name:
 
 ```csharp
 config.Amend((DynamoDbOptions options) => options.ServiceUrl = "http://localhost:8000", "development");
@@ -145,5 +138,4 @@ config.ProvideValue<IRateTableConfiguration, RateTableConfiguration>(
 
 The generator collects every `[ConfigurationModel]` in an assembly into the module's generated
 `ConfigurationProvider`. Import the module and its models come with it, which is why
-`[DynamoDbModule]` is enough to make `IDynamoDbOptions` resolvable — the model is declared in that
-package, not in yours.
+`[DynamoDbModule]` is enough to make `IDynamoDbOptions` resolvable.

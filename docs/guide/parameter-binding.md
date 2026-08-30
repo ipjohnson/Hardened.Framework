@@ -1,8 +1,8 @@
 # Parameter binding
 
-Every argument a handler takes is bound by code emitted for that handler's exact signature. There is
-no reflection over parameters at run time, and no convention resolved on the first request — the
-binding decisions are made during the build and written out as ordinary C#.
+Every argument a handler takes is bound by code emitted for that handler's exact signature. The
+binding decisions are made during the build and written out as ordinary C#, so a parameter that
+cannot be bound is a build failure.
 
 ## The sources
 
@@ -35,8 +35,6 @@ public class BindingController {
 
 Unattributed parameters are resolved by elimination: a name matching a path token binds from the
 path, a type the container knows binds from the container, and what is left over is the body.
-`[FromBody]` and `[FromServices]` state the choice explicitly when you would rather not rely on
-that.
 
 ## Types
 
@@ -118,20 +116,18 @@ public Task<string> TestValue([TestFilter("somevalue")] string testValue) =>
 ```
 
 `BindValue` receives the execution context, so it can reach the request, the request-scoped service
-provider, or anything a filter earlier in the pipeline left behind. This is the mechanism the AWS
-package uses for `[NewImage]` and `[OldImage]` on a
+provider, or anything a filter earlier in the pipeline left behind. This is how the AWS package
+implements `[NewImage]` and `[OldImage]` on a
 [DynamoDB stream handler](/aws/ddb-streams) — both pull from a record the pipeline put into the
-request scope, and neither needs the framework to know anything about DynamoDB.
+request scope.
 
 ::: tip The generic parameter is the declared type
 `BindValue<T>` is called with the parameter's type, which is why the example checks `typeof(T)` and
-throws otherwise. A binding attribute that only makes sense for one type should say so there rather
-than cast blindly.
+throws otherwise.
 :::
 
 ## What it looks like generated
 
 Turn on `EmitCompilerGeneratedFiles` and the binding for the mixed handler above is a method that
-reads each source in order and calls your method. Nothing inspects `ParameterInfo`, nothing looks a
-name up in a dictionary of conventions, and a parameter that cannot be bound is a build failure
-rather than a null argument on the first request that reaches it.
+reads each source in order and calls your method. Nothing inspects `ParameterInfo` and nothing looks
+a name up in a dictionary of conventions.

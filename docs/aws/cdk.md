@@ -66,8 +66,8 @@ public class KnownRegion(string name) : ISupportedRegion {
 }
 ```
 
-`IsProduction` is on the stage rather than inferred from its name, which is what lets a stack ask
-"is this production?" without a string comparison that a new stage name would quietly break.
+`IsProduction` is on the stage rather than inferred from its name, so a stack asks "is this
+production?" without a string comparison.
 
 An `IStageConfiguration<TRegion, TStage>` pairs the two, and is the value each stack definition
 receives.
@@ -99,7 +99,7 @@ public class OrdersConfiguration : ICdkConfigurationProvider {
 ```
 
 Without a provider, the deploy command fails with `"No ICdkConfigurationProvider exposed, please
-implement."` — deliberately, rather than deploying something defaulted.
+implement."` rather than deploying something defaulted.
 
 ## Stack definitions
 
@@ -127,9 +127,9 @@ public interface IStackDeploymentContext {
 }
 ```
 
-A `CdkResourceRef<T>` is a typed handle to a resource one stack creates and another needs. Producing
-a stack sets it; consuming stacks `Get` it. Because the reference carries the type, a consumer that
-expects a table and is handed a queue does not compile.
+A `CdkResourceRef<T>` is a typed handle to a resource one stack creates and another needs. The
+producing stack sets it; consuming stacks `Get` it, and a consumer that expects a table and is
+handed a queue does not compile.
 
 ## Lambda defaults
 

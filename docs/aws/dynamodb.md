@@ -37,18 +37,14 @@ public class OrderRepository {
 }
 ```
 
-## Why a provider rather than a client
+## A provider rather than a client
 
-One registration can only describe one client. Reaching a second account, assuming a different role
-or talking to another region each need their own credentials and configuration, and a container that
-resolves a single `IAmazonDynamoDB` has nowhere to put them.
+Reaching a second account, assuming a different role or talking to another region each need their
+own credentials and configuration, which is what the name selects between.
 
-Construction is also deferred: a client is built the first time it is asked for, not when the service
-collection is built. And clients are cached — `AmazonDynamoDBClient` is thread-safe and owns a
-connection pool, so constructing one per request is a well-known way to exhaust sockets.
-
-The provider returns the SDK's own interface, so a test that wants to substitute a client can do so
-without going through the provider at all.
+A client is built the first time it is asked for and cached for the life of the process. The
+provider returns the SDK's own interface, so a test can substitute a client without going through
+the provider.
 
 ## Configuring the default client
 
@@ -64,12 +60,10 @@ environment.
 
 ::: tip A region alongside an endpoint is carried as the signing region
 `RegionEndpoint` and `ServiceURL` are mutually exclusive on the SDK's config — assigning either
-clears the other. When both variables are set, the region is applied as `AuthenticationRegion` so it
-is not silently dropped. Without that, a process with both set, which is the ordinary local
-development shape, signed every request as `us-east-1` whatever its region said.
+clears the other. When both variables are set, the region is applied as `AuthenticationRegion`.
 
 DynamoDB Local authenticates nothing, but the SDK signs every request, so credentials still have to
-exist. The provider supplies arbitrary placeholders in that branch.
+exist. The provider supplies placeholders in that branch.
 :::
 
 ## Named clients
@@ -90,12 +84,11 @@ config.Amend((DynamoDbOptions options) =>
 var auditClient = _clients.GetClient("audit");
 ```
 
-Asking for a name that was never configured throws an `InvalidOperationException` that lists the
-names that *are* configured — which turns a typo into a message that names the mistake rather than a
-null reference somewhere later.
+Asking for a name that was never configured throws an `InvalidOperationException` listing the names
+that *are* configured.
 
 To replace how the default client is built, set `DefaultClient` instead. `ServiceUrl` and `Region`
-are then ignored, because a caller supplying a factory has said everything:
+are then ignored:
 
 ```csharp
 config.Amend((DynamoDbOptions options) =>
@@ -106,6 +99,5 @@ See [Configuration](/guide/configuration#amending-configuration) for where `Amen
 
 ## Testing against a real DynamoDB
 
-`[LocalDynamoDb]` points the provider at DynamoDB Local in a Testcontainers container, so data tests
-exercise the engine rather than a fake. See
+`[LocalDynamoDb]` points the provider at DynamoDB Local in a Testcontainers container. See
 [Testing AWS handlers](/aws/testing#dynamodb-local).

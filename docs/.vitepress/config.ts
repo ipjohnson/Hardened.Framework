@@ -1,13 +1,8 @@
 import { defineConfig } from 'vitepress';
 
-// Published to https://ipjohnson.github.io/Hardened.Docs/, so every absolute path needs the
-// repository name as a base. Getting this wrong is the classic Pages failure: the site builds, the
-// landing page loads, and every asset and internal link 404s.
+// Published under the repository name on GitHub Pages, so every absolute path needs it as a base.
 const base = '/Hardened.Docs/';
 
-// The ecosystem is three repositories. They are linked from the nav, the AWS overview and the
-// repositories reference page, because a reader who arrives at the DynamoDB page wants the source
-// for it without going back to a landing page to find out where it lives.
 const repos = {
   framework: 'https://github.com/ipjohnson/Hardened.Framework',
   amz: 'https://github.com/ipjohnson/Hardened.Amz',
@@ -24,9 +19,14 @@ export default defineConfig({
   lang: 'en-GB',
   cleanUrls: true,
 
-  // A broken internal link should fail the build rather than ship. The pages cross-reference
-  // heavily and a rename would otherwise rot links silently.
+  // A broken internal link fails the build rather than shipping.
   ignoreDeadLinks: false,
+
+  markdown: {
+    // Shiki ships no Smithy grammar. Kotlin's is close enough for annotations, braces and strings,
+    // and the fence still reads `smithy`.
+    languageAlias: { smithy: 'kotlin' },
+  },
 
   head: [
     ['link', { rel: 'icon', href: `${base}favicon.svg`, type: 'image/svg+xml' }],
@@ -89,6 +89,7 @@ export default defineConfig({
             { text: 'Authorization', link: '/guide/authorization' },
             { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
             { text: 'Generating from OpenAPI', link: '/guide/openapi' },
+            { text: 'Generating from Smithy', link: '/guide/smithy' },
             { text: 'The OpenAPI document', link: '/guide/openapi-document' },
             { text: 'Declared responses', link: '/guide/responses' },
             { text: 'Content negotiation', link: '/guide/content-negotiation' },

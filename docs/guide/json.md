@@ -2,8 +2,8 @@
 
 Hardened serializes JSON with `System.Text.Json`, and configures it by **registering an
 `IJsonTypeInfoResolver`** — a source-generated `JsonSerializerContext`. That one registration is
-read by every JSON serializer in the pipeline: the request body, the response body, and each item
-of a streamed response.
+read by every JSON serializer in the pipeline: the request body, the response body, and each item of
+a streamed response.
 
 ```csharp
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
@@ -24,15 +24,14 @@ public partial class AppLibrary : IServiceCollectionConfiguration {
 ```
 
 Registered resolvers answer first, in registration order. Reflection covers whatever they do not
-declare, on a host where reflection is available at all — so a context does not have to be complete
-to be worth registering. The project templates ship this wiring already.
+declare, on a host where reflection is available, so a context does not have to be complete to be
+worth registering. The project templates ship this wiring already.
 
 ## Enum vocabulary
 
-An enum's wire values are `[JsonEnumNaming]`, and **it governs the published document as well as the
-wire**. The build writes a converter per enum, registers it for the JSON body and for the parameter
-binder, and writes the same values into the `enum` array of the generated OpenAPI description — so
-the contract a client generates against cannot disagree with the bytes the application produces.
+An enum's wire values are `[JsonEnumNaming]`, and it governs the published document as well as the
+wire. The build writes a converter per enum, registers it for the JSON body and for the parameter
+binder, and writes the same values into the `enum` array of the generated OpenAPI description.
 
 The default is camelCase:
 
@@ -54,29 +53,22 @@ public enum LegacyCode { AB12, CD34 }
 ```
 
 `EnumNaming` offers `MemberName`, `CamelCase`, `KebabCaseLower`, `SnakeCaseLower` and
-`SnakeCaseUpper`. The attribute goes on the **assembly**, not the module class: the document is
-written inside the syntax transform where the module's symbol is not reachable, and a naming the
-document did not get is exactly the desynchronised contract this prevents. `AttributeTargets` is
-narrow enough that a misplaced one is a compile error rather than a setting that reads as applied.
+`SnakeCaseUpper`. The assembly-level attribute goes on the **assembly**, not the module class;
+`AttributeTargets` makes a misplaced one a compile error.
 
 ::: warning Decide the vocabulary before the first client
 Changing an enum's wire values later breaks every consumer, and no compiler will tell you it
-happened. The values are part of your API in the same way a property name is.
+happened.
 :::
 
-Parameters bind through the same vocabulary. A path or query value is text rather than JSON, so it
-never reaches a converter — without this, `?priority=in-progress` would be answered 400 by an
-application whose body accepts exactly that, and any value that is not a valid C# identifier would
-be unreachable as a parameter.
+Parameters bind through the same vocabulary, so `?priority=in-progress` binds in an application
+whose body accepts exactly that.
 
 ### What is left alone
 
-- **`[Flags]` enums.** A flags value is a combination of members rather than one of them, so there
-  is no member name to write and no single value to read back.
-- **Enums from referenced frameworks.** A model graph reaches further than it looks — a property
-  typed `Exception` pulls in `System.Reflection.MethodAttributes` — and renaming those would
-  redefine a contract that is not yours. An enum in a shared model library opts in by that
-  library declaring `[assembly: JsonEnumNaming]` of its own.
+- **`[Flags]` enums.** A flags value is a combination of members rather than one of them.
+- **Enums from referenced frameworks.** An enum in a shared model library opts in by that library
+  declaring `[assembly: JsonEnumNaming]` of its own.
 - **Aliased members.** Two members sharing a value keep the first declared, which is the one
   `Enum.ToString` picks.
 
@@ -107,21 +99,20 @@ converters to types, or scope them to a context.
 
 ## Contract-first applications
 
-If your models come from an OpenAPI description or a Smithy model, `[JsonEnumNaming]` does not apply
-and is not needed. Those enum values come from the description, which is the vocabulary by
-definition, and the build already emits a converter carrying it plus the resolver that registers it.
+If your models come from an [OpenAPI description](/guide/openapi) or a
+[Smithy model](/guide/smithy), `[JsonEnumNaming]` does not apply and is not needed. Those enum
+values come from the description, and the build already emits a converter carrying them plus the
+resolver that registers it.
 
 ## Native AOT
 
 A published AOT application has no reflection fallback: every type on the wire must be declared in a
-registered context, and one that is missing throws a `NotSupportedException` naming it. That is the
-truthful failure — the same call succeeds on a JIT host by reflecting, which is what makes a missing
-`[JsonSerializable]` line easy to ship.
+registered context, and one that is missing throws a `NotSupportedException` naming it.
 
-**Do not use `JsonStringEnumConverter` at all in a Hardened application.** It writes the C# member
-name rather than a wire value and never reaches the published document — `[JsonEnumNaming]` is the
+**Do not use `JsonStringEnumConverter` in a Hardened application.** It writes the C# member name
+rather than a wire value and never reaches the published document — `[JsonEnumNaming]` is the
 supported route. If you reach for it anyway, the non-generic form builds a converter per enum at run
-time, which is the one thing AOT cannot do:
+time, which AOT cannot do:
 
 ```csharp
 [JsonConverter(typeof(JsonStringEnumConverter))]        // works on a JIT host, fails when published
@@ -129,13 +120,11 @@ time, which is the one thing AOT cannot do:
 ```
 
 The compiler reports this as `SYSLIB1034` wherever the enum is reachable from a
-`JsonSerializerContext` — including when the non-generic form appears in `Converters` on
-`[JsonSourceGenerationOptions]`. It is a warning, and a build with
-`TreatWarningsAsErrors` turns it into the error it deserves to be. An enum reachable from **no**
-context gets no diagnostic at all, which is the case worth being careful about: it works locally
-and fails after publishing.
+`JsonSerializerContext`, including when the non-generic form appears in `Converters` on
+`[JsonSourceGenerationOptions]`. It is a warning, so `TreatWarningsAsErrors` is what makes it stop a
+build. An enum reachable from **no** context gets no diagnostic at all, which is the case to be
+careful about: it works locally and fails after publishing.
 
-`[JsonEnumNaming]` has no such problem, and is not the same thing as `UseStringEnumConverter`. That
-setting is AOT-safe — the generator has the enum at compile time — but it writes the C# member name
-and does not reach the document, so an application using it publishes a description its own wire
-format disagrees with. Leave it off and let the build write the converters.
+`UseStringEnumConverter` is AOT-safe but writes the C# member name and does not reach the document,
+so an application using it publishes a description its own wire format disagrees with. Leave it off
+and let the build write the converters.

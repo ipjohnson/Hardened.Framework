@@ -10,9 +10,11 @@ in [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
 
 ```csharp
 using Hardened.Amz.Function.DDB.Runtime;
+using Hardened.Amz.Function.Lambda.Runtime.DependencyInjection;
 using Hardened.Shared.Runtime.Attributes;
 
 [HardenedModule]
+[LambdaFunctionModule]
 [DynamoStreamLambda]
 public partial class Application { }
 ```
@@ -39,12 +41,10 @@ public class OrderProjection {
 ```
 
 Both bind as `Dictionary<string, AttributeValue>` and throw an `InvalidCastException` for any other
-type — the attributes hand back exactly what the stream record carries, without a mapping layer
-guessing at your schema.
+type — the attributes hand back exactly what the stream record carries.
 
-Both are also custom binding attributes, which means they are ordinary
-[`ICustomBindingAttribute`](/guide/parameter-binding#custom-binding) implementations reading a
-record the pipeline put into the request scope. Nothing in the core framework knows about DynamoDB.
+Both are ordinary [`ICustomBindingAttribute`](/guide/parameter-binding#custom-binding)
+implementations reading a record the pipeline put into the request scope.
 
 ## Which records failed
 
@@ -52,8 +52,8 @@ Each record is processed on its own forked execution chain with its own request 
 record whose chain completes with a status below 300 — or with no status — succeeded; anything else,
 or an exception, failed.
 
-The runtime writes a `StreamsEventResponse` naming the failed records, so the stream retries only
-those. A batch of a hundred with one poison record redelivers one record.
+The runtime writes a `StreamsEventResponse` naming the failed records, so a batch of a hundred with
+one poison record redelivers one record.
 
 ::: warning A handler that swallows its own exceptions reports success
 The pipeline decides success from the response, so a `try`/`catch` that logs and returns normally
@@ -111,5 +111,5 @@ public async Task ProjectsAnInsert(TestDynamoDbStream stream, IProjectionStore s
 }
 ```
 
-Asserting on `BatchItemFailures` is the point: it is what determines whether the stream redelivers,
-and it is the behaviour most easily broken by a change to error handling.
+`BatchItemFailures` is what determines whether the stream redelivers, so assert on it rather than on
+the handler's own side effects alone.

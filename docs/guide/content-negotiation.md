@@ -1,18 +1,17 @@
 # Content negotiation
 
 The client says what it wants and the pipeline serves it. A handler returns a model and says nothing
-about media types — which is what lets one handler answer a browser with HTML and an API client with
-JSON, from the same return value.
+about media types, so one handler can answer a browser with HTML and an API client with JSON from
+the same return value.
 
 ## How a serializer is chosen
 
 `ISerializationLocatorService` resolves every response in three tiers.
 
 **1. A committed content type.** If `Response.ContentType` is already set by the time the response is
-serialised, the response has committed to it and the client does not get to overrule it. That is
-what [`[RawResponse]`](#forcing-a-content-type) does. If nothing registered can write the committed
-type, that is an error rather than a quiet fallback — the response promised something the
-application cannot produce.
+serialised, the client does not get to overrule it. That is what
+[`[RawResponse]`](#forcing-a-content-type) does. If nothing registered can write the committed type,
+that is an error rather than a fallback.
 
 **2. Negotiation.** Otherwise the `Accept` header is parsed into the media types the client will
 take, most preferred first, and each is offered to the serializers in turn:
@@ -23,25 +22,17 @@ for each media type the client asked for, in preference order
         if it can produce that media type for this response, use it
 ```
 
-The client's preferences are the outer loop. That is what makes the client's ranking decide rather
-than the server's — a request for `application/json,text/html;q=0.9` against a route that names a
-view is answered with JSON, because `application/json` is asked about first.
+The client's preferences are the outer loop, so the client's ranking decides. A request for
+`application/json,text/html;q=0.9` against a route that names a view is answered with JSON.
 
 **3. The default.** If nothing can produce anything the client asked for, the serializer marked
-`IsDefaultSerializer` answers. A request with an `Accept` nobody satisfies still gets a response.
+`IsDefaultSerializer` answers.
 
 ## What `Accept` means here
 
 The header is split on commas, and everything after a `;` is discarded — including `q`. Preference
-comes from the order media types are listed in.
-
-That is how well-formed clients write the header: they list their preferred type first and use `q`
-only to restate the order. All three of TechEmpower's benchmark headers do exactly that. A header
-that contradicts its own order — `text/html;q=0.5, application/json;q=0.9` — resolves to `text/html`
-here. That is a decision rather than an oversight; honouring `q` means sorting, and nothing observed
-in practice needs it.
-
-Wildcards work as you would expect:
+comes from the order media types are listed in, so `text/html;q=0.5, application/json;q=0.9`
+resolves to `text/html`.
 
 | `Accept` | Matches |
 |---|---|
@@ -50,8 +41,7 @@ Wildcards work as you would expect:
 | `*/*` | anything |
 | absent | anything |
 
-A missing header and `*/*` mean the same thing: the client expressed no preference, every serializer
-qualifies, and `Order` decides. That is the only case where the server's own ranking chooses.
+A missing header and `*/*` mean the same thing: every serializer qualifies and `Order` decides.
 
 ## Order
 
@@ -64,15 +54,13 @@ matching `ExecutionFilterOrder`.
 | `Normal` (0) | The JSON serializers |
 | `Deferred` (1000) | Raw string, byte and stream output |
 
-`Order` and `IsDefaultSerializer` answer different questions. `Order` decides who is *asked* first;
-`IsDefaultSerializer` decides who answers when nobody claims the response at all. A specialist
-sitting ahead of JSON must not cost JSON its role as the fallback, which is what serves every
-request that expressed no preference.
+`Order` decides who is *asked* first; `IsDefaultSerializer` decides who answers when nobody claims
+the response at all.
 
 ## Returning a string
 
 A handler returning `string`, `byte[]` or `Stream` is written straight to the body rather than
-structured. But only when asked for:
+structured, but only when asked for:
 
 | Request | `public string Hello() => "Hello, World!"` |
 |---|---|
@@ -81,12 +69,9 @@ structured. But only when asked for:
 | `Accept: */*`, or no header | `"Hello, World!"` |
 
 A bare string is *offered* as `text/plain`, not forced to it — `RawResponseSerializer` is ordered
-`Deferred`, behind JSON, so a client that expressed no preference still gets JSON. ASP.NET Core makes
-the opposite choice and answers `text/plain`; Hardened does not, because it would change what every
-existing handler returning a string produces.
+`Deferred`, behind JSON, so a client that expressed no preference gets JSON.
 
-`byte[]` and `Stream` are not offered under negotiation at all. There is no media type worth guessing
-for them, so they need a committed content type.
+`byte[]` and `Stream` are not offered under negotiation at all. They need a committed content type.
 
 ## Forcing a content type
 
@@ -104,8 +89,7 @@ public string Report() => _reports.Csv();
 public Stream Invoice(string id) => _invoices.Render(id);
 ```
 
-A handler can do the same per request by assigning `Response.ContentType` before returning, which is
-useful when the type depends on the work:
+A handler can do the same per request by assigning `Response.ContentType` before returning:
 
 ```csharp
 public byte[] Export(IExecutionContext context, string format) {
@@ -114,9 +98,6 @@ public byte[] Export(IExecutionContext context, string format) {
     return _exports.Build(format);
 }
 ```
-
-Forcing is for responses where there is genuinely one right answer — a PDF is a PDF whatever the
-caller's `Accept` says. Everything else should negotiate.
 
 ## Writing a serializer
 
@@ -140,32 +121,27 @@ public class CsvResponseSerializer : IResponseSerializer {
 
 Two things to get right.
 
-**Use `MediaType.Matches` rather than comparing the string.** It is the one place wildcard handling
-lives, so `*/*` and a missing header resolve correctly without every serializer reimplementing them.
+**Use `MediaType.Matches` rather than comparing the string.** It is where wildcard handling lives, so
+`*/*` and a missing header resolve correctly.
 
-**Register with `Add`, never `Try`.** `RegistrationType.Try` emits `TryAddSingleton`, which is
-first-wins *per service type* — on an interface resolved as a set it means "do not register if
-anyone else already did." A serializer registered that way silently never enters the container, and
-a no-op registration raises nothing.
+**Register with `Add`, never `Try`.** `RegistrationType.Try` emits `TryAddSingleton`, which on an
+interface resolved as a set means "do not register if anyone else already did". A serializer
+registered that way silently never enters the container.
 
 `CanProduce` answers two questions at once: does this serializer emit that media type, and can it
-handle this particular response value. Answering `false` for a value it cannot write is how a
-serializer stays out of the way, however well the media type matches.
+handle this particular response value.
 
 ## Handlers that declare an output
 
-None of this applies to a handler carrying [`[Output<T>]`](/guide/templates). That handler has said
-what its response *is*: the output either answers what the client asked for, or the request gets
-`406 Not Acceptable`. No serializer is consulted and there is no fallback.
+None of this applies to a handler carrying [`[Output<T>]`](/guide/templates). The output either
+answers what the client asked for, or the request gets `406 Not Acceptable`. No serializer is
+consulted and there is no fallback, so adding `[Output<T>]` to a handler can never widen what it
+discloses.
 
-The reason is disclosure rather than tidiness. A view usually renders a subset of what its model
-holds, so falling back to JSON because the client asked for it would put the rest of the model on
-the wire — from a route whose author wrote nothing but a view. Negotiation is for a handler that
-returns a value and lets the framework choose how to write it; declaring an output is the other
-decision.
+To serve both representations from one handler, do not declare an output: return the model and let
+negotiation choose a serializer.
 
 ## Request bodies
 
-Deserialisation is deliberately simpler. `IRequestDeserializer.CanProcessContext` returns a bool
-against the request's `Content-Type`, which is a single stated value with nothing to rank. There is
-no negotiation to do, so there is no ranking to express.
+Deserialisation is simpler. `IRequestDeserializer.CanProcessContext` returns a bool against the
+request's `Content-Type`, which is a single stated value with nothing to rank.

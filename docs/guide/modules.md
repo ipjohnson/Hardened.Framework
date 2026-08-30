@@ -12,8 +12,6 @@ public partial class Application { }
 
 ## What the generator emits
 
-Two things, and knowing about the second one is what makes modules composable.
-
 **The module itself** gains `IDependencyModule` and a public `PopulateServiceCollection`:
 
 ```csharp
@@ -25,16 +23,15 @@ public partial class Application : IDependencyModule {
 That method is the seam into any host. ASP.NET Core calls it with `builder.Services`; a console
 application calls it with a collection it made itself; the test framework calls it for you.
 
-**A companion attribute class** named after the module, so a module can be imported by another
-module:
+**A companion attribute class** named after the module, so one module can import another:
 
 ```csharp
 public partial class ApplicationAttribute : Attribute, IDependencyModuleProvider { /* … */ }
 ```
 
-This is why every runtime in the framework is spelled as an attribute. `[AspNetCoreRuntime]`,
-`[HardenedWebModule]` and `[DynamoDbModule]` are not special syntax — each is the generated
-companion of a module class of that name, and yours works the same way.
+Every runtime in the framework is spelled as an attribute for this reason.
+`[AspNetCoreRuntime]`, `[HardenedWebModule]` and `[DynamoDbModule]` are each the generated companion
+of a module class of that name, and yours works the same way.
 
 ## Composing modules
 
@@ -48,8 +45,7 @@ public partial class Application { }
 ```
 
 Order does not matter, and importing the same module twice is not a problem — modules deduplicate by
-equality, and the generated module overrides `Equals` and `GetHashCode` to make two instances of the
-same module type equal.
+equality.
 
 ### Splitting an application into libraries
 
@@ -79,14 +75,13 @@ Public settable properties on the module become properties on the generated attr
 
 ::: tip Routes come with the library
 `[BasePath]` on the library module prefixes every route in that assembly. The application does not
-list the library's routes, and cannot accidentally disagree with them.
+list the library's routes.
 :::
 
 ## Programmatic registration
 
-Attributes cover most registration, but a module that needs to compute something implements
-`IServiceCollectionConfiguration` and gets the collection directly. This is how the framework's own
-modules register their configuration packages:
+A module that needs to compute something implements `IServiceCollectionConfiguration` and gets the
+collection directly:
 
 ```csharp
 using DependencyModules.Runtime.Interfaces;
@@ -97,13 +92,12 @@ public partial class Application : IServiceCollectionConfiguration {
         services.AddSingleton<IBatchProcessorExceptionHandler, StrictExceptionHandler>();
     }
 
-    // Optional. Runs after every module has registered, which is where decoration belongs —
-    // a decorator applied during ConfigureServices could not see registrations that come later.
+    // Optional. Runs after every module has registered, which is where decoration belongs.
     public void ConfigureDecorators(IServiceCollection services) { }
 }
 ```
 
-If the decision depends on which environment the application is in, implement
+If the decision depends on the environment, implement
 `IEnvironmentServiceCollectionConfiguration` instead and the environment is handed to you:
 
 ```csharp
@@ -143,7 +137,7 @@ public class WarmCaches : IStartupService {
 ```
 
 Every registered startup service is launched together and awaited as a group, so they must not
-depend on each other's ordering. Returning `false` — or throwing — fails startup.
+depend on each other's ordering. Returning `false`, or throwing, fails startup.
 
 ## Self-hosting entry points
 
@@ -190,10 +184,7 @@ under `obj/` for whether it is mentioned.
 
 Hardened's module system is
 [DependencyModules](https://ipjohnson.github.io/DependencyModules/) underneath.
-`[HardenedModule]` is a Hardened-flavoured `[DependencyModule]`, and the registration attributes you
-will use on services — `[SingletonService]`, `[ScopedService]`, `[TransientService]` — come straight
-from that package.
-
-Which means everything DependencyModules can do is available here: conventions, decorators,
-interception, environment-conditional registration. [Registering services](/guide/services) covers
-the parts you will reach for most.
+`[HardenedModule]` is a Hardened-flavoured `[DependencyModule]`, and the registration attributes —
+`[SingletonService]`, `[ScopedService]`, `[TransientService]` — come straight from that package,
+along with conventions, decorators, interception and environment-conditional registration.
+[Registering services](/guide/services) covers the parts you will reach for most.

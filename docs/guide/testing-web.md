@@ -99,8 +99,8 @@ public class TestWebResponse {
 ```
 
 `Deserialize<T>` transparently decompresses gzip and Brotli bodies. The test client sends
-`Accept-Encoding: gzip`, so a compressed response is the normal case rather than a special one — and
-a test asserting on the deserialised value never has to know which it got.
+`Accept-Encoding: gzip`, so a test asserting on the deserialised value never has to know which it
+got.
 
 `DeserializeAsyncEnumerable<T>` reads NDJSON, one object per line, for streaming handlers.
 
@@ -142,7 +142,7 @@ public class MathControllerTests {
 }
 ```
 
-## What this actually exercises
+## What this exercises
 
 The request goes through `IMiddlewareService` — the same entry point `app.UseHardened()` uses — so
 the execution chain, every registered filter, the generated binding code and the serialisation
@@ -150,13 +150,4 @@ filter all run. A `[Retry]` attribute retries. A validation failure returns the 
 handler that throws produces the error response the application would produce in production.
 
 What is *not* exercised is the host: Kestrel, ASP.NET Core middleware registered outside Hardened,
-and TLS. A test that needs those needs a real host; everything else is better tested here, where it
-is faster and the failure points at your code.
-
-::: tip This is how the framework's own binding was fixed
-The parameter binding suite in `Hardened.Framework` surfaced three generator defects no unit test
-reached — named binding attributes emitting a double-quoted literal, handlers with metadata but no
-parameters putting the metadata in the parameters slot, and `[FromHeader]` calling `Get` on a plain
-dictionary. All three produced code that did not compile in any project using those features. Driving
-the real pipeline is what found them.
-:::
+and TLS. A test that needs those needs a real host.

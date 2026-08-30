@@ -19,7 +19,7 @@ generators behind all of it.
 | [`src/Templates`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Templates) | The template engine and its helpers |
 | [`src/Commands`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Commands) | Console command parsing and dispatch |
 | [`src/SourceGenerators`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/SourceGenerators) | Every generator, including the shared library they build on |
-| [`src/IntegrationTests`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/IntegrationTests) | Working applications driven through the real pipeline — the best worked examples in the codebase |
+| [`src/IntegrationTests`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/IntegrationTests) | Working applications driven through the real pipeline. The worked examples in the codebase |
 
 Documented in the [Guide](/guide/getting-started).
 
@@ -57,8 +57,7 @@ npm run dev      # local server with hot reload
 npm run build    # what CI runs; fails on a dead internal link
 ```
 
-Every page has an "Edit this page on GitHub" link at the bottom, which is the fastest way to fix
-something you have just found wrong.
+Every page has an "Edit this page on GitHub" link at the bottom.
 
 ## Related
 
