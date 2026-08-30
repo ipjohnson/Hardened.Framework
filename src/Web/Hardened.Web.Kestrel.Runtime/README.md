@@ -27,12 +27,12 @@ public partial class Application { }
 Nothing else changes. Controllers, filters, binding and the generated routing table are identical
 to an ASP.NET-hosted Hardened application.
 
-## What this actually does
+## What this does
 
 `IServer.StartAsync` takes an `IHttpApplication<TContext>`, not a `RequestDelegate`.
 `HostingApplication` — the piece that builds an `HttpContext`, opens the DI scope and raises the
-hosting diagnostics — is only the default implementation of that interface, and nothing about
-Kestrel requires it. This package supplies Hardened's own:
+hosting diagnostics — is only the default implementation of that interface. This package supplies
+Hardened's own:
 
 ```
 Kestrel → HostingApplication → HttpContext → ASP.NET middleware
@@ -58,37 +58,32 @@ each driven from an identical feature collection with no server underneath:
 | `GET /binding/{id}` | 1176 ns | **1000 ns** | 14.9% | 1101 ns | 3721 ns |
 | `POST /sum` | 1548 ns | **1469 ns** | 5.1% | 1623 ns | 4507 ns |
 
-Routes carrying a query string save the most. `AspNetExecutionRequest.QueryString` reads
-`HttpRequest.Query` — already parsed by ASP.NET — and then materialises a second `Dictionary` from
-it with a `ToString()` per value. Here the raw query string is parsed once, directly.
+Routes carrying a query string save the most: this host parses the raw query string once, where
+`AspNetExecutionRequest.QueryString` reads the already-parsed `HttpRequest.Query` and materialises a
+second `Dictionary` from it.
 
-Two things to keep in mind when reading the table. This host calls `IRequestLogger` on begin and
-end and records `TotalRequestDuration`, matching the Lambda runtime; `AspNetCoreRequestHandler`
-does none of that, so the ASP.NET column is doing slightly less work than the Kestrel one. And
-none of these figures include sockets, HTTP parsing or framing, which Kestrel adds equally to
-every hosted option — see `src/Benchmarks/README.md` for why that boundary was chosen.
+Two caveats. This host calls `IRequestLogger` on begin and end and records
+`TotalRequestDuration`, matching the Lambda runtime, and `AspNetCoreRequestHandler` does none of
+that, so the ASP.NET column is doing slightly less work. And none of these figures include sockets,
+HTTP parsing or framing, which Kestrel adds equally to every hosted option — see
+`src/Benchmarks/README.md`.
 
 ## What you give up
 
-This is additive. `Hardened.Web.AspNetCore.Runtime` remains the right choice when any of the
-following matter — and the first one matters more often than teams expect.
+`Hardened.Web.AspNetCore.Runtime` is the right choice when any of the following matter.
 
 - **ASP.NET's own hosting diagnostics.** The `Microsoft.AspNetCore.Hosting` `DiagnosticSource` and
   `EventSource` events are not raised, so instrumentation packages that subscribe to *those names*
   see nothing.
 
-  Tracing itself does work, and has since the request pipeline began reporting spans. Hardened
-  publishes its own `ActivitySource` and `Meter`, both named `Hardened.Requests` — a server span per
-  request, parented on an inbound `traceparent`, tagged with route and status, plus a correlation id
-  on every response. Point a collector at that name rather than at the ASP.NET one:
+  Tracing itself works. Hardened publishes its own `ActivitySource` and `Meter`, both named
+  `Hardened.Requests` — a server span per request, parented on an inbound `traceparent`, tagged with
+  route and status, plus a correlation id on every response. Point a collector at that name rather
+  than at the ASP.NET one:
 
   ```csharp
   builder.AddSource("Hardened.Requests");   // and .AddMeter("Hardened.Requests")
   ```
-
-  This bullet used to say distributed tracing did not work at all. It was written before the spans
-  existed and outlived them, which is worth knowing because it sends people to
-  `Hardened.Web.AspNetCore.Runtime` for a reason that no longer holds.
 - **ASP.NET authentication and authorization** middleware.
 - **General response compression.** Hardened's `GZipStaticContentCompressor` covers static content
   only, so dynamic responses have no equivalent.
@@ -96,10 +91,8 @@ following matter — and the first one matters more often than teams expect.
   middleware ecosystem generally.
 - `IHttpContextAccessor`, and anything in application code that depends on `HttpContext`.
 
-Hardened supplies its own CORS and filter pipeline, so those particular overlaps are covered.
-Static files are covered by `Hardened.Web.StaticContent`, which is a separate package rather than
-part of the runtime: most services serve none, and a DI registration is exactly what a trimmer
-cannot remove, so carrying it unconditionally cost every application about 20 KB it could not drop.
+Hardened supplies its own CORS and filter pipeline, so those overlaps are covered. Static files are
+covered by `Hardened.Web.StaticContent`, a separate package.
 
 ## Hosting inside a generic host
 
@@ -111,9 +104,8 @@ start. To keep configuration binding, logging setup and coordinated shutdown fro
 builder.Services.AddHardenedKestrel(kestrel => kestrel.ListenAnyIP(5080));
 ```
 
-That keeps `Microsoft.Extensions.Hosting` and drops only `Microsoft.AspNetCore.Hosting`. Using
-`ConfigureWebHostDefaults` would bring back `GenericWebHostService` and `HostingApplication` — the
-things this package exists to avoid.
+That keeps `Microsoft.Extensions.Hosting` and drops only `Microsoft.AspNetCore.Hosting`. Do not use
+`ConfigureWebHostDefaults`: it brings back `GenericWebHostService` and `HostingApplication`.
 
 ## Notes for anyone changing this
 

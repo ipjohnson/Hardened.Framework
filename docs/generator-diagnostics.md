@@ -3,8 +3,8 @@
 Every diagnostic the Hardened source generators raise, what causes it, and how to satisfy it.
 
 Warnings become errors under `ContinuousIntegrationBuild`, so anything left unaddressed locally
-fails CI. That is deliberate — the alternative is a warning nobody reads. Each entry below names the
-`NoWarn` for the cases where the warning is describing something you meant to do.
+fails CI. Each entry below names the `NoWarn` for the cases where the warning is describing
+something you meant to do.
 
 ## Handler binding
 
@@ -27,10 +27,10 @@ without implementations:
 </PropertyGroup>
 ```
 
-That is a supported target — a package carrying the contract for a client to consume, or one project
-describing a service that another implements. It is a warning rather than an error for exactly that
-reason. The `NoWarn` has to be written down rather than inferred, so that the ordinary case of
-forgetting to write a handler is still reported.
+That is a supported target: a package carrying the contract for a client to consume, or one project
+describing a service that another implements. It is a warning rather than an error for that reason,
+and the `NoWarn` has to be written down so the ordinary case of forgetting to write a handler is
+still reported.
 
 ### HOAG031 — handler implements no described service
 
@@ -51,10 +51,8 @@ Note what this is *not*. A handler declaring a base class is fine:
 public class CatalogHandler : HandlerBase, ICatalogService { }
 ```
 
-C# requires the base class to come first, and the generator used to read the first base-list entry
-and call it the service interface — so this registered `HandlerBase`, left `ICatalogService`
-unimplemented, built clean, and every route on the service was dead. The base list is searched by
-name now. HOAG031 fires only when *no* entry matches.
+C# requires the base class to come first, and the base list is searched by name, so HOAG031 fires
+only when *no* entry matches a described service.
 
 ## Other diagnostics
 
@@ -91,11 +89,7 @@ x-hardened-content-negotiation: lenient   # at the document root
 `Strict` is the default and answers 406 with a body naming what the operation produces. `Lenient`
 serializes with the default serializer anyway, which is what the framework did before this existed.
 
-It is deliberately not per operation. A policy each operation restates is one that ends up applied
-unevenly, and the operation that quietly differs is invisible. Nor is it derived from the document:
-a 406 is the transport telling a client its `Accept` named nothing that exists, and unlike a 404 —
-which is a domain outcome an operation may or may not report — there is nothing about it for an API
-author to decide.
+It is one setting for the whole service, not per operation, and it is not derived from the document.
 
-An operation that declares nothing negotiates exactly as it did before: every registered serializer
-is a candidate.
+An operation that declares nothing negotiates as before: every registered serializer is a
+candidate.

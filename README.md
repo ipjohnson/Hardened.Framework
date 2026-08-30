@@ -27,7 +27,7 @@ $ curl localhost:5080/greeting/world
 {"message":"Hello, world!"}
 ```
 
-Start from a template rather than from bare packages: the runtime packages carry no analyzers, so a
+Start from a template rather than from bare packages. The runtime packages carry no analyzers, so a
 project that references only them compiles to an application that answers 404 to everything. The
 templates wire the generators, pin every version in one place, and split the projects so the host
 can be swapped without touching the code.
@@ -106,7 +106,8 @@ public class GreetingService : IGreetingService {
 
 There are no route attributes anywhere in the project. Add an operation to the contract and the
 build writes the model, the route and the validation, then stops compiling until your service
-implements the new method. The specification and the code cannot disagree.
+implements the new method. See
+[generating from OpenAPI](https://ipjohnson.github.io/Hardened.Docs/guide/openapi).
 
 ### Smithy-first
 
@@ -135,17 +136,26 @@ operation Hello {
 ```
 
 The implementation side is identical: implement the generated interface, mark it `[Handler]`.
+
+```csharp
+[Handler]
+public class GreeterService : IGreeterService {
+    public Task<HelloOutput> Hello(string name) =>
+        Task.FromResult(new HelloOutput($"Hello, {name}!"));
+}
+```
+
 Constraint traits like `@required` and `@length` become validation filters in front of the handler.
-Needs the Smithy CLI on `PATH`; the build names the version it expects if yours differs.
+Needs the Smithy CLI on `PATH`; the build names the version it expects if yours differs. See
+[generating from Smithy](https://ipjohnson.github.io/Hardened.Docs/guide/smithy).
 
 ### Whichever you choose
 
 The application serves its OpenAPI document at `/openapi.json` and a reference page at `/docs`.
 Code-first, the document is generated from the routing table; contract-first, it is your contract
-embedded verbatim. Hardened does not generate clients. The document is the deliverable, and Kiota
+embedded verbatim. Hardened does not generate clients — the document is the deliverable, and Kiota
 or NSwag pointed at it does the rest. See
-[the OpenAPI document](https://ipjohnson.github.io/Hardened.Docs/guide/openapi-document) and
-[generating from OpenAPI](https://ipjohnson.github.io/Hardened.Docs/guide/openapi).
+[the OpenAPI document](https://ipjohnson.github.io/Hardened.Docs/guide/openapi-document).
 
 ## Three return models
 
@@ -159,9 +169,9 @@ three work side by side.
 | **Response** | the whole set, as `Response<T1..Tn>` | in the return type | any SDK |
 | **Union** | the whole set, as a C# `union` | in the return type | .NET 11, `LangVersion` preview |
 
-**Standard** is the default, and not a legacy mode. The signature names the success type and every
-other status is thrown. Nothing in the signature says the route can answer a 404, so nothing checks
-that you handled it, and the document describes only the 200.
+**Standard** is the default. The signature names the success type and every other status is thrown.
+Nothing in the signature says the route can answer a 404, so nothing checks that you handled it, and
+the document describes only the 200.
 
 ```csharp
 [Get("/todos/{id}")]
@@ -176,9 +186,9 @@ public Todo ById(ITodoStore store, int id) {
 }
 ```
 
-**Response** puts the whole set in the return type. `Response<T1..Tn>` is an ordinary struct with
-an implicit conversion per case, so the handler returns payloads and never names the wrapper. The
-compiler knows the set, the document describes all of it, and it compiles on any SDK.
+**Response** puts the whole set in the return type. `Response<T1..Tn>` is an ordinary struct with an
+implicit conversion per case, so the handler returns payloads and never names the wrapper. The
+compiler knows the set and the document describes all of it.
 
 ```csharp
 [Get("/todos/{id}")]
@@ -204,15 +214,14 @@ public TodoResult ById(ITodoStore store, int id) { /* same body */ }
 ```
 
 Unions need `net11.0` and `<LangVersion>preview</LangVersion>`, which rules out AWS Lambda's
-`net8.0` managed runtime today. Hardened matches `Response` and `union` structurally, so moving between them
-rewrites no handler. Cases like `NotFound`, `Created<T>` and `RateLimited` are built-in records
-that carry their status; each has a `<T>` form for your own error body.
+`net8.0` managed runtime today. Hardened matches `Response` and `union` structurally, so moving
+between them rewrites no handler. Cases like `NotFound`, `Created<T>` and `RateLimited` are built-in
+records that carry their status; each has a `<T>` form for your own error body.
 
-The return type alone decides, code-first. Contract-first, the statuses come from the contract and
+Code-first, the return type alone decides. Contract-first, the statuses come from the contract and
 `<HardenedResponseModel>Standard|Response|Union</HardenedResponseModel>` decides the generated
-interface's shape. The full story, including declared 404s as nullable returns and operations with
-two success statuses, is in
-[declared responses](https://ipjohnson.github.io/Hardened.Docs/guide/responses).
+interface's shape. Declared 404s as nullable returns, and operations with two success statuses, are
+in [declared responses](https://ipjohnson.github.io/Hardened.Docs/guide/responses).
 
 ## Filters
 
@@ -239,8 +248,8 @@ public class TimingFilter : IExecutionFilter {
 
 Attach a filter to one handler with an attribute (`[Retry]` is the shipped example), or to every
 handler through `IGlobalFilterRegistry`. Serialization is itself a filter: the response carries the
-handler's return *value*, so a filter that changes the payload changes the value and never needs to
-know how it will be written. The ordering, the context and the shipped positions are in
+handler's return *value*, so a filter that changes the payload changes the value rather than the
+bytes. The ordering, the context and the shipped positions are in
 [the execution pipeline](https://ipjohnson.github.io/Hardened.Docs/guide/execution-pipeline).
 
 ## What else the build writes
@@ -268,12 +277,10 @@ routing table, the handlers and the binding sit under `obj/<configuration>/<tfm>
 
 A test method declares what it needs as parameters. The framework boots the real application around
 the test, injects them, and substitutes a mock wherever a parameter is marked `[Mock]`. There is no
-socket, port or running host: `ITestWebApp` sends the request through the actual pipeline, meaning
-routing, filters, binding, the handler and serialization.
+socket, port or running host: `ITestWebApp` sends the request through the actual pipeline — routing,
+filters, binding, the handler and serialization.
 
-Two assembly attributes are the whole wiring: the harness, and the module under test. The real
-module graph is applied and startup services run, so there is no separate test setup to keep in
-step with the application.
+Two assembly attributes are the whole wiring: the harness, and the module under test.
 
 ```csharp
 [assembly: WebTesting]
@@ -295,17 +302,15 @@ public class TodoTests {
 }
 ```
 
-The pipeline under test is the pipeline that ships. See
-[testing](https://ipjohnson.github.io/Hardened.Docs/guide/testing) and
+See [testing](https://ipjohnson.github.io/Hardened.Docs/guide/testing) and
 [testing web apps](https://ipjohnson.github.io/Hardened.Docs/guide/testing-web).
 
 ## Packages
 
-Everything ships to nuget.org as `Hardened.*`; the templates reference the right set for each
-project shape. One rule matters when assembling by hand: the source generators are not optional and
-do not flow transitively — the project that owns the application must reference them directly. The
-full list, and which project references what, is in the
-[package reference](https://ipjohnson.github.io/Hardened.Docs/reference/packages).
+Everything ships to nuget.org as `Hardened.*`, and the templates reference the right set for each
+project shape. Assembling by hand, the source generators are not optional and do not flow
+transitively: the project that owns the application references them directly. The full list is in
+the [package reference](https://ipjohnson.github.io/Hardened.Docs/reference/packages).
 
 ## Related repositories
 

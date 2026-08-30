@@ -118,7 +118,7 @@ When validation fails, the filter returns HTTP 400 with a structured response:
     {
       "field": "age",
       "code": "range",
-      "message": "age must be between 0 and 150."
+      "message": "age must be between 0 and 30."
     }
   ]
 }
