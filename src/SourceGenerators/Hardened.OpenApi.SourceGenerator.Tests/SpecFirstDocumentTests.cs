@@ -237,4 +237,117 @@ public class SpecFirstDocumentTests {
         Assert.Contains(
             "Second line", operation.GetProperty("description").GetString());
     }
+
+    #region response metadata
+
+    /// <summary>
+    /// The three response facts the served document dropped: a declared header, a non-JSON
+    /// success, and the validation 400 the generated filter answers.
+    /// </summary>
+    private const string ResponseMetadataContract =
+        """
+        openapi: "3.0.0"
+        info: { title: Labels, version: "1.0" }
+        paths:
+          /labels:
+            post:
+              tags: [Label]
+              operationId: createLabel
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/NewLabel'
+              responses:
+                '201':
+                  description: Created.
+                  headers:
+                    Location:
+                      description: Where the label lives.
+                      schema: { type: string }
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Label'
+          /labels/{id}/text:
+            get:
+              tags: [Label]
+              operationId: getLabelText
+              parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema: { type: string }
+              responses:
+                '200':
+                  description: The label block.
+                  content:
+                    text/plain:
+                      schema: { type: string }
+        components:
+          schemas:
+            Label:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+            NewLabel:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 3 }
+        """;
+
+    [Fact]
+    public void ADeclaredHeaderReachesTheDocument() {
+        var created = PublishedDocument(ResponseMetadataContract)
+            .GetProperty("paths").GetProperty("/labels").GetProperty("post")
+            .GetProperty("responses").GetProperty("201");
+
+        var location = created.GetProperty("headers").GetProperty("Location");
+
+        Assert.Equal("Where the label lives.", location.GetProperty("description").GetString());
+        Assert.Equal("string", location.GetProperty("schema").GetProperty("type").GetString());
+    }
+
+    /// <summary>
+    /// A text/plain success carries its content block. It published the 200 with none, so a
+    /// generated client read nothing from a response that carries the body.
+    /// </summary>
+    [Fact]
+    public void ANonJsonSuccessCarriesItsContent() {
+        var ok = PublishedDocument(ResponseMetadataContract)
+            .GetProperty("paths").GetProperty("/labels/{id}/text").GetProperty("get")
+            .GetProperty("responses").GetProperty("200");
+
+        var text = ok.GetProperty("content").GetProperty("text/plain");
+
+        Assert.Equal("string", text.GetProperty("schema").GetProperty("type").GetString());
+    }
+
+    /// <summary>
+    /// An operation with a generated validator declares the 400 that validator answers. Every
+    /// constraint failure was a status the document never mentioned.
+    /// </summary>
+    [Fact]
+    public void AValidatedOperationDeclaresTheValidationResponse() {
+        var document = PublishedDocument(ResponseMetadataContract);
+
+        var badRequest = document
+            .GetProperty("paths").GetProperty("/labels").GetProperty("post")
+            .GetProperty("responses").GetProperty("400");
+
+        Assert.Equal(
+            "#/components/schemas/RequestValidationError",
+            badRequest.GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString());
+
+        var schema = document.GetProperty("components").GetProperty("schemas")
+            .GetProperty("RequestValidationError");
+
+        Assert.Equal("object", schema.GetProperty("type").GetString());
+    }
+
+    #endregion
 }

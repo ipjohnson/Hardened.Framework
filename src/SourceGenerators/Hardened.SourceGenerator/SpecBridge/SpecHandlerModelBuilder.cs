@@ -191,6 +191,13 @@ internal static class SpecHandlerModelBuilder {
             Description = operation.Description,
             IsDeprecated = operation.IsDeprecated,
             SecurityRequirements = operation.SecurityRequirements,
+            // Parameter interfaces and body constraints both end at the same generated 400. Only
+            // for a described operation: everything a description constrains reaches a generated
+            // validator, while a code-first operation's bridge model carries required-ness and no
+            // body facts, so the same test would promise a 400 nothing generates. Symbols are how
+            // code-first announces itself.
+            HasGeneratedValidation = validated != null ||
+                                     (symbols == null && operation.HasValidationConstraints),
         };
     }
 
@@ -667,14 +674,22 @@ internal static class SpecHandlerModelBuilder {
                 SpecSchemaWriter.DescriptionFor(success.Description, success.StatusCode),
                 success.IsArray
                     ? SpecSchemaWriter.ForArrayOf(success.ArrayItemsRef, schemas)
-                    : SpecSchemaWriter.ForRef(success.Ref, schemas)));
+                    // A success the contract types without naming - text/plain's string - still
+                    // has a schema; publishing the status with no content told a client to read
+                    // nothing from a response that carries the body.
+                    : SpecSchemaWriter.ForRef(success.Ref, schemas)
+                      ?? SpecSchemaWriter.ForScalar(success.Type, success.Format)) {
+                Headers = success.Headers
+            });
         }
 
         foreach (var error in operation.ErrorResponses) {
             result.Add(new ResponseSchemaModel(
                 error.StatusCode,
                 SpecSchemaWriter.DescriptionFor(error.Description, error.StatusCode),
-                SpecSchemaWriter.ForRef(error.Ref, schemas)));
+                SpecSchemaWriter.ForRef(error.Ref, schemas)) {
+                Headers = error.Headers
+            });
         }
 
         return result;

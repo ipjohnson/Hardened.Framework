@@ -178,6 +178,17 @@ public class RequestHandlerModel {
     public bool IsDeprecated { get; set; }
 
     /// <summary>
+    /// Whether a generated validator answers 400 before this handler runs - a parameter
+    /// interface, or constraints on the bound body.
+    /// </summary>
+    /// <remarks>
+    /// For the published document, which declares the validation response only where one can
+    /// actually happen; declaring it everywhere would be the widening the contract checks exist
+    /// to prevent.
+    /// </remarks>
+    public bool HasGeneratedValidation { get; set; }
+
+    /// <summary>
     /// The contract's declared security, one OpenAPI requirement object of JSON per entry.
     /// </summary>
     /// <remarks>
@@ -277,6 +288,10 @@ public class RequestHandlerModel {
         }
 
         if (IsDeprecated != requestHandlerModel.IsDeprecated) {
+            return false;
+        }
+
+        if (HasGeneratedValidation != requestHandlerModel.HasGeneratedValidation) {
             return false;
         }
 

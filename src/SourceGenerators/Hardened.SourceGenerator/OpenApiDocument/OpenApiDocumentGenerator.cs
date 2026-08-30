@@ -452,6 +452,8 @@ public static class OpenApiDocumentGenerator {
             WriteDeclaredResponses(builder, handler, components);
         }
 
+        WriteValidationResponse(builder, handler, components);
+
         builder.Append('}');
     }
 
@@ -499,7 +501,7 @@ public static class OpenApiDocumentGenerator {
             .GroupBy(response => response.Status)
             .OrderBy(group => group.Key);
 
-        var contentType = ContentType(handler);
+        var successContentType = ContentType(handler);
         var first = true;
 
         foreach (var group in byStatus) {
@@ -510,6 +512,13 @@ public static class OpenApiDocumentGenerator {
             builder.Append('"').Append(group.Key).Append("\":{\"description\":\"")
                 .Append(JsonSchemaWriter.Escape(group.First().Description))
                 .Append('"');
+
+            WriteResponseHeaders(builder, group);
+
+            // The handler's media type describes its success. An error body is written by the
+            // exception path, which serializes JSON whatever the success was - publishing the
+            // error under the raw media type described a body that path cannot produce.
+            var contentType = group.Key >= 400 ? "application/json" : successContentType;
 
             var bodies = group.Where(response => response.Schema != null).ToList();
 
@@ -548,10 +557,106 @@ public static class OpenApiDocumentGenerator {
     /// <summary>
     /// The media type the operation answers with, which is JSON unless it committed to another.
     /// </summary>
+    /// <summary>
+    /// The <c>headers</c> a response declares, merged across the status's cases by wire name.
+    /// </summary>
+    /// <remarks>
+    /// The declaration only: the value is the handler's, exactly as the generated case type's
+    /// constructor divides them. Schema stays <c>string</c> for the reason
+    /// <c>ResponseHeaderModel</c> gives - a header is a string on the wire whatever it carries.
+    /// </remarks>
+    private static void WriteResponseHeaders(
+        StringBuilder builder, IEnumerable<ResponseSchemaModel> responses) {
+        var seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        var first = true;
+
+        foreach (var response in responses) {
+            foreach (var header in response.Headers) {
+                if (!seen.Add(header.Name)) {
+                    continue;
+                }
+
+                builder.Append(first ? ",\"headers\":{" : ",");
+
+                builder.Append('"').Append(JsonSchemaWriter.Escape(header.Name)).Append("\":{");
+
+                if (!string.IsNullOrEmpty(header.Description)) {
+                    builder.Append("\"description\":\"")
+                        .Append(JsonSchemaWriter.Escape(header.Description!)).Append("\",");
+                }
+
+                builder.Append("\"schema\":{\"type\":\"string\"}}");
+
+                first = false;
+            }
+        }
+
+        if (!first) {
+            builder.Append('}');
+        }
+    }
+
+    /// <summary>The schema of the framework's validation 400, written once into components.</summary>
+    private const string ValidationErrorSchema =
+        "{\"type\":\"object\"," +
+        "\"description\":\"How a request that failed validation is answered.\"," +
+        "\"required\":[\"type\",\"message\",\"errors\"]," +
+        "\"properties\":{" +
+        "\"type\":{\"type\":\"string\"}," +
+        "\"message\":{\"type\":\"string\"}," +
+        "\"errors\":{\"type\":\"array\",\"items\":{" +
+        "\"type\":\"object\"," +
+        "\"required\":[\"field\",\"code\",\"message\"]," +
+        "\"properties\":{" +
+        "\"field\":{\"type\":\"string\"}," +
+        "\"code\":{\"type\":\"string\"}," +
+        "\"message\":{\"type\":\"string\"}}}}}}";
+
+    /// <summary>
+    /// The 400 every operation with a generated validator can answer, declared rather than
+    /// implied.
+    /// </summary>
+    /// <remarks>
+    /// A constraint failure never reaches the handler - the generated filter answers 400 with
+    /// <c>RequestValidationError</c> - so the status is a fact about the operation the contract
+    /// nowhere states and the document never carried. Skipped where the operation declared its own
+    /// 400, whose description then wins.
+    /// </remarks>
+    private static void WriteValidationResponse(
+        StringBuilder builder, RequestHandlerModel handler,
+        SortedDictionary<string, string> components) {
+        if (handler.ParametersValidator == null && !handler.HasGeneratedValidation) {
+            return;
+        }
+
+        foreach (var response in handler.ResponseSchemas) {
+            if (response.Status == 400) {
+                return;
+            }
+        }
+
+        if ((handler.ResponseInformation.DefaultStatusCode ?? 200) == 400) {
+            return;
+        }
+
+        components["RequestValidationError"] = ValidationErrorSchema;
+
+        builder.Append(",\"400\":{\"description\":\"The request failed validation.\"," +
+                       "\"content\":{\"application/json\":{\"schema\":" +
+                       "{\"$ref\":\"#/components/schemas/RequestValidationError\"}}}}");
+    }
+
+    /// <summary>
+    /// The media type a success goes out as: <c>[RawResponse]</c>'s, else the contract's declared
+    /// one, else JSON. The declared type never reached here, so a <c>text/plain</c> contract
+    /// published its success under a JSON key or under nothing.
+    /// </summary>
     private static string ContentType(RequestHandlerModel handler) =>
-        string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
-            ? "application/json"
-            : handler.ResponseInformation.RawResponseContentType!;
+        !string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
+            ? handler.ResponseInformation.RawResponseContentType!
+            : !string.IsNullOrEmpty(handler.ResponseInformation.DeclaredContentType)
+                ? handler.ResponseInformation.DeclaredContentType!
+                : "application/json";
 
     /// <summary>
     /// A streamed response: the media type it is framed as, and the shape of one item.
