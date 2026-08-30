@@ -69,6 +69,8 @@ public class SpecFirstDocumentTests {
                 id: { type: string }
         """;
 
+    private static JsonElement PublishedDocumentFor(string spec) => PublishedDocument(spec);
+
     private static JsonElement PublishedDocument(string spec) {
         var result = OpenApiGenerator.Run(spec);
 
@@ -138,6 +140,88 @@ public class SpecFirstDocumentTests {
 
         Assert.Equal("string", schema.GetProperty("type").GetString());
         Assert.Equal("^[a-z0-9-]+$", schema.GetProperty("pattern").GetString());
+    }
+
+    /// <summary>
+    /// The contract's own identity and its security reach the served document. It restated the
+    /// module class name, "1.0.0", and no security at all - so a client generated from it renamed
+    /// the API and sent unauthenticated requests to operations the service refuses them on.
+    /// </summary>
+    private const string SecuredContract =
+        """
+        openapi: "3.0.0"
+        info: { title: Pet Store, version: "2.4.0", description: The pets. }
+        security:
+          - BearerAuth: []
+        paths:
+          /pets:
+            get:
+              tags: [Pet]
+              operationId: listPets
+              security: []
+              responses:
+                '200':
+                  description: Pets
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+            post:
+              tags: [Pet]
+              operationId: createPet
+              responses:
+                '200':
+                  description: A pet
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+        components:
+          securitySchemes:
+            BearerAuth:
+              type: http
+              scheme: bearer
+          schemas:
+            Pet:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+        """;
+
+    [Fact]
+    public void TheContractsInfoBlockIsTheDocuments() {
+        var info = PublishedDocumentFor(SecuredContract).GetProperty("info");
+
+        Assert.Equal("Pet Store", info.GetProperty("title").GetString());
+        Assert.Equal("2.4.0", info.GetProperty("version").GetString());
+        Assert.Equal("The pets.", info.GetProperty("description").GetString());
+    }
+
+    [Fact]
+    public void TheDeclaredSchemeIsPublished() {
+        var scheme = PublishedDocumentFor(SecuredContract)
+            .GetProperty("components").GetProperty("securitySchemes").GetProperty("BearerAuth");
+
+        Assert.Equal("http", scheme.GetProperty("type").GetString());
+        Assert.Equal("bearer", scheme.GetProperty("scheme").GetString());
+    }
+
+    /// <summary>
+    /// The secured operation names its requirement; the one that opted out with an empty
+    /// security list declares none.
+    /// </summary>
+    [Fact]
+    public void OperationsCarryTheirDeclaredSecurity() {
+        var paths = PublishedDocumentFor(SecuredContract).GetProperty("paths").GetProperty("/pets");
+
+        var post = paths.GetProperty("post");
+        var requirement = Assert.Single(post.GetProperty("security").EnumerateArray());
+
+        Assert.Equal(
+            0, requirement.GetProperty("BearerAuth").GetArrayLength());
+
+        Assert.False(paths.GetProperty("get").TryGetProperty("security", out _));
     }
 
     /// <summary>

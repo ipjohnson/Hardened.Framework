@@ -38,14 +38,30 @@ public static class OpenApiDocumentGenerator {
     /// </summary>
     public static string Write(
         EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath,
-        OpenApiVersion version = OpenApiVersionFacts.Default) {
+        OpenApiVersion version = OpenApiVersionFacts.Default, DocumentIdentity? identity = null) {
         var builder = new StringBuilder();
+
+        // Identity, in preference order: the contract's own (specification-first), an
+        // [OpenApiInfo] on the entry point (code-first), then the fallbacks every application got
+        // before either existed - the entry point's class name and "1.0.0". The fallbacks renamed
+        // an API its author had titled, which is why the first two exist.
+        var (declaredTitle, declaredVersion, declaredDescription) = InfoAttribute(appModel);
+
+        var title = identity?.Title ?? declaredTitle ?? appModel.EntryPointType.Name;
+        var infoVersion = identity?.Version ?? declaredVersion ?? "1.0.0";
+        var description = identity?.Description ?? declaredDescription;
 
         builder.Append("{\"openapi\":\"")
             .Append(OpenApiVersionFacts.VersionString(version))
             .Append("\",\"info\":{\"title\":\"")
-            .Append(JsonSchemaWriter.Escape(appModel.EntryPointType.Name))
-            .Append("\",\"version\":\"1.0.0\"}");
+            .Append(JsonSchemaWriter.Escape(title))
+            .Append("\",\"version\":\"")
+            .Append(JsonSchemaWriter.Escape(infoVersion))
+            .Append('"');
+
+        WriteText(builder, "description", description);
+
+        builder.Append('}');
 
         WriteServers(builder, appModel);
         WriteTags(builder, handlers);
@@ -105,23 +121,50 @@ public static class OpenApiDocumentGenerator {
 
         builder.Append('}');
 
-        if (components.Count > 0) {
-            builder.Append(",\"components\":{\"schemas\":{");
+        var securitySchemes = identity?.SecuritySchemes;
 
-            var firstComponent = true;
+        if (components.Count > 0 || securitySchemes is { Count: > 0 }) {
+            builder.Append(",\"components\":{");
 
-            foreach (var component in components) {
-                if (!firstComponent) {
+            if (components.Count > 0) {
+                builder.Append("\"schemas\":{");
+
+                var firstComponent = true;
+
+                foreach (var component in components) {
+                    if (!firstComponent) {
+                        builder.Append(',');
+                    }
+
+                    builder.Append('"').Append(JsonSchemaWriter.Escape(component.Key)).Append("\":")
+                        .Append(component.Value);
+
+                    firstComponent = false;
+                }
+
+                builder.Append('}');
+            }
+
+            if (securitySchemes is { Count: > 0 }) {
+                if (components.Count > 0) {
                     builder.Append(',');
                 }
 
-                builder.Append('"').Append(JsonSchemaWriter.Escape(component.Key)).Append("\":")
-                    .Append(component.Value);
+                builder.Append("\"securitySchemes\":{");
 
-                firstComponent = false;
+                for (var i = 0; i < securitySchemes.Count; i++) {
+                    if (i > 0) {
+                        builder.Append(',');
+                    }
+
+                    builder.Append('"').Append(JsonSchemaWriter.Escape(securitySchemes[i].Name))
+                        .Append("\":").Append(securitySchemes[i].Json);
+                }
+
+                builder.Append('}');
             }
 
-            builder.Append("}}");
+            builder.Append('}');
         }
 
         return builder.Append('}').ToString();
@@ -151,6 +194,20 @@ public static class OpenApiDocumentGenerator {
             builder.Append(",\"deprecated\":true");
         }
 
+        if (handler.SecurityRequirements.Count > 0) {
+            builder.Append(",\"security\":[");
+
+            for (var i = 0; i < handler.SecurityRequirements.Count; i++) {
+                if (i > 0) {
+                    builder.Append(',');
+                }
+
+                builder.Append(handler.SecurityRequirements[i]);
+            }
+
+            builder.Append(']');
+        }
+
         WriteParameters(builder, handler, version, enums);
         WriteRequestBody(builder, handler, components);
         WriteResponses(builder, handler, components, version);
@@ -173,6 +230,37 @@ public static class OpenApiDocumentGenerator {
     /// reader treats the absent case as "the document's own location" and an empty one as an
     /// application served from nowhere.
     /// </summary>
+    /// <summary>
+    /// The <c>[OpenApiInfo("title", "version")]</c> an entry point declares, read the way
+    /// <see cref="WriteServers"/> reads <c>[Server]</c>: off the attribute list, by name prefix,
+    /// arguments as source text with their quotes trimmed.
+    /// </summary>
+    private static (string? Title, string? Version, string? Description) InfoAttribute(
+        EntryPointSelector.Model appModel) {
+        if (appModel.AttributeModels == null) {
+            return (null, null, null);
+        }
+
+        foreach (var attribute in appModel.AttributeModels) {
+            if (!attribute.TypeDefinition.Name.StartsWith("OpenApiInfo", System.StringComparison.Ordinal)) {
+                continue;
+            }
+
+            var parts = attribute.Arguments.Split(',');
+
+            var title = parts.Length > 0 ? parts[0].Trim().Trim('"') : "";
+            var infoVersion = parts.Length > 1 ? parts[1].Trim().Trim('"') : "";
+            var description = parts.Length > 2 ? parts[2].Trim().Trim('"') : "";
+
+            return (
+                title.Length > 0 ? title : null,
+                infoVersion.Length > 0 ? infoVersion : null,
+                description.Length > 0 ? description : null);
+        }
+
+        return (null, null, null);
+    }
+
     private static void WriteServers(StringBuilder builder, EntryPointSelector.Model appModel) {
         if (appModel.AttributeModels == null) {
             return;

@@ -204,6 +204,17 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// </remarks>
     public List<AuthorizationBranchModel> AuthorizationBranches { get; set; } = new();
 
+    /// <summary>
+    /// The operation's declared security, each entry one OpenAPI requirement object as JSON.
+    /// </summary>
+    /// <remarks>
+    /// For the published document only - enforcement reads
+    /// <see cref="AuthorizationBranches"/>. Kept separately because the two answer different
+    /// questions: a branch is what the filter checks, a requirement is what the contract said,
+    /// scopes and all, and the document must repeat the contract.
+    /// </remarks>
+    public List<string> SecurityRequirements { get; set; } = new();
+
     // Validation: body schema properties for validation filter generation
     public List<PropertyModel> RequestBodyProperties { get; set; } = new();
     public List<string> RequestBodyRequired { get; set; } = new();
@@ -258,6 +269,7 @@ internal class OperationModel : IEquatable<OperationModel> {
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&
                AuthorizationBranches.SequenceEqual(other.AuthorizationBranches) &&
+               SecurityRequirements.SequenceEqual(other.SecurityRequirements) &&
                RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&
                RequestBodyRequired.SequenceEqual(other.RequestBodyRequired);
     }

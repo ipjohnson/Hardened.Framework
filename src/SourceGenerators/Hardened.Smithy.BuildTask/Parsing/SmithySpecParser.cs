@@ -182,6 +182,22 @@ internal static class SmithySpecParser {
 
         Note(context, service);
 
+        // The service's identity, for the published document. @title was accepted by the trait
+        // table and never read, so the served document titled the API after the module class.
+        if (context.Model.Title == null &&
+            SmithyAst.TryGetTrait(service, SmithyTraits.Title, out var title) &&
+            title.ValueKind == JsonValueKind.String) {
+            context.Model.Title = title.GetString();
+        }
+
+        if (context.Model.Version == null &&
+            service.TryGetProperty("version", out var version) &&
+            version.ValueKind == JsonValueKind.String) {
+            context.Model.Version = version.GetString();
+        }
+
+        var securityScheme = DeclaredScheme(context, service);
+
         foreach (var operationId in Operations(context, service)) {
             if (!context.Ast.TryGetShape(operationId, out var operation)) {
                 context.Diagnostics.Add(
@@ -190,7 +206,8 @@ internal static class SmithySpecParser {
             }
 
             var parsed = ParseOperation(
-                context, operationId, operation, tag, protocol, RequiresAuth(service));
+                context, operationId, operation, tag, protocol, RequiresAuth(service),
+                securityScheme);
 
             if (parsed != null) {
                 operations.Add(parsed);
@@ -297,13 +314,71 @@ internal static class SmithySpecParser {
         return false;
     }
 
+    /// <summary>
+    /// The service's auth scheme as the OpenAPI declaration the document publishes, or null.
+    /// </summary>
+    /// <remarks>
+    /// Registered on the model here and named per operation below, so the served document declares
+    /// the scheme the service enforces - it declared nothing, and a client generated from it sent
+    /// unauthenticated requests to every operation the service refuses them on. Only the schemes
+    /// with an OpenAPI spelling: sigv4 has none, so a sigv4 service keeps enforcing and the
+    /// document stays silent about it rather than inventing a vocabulary other tools cannot read.
+    /// </remarks>
+    private static string? DeclaredScheme(ParseContext context, JsonElement service) {
+        foreach (var trait in SmithyTraits.AuthSchemes) {
+            if (!SmithyAst.HasTrait(service, trait)) {
+                continue;
+            }
+
+            var name = SmithyPrelude.LocalName(trait);
+
+            var json = name switch {
+                "httpBearerAuth" => "{\"type\":\"http\",\"scheme\":\"bearer\"}",
+                "httpBasicAuth" => "{\"type\":\"http\",\"scheme\":\"basic\"}",
+                "httpDigestAuth" => "{\"type\":\"http\",\"scheme\":\"digest\"}",
+                "httpApiKeyAuth" => ApiKeySchemeJson(service),
+                _ => null
+            };
+
+            if (json == null) {
+                continue;
+            }
+
+            if (!context.Model.SecuritySchemes.Exists(scheme => scheme.Name == name)) {
+                context.Model.SecuritySchemes.Add(new SecuritySchemeModel { Name = name, Json = json });
+            }
+
+            return name;
+        }
+
+        return null;
+    }
+
+    /// <summary>@httpApiKeyAuth's name and location, read off the trait itself.</summary>
+    private static string? ApiKeySchemeJson(JsonElement service) {
+        if (!SmithyAst.TryGetTrait(service, "smithy.api#httpApiKeyAuth", out var trait)) {
+            return null;
+        }
+
+        var name = String(trait, "name");
+        var location = String(trait, "in");
+
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(location)) {
+            return null;
+        }
+
+        return "{\"type\":\"apiKey\",\"name\":\"" + name +
+               "\",\"in\":\"" + location + "\"}";
+    }
+
     private static OperationModel? ParseOperation(
         ParseContext context,
         string operationId,
         JsonElement operation,
         string tag,
         ProtocolBinding protocol,
-        bool serviceRequiresAuth) {
+        bool serviceRequiresAuth,
+        string? securityScheme = null) {
         Note(context, operation);
 
         var name = SmithyPrelude.LocalName(operationId);
@@ -359,6 +434,12 @@ internal static class SmithySpecParser {
             !DeclaresNoAuth(operation)) {
             model.AuthorizationBranches.Add(
                 new AuthorizationBranchModel { RequiresAuthentication = true });
+
+            // The same fact for the document: the operation requires the service's scheme. Smithy
+            // has no scopes, so the requirement's list is always empty.
+            if (securityScheme != null) {
+                model.SecurityRequirements.Add("{\"" + securityScheme + "\":[]}");
+            }
         }
 
         ParseInput(context, operation, model, name, protocol);

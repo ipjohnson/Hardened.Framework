@@ -58,6 +58,18 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// </remarks>
     public string UiEnvironments { get; set; } = "";
 
+    /// <summary>The contract's <c>info.title</c> / <c>@title</c>, or null when it said nothing.</summary>
+    public string? Title { get; set; }
+
+    /// <summary>The contract's <c>info.version</c> / service version, or null.</summary>
+    public string? Version { get; set; }
+
+    /// <summary>The contract's <c>info.description</c>, or null.</summary>
+    public string? InfoDescription { get; set; }
+
+    /// <summary>The schemes the contract declares, for the published document.</summary>
+    public List<SecuritySchemeModel> SecuritySchemes { get; set; } = new();
+
     /// <summary>
     /// What the build task emitted for validation, per operation. Empty when nothing is constrained.
     /// </summary>

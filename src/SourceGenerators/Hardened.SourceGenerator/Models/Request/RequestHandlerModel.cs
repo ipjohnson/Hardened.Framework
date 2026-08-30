@@ -177,6 +177,17 @@ public class RequestHandlerModel {
     /// </summary>
     public bool IsDeprecated { get; set; }
 
+    /// <summary>
+    /// The contract's declared security, one OpenAPI requirement object of JSON per entry.
+    /// </summary>
+    /// <remarks>
+    /// For the published document; enforcement travels as authorization filters. Empty for a
+    /// handler whose contract declared none, and always empty for code-first, which has no way to
+    /// declare a scheme yet.
+    /// </remarks>
+    public IReadOnlyList<string> SecurityRequirements { get; set; } =
+        System.Array.Empty<string>();
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;
@@ -247,6 +258,18 @@ public class RequestHandlerModel {
 
         if (!string.Equals(Summary, requestHandlerModel.Summary, StringComparison.Ordinal)) {
             return false;
+        }
+
+        if (SecurityRequirements.Count != requestHandlerModel.SecurityRequirements.Count) {
+            return false;
+        }
+
+        for (var i = 0; i < SecurityRequirements.Count; i++) {
+            if (!string.Equals(
+                    SecurityRequirements[i], requestHandlerModel.SecurityRequirements[i],
+                    StringComparison.Ordinal)) {
+                return false;
+            }
         }
 
         if (!string.Equals(Description, requestHandlerModel.Description, StringComparison.Ordinal)) {

@@ -190,6 +190,7 @@ internal static class SpecHandlerModelBuilder {
             Summary = operation.Summary,
             Description = operation.Description,
             IsDeprecated = operation.IsDeprecated,
+            SecurityRequirements = operation.SecurityRequirements,
         };
     }
 

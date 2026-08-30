@@ -400,5 +400,25 @@ public class OpenApiDocumentEmissionTests {
         Assert.DoesNotContain("note", required);
     }
 
+    /// <summary>
+    /// [OpenApiInfo] names the document; without it the entry point's class name and "1.0.0"
+    /// stand in, because they are the only facts the generator has.
+    /// </summary>
+    [Fact]
+    public void OpenApiInfoNamesTheDocument() {
+        var document = JsonDocument.Parse(Extract(
+            RequestGeneratorHarness
+                .Generate(Application(
+                    FidelityControllers,
+                    Enable + "\n[Hardened.Web.Runtime.Attributes.OpenApiInfo(\"Shipments API\", \"3.1.4\")]"))
+                .AssertNoErrors()
+                .SourceContaining("OpenApiDocument"))).RootElement;
+
+        var info = document.GetProperty("info");
+
+        Assert.Equal("Shipments API", info.GetProperty("title").GetString());
+        Assert.Equal("3.1.4", info.GetProperty("version").GetString());
+    }
+
     #endregion
 }
