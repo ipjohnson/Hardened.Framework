@@ -85,15 +85,16 @@
         <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Update="Fixtures\**\*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
-
+    <!--
+        An explicit Include rather than Update over the default glob: an Update pattern's
+        %(RecursiveDir) is computed from the Update glob on current SDKs, which flattens the copied
+        tree, so the yaml landed beside the dll instead of under Fixtures/ and every test reading a
+        fixture failed. A fresh Include keeps the relative path as the target path on every SDK.
+    -->
     <ItemGroup>
         <Compile Remove="Fixtures/**/*.cs"/>
-        <None Include="Fixtures/**/*.cs"/>
+        <None Remove="Fixtures/**/*"/>
+        <None Include="Fixtures/**/*" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
 </Project>
