@@ -19,15 +19,31 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
         <PackageIcon>hardened-icon-128.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <!--
-      PackageIcon names a file inside the nupkg, so the icon has to be packed into every
-      package alongside declaring it - a declaration without the file is NU5046 at pack time.
-      Same icon as Hardened.Framework's packages, from assets/ at the repository root.
+      PackageIcon and PackageReadmeFile both name a file inside the nupkg, so each has to be
+      packed alongside being declared - a declaration without the file is NU5046 for the icon
+      and NU5039 for the readme, both at pack time.
+
+      Same icon as Hardened.Framework's packages, from assets/ at the repository root, and the
+      repository readme on every package for the same reason that repository does it: these
+      packages are one runtime, and a per-package readme is a second place to keep current.
+
+      Note that nuget.org renders the readme through Markdig with inline HTML disabled, so raw
+      HTML in README.md is displayed as escaped text rather than rendered, and links have to be
+      absolute because a relative one resolves against nuget.org and is dropped.
+
+      That is also why the title names assets/hardened-mark-32.png rather than the 128px icon:
+      with no way to set a width, the file has to be the size it should render at. It is the
+      gunmetal tile for a related reason - one image serves both nuget.org themes only if it
+      brings its own background.
     -->
     <ItemGroup>
         <None Include="$(MSBuildThisFileDirectory)../assets/hardened-icon-128.png"
+              Pack="true" PackagePath="/" Visible="false" />
+        <None Include="$(MSBuildThisFileDirectory)../README.md"
               Pack="true" PackagePath="/" Visible="false" />
     </ItemGroup>
 
