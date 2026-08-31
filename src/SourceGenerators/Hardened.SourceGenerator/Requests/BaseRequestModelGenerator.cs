@@ -33,7 +33,7 @@ public abstract class BaseRequestModelGenerator {
             response.ThrowsDiagnostic = string.Join(",", unresolved);
         }
 
-        return Compose(
+        var model = Compose(
             nameModel,
             controllerType,
             methodName,
@@ -52,6 +52,12 @@ public abstract class BaseRequestModelGenerator {
             // leaves the success to the return type.
             response.UnionCases != null || thrown.Count == 0,
             BodySchema(context, methodDeclaration, parameters));
+
+        // After Compose, because it is a fact about the handler rather than an input to
+        // assembling it: what the attributes declare for the published document.
+        SecurityDeclarationSelector.Apply(context, methodDeclaration, model, cancellationToken);
+
+        return model;
     }
 
     /// <summary>

@@ -52,6 +52,14 @@ public class OpenApiRoundTripTests {
 
         public enum Priority { Standard, Express, NextDay }
 
+        [Hardened.Requests.Abstract.Authorization.HttpAuthenticationScheme("bearer", BearerFormat = "JWT")]
+        public sealed class BearerAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
+
+        [Hardened.Requests.Abstract.Authorization.OAuth2AuthenticationScheme(
+            Hardened.Requests.Abstract.Authorization.OAuth2Flow.ClientCredentials,
+            TokenUrl = "https://id.example/token")]
+        public sealed class OrdersOAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
+
         public class Order {
             [StringLength(3, 12)]
             [Pattern("^[A-Z0-9-]+$")]
@@ -93,10 +101,13 @@ public class OpenApiRoundTripTests {
                 [FromQueryString] int limit = 20) => new();
 
             [Post("/")]
+            [Hardened.Requests.Runtime.Authorization.Authorize<OrdersOAuth>]
+            [Hardened.Requests.Runtime.Authorization.AuthorizeGrants("orders:write")]
             public OrderSummary Create(Order order) => new();
 
             [Obsolete("Cancel the order instead.")]
             [Delete("/{id}")]
+            [Hardened.Requests.Runtime.Authorization.Authorize<BearerAuth>]
             public void Delete(string id) { }
 
             /// <summary>Every scalar a value parsed from text can be declared as.</summary>
@@ -574,6 +585,38 @@ public class OpenApiRoundTripTests {
         Assert.Equal(
             new[] { "standard", "express", "nextDay" },
             priority.Enum!.Select(value => value.GetValue<string>()));
+    }
+
+
+    /// <summary>
+    /// A scheme used is a scheme declared, read back through a real OpenAPI parser: the shape
+    /// from the type's attribute in components, the requirement on the operation, and grants as
+    /// scopes only where the scheme kind carries them.
+    /// </summary>
+    [Fact]
+    public void UsedSchemesRoundTripWithTheirRequirements() {
+        var document = RoundTrip();
+
+        var bearer = document.Components!.SecuritySchemes!["BearerAuth"];
+
+        Assert.Equal(SecuritySchemeType.Http, bearer.Type);
+        Assert.Equal("bearer", bearer.Scheme);
+        Assert.Equal("JWT", bearer.BearerFormat);
+
+        var oauth = document.Components!.SecuritySchemes!["OrdersOAuth"];
+
+        Assert.Equal(SecuritySchemeType.OAuth2, oauth.Type);
+
+        var create = Operation(document, "/orders", HttpMethod.Post);
+        var requirement = Assert.Single(create.Security!);
+        var scopes = Assert.Single(requirement.Values);
+
+        Assert.Equal("orders:write", Assert.Single(scopes));
+
+        var delete = Operation(document, "/orders/{id}", HttpMethod.Delete);
+        var bearerRequirement = Assert.Single(delete.Security!);
+
+        Assert.Empty(Assert.Single(bearerRequirement.Values));
     }
 
 }

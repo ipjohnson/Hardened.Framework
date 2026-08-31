@@ -56,7 +56,7 @@ public static class RequireAuthorizationDiagnostics {
         title: "Handler carries no authorization attribute",
         messageFormat:
         "'{0}' carries neither an authorization attribute nor [AllowAnonymous], and this application " +
-        "requires one, so the handler will refuse every request at run time. Write [Authorize<T>] or " +
+        "requires one, so the handler will refuse every request at run time. Write [Authorize<TAuth>], [Authorize<TAuth, TPolicy>] or " +
         "[AuthorizeGrants] to say what it needs, or [AllowAnonymous] to say it is public on purpose.",
         category: "Hardened.Authorization",
         defaultSeverity: DiagnosticSeverity.Warning,
