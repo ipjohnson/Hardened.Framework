@@ -1,6 +1,4 @@
-![Hardened](https://raw.githubusercontent.com/ipjohnson/Hardened.Framework/main/assets/hardened-icon-128.png)
-
-# Hardened.Framework
+# ![Hardened](https://raw.githubusercontent.com/ipjohnson/Hardened.Framework/main/assets/hardened-mark-32.png) Hardened.Framework
 
 A compile-time, source-generated .NET framework for web APIs and serverless functions. The
 dependency injection, routing, parameter binding, configuration and request filters are written by
@@ -17,17 +15,21 @@ Full documentation: **[ipjohnson.github.io/Hardened.Docs](https://ipjohnson.gith
 
 ```bash
 dotnet new install Hardened.Templates
-dotnet new hardened-web -n Greeter
-cd Greeter
-dotnet run --project src/Greeter.Host
+dotnet new hardened-web -n Todos
+cd Todos
+dotnet run --project src/Todos.Host
 ```
 
-That is a working API with tests, on <http://localhost:5080>, with a reference page at `/docs`.
+That is a working todo API with tests, on <http://localhost:5080>, with a reference page at
+`/docs`.
 
 ```console
-$ curl localhost:5080/greeting/world
-{"message":"Hello, world!"}
+$ curl localhost:5080/todos
+[{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
 ```
+
+Four routes. `GET /todos` has one answer. `GET /todos/{id}`, `POST /todos` and
+`DELETE /todos/{id}` each declare more than one. Every example below is from that application.
 
 Start from a template rather than from bare packages. The runtime packages carry no analyzers, so a
 project that references only them compiles to an application that answers 404 to everything. The
@@ -36,7 +38,7 @@ can be swapped without touching the code.
 
 | Template | What you get |
 |---|---|
-| `hardened-web` | An implementation library, a host, and tests. `--host kestrel\|aspnet\|aws-lambda`, `--contract code\|openapi\|smithy` |
+| `hardened-web` | The todo API above: an implementation library, a host, and tests. `--host kestrel\|aspnet\|aws-lambda`, `--contract code\|openapi\|smithy`, `--response-model standard\|response\|union` |
 | `hardened-function` | A serverless function and tests, on AWS Lambda today. `--trigger invoke\|sqs` |
 | `hardened-library` | A reusable module an application picks up with one attribute |
 
@@ -55,44 +57,54 @@ The C# is the contract. A route is an attribute on a method of a plain class: no
 interface, no registration. The OpenAPI document is generated *from* your handlers.
 
 ```csharp
-[BasePath("/greeting")]
-public partial class GreeterLibrary;      // the module
+[HardenedModule]
+[HardenedWebModule]
+[BasePath("/todos")]               // this assembly's URL space
+public partial class TodosLibrary;
 
-public class GreetingController {
-    [Get("/{name}")]
-    public Greeting Hello(string name) => new($"Hello, {name}!");
+public class TodoController {
+    [Get("/")]
+    public IReadOnlyList<Todo> All(ITodoStore store) => store.All();
 }
 ```
+
+Services arrive as method parameters, alongside the route and body values. Anything the container
+knows about can be asked for that way, and nothing has to be stored on the class. A parameter typed
+as a concrete class is bound from the request body instead.
 
 The application names its runtime and the libraries it composes, and that is the whole bootstrap:
 
 ```csharp
 [HardenedModule]
 [KestrelRuntime]          // or [AspNetCoreRuntime], or [LambdaWebModule] from Hardened.Amz
-[GreeterLibrary]
+[TodosLibrary]
 public partial class Application;
 ```
 
 ### OpenAPI-first
 
-An OpenAPI document is the contract. Add it to the project as an `AdditionalFiles` item and the
+An OpenAPI document is the contract. Add it to the project as a `HardenedOpenApiSpec` item and the
 build generates the models, a service interface per tag, the routes and the validation its
 constraints describe.
 
 ```yaml
-# contracts/greeting.yaml
+# contracts/todos.yaml
 paths:
-  /greeting/{name}:
+  /todos/{id}:
     get:
-      tags: [Greeting]
-      operationId: hello
+      tags: [Todos]
+      operationId: getTodo
       parameters:
-        - { name: name, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
       responses:
         '200':
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Greeting' }
+              schema: { $ref: '#/components/schemas/Todo' }
+        '404':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
 ```
 
 You implement the interface it wrote. `[Handler]` is the whole wiring; the verb and the path came
@@ -100,11 +112,19 @@ from the document, so neither is restated in C#.
 
 ```csharp
 [Handler]
-public class GreetingService : IGreetingService {
-    public Task<Greeting> Hello(string name) =>
-        Task.FromResult(new Greeting($"Hello, {name}!"));
+public class TodoService : ITodosService {
+    private readonly ITodoStore _store;
+
+    public TodoService(ITodoStore store) => _store = store;
+
+    // The ? is generated from the declared 404: returning null answers it, with the body the
+    // document names. Without a declared 404 there is no ?, and the compiler says so.
+    public Task<Todo?> GetTodo(int id) => Task.FromResult(_store.Find(id));
 }
 ```
+
+`Todo`, `Problem` and `ITodosService` are all written by the build, and `minimum: 1` becomes a
+validation filter in front of the handler.
 
 There are no route attributes anywhere in the project. Add an operation to the contract and the
 build writes the model, the route and the validation, then stops compiling until your service
@@ -116,47 +136,49 @@ implements the new method. See
 The same generated output from a [Smithy](https://smithy.io) model instead of an OpenAPI document.
 
 ```smithy
-service Greeter {
+service Todos {
     version: "2024-01-01"
-    operations: [Hello]
+    operations: [GetTodo]
 }
 
-@http(method: "GET", uri: "/greeting/{name}")
+@error("client")
+@httpError(404)
+structure TodoNotFound {
+    @required
+    message: String
+}
+
+@http(method: "GET", uri: "/todos/{id}", code: 200)
 @readonly
-operation Hello {
+operation GetTodo {
     input := {
         @httpLabel
         @required
-        name: String
+        @range(min: 1)
+        id: Integer
     }
 
-    output := {
-        @required
-        message: String
-    }
+    output: Todo
+
+    errors: [TodoNotFound]
 }
 ```
 
-The implementation side is identical: implement the generated interface, mark it `[Handler]`.
+The implementation side is identical. `ITodosService`, `Todo` and the `TodoNotFound` body come
+from the model exactly as they came from the document above. `TodoService` is the same class
+either way, which is what lets one template generate both.
 
-```csharp
-[Handler]
-public class GreeterService : IGreeterService {
-    public Task<HelloOutput> Hello(string name) =>
-        Task.FromResult(new HelloOutput($"Hello, {name}!"));
-}
-```
-
-Constraint traits like `@required` and `@length` become validation filters in front of the handler.
+Constraint traits like `@required` and `@range` become validation filters in front of the handler.
 Needs the Smithy CLI on `PATH`; the build names the version it expects if yours differs. See
 [generating from Smithy](https://ipjohnson.github.io/Hardened.Docs/guide/smithy).
 
 ### Whichever you choose
 
 The application serves its OpenAPI document at `/openapi.json` and a reference page at `/docs`.
-Code-first, the document is generated from the routing table; contract-first, it is your contract
-embedded verbatim. Hardened does not generate clients — the document is the deliverable, and Kiota
-or NSwag pointed at it does the rest. See
+Code-first, the document is generated from the routing table. Contract-first, it is generated from
+your contract, and an OpenAPI project can serve the source file itself at a second URL, so a client
+can read what the build understood or what you wrote. Hardened does not generate clients. The
+document is the deliverable, and Kiota or NSwag pointed at it does the rest. See
 [the OpenAPI document](https://ipjohnson.github.io/Hardened.Docs/guide/openapi-document).
 
 ## Three return models
@@ -176,7 +198,7 @@ Nothing in the signature says the route can answer a 404, so nothing checks that
 the document describes only the 200.
 
 ```csharp
-[Get("/todos/{id}")]
+[Get("/{id}")]
 public Todo ById(ITodoStore store, int id) {
     var todo = store.Find(id);
 
@@ -193,7 +215,7 @@ implicit conversion per case, so the handler returns payloads and never names th
 compiler knows the set and the document describes all of it.
 
 ```csharp
-[Get("/todos/{id}")]
+[Get("/{id}")]
 public Response<Todo, NotFound> ById(ITodoStore store, int id) {
     var todo = store.Find(id);
 
@@ -211,19 +233,24 @@ pattern-match on the result. The handler body is identical to the `Response` ver
 ```csharp
 public union TodoResult(Todo, NotFound);
 
-[Get("/todos/{id}")]
+[Get("/{id}")]
 public TodoResult ById(ITodoStore store, int id) { /* same body */ }
 ```
 
 Unions need `net11.0` and `<LangVersion>preview</LangVersion>`, which rules out AWS Lambda's
 `net8.0` managed runtime today. Hardened matches `Response` and `union` structurally, so moving
-between them rewrites no handler. Cases like `NotFound`, `Created<T>` and `RateLimited` are built-in
-records that carry their status; each has a `<T>` form for your own error body.
+between them rewrites no handler. Cases like `NotFound`, `Conflict`, `NoContent` and `Created<T>`
+are built-in records that carry their status, and most have a `<T>` form that takes your own body
+in place of the default one.
 
 Code-first, the return type alone decides. Contract-first, the statuses come from the contract and
 `<HardenedResponseModel>Standard|Response|Union</HardenedResponseModel>` decides the generated
 interface's shape. Declared 404s as nullable returns, and operations with two success statuses, are
 in [declared responses](https://ipjohnson.github.io/Hardened.Docs/guide/responses).
+
+`--response-model standard|response|union` on the template generates the todo API in whichever of
+the three you pick, so the difference between them is something to read rather than to take on
+trust.
 
 ## Filters
 
@@ -286,7 +313,7 @@ Two assembly attributes are the whole wiring: the harness, and the module under 
 
 ```csharp
 [assembly: WebTesting]
-[assembly: HardenedTestEntryPoint(typeof(TodoLibrary))]
+[assembly: HardenedTestEntryPoint(typeof(TodosLibrary))]
 
 public class TodoTests {
     [HardenedTest]

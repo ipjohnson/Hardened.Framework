@@ -35,8 +35,11 @@
       a per-package readme is a second place for the story to drift out of date.
 
       Note that nuget.org renders the readme through Markdig with inline HTML disabled, so raw
-      HTML in README.md is displayed as escaped text rather than rendered. That is why the
-      title carries a Markdown image and not the theme-aware <picture> element GitHub supports.
+      HTML in README.md is displayed as escaped text rather than rendered. That is why the title
+      carries a Markdown image and not the theme-aware <picture> element GitHub supports, and why
+      the image it names is assets/hardened-mark-32.png rather than the 128px icon: with no way to
+      set a width, the file has to be the size it should render at. It is the gunmetal tile for the
+      same reason - one image serves both themes only if it brings its own background.
     -->
     <ItemGroup>
         <None Include="$(MSBuildThisFileDirectory)../assets/hardened-icon-128.png"
