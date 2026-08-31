@@ -136,7 +136,7 @@ Both repositories release on the same version line, from a `v*` tag:
 | Hardened.Framework | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
 | Hardened.Amz | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
 
-The current line is **`0.15.0-rc1000`**. Releases go to nuget.org; the continuous feed is
+The current line is **`0.17.0-rc1000`**. Releases go to nuget.org; the continuous feed is
 [GitHub Packages](https://nuget.pkg.github.com/ipjohnson/index.json). Under one line, `preview`
 sorts below `rc`, so a preview never shadows the release it precedes.
 

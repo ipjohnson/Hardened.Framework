@@ -22,7 +22,7 @@ Reference both packages:
 ```xml
 <ItemGroup>
     <PackageReference Include="RazorBlade" Version="1.0.0" />
-    <PackageReference Include="Hardened.Templates.RazorBlade" Version="0.15.0-rc1000" />
+    <PackageReference Include="Hardened.Templates.RazorBlade" Version="0.17.0-rc1000" />
 </ItemGroup>
 ```
 
