@@ -24,8 +24,8 @@ That is a working todo API with tests, on <http://localhost:5080>, with a refere
 `/docs`.
 
 ```console
-$ curl localhost:5080/todos
-[{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
+$ curl localhost:5080/todos/1
+{"id":1,"title":"Read the generated code","done":true}
 ```
 
 Four routes. `GET /todos` has one answer. `GET /todos/{id}`, `POST /todos` and
@@ -59,18 +59,23 @@ interface, no registration. The OpenAPI document is generated *from* your handle
 ```csharp
 [HardenedModule]
 [HardenedWebModule]
-[BasePath("/todos")]               // this assembly's URL space
+[BasePath("/todos")]               // every route below is relative to this
 public partial class TodosLibrary;
 
 public class TodoController {
-    [Get("/")]
-    public IReadOnlyList<Todo> All(ITodoStore store) => store.All();
+    [Get("/{id}")]
+    public Todo ById(ITodoStore store, int id) =>
+        store.Find(id) ?? throw new NotFound("todo", $"No todo has id {id}.").AsException();
 }
 ```
 
-Services arrive as method parameters, alongside the route and body values. Anything the container
-knows about can be asked for that way, and nothing has to be stored on the class. A parameter typed
-as a concrete class is bound from the request body instead.
+That is the `GET /todos/1` from the quickstart. Services arrive as method parameters, alongside
+the route and body values, so anything the container knows about can be asked for that way and
+nothing has to be stored on the class. A parameter typed as a concrete class is bound from the
+request body instead.
+
+The 404 is thrown here because the return type names only the success case. Putting it in the
+signature instead is what the [three return models](#three-return-models) below are about.
 
 The application names its runtime and the libraries it composes, and that is the whole bootstrap:
 
