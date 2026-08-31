@@ -300,7 +300,7 @@
 
         <WriteLinesToFile
             File="$(HardenedSmithyModelDir)filters.stamp"
-            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedSmithyServiceShapeId);$(HardenedResponseModel);@(_HardenedSmithyTaskIdentity->'%(FullPath)|%(ModifiedTime)')"
+            Lines="@(HardenedSmithyAst->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)|%(SourceUrl)');$(HardenedSmithyServiceShapeId);$(HardenedResponseModel);@(_HardenedSmithyTaskIdentity->'%(FullPath)|%(ModifiedTime)')"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>

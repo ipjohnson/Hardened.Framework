@@ -50,7 +50,12 @@ internal static class SpecModelSerializer {
     /// something to leave to chance.
     /// </para>
     /// </remarks>
-    private const string Header = "#hardened-openapi-model 4";
+    /// <remarks>
+    /// 5 adds the document identity - <c>Title</c>, <c>Version</c>, <c>InfoDescription</c> on the
+    /// spec record - the <c>secscheme</c> records carrying declared security schemes, and each
+    /// operation's <c>SecurityRequirements</c>. Bumped for the new record tag, same reasoning as 4.
+    /// </remarks>
+    private const string Header = "#hardened-openapi-model 5";
 
     private const char FieldSeparator = '\t';
 
@@ -67,7 +72,17 @@ internal static class SpecModelSerializer {
         spec.Add("SourceUrl", model.SourceUrl);
         spec.Add("UiUrl", model.UiUrl);
         spec.Add("UiEnvironments", model.UiEnvironments);
+        spec.Add("Title", model.Title);
+        spec.Add("Version", model.Version);
+        spec.Add("InfoDescription", model.InfoDescription);
         spec.WriteTo(builder);
+
+        foreach (var scheme in model.SecuritySchemes) {
+            var record = new Record("secscheme");
+            record.Add("Name", scheme.Name);
+            record.Add("Json", scheme.Json);
+            record.WriteTo(builder);
+        }
 
         foreach (var schema in model.Schemas) {
             WriteSchema(builder, schema);
@@ -135,6 +150,16 @@ internal static class SpecModelSerializer {
                     model.SourceUrl = record.String("SourceUrl") ?? "";
                     model.UiUrl = record.String("UiUrl") ?? "";
                     model.UiEnvironments = record.String("UiEnvironments") ?? "";
+                    model.Title = record.String("Title");
+                    model.Version = record.String("Version");
+                    model.InfoDescription = record.String("InfoDescription");
+                    break;
+
+                case "secscheme":
+                    model.SecuritySchemes.Add(new SecuritySchemeModel {
+                        Name = record.String("Name") ?? "",
+                        Json = record.String("Json") ?? ""
+                    });
                     break;
 
                 case "schema":
@@ -521,6 +546,7 @@ internal static class SpecModelSerializer {
         record.Add("Summary", operation.Summary);
         record.Add("Description", operation.Description);
         record.Add("IsDeprecated", operation.IsDeprecated);
+        record.Add("SecurityRequirements", operation.SecurityRequirements);
         record.Add("RequestBodyContentType", operation.RequestBodyContentType);
         record.Add("RequestBodyRef", operation.RequestBodyRef);
         record.Add("RequestBodyType", operation.RequestBodyType);
@@ -616,6 +642,7 @@ internal static class SpecModelSerializer {
         Summary = record.String("Summary"),
         Description = record.String("Description"),
         IsDeprecated = record.Bool("IsDeprecated"),
+        SecurityRequirements = record.Strings("SecurityRequirements") ?? new List<string>(),
         RequestBodyContentType = record.String("RequestBodyContentType"),
         RequestBodyRef = record.String("RequestBodyRef"),
         RequestBodyType = record.String("RequestBodyType"),

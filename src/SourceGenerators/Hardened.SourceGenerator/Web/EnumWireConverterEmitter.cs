@@ -42,30 +42,8 @@ internal static class EnumWireConverterEmitter {
     /// vocabulary - it is a property of the type, not of the route - and emitting it twice would
     /// not compile.
     /// </remarks>
-    public static IReadOnlyList<EnumVocabulary> Collect(IReadOnlyList<RequestHandlerModel> handlers) {
-        var found = new SortedDictionary<string, EnumVocabulary>(System.StringComparer.Ordinal);
-
-        foreach (var handler in handlers) {
-            Add(found, handler.RequestSchema);
-            Add(found, handler.ResponseSchema);
-
-            foreach (var response in handler.ResponseSchemas) {
-                Add(found, response.Schema);
-            }
-        }
-
-        return found.Values.ToList();
-    }
-
-    private static void Add(IDictionary<string, EnumVocabulary> found, HandlerSchema? schema) {
-        if (schema == null) {
-            return;
-        }
-
-        foreach (var vocabulary in schema.Enums) {
-            found[vocabulary.QualifiedName] = vocabulary;
-        }
-    }
+    public static IReadOnlyList<EnumVocabulary> Collect(IReadOnlyList<RequestHandlerModel> handlers) =>
+        EnumVocabularies.Collect(handlers);
 
     public static void Emit(ClassDefinition appClass, IReadOnlyList<EnumVocabulary> enums) {
         if (enums.Count == 0) {

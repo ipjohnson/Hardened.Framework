@@ -57,7 +57,12 @@ public class RequestHandlerModel {
             Tag = Tag,
             Summary = Summary,
             Description = Description,
-            IsDeprecated = IsDeprecated
+            IsDeprecated = IsDeprecated,
+            // Every settable member, because this copy is what enrichment hands downstream - a
+            // field left out here is a field the document loses only when the application has
+            // [Handler] filters, which is the worst kind of sometimes.
+            SecurityRequirements = SecurityRequirements,
+            HasGeneratedValidation = HasGeneratedValidation
         };
 
     public RequestHandlerNameModel Name { get; }
@@ -177,6 +182,28 @@ public class RequestHandlerModel {
     /// </summary>
     public bool IsDeprecated { get; set; }
 
+    /// <summary>
+    /// Whether a generated validator answers 400 before this handler runs - a parameter
+    /// interface, or constraints on the bound body.
+    /// </summary>
+    /// <remarks>
+    /// For the published document, which declares the validation response only where one can
+    /// actually happen; declaring it everywhere would be the widening the contract checks exist
+    /// to prevent.
+    /// </remarks>
+    public bool HasGeneratedValidation { get; set; }
+
+    /// <summary>
+    /// The contract's declared security, one OpenAPI requirement object of JSON per entry.
+    /// </summary>
+    /// <remarks>
+    /// For the published document; enforcement travels as authorization filters. Empty for a
+    /// handler whose contract declared none, and always empty for code-first, which has no way to
+    /// declare a scheme yet.
+    /// </remarks>
+    public IReadOnlyList<string> SecurityRequirements { get; set; } =
+        System.Array.Empty<string>();
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;
@@ -249,11 +276,27 @@ public class RequestHandlerModel {
             return false;
         }
 
+        if (SecurityRequirements.Count != requestHandlerModel.SecurityRequirements.Count) {
+            return false;
+        }
+
+        for (var i = 0; i < SecurityRequirements.Count; i++) {
+            if (!string.Equals(
+                    SecurityRequirements[i], requestHandlerModel.SecurityRequirements[i],
+                    StringComparison.Ordinal)) {
+                return false;
+            }
+        }
+
         if (!string.Equals(Description, requestHandlerModel.Description, StringComparison.Ordinal)) {
             return false;
         }
 
         if (IsDeprecated != requestHandlerModel.IsDeprecated) {
+            return false;
+        }
+
+        if (HasGeneratedValidation != requestHandlerModel.HasGeneratedValidation) {
             return false;
         }
 

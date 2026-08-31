@@ -187,6 +187,7 @@ internal static class SpecDiagnostics {
         FindUnresolvableChoices(model, problems);
         FindMixedEnums(model, problems);
         FindUnmappedKeywords(model, problems);
+        FindCollidingErrorStatuses(model, problems);
 
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
@@ -229,6 +230,38 @@ internal static class SpecDiagnostics {
     /// only surfaced as CS0101 in generated code.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Two declared errors sharing one status on one operation.
+    /// </summary>
+    /// <remarks>
+    /// The case type is named for the operation and the status, so two errors at 409 emit the
+    /// same record twice - six compiler errors in generated code, none of which names the model.
+    /// A valid model can say this (Smithy binds a status to the error shape, so two shapes can
+    /// carry the same code), which is exactly why it has to be reported here: smithy validate
+    /// accepts it and the compiler garbles it.
+    /// </remarks>
+    private static void FindCollidingErrorStatuses(ServiceSpecModel model, List<Problem> problems) {
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                var seen = new Dictionary<int, string?>();
+
+                foreach (var error in operation.ErrorResponses) {
+                    if (seen.TryGetValue(error.StatusCode, out var first)) {
+                        problems.Add(new Problem(
+                            "HSPEC010",
+                            $"operation '{operation.OperationId}' declares two error responses " +
+                            $"at status {error.StatusCode} ('{first}' and '{error.Ref}'). One " +
+                            "status has one case type, so this generates the same record twice. " +
+                            "Give the errors distinct statuses, or merge them into one shape " +
+                            "carrying both bodies."));
+                    } else {
+                        seen[error.StatusCode] = error.Ref;
+                    }
+                }
+            }
+        }
+    }
+
     private static void FindDuplicateSchemaNames(ServiceSpecModel model, List<Problem> problems) {
         var seen = new Dictionary<string, string>();
 

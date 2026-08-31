@@ -26,20 +26,16 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// reflected in the schema, which is what happened to every constraint before this existed.
 /// </para>
 /// <para>
-/// <b>Written against OpenAPI 3.0, which the document no longer always declares.</b> 3.0 spells an
-/// exclusive bound as a boolean beside <c>minimum</c>; from 3.1, JSON Schema 2020-12 spells it as
-/// the number itself, with no <c>minimum</c>. Only the 3.0 form is emitted here, so an application
-/// setting <c>&lt;HardenedOpenApiVersion&gt;</c> to 3.1.0 or 3.2.0 <em>and</em> using an exclusive
-/// bound gets a document whose header and whose bound disagree.
-/// </para>
-/// <para>
-/// Not fixed with the version selection it came in with, because of where this runs. A schema is
-/// built inside the syntax transform - <c>BaseRequestModelGenerator</c> calls
-/// <c>JsonSchemaWriter.Write</c> while producing the handler model - and the MSBuild property is
-/// only combined at the output stage, so the version genuinely is not known here. Threading it in
-/// means combining the options provider into the model provider, which rebuilds every handler model
-/// whenever any property changes. That is the right change and it is not a one-line one; see
-/// STREAMING-PLAN.md item 10.
+/// <b>Exclusive bounds are written in the JSON Schema 2020-12 spelling</b> - the bound is the
+/// number, <c>"exclusiveMinimum": 0</c>, with no <c>minimum</c> beside it - which is what 3.1 and
+/// 3.2 documents require. The version genuinely is not known here: a schema is built inside the
+/// syntax transform, and the MSBuild property is only combined at the output stage, so one
+/// spelling has to serve every document (threading it in means combining the options provider
+/// into the model provider; see STREAMING-PLAN.md item 10). 2020-12 is the right one to pick
+/// because it is the default document's, and because the boolean form in a 3.2 document was a
+/// wrong document every strict reader rejected. An application opting back to 3.0 and declaring
+/// an exclusive bound gets the newer spelling in the older document, which is the narrower
+/// disagreement.
 /// </para>
 /// </remarks>
 internal static class SchemaConstraintWriter {
@@ -148,11 +144,32 @@ internal static class SchemaConstraintWriter {
             }
         }
 
-        Add(facets, "minimum", min);
-        Add(facets, "maximum", max);
+        // Bounds are numbers even when the attribute had to spell them as strings - Range takes
+        // object?, and C# forbids a decimal attribute argument, so [Range("0.5", "30")] is the
+        // only way to state a decimal bound. Publishing the string spelling gave the document
+        // "minimum": "0", which no schema reader treats as a bound. An exclusive flag turns the
+        // facet into the 2020-12 spelling, where the bound itself is exclusive.
+        Add(facets, Named(attribute, "ExclusiveMin") ? "exclusiveMinimum" : "minimum", AsNumber(min));
+        Add(facets, Named(attribute, "ExclusiveMax") ? "exclusiveMaximum" : "maximum", AsNumber(max));
+    }
 
-        Flag(attribute, facets, "ExclusiveMin", "exclusiveMinimum");
-        Flag(attribute, facets, "ExclusiveMax", "exclusiveMaximum");
+    private static bool Named(AttributeData attribute, string argument) =>
+        attribute.NamedArguments.Any(named => named.Key == argument && named.Value.Value is true);
+
+    /// <summary>
+    /// A bound as a JSON number where it parses as one, unchanged otherwise - a date range's
+    /// bounds are legitimately strings and stay so.
+    /// </summary>
+    private static string? AsNumber(string? literal) {
+        if (literal is null || literal.Length < 2 || literal[0] != '"') {
+            return literal;
+        }
+
+        var inner = literal.Substring(1, literal.Length - 2);
+
+        return decimal.TryParse(inner, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+            ? number.ToString(CultureInfo.InvariantCulture)
+            : literal;
     }
 
     /// <summary>
@@ -224,15 +241,6 @@ internal static class SchemaConstraintWriter {
     private static void Single(AttributeData attribute, List<string> facets, string facet) {
         if (attribute.ConstructorArguments.Length == 1) {
             Add(facets, facet, Literal(attribute.ConstructorArguments[0]));
-        }
-    }
-
-    private static void Flag(
-        AttributeData attribute, List<string> facets, string argument, string facet) {
-        foreach (var named in attribute.NamedArguments) {
-            if (named.Key == argument && named.Value.Value is true) {
-                facets.Add("\"" + facet + "\":true");
-            }
         }
     }
 

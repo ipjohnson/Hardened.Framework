@@ -89,6 +89,8 @@ internal static class RequestModelBuilder {
                     RequestSchema = model.RequestSchema,
                     ResponseSchemas = model.ResponseSchemas,
                     DeclaredResponsesAreComplete = model.DeclaredResponsesAreComplete,
+                    SecurityRequirements = model.SecurityRequirements,
+                    HasGeneratedValidation = model.HasGeneratedValidation,
                 });
             } else {
                 result.Add(model);

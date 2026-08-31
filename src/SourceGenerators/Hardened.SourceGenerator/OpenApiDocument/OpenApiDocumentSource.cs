@@ -42,14 +42,14 @@ internal static class OpenApiDocumentSource {
 
     public static string Write(
         EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath,
-        OpenApiVersion version = OpenApiVersionFacts.Default) {
+        OpenApiVersion version = OpenApiVersionFacts.Default, DocumentIdentity? identity = null) {
         var file = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
         var entryPoint = file.AddClass(appModel.EntryPointType.Name);
 
         entryPoint.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
 
-        var document = OpenApiDocumentGenerator.Write(appModel, handlers, basePath, version);
+        var document = OpenApiDocumentGenerator.Write(appModel, handlers, basePath, version, identity);
 
         var property = entryPoint.AddProperty(ReadOnlySpanOfByte, DocumentPropertyName);
 

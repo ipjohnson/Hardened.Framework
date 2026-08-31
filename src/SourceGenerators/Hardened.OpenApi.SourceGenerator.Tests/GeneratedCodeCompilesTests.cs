@@ -858,4 +858,122 @@ public class GeneratedCodeCompilesTests {
         return string.Join("\n", lines);
     }
 
+
+    #region response sets over the shapes that did not generate
+
+    /// <summary>
+    /// An array success beside a declared error. The union's constructors emitted
+    /// <c>System.Collections.Generic.List</c> with the type argument dropped - CS0305 in
+    /// generated code - so declaring the 404 forced deleting it from the contract to get a build.
+    /// </summary>
+    private const string ArraySuccessWithError =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets:
+            get:
+              tags: [Pet]
+              operationId: listPets
+              responses:
+                '200':
+                  description: Every pet.
+                  content:
+                    application/json:
+                      schema:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                '404':
+                  description: No pets here.
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Problem'
+        components:
+          schemas:
+            Pet:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+            Problem:
+              type: object
+              required: [detail]
+              properties:
+                detail: { type: string }
+        """;
+
+    [Fact]
+    public void AnArraySuccessBesideAnErrorCompiles() {
+        var result = OpenApiGenerator.Run(
+            ArraySuccessWithError,
+            buildProperties: new Dictionary<string, string> { ["HardenedResponseModel"] = "Response" });
+
+        result.AssertNoErrors();
+
+        var generated = result.SourceContaining("petstore.g.cs");
+        var line = generated.Split('\n').FirstOrDefault(l => l.Contains("public ListPetsResponse("));
+
+        Assert.True(line != null, "no ListPetsResponse constructor. Response-ish lines: " +
+            string.Join(" | ", generated.Split('\n')
+                .Where(l => l.Contains("struct") || l.Contains("NotFound") || l.Contains("ListPets"))
+                .Take(8)));
+        Assert.Contains("List<", line);
+        Assert.Contains("Pet>", line);
+    }
+
+    /// <summary>
+    /// A success with no <c>$ref</c> - a <c>text/plain</c> string - beside a declared error. The
+    /// case type emitted with nowhere to put the body, compiled, and could never carry the label
+    /// it existed to answer with.
+    /// </summary>
+    private const string ScalarSuccessWithError =
+        """
+        openapi: "3.0.0"
+        info: { title: Labels, version: "1.0" }
+        paths:
+          /labels/{id}:
+            get:
+              tags: [Label]
+              operationId: getLabel
+              parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema: { type: string }
+              responses:
+                '200':
+                  description: The label block.
+                  content:
+                    text/plain:
+                      schema: { type: string }
+                '404':
+                  description: No label.
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Problem'
+        components:
+          schemas:
+            Problem:
+              type: object
+              required: [detail]
+              properties:
+                detail: { type: string }
+        """;
+
+    [Fact]
+    public void AScalarSuccessBesideAnErrorCarriesItsBody() {
+        var result = OpenApiGenerator.Run(
+            ScalarSuccessWithError,
+            buildProperties: new Dictionary<string, string> { ["HardenedResponseModel"] = "Response" });
+
+        result.AssertNoErrors();
+
+        // The success case is a wrapper whose Body is the scalar the contract typed.
+        Assert.Contains("GetLabelOk(string Body", result.SourceContaining("petstore.g.cs"));
+    }
+
+    #endregion
 }

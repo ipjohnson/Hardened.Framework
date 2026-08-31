@@ -32,6 +32,23 @@ internal static class SpecSchemaWriter {
     /// <summary>
     /// The schema for one named component, plus every component it reaches.
     /// </summary>
+    /// <summary>
+    /// An inline scalar schema, for a success the contract types without naming - a
+    /// <c>text/plain</c> string, a bare number. It carried no schema at all, so the document
+    /// published the status with no <c>content</c> and a generated client read nothing.
+    /// </summary>
+    public static HandlerSchema? ForScalar(string? type, string? format) {
+        if (string.IsNullOrEmpty(type)) {
+            return null;
+        }
+
+        var schema = string.IsNullOrEmpty(format)
+            ? "{\"type\":\"" + type + "\"}"
+            : "{\"type\":\"" + type + "\",\"format\":\"" + format + "\"}";
+
+        return new HandlerSchema(schema, System.Array.Empty<SchemaComponent>());
+    }
+
     public static HandlerSchema? ForRef(string? schemaRef, IReadOnlyList<SchemaModel> schemas) {
         if (schemaRef == null) {
             return null;

@@ -196,7 +196,7 @@
 
         <WriteLinesToFile
             File="$(HardenedOpenApiModelDir)filters.stamp"
-            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)');$(HardenedResponseModel);@(_HardenedOpenApiTaskIdentity->'%(FullPath)|%(ModifiedTime)')"
+            Lines="@(HardenedOpenApiSpec->'%(Identity)|%(Slice)|%(IncludePaths)|%(ExcludePaths)|%(Tags)|%(PublishUrl)|%(UiUrl)|%(UiEnvironments)|%(EmbedDocument)|%(SourceUrl)');$(HardenedResponseModel);@(_HardenedOpenApiTaskIdentity->'%(FullPath)|%(ModifiedTime)')"
             Overwrite="true"
             WriteOnlyWhenDifferent="true"/>
     </Target>

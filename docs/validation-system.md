@@ -1,5 +1,12 @@
 # Validation System Design
 
+> **Status.** Parts of this document describe design that is not built.
+> `ICustomRequestValidator<TRequest>` exists nowhere in the source: declared constraints are
+> enforced by generated filters, and the response they produce is shaped by replacing
+> `IExceptionToModelConverter` (register an ordinary `[SingletonService]` implementation; the
+> stock converter registers with `RegistrationType.Try` and yields). Business-logic validation
+> beyond the constraint vocabulary is handler code today.
+
 ## Overview
 
 The Hardened.Framework validation system enforces OpenAPI-defined constraints at runtime. It runs as a filter in the request pipeline after parameter deserialization but before user filters and endpoint invocation.

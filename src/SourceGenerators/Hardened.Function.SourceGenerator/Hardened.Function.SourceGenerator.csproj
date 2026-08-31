@@ -85,7 +85,12 @@
     <Import Project="../ValidationModulesImpl.props"/>
 
     <PropertyGroup>
-        <HardenedGenerationScope>Minimal</HardenedGenerationScope>
+        <!--
+            Model rather than Minimal: this project compiles the spine's Models/** and the
+            document writer, and RequestParameterInformation now carries the contract's
+            ParameterModel for that writer to read.
+        -->
+        <HardenedGenerationScope>Model</HardenedGenerationScope>
     </PropertyGroup>
 
     <Import Project="../Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>

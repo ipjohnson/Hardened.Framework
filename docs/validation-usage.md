@@ -1,5 +1,12 @@
 # Validation System Usage Guide
 
+> **Status.** Parts of this document describe design that is not built.
+> `ICustomRequestValidator<TRequest>` exists nowhere in the source: declared constraints are
+> enforced by generated filters, and the response they produce is shaped by replacing
+> `IExceptionToModelConverter` (register an ordinary `[SingletonService]` implementation; the
+> stock converter registers with `RegistrationType.Try` and yields). Business-logic validation
+> beyond the constraint vocabulary is handler code today.
+
 ## OpenAPI Constraint Mapping
 
 Add standard OpenAPI validation constraints to your spec. The source generator automatically creates validation filters.

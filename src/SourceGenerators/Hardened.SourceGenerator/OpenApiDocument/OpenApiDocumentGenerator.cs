@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CSharpAuthor;
+using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
@@ -37,14 +38,30 @@ public static class OpenApiDocumentGenerator {
     /// </summary>
     public static string Write(
         EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath,
-        OpenApiVersion version = OpenApiVersionFacts.Default) {
+        OpenApiVersion version = OpenApiVersionFacts.Default, DocumentIdentity? identity = null) {
         var builder = new StringBuilder();
+
+        // Identity, in preference order: the contract's own (specification-first), an
+        // [OpenApiInfo] on the entry point (code-first), then the fallbacks every application got
+        // before either existed - the entry point's class name and "1.0.0". The fallbacks renamed
+        // an API its author had titled, which is why the first two exist.
+        var (declaredTitle, declaredVersion, declaredDescription) = InfoAttribute(appModel);
+
+        var title = identity?.Title ?? declaredTitle ?? appModel.EntryPointType.Name;
+        var infoVersion = identity?.Version ?? declaredVersion ?? "1.0.0";
+        var description = identity?.Description ?? declaredDescription;
 
         builder.Append("{\"openapi\":\"")
             .Append(OpenApiVersionFacts.VersionString(version))
             .Append("\",\"info\":{\"title\":\"")
-            .Append(JsonSchemaWriter.Escape(appModel.EntryPointType.Name))
-            .Append("\",\"version\":\"1.0.0\"}");
+            .Append(JsonSchemaWriter.Escape(title))
+            .Append("\",\"version\":\"")
+            .Append(JsonSchemaWriter.Escape(infoVersion))
+            .Append('"');
+
+        WriteText(builder, "description", description);
+
+        builder.Append('}');
 
         WriteServers(builder, appModel);
         WriteTags(builder, handlers);
@@ -53,6 +70,16 @@ public static class OpenApiDocumentGenerator {
 
         var components = new SortedDictionary<string, string>(System.StringComparer.Ordinal);
         var operationIds = OperationIds(handlers);
+
+        // The wire vocabulary of every enum the application serializes, keyed as emitted code
+        // names the type. Collected once: a parameter whose C# type is one of these is an enum
+        // the name switch below cannot recognise, and its vocabulary belongs in the document
+        // exactly as it does when the same enum sits in a body schema.
+        var enums = new Dictionary<string, EnumVocabulary>(System.StringComparer.Ordinal);
+
+        foreach (var vocabulary in EnumVocabularies.Collect(handlers)) {
+            enums[vocabulary.QualifiedName] = vocabulary;
+        }
 
         // Grouped by path, because a document keys operations under one path entry rather than
         // repeating the path per verb.
@@ -82,7 +109,7 @@ public static class OpenApiDocumentGenerator {
                     builder.Append(',');
                 }
 
-                WriteOperation(builder, handler, components, operationIds, version);
+                WriteOperation(builder, handler, components, operationIds, version, enums);
 
                 firstOperation = false;
             }
@@ -94,23 +121,50 @@ public static class OpenApiDocumentGenerator {
 
         builder.Append('}');
 
-        if (components.Count > 0) {
-            builder.Append(",\"components\":{\"schemas\":{");
+        var securitySchemes = identity?.SecuritySchemes;
 
-            var firstComponent = true;
+        if (components.Count > 0 || securitySchemes is { Count: > 0 }) {
+            builder.Append(",\"components\":{");
 
-            foreach (var component in components) {
-                if (!firstComponent) {
+            if (components.Count > 0) {
+                builder.Append("\"schemas\":{");
+
+                var firstComponent = true;
+
+                foreach (var component in components) {
+                    if (!firstComponent) {
+                        builder.Append(',');
+                    }
+
+                    builder.Append('"').Append(JsonSchemaWriter.Escape(component.Key)).Append("\":")
+                        .Append(component.Value);
+
+                    firstComponent = false;
+                }
+
+                builder.Append('}');
+            }
+
+            if (securitySchemes is { Count: > 0 }) {
+                if (components.Count > 0) {
                     builder.Append(',');
                 }
 
-                builder.Append('"').Append(JsonSchemaWriter.Escape(component.Key)).Append("\":")
-                    .Append(component.Value);
+                builder.Append("\"securitySchemes\":{");
 
-                firstComponent = false;
+                for (var i = 0; i < securitySchemes.Count; i++) {
+                    if (i > 0) {
+                        builder.Append(',');
+                    }
+
+                    builder.Append('"').Append(JsonSchemaWriter.Escape(securitySchemes[i].Name))
+                        .Append("\":").Append(securitySchemes[i].Json);
+                }
+
+                builder.Append('}');
             }
 
-            builder.Append("}}");
+            builder.Append('}');
         }
 
         return builder.Append('}').ToString();
@@ -121,7 +175,8 @@ public static class OpenApiDocumentGenerator {
         RequestHandlerModel handler,
         SortedDictionary<string, string> components,
         IReadOnlyDictionary<string, string> operationIds,
-        OpenApiVersion version) {
+        OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums) {
         builder.Append('"').Append(handler.Name.Method.ToLowerInvariant()).Append("\":{");
 
         builder.Append("\"tags\":[\"")
@@ -139,7 +194,21 @@ public static class OpenApiDocumentGenerator {
             builder.Append(",\"deprecated\":true");
         }
 
-        WriteParameters(builder, handler);
+        if (handler.SecurityRequirements.Count > 0) {
+            builder.Append(",\"security\":[");
+
+            for (var i = 0; i < handler.SecurityRequirements.Count; i++) {
+                if (i > 0) {
+                    builder.Append(',');
+                }
+
+                builder.Append(handler.SecurityRequirements[i]);
+            }
+
+            builder.Append(']');
+        }
+
+        WriteParameters(builder, handler, version, enums);
         WriteRequestBody(builder, handler, components);
         WriteResponses(builder, handler, components, version);
 
@@ -161,6 +230,37 @@ public static class OpenApiDocumentGenerator {
     /// reader treats the absent case as "the document's own location" and an empty one as an
     /// application served from nowhere.
     /// </summary>
+    /// <summary>
+    /// The <c>[OpenApiInfo("title", "version")]</c> an entry point declares, read the way
+    /// <see cref="WriteServers"/> reads <c>[Server]</c>: off the attribute list, by name prefix,
+    /// arguments as source text with their quotes trimmed.
+    /// </summary>
+    private static (string? Title, string? Version, string? Description) InfoAttribute(
+        EntryPointSelector.Model appModel) {
+        if (appModel.AttributeModels == null) {
+            return (null, null, null);
+        }
+
+        foreach (var attribute in appModel.AttributeModels) {
+            if (!attribute.TypeDefinition.Name.StartsWith("OpenApiInfo", System.StringComparison.Ordinal)) {
+                continue;
+            }
+
+            var parts = attribute.Arguments.Split(',');
+
+            var title = parts.Length > 0 ? parts[0].Trim().Trim('"') : "";
+            var infoVersion = parts.Length > 1 ? parts[1].Trim().Trim('"') : "";
+            var description = parts.Length > 2 ? parts[2].Trim().Trim('"') : "";
+
+            return (
+                title.Length > 0 ? title : null,
+                infoVersion.Length > 0 ? infoVersion : null,
+                description.Length > 0 ? description : null);
+        }
+
+        return (null, null, null);
+    }
+
     private static void WriteServers(StringBuilder builder, EntryPointSelector.Model appModel) {
         if (appModel.AttributeModels == null) {
             return;
@@ -246,7 +346,9 @@ public static class OpenApiDocumentGenerator {
         builder.Append(']');
     }
 
-    private static void WriteParameters(StringBuilder builder, RequestHandlerModel handler) {
+    private static void WriteParameters(
+        StringBuilder builder, RequestHandlerModel handler, OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums) {
         var bound = handler.RequestParameterInformationList
             .Where(p => Location(p.BindingType) != null)
             .ToList();
@@ -268,14 +370,22 @@ public static class OpenApiDocumentGenerator {
                 ? parameter.Name
                 : parameter.BindingName;
 
+            // A parameter carrying a default is one the caller may omit - the binder answers
+            // with the default rather than a 400 - so publishing it required documents a demand
+            // the service does not make. Path parameters stay required whatever they carry,
+            // because OpenAPI requires it of them and a path segment cannot be absent.
+            var required = parameter.Required &&
+                           (parameter.DefaultValue == null ||
+                            parameter.BindingType == ParameterBindType.Path);
+
             builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(name))
                 .Append("\",\"in\":\"").Append(Location(parameter.BindingType))
-                .Append("\",\"required\":").Append(parameter.Required ? "true" : "false");
+                .Append("\",\"required\":").Append(required ? "true" : "false");
 
             WriteText(builder, "description", parameter.Description);
 
             builder.Append("")
-                .Append(",\"schema\":").Append(ScalarSchema(parameter.ParameterType))
+                .Append(",\"schema\":").Append(ParameterSchema(parameter, version, enums))
                 .Append('}');
         }
 
@@ -342,6 +452,8 @@ public static class OpenApiDocumentGenerator {
             WriteDeclaredResponses(builder, handler, components);
         }
 
+        WriteValidationResponse(builder, handler, components);
+
         builder.Append('}');
     }
 
@@ -389,7 +501,7 @@ public static class OpenApiDocumentGenerator {
             .GroupBy(response => response.Status)
             .OrderBy(group => group.Key);
 
-        var contentType = ContentType(handler);
+        var successContentType = ContentType(handler);
         var first = true;
 
         foreach (var group in byStatus) {
@@ -400,6 +512,13 @@ public static class OpenApiDocumentGenerator {
             builder.Append('"').Append(group.Key).Append("\":{\"description\":\"")
                 .Append(JsonSchemaWriter.Escape(group.First().Description))
                 .Append('"');
+
+            WriteResponseHeaders(builder, group);
+
+            // The handler's media type describes its success. An error body is written by the
+            // exception path, which serializes JSON whatever the success was - publishing the
+            // error under the raw media type described a body that path cannot produce.
+            var contentType = group.Key >= 400 ? "application/json" : successContentType;
 
             var bodies = group.Where(response => response.Schema != null).ToList();
 
@@ -438,10 +557,106 @@ public static class OpenApiDocumentGenerator {
     /// <summary>
     /// The media type the operation answers with, which is JSON unless it committed to another.
     /// </summary>
+    /// <summary>
+    /// The <c>headers</c> a response declares, merged across the status's cases by wire name.
+    /// </summary>
+    /// <remarks>
+    /// The declaration only: the value is the handler's, exactly as the generated case type's
+    /// constructor divides them. Schema stays <c>string</c> for the reason
+    /// <c>ResponseHeaderModel</c> gives - a header is a string on the wire whatever it carries.
+    /// </remarks>
+    private static void WriteResponseHeaders(
+        StringBuilder builder, IEnumerable<ResponseSchemaModel> responses) {
+        var seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        var first = true;
+
+        foreach (var response in responses) {
+            foreach (var header in response.Headers) {
+                if (!seen.Add(header.Name)) {
+                    continue;
+                }
+
+                builder.Append(first ? ",\"headers\":{" : ",");
+
+                builder.Append('"').Append(JsonSchemaWriter.Escape(header.Name)).Append("\":{");
+
+                if (!string.IsNullOrEmpty(header.Description)) {
+                    builder.Append("\"description\":\"")
+                        .Append(JsonSchemaWriter.Escape(header.Description!)).Append("\",");
+                }
+
+                builder.Append("\"schema\":{\"type\":\"string\"}}");
+
+                first = false;
+            }
+        }
+
+        if (!first) {
+            builder.Append('}');
+        }
+    }
+
+    /// <summary>The schema of the framework's validation 400, written once into components.</summary>
+    private const string ValidationErrorSchema =
+        "{\"type\":\"object\"," +
+        "\"description\":\"How a request that failed validation is answered.\"," +
+        "\"required\":[\"type\",\"message\",\"errors\"]," +
+        "\"properties\":{" +
+        "\"type\":{\"type\":\"string\"}," +
+        "\"message\":{\"type\":\"string\"}," +
+        "\"errors\":{\"type\":\"array\",\"items\":{" +
+        "\"type\":\"object\"," +
+        "\"required\":[\"field\",\"code\",\"message\"]," +
+        "\"properties\":{" +
+        "\"field\":{\"type\":\"string\"}," +
+        "\"code\":{\"type\":\"string\"}," +
+        "\"message\":{\"type\":\"string\"}}}}}}";
+
+    /// <summary>
+    /// The 400 every operation with a generated validator can answer, declared rather than
+    /// implied.
+    /// </summary>
+    /// <remarks>
+    /// A constraint failure never reaches the handler - the generated filter answers 400 with
+    /// <c>RequestValidationError</c> - so the status is a fact about the operation the contract
+    /// nowhere states and the document never carried. Skipped where the operation declared its own
+    /// 400, whose description then wins.
+    /// </remarks>
+    private static void WriteValidationResponse(
+        StringBuilder builder, RequestHandlerModel handler,
+        SortedDictionary<string, string> components) {
+        if (handler.ParametersValidator == null && !handler.HasGeneratedValidation) {
+            return;
+        }
+
+        foreach (var response in handler.ResponseSchemas) {
+            if (response.Status == 400) {
+                return;
+            }
+        }
+
+        if ((handler.ResponseInformation.DefaultStatusCode ?? 200) == 400) {
+            return;
+        }
+
+        components["RequestValidationError"] = ValidationErrorSchema;
+
+        builder.Append(",\"400\":{\"description\":\"The request failed validation.\"," +
+                       "\"content\":{\"application/json\":{\"schema\":" +
+                       "{\"$ref\":\"#/components/schemas/RequestValidationError\"}}}}");
+    }
+
+    /// <summary>
+    /// The media type a success goes out as: <c>[RawResponse]</c>'s, else the contract's declared
+    /// one, else JSON. The declared type never reached here, so a <c>text/plain</c> contract
+    /// published its success under a JSON key or under nothing.
+    /// </summary>
     private static string ContentType(RequestHandlerModel handler) =>
-        string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
-            ? "application/json"
-            : handler.ResponseInformation.RawResponseContentType!;
+        !string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
+            ? handler.ResponseInformation.RawResponseContentType!
+            : !string.IsNullOrEmpty(handler.ResponseInformation.DeclaredContentType)
+                ? handler.ResponseInformation.DeclaredContentType!
+                : "application/json";
 
     /// <summary>
     /// A streamed response: the media type it is framed as, and the shape of one item.
@@ -638,6 +853,40 @@ public static class OpenApiDocumentGenerator {
     }
 
     /// <summary>
+    /// The vocabulary schema for a code-first enum parameter, or null when the type is not one.
+    /// </summary>
+    /// <remarks>
+    /// An attribute-routed application has no declaration to carry the vocabulary, but it does
+    /// have the vocabulary itself: the same collected set the wire converters are generated from.
+    /// Consulting it is what keeps a parameter's <c>enum</c> array agreeing with what the binder
+    /// accepts - the fourth of the four places <c>EnumWireNaming</c>'s remarks require to agree.
+    /// </remarks>
+    private static string? EnumSchema(
+        ITypeDefinition type, IReadOnlyDictionary<string, EnumVocabulary> enums) {
+        var unwrapped = type.Name == "Nullable" && type.TypeArguments.Count == 1
+            ? type.TypeArguments[0]
+            : type;
+
+        var qualified = "global::" + unwrapped.Namespace + "." + unwrapped.Name.TrimEnd('?');
+
+        if (!enums.TryGetValue(qualified, out var vocabulary)) {
+            return null;
+        }
+
+        var builder = new StringBuilder("{\"type\":\"string\",\"enum\":[");
+
+        for (var i = 0; i < vocabulary.Values.Count; i++) {
+            if (i > 0) {
+                builder.Append(',');
+            }
+
+            builder.Append('"').Append(JsonSchemaWriter.Escape(vocabulary.Values[i].Wire)).Append('"');
+        }
+
+        return builder.Append("]}").ToString();
+    }
+
+    /// <summary>
     /// The schema for a value that arrived as text — a path token, a query value, a header, a cookie.
     /// </summary>
     /// <remarks>
@@ -662,6 +911,162 @@ public static class OpenApiDocumentGenerator {
     /// arrive as text, so the schema is unspecific rather than wrong.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// The schema for a bound value: the contract's declaration when the handler came from one,
+    /// <see cref="ScalarSchema"/>'s reading of the C# type when it did not.
+    /// </summary>
+    /// <remarks>
+    /// The declaration wins because it is the only one of the two that knows anything. A described
+    /// parameter's wire type, format, enum vocabulary, bounds and default all survive to the
+    /// handler model now; deriving the schema from the C# type instead is how every parameter came
+    /// to be published as <c>{"type":"string"}</c> - the enum fell through the name switch, and a
+    /// nullable scalar arrives as a <c>Nullable</c> with no argument to read.
+    /// </remarks>
+    private static string ParameterSchema(
+        RequestParameterInformation parameter, OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums) {
+        var spec = parameter.SpecParameter;
+
+        if (spec == null || (string.IsNullOrEmpty(spec.Type) &&
+                             spec.EnumValues is not { Count: > 0 } &&
+                             !spec.IsArray)) {
+            return EnumSchema(parameter.ParameterType, enums) ?? ScalarSchema(parameter.ParameterType);
+        }
+
+        var builder = new StringBuilder();
+
+        builder.Append('{');
+
+        if (spec.IsArray) {
+            builder.Append("\"type\":\"array\"");
+
+            if (spec.MinItems.HasValue) {
+                builder.Append(",\"minItems\":").Append(spec.MinItems.Value);
+            }
+
+            if (spec.MaxItems.HasValue) {
+                builder.Append(",\"maxItems\":").Append(spec.MaxItems.Value);
+            }
+
+            builder.Append(",\"items\":");
+            AppendScalarFacets(
+                builder, spec.ArrayItemsType ?? "string", spec.Format, spec, version, openObject: true);
+        } else {
+            AppendScalarFacets(
+                builder,
+                string.IsNullOrEmpty(spec.Type) ? "string" : spec.Type!,
+                spec.Format, spec, version, openObject: false);
+        }
+
+        builder.Append('}');
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// The scalar half of a declared schema: type, format, enum, bounds, pattern and default.
+    /// </summary>
+    /// <remarks>
+    /// The exclusive bounds change spelling with the document version: 3.0 writes
+    /// <c>"minimum": n, "exclusiveMinimum": true</c> and 3.1 aligned with JSON Schema 2020-12,
+    /// where <c>exclusiveMinimum</c> is itself the number. Writing the boolean form into a 3.2
+    /// document is the defect this replaces.
+    /// </remarks>
+    private static void AppendScalarFacets(
+        StringBuilder builder, string type, string? format, ParameterModel spec,
+        OpenApiVersion version, bool openObject) {
+        if (openObject) {
+            builder.Append('{');
+        }
+
+        builder.Append("\"type\":\"").Append(JsonSchemaWriter.Escape(type)).Append('"');
+
+        if (!string.IsNullOrEmpty(format)) {
+            builder.Append(",\"format\":\"").Append(JsonSchemaWriter.Escape(format!)).Append('"');
+        }
+
+        if (spec.EnumValues is { Count: > 0 }) {
+            builder.Append(",\"enum\":[");
+
+            for (var i = 0; i < spec.EnumValues.Count; i++) {
+                if (i > 0) {
+                    builder.Append(',');
+                }
+
+                builder.Append('"').Append(JsonSchemaWriter.Escape(spec.EnumValues[i])).Append('"');
+            }
+
+            builder.Append(']');
+        }
+
+        if (spec.Minimum.HasValue) {
+            builder.Append(version == OpenApiVersion.V3_0
+                    ? ",\"minimum\":"
+                    : spec.ExclusiveMinimum ? ",\"exclusiveMinimum\":" : ",\"minimum\":")
+                .Append(Number(spec.Minimum.Value));
+
+            if (version == OpenApiVersion.V3_0 && spec.ExclusiveMinimum) {
+                builder.Append(",\"exclusiveMinimum\":true");
+            }
+        }
+
+        if (spec.Maximum.HasValue) {
+            builder.Append(version == OpenApiVersion.V3_0
+                    ? ",\"maximum\":"
+                    : spec.ExclusiveMaximum ? ",\"exclusiveMaximum\":" : ",\"maximum\":")
+                .Append(Number(spec.Maximum.Value));
+
+            if (version == OpenApiVersion.V3_0 && spec.ExclusiveMaximum) {
+                builder.Append(",\"exclusiveMaximum\":true");
+            }
+        }
+
+        if (spec.MinLength.HasValue) {
+            builder.Append(",\"minLength\":").Append(spec.MinLength.Value);
+        }
+
+        if (spec.MaxLength.HasValue) {
+            builder.Append(",\"maxLength\":").Append(spec.MaxLength.Value);
+        }
+
+        if (!string.IsNullOrEmpty(spec.Pattern)) {
+            builder.Append(",\"pattern\":\"").Append(JsonSchemaWriter.Escape(spec.Pattern!)).Append('"');
+        }
+
+        if (!string.IsNullOrEmpty(spec.Default)) {
+            builder.Append(",\"default\":").Append(DefaultLiteralJson(type, spec.Default!));
+        }
+
+        if (openObject) {
+            builder.Append('}');
+        }
+    }
+
+    /// <summary>A decimal as JSON, which never means the culture's decimal separator.</summary>
+    private static string Number(decimal value) =>
+        value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// The declared default as a JSON literal of the schema's type, quoted only when the type is
+    /// textual. A default that does not parse as its declared type is written as a string rather
+    /// than invalidating the document over it.
+    /// </summary>
+    private static string DefaultLiteralJson(string type, string value) {
+        switch (type) {
+            case "integer":
+            case "number":
+                return decimal.TryParse(
+                    value, System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture, out var number)
+                    ? Number(number)
+                    : "\"" + JsonSchemaWriter.Escape(value) + "\"";
+            case "boolean" when value is "true" or "false":
+                return value;
+            default:
+                return "\"" + JsonSchemaWriter.Escape(value) + "\"";
+        }
+    }
+
     private static string ScalarSchema(ITypeDefinition type) {
         // int? and friends: the schema describes the value, and "required" already says whether one
         // has to be there. Two spellings reach here - Nullable<T> with a type argument, and the

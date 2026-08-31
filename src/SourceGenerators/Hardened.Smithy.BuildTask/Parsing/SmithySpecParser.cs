@@ -182,6 +182,22 @@ internal static class SmithySpecParser {
 
         Note(context, service);
 
+        // The service's identity, for the published document. @title was accepted by the trait
+        // table and never read, so the served document titled the API after the module class.
+        if (context.Model.Title == null &&
+            SmithyAst.TryGetTrait(service, SmithyTraits.Title, out var title) &&
+            title.ValueKind == JsonValueKind.String) {
+            context.Model.Title = title.GetString();
+        }
+
+        if (context.Model.Version == null &&
+            service.TryGetProperty("version", out var version) &&
+            version.ValueKind == JsonValueKind.String) {
+            context.Model.Version = version.GetString();
+        }
+
+        var securityScheme = DeclaredScheme(context, service);
+
         foreach (var operationId in Operations(context, service)) {
             if (!context.Ast.TryGetShape(operationId, out var operation)) {
                 context.Diagnostics.Add(
@@ -190,7 +206,8 @@ internal static class SmithySpecParser {
             }
 
             var parsed = ParseOperation(
-                context, operationId, operation, tag, protocol, RequiresAuth(service));
+                context, operationId, operation, tag, protocol, RequiresAuth(service),
+                securityScheme);
 
             if (parsed != null) {
                 operations.Add(parsed);
@@ -297,13 +314,71 @@ internal static class SmithySpecParser {
         return false;
     }
 
+    /// <summary>
+    /// The service's auth scheme as the OpenAPI declaration the document publishes, or null.
+    /// </summary>
+    /// <remarks>
+    /// Registered on the model here and named per operation below, so the served document declares
+    /// the scheme the service enforces - it declared nothing, and a client generated from it sent
+    /// unauthenticated requests to every operation the service refuses them on. Only the schemes
+    /// with an OpenAPI spelling: sigv4 has none, so a sigv4 service keeps enforcing and the
+    /// document stays silent about it rather than inventing a vocabulary other tools cannot read.
+    /// </remarks>
+    private static string? DeclaredScheme(ParseContext context, JsonElement service) {
+        foreach (var trait in SmithyTraits.AuthSchemes) {
+            if (!SmithyAst.HasTrait(service, trait)) {
+                continue;
+            }
+
+            var name = SmithyPrelude.LocalName(trait);
+
+            var json = name switch {
+                "httpBearerAuth" => "{\"type\":\"http\",\"scheme\":\"bearer\"}",
+                "httpBasicAuth" => "{\"type\":\"http\",\"scheme\":\"basic\"}",
+                "httpDigestAuth" => "{\"type\":\"http\",\"scheme\":\"digest\"}",
+                "httpApiKeyAuth" => ApiKeySchemeJson(service),
+                _ => null
+            };
+
+            if (json == null) {
+                continue;
+            }
+
+            if (!context.Model.SecuritySchemes.Exists(scheme => scheme.Name == name)) {
+                context.Model.SecuritySchemes.Add(new SecuritySchemeModel { Name = name, Json = json });
+            }
+
+            return name;
+        }
+
+        return null;
+    }
+
+    /// <summary>@httpApiKeyAuth's name and location, read off the trait itself.</summary>
+    private static string? ApiKeySchemeJson(JsonElement service) {
+        if (!SmithyAst.TryGetTrait(service, "smithy.api#httpApiKeyAuth", out var trait)) {
+            return null;
+        }
+
+        var name = String(trait, "name");
+        var location = String(trait, "in");
+
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(location)) {
+            return null;
+        }
+
+        return "{\"type\":\"apiKey\",\"name\":\"" + name +
+               "\",\"in\":\"" + location + "\"}";
+    }
+
     private static OperationModel? ParseOperation(
         ParseContext context,
         string operationId,
         JsonElement operation,
         string tag,
         ProtocolBinding protocol,
-        bool serviceRequiresAuth) {
+        bool serviceRequiresAuth,
+        string? securityScheme = null) {
         Note(context, operation);
 
         var name = SmithyPrelude.LocalName(operationId);
@@ -359,11 +434,18 @@ internal static class SmithySpecParser {
             !DeclaresNoAuth(operation)) {
             model.AuthorizationBranches.Add(
                 new AuthorizationBranchModel { RequiresAuthentication = true });
+
+            // The same fact for the document: the operation requires the service's scheme. Smithy
+            // has no scopes, so the requirement's list is always empty.
+            if (securityScheme != null) {
+                model.SecurityRequirements.Add("{\"" + securityScheme + "\":[]}");
+            }
         }
 
         ParseInput(context, operation, model, name, protocol);
 
-        var responseHeaders = ParseOutput(context, operation, model, name, protocol);
+        var responseHeaders = ParseOutput(
+            context, operation, model, name, protocol, out var headersOnPayload);
 
         // The success as a declared response, mirroring what the OpenAPI parser records. Smithy
         // models one output per operation, so there is always exactly one and never the multiple
@@ -384,9 +466,12 @@ internal static class SmithySpecParser {
 
         success.Headers.AddRange(responseHeaders);
 
-        // Smithy binds a header to a member of the output structure, so the type the handler returns
-        // is the type that carries it. Nothing has to be wrapped, and the signature does not move.
-        success.HeadersOnPayload = responseHeaders.Count > 0;
+        // True only when the whole output structure is the body: the header member then lives on
+        // the type the handler returns, and nothing has to be wrapped. Under @httpPayload the
+        // handler returns the payload target and the headers live on the discarded wrapper, so
+        // they must become case-type parameters - marking them on-payload emitted an ApplyHeaders
+        // call against a type that never had one, which was a compile error in generated code.
+        success.HeadersOnPayload = headersOnPayload;
 
         model.SuccessResponses.Add(success);
 
@@ -451,25 +536,70 @@ internal static class SmithySpecParser {
                 var target = SmithyAst.Target(member.Value);
 
                 if (target != null) {
+                    // Classified like any member, for the reasons the output payload gives.
+                    Describe(context, target, out var type, out _, out var reference, out var facts);
+
                     model.RequestBodyContentType ??= "application/json";
-                    model.RequestBodyRef = ReferenceTo(context, target);
+
+                    if (reference != null) {
+                        model.RequestBodyRef = reference;
+                    } else if (type != null && !facts.IsArray) {
+                        model.RequestBodyType = type;
+                    } else {
+                        context.Diagnostics.Add(
+                            $"operation '{operationName}' binds @httpPayload to '{target}', a " +
+                            "shape this front end cannot take as a request body; the member was " +
+                            "left unbound.");
+                    }
                 }
             } else {
                 bodyMembers.Add(member);
             }
         }
 
-        if (bodyMembers.Count == 0 || model.RequestBodyRef != null) {
+        if (bodyMembers.Count == 0 || model.RequestBodyRef != null || model.RequestBodyType != null) {
             return;
         }
 
-        // Members with no binding trait are the JSON body. The input structure already names them
-        // as a group, so the body is that shape - there is nothing to synthesise, which is the case
-        // OpenAPI needs SynthesizeSchema for.
-        // Left alone when the protocol already named one - awsJson sends
+        // Members with no binding trait are the JSON body. When nothing was bound elsewhere the
+        // input structure already names them as a group and the body is that shape. When a member
+        // was bound - an @httpLabel id beside an unbound rest - the body is a derived schema of
+        // the unbound members only: pointing at the whole structure kept the label in the body
+        // and required there, so PUT /things/{id} with the id only in the path answered 400, and
+        // the published document agreed with the wrong behaviour.
+        // Content type left alone when the protocol already named one - awsJson sends
         // application/x-amz-json-1.0, not application/json.
         model.RequestBodyContentType ??= "application/json";
-        model.RequestBodyRef = ReferenceTo(context, inputId);
+
+        var boundMembers = model.Parameters.Count;
+
+        if (boundMembers == 0) {
+            model.RequestBodyRef = ReferenceTo(context, inputId);
+        } else {
+            var bodyName = SmithyPrelude.LocalName(inputId) + "Body";
+
+            if (context.Built.Add(inputId + "#body")) {
+                var bodySchema = new SchemaModel {
+                    Name = bodyName,
+                    Kind = SchemaKind.Object,
+                    Description = "The unbound members of " + SmithyPrelude.LocalName(inputId) + "."
+                };
+
+                foreach (var member in bodyMembers) {
+                    var schemaProperty = BuildProperty(context, member.Key, member.Value);
+
+                    bodySchema.Properties.Add(schemaProperty);
+
+                    if (schemaProperty.IsRequired) {
+                        bodySchema.Required.Add(schemaProperty.Name);
+                    }
+                }
+
+                context.Model.Schemas.Add(bodySchema);
+            }
+
+            model.RequestBodyRef = TypeMapper.MakeRef(bodyName);
+        }
 
         foreach (var member in bodyMembers) {
             var property = BuildProperty(context, member.Key, member.Value);
@@ -508,8 +638,11 @@ internal static class SmithySpecParser {
         JsonElement operation,
         OperationModel model,
         string operationName,
-        ProtocolBinding protocol) {
+        ProtocolBinding protocol,
+        out bool headersOnPayload) {
         var headers = new List<ResponseHeaderModel>();
+
+        headersOnPayload = false;
 
         if (!operation.TryGetProperty("output", out var outputRef)) {
             return headers;
@@ -568,7 +701,36 @@ internal static class SmithySpecParser {
             var target = SmithyAst.Target(member.Value);
 
             if (target != null) {
-                DescribePayload(context, model, target, operationName);
+                // Through the same classification every member goes through, because the payload
+                // used to be treated as a structure whatever it targeted: the prelude String
+                // became a reference to a type nothing declares, and a named list became an empty
+                // record - one a compile error in generated code, the other a body that
+                // serialized {} with no diagnostic at all.
+                Describe(context, target, out var type, out var format, out var reference, out var facts);
+
+                if (reference != null) {
+                    model.ResponseRef = reference;
+                } else if (facts.IsArray) {
+                    model.ResponseIsArray = true;
+                    model.ResponseArrayItemsRef = facts.ItemRef;
+                    model.ResponseArrayItemsType = facts.ItemType;
+                } else if (type != null) {
+                    model.ResponseType = type;
+                    model.ResponseFormat = format;
+                } else {
+                    context.Diagnostics.Add(
+                        $"operation '{operationName}' binds @httpPayload to '{target}', a shape " +
+                        "this front end cannot type; the response body was left undeclared.");
+                }
+
+                // @mediaType on the payload target is the response's content type - text/plain on
+                // a string label, application/pdf on a blob. Accepted by the trait table and never
+                // read, which left a Smithy service unable to answer anything but JSON.
+                if (context.Ast.TryGetShape(target, out var payloadShape) &&
+                    SmithyAst.TryGetTrait(payloadShape, SmithyTraits.MediaType, out var mediaType) &&
+                    mediaType.ValueKind == JsonValueKind.String) {
+                    model.ResponseContentType = mediaType.GetString();
+                }
 
                 return headers;
             }
@@ -581,66 +743,9 @@ internal static class SmithySpecParser {
 
         MarkHeaderBound(context, outputId, boundOut);
 
+        headersOnPayload = headers.Count > 0;
+
         return headers;
-    }
-
-    /// <summary>
-    /// An <c>@httpPayload</c> target, as whatever it means: a reference, an array, or an inlined
-    /// primitive.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Through <see cref="Describe"/> rather than <see cref="ReferenceTo"/>, and that is the whole
-    /// of it. <c>ReferenceTo</c> builds a schema for a shape id, which is right only for the kinds
-    /// that get a C# type of their own - and <c>Describe</c> is the function that decides which
-    /// those are. Calling it directly asserted the answer instead of asking for it.
-    /// </para>
-    /// <para>
-    /// A list target went to <see cref="BuildSchema"/>, whose default arm reads a <c>members</c> map
-    /// that a list shape does not have - it carries a singular <c>member</c> - so
-    /// <c>list PetList { member: Pet }</c> became <c>record PetList;</c> with no members at all, and
-    /// the service interface asked for a type there was no way to fill. The same shape read as a
-    /// structure member has always inlined to <c>List&lt;Pet&gt;</c>, so one build emitted both.
-    /// Nothing reported it, because that arm has no diagnostic for a kind it does not model.
-    /// </para>
-    /// <para>
-    /// A named simple shape was wrong the same way and a prelude one worse: <c>ReferenceTo</c> found
-    /// no shape for <c>smithy.api#String</c>, added no schema, and returned a reference to a type
-    /// that was never written.
-    /// </para>
-    /// </remarks>
-    private static void DescribePayload(
-        ParseContext context, OperationModel model, string target, string operationName) {
-        Describe(context, target, out var type, out var format, out var reference, out var facts);
-
-        if (reference != null) {
-            model.ResponseRef = reference;
-
-            return;
-        }
-
-        if (facts.IsArray) {
-            model.ResponseIsArray = true;
-            model.ResponseArrayItemsRef = facts.ItemRef;
-            model.ResponseArrayItemsType = facts.ItemType;
-
-            return;
-        }
-
-        // A map has no response field to land in - the shared model carries ResponseIsArray and its
-        // item type, and nothing equivalent for a dictionary - so the emitters fall back to a Task
-        // with no result. Reported rather than left silent, since answering with no body is not what
-        // a model declaring a payload asked for.
-        if (facts.IsDictionary) {
-            context.Diagnostics.Add(
-                $"operation '{operationName}' declares a map as its @httpPayload, which has no " +
-                "declared response shape; it answers with no body.");
-
-            return;
-        }
-
-        model.ResponseType = type;
-        model.ResponseFormat = format;
     }
 
     /// <summary>
@@ -776,7 +881,11 @@ internal static class SmithySpecParser {
             In = location,
             IsRequired = location == "path" ||
                          SmithyAst.HasTrait(member.Value, SmithyTraits.Required),
-            Description = Text(member.Value, SmithyTraits.Documentation)
+            Description = Text(member.Value, SmithyTraits.Documentation),
+            // The trait's value, not only its presence: it already decided nullability, but the
+            // value never reached the model, so the binder answered an absent parameter with null
+            // rather than the default the contract declared, and the document never mentioned it.
+            Default = DefaultValueText(member.Value)
         };
 
         // MemberNameOverride is deliberately not set here. It is NameAllocator's output slot, not an
@@ -864,6 +973,21 @@ internal static class SmithySpecParser {
     /// belongs to the audit that finds those.
     /// </para>
     /// </remarks>
+    /// <summary>@default's value as text, in the spelling the model wrote it.</summary>
+    private static string? DefaultValueText(JsonElement member) {
+        if (!SmithyAst.TryGetTrait(member, SmithyTraits.Default, out var value)) {
+            return null;
+        }
+
+        return value.ValueKind switch {
+            JsonValueKind.String => value.GetString(),
+            JsonValueKind.Number => value.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            _ => null
+        };
+    }
+
     private static void NoteUnmappedTraits(ParseContext context, JsonElement member, string name) {
         if (SmithyAst.HasTrait(member, SmithyTraits.UniqueItems)) {
             context.Model.UnmappedKeywords.Add(new UnmappedKeywordModel("@uniqueItems", name));

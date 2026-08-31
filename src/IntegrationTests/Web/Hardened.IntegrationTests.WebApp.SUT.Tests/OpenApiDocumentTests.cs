@@ -136,7 +136,13 @@ public class OpenApiDocumentTests {
             .GetProperty("components").GetProperty("schemas").GetProperty("MathAddModel");
 
         Assert.Equal("object", schema.GetProperty("type").GetString());
-        Assert.Equal("array", schema.GetProperty("properties").GetProperty("values").GetProperty("type").GetString());
+
+        // Values is declared List<int>?, and the schema now says so: "null" beside "array"
+        // rather than a nullable member described as always present.
+        Assert.Equal(
+            new[] { "array", "null" },
+            schema.GetProperty("properties").GetProperty("values").GetProperty("type")
+                .EnumerateArray().Select(value => value.GetString()));
     }
 
     /// <summary>

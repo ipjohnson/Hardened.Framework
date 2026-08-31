@@ -56,7 +56,13 @@
             <Link>DependencyInjection\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
-        <Compile Include="../Hardened.SourceGenerator/Models/**/*">
+        <!--
+            Models/Request is excluded: nothing this generator compiles refers to the request
+            models, and RequestParameterInformation now carries the contract's ParameterModel -
+            taking the folder would mean taking Hardened.Generation.Shared with it, twenty files
+            of spec model this assembly never executes, purely as coverage denominator.
+        -->
+        <Compile Include="../Hardened.SourceGenerator/Models/**/*" Exclude="../Hardened.SourceGenerator/Models/Request/**/*">
             <Link>Models\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>

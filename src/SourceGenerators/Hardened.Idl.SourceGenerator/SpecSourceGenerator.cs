@@ -10,6 +10,7 @@ using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 using Hardened.Idl;
 using Hardened.Generation;
+using Hardened.SourceGenerator.OpenApiDocument;
 
 namespace Hardened.Idl.SourceGenerator;
 
@@ -234,6 +235,38 @@ public class SpecSourceGenerator : IIncrementalGenerator {
             }
         });
 
+        // The document's identity, merged across every spec the project declares: first
+        // non-empty title, version and description win, schemes union by name. Its own provider,
+        // so editing a handler does not recompute it and editing the contract's info block
+        // invalidates exactly the document.
+        var identityProvider = openApiFiles.Collect().Select((specs, _) => {
+            string? title = null;
+            string? version = null;
+            string? description = null;
+            var schemes = new List<(string Name, string Json)>();
+            var schemeNames = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var spec in specs) {
+                if (spec == null) {
+                    continue;
+                }
+
+                title ??= spec.Title;
+                version ??= spec.Version;
+                description ??= spec.InfoDescription;
+
+                foreach (var scheme in spec.SecuritySchemes) {
+                    if (schemeNames.Add(scheme.Name)) {
+                        schemes.Add((scheme.Name, scheme.Json));
+                    }
+                }
+            }
+
+            schemes.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
+
+            return new DocumentIdentity(title, version, description, schemes);
+        });
+
         // Find entry points for routing table generation
         var entryPointProvider = context.SyntaxProvider.CreateSyntaxProvider(
             EntryPointSelector.UsingAttribute(),
@@ -246,13 +279,14 @@ public class SpecSourceGenerator : IIncrementalGenerator {
             .Combine(handlerInfoProvider)
             .Combine(specRegistrations)
             .Combine(excludeFromCoverageProvider)
-            .Combine(constraints);
+            .Combine(constraints)
+            .Combine(identityProvider);
 
         context.RegisterSourceOutput(routeProvider,
-            SourceGeneratorWrapper.Wrap<(((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<SpecRegistration> Right) Left, bool Right) Left, ImmutableArray<RouteConstraintModel> Right)>(
+            SourceGeneratorWrapper.Wrap<((((((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left, ImmutableArray<HandlerInfo?> Right) Left, ImmutableArray<SpecRegistration> Right) Left, bool Right) Left, ImmutableArray<RouteConstraintModel> Right) Left, DocumentIdentity Right)>(
                 (ctx, pair) => SpecRoutingTableGenerator.GenerateRoute(
-                    ctx, pair.Left.Left.Left.Left, pair.Left.Left.Left.Right!, pair.Left.Left.Right,
-                    pair.Right, pair.Left.Right)));
+                    ctx, pair.Left.Left.Left.Left.Left, pair.Left.Left.Left.Left.Right!, pair.Left.Left.Left.Right,
+                    pair.Left.Right, pair.Left.Left.Right, pair.Right)));
 
         // One abstract template base per [Enable<T>] marker, the same registration the attribute
         // generator makes. Duplicated across the two handler generators rather than moved somewhere
