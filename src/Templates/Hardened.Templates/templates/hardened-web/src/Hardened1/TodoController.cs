@@ -33,6 +33,15 @@ public union RemovedTodoResult(NoContent, NotFound);
 /// </remarks>
 public class TodoController {
 
+    /// <summary>Every todo.</summary>
+    /// <remarks>
+    /// The one route here with a single outcome, so it reads the same under every response model -
+    /// there is nothing to declare beside the success type. The collection becomes an array in the
+    /// generated document without anything here describing it.
+    /// </remarks>
+    [Get("/")]
+    public IReadOnlyList<Todo> All(ITodoStore store) => store.All();
+
 #if (standardMode)
     /// <summary>One todo, or 404.</summary>
     /// <remarks>

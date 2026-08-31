@@ -12,17 +12,18 @@ dotnet test
 dotnet run --project src/Hardened1.Host
 ```
 
-It prints its address and listens on **5080**. Set `PORT` to change it.
+It listens on **5080** and prints its address. Set `PORT` to change it.
 
 ```bash
-curl localhost:5080/todos/1
-{"id":1,"title":"Read the generated code","done":true}
+curl localhost:5080/todos
+[{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
 ```
 
-Three routes, and every one of them declares more than one answer:
+Four routes. `GET /todos` has one answer; the other three each declare more than one:
 
 | | success | and |
 |---|---|---|
+| `GET /todos` | 200 | |
 | `GET /todos/{id}` | 200 | 404 when no todo has that id |
 | `POST /todos` | #if (standardMode)#if (codeFirst)200#endif#if (specFirst)201#endif#endif#if (declaredMode)201 with a `Location`#endif | 409 when the title is taken |
 | `DELETE /todos/{id}` | #if (standardMode)200#endif#if (declaredMode)204#endif | 404 when no todo has that id |
@@ -34,7 +35,8 @@ curl -i -X POST localhost:5080/todos -H 'Content-Type: application/json' \
 
 #if (OpenApiUi)
 There is a reference page at <http://localhost:5080/docs> and the document behind it at
-`/openapi.json`. The page is served in the `development` environment only.
+`/openapi.json`. The page is served in the `development` environment only, and the address is
+printed on startup so it does not have to be remembered.
 
 Visual Studio and Rider open it on F5 — pick the **Hardened1.Host (+Browser)** configuration, which
 comes from `src/Hardened1.Host/Properties/launchSettings.json`. That profile names no environment
