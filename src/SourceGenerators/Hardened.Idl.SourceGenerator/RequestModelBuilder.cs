@@ -90,6 +90,7 @@ internal static class RequestModelBuilder {
                     ResponseSchemas = model.ResponseSchemas,
                     DeclaredResponsesAreComplete = model.DeclaredResponsesAreComplete,
                     SecurityRequirements = model.SecurityRequirements,
+                    DeclaredSecuritySchemes = model.DeclaredSecuritySchemes,
                     HasGeneratedValidation = model.HasGeneratedValidation,
                 });
             } else {

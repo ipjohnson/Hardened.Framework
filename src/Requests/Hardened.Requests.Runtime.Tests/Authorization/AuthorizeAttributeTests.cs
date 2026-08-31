@@ -28,26 +28,47 @@ public class AuthorizeAttributeTests {
     private static ICallerPrincipal Holding(params string[] grants) =>
         new CallerPrincipal("bearer", grants);
 
-    #region the typed form
+    /// <summary>The scheme the typed forms name. The shape attribute is the document's business.</summary>
+    [HttpAuthenticationScheme("bearer")]
+    private sealed class BearerAuth : IAuthenticationScheme;
 
+    #region the typed forms
+
+    /// <summary>
+    /// The single type parameter is the scheme, and the requirement is "an authenticated
+    /// caller" - the spelling that had none before the slot was re-meant.
+    /// </summary>
     [Fact]
-    public void Authorize_YieldsThePolicysRequirement() {
-        var requirement = new AuthorizeAttribute<CanManagePets>().Requirement;
+    public void AuthorizeScheme_RequiresAnAuthenticatedCaller() {
+        var requirement = new AuthorizeAttribute<BearerAuth>().Requirement;
+
+        Assert.True(requirement.IsSatisfiedBy(Holding(), Context));
+        Assert.False(requirement.IsSatisfiedBy(AnonymousCallerPrincipal.Instance, Context));
+    }
+
+    /// <summary>
+    /// The policy rides second and its tree still decides, conjoined with authenticated - so a
+    /// context-only policy cannot admit an anonymous caller by accident.
+    /// </summary>
+    [Fact]
+    public void AuthorizeSchemeAndPolicy_YieldsThePolicysRequirement() {
+        var requirement = new AuthorizeAttribute<BearerAuth, CanManagePets>().Requirement;
 
         Assert.True(requirement.IsSatisfiedBy(Holding("pets:read", "pets:write"), Context));
         Assert.True(requirement.IsSatisfiedBy(Holding("admin:*"), Context));
         Assert.False(requirement.IsSatisfiedBy(Holding("pets:read"), Context));
+        Assert.False(requirement.IsSatisfiedBy(AnonymousCallerPrincipal.Instance, Context));
     }
 
     /// <summary>
-    /// One policy instance per closed type, however many handlers carry the attribute. Writing
-    /// <c>[Authorize&lt;CanManagePets&gt;]</c> on a hundred handlers costs one tree.
+    /// One requirement per closed type, however many handlers carry the attribute. Writing
+    /// <c>[Authorize&lt;BearerAuth, CanManagePets&gt;]</c> on a hundred handlers costs one tree.
     /// </summary>
     [Fact]
     public void Authorize_SharesOneRequirementAcrossEveryInstance() {
         Assert.Same(
-            new AuthorizeAttribute<CanManagePets>().Requirement,
-            new AuthorizeAttribute<CanManagePets>().Requirement);
+            new AuthorizeAttribute<BearerAuth, CanManagePets>().Requirement,
+            new AuthorizeAttribute<BearerAuth, CanManagePets>().Requirement);
     }
 
     #endregion
@@ -116,14 +137,15 @@ public class AuthorizeAttributeTests {
     [Fact]
     public void BothFormsAreFoundThroughOneInterface() {
         object[] metadata = [
-            new AuthorizeAttribute<CanManagePets>(),
+            new AuthorizeAttribute<BearerAuth>(),
+            new AuthorizeAttribute<BearerAuth, CanManagePets>(),
             new AuthorizeGrantsAttribute("pets:read"),
             "something else entirely",
         ];
 
         var requirements = metadata.OfType<IAuthorizeAttribute>().Select(a => a.Requirement).ToArray();
 
-        Assert.Equal(2, requirements.Length);
+        Assert.Equal(3, requirements.Length);
         Assert.All(requirements, Assert.NotNull);
     }
 
@@ -138,7 +160,8 @@ public class AuthorizeAttributeTests {
     }
 
     [Theory]
-    [InlineData(typeof(AuthorizeAttribute<CanManagePets>))]
+    [InlineData(typeof(AuthorizeAttribute<BearerAuth>))]
+    [InlineData(typeof(AuthorizeAttribute<BearerAuth, CanManagePets>))]
     [InlineData(typeof(AuthorizeGrantsAttribute))]
     [InlineData(typeof(AllowAnonymousAttribute))]
     public void EveryFormAppliesToAMethodOrAClass(Type attributeType) {

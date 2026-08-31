@@ -421,4 +421,104 @@ public class OpenApiDocumentEmissionTests {
     }
 
     #endregion
+
+    #region what [Authorize<TAuth>] declares for the document
+
+    /// <summary>
+    /// Schemes as types, used where they are enforced. Using one is declaring it: the writer
+    /// collects every TAuth the handlers name into components.securitySchemes.
+    /// </summary>
+    private const string SecuredControllers = """
+        [Hardened.Requests.Abstract.Authorization.HttpAuthenticationScheme("bearer", BearerFormat = "JWT")]
+        public sealed class BearerAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
+
+        [Hardened.Requests.Abstract.Authorization.OAuth2AuthenticationScheme(
+            Hardened.Requests.Abstract.Authorization.OAuth2Flow.ClientCredentials, TokenUrl = "https://id.example/token")]
+        public sealed class PetsOAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
+
+        public record Pet(string Id);
+
+        public class PetController {
+            [Get("/pets/{id}")]
+            [Hardened.Requests.Runtime.Authorization.Authorize<BearerAuth>]
+            public Task<Pet> Get(string id) => Task.FromResult(new Pet(id));
+
+            [Post("/pets")]
+            [Hardened.Requests.Runtime.Authorization.Authorize<PetsOAuth>]
+            [Hardened.Requests.Runtime.Authorization.AuthorizeGrants("pets:write", "pets:admin")]
+            public Task<Pet> Create() => Task.FromResult(new Pet("1"));
+
+            [Delete("/pets/{id}")]
+            [Hardened.Requests.Runtime.Authorization.Authorize<BearerAuth>]
+            [Hardened.Requests.Runtime.Authorization.AuthorizeGrants("pets:admin")]
+            public Task Remove(string id) => Task.CompletedTask;
+
+            [Get("/pets")]
+            public Task<List<Pet>> List() => Task.FromResult(new List<Pet>());
+        }
+        """;
+
+    private static JsonElement SecuredDocument() =>
+        JsonDocument.Parse(Extract(
+            RequestGeneratorHarness
+                .Generate(Application(SecuredControllers, Enable))
+                .AssertNoErrors()
+                .SourceContaining("OpenApiDocument"))).RootElement;
+
+    /// <summary>
+    /// Every scheme the handlers name, keyed by its type's name, shaped by its type's attribute.
+    /// Code-first published no securitySchemes at all before this.
+    /// </summary>
+    [Fact]
+    public void UsedSchemesAreDeclaredInComponents() {
+        var schemes = SecuredDocument().GetProperty("components").GetProperty("securitySchemes");
+
+        var bearer = schemes.GetProperty("BearerAuth");
+
+        Assert.Equal("http", bearer.GetProperty("type").GetString());
+        Assert.Equal("bearer", bearer.GetProperty("scheme").GetString());
+        Assert.Equal("JWT", bearer.GetProperty("bearerFormat").GetString());
+
+        var oauth = schemes.GetProperty("PetsOAuth");
+
+        Assert.Equal("oauth2", oauth.GetProperty("type").GetString());
+        Assert.Equal(
+            "https://id.example/token",
+            oauth.GetProperty("flows").GetProperty("clientCredentials")
+                .GetProperty("tokenUrl").GetString());
+    }
+
+    /// <summary>
+    /// Grants become the requirement's scopes only where the scheme kind can carry them - OAuth2 -
+    /// mirroring the rule the OpenAPI reader applies in the other direction. On an http scheme the
+    /// operation still says "authenticated via this scheme", and the enforcement of the grants is
+    /// unchanged either way.
+    /// </summary>
+    [Fact]
+    public void GrantsBecomeScopesOnlyWhereTheSchemeCarriesThem() {
+        var paths = SecuredDocument().GetProperty("paths");
+
+        var create = paths.GetProperty("/pets").GetProperty("post");
+        var oauthRequirement = Assert.Single(create.GetProperty("security").EnumerateArray());
+
+        Assert.Equal(
+            new[] { "pets:write", "pets:admin" },
+            oauthRequirement.GetProperty("PetsOAuth").EnumerateArray()
+                .Select(scope => scope.GetString()));
+
+        var remove = paths.GetProperty("/pets/{id}").GetProperty("delete");
+        var bearerRequirement = Assert.Single(remove.GetProperty("security").EnumerateArray());
+
+        Assert.Equal(0, bearerRequirement.GetProperty("BearerAuth").GetArrayLength());
+    }
+
+    /// <summary>An operation naming no scheme declares no security, exactly as before.</summary>
+    [Fact]
+    public void AnUnsecuredOperationDeclaresNothing() {
+        var list = SecuredDocument().GetProperty("paths").GetProperty("/pets").GetProperty("get");
+
+        Assert.False(list.TryGetProperty("security", out _));
+    }
+
+    #endregion
 }

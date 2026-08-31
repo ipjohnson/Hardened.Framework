@@ -26,7 +26,15 @@ serving the source verbatim where that is wanted.
   `components.securitySchemes` and the effective `security` per operation. Smithy: from the
   service's auth trait (`@httpBearerAuth`, `@httpBasicAuth`, `@httpDigestAuth`,
   `@httpApiKeyAuth`), minus operations opting out with `@auth([])`; sigv4 has no OpenAPI spelling
-  and stays unpublished. Code-first has no way to declare a scheme yet.
+  and stays unpublished. Code-first declares a scheme as a type - a class implementing
+  `IAuthenticationScheme`, shaped by `[HttpAuthenticationScheme]`, `[ApiKeyAuthenticationScheme]`
+  or `[OAuth2AuthenticationScheme]` - and using it anywhere is declaring it:
+  `[Authorize<BearerAuth>]` requires an authenticated caller and puts the scheme in the document,
+  `[Authorize<BearerAuth, CanManagePets>]` conjoins a policy, and `[AuthorizeGrants]` beside
+  either becomes the requirement's scope list where the scheme kind carries scopes (OAuth2), and
+  "authenticated via this scheme" where it cannot - the same rule the OpenAPI reader applies in
+  the other direction. A derived grants attribute or an `IGrantProvider` computes its grants at
+  run time, so those operations publish the scheme requirement without scopes.
 - **Parameters** - the declared wire type, format, bounds, pattern, item counts, enum vocabulary
   and default, from the contract. A parameter carrying a default publishes `required: false`,
   because the binder answers an absent value with the default. A code-first enum parameter
@@ -60,6 +68,8 @@ serving the source verbatim where that is wanted.
 | `[Throws<T>(status)]` | handler | a thrown status, into the document |
 | `SuccessStatus = 201` | verb attribute | the success status, code-first Standard mode |
 | `[JsonEnumNaming(...)]` | assembly or enum | the wire vocabulary: converters, binder, document |
+| `IAuthenticationScheme` + shape attribute | scheme class | a security scheme, declared by being used |
+| `[Authorize<TAuth>]` / `[Authorize<TAuth, TPolicy>]` | handler or controller | the requirement, enforced and published |
 | `ValidationModules.Constraints.*` | model properties | validation, and the schema facets |
 
 ## What holds it true
@@ -72,7 +82,7 @@ Strict parsing is part of the assertion: `System.Text.Json` refuses raw control 
 multi-line description that stopped being escaped fails these suites rather than the reference
 page.
 
-Known gaps, stated rather than implied: code-first cannot declare a security scheme or express a
+Known gaps, stated rather than implied: code-first cannot express a
 constraint on a query, header or path parameter (`HRDV001` names the ways out); a `Nullable`
 scalar parameter whose type argument did not survive the syntax transform still publishes as a
 string; and `@timestampFormat` is read for nullability and otherwise inert.

@@ -20,6 +20,9 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// </summary>
 public class AuthorizationFilterProviderTests {
 
+    [HttpAuthenticationScheme("bearer")]
+    private sealed class BearerAuth : IAuthenticationScheme;
+
     private class CanManagePets : AuthorizationPolicy {
         protected override Requirement Define() => Grant("pets:manage");
     }
@@ -118,7 +121,7 @@ public class AuthorizationFilterProviderTests {
 
     [Fact]
     public void APolicyAttributeProducesAFilter() {
-        Assert.NotNull(Filter(false, new AuthorizeAttribute<CanManagePets>()));
+        Assert.NotNull(Filter(false, new AuthorizeAttribute<BearerAuth, CanManagePets>()));
     }
 
     /// <summary>
@@ -128,7 +131,7 @@ public class AuthorizationFilterProviderTests {
     /// </summary>
     [Fact]
     public void AllowAnonymousWinsOverARequirementOnTheSameHandler() {
-        Assert.Null(Filter(false, new AuthorizeAttribute<CanManagePets>(), new AllowAnonymousAttribute()));
+        Assert.Null(Filter(false, new AuthorizeAttribute<BearerAuth, CanManagePets>(), new AllowAnonymousAttribute()));
     }
 
     /// <summary>
@@ -216,7 +219,7 @@ public class AuthorizationFilterProviderTests {
         object[] metadata = [
             new AuthorizeGrantsAttribute("tenant:member"),
             new AuthorizeGrantsAttribute<PetsReadWrite>(),
-            new AuthorizeAttribute<CanManagePets>(),
+            new AuthorizeAttribute<BearerAuth, CanManagePets>(),
         ];
 
         Assert.True(await Admits(
@@ -283,7 +286,7 @@ public class AuthorizationFilterProviderTests {
     [Fact]
     public async Task APolicyAndAGrantAttributeMustBothHold() {
         object[] metadata = [
-            new AuthorizeAttribute<CanManagePets>(),
+            new AuthorizeAttribute<BearerAuth, CanManagePets>(),
             new AuthorizeGrantsAttribute("pets:read"),
         ];
 
@@ -313,7 +316,7 @@ public class AuthorizationFilterProviderTests {
     /// </summary>
     [Fact]
     public void ARequirementOverTheRequestRunsAfterParametersAreBound() {
-        var filter = Filter(false, new AuthorizeAttribute<MustOwnTheResource>())!;
+        var filter = Filter(false, new AuthorizeAttribute<BearerAuth, MustOwnTheResource>())!;
 
         Assert.Equal(FilterOrder.Authorization, filter.Order);
         Assert.True(filter.Order > FilterOrder.Validation);
@@ -329,7 +332,7 @@ public class AuthorizationFilterProviderTests {
         var filter = Filter(
             false,
             new AuthorizeGrantsAttribute("pets:read"),
-            new AuthorizeAttribute<MustOwnTheResource>())!;
+            new AuthorizeAttribute<BearerAuth, MustOwnTheResource>())!;
 
         Assert.Equal(FilterOrder.Authorization, filter.Order);
     }

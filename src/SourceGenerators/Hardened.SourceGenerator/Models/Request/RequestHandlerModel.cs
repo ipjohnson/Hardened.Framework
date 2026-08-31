@@ -62,6 +62,7 @@ public class RequestHandlerModel {
             // field left out here is a field the document loses only when the application has
             // [Handler] filters, which is the worst kind of sometimes.
             SecurityRequirements = SecurityRequirements,
+            DeclaredSecuritySchemes = DeclaredSecuritySchemes,
             HasGeneratedValidation = HasGeneratedValidation
         };
 
@@ -204,6 +205,14 @@ public class RequestHandlerModel {
     public IReadOnlyList<string> SecurityRequirements { get; set; } =
         System.Array.Empty<string>();
 
+    /// <summary>
+    /// The schemes this handler's attributes declare by using them, for
+    /// <c>components.securitySchemes</c>. Empty for described handlers, whose schemes travel on
+    /// the document identity instead.
+    /// </summary>
+    public IReadOnlyList<SecuritySchemeDeclaration> DeclaredSecuritySchemes { get; set; } =
+        System.Array.Empty<SecuritySchemeDeclaration>();
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;
@@ -284,6 +293,16 @@ public class RequestHandlerModel {
             if (!string.Equals(
                     SecurityRequirements[i], requestHandlerModel.SecurityRequirements[i],
                     StringComparison.Ordinal)) {
+                return false;
+            }
+        }
+
+        if (DeclaredSecuritySchemes.Count != requestHandlerModel.DeclaredSecuritySchemes.Count) {
+            return false;
+        }
+
+        for (var i = 0; i < DeclaredSecuritySchemes.Count; i++) {
+            if (!DeclaredSecuritySchemes[i].Equals(requestHandlerModel.DeclaredSecuritySchemes[i])) {
                 return false;
             }
         }

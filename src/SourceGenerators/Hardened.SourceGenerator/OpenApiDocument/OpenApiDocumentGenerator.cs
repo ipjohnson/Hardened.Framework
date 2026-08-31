@@ -121,9 +121,24 @@ public static class OpenApiDocumentGenerator {
 
         builder.Append('}');
 
-        var securitySchemes = identity?.SecuritySchemes;
+        // The identity's schemes (a contract's declarations) unioned with the ones handlers
+        // declare by naming them - [Authorize<TAuth>]'s whole premise is that usage is
+        // declaration. Identity wins a name collision, because a contract's spelling is the one
+        // reviewed.
+        var securitySchemes = new List<(string Name, string Json)>(
+            identity?.SecuritySchemes ?? (IReadOnlyList<(string, string)>)System.Array.Empty<(string, string)>());
 
-        if (components.Count > 0 || securitySchemes is { Count: > 0 }) {
+        foreach (var handler in handlers) {
+            foreach (var declared in handler.DeclaredSecuritySchemes) {
+                if (!securitySchemes.Exists(existing => existing.Name == declared.Name)) {
+                    securitySchemes.Add((declared.Name, declared.Json));
+                }
+            }
+        }
+
+        securitySchemes.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
+
+        if (components.Count > 0 || securitySchemes.Count > 0) {
             builder.Append(",\"components\":{");
 
             if (components.Count > 0) {
@@ -145,7 +160,7 @@ public static class OpenApiDocumentGenerator {
                 builder.Append('}');
             }
 
-            if (securitySchemes is { Count: > 0 }) {
+            if (securitySchemes.Count > 0) {
                 if (components.Count > 0) {
                     builder.Append(',');
                 }

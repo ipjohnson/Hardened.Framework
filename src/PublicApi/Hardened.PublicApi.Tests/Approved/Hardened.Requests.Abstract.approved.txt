@@ -82,6 +82,20 @@ namespace Hardened.Requests.Abstract.Authorization
         public string? Subject { get; }
         public bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value) { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public sealed class ApiKeyAuthenticationSchemeAttribute : System.Attribute
+    {
+        public ApiKeyAuthenticationSchemeAttribute(string name, Hardened.Requests.Abstract.Authorization.ApiKeyLocation location) { }
+        public string? Description { get; set; }
+        public Hardened.Requests.Abstract.Authorization.ApiKeyLocation Location { get; }
+        public string Name { get; }
+    }
+    public enum ApiKeyLocation
+    {
+        Header = 0,
+        Query = 1,
+        Cookie = 2,
+    }
     public sealed class AuthorizationChallenge
     {
         public const string BearerScheme = "Bearer";
@@ -149,6 +163,14 @@ namespace Hardened.Requests.Abstract.Authorization
         public static Hardened.Requests.Abstract.Authorization.GrantResolution Granting(params string[] granted) { }
         public static Hardened.Requests.Abstract.Authorization.GrantResolution Refusing(Hardened.Requests.Abstract.Authorization.AuthorizationDecision decision) { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public sealed class HttpAuthenticationSchemeAttribute : System.Attribute
+    {
+        public HttpAuthenticationSchemeAttribute(string scheme) { }
+        public string? BearerFormat { get; set; }
+        public string? Description { get; set; }
+        public string Scheme { get; }
+    }
     public interface IActivityAuthorizationHandler
     {
         System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.GrantResolution> Resolve(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<string> grants);
@@ -158,6 +180,7 @@ namespace Hardened.Requests.Abstract.Authorization
         System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.AuthorizationDecision> Authorize(Hardened.Requests.Abstract.Execution.IExecutionContext context, params string[] grants);
         System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.GrantResolution> Resolve(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<string> grants);
     }
+    public interface IAuthenticationScheme { }
     public interface IAuthorizationConvention
     {
         Hardened.Requests.Abstract.Authorization.Requirement? Apply(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo);
@@ -178,6 +201,23 @@ namespace Hardened.Requests.Abstract.Authorization
         string? Issuer { get; }
         string? Subject { get; }
         bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value);
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public sealed class OAuth2AuthenticationSchemeAttribute : System.Attribute
+    {
+        public OAuth2AuthenticationSchemeAttribute(Hardened.Requests.Abstract.Authorization.OAuth2Flow flow) { }
+        public string? AuthorizationUrl { get; set; }
+        public string? Description { get; set; }
+        public Hardened.Requests.Abstract.Authorization.OAuth2Flow Flow { get; }
+        public string? RefreshUrl { get; set; }
+        public string? TokenUrl { get; set; }
+    }
+    public enum OAuth2Flow
+    {
+        AuthorizationCode = 0,
+        ClientCredentials = 1,
+        Implicit = 2,
+        Password = 3,
     }
     public abstract class Requirement
     {
