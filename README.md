@@ -1,4 +1,6 @@
-# <picture><source media="(prefers-color-scheme: dark)" srcset="assets/hardened-mark-dark.svg"><img src="assets/hardened-mark.svg" alt="" width="34"></picture> Hardened.Framework
+![Hardened](https://raw.githubusercontent.com/ipjohnson/Hardened.Framework/main/assets/hardened-icon-128.png)
+
+# Hardened.Framework
 
 A compile-time, source-generated .NET framework for web APIs and serverless functions. The
 dependency injection, routing, parameter binding, configuration and request filters are written by
