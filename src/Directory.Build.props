@@ -22,15 +22,26 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
         <PackageIcon>hardened-icon-128.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <!--
-      PackageIcon names a file inside the nupkg, so the icon has to be packed into every
-      package alongside declaring it - a declaration without the file is NU5046 at pack time.
-      One icon for the whole Hardened.* family, from assets/ at the repository root.
+      PackageIcon and PackageReadmeFile both name a file inside the nupkg, so each has to be
+      packed alongside being declared - a declaration without the file is NU5046 for the icon
+      and NU5039 for the readme, both at pack time.
+
+      One icon and one readme for every package in the repository, from the repository root.
+      Every package showing the same readme is deliberate: the packages are one framework, and
+      a per-package readme is a second place for the story to drift out of date.
+
+      Note that nuget.org renders the readme through Markdig with inline HTML disabled, so raw
+      HTML in README.md is displayed as escaped text rather than rendered. That is why the
+      title carries a Markdown image and not the theme-aware <picture> element GitHub supports.
     -->
     <ItemGroup>
         <None Include="$(MSBuildThisFileDirectory)../assets/hardened-icon-128.png"
+              Pack="true" PackagePath="/" Visible="false" />
+        <None Include="$(MSBuildThisFileDirectory)../README.md"
               Pack="true" PackagePath="/" Visible="false" />
     </ItemGroup>
 
