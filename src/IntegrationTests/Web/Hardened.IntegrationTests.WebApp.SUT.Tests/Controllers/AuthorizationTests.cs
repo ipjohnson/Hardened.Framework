@@ -1,4 +1,4 @@
-using Hardened.IntegrationTests.WebApp.SUT.Filters;
+using Hardened.Requests.Testing;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
@@ -15,7 +15,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 public class AuthorizationTests {
 
     private static Action<TestWebRequest> Holding(string grants) =>
-        request => request.Headers[TestPrincipalMiddleware.GrantsHeader] = grants;
+        request => request.Headers[TestGrantsPrincipalSource.GrantsHeader] = grants;
 
     #region public routes
 

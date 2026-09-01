@@ -29,6 +29,11 @@ namespace Hardened.Requests.Runtime.Authorization
     {
         public AllowAnonymousAttribute() { }
     }
+    public sealed class AuthenticationMiddleware : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public AuthenticationMiddleware(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Authorization.IPrincipalSource> sources) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
     public class AuthorizationConfiguration : Hardened.Requests.Runtime.Authorization.IAuthorizationConfiguration
     {
         public AuthorizationConfiguration() { }

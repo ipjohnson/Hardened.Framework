@@ -49,6 +49,10 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         // that carries no authorization attribute, so an application that has not opted in to
         // anything pays nothing per request.
         services.AddSingleton<IStartupService, AuthorizationStartupService>();
+
+        // Same footing: one resolve at startup, and no middleware at all unless something
+        // registered an IPrincipalSource.
+        services.AddSingleton<IStartupService, AuthenticationStartupService>();
     }
 
     /// <summary>
