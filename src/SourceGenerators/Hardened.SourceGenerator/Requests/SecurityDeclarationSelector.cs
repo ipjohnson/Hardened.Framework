@@ -50,12 +50,21 @@ internal static class SecurityDeclarationSelector {
         CancellationToken cancellationToken) {
         var schemes = new List<SecuritySchemeDeclaration>();
         var grants = new List<string>();
+        var misplaced = new List<string>();
 
-        Read(context, method.AttributeLists, schemes, grants, cancellationToken);
+        Read(context, method.AttributeLists,
+            model.ControllerType.Name + "." + model.HandlerMethod,
+            schemes, grants, misplaced, cancellationToken);
 
         if (method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault()
             is { } controller) {
-            Read(context, controller.AttributeLists, schemes, grants, cancellationToken);
+            Read(context, controller.AttributeLists,
+                model.ControllerType.Name,
+                schemes, grants, misplaced, cancellationToken);
+        }
+
+        if (misplaced.Count > 0) {
+            model.MisplacedSchemeAttributes = misplaced;
         }
 
         if (schemes.Count == 0) {
@@ -75,8 +84,10 @@ internal static class SecurityDeclarationSelector {
     private static void Read(
         GeneratorSyntaxContext context,
         SyntaxList<AttributeListSyntax> attributeLists,
+        string owner,
         List<SecuritySchemeDeclaration> schemes,
         List<string> grants,
+        List<string> misplaced,
         CancellationToken cancellationToken) {
         foreach (var attributeList in attributeLists) {
             foreach (var attribute in attributeList.Attributes) {
@@ -103,6 +114,17 @@ internal static class SecurityDeclarationSelector {
                     // The literal form only. The generic form computes its grants in a provider
                     // the generator cannot run.
                     LiteralGrants(attribute, context, grants, cancellationToken);
+                } else if (type.Name is "HttpAuthenticationSchemeAttribute"
+                           or "ApiKeyAuthenticationSchemeAttribute"
+                           or "OAuth2AuthenticationSchemeAttribute") {
+                    // A scheme-shape attribute in a position nothing reads. It belongs on a scheme
+                    // type named by [Authorize<TScheme>]; here it publishes nothing and enforces
+                    // nothing, which is the silent no-op the second trial walked into.
+                    var entry = owner + "|" + type.Name;
+
+                    if (!misplaced.Contains(entry)) {
+                        misplaced.Add(entry);
+                    }
                 }
             }
         }
