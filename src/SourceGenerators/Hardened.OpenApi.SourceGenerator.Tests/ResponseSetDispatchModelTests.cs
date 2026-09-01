@@ -69,6 +69,27 @@ public class ResponseSetDispatchModelTests {
                             Parameters = new List<ParameterModel> {
                                 new() { Name = "id", In = "path", IsRequired = true, Type = "integer" }
                             }
+                        },
+                        new() {
+                            OperationId = "getTodoLabel",
+                            Path = "/todos/{id}/label",
+                            HttpMethod = "GET",
+                            ResponseType = "string",
+                            ResponseContentType = "text/plain",
+                            SuccessStatusCode = 200,
+                            SuccessResponses = {
+                                new SuccessResponseModel {
+                                    StatusCode = 200, Type = "string", ContentType = "text/plain"
+                                }
+                            },
+                            ErrorResponses = {
+                                new ErrorResponseModel {
+                                    StatusCode = 404, Ref = "#/components/schemas/Problem"
+                                }
+                            },
+                            Parameters = new List<ParameterModel> {
+                                new() { Name = "id", In = "path", IsRequired = true, Type = "integer" }
+                            }
                         }
                     }
                 }
@@ -144,5 +165,32 @@ public class ResponseSetDispatchModelTests {
         Assert.Equal(
             Cases(SpecResponseModel.Response, "GetTodo").Select(c => (c.TypeName, c.Status)),
             Cases(SpecResponseModel.Union, "GetTodo").Select(c => (c.TypeName, c.Status)));
+    }
+
+    /// <summary>
+    /// A scalar success carries its body. The contract types it without naming it -
+    /// <c>type: string</c>, no <c>$ref</c> - and the emitted case record wraps it in a Body member
+    /// exactly as a declared error's wrapper does. Keyed on <c>Ref</c> alone, this case was built
+    /// bodyless and the switch answered the operation's own 200 with nothing.
+    /// </summary>
+    [Fact]
+    public void Response_AScalarSuccessCarriesItsBody() {
+        var cases = Cases(SpecResponseModel.Response, "GetTodoLabel");
+
+        var success = cases.Single(c => c.Status == 200);
+
+        Assert.Equal("global::Test.Api.Models.GetTodoLabelOk", success.TypeName);
+        Assert.True(success.HasBody);
+        Assert.True(success.CarriesBody);
+        Assert.Equal("string", success.BodyTypeName);
+    }
+
+    /// <summary>And the union mode answers with the same case, like every other shape.</summary>
+    [Fact]
+    public void Union_AScalarSuccessCarriesItsBody() {
+        var success = Cases(SpecResponseModel.Union, "GetTodoLabel").Single(c => c.Status == 200);
+
+        Assert.True(success.HasBody);
+        Assert.True(success.CarriesBody);
     }
 }
