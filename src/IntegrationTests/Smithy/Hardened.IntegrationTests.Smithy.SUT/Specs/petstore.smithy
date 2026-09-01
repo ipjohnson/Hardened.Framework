@@ -57,6 +57,12 @@ operation ListPets {
         @httpQuery("limit")
         @range(min: 1, max: 100)
         limit: Integer
+
+        // An enum bound as a query value and appearing nowhere in this operation's bodies. The
+        // parameter published as a bare string: Describe() returns the shape's reference and the
+        // builder never resolved it against the schema list.
+        @httpQuery("kind")
+        kind: PetKind
     }
     output := {
         @required

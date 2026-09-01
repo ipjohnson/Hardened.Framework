@@ -64,35 +64,11 @@ internal static class RequestModelBuilder {
                     }
                 }
 
-                result.Add(new RequestHandlerModel(
-                    model.Name,
-                    model.ControllerType,
-                    model.HandlerMethod,
-                    model.InvokeHandlerType,
-                    model.RequestParameterInformationList,
-                    responseInformation,
-                    filters) {
-                    // Carried across: this rebuilds the model to add [Handler] filters, and dropping
-                    // it here leaves Parameters not implementing the interface its validator is
-                    // typed on - so the filter's type test fails and validation silently does not
-                    // run, on a build that is otherwise green.
-                    ParametersInterface = model.ParametersInterface,
-
-                    // Everything else the builder decided, for the same reason: this constructor
-                    // takes seven of the model's members and an object initialiser is the only
-                    // thing carrying the rest, so anything not restated here is dropped. The
-                    // schemas going missing is what published a document describing no payloads.
-                    Summary = model.Summary,
-                    Description = model.Description,
-                    Tag = model.Tag,
-                    IsDeprecated = model.IsDeprecated,
-                    RequestSchema = model.RequestSchema,
-                    ResponseSchemas = model.ResponseSchemas,
-                    DeclaredResponsesAreComplete = model.DeclaredResponsesAreComplete,
-                    SecurityRequirements = model.SecurityRequirements,
-                    DeclaredSecuritySchemes = model.DeclaredSecuritySchemes,
-                    HasGeneratedValidation = model.HasGeneratedValidation,
-                });
+                // Through WithFilters, which carries every settable member, rather than a second
+                // hand-rolled copy. This used to restate the members one by one, and each field
+                // added to the model was silently dropped here until someone noticed - the tag's
+                // description was the latest. One copy site is the fix, not a longer list.
+                result.Add(model.WithFilters(filters, responseInformation));
             } else {
                 result.Add(model);
             }

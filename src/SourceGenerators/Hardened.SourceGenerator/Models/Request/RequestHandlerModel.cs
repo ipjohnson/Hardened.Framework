@@ -40,13 +40,15 @@ public class RequestHandlerModel {
     /// now the only place that has to change.
     /// </para>
     /// </remarks>
-    public RequestHandlerModel WithFilters(IReadOnlyList<AttributeModel> filters) =>
+    public RequestHandlerModel WithFilters(
+        IReadOnlyList<AttributeModel> filters,
+        ResponseInformationModel? responseInformation = null) =>
         new(Name,
             ControllerType,
             HandlerMethod,
             InvokeHandlerType,
             RequestParameterInformationList,
-            ResponseInformation,
+            responseInformation ?? ResponseInformation,
             filters) {
             ParametersInterface = ParametersInterface,
             ParametersValidator = ParametersValidator,
@@ -55,6 +57,7 @@ public class RequestHandlerModel {
             DeclaredResponsesAreComplete = DeclaredResponsesAreComplete,
             RequestSchema = RequestSchema,
             Tag = Tag,
+            TagDescription = TagDescription,
             Summary = Summary,
             Description = Description,
             IsDeprecated = IsDeprecated,
@@ -167,6 +170,12 @@ public class RequestHandlerModel {
     /// generators, and neither has tags or a document to put them in.
     /// </remarks>
     public string? Tag { get; set; }
+
+    /// <summary>
+    /// The description the contract gives this handler's tag, for the document's
+    /// <c>tags</c> list. Null for code-first, which has no way to describe a group yet.
+    /// </summary>
+    public string? TagDescription { get; set; }
 
     /// <summary>
     /// The handler's <c>&lt;summary&gt;</c> doc comment, as the operation's <c>summary</c>.
@@ -305,6 +314,11 @@ public class RequestHandlerModel {
         }
 
         if (!string.Equals(Tag, requestHandlerModel.Tag, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        if (!string.Equals(
+                TagDescription, requestHandlerModel.TagDescription, StringComparison.Ordinal)) {
             return false;
         }
 

@@ -200,6 +200,10 @@ internal static class OpenApiSpecParser {
         foreach (var kvp in operationsByTag) {
             model.Services.Add(new ServiceModel {
                 Tag = kvp.Key,
+                // From the document's top-level tags list, which is the one place a contract
+                // describes a group rather than an operation.
+                TagDescription = document.Tags?
+                    .FirstOrDefault(t => t.Name == kvp.Key)?.Description,
                 Operations = kvp.Value
             });
         }
