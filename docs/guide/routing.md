@@ -289,10 +289,15 @@ A handler that returns `null` produces a status chosen from the request's method
 So a lookup is a 404 without an `if`, and a delete of something already gone is a 200. A 404 is
 logged at information level with the method and path.
 
-::: warning The status properties on the route attributes are not read
-`[Get]`, `[Put]`, `[Delete]` and `[Patch]` each declare `SuccessStatus`, `NullReturnStatus`,
-`ValidationErrorStatus` and `ErrorStatus`. The web generator reads none of them — the table above is
-what decides the status. To control a status today, set `context.Response.Status` from an
+::: tip `SuccessStatus` names the success
+Every verb attribute declares `SuccessStatus`, the status a successful response answers with.
+`[Post("/todos", SuccessStatus = 201)]` answers 201 and publishes it in
+[the OpenAPI document](/guide/openapi-document). Unset means 200. The framework writes no body for
+204, 205 or 304 whatever the handler returned.
+
+The `NullReturnStatus`, `ValidationErrorStatus` and `ErrorStatus` properties the attributes once
+carried are gone; the table above is what decides a `null` return's status. To control an error
+status, set `context.Response.Status` from an
 [execution filter](/guide/execution-pipeline), or declare the set with
 [a response type](/guide/responses).
 :::

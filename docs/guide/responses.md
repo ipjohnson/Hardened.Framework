@@ -34,9 +34,11 @@ and the body. The 404 a client sees is identical to the one the declared modes r
 is that nothing in the signature says this route can answer it, so nothing checks that you handled
 it and the generated document describes only the 200.
 
-**One success, and only one.** A handler in this mode has nowhere to name a status beside its
-success type: returning `Created<Todo>` serialises it as an ordinary body at 200. Specification-first
-is the exception — see [below](#specification-first).
+**One success, and only one.** The route attribute names the status that success answers, so
+`[Post("/todos", SuccessStatus = 201)]` is a 201 without a response set. What this mode cannot do
+is carry a second success case: returning `Created<Todo>` serialises it as an ordinary body at the
+declared status, not as a case of its own. Specification-first declares the status in the contract
+instead; see [below](#specification-first).
 
 ## Response
 

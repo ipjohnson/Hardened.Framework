@@ -6,20 +6,18 @@ operation stops the build until the implementation catches up.
 
 ## The document
 
-Add it to `AdditionalFiles`:
+Declare it as a `HardenedOpenApiSpec` item:
 
 ```xml
-<PropertyGroup>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-</PropertyGroup>
-
 <ItemGroup>
-    <AdditionalFiles Include="Specs\petstore.yaml" />
+    <HardenedOpenApiSpec Include="Specs\petstore.yaml" />
 </ItemGroup>
 ```
 
-Any `.yaml`, `.yml` or `.json` file in `AdditionalFiles` is treated as a candidate document. The
-file's name becomes the prefix on the generated file names, so one project can carry several.
+A build task parses every declared document before the compiler runs, and the generators write C#
+from what it parsed. The file's name becomes the prefix on the generated file names, so one
+project can carry several. Declaring a document as `AdditionalFiles` is the old form and stops the
+build with `HOAT003`; the generator no longer reads yaml directly.
 
 ```yaml
 # Specs/petstore.yaml
@@ -286,20 +284,21 @@ Generated models and handlers carry `[ExcludeFromCodeCoverage]`. Turn that off w
 
 ## When nothing is generated
 
-The generator always emits `_OpenApiDiagnostic.g.cs`, listing every `AdditionalTexts` path it was
-handed, how many parsed as OpenAPI, and any parse errors:
+The generator always emits `_SpecModelDiagnostic.g.cs`, listing every parsed model the build task
+handed it and any parse errors:
 
 ```csharp
 // OpenAPI Generator Diagnostic
 // Total AdditionalTexts: 1
 // OpenAPI files parsed: 1
 // AdditionalText paths:
-//   /src/Api/Specs/petstore.yaml
+//   /src/Api/obj/Debug/net8.0/openapi/petstore.openapi-model.txt
 ```
 
-`Total AdditionalTexts: 0` means the `AdditionalFiles` item never reached the compiler — usually a
-path that does not match, or an `Include` outside any `ItemGroup` the project evaluates. Parse
-failures are also raised as `HOAG002` warnings.
+`Total AdditionalTexts: 0` means the build task's output never reached the compiler, which usually
+means the document is not declared as a `HardenedOpenApiSpec` item. A document still declared as
+`AdditionalFiles` stops the build with `HOAT003`, whose message names the item to use. Parse
+failures are raised as `HOAG002` warnings.
 
 ## Testing
 

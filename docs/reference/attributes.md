@@ -105,9 +105,10 @@ See [Authorization](/guide/authorization).
 | `[CaseInsensitiveRoutes]` | Class | Matches this module's routes [without regard to case](/guide/routing#case-and-trailing-slashes) |
 | `[RouteConstraint(name)]` | Method | Declares a [route constraint](/guide/routing#declaring-your-own-constraint). `static bool(ReadOnlySpan<char>)` |
 
-`[Get]`, `[Put]`, `[Delete]` and `[Patch]` also declare `SuccessStatus`, `NullReturnStatus`,
-`ValidationErrorStatus` and `ErrorStatus`, but the web generator does not read them — see
-[Returning `null`](/guide/routing#returning-null) for what decides the status instead.
+The verb attributes also declare `SuccessStatus`, the status a successful response answers with
+and the document publishes; unset means 200. The `NullReturnStatus`, `ValidationErrorStatus` and
+`ErrorStatus` properties they once carried are gone. See
+[Returning `null`](/guide/routing#returning-null) for what decides those statuses.
 
 ## Templates
 

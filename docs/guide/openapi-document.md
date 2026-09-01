@@ -157,11 +157,12 @@ public Response<Todo, NotFound> ById(ITodoStore store, int id) { /* returns NotF
 One entry per status, written in status order. Two cases at the same status become a `oneOf` —
 `Response<Todo, Archived>` where both are 200 means two shapes under one status.
 
-::: tip Code-first success is 200
-The `SuccessStatus` property on the route attributes is not read — see
-[Routing](/guide/routing#return-values-and-status-codes). A code-first operation publishes 200 for
-its success unless a response set case carries its own `[HttpStatus]`, which is how `Created<T>`
-publishes 201. IDL-first takes the success status from the contract.
+::: tip Code-first success defaults to 200
+A code-first operation publishes 200 for its success unless the route attribute names another.
+`[Post("/todos", SuccessStatus = 201)]` publishes 201 and answers it. A response set case can also
+carry its own `[HttpStatus]`, which is how `Created<T>` publishes 201. IDL-first takes the success
+status from the contract. The attribute and the contract fill the same field, so the document and
+the wire cannot disagree. See [Routing](/guide/routing#return-values-and-status-codes).
 :::
 
 ## What else reaches the document
@@ -174,10 +175,19 @@ publishes 201. IDL-first takes the success status from the contract.
 A handler's XML documentation comment carries into the operation: `<summary>` becomes `summary` and
 `<remarks>` becomes `description`.
 
-A property annotated `[Min]`, `[Max]`, `[Pattern]`, `[ItemCount]`, `[MultipleOf]` or
-`[AllowedValues]` publishes `minimum`, `maximum`, `pattern`, `minItems`/`maxItems`, `multipleOf` or
-`enum` alongside its type, so the constraint a client is validated against is the one the document
-advertises.
+A property annotated `[Range]`, `[StringLength]`, `[Pattern]`, `[ItemCount]`, `[MultipleOf]` or
+`[AllowedValues]` publishes `minimum`/`maximum`, `minLength`/`maxLength`, `pattern`,
+`minItems`/`maxItems`, `multipleOf` or `enum` alongside its type, so the constraint a client is
+validated against is the one the document advertises. The attributes live in the
+`ValidationModules.Constraints` namespace:
+
+```csharp
+using ValidationModules.Constraints;
+
+public record CreateTodo(
+    [property: StringLength(Min = 1, Max = 200)] string Title,
+    [property: Range(Min = 1, Max = 5)] int Priority);
+```
 
 ## Next
 
