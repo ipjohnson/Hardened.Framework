@@ -867,7 +867,9 @@ internal static class OpenApiSpecParser {
             Kind = SchemaKind.Array,
             ArrayItemsRef = GetNonPrimitiveRef(schema.Items),
             ArrayItemsType = SchemaType(schema.Items),
-            ArrayItemsFormat = schema.Items?.Format
+            ArrayItemsFormat = schema.Items?.Format,
+            MinItems = schema.MinItems,
+            MaxItems = schema.MaxItems
         };
     }
 

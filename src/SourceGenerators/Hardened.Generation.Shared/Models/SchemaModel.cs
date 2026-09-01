@@ -62,6 +62,14 @@ internal class SchemaModel : IEquatable<SchemaModel> {
     public string? ArrayItemsRef { get; set; }
     public string? ArrayItemsType { get; set; }
     public string? ArrayItemsFormat { get; set; }
+
+    /// <summary>
+    /// The item-count bounds a named array schema declares on itself. A property's bounds live on
+    /// <see cref="PropertyModel"/>; these are for the schema a contract names at the top level,
+    /// whose bound previously had nowhere to land.
+    /// </summary>
+    public int? MinItems { get; set; }
+    public int? MaxItems { get; set; }
     public string? DictionaryValueType { get; set; }
     public string? DictionaryValueRef { get; set; }
     public string? Type { get; set; }
@@ -104,6 +112,8 @@ internal class SchemaModel : IEquatable<SchemaModel> {
                ArrayItemsRef == other.ArrayItemsRef &&
                ArrayItemsType == other.ArrayItemsType &&
                ArrayItemsFormat == other.ArrayItemsFormat &&
+               MinItems == other.MinItems &&
+               MaxItems == other.MaxItems &&
                DictionaryValueType == other.DictionaryValueType &&
                DictionaryValueRef == other.DictionaryValueRef &&
                DiscriminatorPropertyName == other.DiscriminatorPropertyName &&

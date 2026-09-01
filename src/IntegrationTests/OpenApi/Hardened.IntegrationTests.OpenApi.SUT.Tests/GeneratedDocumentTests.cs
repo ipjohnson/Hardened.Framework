@@ -91,6 +91,51 @@ public class GeneratedDocumentTests {
     }
 
     /// <summary>
+    /// The constraints the contract declares reach the published schemas.
+    /// </summary>
+    /// <remarks>
+    /// The model carried every one of these facts and the writer published none - only type,
+    /// format and description survived, while parameters travelled a function that always knew
+    /// the keywords. The trial's document-fidelity matrix found exactly that inversion: every
+    /// parameter constraint published, every body constraint dropped. These assertions are that
+    /// matrix, over the schemas this contract already declares.
+    /// </remarks>
+    [HardenedTest]
+    public async Task TheSchemasCarryTheConstraintsTheContractDeclared(ITestWebApp app) {
+        var schemas = (await Document(app)).GetProperty("components").GetProperty("schemas");
+
+        var create = schemas.GetProperty("CreatePetRequest").GetProperty("properties");
+
+        Assert.Equal(1, create.GetProperty("name").GetProperty("minLength").GetInt32());
+        Assert.Equal(100, create.GetProperty("name").GetProperty("maxLength").GetInt32());
+        Assert.Equal(
+            "^[a-zA-Z0-9-]*$", create.GetProperty("tag").GetProperty("pattern").GetString());
+
+        var rating = schemas.GetProperty("UpdatePetRequest").GetProperty("properties")
+            .GetProperty("rating");
+
+        Assert.Equal(1, rating.GetProperty("minimum").GetInt32());
+        Assert.Equal(5, rating.GetProperty("maximum").GetInt32());
+    }
+
+    /// <summary>
+    /// A property the contract marks nullable publishes the 2020-12 type array, the way the
+    /// code-first writer already does. The framework's own 404 body sends <c>detail</c> as null.
+    /// </summary>
+    [HardenedTest]
+    public async Task ANullablePropertyPublishesTheTypeArray(ITestWebApp app) {
+        var detail = (await Document(app)).GetProperty("components").GetProperty("schemas")
+            .GetProperty("Problem").GetProperty("properties").GetProperty("detail");
+
+        var type = detail.GetProperty("type");
+
+        Assert.Equal(JsonValueKind.Array, type.ValueKind);
+        Assert.Equal(
+            new[] { "string", "null" },
+            type.EnumerateArray().Select(entry => entry.GetString()).ToArray());
+    }
+
+    /// <summary>
     /// Every verb declared at one path reaches the document, including where they disagree about
     /// the token's constraint.
     /// </summary>

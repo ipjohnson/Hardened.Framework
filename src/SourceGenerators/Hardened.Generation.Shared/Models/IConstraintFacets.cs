@@ -38,4 +38,7 @@ internal interface IConstraintFacets {
     int? MaxItems { get; }
 
     List<string>? EnumValues { get; }
+
+    /// <summary>The declared <c>default</c>, as written in the contract.</summary>
+    string? Default { get; }
 }
