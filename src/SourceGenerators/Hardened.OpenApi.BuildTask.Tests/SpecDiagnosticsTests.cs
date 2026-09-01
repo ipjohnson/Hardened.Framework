@@ -28,9 +28,9 @@ public class SpecDiagnosticsTests {
     /// </summary>
     [Fact]
     public void APropertyNamedAfterItsSchemaIsReported() {
-        var problem = Assert.Single(SpecDiagnostics.Find(SpecWith("Message", "message")));
+        var problem = Assert.Single(SpecDiagnostics.Find(SpecWith("Message", "message"), "HOAT"));
 
-        Assert.Equal("HOAT003", problem.Code);
+        Assert.Equal("HOAT020", problem.Code);
         Assert.Contains("Message", problem.Message);
         Assert.Contains("message", problem.Message);
         Assert.Contains("CS0542", problem.Message);
@@ -42,23 +42,23 @@ public class SpecDiagnosticsTests {
     [InlineData("user", "User")]
     [InlineData("Order", "order")]
     public void TheCollisionIsOnThePascalCasedName(string schemaName, string propertyName) {
-        Assert.Single(SpecDiagnostics.Find(SpecWith(schemaName, propertyName)));
+        Assert.Single(SpecDiagnostics.Find(SpecWith(schemaName, propertyName), "HOAT"));
     }
 
     /// <summary>Snake case collides too, once both sides are PascalCased.</summary>
     [Fact]
     public void ASnakeCasePropertyCanCollide() {
-        Assert.Single(SpecDiagnostics.Find(SpecWith("RandomNumber", "random_number")));
+        Assert.Single(SpecDiagnostics.Find(SpecWith("RandomNumber", "random_number"), "HOAT"));
     }
 
     [Fact]
     public void AnOrdinaryScheamIsNotReported() {
-        Assert.Empty(SpecDiagnostics.Find(SpecWith("Message", "text", "id")));
+        Assert.Empty(SpecDiagnostics.Find(SpecWith("Message", "text", "id"), "HOAT"));
     }
 
     [Fact]
     public void EachCollidingPropertyIsReportedOnce() {
-        Assert.Single(SpecDiagnostics.Find(SpecWith("Thing", "thing", "other")));
+        Assert.Single(SpecDiagnostics.Find(SpecWith("Thing", "thing", "other"), "HOAT"));
     }
 
     /// <summary>
@@ -78,9 +78,9 @@ public class SpecDiagnosticsTests {
             }
         };
 
-        var problem = Assert.Single(SpecDiagnostics.Find(model));
+        var problem = Assert.Single(SpecDiagnostics.Find(model, "HOAT"));
 
-        Assert.Equal("HOAT005", problem.Code);
+        Assert.Equal("HOAT021", problem.Code);
         Assert.Contains("PetAddress", problem.Message);
     }
 
@@ -94,7 +94,7 @@ public class SpecDiagnosticsTests {
             }
         };
 
-        Assert.Empty(SpecDiagnostics.Find(model));
+        Assert.Empty(SpecDiagnostics.Find(model, "HOAT"));
     }
 
 }

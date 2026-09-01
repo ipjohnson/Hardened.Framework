@@ -8,9 +8,18 @@ namespace Hardened.Idl;
 /// Problems a spec can describe that generate C# which will not compile.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Reported against the spec file, because that is what the author edits. Left undetected these
 /// surface as compiler errors in generated code under <c>obj/</c> - a file nobody can open and fix,
 /// with a message that never mentions the document that caused it.
+/// </para>
+/// <para>
+/// Codes are the front end's prefix plus 020-025, one number per finder. The prefix is a
+/// parameter because this pass runs for every front end and a finding belongs to the document
+/// that caused it: a Smithy model's mixed enum reported as HOAT anything sends its author to the
+/// OpenAPI documentation. 020 up is this pass's block; everything below it belongs to the task
+/// shell, the packaged targets and the Smithy CLI task, per docs/generator-diagnostics.md.
+/// </para>
 /// </remarks>
 internal static class SpecDiagnostics {
 
@@ -47,7 +56,8 @@ internal static class SpecDiagnostics {
     /// rather than leaving to be discovered: the fix is a discriminator in the document, or
     /// ShapeMatchOneOf if the branches really can be told apart by shape.
     /// </remarks>
-    private static void FindUnresolvableChoices(ServiceSpecModel model, List<Problem> problems) {
+    private static void FindUnresolvableChoices(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
         foreach (var schema in model.Schemas) {
             if (schema.Kind != SchemaKind.OneOf || schema.DiscriminatorPropertyName != null) {
                 continue;
@@ -66,7 +76,7 @@ internal static class SpecDiagnostics {
             }
 
             problems.Add(new Problem(
-                "HOAT010",
+                prefix + "022",
                 $"'{schema.Name}' declares no discriminator and nothing in the schemas separates " +
                 $"{string.Join(" from ", names)}, so those are told apart by reading the payload " +
                 "into each and requiring exactly one to fit. A payload matching several is an " +
@@ -99,7 +109,8 @@ internal static class SpecDiagnostics {
     /// <c>description</c>, because the parser mapped it.
     /// </para>
     /// </remarks>
-    private static void FindUnmappedKeywords(ServiceSpecModel model, List<Problem> problems) {
+    private static void FindUnmappedKeywords(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
         if (model.UnmappedKeywords.Count == 0) {
             return;
         }
@@ -139,7 +150,7 @@ internal static class SpecDiagnostics {
                   (locations.Count == 2 ? "place" : "places");
 
             problems.Add(new Problem(
-                "HOAT013",
+                prefix + "024",
                 $"'{keyword}' is declared {where} and is not enforced. The description promises it " +
                 "and the generated application does not apply it, so a payload this rejects on " +
                 "paper is accepted at runtime. Remove it, or keep it and enforce the rule in the " +
@@ -160,11 +171,12 @@ internal static class SpecDiagnostics {
     /// caller may send - which is the shape of defect the whole enum vocabulary work exists to
     /// close. The document has to say which it means.
     /// </remarks>
-    private static void FindMixedEnums(ServiceSpecModel model, List<Problem> problems) {
+    private static void FindMixedEnums(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
         foreach (var schema in model.Schemas) {
             if (schema.Kind == SchemaKind.Enum && schema.Type == MixedEnumType) {
                 problems.Add(new Problem(
-                    "HOAT011",
+                    prefix + "023",
                     $"Enum '{schema.Name}' declares both string and numeric values. A C# enum " +
                     "carries one wire form or the other, and picking one here would put every " +
                     "value of the other kind out of reach. Declare the members as all strings or " +
@@ -180,14 +192,14 @@ internal static class SpecDiagnostics {
     /// </summary>
     internal const string MixedEnumType = "mixed-enum";
 
-    public static IReadOnlyList<Problem> Find(ServiceSpecModel model) {
+    public static IReadOnlyList<Problem> Find(ServiceSpecModel model, string diagnosticPrefix) {
         var problems = new List<Problem>();
 
-        FindDuplicateSchemaNames(model, problems);
-        FindUnresolvableChoices(model, problems);
-        FindMixedEnums(model, problems);
-        FindUnmappedKeywords(model, problems);
-        FindCollidingErrorStatuses(model, problems);
+        FindDuplicateSchemaNames(model, diagnosticPrefix, problems);
+        FindUnresolvableChoices(model, diagnosticPrefix, problems);
+        FindMixedEnums(model, diagnosticPrefix, problems);
+        FindUnmappedKeywords(model, diagnosticPrefix, problems);
+        FindCollidingErrorStatuses(model, diagnosticPrefix, problems);
 
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
@@ -203,7 +215,7 @@ internal static class SpecDiagnostics {
                 // enclosing type". The emitted record would be
                 // "record Message(string Message)", which is not a compilable declaration.
                 problems.Add(new Problem(
-                    "HOAT003",
+                    diagnosticPrefix + "020",
                     $"Schema '{schema.Name}' declares property '{property.Name}', which would " +
                     $"generate a member named '{typeName}' inside a type of the same name - C# does " +
                     $"not allow that (CS0542). The member is generated as '{property.MemberName}'; " +
@@ -240,7 +252,8 @@ internal static class SpecDiagnostics {
     /// carry the same code), which is exactly why it has to be reported here: smithy validate
     /// accepts it and the compiler garbles it.
     /// </remarks>
-    private static void FindCollidingErrorStatuses(ServiceSpecModel model, List<Problem> problems) {
+    private static void FindCollidingErrorStatuses(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
         foreach (var service in model.Services) {
             foreach (var operation in service.Operations) {
                 var seen = new Dictionary<int, string?>();
@@ -248,7 +261,7 @@ internal static class SpecDiagnostics {
                 foreach (var error in operation.ErrorResponses) {
                     if (seen.TryGetValue(error.StatusCode, out var first)) {
                         problems.Add(new Problem(
-                            "HSPEC010",
+                            prefix + "025",
                             $"operation '{operation.OperationId}' declares two error responses " +
                             $"at status {error.StatusCode} ('{first}' and '{error.Ref}'). One " +
                             "status has one case type, so this generates the same record twice. " +
@@ -262,7 +275,8 @@ internal static class SpecDiagnostics {
         }
     }
 
-    private static void FindDuplicateSchemaNames(ServiceSpecModel model, List<Problem> problems) {
+    private static void FindDuplicateSchemaNames(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
         var seen = new Dictionary<string, string>();
 
         foreach (var schema in model.Schemas) {
@@ -274,7 +288,7 @@ internal static class SpecDiagnostics {
                 // the assertion that neither missed, and it does not stop the build, because a
                 // duplicate type name surfaces immediately as CS0101 anyway.
                 problems.Add(new Problem(
-                    "HOAT005",
+                    prefix + "021",
                     $"Schemas '{first}' and '{schema.Name}' both generate a type named " +
                     $"'{typeName}', which should have been resolved automatically. Rename one of " +
                     "them in the document.",

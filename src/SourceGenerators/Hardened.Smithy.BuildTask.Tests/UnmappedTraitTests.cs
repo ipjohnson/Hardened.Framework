@@ -122,8 +122,8 @@ public class UnmappedTraitTests {
     /// </summary>
     [Fact]
     public void AMemberMetTwiceIsCountedOnce() {
-        var problem = SpecDiagnostics.Find(Parse(Ast))
-            .First(p => p.Code == "HOAT013" && p.Message.Contains("@uniqueItems"));
+        var problem = SpecDiagnostics.Find(Parse(Ast), "HSMT")
+            .First(p => p.Code == "HSMT024" && p.Message.Contains("@uniqueItems"));
 
         Assert.Contains("at tags", problem.Message);
         Assert.DoesNotContain("other place", problem.Message);
@@ -144,10 +144,33 @@ public class UnmappedTraitTests {
     /// </summary>
     [Fact]
     public void ItReachesTheSharedDiagnosticsPass() {
-        var problems = SpecDiagnostics.Find(Parse(Ast)).Where(p => p.Code == "HOAT013").ToList();
+        var problems = SpecDiagnostics.Find(Parse(Ast), "HSMT").Where(p => p.Code == "HSMT024").ToList();
 
         Assert.Equal(2, problems.Count);
         Assert.All(problems, problem => Assert.False(problem.Fatal));
+    }
+
+    /// <summary>
+    /// <c>@paginated</c> was ignorable as a client concern, and it is not one: it promises the
+    /// operation honours a paging protocol, and the generated server receives the named members
+    /// with nothing enforcing it. The model builds and the weakening is said out loud.
+    /// </summary>
+    [Fact]
+    public void PaginatedIsReportedAsADegrade() {
+        var ast = Ast.Replace(
+            "\"smithy.api#http\": { \"method\": \"POST\", \"uri\": \"/products\", \"code\": 201 }",
+            "\"smithy.api#http\": { \"method\": \"POST\", \"uri\": \"/products\", \"code\": 201 },\n" +
+            "                \"smithy.api#paginated\": { \"inputToken\": \"nextToken\", \"outputToken\": \"nextToken\" }");
+
+        // The replacement has to have happened, or this asserts nothing.
+        Assert.Contains("paginated", ast);
+
+        var diagnostics = new List<string>();
+        var model = SmithySpecParser.Parse(ast, "depot", diagnostics);
+
+        Assert.NotNull(model);
+        Assert.Contains(diagnostics,
+            d => d.Contains("smithy.api#paginated") && d.Contains("no equivalent"));
     }
 
     /// <summary>

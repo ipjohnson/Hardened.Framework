@@ -153,6 +153,13 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
         string document, string fileName, string specPath, ICollection<string> diagnostics);
 
     /// <summary>The diagnostic code prefix this front end reports under - <c>HOAT</c> and friends.</summary>
+    /// <remarks>
+    /// A number means the same thing under every prefix, and everything reporting under one prefix
+    /// shares one numbering - which includes reporters that are not this class. This shell uses
+    /// 001-009 and 016-017, the packaged targets use 003-005 and 015, the Smithy CLI task uses
+    /// 010-014, and <see cref="SpecDiagnostics"/> uses 020 up. The full table is
+    /// docs/generator-diagnostics.md.
+    /// </remarks>
     protected abstract string DiagnosticPrefix { get; }
 
     /// <summary>What this front end calls the thing it reads, for diagnostics.</summary>
@@ -295,7 +302,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
         // A page renders exactly one document and fetches it by URL, so a page without one is a
         // page that renders an error. Said here rather than left to be discovered in a browser.
         if (uiUrl.Length > 0 && publishUrl.Length == 0) {
-            Log.LogError(null, DiagnosticPrefix + "010", null, path, 0, 0, 0, 0,
+            Log.LogError(null, DiagnosticPrefix + "016", null, path, 0, 0, 0, 0,
                 "'{0}' sets UiUrl but not PublishUrl, so the page at '{1}' would have no document " +
                 "to render. Set PublishUrl to where the document should be served.", path, uiUrl);
 
@@ -307,7 +314,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
         // Here rather than on PublishUrl: serving the contract itself is the one thing that needs
         // the contract in the assembly.
         if (sourceUrl.Length > 0 && !Embedded(spec)) {
-            Log.LogError(null, DiagnosticPrefix + "011", null, path, 0, 0, 0, 0,
+            Log.LogError(null, DiagnosticPrefix + "017", null, path, 0, 0, 0, 0,
                 "'{0}' sets SourceUrl but EmbedDocument is off, so there is no source to serve. " +
                 "Remove EmbedDocument or drop SourceUrl.", path);
 
@@ -419,7 +426,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             // Checked before anything is written. These describe C# that will not compile, and
             // emitting it anyway turns a fixable spec problem into a compiler error in a generated
             // file the author cannot edit.
-            var problems = SpecDiagnostics.Find(model);
+            var problems = SpecDiagnostics.Find(model, DiagnosticPrefix);
             var fatal = false;
 
             foreach (var problem in problems) {

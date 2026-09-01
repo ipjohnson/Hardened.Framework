@@ -62,9 +62,67 @@ only when *no* entry matches a described service.
 | `HOAG002` | The description could not be parsed; the build task's message is passed through. |
 | `HOAG010` | A handler was skipped because a parameter type did not resolve. Other handlers are unaffected. |
 | `HOAG020` | An operation declares a markup content type but names no view to render it. |
-| `HOAT0xx` | OpenAPI build task. |
-| `HSMT0xx` | Smithy build task. `HSMT011` is the CLI version pin, and is a warning locally by design. |
 | `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. |
+
+## Description build tasks (HOAT, HSMT)
+
+The two description front ends share one task shell, one packaged-targets layout and one
+model-diagnostics pass. Their codes share one numbering: a number means the same thing under
+`HOAT` (OpenAPI) as under `HSMT` (Smithy), and a finding is always reported under the prefix of
+the front end that read the document. Numbers that exist for one front end only leave a gap in
+the other.
+
+| Number | Meaning |
+|---|---|
+| `001` | The description file does not exist. |
+| `002` | The description could not be parsed; the reader's reasons are included. |
+| `003` | The description was declared as the wrong item kind. `HOAT003`: a spec left in `AdditionalFiles`, which the generator no longer reads. `HSMT003`: a `.smithy` IDL file pointed at `HardenedSmithyAst`, which takes a JSON AST. |
+| `004` | A model or generated source the extract step should have written is missing. Delete the model directory and rebuild. |
+| `005` | The targets file was imported before the specs were declared, so no generated source reached the compilation. Move the `<Import>` below the item group. |
+| `006` | Warning. The reader parsed the document and had something to say about it, including what a degraded trait promises that the code does not enforce. |
+| `007` | A slice selected no operations, so nothing would be generated. |
+| `008` | Warning. A slice removed a schema that is still referenced; the reference degrades to `JsonElement`. |
+| `009` | Warning. The spec is sliced but its document is embedded whole, so the served description claims operations the application does not implement. |
+| `010`–`014` | The Smithy CLI task; `HSMT` only. See below. |
+| `015` | `HSMT` only. The model declares more than one `PublishUrl` or `UiUrl`. One model is one service at one address. |
+| `016` | `UiUrl` without `PublishUrl`, so the page would have no document to render. |
+| `017` | `SourceUrl` without `EmbedDocument`, so there is no source to serve. |
+| `020`–`025` | The shared model-diagnostics pass. See below. |
+
+### The Smithy CLI task (HSMT010–HSMT014)
+
+| Id | Meaning |
+|---|---|
+| `HSMT010` | The Smithy CLI was not found. Install it, set `$(HardenedSmithyCliPath)`, or commit an AST and point `@(HardenedSmithyAst)` at it. |
+| `HSMT011` | The CLI is not the pinned version. A warning locally by design, and an error under the pin, because a different CLI can produce a different AST from identical sources. |
+| `HSMT012` | The CLI refused the model. One error per finding, at the file, line and column the CLI named; a report that does not parse is passed through whole. |
+| `HSMT013` | Warning. What the CLI said without failing, with the same per-finding attribution. |
+| `HSMT014` | The CLI exited cleanly but wrote no AST. Unlike `HSMT012`, the fix is not in a `.smithy` file. |
+
+### The model-diagnostics pass (020–025)
+
+Problems any description can state that would generate C# which does not compile, found before
+anything is emitted so they are reported against the document rather than as compiler errors in a
+generated file.
+
+| Number | Meaning |
+|---|---|
+| `020` | Warning. A schema declares a property named like the schema itself, which C# forbids (CS0542). The member is renamed; the wire name is unchanged. |
+| `021` | Warning. Two schemas generate one C# type name. Resolved automatically; rename one in the document to choose the names yourself. |
+| `022` | Warning. A `oneOf` with no discriminator whose branches cannot all be told apart by shape. Payloads are matched by parsing into each branch; declare a discriminator to decide it in the document. |
+| `023` | An `enum` declaring both string and numeric values, which no C# enum can carry. Declare one kind. |
+| `024` | Warning. A declared keyword or trait the generator does not enforce, named with a representative location. Remove it, or enforce the rule in the handler. |
+| `025` | Two error responses on one operation share one status, which would generate the same case type twice. Give them distinct statuses or merge the shapes. |
+
+### Renumbered in 0.18
+
+Codes moved so that every number has one meaning per prefix, and so findings from a Smithy model
+stop being reported as `HOAT`. If a `NoWarn` or a suppression names an old code, update it:
+`HOAT003`→`HOAT020`, `HOAT005`→`HOAT021`, `HOAT010`→`HOAT022`, `HOAT011`→`HOAT023`,
+`HOAT013`→`HOAT024`, `HSPEC010`→`025` under the front end's prefix, `010`→`016` and `011`→`017`
+under both prefixes for the publish checks, the silent-success `HSMT012`→`HSMT014`, and the
+multiple-`PublishUrl` `HSMT012`→`HSMT015`. The targets-layout `003`/`004`/`005` and the CLI codes
+`HSMT010`/`HSMT011` kept their numbers.
 
 ## Content negotiation
 
