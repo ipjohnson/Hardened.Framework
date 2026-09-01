@@ -25,8 +25,21 @@ Four routes. `GET /todos` has one answer; the other three each declare more than
 |---|---|---|
 | `GET /todos` | 200 | |
 | `GET /todos/{id}` | 200 | 404 when no todo has that id |
-| `POST /todos` | #if (standardMode)#if (codeFirst)200#endif#if (specFirst)201#endif#endif#if (declaredMode)201 with a `Location`#endif | 409 when the title is taken |
-| `DELETE /todos/{id}` | #if (standardMode)200#endif#if (declaredMode)204#endif | 404 when no todo has that id |
+#if (standardMode && codeFirst)
+| `POST /todos` | 200 | 409 when the title is taken |
+#endif
+#if (standardMode && specFirst)
+| `POST /todos` | 201 | 409 when the title is taken |
+#endif
+#if (declaredMode)
+| `POST /todos` | 201 with a `Location` | 409 when the title is taken |
+#endif
+#if (standardMode)
+| `DELETE /todos/{id}` | 200 | 404 when no todo has that id |
+#endif
+#if (declaredMode)
+| `DELETE /todos/{id}` | 204 | 404 when no todo has that id |
+#endif
 
 ```bash
 curl -i -X POST localhost:5080/todos -H 'Content-Type: application/json' \
@@ -183,7 +196,7 @@ The fastest way to understand any of this is to read what the build wrote. It is
 `EmitCompilerGeneratedFiles` is already on:
 
 ```
-src/Hardened1/obj/Debug/net8.0/generated/
+src/Hardened1/obj/<configuration>/<tfm>/generated/
 ```
 
 One directory per generator: the routing table, the handler for each route, the parameter binding

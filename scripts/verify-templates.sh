@@ -64,6 +64,33 @@ fi
 
 say() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 
+# The defect class the second trial shipped, checked at generation rather than left to a build
+# that cannot see it. A file whose whole body sits behind a false condition reaches the output as
+# zero bytes, and a conditional inside a table cell can desynchronise the markdown evaluator and
+# eat the rest of the README. Both build clean, which is exactly why they get their own check.
+check_generated() {
+    local out="$1"
+    local empty
+
+    empty=$(find "$out" -type f -empty -not -path '*/bin/*' -not -path '*/obj/*' | head -5)
+
+    if [ -n "$empty" ]; then
+        echo "   FAILED: generation left zero-byte file(s) in $out:"
+        echo "$empty" | sed 's/^/     /'
+        FAILED=1
+    fi
+
+    # Every template's README ends with the same section and closing line, so a truncated one is
+    # detectable without knowing which options were on.
+    if [ -f "$out/README.md" ]; then
+        if ! grep -q 'Where to go next' "$out/README.md" || \
+           [ "$(tail -1 "$out/README.md")" != "  code rather than reading it" ]; then
+            echo "   FAILED: $out/README.md does not end where the template's does"
+            FAILED=1
+        fi
+    fi
+}
+
 rm -rf "$FEED" "$WORK"
 mkdir -p "$FEED" "$WORK"
 
@@ -138,6 +165,8 @@ for COMBO in "${COMBOS[@]}"; do
     # needs testing. Passing it here would test the flag and leave the default unexercised.
     dotnet new hardened-web -n Sample -o "$OUT" --host "$HOST" --contract "$CONTRACT" \
         --response-model "$MODEL" --skip-restore
+
+    check_generated "$OUT"
 
     # The generated nuget.config names nuget.org only, which is what a real user wants. The
     # verification run also needs the framework build that has not been published yet.
@@ -341,6 +370,7 @@ say "hardened-library"
 # Framework packages only, so this one is verified against the build under test like hardened-web.
 LIB="$WORK/library"
 dotnet new hardened-library -n Sample -o "$LIB" --skip-restore
+check_generated "$LIB"
 dotnet nuget add source "$FEED" --name template-verify-local --configfile "$LIB/nuget.config" >/dev/null
 if ( cd "$LIB" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
     echo "   builds and tests"
@@ -357,6 +387,7 @@ say "dotted project names"
 for TEMPLATE in hardened-library hardened-web; do
     DOTTED="$WORK/dotted-$TEMPLATE"
     dotnet new "$TEMPLATE" -n Acme.Sample -o "$DOTTED" --skip-restore
+    check_generated "$DOTTED"
     dotnet nuget add source "$FEED" --name template-verify-local --configfile "$DOTTED/nuget.config" >/dev/null
     if ( cd "$DOTTED" && dotnet build -v q --nologo ); then
         echo "   $TEMPLATE builds as Acme.Sample"
@@ -379,6 +410,7 @@ for AMZ in "hardened-function --trigger invoke" "hardened-function --trigger sqs
     AMZ_OUT="$WORK/amz-$AMZ_TEMPLATE-$(echo "$*" | tr -cd 'a-z')"
 
     dotnet new "$AMZ_TEMPLATE" -n Sample -o "$AMZ_OUT" "$@" --skip-restore
+    check_generated "$AMZ_OUT"
     dotnet nuget add source "$FEED" --name template-verify-local --configfile "$AMZ_OUT/nuget.config" >/dev/null
 
     if ( cd "$AMZ_OUT" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
@@ -397,7 +429,10 @@ say "host independence"
 # The framework's claim is that handlers, filters, binding and routing do not change with the
 # host. If that is true, only the host project may differ between two generated applications.
 # Comparable only across hosts at the same contract, which is the claim being checked.
-A="$WORK/kestrel-code"; B="$WORK/aspnet-code"
+# The -standard suffix, because that is what the output directories are named since the response
+# model joined the combination. The old suffixless paths matched nothing, so this check was
+# silently skipped on every run - which is why it now says so instead of saying nothing.
+A="$WORK/kestrel-code-standard"; B="$WORK/aspnet-code-standard"
 if [ -d "$A" ] && [ -d "$B" ]; then
     # Source only. bin/ and obj/ carry absolute paths and compiler output, which differ for
     # reasons that have nothing to do with the host.
@@ -405,11 +440,13 @@ if [ -d "$A" ] && [ -d "$B" ]; then
         if diff -r -x bin -x obj "$A/$PART" "$B/$PART" >/dev/null 2>&1; then
             echo "   identical across hosts: $PART"
         else
-            echo "   FAILED: $PART differs between ${HOSTS[0]} and ${HOSTS[1]}"
+            echo "   FAILED: $PART differs between kestrel and aspnet"
             diff -r -x bin -x obj "$A/$PART" "$B/$PART" | head -20
             FAILED=1
         fi
     done
+else
+    echo "   skipped: both hosts are not in this run's combinations"
 fi
 
 dotnet new uninstall Hardened.Templates >/dev/null 2>&1 || true

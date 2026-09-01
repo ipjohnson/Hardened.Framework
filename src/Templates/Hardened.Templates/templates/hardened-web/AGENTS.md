@@ -19,9 +19,9 @@ is wrong. Run `dotnet build` first.
 **They are ordinary C#, and reading them answers most questions faster than reading the framework:**
 
 ```
-src/Hardened1/obj/Debug/net8.0/generated/     one directory per generator
+src/Hardened1/obj/<configuration>/<tfm>/generated/     one directory per generator
 #if (specFirst)
-src/Hardened1/obj/Debug/net8.0/openapi/       the normalised contract and the code built from it
+src/Hardened1/obj/<configuration>/<tfm>/openapi/       the normalised contract and the code built from it
 #endif
 ```
 
@@ -73,8 +73,10 @@ implementation stops compiling until it matches — that is the design, not a br
 
 Generated types land in `Hardened1.Models`, `Hardened1.Services` and `Hardened1.Validation`.
 #if (smithy)
-The build needs the Smithy CLI on `PATH` at the pinned version; a mismatch fails with `HSMT011`
-naming both versions, because different CLI versions can produce different ASTs.
+The build wants the Smithy CLI on `PATH` at the pinned version, because different CLI versions
+can produce different ASTs. A mismatch warns locally with `HSMT011` naming both versions, and
+fails the build under `ContinuousIntegrationBuild` - so what CI publishes is produced by exactly
+one version.
 #endif
 #endif
 #if (codeFirst)
