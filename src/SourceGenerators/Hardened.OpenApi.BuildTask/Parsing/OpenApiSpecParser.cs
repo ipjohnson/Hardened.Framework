@@ -2035,6 +2035,8 @@ internal static class OpenApiSpecParser {
             }
 
             if (operation.Responses != null) {
+                var errorContentTypes = new List<string>();
+
                 // Everything the specification says the operation can answer with, other than the
                 // success case. All of it used to be discarded, so a document could describe a 404
                 // and its payload in detail and generate no trace of either.
@@ -2043,6 +2045,14 @@ internal static class OpenApiSpecParser {
                              .OrderBy(r => r.Key, StringComparer.Ordinal)) {
                     if (!int.TryParse(respKvp.Key, out var errorStatus)) {
                         continue;
+                    }
+
+                    if (respKvp.Value?.Content != null) {
+                        foreach (var declared in respKvp.Value.Content.Keys) {
+                            if (!errorContentTypes.Contains(declared)) {
+                                errorContentTypes.Add(declared);
+                            }
+                        }
                     }
 
                     var errorContent = respKvp.Value?.Content != null
@@ -2148,6 +2158,19 @@ internal static class OpenApiSpecParser {
 
                     opModel.SuccessResponses.Add(success);
                     isPrimarySuccess = false;
+                }
+
+                // The error representations, after the loop above on purpose: the declared set is
+                // negotiated first-match for a client that states no preference, so the success
+                // representations must lead and the error ones follow. This entry is what lets an
+                // error answer at all on an operation whose success is not JSON - collected from
+                // the 2xx responses alone, a text/plain operation declared a set no error model
+                // could travel as, and every declared 404 and framework 400 on it reached the
+                // caller as an empty 500.
+                foreach (var errorContentType in errorContentTypes) {
+                    if (!opModel.ProducedContentTypes.Contains(errorContentType)) {
+                        opModel.ProducedContentTypes.Add(errorContentType);
+                    }
                 }
             }
 

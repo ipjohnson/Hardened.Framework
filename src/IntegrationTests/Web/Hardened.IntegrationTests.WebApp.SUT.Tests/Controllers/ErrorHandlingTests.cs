@@ -157,4 +157,36 @@ public class ErrorHandlingTests {
 
     private record ConflictShape(string Code, string Message);
 
+    // ------------------------------------------------------------- a committed content type
+
+    /// <summary>
+    /// [RawResponse] commits the content type before the handler runs, so it is still on the
+    /// response when the handler throws - and the raw writer cannot carry an error model. The
+    /// error is recommitted to JSON instead of the locator's refusal escaping as an empty 500.
+    /// </summary>
+    [HardenedTest]
+    public async Task ARawResponseHandlerThatThrowsStillAnswersItsDeclaredStatus(
+        ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/errors/raw-declared-status");
+
+        Assert.Equal(409, response.StatusCode);
+        Assert.Equal("application/json", response.Headers["Content-Type"]);
+
+        var body = response.Deserialize<ConflictShape>();
+
+        Assert.Equal("locked", body!.Code);
+    }
+
+    /// <summary>The same rescue for an unclassified fault: a 500 with a body, in JSON.</summary>
+    [HardenedTest]
+    public async Task ARawResponseHandlerThatFaultsAnswersAJsonServerError(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/errors/raw-server-error");
+
+        Assert.Equal(500, response.StatusCode);
+        Assert.Equal("application/json", response.Headers["Content-Type"]);
+
+        var error = response.Deserialize<ErrorModel>();
+
+        Assert.Equal("ServerError", error.Type);
+    }
 }

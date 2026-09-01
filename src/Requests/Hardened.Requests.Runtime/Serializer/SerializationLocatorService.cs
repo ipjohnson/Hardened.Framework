@@ -95,7 +95,7 @@ public class SerializationLocatorService : ISerializationLocatorService {
             // Falling through to JSON here would answer a request for application/pdf with a JSON
             // document and no indication anything went wrong. Nothing registered can write what this
             // response promised, which is a configuration problem rather than a client one.
-            throw new Exception(
+            throw new ContentTypeNotProducibleException(
                 $"Response committed to content type '{committedContentType}' but no registered " +
                 "serializer can produce it.");
         }
@@ -187,7 +187,7 @@ public class SerializationLocatorService : ISerializationLocatorService {
         }
 
         if (!producible) {
-            throw new Exception(
+            throw new ContentTypeNotProducibleException(
                 $"This operation declares {string.Join(", ", declared)} and no registered " +
                 "serializer can produce any of them.");
         }

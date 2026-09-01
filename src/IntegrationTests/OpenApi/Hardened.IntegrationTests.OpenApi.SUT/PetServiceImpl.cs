@@ -115,4 +115,21 @@ public class PetServiceImpl : IPetService {
     public Task<string> PetsAsPlainText() {
         return Task.FromResult(string.Join("\n", Pets.Select(pet => $"{pet.Id}: {pet.Name}")));
     }
+
+    /// <summary>
+    /// A scalar <c>text/plain</c> success beside a declared JSON 404, which is the shape whose
+    /// errors could not answer at all while the declared set was collected from the successes
+    /// alone. The 404 is thrown rather than returned: a scalar success stays non-nullable, so the
+    /// generated exception is the one route to this operation's declared error.
+    /// </summary>
+    public Task<string> GetPetLabel(string petId, int? copies) {
+        if (petId == "missing") {
+            throw new GetPetLabelNotFoundException(
+                new Problem { Status = 404, Title = "Not Found" });
+        }
+
+        var line = $"Pet {petId}";
+
+        return Task.FromResult(string.Join("\n", Enumerable.Repeat(line, copies ?? 1)));
+    }
 }

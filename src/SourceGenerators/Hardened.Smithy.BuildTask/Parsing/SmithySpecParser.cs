@@ -477,6 +477,25 @@ internal static class SmithySpecParser {
 
         ParseErrors(context, operation, model, protocol);
 
+        // The set the response is negotiated against, mirroring what the OpenAPI parser collects
+        // from a content map. Success first and errors after, because the set is negotiated
+        // first-match for a client that states no preference. The error entry is always
+        // application/json - a REST protocol's error bodies are JSON whatever the success is - and
+        // it is what lets a declared error answer on an operation whose success is not. Dispatch
+        // protocols stay out: the protocol names one content type for everything and negotiation
+        // has no say.
+        if (!protocol.Dispatches) {
+            if (model.ResponseContentType != null &&
+                !model.ProducedContentTypes.Contains(model.ResponseContentType)) {
+                model.ProducedContentTypes.Add(model.ResponseContentType);
+            }
+
+            if (model.ErrorResponses.Count > 0 &&
+                !model.ProducedContentTypes.Contains("application/json")) {
+                model.ProducedContentTypes.Add("application/json");
+            }
+        }
+
         return model;
     }
 

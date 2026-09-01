@@ -1,6 +1,7 @@
 ﻿using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Serializer;
 
@@ -48,6 +49,33 @@ public class ExceptionResponseSerializer : IExceptionResponseSerializer {
 
         _requestLogger.RequestFailed(context, exp);
 
-        return _serializationLocatorService.FindResponseSerializer(context).SerializeResponse(context);
+        return FindErrorSerializer(context).SerializeResponse(context);
+    }
+
+    /// <summary>
+    /// The serializer for the error model, negotiated like an error rather than like the
+    /// operation's success.
+    /// </summary>
+    /// <remarks>
+    /// The operation's own representations get first refusal, so a caller of a JSON operation
+    /// still gets JSON errors and an XML one XML. But those representations were declared for the
+    /// success body, and an error model often is not writable as any of them - a
+    /// <c>[RawResponse]</c> handler's committed <c>image/png</c>, or a <c>text/plain</c> operation
+    /// whose raw writer takes only strings. That refusal used to escape as the locator's
+    /// configuration fault and reach the caller as an empty 500. The content type is committed to
+    /// JSON instead - the same move the 406 path makes, and committing rather than clearing is what
+    /// keeps the second pass out of the declared-set tier that just refused - and located again.
+    /// A <see cref="NotAcceptableException"/> is not caught: the client's stated preference is a
+    /// different question, answered where it always was.
+    /// </remarks>
+    private IResponseSerializer FindErrorSerializer(IExecutionContext context) {
+        try {
+            return _serializationLocatorService.FindResponseSerializer(context);
+        }
+        catch (ContentTypeNotProducibleException) {
+            context.Response.ContentType = KnownContentType.Json;
+
+            return _serializationLocatorService.FindResponseSerializer(context);
+        }
     }
 }
