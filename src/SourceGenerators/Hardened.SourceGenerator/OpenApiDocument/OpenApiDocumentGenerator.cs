@@ -335,12 +335,20 @@ public static class OpenApiDocumentGenerator {
     /// </remarks>
     private static void WriteTags(StringBuilder builder, IReadOnlyList<RequestHandlerModel> handlers) {
         var seen = new List<string>();
+        var descriptions = new Dictionary<string, string>();
 
         foreach (var handler in handlers) {
             var tag = Tag(handler);
 
             if (!seen.Contains(tag)) {
                 seen.Add(tag);
+            }
+
+            // The contract's prose for the group, where a handler carries it. First writer wins,
+            // which cannot disagree with itself: every handler under one tag came from the same
+            // service and carries the same description.
+            if (!descriptions.ContainsKey(tag) && !string.IsNullOrEmpty(handler.TagDescription)) {
+                descriptions[tag] = handler.TagDescription!;
             }
         }
 
@@ -355,7 +363,14 @@ public static class OpenApiDocumentGenerator {
                 builder.Append(',');
             }
 
-            builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(seen[i])).Append("\"}");
+            builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(seen[i])).Append('"');
+
+            if (descriptions.TryGetValue(seen[i], out var description)) {
+                builder.Append(",\"description\":\"")
+                    .Append(JsonSchemaWriter.Escape(description)).Append('"');
+            }
+
+            builder.Append('}');
         }
 
         builder.Append(']');

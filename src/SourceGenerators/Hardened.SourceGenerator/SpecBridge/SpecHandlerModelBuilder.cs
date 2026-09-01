@@ -48,7 +48,8 @@ internal static class SpecHandlerModelBuilder {
                     modelsNamespace, generatedNamespace, validationNamespace,
                     spec.ResponseModel,
                     spec.ValidatedOperations, filterTypeLookup, spec.Schemas,
-                    service.DispatchHeader, Symbols(symbols, operation));
+                    service.DispatchHeader, Symbols(symbols, operation),
+                    service.TagDescription);
                 models.Add(model);
             }
         }
@@ -91,7 +92,8 @@ internal static class SpecHandlerModelBuilder {
         Dictionary<string, FilterTypeModel> filterTypeLookup,
         IReadOnlyList<SchemaModel> schemas,
         string? dispatchHeader = null,
-        OperationSymbols? symbols = null) {
+        OperationSymbols? symbols = null,
+        string? tagDescription = null) {
         var methodName = operation.MethodName;
 
         // Derived by convention from the service's name for a described application, because a
@@ -109,7 +111,7 @@ internal static class SpecHandlerModelBuilder {
         var nameModel = new RequestHandlerNameModel(
             ConstrainedPath(operation), operation.HttpMethod, dispatchHeader, operation.DispatchKey);
 
-        var parameters = BuildParameters(operation, modelsNamespace, symbols);
+        var parameters = BuildParameters(operation, modelsNamespace, schemas, symbols);
         var responseInfo = symbols?.ResponseInformation
                            ?? BuildResponseInfo(operation, schemas, modelsNamespace, responseModel);
 
@@ -187,6 +189,7 @@ internal static class SpecHandlerModelBuilder {
             // because a handler model that has lost its summary cannot be told from one whose
             // operation never had a summary - and the document written from it is silently poorer.
             Tag = operation.Tag,
+            TagDescription = tagDescription,
             Summary = operation.Summary,
             Description = operation.Description,
             IsDeprecated = operation.IsDeprecated,
@@ -223,11 +226,31 @@ internal static class SpecHandlerModelBuilder {
     }
 
     private static IReadOnlyList<RequestParameterInformation> BuildParameters(
-        OperationModel operation, string modelsNamespace, OperationSymbols? symbols = null) {
+        OperationModel operation, string modelsNamespace, IReadOnlyList<SchemaModel> schemas,
+        OperationSymbols? symbols = null) {
         var parameters = new List<RequestParameterInformation>();
         var index = 0;
 
         foreach (var param in operation.Parameters) {
+            // A described enum can arrive as a bare reference: Smithy's Describe() returns the
+            // shape's Ref and nothing else, so the document writer fell back to the C# type and
+            // published {"type":"string"} with no vocabulary. Resolved against the schema list the
+            // way response schemas already are, onto the parameter the writer reads. OpenAPI
+            // parameters are unaffected, because that parser inlines enum values at parse time.
+            if (param.Ref != null && param.EnumValues is not { Count: > 0 }) {
+                var referenced = NamingHelper.ToPascalCase(TypeMapper.GetRefName(param.Ref));
+
+                foreach (var schema in schemas) {
+                    if (schema.Kind == SchemaKind.Enum &&
+                        NamingHelper.ToPascalCase(schema.Name) == referenced) {
+                        param.EnumValues = new List<string>(schema.EnumValues);
+                        param.Type ??= "string";
+
+                        break;
+                    }
+                }
+            }
+
             // Still needed either way: the default literal is formatted against the C# spelling.
             var csType = TypeMapper.MapParameterToCSharpType(param);
 

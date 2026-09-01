@@ -4,6 +4,13 @@ internal class ServiceModel : IEquatable<ServiceModel> {
     public string Tag { get; set; } = "";
 
     /// <summary>
+    /// The description the contract's top-level tag declaration gives this tag, or null. The
+    /// document's <c>tags</c> entry used to carry the name alone, so the prose an author wrote
+    /// for a group of operations reached nothing.
+    /// </summary>
+    public string? TagDescription { get; set; }
+
+    /// <summary>
     /// The C# name the service interface and controller are built from.
     /// </summary>
     /// <remarks>
@@ -35,6 +42,7 @@ internal class ServiceModel : IEquatable<ServiceModel> {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         if (Tag != other.Tag) return false;
+        if (TagDescription != other.TagDescription) return false;
         if (DispatchHeader != other.DispatchHeader) return false;
         if (Operations.Count != other.Operations.Count) return false;
         for (var i = 0; i < Operations.Count; i++) {

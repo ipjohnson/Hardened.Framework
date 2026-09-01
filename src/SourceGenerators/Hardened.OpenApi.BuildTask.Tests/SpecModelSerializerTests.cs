@@ -383,7 +383,7 @@ public class SpecModelSerializerTests {
                 },
                 new SchemaModel { Name = "PetStatus", Kind = SchemaKind.Enum, EnumValues = { "available", "sold" } },
             },
-            Services = { new ServiceModel { Tag = "Pet", Operations = { operation } } },
+            Services = { new ServiceModel { Tag = "Pet", TagDescription = "Everything about pets.", Operations = { operation } } },
             FilterTypes = {
                 new FilterTypeModel {
                     Name = "rateLimit",

@@ -79,6 +79,27 @@ public class SmithyServedDocumentTests {
     }
 
     /// <summary>
+    /// An enum bound as a query value publishes its vocabulary. It published a bare string:
+    /// Smithy's <c>Describe()</c> returns the shape's reference and nothing else, and the builder
+    /// never resolved it, so the writer fell back to the C# type.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnEnumQueryParameterPublishesItsVocabulary(ITestWebApp app) {
+        var parameters = (await Document(app)).GetProperty("paths").GetProperty("/pets")
+            .GetProperty("get").GetProperty("parameters");
+
+        var kind = parameters.EnumerateArray()
+            .Single(parameter => parameter.GetProperty("name").GetString() == "kind");
+
+        var schema = kind.GetProperty("schema");
+
+        Assert.Equal("string", schema.GetProperty("type").GetString());
+        Assert.Equal(
+            new[] { "dog", "cat", "other" },
+            schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+    }
+
+    /// <summary>
     /// A member that is neither <c>@required</c> nor defaulted is nullable under Smithy's rules,
     /// and the published schema says so with the 2020-12 type array.
     /// </summary>

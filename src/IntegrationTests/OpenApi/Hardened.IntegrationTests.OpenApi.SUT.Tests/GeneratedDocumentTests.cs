@@ -119,6 +119,22 @@ public class GeneratedDocumentTests {
     }
 
     /// <summary>
+    /// The description the contract's top-level tag declaration carries reaches the published
+    /// tags list, which used to carry the name alone.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheTagCarriesItsDeclaredDescription(ITestWebApp app) {
+        var tags = (await Document(app)).GetProperty("tags");
+
+        var pet = tags.EnumerateArray()
+            .Single(tag => tag.GetProperty("name").GetString() == "Pet");
+
+        Assert.Equal(
+            "Everything about the pets in the store.",
+            pet.GetProperty("description").GetString());
+    }
+
+    /// <summary>
     /// A property the contract marks nullable publishes the 2020-12 type array, the way the
     /// code-first writer already does. The framework's own 404 body sends <c>detail</c> as null.
     /// </summary>

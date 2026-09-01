@@ -197,6 +197,7 @@ internal static class SpecModelSerializer {
                 case "service":
                     service = new ServiceModel {
                         Tag = record.String("Tag") ?? "",
+                        TagDescription = record.String("TagDescription"),
                         TypeBaseName = record.String("TypeBaseName") ?? "",
                         DispatchHeader = record.String("DispatchHeader")
                     };
@@ -528,6 +529,7 @@ internal static class SpecModelSerializer {
     private static void WriteService(StringBuilder builder, ServiceModel service) {
         var record = new Record("service");
         record.Add("Tag", service.Tag);
+        record.Add("TagDescription", service.TagDescription);
         record.Add("TypeBaseName", service.TypeBaseName);
         record.Add("DispatchHeader", service.DispatchHeader);
         record.WriteTo(builder);

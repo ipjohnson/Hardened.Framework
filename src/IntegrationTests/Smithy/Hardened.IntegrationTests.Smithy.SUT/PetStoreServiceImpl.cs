@@ -69,7 +69,7 @@ public class PetStoreServiceImpl : IPetStoreService {
             verbose == true ? pet : pet with { Nickname = null }));
     }
 
-    public Task<ListPetsOutput> ListPets(int? limit) =>
+    public Task<ListPetsOutput> ListPets(int? limit, PetKind? kind) =>
         Task.FromResult(new ListPetsOutput(
             limit.HasValue ? Pets.Take(limit.Value).ToList() : Pets.ToList()));
 
