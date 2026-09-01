@@ -105,6 +105,24 @@ public class RequiredAndNestedValidationTests {
     }
 
     /// <summary>
+    /// A single declared bound composes the single-bound message. The contract says
+    /// <c>minimum: 1</c> and nothing else, and the emitted attribute used to fill the absent
+    /// maximum with the decimal extreme - so the caller was told the value must be between 1 and
+    /// 7.92281625142643E+28, an upper bound nobody declared.
+    /// </summary>
+    [HardenedTest]
+    public async Task ASingleBoundNamesNoInventedExtreme(ITestWebApp testWebApp) {
+        var error = await Rejected(
+            testWebApp,
+            """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":0}]}""");
+
+        var quantity = Assert.Single(error.Errors!, e => e.Field.Contains("quantity"));
+
+        Assert.DoesNotContain("E+28", quantity.Message);
+        Assert.DoesNotContain("between", quantity.Message);
+    }
+
+    /// <summary>
     /// The failing element is identified, not merely the array. An error naming <c>lines</c> alone
     /// tells a caller with fifty lines nothing.
     /// </summary>
