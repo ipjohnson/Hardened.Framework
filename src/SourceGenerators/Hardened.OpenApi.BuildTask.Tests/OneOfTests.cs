@@ -192,18 +192,18 @@ public class OneOfTests {
     public void AnUnresolvableChoiceIsReported() {
         var model = Parse(Ambiguous);
 
-        var problems = Hardened.Idl.SpecDiagnostics.Find(model);
+        var problems = Hardened.Idl.SpecDiagnostics.Find(model, "HOAT");
         var codes = new List<string>();
 
         foreach (var problem in problems) {
             codes.Add(problem.Code);
         }
 
-        Assert.Contains("HOAT010", codes);
+        Assert.Contains("HOAT022", codes);
 
         // Reported, not fatal: JsonElement is a working answer, just the weakest one.
         foreach (var problem in problems) {
-            if (problem.Code == "HOAT010") {
+            if (problem.Code == "HOAT022") {
                 Assert.False(problem.Fatal);
             }
         }

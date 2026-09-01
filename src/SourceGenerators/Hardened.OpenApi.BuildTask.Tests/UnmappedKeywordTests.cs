@@ -173,12 +173,12 @@ public class UnmappedKeywordTests {
     [Fact]
     public void ADescriptionUsingOnlyMappedKeywordsIsSilent() {
         Assert.Empty(Parse(Clean).UnmappedKeywords);
-        Assert.DoesNotContain(SpecDiagnostics.Find(Parse(Clean)), p => p.Code == "HOAT013");
+        Assert.DoesNotContain(SpecDiagnostics.Find(Parse(Clean), "HOAT"), p => p.Code == "HOAT024");
     }
 
     [Fact]
     public void TheDiagnosticIsAWarningRatherThanAnError() {
-        var problems = SpecDiagnostics.Find(Parse(Dropping)).Where(p => p.Code == "HOAT013");
+        var problems = SpecDiagnostics.Find(Parse(Dropping), "HOAT").Where(p => p.Code == "HOAT024");
 
         Assert.NotEmpty(problems);
         Assert.All(problems, problem => Assert.False(problem.Fatal));
@@ -194,8 +194,8 @@ public class UnmappedKeywordTests {
 
         Assert.Equal(2, model.UnmappedKeywords.Count(u => u.Keyword == "uniqueItems"));
         Assert.Single(
-            SpecDiagnostics.Find(model),
-            p => p.Code == "HOAT013" && p.Message.Contains("uniqueItems"));
+            SpecDiagnostics.Find(model, "HOAT"),
+            p => p.Code == "HOAT024" && p.Message.Contains("uniqueItems"));
     }
 
     /// <summary>
@@ -204,8 +204,8 @@ public class UnmappedKeywordTests {
     /// </summary>
     [Fact]
     public void TheMessageCountsTheSitesItDidNotName() {
-        var problem = SpecDiagnostics.Find(Parse(TwiceDropped))
-            .First(p => p.Code == "HOAT013" && p.Message.Contains("uniqueItems"));
+        var problem = SpecDiagnostics.Find(Parse(TwiceDropped), "HOAT")
+            .First(p => p.Code == "HOAT024" && p.Message.Contains("uniqueItems"));
 
         Assert.Contains("1 other place", problem.Message);
     }
@@ -216,8 +216,8 @@ public class UnmappedKeywordTests {
     /// </summary>
     [Fact]
     public void TheMessageSaysThePromiseIsNotKept() {
-        var problem = SpecDiagnostics.Find(Parse(Dropping))
-            .First(p => p.Code == "HOAT013" && p.Message.Contains("multipleOf"));
+        var problem = SpecDiagnostics.Find(Parse(Dropping), "HOAT")
+            .First(p => p.Code == "HOAT024" && p.Message.Contains("multipleOf"));
 
         Assert.Contains("not enforced", problem.Message);
         Assert.Contains("accepted at runtime", problem.Message);

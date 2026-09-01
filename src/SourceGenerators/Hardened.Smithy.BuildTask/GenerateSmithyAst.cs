@@ -196,24 +196,19 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
 
         if (result.ExitCode != 0) {
             Delete(staging);
-
-            // The CLI's diagnostics name the .smithy file and line already, so they are passed
-            // through rather than summarised - and reported against the model rather than against
-            // this target, because that is the file the author edits.
-            Log.LogError(null, "HSMT012", null, FirstModel(), 0, 0, 0, 0,
-                "The Smithy CLI could not read the model (exit code {0}).\n{1}",
-                result.ExitCode, result.StandardError.TrimEnd());
+            ReportRefusal(result);
 
             return false;
         }
 
         // Success with nothing written is the shape of a CLI that validated and declined to emit.
         // Treated as a failure rather than parsed, because an empty AST reaches the reader as an
-        // unhelpful error about position zero.
+        // unhelpful error about position zero. Its own code, not HSMT012: that one means the CLI
+        // refused the model, and the fix for this one is not in any .smithy file.
         if (!File.Exists(staging) || new FileInfo(staging).Length == 0) {
             Delete(staging);
 
-            Log.LogError(null, "HSMT012", null, FirstModel(), 0, 0, 0, 0,
+            Log.LogError(null, "HSMT014", null, FirstModel(), 0, 0, 0, 0,
                 "The Smithy CLI exited successfully but wrote no AST.{0}",
                 result.StandardError.Length > 0 ? "\n" + result.StandardError.TrimEnd() : "");
 
@@ -222,8 +217,7 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
 
         // Anything the CLI said on a successful run is a warning it got away with, not an error.
         if (result.StandardError.Trim().Length > 0) {
-            Log.LogWarning(null, "HSMT013", null, FirstModel(), 0, 0, 0, 0,
-                "{0}", result.StandardError.Trim());
+            ReportChatter(result.StandardError);
         }
 
         MoveIfChanged(staging, OutputPath);
@@ -231,6 +225,98 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
         AstFile = new Microsoft.Build.Utilities.TaskItem(OutputPath);
 
         return true;
+    }
+
+    /// <summary>
+    /// The CLI refused the model: one MSBuild error per finding, each against the file and line
+    /// the CLI named.
+    /// </summary>
+    /// <remarks>
+    /// This used to pass the whole report through as one error pinned to the first model at 0,0,
+    /// which discarded the attribution the CLI had already done - a five-file model with one bad
+    /// line pointed at the wrong file. Findings below the two failing severities ride along as
+    /// HSMT013 warnings, and a report that does not parse - a crash, a format this pin has never
+    /// printed - still fails the build with the text passed through whole.
+    /// </remarks>
+    private void ReportRefusal(ProcessResult result) {
+        var findings = SmithyValidationReport.Parse(result.StandardError);
+        var failed = false;
+
+        foreach (var finding in findings) {
+            if (finding.FailedValidation) {
+                failed = true;
+
+                Log.LogError(null, "HSMT012", null,
+                    Attribute(finding.File), finding.Line, finding.Column, 0, 0,
+                    "{0}", Describe(finding));
+            } else {
+                Log.LogWarning(null, "HSMT013", null,
+                    Attribute(finding.File), finding.Line, finding.Column, 0, 0,
+                    "{0}", Describe(finding));
+            }
+        }
+
+        if (!failed) {
+            Log.LogError(null, "HSMT012", null, FirstModel(), 0, 0, 0, 0,
+                "The Smithy CLI could not read the model (exit code {0}).\n{1}",
+                result.ExitCode, result.StandardError.TrimEnd());
+        }
+    }
+
+    /// <summary>
+    /// What the CLI said on a run it exited cleanly from - per finding when the text is its
+    /// validation report, whole when it is something else.
+    /// </summary>
+    private void ReportChatter(string standardError) {
+        var findings = SmithyValidationReport.Parse(standardError);
+
+        if (findings.Count == 0) {
+            Log.LogWarning(null, "HSMT013", null, FirstModel(), 0, 0, 0, 0,
+                "{0}", standardError.Trim());
+
+            return;
+        }
+
+        foreach (var finding in findings) {
+            Log.LogWarning(null, "HSMT013", null,
+                Attribute(finding.File), finding.Line, finding.Column, 0, 0,
+                "{0}", Describe(finding));
+        }
+    }
+
+    /// <summary>
+    /// The file a finding is reported against.
+    /// </summary>
+    /// <remarks>
+    /// The CLI prints the path relative to its working directory even when the model was handed to
+    /// it absolute. The child inherited this process's directory, so resolving against it inverts
+    /// that exactly.
+    /// </remarks>
+    private string Attribute(string file) {
+        if (file.Length == 0) {
+            return FirstModel();
+        }
+
+        try {
+            return Path.GetFullPath(file);
+        } catch (ArgumentException) {
+            return file;
+        } catch (NotSupportedException) {
+            return file;
+        } catch (PathTooLongException) {
+            return file;
+        }
+    }
+
+    /// <summary>The CLI's own event id and shape, ahead of its message.</summary>
+    private static string Describe(SmithyValidationReport.Finding finding) {
+        if (finding.Id.Length == 0) {
+            return finding.Message;
+        }
+
+        return finding.Shape == null
+            ? $"{finding.Id}: {finding.Message}"
+            : $"{finding.Id} on {finding.Shape}: {finding.Message}";
     }
 
     /// <summary>

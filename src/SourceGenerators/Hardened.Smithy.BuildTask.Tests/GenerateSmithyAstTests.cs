@@ -35,9 +35,25 @@ public class GenerateSmithyAstTests : IDisposable {
 
     /// <summary>
     /// A stand-in CLI: answers <c>--version</c>, and otherwise writes <paramref name="output"/> to
-    /// stdout and exits with <paramref name="exitCode"/>.
+    /// stdout and exits with <paramref name="exitCode"/>. <paramref name="report"/> reaches stderr
+    /// through a file, because the CLI's multi-line validation report is nothing <c>echo</c> can
+    /// carry on either platform.
     /// </summary>
-    private string FakeCli(string version, string output = "", int exitCode = 0, string error = "") {
+    private string FakeCli(
+        string version, string output = "", int exitCode = 0, string error = "",
+        string report = "") {
+        var reportEmit = "";
+
+        if (report.Length > 0) {
+            var reportPath = Path.Combine(_root, "report.txt");
+
+            File.WriteAllText(reportPath, report);
+
+            reportEmit = OperatingSystem.IsWindows()
+                ? $"type \"{reportPath}\" 1>&2\r\n"
+                : $"cat '{reportPath}' 1>&2\n";
+        }
+
         if (OperatingSystem.IsWindows()) {
             var batch = Path.Combine(_root, "smithy.cmd");
 
@@ -46,6 +62,7 @@ public class GenerateSmithyAstTests : IDisposable {
                 $"if \"%1\"==\"--version\" (echo {version}& exit /b 0)\r\n" +
                 (output.Length > 0 ? $"echo {output}\r\n" : "") +
                 (error.Length > 0 ? $"echo {error} 1>&2\r\n" : "") +
+                reportEmit +
                 $"exit /b {exitCode}\r\n");
 
             return batch;
@@ -58,6 +75,7 @@ public class GenerateSmithyAstTests : IDisposable {
             $"if [ \"$1\" = \"--version\" ]; then echo '{version}'; exit 0; fi\n" +
             (output.Length > 0 ? $"printf '%s' '{output}'\n" : "") +
             (error.Length > 0 ? $"echo '{error}' 1>&2\n" : "") +
+            reportEmit +
             $"exit {exitCode}\n");
 
         File.SetUnixFileMode(script,
@@ -170,8 +188,8 @@ public class GenerateSmithyAstTests : IDisposable {
     }
 
     /// <summary>
-    /// The CLI's own diagnostics name the .smithy file and line, so they are passed through rather
-    /// than summarised.
+    /// Stderr that is not the validation report - a crash, a launcher complaint - is passed
+    /// through whole rather than lost, against the first model because there is nothing better.
     /// </summary>
     [Fact]
     public void Execute_ReportsWhatTheCliSaidWhenItFails() {
@@ -181,6 +199,86 @@ public class GenerateSmithyAstTests : IDisposable {
         Assert.True(HasError(engine, "HSMT012"));
         Assert.Contains("Model.UnresolvedShape", engine.Errors.Single(e => e.Code == "HSMT012").Message);
         Assert.False(File.Exists(output));
+    }
+
+    /// <summary>
+    /// What the CLI prints when it refuses a model: one banner per finding, each naming its file,
+    /// line and column. The excerpt and the count line are the report's own layout.
+    /// </summary>
+    private const string Report =
+        """
+
+        ──  ERROR  ────────────────────────────────────────────── Target.UnresolvedShape
+        Shape: probe#Svc
+        File:  models/bad.smithy:4:1
+
+        4| service Svc {
+         | ^
+
+        service shape has an `operation` relationship to an unresolved shape
+        `probe#MissingOp`
+
+
+        ──  DANGER  ───────────────────────────────────────────── SyntacticShapeIdTarget
+        File:  models/bad.smithy:6:18
+
+        6|     operations: [MissingOp]
+         |                  ^
+
+        Syntactic shape ID `MissingOp` does not resolve to a valid shape ID:
+        `probe#MissingOp`. Did you mean to quote this string? Are you missing a model
+        file?
+
+        FAILURE: Validated 242 shapes (ERROR: 1, DANGER: 1)
+        """;
+
+    /// <summary>
+    /// The CLI names the file and line of every finding, and pinning the whole report to the
+    /// first model at 0,0 threw that away - a five-file model with one bad line pointed the
+    /// author at the wrong file.
+    /// </summary>
+    [Fact]
+    public void Execute_ReportsOneErrorPerFindingWhereTheCliPlacedIt() {
+        var (result, engine, _) = Run(FakeCli("1.73.0", exitCode: 1, report: Report));
+
+        Assert.False(result);
+        Assert.Equal(2, engine.Errors.Count);
+        Assert.All(engine.Errors, entry => Assert.Equal("HSMT012", entry.Code));
+
+        var unresolved = engine.Errors[0];
+
+        Assert.Equal(Path.GetFullPath(Path.Combine("models", "bad.smithy")), unresolved.File);
+        Assert.Equal(4, unresolved.LineNumber);
+        Assert.Equal(1, unresolved.ColumnNumber);
+        Assert.StartsWith("Target.UnresolvedShape on probe#Svc:", unresolved.Message);
+        Assert.Contains("unresolved shape", unresolved.Message);
+
+        var syntactic = engine.Errors[1];
+
+        Assert.Equal(6, syntactic.LineNumber);
+        Assert.StartsWith("SyntacticShapeIdTarget:", syntactic.Message);
+        Assert.DoesNotContain("FAILURE", syntactic.Message);
+    }
+
+    /// <summary>The same attribution for what the CLI got away with on a run it exited cleanly from.</summary>
+    [Fact]
+    public void Execute_AttributesWarningsTheCliPrintedOnASuccessfulRun() {
+        var (result, engine, _) = Run(FakeCli(
+            "1.73.0",
+            output: "{\"smithy\":\"2.0\",\"shapes\":{}}",
+            report: "──  WARNING  ──── HttpMethodSemantics\n" +
+                    "File:  models/ok.smithy:5:1\n" +
+                    "\n" +
+                    "POST on a @readonly operation\n"));
+
+        Assert.True(result, string.Join("\n", engine.Errors.Select(e => e.Message)));
+
+        var warning = Assert.Single(engine.Warnings);
+
+        Assert.Equal("HSMT013", warning.Code);
+        Assert.Equal(Path.GetFullPath(Path.Combine("models", "ok.smithy")), warning.File);
+        Assert.Equal(5, warning.LineNumber);
+        Assert.StartsWith("HttpMethodSemantics:", warning.Message);
     }
 
     /// <summary>
@@ -198,14 +296,17 @@ public class GenerateSmithyAstTests : IDisposable {
     }
 
     /// <summary>
-    /// A CLI that exits cleanly and emits nothing is a failure, not an empty model.
+    /// A CLI that exits cleanly and emits nothing is a failure, not an empty model. Its own code
+    /// rather than HSMT012, because that one means the CLI refused the model and this one's fix is
+    /// not in any .smithy file.
     /// </summary>
     [Fact]
     public void Execute_TreatsASilentSuccessAsAFailure() {
         var (result, engine, output) = Run(FakeCli("1.73.0"));
 
         Assert.False(result);
-        Assert.True(HasError(engine, "HSMT012"));
+        Assert.True(HasError(engine, "HSMT014"),
+            string.Join("\n", engine.Errors.Select(e => e.Code)));
         Assert.False(File.Exists(output));
     }
 

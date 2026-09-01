@@ -260,11 +260,11 @@
             is one service and it is served at one address.
         -->
         <Error Condition="$(_HardenedSmithyPublishUrlValue.Contains(';'))"
-               Code="HSMT012"
+               Code="HSMT015"
                Text="The Smithy model declares more than one PublishUrl: $(_HardenedSmithyPublishUrlValue). Every .smithy file in a project compiles into one model served at one address, so set it on one item." />
 
         <Error Condition="$(_HardenedSmithyUiUrlValue.Contains(';'))"
-               Code="HSMT012"
+               Code="HSMT015"
                Text="The Smithy model declares more than one UiUrl: $(_HardenedSmithyUiUrlValue). Every .smithy file in a project compiles into one model with one reference page, so set it on one item." />
 
         <ItemGroup>

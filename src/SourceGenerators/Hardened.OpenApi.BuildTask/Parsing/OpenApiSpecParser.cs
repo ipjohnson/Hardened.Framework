@@ -1277,7 +1277,7 @@ internal static class OpenApiSpecParser {
     /// which is a validator vocabulary question rather than a parser one, and answering it here
     /// would put a second constraint compiler beside the one ValidationModules owns. Until then the
     /// document says the rule and the build says it is not applied, which is the whole point of
-    /// <c>HOAT013</c>.
+    /// <c>HOAT024</c>.
     /// </para>
     /// </remarks>
     private static void NoteUnmappedItemConstraints(
