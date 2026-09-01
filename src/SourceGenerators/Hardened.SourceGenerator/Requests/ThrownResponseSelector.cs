@@ -98,7 +98,11 @@ public static class ThrownResponseSelector {
                     status.Value,
                     Description(context, attribute) ?? HttpResponseDescription.For(status.Value),
                     OpenApiDocument.JsonSchemaWriter.Write(
-                        errorType, context.SemanticModel.Compilation.Assembly)));
+                        errorType, context.SemanticModel.Compilation.Assembly)) {
+                    // The headers the thrown type declares, by the same convention a returned
+                    // case's are read - the symbol is already in hand here.
+                    Headers = UnionResponseSelector.DeclaredHeaders(errorType)
+                });
             }
         }
 

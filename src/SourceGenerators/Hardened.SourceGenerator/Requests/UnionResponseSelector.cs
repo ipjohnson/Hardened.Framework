@@ -357,6 +357,56 @@ public static class UnionResponseSelector {
             : null;
     }
 
+    /// <summary>
+    /// The headers a case type declares, read off its constructor by the documented convention: a
+    /// string parameter's identifier is the wire header name, which is what the generated case
+    /// types follow and <c>Created&lt;T&gt;.Location</c> models. This is what turns the interface
+    /// from a boolean into a declaration the document can carry - AppliesHeaders detected these
+    /// types and threw the names away.
+    /// </summary>
+    /// <remarks>
+    /// "Detail" is excluded by name: on the built-in problem shapes it is the body's prose, not a
+    /// header. A header parameter the convention cannot name truthfully - RateLimited's TimeSpan,
+    /// Unauthorized's challenge object - is not a string and is skipped, which omits a header
+    /// rather than publishing a wrong one.
+    /// </remarks>
+    internal static IReadOnlyList<Hardened.Generation.Models.ResponseHeaderModel> DeclaredHeaders(
+        INamedTypeSymbol caseType) {
+        if (!Implements(caseType, HeaderInterfaceName)) {
+            return System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
+        }
+
+        var constructor = caseType.Constructors
+            .Where(candidate => candidate.DeclaredAccessibility == Accessibility.Public)
+            .OrderByDescending(candidate => candidate.Parameters.Length)
+            .FirstOrDefault();
+
+        if (constructor == null) {
+            return System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
+        }
+
+        List<Hardened.Generation.Models.ResponseHeaderModel>? headers = null;
+
+        foreach (var parameter in constructor.Parameters) {
+            if (parameter.Type.SpecialType != SpecialType.System_String ||
+                string.Equals(parameter.Name, "Detail", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(parameter.Name, "Value", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(parameter.Name, "Body", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            headers ??= new List<Hardened.Generation.Models.ResponseHeaderModel>();
+
+            headers.Add(new Hardened.Generation.Models.ResponseHeaderModel {
+                Name = parameter.Name,
+                ParameterName = parameter.Name
+            });
+        }
+
+        return (IReadOnlyList<Hardened.Generation.Models.ResponseHeaderModel>?)headers
+               ?? System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
+    }
+
     /// <summary>Whether the case implements one of the response interfaces.</summary>
     private static bool Implements(ITypeSymbol caseType, string interfaceName) =>
         caseType.AllInterfaces.Any(i =>

@@ -182,16 +182,65 @@ public abstract class BaseRequestModelGenerator {
             var symbol = context.SemanticModel.Compilation.GetTypeByMetadataName(
                 described.Replace("global::", ""));
 
-            responses.Add(new ResponseSchemaModel(
+            var model = new ResponseSchemaModel(
                 unionCase.Status,
                 HttpResponseDescription.For(unionCase.Status),
                 unionCase.HasBody
                     ? OpenApiDocument.JsonSchemaWriter.Write(
                         symbol, context.SemanticModel.Compilation.Assembly)
-                    : null));
+                    : null);
+
+            // The headers the case declares, off the case type rather than the body's - a
+            // Created<Todo> sends a Todo and carries a Location, and the Location is the case's.
+            if (unionCase.AppliesHeaders &&
+                CaseSymbol(context, unionCase.TypeName) is { } caseSymbol) {
+                model.Headers = UnionResponseSelector.DeclaredHeaders(caseSymbol);
+            }
+
+            responses.Add(model);
         }
 
         return responses;
+    }
+
+    /// <summary>
+    /// The symbol for a case type's definition, from the emitted spelling.
+    /// </summary>
+    /// <remarks>
+    /// The emitted name is a closed generic - <c>Created&lt;TestApp.Todo&gt;</c> - and metadata
+    /// lookup wants the definition's arity form. The headers live on the definition's constructor,
+    /// so the unbound type is the right one to resolve; a case's header names never depend on its
+    /// type arguments.
+    /// </remarks>
+    private static INamedTypeSymbol? CaseSymbol(GeneratorSyntaxContext context, string typeName) {
+        var name = typeName.Replace("global::", "");
+        var angle = name.IndexOf('<');
+
+        if (angle >= 0) {
+            var arity = 1;
+            var depth = 0;
+
+            for (var i = angle + 1; i < name.Length; i++) {
+                switch (name[i]) {
+                    case '<':
+                        depth++;
+                        break;
+
+                    case '>':
+                        depth--;
+                        break;
+
+                    case ',' when depth == 0:
+                        arity++;
+                        break;
+                }
+            }
+
+            name = name.Substring(0, angle) + "`" +
+                   arity.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        return context.SemanticModel.Compilation.GetTypeByMetadataName(name);
     }
 
     /// <summary>
