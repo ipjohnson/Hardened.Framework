@@ -29,7 +29,11 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
                     Message = e.Message
                 }).ToList()
             };
-            return (400, errorModel);
+
+            // The status the contract declared for validation failures, where it declared one.
+            // Arm C published a 422 and was answered 400; the declared status was wired to
+            // nothing.
+            return (context.HandlerInfo?.ValidationErrorStatus ?? 400, errorModel);
         }
 
         // An exception that names its own status, which is how a specification's declared error

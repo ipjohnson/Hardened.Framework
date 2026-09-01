@@ -21,6 +21,10 @@ public class LabelServiceImpl : ILabelService {
         return Task.FromResult<GetLabelResponse>(new GetLabelOk($"Label {labelId}"));
     }
 
+    public Task<CreateLabelResponse> CreateLabel(LabelRequest body) {
+        return Task.FromResult<CreateLabelResponse>(body);
+    }
+
     public Task<ArchiveLabelResponse> ArchiveLabel(string labelId) {
         if (labelId == "missing") {
             return Task.FromResult<ArchiveLabelResponse>(

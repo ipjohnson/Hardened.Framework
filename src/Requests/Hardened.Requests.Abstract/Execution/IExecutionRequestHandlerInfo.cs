@@ -91,6 +91,16 @@ public interface IExecutionRequestHandlerInfo {
     /// </remarks>
     string? BodyParameterName => null;
 
+    /// <summary>
+    /// The status a validation failure answers with, or null for the stock 400.
+    /// </summary>
+    /// <remarks>
+    /// Set only from a described operation declaring 422. A contract that publishes a 422 for its
+    /// validation error is a promise the converter has to keep; a hand-written handler has no
+    /// source of truth behind such an assertion, which is why no attribute carries this.
+    /// </remarks>
+    int? ValidationErrorStatus => null;
+
     IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
 
     IReadOnlyList<object> Metadata => Array.Empty<object>();

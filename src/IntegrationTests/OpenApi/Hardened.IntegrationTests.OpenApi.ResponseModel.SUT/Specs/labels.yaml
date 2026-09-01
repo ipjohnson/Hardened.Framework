@@ -52,8 +52,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  # A validated body under a contract that declares its validation status. Arm C declared a 422
+  # exactly like this, the build published it, and the service answered the stock 400 - the
+  # declared status was wired to nothing.
+  /labels:
+    post:
+      tags:
+        - Label
+      operationId: createLabel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LabelRequest'
+      responses:
+        '200':
+          description: The label as stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelRequest'
+        '422':
+          description: The label was understood and refused by validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   schemas:
+    LabelRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
     Problem:
       type: object
       properties:

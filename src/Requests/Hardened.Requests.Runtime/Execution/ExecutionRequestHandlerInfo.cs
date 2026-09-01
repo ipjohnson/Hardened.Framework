@@ -15,7 +15,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         int? successStatus = null,
         object? nullResponseBody = null,
         IReadOnlyList<string>? producedContentTypes = null,
-        string? bodyParameterName = null) {
+        string? bodyParameterName = null,
+        int? validationErrorStatus = null) {
         Path = path;
         Method = method;
         HandlerType = handlerType;
@@ -27,6 +28,7 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         NullResponseBody = nullResponseBody;
         ProducedContentTypes = producedContentTypes ?? Array.Empty<string>();
         BodyParameterName = bodyParameterName;
+        ValidationErrorStatus = validationErrorStatus;
     }
 
     /// <summary>
@@ -64,7 +66,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
             source.SuccessStatus,
             source.NullResponseBody,
             source.ProducedContentTypes,
-            source.BodyParameterName) { }
+            source.BodyParameterName,
+            source.ValidationErrorStatus) { }
 
     public string Path { get; }
 
@@ -96,6 +99,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
 
     /// <inheritdoc />
     public string? BodyParameterName { get; }
+
+    /// <inheritdoc />
+    public int? ValidationErrorStatus { get; }
 
     /// <summary>
     /// The same handler, addressed at <paramref name="path"/>.

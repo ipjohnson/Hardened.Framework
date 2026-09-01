@@ -264,7 +264,7 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public class ExecutionRequestHandlerInfo : Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo
     {
-        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null, string? bodyParameterName = null) { }
+        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null, string? bodyParameterName = null, int? validationErrorStatus = default) { }
         public string? BodyParameterName { get; }
         public System.Type HandlerType { get; }
         public string InvokeMethod { get; }
@@ -276,6 +276,7 @@ namespace Hardened.Requests.Runtime.Execution
         public System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         public int? SuccessStatus { get; }
+        public int? ValidationErrorStatus { get; }
         public Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo WithPath(string? path) { }
     }
     public static class ExecutionRequestHandlerInfoExtensions

@@ -362,6 +362,7 @@ namespace Hardened.Requests.Abstract.Execution
         System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         int? SuccessStatus { get; }
+        int? ValidationErrorStatus { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? RequirementFrom(System.Collections.Generic.IReadOnlyList<object> metadata);
     }
     public interface IExecutionRequestParameter

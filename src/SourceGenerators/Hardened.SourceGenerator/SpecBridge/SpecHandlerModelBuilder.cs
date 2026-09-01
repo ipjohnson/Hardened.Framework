@@ -353,6 +353,7 @@ internal static class SpecHandlerModelBuilder {
                 ProducedContentTypes = operation.ProducedContentTypes.Count > 0
                     ? string.Join(",", operation.ProducedContentTypes)
                     : null,
+                ValidationErrorStatus = DeclaredValidationStatus(operation),
                 UnionCases = unionCases
             };
         }
@@ -420,8 +421,25 @@ internal static class SpecHandlerModelBuilder {
             // which leaves negotiation exactly as it was rather than declaring an empty set.
             ProducedContentTypes = operation.ProducedContentTypes.Count > 0
                 ? string.Join(",", operation.ProducedContentTypes)
-                : null
+                : null,
+
+            ValidationErrorStatus = DeclaredValidationStatus(operation)
         };
+    }
+
+    /// <summary>
+    /// The status the contract declares validation failures answer with: a declared 422, the one
+    /// status that names validation refusal. Arm C declared exactly this, the build published it,
+    /// and the service answered the stock 400 - the declared status was wired to nothing.
+    /// </summary>
+    private static int? DeclaredValidationStatus(OperationModel operation) {
+        foreach (var error in operation.ErrorResponses) {
+            if (error.StatusCode == 422) {
+                return 422;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
