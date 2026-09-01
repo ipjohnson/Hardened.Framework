@@ -116,5 +116,35 @@ public class TodoTests {
 
         Assert.Equal(400, response.StatusCode);
     }
+
+    /// <summary>
+    /// The id's minimum is enforced the same way the title's length is - and the published
+    /// document says so, which DocumentStatusTests holds it to.
+    /// </summary>
+    [HardenedTest]
+    public async Task GetTodo_IdBelowTheContractsMinimum_IsBadRequest(ITestWebApp app) {
+        Assert.Equal(400, (await app.Get("/todos/0")).StatusCode);
+    }
+
+    [HardenedTest]
+    public async Task RemoveTodo_IdBelowTheContractsMinimum_IsBadRequest(ITestWebApp app) {
+        Assert.Equal(400, (await app.Delete("/todos/0")).StatusCode);
+    }
+#endif
+#if (codeFirst)
+    /// <summary>
+    /// An id the parameter's type cannot carry is refused before the handler, with the same
+    /// field-level envelope a failed validation answers - and the published document says so,
+    /// which DocumentStatusTests holds it to.
+    /// </summary>
+    [HardenedTest]
+    public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app) {
+        Assert.Equal(400, (await app.Get("/todos/not-a-number")).StatusCode);
+    }
+
+    [HardenedTest]
+    public async Task RemoveTodo_MalformedId_IsBadRequest(ITestWebApp app) {
+        Assert.Equal(400, (await app.Delete("/todos/not-a-number")).StatusCode);
+    }
 #endif
 }

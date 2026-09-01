@@ -157,9 +157,11 @@
     {
       "modifiers": [
         {
+          "comment": "The JSON context too. Its whole body sits behind the same condition, so without the exclusion a spec-first project received it as a zero-byte file - which builds, and reads as debris.",
           "condition": "(!codeFirst)",
           "exclude": [
-            "src/Hardened1/TodoController.cs"
+            "src/Hardened1/TodoController.cs",
+            "src/Hardened1/TemplateModuleNameJsonContext.cs"
           ]
         },
         {

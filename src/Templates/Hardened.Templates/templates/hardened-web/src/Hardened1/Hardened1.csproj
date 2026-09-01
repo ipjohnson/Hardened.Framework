@@ -121,8 +121,10 @@
     nothing at all.
 
     The Smithy CLI turns this into the JSON AST the generator reads, so a build needs it on PATH at
-    the pinned version - the build fails with HSMT011 naming both if the version differs, because
-    two CLI versions can produce different ASTs and therefore different generated C#.
+    the pinned version - a mismatch warns locally with HSMT011 naming both versions, because
+    two CLI versions can produce different ASTs and therefore different generated C#. Under
+    ContinuousIntegrationBuild the same mismatch is an error, so a published build is produced
+    by exactly one version.
   -->
   <ItemGroup>
     <HardenedSmithyModel Include="contracts\todos.smithy">

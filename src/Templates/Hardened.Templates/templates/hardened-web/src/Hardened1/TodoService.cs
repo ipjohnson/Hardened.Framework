@@ -16,7 +16,7 @@ namespace Hardened1;
 /// and this class stops satisfying the interface, which is the point: the specification and the
 /// code cannot drift apart without the build saying so.
 ///
-/// Build, then read obj/Debug/net8.0/openapi/generated/ to see the interface, the models, the
+/// Build, then read obj/<configuration>/<tfm>/openapi/generated/ to see the interface, the models, the
 /// routing table and the validation the contract's constraints produced.
 /// </remarks>
 [Handler]

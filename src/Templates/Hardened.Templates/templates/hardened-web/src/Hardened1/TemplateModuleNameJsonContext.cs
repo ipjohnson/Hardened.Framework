@@ -1,4 +1,3 @@
-#if (codeFirst)
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -36,4 +35,3 @@ namespace Hardened1;
 // type that needs a JsonTypeInfo here.
 [JsonSerializable(typeof(List<Todo>))]
 public partial class TemplateModuleNameJsonContext : JsonSerializerContext;
-#endif
