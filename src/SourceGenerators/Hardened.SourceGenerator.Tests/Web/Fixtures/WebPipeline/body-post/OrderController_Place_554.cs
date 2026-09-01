@@ -9,7 +9,7 @@ namespace TestApp.Generated
     {
         private static readonly global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
 ;
-        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/orders", "POST", typeof(global::TestApp.OrderController), "Place", _parameterInfo)
+        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/orders", "POST", typeof(global::TestApp.OrderController), "Place", _parameterInfo, bodyParameterName: "body")
 ;
 
         public OrderController_Place_554(global::System.IServiceProvider serviceProvider, string? routePath = null)

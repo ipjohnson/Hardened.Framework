@@ -61,7 +61,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         // validation error rather than an ErrorModel so one malformed field reads the same however
         // it was caught.
         if (exp is JsonException jsonException) {
-            return (400, BodyReadError(jsonException));
+            return (400, BodyReadError(jsonException, BodyField(context)));
         }
 
         // Client errors are identified by type, not by the shape of the type's name.
@@ -113,18 +113,28 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// already does. Its trailing <c>Path: $.x | LineNumber: 0 | ...</c> is dropped, since the path
     /// is the field rather than prose.
     /// </remarks>
-    private static RequestValidationError BodyReadError(JsonException exception) =>
+    private static RequestValidationError BodyReadError(JsonException exception, string body) =>
         new() {
             Type = "ValidationError",
             Message = "One or more validation errors occurred.",
-            Errors = MissingMembers(exception.Message) ?? [
+            Errors = MissingMembers(exception.Message, body) ?? [
                 new RequestValidationFieldError {
-                    Field = FieldFrom(exception.Path),
+                    Field = FieldFrom(exception.Path, body),
                     Code = "invalid",
                     Message = WithoutPositionSuffix(exception.Message)
                 }
             ]
         };
+
+    /// <summary>
+    /// The prefix a body field is reported under: the handler's own parameter identifier, which is
+    /// what the generated validators use. "body" only where nothing says otherwise.
+    /// </summary>
+    private static string BodyField(IExecutionContext context) {
+        var name = context.HandlerInfo?.BodyParameterName;
+
+        return string.IsNullOrEmpty(name) ? "body" : name!;
+    }
 
     /// <summary>
     /// The members a required-member failure names, as the errors <c>[Required]</c> would have
@@ -155,7 +165,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// silently degrading in production.
     /// </para>
     /// </remarks>
-    private static List<RequestValidationFieldError>? MissingMembers(string message) {
+    private static List<RequestValidationFieldError>? MissingMembers(string message, string body) {
         const string prefix = "JSON deserialization for type ";
         const string marker = "missing required properties";
 
@@ -173,14 +183,24 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
 
         var errors = new List<RequestValidationFieldError>();
 
-        foreach (var name in message.Substring(listStart + 2).Split(',')) {
-            var member = name.Trim();
+        // The list System.Text.Json writes joins with the current culture's list separator - a
+        // comma only on most machines - quotes each member, and ends the sentence with a period.
+        // Splitting on a literal comma and keeping the decoration is what produced the trial's
+        // `body.'code'.` field. Every piece of dressing comes off before the member is a field.
+        var separator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
+
+        var names = separator == ","
+            ? message.Substring(listStart + 2).Split(',')
+            : message.Substring(listStart + 2).Split([separator, ","], StringSplitOptions.None);
+
+        foreach (var name in names) {
+            var member = name.Trim().TrimEnd('.').Trim('\'', '"');
 
             if (member.Length == 0) {
                 continue;
             }
 
-            var field = "body." + member;
+            var field = body + "." + member;
 
             errors.Add(new RequestValidationFieldError {
                 Field = field, Code = "required", Message = field + " is required."
@@ -191,16 +211,17 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     }
 
     /// <summary>
-    /// <c>$.genre</c>, as <c>body.genre</c> - the spelling the constraint validators use.
+    /// <c>$.genre</c>, as <c>body.genre</c> - the spelling the constraint validators use, under
+    /// the handler's own parameter identifier.
     /// </summary>
-    private static string FieldFrom(string? path) {
+    private static string FieldFrom(string? path, string body) {
         if (string.IsNullOrEmpty(path) || path == "$") {
-            return "body";
+            return body;
         }
 
         return path!.StartsWith("$.", StringComparison.Ordinal)
-            ? "body." + path.Substring(2)
-            : "body" + path.Substring(1);
+            ? body + "." + path.Substring(2)
+            : body + path.Substring(1);
     }
 
     private static string WithoutPositionSuffix(string message) {
