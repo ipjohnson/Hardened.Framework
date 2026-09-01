@@ -1,6 +1,7 @@
 using DependencyModules.Runtime.Interfaces;
-using Hardened.IntegrationTests.Authorization.SUT.Filters;
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Runtime.Authorization;
+using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.AspNetCore.Runtime;
@@ -28,9 +29,10 @@ namespace Hardened.IntegrationTests.Authorization.SUT;
 public partial class Application : IServiceCollectionConfiguration {
 
     public void ConfigureServices(IServiceCollection services) {
-        // Stands in for authentication until the framework ships it, so these tests can exercise a
-        // caller who holds grants rather than only one who holds none.
-        services.AddSingleton<IStartupService, TestPrincipalStartupService>();
+        // The supported testing source, through the same seam and middleware a production
+        // authentication source uses - this fixture carried its own copy of both until they
+        // shipped.
+        services.AddSingleton<IPrincipalSource, TestGrantsPrincipalSource>();
     }
 
     public static WebApplicationBuilder CreateBuilder(string[] args) {

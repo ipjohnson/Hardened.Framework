@@ -1,4 +1,4 @@
-using Hardened.IntegrationTests.Authorization.SUT.Filters;
+using Hardened.Requests.Testing;
 
 namespace Hardened.IntegrationTests.Authorization.SUT.Tests;
 
@@ -16,11 +16,11 @@ namespace Hardened.IntegrationTests.Authorization.SUT.Tests;
 public class DefaultDenyTests {
 
     private static Action<TestWebRequest> Holding(string grants) =>
-        request => request.Headers[TestPrincipalMiddleware.GrantsHeader] = grants;
+        request => request.Headers[TestGrantsPrincipalSource.GrantsHeader] = grants;
 
     /// <summary>Authenticated, holding nothing.</summary>
     private static Action<TestWebRequest> Authenticated() =>
-        Holding(TestPrincipalMiddleware.AnonymousGrantsValue);
+        Holding(TestGrantsPrincipalSource.AnonymousGrantsValue);
 
     #region the backstop
 

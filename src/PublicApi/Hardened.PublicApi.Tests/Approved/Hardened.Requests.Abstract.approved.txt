@@ -202,6 +202,12 @@ namespace Hardened.Requests.Abstract.Authorization
         string? Subject { get; }
         bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value);
     }
+    public interface IPrincipalSource
+    {
+        System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.ICallerPrincipal?> Authenticate(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+    }
+    public interface IPrincipalSource<TScheme> : Hardened.Requests.Abstract.Authorization.IPrincipalSource
+        where TScheme : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme { }
     [System.AttributeUsage(System.AttributeTargets.Class)]
     public sealed class OAuth2AuthenticationSchemeAttribute : System.Attribute
     {

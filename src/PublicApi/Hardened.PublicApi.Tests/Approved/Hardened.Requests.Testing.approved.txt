@@ -189,6 +189,14 @@ namespace Hardened.Requests.Testing
         public int? Status { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
     }
+    public sealed class TestGrantsPrincipalSource : Hardened.Requests.Abstract.Authorization.IPrincipalSource
+    {
+        public const string AnonymousGrantsValue = "-";
+        public const string GrantsHeader = "X-Test-Grants";
+        public const string SchemeName = "test";
+        public TestGrantsPrincipalSource() { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.ICallerPrincipal?> Authenticate(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
     public class TestTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
     {
         public TestTransportInfo(System.Collections.Generic.IDictionary<string, string> values) { }
