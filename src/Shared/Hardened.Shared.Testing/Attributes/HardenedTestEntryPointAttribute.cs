@@ -15,7 +15,8 @@ namespace Hardened.Shared.Testing.Attributes;
 
 [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method)]
 public class HardenedTestEntryPointAttribute
-    : Attribute, IDependencyModuleProvider, ITestServiceSetupAttribute, ITestStartupAttribute {
+    : Attribute, IDependencyModuleProvider, IModuleEnvironmentProvider,
+      ITestServiceSetupAttribute, ITestStartupAttribute {
     public HardenedTestEntryPointAttribute(Type entryPoint) {
         EntryPoint = entryPoint;
     }
@@ -26,10 +27,29 @@ public class HardenedTestEntryPointAttribute
         return (IDependencyModule)Activator.CreateInstance(EntryPoint)!;
     }
 
+    /// <summary>
+    /// The environment the runner registers before it applies any module.
+    /// </summary>
+    /// <remarks>
+    /// This is what puts an <c>[IfEnvironment]</c>-gated registration within a test's reach.
+    /// <see cref="SetupServiceCollection"/> registers the same environment, but the runner calls
+    /// it after the modules have been applied - by design, so a test registration beats an
+    /// application one - which is after every module condition has already been decided. The
+    /// runner asks this first, so the conditions are decided against the environment the test
+    /// declares rather than a process default.
+    /// </remarks>
+    public IModuleEnvironment? ProvideEnvironment(MethodInfo testMethod) {
+        return BuildEnvironment(AttributeCollection.FromMethodInfo(testMethod), testMethod);
+    }
+
     public void SetupServiceCollection(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
         var methodInfo = testMethod.Method;
         var attributeCollection = AttributeCollection.FromMethodInfo(methodInfo);
-        var environment = BuildEnvironment(attributeCollection, methodInfo);
+
+        // The instance the runner seeded for the module pass, when it did - the same one, so the
+        // environment a module condition read and the one a service resolves are one object.
+        var environment = SeededEnvironment(serviceCollection)
+                          ?? BuildEnvironment(attributeCollection, methodInfo);
 
         serviceCollection.AddLogging();
 
@@ -77,6 +97,21 @@ public class HardenedTestEntryPointAttribute
             await startupAttribute.Startup(attributeCollection, methodInfo,
                 serviceProvider.GetRequiredService<IHardenedEnvironment>(), serviceProvider);
         }
+    }
+
+    /// <summary>
+    /// The environment <see cref="ProvideEnvironment"/> already handed the runner, or null on a
+    /// path that never called it - the setup pipeline driven directly, or an older runner.
+    /// </summary>
+    private static IHardenedEnvironment? SeededEnvironment(IServiceCollection serviceCollection) {
+        foreach (var descriptor in serviceCollection) {
+            if (descriptor.ServiceType == typeof(IModuleEnvironment) &&
+                descriptor.ImplementationInstance is IHardenedEnvironment seeded) {
+                return seeded;
+            }
+        }
+
+        return null;
     }
 
     private static IHardenedEnvironment BuildEnvironment(AttributeCollection attributeCollection, MethodInfo methodInfo) {
