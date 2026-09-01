@@ -158,35 +158,54 @@ public class ConstraintAttributesTests {
     }
 
     /// <summary>
-    /// <c>Range</c> has no partially-bounded constructor, so an absent bound becomes the extreme
-    /// rather than being omitted.
+    /// An absent bound is omitted, the way every other bounded constraint here writes its bounds.
+    /// It used to become the decimal extreme, because this file claimed Range had no
+    /// partially-bounded form - so <c>minimum: 5</c> validated as "must be between 5 and
+    /// 7.92281625142643E+28", and the single-bound message templates ValidationModules shipped
+    /// against that exact symptom never engaged.
     /// </summary>
     [Fact]
-    public void AnAbsentBoundBecomesTheExtreme() {
+    public void AnAbsentBoundIsOmitted() {
         var arguments = Single(For(Property(minimum: 5), "int"), "RangeAttribute").Arguments;
 
-        Assert.Equal(2, arguments.Count);
-        Assert.Equal("5", arguments[0]);
-        Assert.Equal(((double)decimal.MaxValue).ToString("R", System.Globalization.CultureInfo.InvariantCulture),
-            arguments[1]);
+        Assert.Equal(new[] { "Min = 5" }, arguments);
     }
 
     [Fact]
-    public void ExclusiveBoundsAreNamedArgumentsAfterThePositionalOnes() {
+    public void AnAbsentLowerBoundIsOmittedToo() {
+        var arguments = Single(For(Property(maximum: 10), "int"), "RangeAttribute").Arguments;
+
+        Assert.Equal(new[] { "Max = 10" }, arguments);
+    }
+
+    /// <summary>
+    /// The exclusive flag rides beside a single bound, which is what lets the exclusive
+    /// single-bound message templates engage.
+    /// </summary>
+    [Fact]
+    public void AnExclusiveSingleBoundKeepsItsFlag() {
+        var arguments = Single(
+            For(Property(minimum: 0, exclusiveMinimum: true), "double"), "RangeAttribute").Arguments;
+
+        Assert.Equal(new[] { "Min = 0", "ExclusiveMin = true" }, arguments);
+    }
+
+    [Fact]
+    public void ExclusiveBoundsAreNamedArgumentsAfterTheBounds() {
         var arguments =
             Single(For(Property(minimum: 1, maximum: 10, exclusiveMinimum: true, exclusiveMaximum: true), "int"),
                 "RangeAttribute").Arguments;
 
-        Assert.Equal(4, arguments.Count);
-        Assert.Equal("ExclusiveMin = true", arguments[2]);
-        Assert.Equal("ExclusiveMax = true", arguments[3]);
+        Assert.Equal(
+            new[] { "Min = 1", "Max = 10", "ExclusiveMin = true", "ExclusiveMax = true" },
+            arguments);
     }
 
     [Fact]
     public void AnInclusiveBoundWritesNoExclusiveFlag() {
         var arguments = Single(For(Property(minimum: 1, maximum: 10), "int"), "RangeAttribute").Arguments;
 
-        Assert.Equal(2, arguments.Count);
+        Assert.Equal(new[] { "Min = 1", "Max = 10" }, arguments);
     }
 
     /// <summary>
@@ -196,7 +215,7 @@ public class ConstraintAttributesTests {
     [Fact]
     public void AFractionalBoundIsWrittenInvariant() {
         Assert.Equal(
-            "1.5",
+            "Min = 1.5",
             Single(For(Property(minimum: 1.5m, maximum: 10), "double"), "RangeAttribute").Arguments[0]);
     }
 

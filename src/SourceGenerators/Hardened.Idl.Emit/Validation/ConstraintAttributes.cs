@@ -101,12 +101,20 @@ internal static class ConstraintAttributes {
         }
 
         if (numeric && (minimum.HasValue || maximum.HasValue)) {
-            // Range has no partially-bounded constructor, and its double overload takes the widest
-            // set of spec values - so an absent bound becomes the extreme rather than being omitted.
-            var arguments = new List<string> {
-                Literal(minimum, decimal.MinValue),
-                Literal(maximum, decimal.MaxValue),
-            };
+            // Named arguments, like every other bounded constraint here. This used to claim Range
+            // had no partially-bounded form and fill the absent bound with a decimal extreme - so
+            // `minimum: 1` validated as "must be between 1 and 7.92281625142643E+28", and
+            // ValidationModules' single-bound message templates, which cite that exact symptom as
+            // their reason to exist, never engaged. An absent bound emits no comparison at all.
+            var arguments = new List<string>();
+
+            if (minimum.HasValue) {
+                arguments.Add("Min = " + Literal(minimum.Value));
+            }
+
+            if (maximum.HasValue) {
+                arguments.Add("Max = " + Literal(maximum.Value));
+            }
 
             if (exclusiveMinimum) {
                 arguments.Add("ExclusiveMin = true");
@@ -160,8 +168,13 @@ internal static class ConstraintAttributes {
         return parts;
     }
 
-    private static string Literal(decimal? value, decimal fallback) =>
-        ((double)(value ?? fallback)).ToString("R", CultureInfo.InvariantCulture);
+    /// <summary>
+    /// A bound as a C# literal for Range's <c>object?</c> properties. Rendered through double
+    /// because decimal is not a legal attribute argument type; a whole-number bound renders as
+    /// the integer it is.
+    /// </summary>
+    private static string Literal(decimal value) =>
+        ((double)value).ToString("R", CultureInfo.InvariantCulture);
 
     private static string Quote(string value) =>
         "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
