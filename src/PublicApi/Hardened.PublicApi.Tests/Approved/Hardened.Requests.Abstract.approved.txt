@@ -1107,6 +1107,10 @@ namespace Hardened.Requests.Abstract.Serializer
         public ContentNegotiationPolicy(Hardened.Requests.Abstract.Serializer.ContentNegotiationMode mode = 0) { }
         public Hardened.Requests.Abstract.Serializer.ContentNegotiationMode Mode { get; }
     }
+    public class ContentTypeNotProducibleException : System.Exception
+    {
+        public ContentTypeNotProducibleException(string message) { }
+    }
     public sealed class DelegatingStringConverter<TValue> : Hardened.Requests.Abstract.Serializer.IStringConverter
     {
         public DelegatingStringConverter(Hardened.Requests.Abstract.Serializer.DelegatingStringConverter<TValue>.TryParse tryParse, string? typeName = null) { }

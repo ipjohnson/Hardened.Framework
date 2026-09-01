@@ -304,6 +304,40 @@ paths:
             text/plain:
               schema:
                 type: string
+  # A scalar text/plain success beside a JSON error. The declared set used to be collected from
+  # the 2xx responses alone, so this operation's set was text/plain and nothing else - a set no
+  # error model can travel as - and the 404 below, like the framework's own binding 400, reached
+  # the caller as an empty 500.
+  /pets/{petId}/label:
+    get:
+      tags:
+        - Pet
+      operationId: getPetLabel
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: copies
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: The pet's cage label, one line per copy
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: No pet with that id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /stores:
     get:
       tags:

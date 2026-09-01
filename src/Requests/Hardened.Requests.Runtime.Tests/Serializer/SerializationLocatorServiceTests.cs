@@ -229,7 +229,8 @@ public class SerializationLocatorServiceTests {
 
         var locator = Locator(serializers: new[] { json });
 
-        var exception = Assert.Throws<Exception>(() => locator.FindResponseSerializer(context));
+        var exception = Assert.Throws<ContentTypeNotProducibleException>(
+            () => locator.FindResponseSerializer(context));
 
         Assert.Contains("application/pdf", exception.Message);
     }

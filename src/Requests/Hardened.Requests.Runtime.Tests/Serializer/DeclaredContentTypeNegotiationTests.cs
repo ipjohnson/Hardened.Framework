@@ -156,10 +156,9 @@ public class DeclaredContentTypeNegotiationTests {
         var locator = Locator(
             ContentNegotiationMode.Strict, Serializer("application/json", isDefault: true));
 
-        var failure = Assert.Throws<Exception>(
+        var failure = Assert.Throws<ContentTypeNotProducibleException>(
             () => locator.FindResponseSerializer(Context("text/html", "application/pdf")));
 
-        Assert.IsNotType<NotAcceptableException>(failure);
         Assert.Contains("application/pdf", failure.Message);
     }
 

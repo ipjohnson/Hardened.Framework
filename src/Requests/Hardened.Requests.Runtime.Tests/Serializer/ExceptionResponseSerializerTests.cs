@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Errors;
@@ -108,6 +109,79 @@ public class ExceptionResponseSerializerTests {
         await fixture.Subject.Handle(context, failure);
 
         fixture.Converter.Received(1).ConvertExceptionToModel(context, failure);
+    }
+
+    // ------------------------------------------------------------------- a committed content type
+
+    /// <summary>
+    /// A committed content type the error model cannot travel as is recommitted to JSON rather
+    /// than escaping as the locator's configuration fault. This is <c>[RawResponse]</c> plus a
+    /// thrown exception, which used to reach the caller as an empty 500.
+    /// </summary>
+    [Fact]
+    public async Task ACommittedTypeThatCannotCarryTheErrorIsRecommittedToJson() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+
+        context.Response.ContentType = "image/png";
+
+        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+            .Returns((500, new ErrorModel()));
+
+        fixture.Locator.FindResponseSerializer(Arg.Any<IExecutionContext>())
+            .Returns(_ => {
+                if (context.Response.ContentType != KnownContentType.Json) {
+                    throw new ContentTypeNotProducibleException(
+                        "Response committed to content type 'image/png' but no registered " +
+                        "serializer can produce it.");
+                }
+
+                return fixture.Serializer;
+            });
+
+        await fixture.Subject.Handle(context, new InvalidOperationException("failed"));
+
+        Assert.Equal(KnownContentType.Json, context.Response.ContentType);
+        await fixture.Serializer.Received(1).SerializeResponse(context);
+    }
+
+    /// <summary>
+    /// A committed type the error can travel as is honoured. Recommitting is a rescue, not a
+    /// default: a caller of an XML operation still gets its errors in XML.
+    /// </summary>
+    [Fact]
+    public async Task AProducibleCommittedTypeKeepsTheError() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+
+        context.Response.ContentType = "application/xml";
+
+        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+            .Returns((500, new ErrorModel()));
+
+        await fixture.Subject.Handle(context, new InvalidOperationException("failed"));
+
+        Assert.Equal("application/xml", context.Response.ContentType);
+        await fixture.Serializer.Received(1).SerializeResponse(context);
+    }
+
+    /// <summary>
+    /// A client asking for representations the operation does not have is a different refusal, and
+    /// it keeps travelling to the 406 path rather than being flattened into a JSON error here.
+    /// </summary>
+    [Fact]
+    public async Task ANotAcceptableRefusalIsNotFlattenedToJson() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+
+        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+            .Returns((400, new ErrorModel()));
+
+        fixture.Locator.FindResponseSerializer(Arg.Any<IExecutionContext>())
+            .Returns(_ => throw new NotAcceptableException(new[] { "text/plain" }));
+
+        await Assert.ThrowsAsync<NotAcceptableException>(
+            () => fixture.Subject.Handle(context, new Exception("failed")));
     }
 
     // ------------------------------------------------------------------------------ logging
