@@ -523,5 +523,9 @@ components:
         status:
           type: integer
           format: int32
+        # Declared nullable, which the published document must repeat as the 2020-12 type array.
+        # The framework's own 404 body sends detail as null, so a document typing it plain string
+        # was describing a payload the service never sends.
         detail:
           type: string
+          nullable: true

@@ -988,7 +988,7 @@ public static class OpenApiDocumentGenerator {
     /// document is the defect this replaces.
     /// </remarks>
     private static void AppendScalarFacets(
-        StringBuilder builder, string type, string? format, ParameterModel spec,
+        StringBuilder builder, string type, string? format, IConstraintFacets spec,
         OpenApiVersion version, bool openObject) {
         if (openObject) {
             builder.Append('{');
@@ -1000,6 +1000,24 @@ public static class OpenApiDocumentGenerator {
             builder.Append(",\"format\":\"").Append(JsonSchemaWriter.Escape(format!)).Append('"');
         }
 
+        AppendConstraintFacets(builder, type, spec, version);
+
+        if (openObject) {
+            builder.Append('}');
+        }
+    }
+
+    /// <summary>
+    /// The constraint keywords alone, appended to a schema object someone else opened.
+    /// </summary>
+    /// <remarks>
+    /// Shared with <c>SpecSchemaWriter</c>, which writes body schemas from the normalised model.
+    /// Parameters travelled through here from the start, which is why the trial found every
+    /// parameter constraint published and every body constraint dropped - two writers, one of
+    /// which never learned these keywords.
+    /// </remarks>
+    internal static void AppendConstraintFacets(
+        StringBuilder builder, string type, IConstraintFacets spec, OpenApiVersion version) {
         if (spec.EnumValues is { Count: > 0 }) {
             builder.Append(",\"enum\":[");
 
@@ -1050,10 +1068,6 @@ public static class OpenApiDocumentGenerator {
 
         if (!string.IsNullOrEmpty(spec.Default)) {
             builder.Append(",\"default\":").Append(DefaultLiteralJson(type, spec.Default!));
-        }
-
-        if (openObject) {
-            builder.Append('}');
         }
     }
 

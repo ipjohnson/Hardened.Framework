@@ -374,6 +374,8 @@ public class SpecModelSerializerTests {
                     ArrayItemsRef = "#/components/schemas/Tag",
                     ArrayItemsType = "string",
                     ArrayItemsFormat = "uuid",
+                    MinItems = 1,
+                    MaxItems = 25,
                     DictionaryValueType = "string",
                     DictionaryValueRef = "#/components/schemas/Value",
                     Type = "object",

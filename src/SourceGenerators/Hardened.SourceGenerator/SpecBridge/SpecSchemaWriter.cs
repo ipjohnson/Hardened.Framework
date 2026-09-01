@@ -156,8 +156,17 @@ internal static class SpecSchemaWriter {
                 Describe(builder, schema.Description);
                 builder.Append(",\"items\":")
                     .Append(Inline(schema.ArrayItemsRef, schema.ArrayItemsType, schema.ArrayItemsFormat,
-                        null, schemas, components, seen))
-                    .Append('}');
+                        null, null, false, schemas, components, seen));
+
+                if (schema.MinItems.HasValue) {
+                    builder.Append(",\"minItems\":").Append(schema.MinItems.Value);
+                }
+
+                if (schema.MaxItems.HasValue) {
+                    builder.Append(",\"maxItems\":").Append(schema.MaxItems.Value);
+                }
+
+                builder.Append('}');
 
                 break;
 
@@ -192,14 +201,25 @@ internal static class SpecSchemaWriter {
             builder.Append('"').Append(JsonSchemaWriter.Escape(property.Name)).Append("\":");
 
             if (property.IsArray) {
-                builder.Append("{\"type\":\"array\",\"items\":")
+                var array = new StringBuilder("{\"type\":\"array\",\"items\":")
                     .Append(Inline(property.ArrayItemsRef, property.ArrayItemsType,
-                        property.ArrayItemsFormat, null, schemas, components, seen))
-                    .Append('}');
+                        property.ArrayItemsFormat, null, null, false, schemas, components, seen));
+
+                if (property.MinItems.HasValue) {
+                    array.Append(",\"minItems\":").Append(property.MinItems.Value);
+                }
+
+                if (property.MaxItems.HasValue) {
+                    array.Append(",\"maxItems\":").Append(property.MaxItems.Value);
+                }
+
+                Describe(array, property.Description);
+
+                builder.Append(Nullable(array.Append('}').ToString(), property.IsNullable));
             }
             else {
                 builder.Append(Inline(property.Ref, property.Type, property.Format,
-                    property.Description, schemas, components, seen));
+                    property.Description, property, property.IsNullable, schemas, components, seen));
             }
         }
 
@@ -247,10 +267,13 @@ internal static class SpecSchemaWriter {
     /// <remarks>
     /// A <c>$ref</c> beside a description is not legal in OpenAPI 3.0 - the sibling keys are ignored
     /// - so a described reference is wrapped in <c>allOf</c>, which is the spelling every tool
-    /// reads. A described scalar carries the description directly.
+    /// reads. A described scalar carries the description directly, and its declared constraints
+    /// with it: the model held every one of them and this writer published none, which is how the
+    /// trial's document-fidelity matrix came out inverted - parameters constrained, bodies bare.
     /// </remarks>
     private static string Inline(
         string? schemaRef, string? type, string? format, string? description,
+        IConstraintFacets? facets, bool isNullable,
         IReadOnlyList<SchemaModel> schemas, Dictionary<string, string> components,
         HashSet<string> seen) {
         if (schemaRef != null) {
@@ -276,9 +299,45 @@ internal static class SpecSchemaWriter {
             builder.Append(",\"format\":\"").Append(JsonSchemaWriter.Escape(format!)).Append('"');
         }
 
+        if (facets != null) {
+            OpenApiDocumentGenerator.AppendConstraintFacets(
+                builder, type ?? "string", facets, OpenApiVersionFacts.Default);
+        }
+
         Describe(builder, description);
 
-        return builder.Append('}').ToString();
+        return Nullable(builder.Append('}').ToString(), isNullable);
+    }
+
+    /// <summary>
+    /// The schema with <c>"null"</c> added to its type when the contract marks the member
+    /// nullable.
+    /// </summary>
+    /// <remarks>
+    /// The 2020-12 spelling - a type array - ported from <c>JsonSchemaWriter.Nullable</c> and
+    /// correct here for the same reason it gives: the default document is one this spelling is
+    /// valid in. A <c>$ref</c> is left alone; the referenced schema describes the type.
+    /// </remarks>
+    private static string Nullable(string schema, bool isNullable) {
+        if (!isNullable) {
+            return schema;
+        }
+
+        const string prefix = "{\"type\":\"";
+
+        if (!schema.StartsWith(prefix, System.StringComparison.Ordinal)) {
+            return schema;
+        }
+
+        var close = schema.IndexOf('"', prefix.Length);
+
+        if (close < 0) {
+            return schema;
+        }
+
+        var name = schema.Substring(prefix.Length, close - prefix.Length);
+
+        return "{\"type\":[\"" + name + "\",\"null\"]" + schema.Substring(close + 1);
     }
 
     private static void Describe(StringBuilder builder, string? description) {

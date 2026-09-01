@@ -58,6 +58,51 @@ public class SmithyServedDocumentTests {
     }
 
     /// <summary>
+    /// The <c>@length</c> the model declares on a body member reaches the published schema. Both
+    /// spec front ends share the writer that dropped every body constraint, so this is the Smithy
+    /// half of the same fix the OpenAPI SUT asserts.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheBodySchemasCarryTheConstraintsTheModelDeclares(ITestWebApp app) {
+        var document = await Document(app);
+
+        var bodyRef = document.GetProperty("paths").GetProperty("/pets").GetProperty("post")
+            .GetProperty("requestBody").GetProperty("content").GetProperty("application/json")
+            .GetProperty("schema").GetProperty("$ref").GetString();
+
+        var name = document.GetProperty("components").GetProperty("schemas")
+            .GetProperty(bodyRef!.Substring("#/components/schemas/".Length))
+            .GetProperty("properties").GetProperty("name");
+
+        Assert.Equal(1, name.GetProperty("minLength").GetInt32());
+        Assert.Equal(64, name.GetProperty("maxLength").GetInt32());
+    }
+
+    /// <summary>
+    /// A member that is neither <c>@required</c> nor defaulted is nullable under Smithy's rules,
+    /// and the published schema says so with the 2020-12 type array.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnOptionalMemberPublishesTheNullableTypeArray(ITestWebApp app) {
+        var document = await Document(app);
+
+        var responseRef = document.GetProperty("paths").GetProperty("/pets").GetProperty("get")
+            .GetProperty("responses").GetProperty("200").GetProperty("content")
+            .GetProperty("application/json").GetProperty("schema").GetProperty("$ref").GetString();
+
+        var nextToken = document.GetProperty("components").GetProperty("schemas")
+            .GetProperty(responseRef!.Substring("#/components/schemas/".Length))
+            .GetProperty("properties").GetProperty("nextToken");
+
+        var type = nextToken.GetProperty("type");
+
+        Assert.Equal(JsonValueKind.Array, type.ValueKind);
+        Assert.Equal(
+            new[] { "string", "null" },
+            type.EnumerateArray().Select(entry => entry.GetString()).ToArray());
+    }
+
+    /// <summary>
     /// And the status the model declares, rather than a guess.
     /// </summary>
     [HardenedTest]

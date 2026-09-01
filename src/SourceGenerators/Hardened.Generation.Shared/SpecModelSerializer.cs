@@ -340,6 +340,8 @@ internal static class SpecModelSerializer {
         record.Add("ArrayItemsRef", schema.ArrayItemsRef);
         record.Add("ArrayItemsType", schema.ArrayItemsType);
         record.Add("ArrayItemsFormat", schema.ArrayItemsFormat);
+        record.Add("MinItems", schema.MinItems);
+        record.Add("MaxItems", schema.MaxItems);
         record.Add("DictionaryValueType", schema.DictionaryValueType);
         record.Add("DictionaryValueRef", schema.DictionaryValueRef);
         record.WriteTo(builder);
@@ -427,6 +429,8 @@ internal static class SpecModelSerializer {
         ArrayItemsRef = record.String("ArrayItemsRef"),
         ArrayItemsType = record.String("ArrayItemsType"),
         ArrayItemsFormat = record.String("ArrayItemsFormat"),
+        MinItems = record.Int("MinItems"),
+        MaxItems = record.Int("MaxItems"),
         DictionaryValueType = record.String("DictionaryValueType"),
         DictionaryValueRef = record.String("DictionaryValueRef"),
     };
