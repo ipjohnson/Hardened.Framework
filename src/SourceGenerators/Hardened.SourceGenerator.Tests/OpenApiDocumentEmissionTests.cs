@@ -297,14 +297,23 @@ public class OpenApiDocumentEmissionTests {
     #region what the document says about code-first parameters and members
 
     /// <summary>The application the fidelity tests drive: enums, defaults, constraints, nulls.</summary>
+    /// <remarks>
+    /// <c>Priority</c> deliberately appears in no body. <c>Carrier</c> rides in
+    /// <c>Shipment</c> too, so the response walk collected its vocabulary and the parameter test
+    /// passed while parameter-only enums were broken - the second trial's exact shape.
+    /// </remarks>
     private const string FidelityControllers = """
         public enum Carrier { Dhl, Fedex, RoyalMail }
+
+        public enum Priority { Low, High }
 
         public record Shipment(string Id, int Quantity, string? Note, Carrier Carrier);
 
         public record NewShipment(
             [property: ValidationModules.Constraints.Range("0.5", "30", ExclusiveMin = true)]
-            decimal WeightKg);
+            decimal WeightKg,
+            [property: ValidationModules.Constraints.ItemCount(Min = 1, Max = 10)]
+            List<Shipment> Batch);
 
         public class ShipmentController {
             [Get("/shipments")]
@@ -312,9 +321,21 @@ public class OpenApiDocumentEmissionTests {
                 [FromQueryString] int limit = 20, [FromQueryString] Carrier? carrier = null) =>
                 Task.FromResult(new List<Shipment>());
 
+            [Get("/shipments/urgent")]
+            public Task<List<Shipment>> Urgent([FromQueryString] Priority priority) =>
+                Task.FromResult(new List<Shipment>());
+
+            [Get("/shipments/paged")]
+            public Task<List<Shipment>> Paged(
+                [FromQueryString] long? cursor = null, [FromQueryString] int? limit = null) =>
+                Task.FromResult(new List<Shipment>());
+
             [Post("/shipments")]
             public Task<Shipment> Create([FromBody] NewShipment body) =>
                 Task.FromResult(new Shipment("1", 1, null, Carrier.Dhl));
+
+            [Post("/shipments/{id}/archive")]
+            public Task Archive(string id) => Task.CompletedTask;
         }
         """;
 
@@ -358,6 +379,93 @@ public class OpenApiDocumentEmissionTests {
         Assert.Equal(
             new[] { "dhl", "fedex", "royalMail" },
             schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+    }
+
+    /// <summary>
+    /// The unmasked half of the assertion above. Carrier also rides in the response body, so the
+    /// body walk collected its vocabulary and the test passed while the parameter walk collected
+    /// nothing. Priority appears in no body: its vocabulary exists only because the parameter
+    /// transform now captures it.
+    /// </summary>
+    [Fact]
+    public void AParameterOnlyEnumCarriesItsVocabulary() {
+        var schema = Parameter(FidelityDocument(), "/shipments/urgent", "priority")
+            .GetProperty("schema");
+
+        Assert.Equal("string", schema.GetProperty("type").GetString());
+        Assert.Equal(
+            new[] { "low", "high" },
+            schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+    }
+
+    /// <summary>
+    /// int? and long? describe as the integers they are. The unwrap hands on a definition named
+    /// with the C# keyword, and the schema switch matched only the CLR names a bare parameter
+    /// produces - so a nullable scalar published as a string while its bare twin published as an
+    /// integer.
+    /// </summary>
+    [Fact]
+    public void ANullableScalarParameterIsAnInteger() {
+        var document = FidelityDocument();
+
+        var limit = Parameter(document, "/shipments/paged", "limit").GetProperty("schema");
+
+        Assert.Equal("integer", limit.GetProperty("type").GetString());
+        Assert.Equal("int32", limit.GetProperty("format").GetString());
+
+        var cursor = Parameter(document, "/shipments/paged", "cursor").GetProperty("schema");
+
+        Assert.Equal("integer", cursor.GetProperty("type").GetString());
+        Assert.Equal("int64", cursor.GetProperty("format").GetString());
+    }
+
+    /// <summary>
+    /// A bare Task is void with a different spelling. The schema writer used to walk Task itself,
+    /// so the 200 carried a Task schema and components gained its BCL entourage.
+    /// </summary>
+    [Fact]
+    public void ABareTaskPublishesNoSchemaAtAll() {
+        var document = FidelityDocument();
+
+        var ok = document.GetProperty("paths").GetProperty("/shipments/{id}/archive")
+            .GetProperty("post").GetProperty("responses").GetProperty("200");
+
+        Assert.False(ok.TryGetProperty("content", out _));
+
+        if (document.TryGetProperty("components", out var components)) {
+            foreach (var schema in components.GetProperty("schemas").EnumerateObject()) {
+                Assert.NotEqual("Task", schema.Name);
+            }
+        }
+    }
+
+    /// <summary>
+    /// [ItemCount] on an array of referenced objects keeps its bounds. The guard against writing
+    /// facets beside a $ref searched the whole schema string, so an items reference cost the
+    /// array every facet it had - and the bounds sit on the array, where no reference is.
+    /// </summary>
+    [Fact]
+    public void ItemCountOnAnArrayOfReferencesKeepsItsBounds() {
+        var batch = FidelityDocument().GetProperty("components").GetProperty("schemas")
+            .GetProperty("NewShipment").GetProperty("properties").GetProperty("batch");
+
+        Assert.Equal(1, batch.GetProperty("minItems").GetInt32());
+        Assert.Equal(10, batch.GetProperty("maxItems").GetInt32());
+        Assert.Equal(
+            "#/components/schemas/Shipment",
+            batch.GetProperty("items").GetProperty("$ref").GetString());
+    }
+
+    private static JsonElement Parameter(JsonElement document, string path, string name) {
+        foreach (var parameter in document
+                     .GetProperty("paths").GetProperty(path).GetProperty("get")
+                     .GetProperty("parameters").EnumerateArray()) {
+            if (parameter.GetProperty("name").GetString() == name) {
+                return parameter;
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"No parameter named '{name}' at '{path}'.");
     }
 
     /// <summary>

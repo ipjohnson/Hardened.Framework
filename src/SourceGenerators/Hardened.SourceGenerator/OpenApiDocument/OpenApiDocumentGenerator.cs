@@ -676,11 +676,7 @@ public static class OpenApiDocumentGenerator {
                 continue;
             }
 
-            var type = parameter.ParameterType;
-
-            var name = (type.Name == "Nullable" && type.TypeArguments.Count == 1
-                ? type.TypeArguments[0].Name
-                : type.Name).TrimEnd('?');
+            var name = parameter.ParameterType.Name.TrimEnd('?');
 
             if (name is not ("String" or "string" or "Object" or "object")) {
                 return true;
@@ -1005,11 +1001,7 @@ public static class OpenApiDocumentGenerator {
     /// </remarks>
     private static string? EnumSchema(
         ITypeDefinition type, IReadOnlyDictionary<string, EnumVocabulary> enums) {
-        var unwrapped = type.Name == "Nullable" && type.TypeArguments.Count == 1
-            ? type.TypeArguments[0]
-            : type;
-
-        var qualified = "global::" + unwrapped.Namespace + "." + unwrapped.Name.TrimEnd('?');
+        var qualified = "global::" + type.Namespace + "." + type.Name.TrimEnd('?');
 
         if (!enums.TryGetValue(qualified, out var vocabulary)) {
             return null;
@@ -1045,12 +1037,13 @@ public static class OpenApiDocumentGenerator {
     /// which is what it arrived as.
     /// </para>
     /// <para>
-    /// <b>Known gap.</b> A nullable scalar - <c>int?</c> on a query value or header - still
-    /// describes as a string. The type reaches here as a <c>Nullable</c> definition carrying no
-    /// type argument, so the underlying type is not recoverable from the model as it stands;
-    /// recovering it means changing what the syntax transform records, which is a wider change than
-    /// this. Not a regression - every parameter described as a string before - and the value does
-    /// arrive as text, so the schema is unspecific rather than wrong.
+    /// A nullable scalar - <c>int?</c> on a query value or header - described as a string until
+    /// <see cref="ScalarSchema"/> learned the keyword spellings. The earlier account of this gap
+    /// blamed the model, claiming the type arrived as a <c>Nullable</c> with no argument to read.
+    /// It never did: the unwrap resolves the underlying type fine and hands on a definition named
+    /// with the C# keyword - <c>int</c>, by way of <c>TypeDefinition.Get(typeof(int))</c>, whose
+    /// whole point is the keyword - while the schema switch matched only the CLR names a bare
+    /// parameter's symbol produces.
     /// </para>
     /// </remarks>
     /// <summary>
@@ -1224,23 +1217,24 @@ public static class OpenApiDocumentGenerator {
     }
 
     private static string ScalarSchema(ITypeDefinition type) {
-        // int? and friends: the schema describes the value, and "required" already says whether one
-        // has to be there. Two spellings reach here - Nullable<T> with a type argument, and the
-        // underlying name with a '?' on it, depending on how the parameter was written - so both
-        // are unwrapped rather than guessing which the generator produced.
-        var name = (type.Name == "Nullable" && type.TypeArguments.Count == 1
-            ? type.TypeArguments[0].Name
-            : type.Name).TrimEnd('?');
+        // Two spellings of every predefined type reach here, and both must match. A bare `int`
+        // parameter is built from its symbol and named "Int32"; `int?` is unwrapped through
+        // TypeDefinition.Get(typeof(int)), whose whole point is the C# keyword name, so it
+        // arrives as "int". Matching only the CLR names is how int? and long? published as
+        // strings while int and long published as integers - the same type disagreeing with
+        // itself about what it is. The trailing '?' is the third spelling, trimmed.
+        var name = type.Name.TrimEnd('?');
 
         return name switch {
-            "String" or "Char" => "{\"type\":\"string\"}",
-            "Boolean" => "{\"type\":\"boolean\"}",
-            "Byte" or "SByte" or "Int16" or "UInt16" or "Int32" or "UInt32" =>
+            "String" or "string" or "Char" or "char" => "{\"type\":\"string\"}",
+            "Boolean" or "bool" => "{\"type\":\"boolean\"}",
+            "Byte" or "byte" or "SByte" or "sbyte" or "Int16" or "short" or "UInt16" or "ushort"
+                or "Int32" or "int" or "UInt32" or "uint" =>
                 "{\"type\":\"integer\",\"format\":\"int32\"}",
-            "Int64" or "UInt64" => "{\"type\":\"integer\",\"format\":\"int64\"}",
-            "Single" => "{\"type\":\"number\",\"format\":\"float\"}",
-            "Double" => "{\"type\":\"number\",\"format\":\"double\"}",
-            "Decimal" => "{\"type\":\"number\"}",
+            "Int64" or "long" or "UInt64" or "ulong" => "{\"type\":\"integer\",\"format\":\"int64\"}",
+            "Single" or "float" => "{\"type\":\"number\",\"format\":\"float\"}",
+            "Double" or "double" => "{\"type\":\"number\",\"format\":\"double\"}",
+            "Decimal" or "decimal" => "{\"type\":\"number\"}",
             "DateTime" or "DateTimeOffset" => "{\"type\":\"string\",\"format\":\"date-time\"}",
             "DateOnly" => "{\"type\":\"string\",\"format\":\"date\"}",
             "Guid" => "{\"type\":\"string\",\"format\":\"uuid\"}",

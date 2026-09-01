@@ -83,6 +83,8 @@ multi-line description that stopped being escaped fails these suites rather than
 page.
 
 Known gaps, stated rather than implied: code-first cannot express a
-constraint on a query, header or path parameter (`HRDV001` names the ways out); a `Nullable`
-scalar parameter whose type argument did not survive the syntax transform still publishes as a
-string; and `@timestampFormat` is read for nullability and otherwise inert.
+constraint on a query, header or path parameter (`HRDV001` names the ways out), and
+`@timestampFormat` is read for nullability and otherwise inert. Nullable scalar parameters used
+to be listed here too, blamed on a type argument lost in the syntax transform. The diagnosis was
+wrong: the argument survived, the definition arrived named with the C# keyword, and the schema
+switch matched only CLR names. `ScalarSchema` accepts both spellings now.

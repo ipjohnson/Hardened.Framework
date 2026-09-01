@@ -63,6 +63,7 @@ public class RequestHandlerModel {
             // [Handler] filters, which is the worst kind of sometimes.
             SecurityRequirements = SecurityRequirements,
             DeclaredSecuritySchemes = DeclaredSecuritySchemes,
+            ParameterEnums = ParameterEnums,
             MisplacedSchemeAttributes = MisplacedSchemeAttributes,
             HasGeneratedValidation = HasGeneratedValidation
         };
@@ -215,6 +216,18 @@ public class RequestHandlerModel {
         System.Array.Empty<SecuritySchemeDeclaration>();
 
     /// <summary>
+    /// The wire vocabulary of every enum bound as a parameter of this handler.
+    /// </summary>
+    /// <remarks>
+    /// Body enums are collected off the body schemas; a parameter-only enum has no schema to ride
+    /// and lost its vocabulary entirely - no <c>enum</c> array in the document, no wire converter.
+    /// Deduplicated against the body-collected set by qualified name in
+    /// <c>EnumVocabularies.Collect</c>.
+    /// </remarks>
+    public IReadOnlyList<EnumVocabulary> ParameterEnums { get; set; } =
+        System.Array.Empty<EnumVocabulary>();
+
+    /// <summary>
     /// Scheme-shape attributes found where nothing reads them, as <c>owner|attribute</c> pairs.
     /// </summary>
     /// <remarks>
@@ -317,6 +330,16 @@ public class RequestHandlerModel {
 
         for (var i = 0; i < DeclaredSecuritySchemes.Count; i++) {
             if (!DeclaredSecuritySchemes[i].Equals(requestHandlerModel.DeclaredSecuritySchemes[i])) {
+                return false;
+            }
+        }
+
+        if (ParameterEnums.Count != requestHandlerModel.ParameterEnums.Count) {
+            return false;
+        }
+
+        for (var i = 0; i < ParameterEnums.Count; i++) {
+            if (!ParameterEnums[i].Equals(requestHandlerModel.ParameterEnums[i])) {
                 return false;
             }
         }

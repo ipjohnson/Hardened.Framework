@@ -57,7 +57,65 @@ public abstract class BaseRequestModelGenerator {
         // assembling it: what the attributes declare for the published document.
         SecurityDeclarationSelector.Apply(context, methodDeclaration, model, cancellationToken);
 
+        model.ParameterEnums = ParameterEnums(context, methodDeclaration);
+
         return model;
+    }
+
+    /// <summary>
+    /// The wire vocabulary of every enum bound as a parameter, captured while the symbol is in
+    /// hand.
+    /// </summary>
+    /// <remarks>
+    /// <c>EnumVocabularies.Collect</c> walks body schemas, so an enum that appears only as a
+    /// query, header or path value had no vocabulary anywhere: the parameter published as a bare
+    /// string and no wire converter was emitted for it. An enum that also appears in a body
+    /// resolves to the same entry by qualified name, which is what masked this - the fixture's
+    /// enum happened to be in a response too.
+    /// </remarks>
+    private static IReadOnlyList<EnumVocabulary> ParameterEnums(
+        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
+        List<EnumVocabulary>? found = null;
+
+        foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
+            if (parameter.Type == null) {
+                continue;
+            }
+
+            var symbol = context.SemanticModel.GetTypeInfo(parameter.Type).Type;
+
+            if (symbol is INamedTypeSymbol {
+                    OriginalDefinition.SpecialType: SpecialType.System_Nullable_T
+                } nullable) {
+                symbol = nullable.TypeArguments[0];
+            }
+
+            if (symbol is not INamedTypeSymbol { TypeKind: TypeKind.Enum } enumSymbol ||
+                !EnumWireNaming.IsOwned(enumSymbol, context.SemanticModel.Compilation.Assembly)) {
+                continue;
+            }
+
+            var naming = EnumWireNaming.For(enumSymbol, EnumWireNaming.AssemblyDefault(enumSymbol));
+            var members = EnumWireNaming.Members(enumSymbol, naming);
+
+            if (members.Count == 0) {
+                continue;
+            }
+
+            var qualified = "global::" + enumSymbol.ToDisplayString();
+
+            found ??= new List<EnumVocabulary>();
+
+            if (found.All(vocabulary => vocabulary.QualifiedName != qualified)) {
+                found.Add(new EnumVocabulary(
+                    qualified,
+                    enumSymbol.Name,
+                    naming,
+                    members.Select(pair => new EnumWireValue(pair.Member, pair.Wire)).ToList()));
+            }
+        }
+
+        return found ?? (IReadOnlyList<EnumVocabulary>)System.Array.Empty<EnumVocabulary>();
     }
 
     /// <summary>
@@ -159,6 +217,14 @@ public abstract class BaseRequestModelGenerator {
         MethodDeclarationSyntax methodDeclaration,
         ResponseInformationModel response) {
         var declared = context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type;
+
+        // The invoker's substitution, made here as well: a bare Task is void with a different
+        // spelling. Without it the schema writer walked Task itself, and the document published a
+        // Task component with its BCL entourage as the operation's 200.
+        if (declared is INamedTypeSymbol { Arity: 0, Name: "Task" or "ValueTask" } bare &&
+            bare.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks") {
+            return null;
+        }
 
         if (response.UnionCases == null) {
             return declared;
