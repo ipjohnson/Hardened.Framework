@@ -202,6 +202,45 @@ public class ResponseSetDocumentTests {
         }
     }
 
+    /// <summary>
+    /// A case that carries headers declares them. <c>Created&lt;T&gt;</c> always sends its
+    /// Location - the runtime applies it through <c>IProvidesResponseHeaders</c> - and the
+    /// document described the 201 as bare: the selector detected the interface and threw the
+    /// names away as a boolean.
+    /// </summary>
+    [Fact]
+    public void ACaseThatCarriesHeadersDeclaresThem() {
+        var responses = Responses(Document("""
+                [Post("/todos")]
+                public Response<Created<Todo>, Conflict> Create() =>
+                    new Created<Todo>(new Todo(1, "t"), "/todos/1");
+            """), "/todos", "post");
+
+        var created = responses.GetProperty("201");
+
+        Assert.True(created.GetProperty("headers").TryGetProperty("Location", out var location));
+        Assert.Equal("string", location.GetProperty("schema").GetProperty("type").GetString());
+
+        Assert.False(responses.GetProperty("409").TryGetProperty("headers", out _));
+    }
+
+    /// <summary>
+    /// A header the convention cannot name truthfully is omitted rather than invented.
+    /// RateLimited applies Retry-After from a TimeSpan, which is not a string parameter, and
+    /// "Detail" is the problem body's prose - so the 429 declares no headers instead of wrong
+    /// ones.
+    /// </summary>
+    [Fact]
+    public void AHeaderTheConventionCannotNameIsOmitted() {
+        var responses = Responses(Document("""
+                [Get("/todos/{id}")]
+                public Response<Todo, RateLimited> ById(string id) => new Todo(1, "t");
+            """), "/todos/{id}", "get");
+
+        Assert.False(responses.GetProperty("429").TryGetProperty("headers", out _));
+        Assert.False(responses.GetProperty("429").TryGetProperty("Detail", out _));
+    }
+
     #endregion
 
     #region the statuses the framework itself answers
