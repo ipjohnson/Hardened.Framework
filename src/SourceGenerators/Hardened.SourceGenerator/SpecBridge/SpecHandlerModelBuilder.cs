@@ -534,7 +534,14 @@ internal static class SpecHandlerModelBuilder {
 
             // A bodyless success is a case that serializes nothing - the 204 the union had no way to
             // express before. hasBody false is what makes the emitted switch set ShouldSerialize.
-            var hasBody = success.Ref != null;
+            //
+            // Decided by the same three questions UnionResponseEmitter.PayloadType asks of the case
+            // record it emits: a named schema, a list, or the scalar the contract typed without
+            // naming. Keyed on Ref alone, a text/plain success - type: string, no $ref - built the
+            // bodyless case a 204 gets, and the switch suppressed the one body the operation
+            // existed to answer with.
+            var bodyTypeName = SuccessBodyTypeName(success, modelsNamespace);
+            var hasBody = bodyTypeName != null;
 
             cases.Add(new UnionCaseModel(
                 Qualified(modelsNamespace, ResponseSetPlan.CaseName(operation, success.StatusCode)),
@@ -542,9 +549,7 @@ internal static class SpecHandlerModelBuilder {
                 appliesHeaders: success.Headers.Count > 0,
                 hasBody: hasBody,
                 carriesBody: hasBody,
-                bodyTypeName: hasBody
-                    ? Qualified(modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(success.Ref!)))
-                    : null));
+                bodyTypeName: bodyTypeName));
         }
 
         foreach (var error in operation.ErrorResponses) {
@@ -562,6 +567,43 @@ internal static class SpecHandlerModelBuilder {
         }
 
         return UnionResponseSelector.Encode(cases);
+    }
+
+    /// <summary>
+    /// The type a wrapped success's Body member carries, or null for a bodyless case.
+    /// </summary>
+    /// <remarks>
+    /// Must answer as <c>UnionResponseEmitter.PayloadType</c> does, because that emitter writes the
+    /// record whose Body the emitted switch reads - the two halves run in different processes and
+    /// meet only in the generated code. A shape neither can type is a bodyless case in both, which
+    /// is at least visible at the handler.
+    /// </remarks>
+    private static string? SuccessBodyTypeName(
+        SuccessResponseModel success, string modelsNamespace) {
+        if (success.Ref != null) {
+            return Qualified(
+                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(success.Ref)));
+        }
+
+        if (success.IsArray) {
+            var item = success.ArrayItemsRef != null
+                ? Qualified(
+                    modelsNamespace,
+                    NamingHelper.ToPascalCase(TypeMapper.GetRefName(success.ArrayItemsRef)))
+                : ScalarBodyTypeName(success.ArrayItemsType, null);
+
+            return item == null ? null : "global::System.Collections.Generic.List<" + item + ">";
+        }
+
+        return ScalarBodyTypeName(success.Type, success.Format);
+    }
+
+    private static string? ScalarBodyTypeName(string? type, string? format) {
+        if (string.IsNullOrEmpty(type) || type == "object") {
+            return null;
+        }
+
+        return TypeMapper.MapToCSharpType(type!, format);
     }
 
     /// <summary>The primary success's own type name, which the union names directly.</summary>

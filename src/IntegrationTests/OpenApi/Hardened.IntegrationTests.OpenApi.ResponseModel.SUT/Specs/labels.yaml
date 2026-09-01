@@ -1,0 +1,64 @@
+openapi: "3.0.0"
+info:
+  title: Labels API
+  version: "1.0.0"
+paths:
+  # The trial's blocker shape: a scalar text/plain success beside a JSON error, under the
+  # response model. The success case was generated bodyless, so the one response this operation
+  # exists to answer went out empty.
+  /labels/{labelId}:
+    get:
+      tags:
+        - Label
+      operationId: getLabel
+      parameters:
+        - name: labelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The label text
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: No such label
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  # The shape the bodyless case exists for. A 204 must stay a case that serializes nothing, so
+  # this operation is what guards the fix from over-correcting.
+  /labels/{labelId}/archive:
+    post:
+      tags:
+        - Label
+      operationId: archiveLabel
+      parameters:
+        - name: labelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Archived
+        '404':
+          description: No such label
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+components:
+  schemas:
+    Problem:
+      type: object
+      properties:
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
