@@ -63,6 +63,7 @@ public class RequestHandlerModel {
             // [Handler] filters, which is the worst kind of sometimes.
             SecurityRequirements = SecurityRequirements,
             DeclaredSecuritySchemes = DeclaredSecuritySchemes,
+            MisplacedSchemeAttributes = MisplacedSchemeAttributes,
             HasGeneratedValidation = HasGeneratedValidation
         };
 
@@ -213,6 +214,19 @@ public class RequestHandlerModel {
     public IReadOnlyList<SecuritySchemeDeclaration> DeclaredSecuritySchemes { get; set; } =
         System.Array.Empty<SecuritySchemeDeclaration>();
 
+    /// <summary>
+    /// Scheme-shape attributes found where nothing reads them, as <c>owner|attribute</c> pairs.
+    /// </summary>
+    /// <remarks>
+    /// <c>[HttpAuthenticationScheme]</c> and its siblings describe a scheme <em>type</em> - the
+    /// class <c>[Authorize&lt;TScheme&gt;]</c> names - and are read from nowhere else. Applied to
+    /// a handler or controller directly they publish nothing and enforce nothing, which is a
+    /// silent no-op the second trial walked straight into. Carried on the model because a syntax
+    /// transform cannot report; reported when source is written.
+    /// </remarks>
+    public IReadOnlyList<string> MisplacedSchemeAttributes { get; set; } =
+        System.Array.Empty<string>();
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;
@@ -303,6 +317,18 @@ public class RequestHandlerModel {
 
         for (var i = 0; i < DeclaredSecuritySchemes.Count; i++) {
             if (!DeclaredSecuritySchemes[i].Equals(requestHandlerModel.DeclaredSecuritySchemes[i])) {
+                return false;
+            }
+        }
+
+        if (MisplacedSchemeAttributes.Count != requestHandlerModel.MisplacedSchemeAttributes.Count) {
+            return false;
+        }
+
+        for (var i = 0; i < MisplacedSchemeAttributes.Count; i++) {
+            if (!string.Equals(
+                    MisplacedSchemeAttributes[i], requestHandlerModel.MisplacedSchemeAttributes[i],
+                    StringComparison.Ordinal)) {
                 return false;
             }
         }

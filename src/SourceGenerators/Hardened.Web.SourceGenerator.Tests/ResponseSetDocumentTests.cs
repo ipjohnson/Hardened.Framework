@@ -92,7 +92,7 @@ public class ResponseSetDocumentTests {
     public void AnUndeclaredSuccessStatusIsStillTwoHundred() {
         var responses = Responses(Document("""
                 [Get("/todos/{id}")]
-                public Todo ById(int id) => new Todo(id, "t");
+                public Todo ById(string id) => new Todo(1, "t");
             """), "/todos/{id}", "get");
 
         Assert.Equal(new[] { "200" }, Statuses(responses));
@@ -112,7 +112,7 @@ public class ResponseSetDocumentTests {
     public void EveryDeclaredCaseBecomesAResponse() {
         var responses = Responses(Document("""
                 [Get("/todos/{id}")]
-                public Response<Todo, NotFound, Conflict> ById(int id) => new Todo(id, "t");
+                public Response<Todo, NotFound, Conflict> ById(string id) => new Todo(1, "t");
             """), "/todos/{id}", "get");
 
         Assert.Equal(new[] { "200", "404", "409" }, Statuses(responses));
@@ -126,7 +126,7 @@ public class ResponseSetDocumentTests {
     public void EachResponseCarriesItsReasonPhrase() {
         var responses = Responses(Document("""
                 [Get("/todos/{id}")]
-                public Response<Todo, NotFound, Gone> ById(int id) => new Todo(id, "t");
+                public Response<Todo, NotFound, Gone> ById(string id) => new Todo(1, "t");
             """), "/todos/{id}", "get");
 
         Assert.Equal("OK", responses.GetProperty("200").GetProperty("description").GetString());
@@ -156,7 +156,7 @@ public class ResponseSetDocumentTests {
     public void ABodylessCaseDeclaresNoContent() {
         var responses = Responses(Document("""
                 [Delete("/todos/{id}")]
-                public Response<NoContent, NotFound> Remove(int id) => new NoContent();
+                public Response<NoContent, NotFound> Remove(string id) => new NoContent();
             """), "/todos/{id}", "delete");
 
         Assert.Equal(new[] { "204", "404" }, Statuses(responses));
@@ -172,7 +172,7 @@ public class ResponseSetDocumentTests {
     public void TwoCasesSharingAStatusBecomeAOneOf() {
         var responses = Responses(Document("""
                 [Get("/todos/{id}")]
-                public Response<Todo, Archived, NotFound> ById(int id) => new Todo(id, "t");
+                public Response<Todo, Archived, NotFound> ById(string id) => new Todo(1, "t");
             """), "/todos/{id}", "get");
 
         Assert.Equal(new[] { "200", "404" }, Statuses(responses));
@@ -192,7 +192,7 @@ public class ResponseSetDocumentTests {
     public void TheResponseWrapperIsNeverASchemaComponent() {
         var document = Document("""
                 [Get("/todos/{id}")]
-                public Response<Todo, NotFound> ById(int id) => new Todo(id, "t");
+                public Response<Todo, NotFound> ById(string id) => new Todo(1, "t");
             """);
 
         if (document.TryGetProperty("components", out var components)) {
@@ -200,6 +200,71 @@ public class ResponseSetDocumentTests {
                 Assert.DoesNotContain("Response", schema.Name, StringComparison.Ordinal);
             }
         }
+    }
+
+    #endregion
+
+    #region the statuses the framework itself answers
+
+    /// <summary>
+    /// A bound value that fails to parse never reaches the handler:
+    /// <c>StringConverterService.Parse</c> answers 400 with the validation envelope. The gate used
+    /// to require a generated validator, so a documented 400 depended on the operation happening
+    /// to declare a constraint - binding an <c>int</c> was enough to answer one and the document
+    /// said nothing.
+    /// </summary>
+    [Fact]
+    public void ABindingRefusalPublishesTheFourHundred() {
+        var responses = Responses(Document("""
+                [Get("/todos/{id}")]
+                public Todo ById(int id) => new Todo(id, "t");
+            """), "/todos/{id}", "get");
+
+        Assert.Equal(new[] { "200", "400" }, Statuses(responses));
+
+        Assert.Equal(
+            "#/components/schemas/RequestValidationError",
+            responses.GetProperty("400").GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString());
+    }
+
+    /// <summary>A string binds as itself and cannot fail conversion, so nothing is added.</summary>
+    [Fact]
+    public void AStringBoundOperationPublishesNoFourHundred() {
+        var responses = Responses(Document("""
+                [Get("/todos/{title}")]
+                public Todo ByTitle(string title) => new Todo(1, title);
+            """), "/todos/{title}", "get");
+
+        Assert.Equal(new[] { "200" }, Statuses(responses));
+    }
+
+    /// <summary>
+    /// A value that violates a route constraint means the route did not match, and the answer is
+    /// the router's bodyless 404. The constraint is stripped from the path template, so this entry
+    /// is the one trace of it the document carries.
+    /// </summary>
+    [Fact]
+    public void AConstrainedPathTokenPublishesTheFourOhFour() {
+        var responses = Responses(Document("""
+                [Get("/todos/{id:int}")]
+                public Todo ById(int id) => new Todo(id, "t");
+            """), "/todos/{id}", "get");
+
+        Assert.Equal(new[] { "200", "400", "404" }, Statuses(responses));
+        Assert.False(responses.GetProperty("404").TryGetProperty("content", out _));
+    }
+
+    /// <summary>An operation that declares its own 404 keeps its own description.</summary>
+    [Fact]
+    public void ADeclaredFourOhFourIsNotOverwritten() {
+        var responses = Responses(Document("""
+                [Get("/todos/{id:int}")]
+                public Response<Todo, NotFound> ById(int id) => new Todo(id, "t");
+            """), "/todos/{id}", "get");
+
+        Assert.Equal(new[] { "200", "400", "404" }, Statuses(responses));
+        Assert.True(responses.GetProperty("404").TryGetProperty("content", out _));
     }
 
     #endregion
@@ -229,8 +294,8 @@ public class ResponseSetDocumentTests {
 
             public class TodoController {
                 [Get("/todos/{id}")]
-                public Response<Todo, NotFound, Conflict, NoContent> ById(int id) =>
-                    new Todo(id, "t");
+                public Response<Todo, NotFound, Conflict, NoContent> ById(string id) =>
+                    new Todo(1, "t");
             }
             """,
             new WebLibrarySourceGenerator(),

@@ -92,6 +92,12 @@ public static class RoutingTableGenerator {
                 handler.ResponseInformation.UnionDiagnostic);
         }
 
+        // A scheme-shape attribute somewhere nothing reads it is a silent no-op - the build was
+        // green, nothing published, and the author had no way to learn the working spelling.
+        SecuritySchemeDiagnostics.ReportMisplacedSchemes(
+            context,
+            MisplacedSchemeFindings(models.Left, routable));
+
         // Before the document is written, because an unrecognised version has no answer to fall
         // back to - see OpenApiVersionDiagnostics.ReportUnknownVersion.
         var version = OpenApiVersionFacts.Parse(options.OpenApiVersion);
@@ -145,6 +151,34 @@ public static class RoutingTableGenerator {
         LinkGenerator.Generate(context, models.Left, routable, GetBasePath(models.Left));
     }
     
+    /// <summary>
+    /// Every misplaced scheme-shape attribute in this table's reach: each handler's findings, and
+    /// the entry point's own attribute list - the module position, which no handler transform
+    /// sees.
+    /// </summary>
+    private static IEnumerable<IReadOnlyList<string>> MisplacedSchemeFindings(
+        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers) {
+        foreach (var handler in handlers) {
+            if (handler.MisplacedSchemeAttributes.Count > 0) {
+                yield return handler.MisplacedSchemeAttributes;
+            }
+        }
+
+        if (appModel.AttributeModels == null) {
+            yield break;
+        }
+
+        foreach (var attribute in appModel.AttributeModels) {
+            var name = attribute.TypeDefinition.Name;
+
+            if (name.StartsWith("HttpAuthenticationScheme", System.StringComparison.Ordinal) ||
+                name.StartsWith("ApiKeyAuthenticationScheme", System.StringComparison.Ordinal) ||
+                name.StartsWith("OAuth2AuthenticationScheme", System.StringComparison.Ordinal)) {
+                yield return new[] { appModel.EntryPointType.Name + "|" + name };
+            }
+        }
+    }
+
     public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken,
         RoutingTableOptions? options = null) {

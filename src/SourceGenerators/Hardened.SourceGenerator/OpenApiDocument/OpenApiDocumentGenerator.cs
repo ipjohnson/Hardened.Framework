@@ -468,6 +468,8 @@ public static class OpenApiDocumentGenerator {
         }
 
         WriteValidationResponse(builder, handler, components);
+        WriteAuthenticationResponse(builder, handler, components);
+        WriteConstrainedPathResponse(builder, handler);
 
         builder.Append('}');
     }
@@ -640,17 +642,12 @@ public static class OpenApiDocumentGenerator {
     private static void WriteValidationResponse(
         StringBuilder builder, RequestHandlerModel handler,
         SortedDictionary<string, string> components) {
-        if (handler.ParametersValidator == null && !handler.HasGeneratedValidation) {
+        if (handler.ParametersValidator == null && !handler.HasGeneratedValidation &&
+            !HasBindingRefusals(handler)) {
             return;
         }
 
-        foreach (var response in handler.ResponseSchemas) {
-            if (response.Status == 400) {
-                return;
-            }
-        }
-
-        if ((handler.ResponseInformation.DefaultStatusCode ?? 200) == 400) {
+        if (DeclaresStatus(handler, 400)) {
             return;
         }
 
@@ -659,6 +656,136 @@ public static class OpenApiDocumentGenerator {
         builder.Append(",\"400\":{\"description\":\"The request failed validation.\"," +
                        "\"content\":{\"application/json\":{\"schema\":" +
                        "{\"$ref\":\"#/components/schemas/RequestValidationError\"}}}}");
+    }
+
+    /// <summary>
+    /// Whether binding alone can refuse this request with the validation envelope.
+    /// </summary>
+    /// <remarks>
+    /// A bound value that fails to parse as its declared type never reaches the handler:
+    /// <c>StringConverterService.Parse</c> answers 400 with the same field-level envelope a
+    /// generated validator produces. So the status is a fact about any operation binding a
+    /// non-string value, whether or not a validator was generated for it - the gate that required
+    /// one is why a documented 400 depended on the operation happening to declare a constraint.
+    /// A string binds as itself and cannot fail conversion.
+    /// </remarks>
+    private static bool HasBindingRefusals(RequestHandlerModel handler) {
+        foreach (var parameter in handler.RequestParameterInformationList) {
+            if (parameter.BindingType is not (ParameterBindType.Path or ParameterBindType.QueryString
+                or ParameterBindType.Header or ParameterBindType.Cookie or ParameterBindType.Form)) {
+                continue;
+            }
+
+            var type = parameter.ParameterType;
+
+            var name = (type.Name == "Nullable" && type.TypeArguments.Count == 1
+                ? type.TypeArguments[0].Name
+                : type.Name).TrimEnd('?');
+
+            if (name is not ("String" or "string" or "Object" or "object")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether the handler already declares <paramref name="status"/> itself.</summary>
+    private static bool DeclaresStatus(RequestHandlerModel handler, int status) {
+        foreach (var response in handler.ResponseSchemas) {
+            if (response.Status == status) {
+                return true;
+            }
+        }
+
+        return (handler.ResponseInformation.DefaultStatusCode ?? 200) == status;
+    }
+
+    /// <summary>The schema of the framework's undeclared error body, written once into components.</summary>
+    private const string ErrorModelSchema =
+        "{\"type\":\"object\"," +
+        "\"description\":\"How a refused or failed request is answered when the contract declared no body for it.\"," +
+        "\"required\":[\"type\",\"message\",\"details\"]," +
+        "\"properties\":{" +
+        "\"type\":{\"type\":\"string\"}," +
+        "\"message\":{\"type\":\"string\"}," +
+        "\"details\":{\"type\":\"string\"}}}";
+
+    /// <summary>
+    /// The 401 an operation with security requirements can answer, declared rather than implied.
+    /// </summary>
+    /// <remarks>
+    /// <c>AuthorizationFilter</c> refuses an unauthenticated caller before the handler runs, with
+    /// a <c>WWW-Authenticate</c> challenge and the standard error body. The requirement itself was
+    /// already published under <c>security</c>; this is the status enforcing it produces, which
+    /// the document promised nothing about. Skipped where the operation declared its own 401,
+    /// whose description then wins.
+    /// </remarks>
+    private static void WriteAuthenticationResponse(
+        StringBuilder builder, RequestHandlerModel handler,
+        SortedDictionary<string, string> components) {
+        if (handler.SecurityRequirements.Count == 0) {
+            return;
+        }
+
+        if (DeclaresStatus(handler, 401)) {
+            return;
+        }
+
+        components["ErrorModel"] = ErrorModelSchema;
+
+        builder.Append(",\"401\":{\"description\":\"Authentication required.\"," +
+                       "\"headers\":{\"WWW-Authenticate\":{" +
+                       "\"description\":\"The challenge naming the scheme to authenticate with.\"," +
+                       "\"schema\":{\"type\":\"string\"}}}," +
+                       "\"content\":{\"application/json\":{\"schema\":" +
+                       "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}");
+    }
+
+    /// <summary>
+    /// The 404 a constrained path token produces, stated rather than implied.
+    /// </summary>
+    /// <remarks>
+    /// A value that violates a route constraint means the route did not match, so the answer is
+    /// the router's 404 - deliberately bodyless, before binding and before the handler. The
+    /// constraint itself is stripped from the path template, because a template expression is a
+    /// name and nothing else, which left the document with no trace of the refusal at all.
+    /// Skipped where the operation declares its own 404, whose description then wins.
+    /// </remarks>
+    private static void WriteConstrainedPathResponse(
+        StringBuilder builder, RequestHandlerModel handler) {
+        if (!HasConstrainedPathToken(handler.Name.Path)) {
+            return;
+        }
+
+        if (DeclaresStatus(handler, 404)) {
+            return;
+        }
+
+        builder.Append(",\"404\":{\"description\":" +
+                       "\"The path did not name a resource: a token failed its route constraint.\"}");
+    }
+
+    private static bool HasConstrainedPathToken(string path) {
+        var open = path.IndexOf('{');
+
+        while (open >= 0) {
+            var close = path.IndexOf('}', open);
+
+            if (close < 0) {
+                return false;
+            }
+
+            var colon = path.IndexOf(':', open);
+
+            if (colon > open && colon < close) {
+                return true;
+            }
+
+            open = path.IndexOf('{', close);
+        }
+
+        return false;
     }
 
     /// <summary>

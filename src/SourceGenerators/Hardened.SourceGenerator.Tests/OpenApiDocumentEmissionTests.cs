@@ -520,5 +520,65 @@ public class OpenApiDocumentEmissionTests {
         Assert.False(list.TryGetProperty("security", out _));
     }
 
+    /// <summary>
+    /// The status enforcing a requirement produces. AuthorizationFilter refuses an
+    /// unauthenticated caller before the handler runs, with a WWW-Authenticate challenge and the
+    /// standard error body - the document published the requirement and promised nothing about
+    /// the refusal.
+    /// </summary>
+    [Fact]
+    public void ASecuredOperationPublishesTheFourOhOne() {
+        var document = SecuredDocument();
+
+        var responses = document.GetProperty("paths").GetProperty("/pets/{id}")
+            .GetProperty("get").GetProperty("responses");
+
+        var unauthorized = responses.GetProperty("401");
+
+        Assert.True(unauthorized.GetProperty("headers").TryGetProperty("WWW-Authenticate", out _));
+        Assert.Equal(
+            "#/components/schemas/ErrorModel",
+            unauthorized.GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString());
+
+        Assert.True(document.GetProperty("components").GetProperty("schemas")
+            .TryGetProperty("ErrorModel", out _));
+    }
+
+    /// <summary>And an operation naming no scheme answers no 401, so nothing is added to it.</summary>
+    [Fact]
+    public void AnUnsecuredOperationPublishesNoFourOhOne() {
+        var responses = SecuredDocument().GetProperty("paths").GetProperty("/pets")
+            .GetProperty("get").GetProperty("responses");
+
+        Assert.False(responses.TryGetProperty("401", out _));
+    }
+
+    /// <summary>
+    /// A scheme-shape attribute on the controller itself is a silent no-op - it is read from the
+    /// type [Authorize&lt;TScheme&gt;] names and from nowhere else. The second trial's code-first
+    /// arm put it exactly here, published nothing, and concluded the emission did not exist.
+    /// </summary>
+    [Fact]
+    public void ASchemeAttributeOnTheControllerIsReported() {
+        var result = RequestGeneratorHarness.Generate(Application("""
+            public record Pet(string Id);
+
+            [Hardened.Requests.Abstract.Authorization.HttpAuthenticationScheme("bearer")]
+            public class PetController {
+                [Get("/pets/{id}")]
+                public Task<Pet> Get(string id) => Task.FromResult(new Pet(id));
+            }
+            """, Enable));
+
+        var diagnostic = Assert.Single(
+            result.GeneratorDiagnostics,
+            entry => entry.Id == Hardened.SourceGenerator.Requests
+                .SecuritySchemeDiagnostics.MisplacedSchemeId);
+
+        Assert.Contains("PetController", diagnostic.GetMessage());
+        Assert.Contains("Authorize<TScheme>", diagnostic.GetMessage());
+    }
+
     #endregion
 }
