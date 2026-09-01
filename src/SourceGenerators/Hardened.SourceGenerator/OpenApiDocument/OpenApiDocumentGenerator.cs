@@ -662,6 +662,13 @@ public static class OpenApiDocumentGenerator {
             return;
         }
 
+        // An operation whose contract declares the validation status answers it there: the
+        // declared 422 is already in the response set, and a synthesized 400 beside it would
+        // describe a status validation no longer produces on this operation.
+        if (handler.ResponseInformation.ValidationErrorStatus != null) {
+            return;
+        }
+
         if (DeclaresStatus(handler, 400)) {
             return;
         }

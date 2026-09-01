@@ -101,6 +101,18 @@ public record ResponseInformationModel {
     public string? RawResponseContentType { get; set; }
 
     /// <summary>
+    /// The status the contract declares validation failures answer with, or null for the stock
+    /// 400.
+    /// </summary>
+    /// <remarks>
+    /// Set only from a described operation declaring 422, which is the one status that names
+    /// validation refusal. The attribute that would have carried this code-first was removed
+    /// because a hand-written assertion has no source of truth behind it; a contract does, and
+    /// arm C of the second trial declared exactly this and was answered 400 anyway.
+    /// </remarks>
+    public int? ValidationErrorStatus { get; set; }
+
+    /// <summary>
     /// The cases of a declared response set, encoded, or null where the handler returns one type.
     /// </summary>
     /// <remarks>
@@ -168,6 +180,6 @@ public record ResponseInformationModel {
     public override string ToString() {
         return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
                $":{DefaultStatusCode}:{NullResponseBodyExpression}:{ProducedContentTypes}" +
-               $":{UnionCases}:{UnionDiagnostic}:{ThrowsDiagnostic}";
+               $":{UnionCases}:{UnionDiagnostic}:{ThrowsDiagnostic}:{ValidationErrorStatus}";
     }
 }

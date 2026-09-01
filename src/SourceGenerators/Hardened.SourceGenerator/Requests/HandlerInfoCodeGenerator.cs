@@ -115,6 +115,12 @@ public static class HandlerInfoCodeGenerator {
             }
         }
 
+        // The status the contract declares validation failures answer with. The converter keeps
+        // the promise at run time; without this the build published a 422 the service never sent.
+        if (handlerModel.ResponseInformation.ValidationErrorStatus is { } validationStatus) {
+            declaredArgs += $", validationErrorStatus: {validationStatus}";
+        }
+
         // The type is handed over rather than named, so it is still a type when the file is
         // serialized: written qualified in a file that qualifies, and counted in the using list.
         // Spelled into the string it was neither, and resolved only while some other part of the
