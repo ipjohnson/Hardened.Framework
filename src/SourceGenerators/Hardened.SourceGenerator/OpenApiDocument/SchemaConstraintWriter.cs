@@ -45,13 +45,17 @@ internal static class SchemaConstraintWriter {
     /// <paramref name="schema"/> with the facets <paramref name="property"/>'s constraints imply.
     /// </summary>
     /// <remarks>
-    /// A property whose schema is a <c>$ref</c> is returned untouched. OpenAPI 3.0 ignores every
-    /// sibling of a <c>$ref</c>, so facets written beside one would be silently dropped by any
-    /// reader - which is worse than not writing them, because the document would claim a
-    /// constraint it does not communicate.
+    /// A property whose schema <em>is</em> a <c>$ref</c> is returned untouched. OpenAPI 3.0
+    /// ignores every sibling of a <c>$ref</c>, so facets written beside one would be silently
+    /// dropped by any reader - which is worse than not writing them, because the document would
+    /// claim a constraint it does not communicate. Only the top level: this used to search the
+    /// whole string, so an array of referenced objects - whose <c>items</c> nests a
+    /// <c>$ref</c> - lost every facet it had, <c>[ItemCount]</c>'s bounds included, and the
+    /// bounds belong on the array where no reference sits.
     /// </remarks>
     public static string Apply(string schema, IPropertySymbol property) {
-        if (schema.Length < 2 || schema.IndexOf("\"$ref\"", System.StringComparison.Ordinal) >= 0) {
+        if (schema.Length < 2 ||
+            schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal)) {
             return schema;
         }
 

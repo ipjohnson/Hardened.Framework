@@ -33,6 +33,13 @@ public static class EnumVocabularies {
             foreach (var response in handler.ResponseSchemas) {
                 Add(found, response.Schema);
             }
+
+            // The parameter-bound enums, captured separately: a body walk cannot see them, and an
+            // enum that appears only as a query, header or path value had no vocabulary at all -
+            // no enum array in the document, no wire converter for the binder.
+            foreach (var vocabulary in handler.ParameterEnums) {
+                found[vocabulary.QualifiedName] = vocabulary;
+            }
         }
 
         return found.Values.ToList();
