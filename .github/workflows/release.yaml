@@ -309,3 +309,21 @@ jobs:
             --generate-notes \
             ${prerelease} \
             ./artifacts/*.nupkg
+
+      # The docs site went two releases stale silently, because nothing told it a release
+      # happened. This is not automation of the docs, just an interrupt that fires: one issue
+      # naming the version, into the repository that declares its package version once.
+      #
+      # Cross-repo issue creation needs a token with issues:write on Hardened.Docs, which
+      # GITHUB_TOKEN does not carry - set a DOCS_ISSUE_TOKEN fine-grained PAT for this to fire.
+      # continue-on-error, because a release must never fail over its reminder.
+      - name: Open the Docs version-bump issue
+        if: startsWith(github.ref, 'refs/tags/v')
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_ISSUE_TOKEN != '' && secrets.DOCS_ISSUE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ipjohnson/Hardened.Docs \
+            --title "Point the documented version at ${{ steps.version.outputs.version }}" \
+            --body "Hardened.Framework ${{ steps.version.outputs.version }} is on nuget.org. The site declares its package version once, as hardenedVersion in website/.vitepress/config.ts; move it and the whole site follows."
