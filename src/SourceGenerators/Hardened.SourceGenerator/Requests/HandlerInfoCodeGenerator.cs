@@ -105,6 +105,16 @@ public static class HandlerInfoCodeGenerator {
             declaredArgs += $", producedContentTypes: new string[] {{ {string.Join(", ", quoted)} }}";
         }
 
+        // The body parameter's identifier, so a deserialization failure names its fields with the
+        // prefix the generated validators use rather than a hardcoded "body".
+        foreach (var parameter in handlerModel.RequestParameterInformationList) {
+            if (parameter.BindingType == ParameterBindType.Body) {
+                declaredArgs += $", bodyParameterName: \"{parameter.Name}\"";
+
+                break;
+            }
+        }
+
         // The type is handed over rather than named, so it is still a type when the file is
         // serialized: written qualified in a file that qualifies, and counted in the using list.
         // Spelled into the string it was neither, and resolved only while some other part of the

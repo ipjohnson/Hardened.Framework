@@ -39,30 +39,42 @@ public class MissingRequiredMembersTests {
         return context;
     }
 
-    private static RequestValidationError Convert(JsonException exception) {
-        var (status, model) = Converter.ConvertExceptionToModel(Context(), exception);
+    private static RequestValidationError Convert(
+        JsonException exception, IExecutionContext? context = null) {
+        var (status, model) = Converter.ConvertExceptionToModel(context ?? Context(), exception);
 
         Assert.Equal(400, status);
 
         return Assert.IsType<RequestValidationError>(model);
     }
 
-    /// <summary>The message System.Text.Json actually produces - see the canary below.</summary>
-    private static JsonException Missing(params string[] members) =>
-        new("JSON deserialization for type 'Product' was missing required properties, " +
-            "including the following: " + string.Join(", ", members));
+    /// <summary>
+    /// A real deserialization failure, not a hand-written message. The fabricated form omitted
+    /// the quoting and the closing period the real message carries, which is how a parser that
+    /// produced `body.'code'.` passed every test here while malforming every field in
+    /// production.
+    /// </summary>
+    private static JsonException Missing(string json) =>
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Product>(
+            json, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+    private record Product(
+        [property: JsonPropertyName("sku")] string Sku,
+        [property: JsonPropertyName("category")] [property: JsonRequired] int Category,
+        [property: JsonPropertyName("unitPriceCents")] [property: JsonRequired] int UnitPriceCents);
 
     /// <summary>
     /// One missing member, reported as the validator would report it: same field spelling, same
-    /// code, same wording.
+    /// code, same wording - and no trace of the message's own quoting or punctuation.
     /// </summary>
     [Fact]
     public void AMissingMemberIsReportedAsARequiredFieldError() {
-        var error = Assert.Single(Convert(Missing("category")).Errors!);
+        var error = Assert.Single(
+            Convert(Missing("""{"sku":"A","category":1}""")).Errors!);
 
-        Assert.Equal("body.category", error.Field);
+        Assert.Equal("body.unitPriceCents", error.Field);
         Assert.Equal("required", error.Code);
-        Assert.Equal("body.category is required.", error.Message);
+        Assert.Equal("body.unitPriceCents is required.", error.Message);
     }
 
     /// <summary>
@@ -71,13 +83,32 @@ public class MissingRequiredMembersTests {
     /// </summary>
     [Fact]
     public void EveryMissingMemberIsReported() {
-        var errors = Convert(Missing("category", "unitPriceCents")).Errors!;
+        var errors = Convert(Missing("""{"sku":"A"}""")).Errors!;
 
         Assert.Equal(
             new[] { "body.category", "body.unitPriceCents" },
             errors.Select(error => error.Field));
 
         Assert.All(errors, error => Assert.Equal("required", error.Code));
+    }
+
+    /// <summary>
+    /// The prefix is the handler's own body parameter identifier, which is what the generated
+    /// validators use - "body" was hardcoded, so the filter and the deserializer disagreed about
+    /// the same member's path on any handler that named its parameter something else.
+    /// </summary>
+    [Fact]
+    public void TheFieldPrefixIsTheHandlersBodyParameter() {
+        var context = Context();
+
+        context.HandlerInfo.Returns(new Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(
+            "/products", "POST", typeof(object), "Create", bodyParameterName: "request"));
+
+        var errors = Convert(Missing("""{"sku":"A"}"""), context).Errors!;
+
+        Assert.Equal(
+            new[] { "request.category", "request.unitPriceCents" },
+            errors.Select(error => error.Field));
     }
 
     /// <summary>

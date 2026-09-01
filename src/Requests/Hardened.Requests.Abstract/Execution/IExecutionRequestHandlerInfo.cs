@@ -79,6 +79,18 @@ public interface IExecutionRequestHandlerInfo {
     /// </remarks>
     IReadOnlyList<string> ProducedContentTypes => Array.Empty<string>();
 
+    /// <summary>
+    /// The identifier of the parameter bound from the request body, or null when the handler
+    /// takes none.
+    /// </summary>
+    /// <remarks>
+    /// Carried so a failure inside deserialization can name its fields with the same prefix the
+    /// generated validators use. The converter hardcoded <c>body</c>, which is right only where
+    /// the parameter happens to be called that - so the filter and the deserializer disagreed
+    /// about the same member's path on any handler that named it something else.
+    /// </remarks>
+    string? BodyParameterName => null;
+
     IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
 
     IReadOnlyList<object> Metadata => Array.Empty<object>();

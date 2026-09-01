@@ -349,6 +349,7 @@ namespace Hardened.Requests.Abstract.Execution
     }
     public interface IExecutionRequestHandlerInfo
     {
+        string? BodyParameterName { get; }
         int? FailureStatus { get; }
         System.Type HandlerType { get; }
         string InvokeMethod { get; }

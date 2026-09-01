@@ -109,7 +109,10 @@ public class ErrorHandlingTests {
     }
 
     /// <summary>
-    /// And it names the failure as a field, the way a failed constraint in the same body does.
+    /// And it names the failure as a field under the handler's own parameter identifier, the way
+    /// a failed constraint in the same body does. The prefix was a hardcoded "body", so the
+    /// deserializer and the validators disagreed about the same member's path on any handler
+    /// that named its parameter something else - this one calls it <c>model</c>.
     /// </summary>
     [HardenedTest]
     public async Task AnUnreadableRequestBodyCarriesAFieldLevelError(ITestWebApp testWebApp) {
@@ -123,7 +126,7 @@ public class ErrorHandlingTests {
 
         Assert.Equal("ValidationError", error!.Type);
         Assert.NotEmpty(error.Errors);
-        Assert.StartsWith("body", error.Errors[0].Field);
+        Assert.StartsWith("model", error.Errors[0].Field);
     }
 
     private record ValidationShape(string Type, string Message, List<FieldShape> Errors);
