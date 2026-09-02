@@ -689,4 +689,63 @@ public class OpenApiDocumentEmissionTests {
     }
 
     #endregion
+
+    #region prose with commas in it
+
+    /// <summary>
+    /// CS-06. <c>Arguments.Split(',')</c> cut the description at its first comma, and the document
+    /// published the truncation with nothing said.
+    /// </summary>
+    [Fact]
+    public void ADescriptionKeepsItsCommas() {
+        using var document = JsonDocument.Parse(Extract(Generate(
+            Enable + "\n[OpenApiInfo(\"Depot\", \"1.0\", \"Parcels, pallets and freight\")]")));
+
+        Assert.Equal(
+            "Parcels, pallets and freight",
+            document.RootElement.GetProperty("info").GetProperty("description").GetString());
+    }
+
+    /// <summary>And the title and version beside it are still their own arguments.</summary>
+    [Fact]
+    public void TheTitleAndVersionAreUnaffected() {
+        using var document = JsonDocument.Parse(Extract(Generate(
+            Enable + "\n[OpenApiInfo(\"Depot\", \"1.0\", \"Parcels, pallets and freight\")]")));
+
+        var info = document.RootElement.GetProperty("info");
+
+        Assert.Equal("Depot", info.GetProperty("title").GetString());
+        Assert.Equal("1.0", info.GetProperty("version").GetString());
+    }
+
+    /// <summary>
+    /// A description written as a named argument reaches the document under its own name rather
+    /// than as the text "description: ...".
+    /// </summary>
+    [Fact]
+    public void ANamedDescriptionIsRead() {
+        using var document = JsonDocument.Parse(Extract(Generate(
+            Enable + "\n[OpenApiInfo(\"Depot\", description: \"Parcels, pallets\")]")));
+
+        Assert.Equal(
+            "Parcels, pallets",
+            document.RootElement.GetProperty("info").GetProperty("description").GetString());
+    }
+
+    /// <summary>
+    /// A server's description carries its commas too - the same reading, and the one place that
+    /// already split on the first comma only.
+    /// </summary>
+    [Fact]
+    public void AServerDescriptionKeepsItsCommas() {
+        using var document = JsonDocument.Parse(Extract(Generate(
+            Enable + "\n[Server(\"https://api.example.com\", \"Production, and the only one\")]")));
+
+        var server = document.RootElement.GetProperty("servers").EnumerateArray().First();
+
+        Assert.Equal("https://api.example.com", server.GetProperty("url").GetString());
+        Assert.Equal("Production, and the only one", server.GetProperty("description").GetString());
+    }
+
+    #endregion
 }
