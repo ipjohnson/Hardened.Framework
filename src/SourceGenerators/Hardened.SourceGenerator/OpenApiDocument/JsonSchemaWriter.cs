@@ -329,7 +329,12 @@ public static class JsonSchemaWriter {
                 "{\"type\":\"integer\",\"format\":\"int64\"}",
             SpecialType.System_Single => "{\"type\":\"number\",\"format\":\"float\"}",
             SpecialType.System_Double => "{\"type\":\"number\",\"format\":\"double\"}",
-            SpecialType.System_Decimal => "{\"type\":\"number\"}",
+            // The format is written, so the document says decimal rather than leaving a reader to
+            // guess from a bare "number" - which this framework reads back as double, so a
+            // code-first decimal did not survive its own contract. NSwag reads the pair as decimal
+            // too; openapi-generator ignores the format and defaults number to decimal in C#
+            // anyway, so naming it costs that reader nothing.
+            SpecialType.System_Decimal => "{\"type\":\"number\",\"format\":\"decimal\"}",
             SpecialType.System_DateTime => "{\"type\":\"string\",\"format\":\"date-time\"}",
             SpecialType.System_Object => "{}",
             _ => ByName(type)

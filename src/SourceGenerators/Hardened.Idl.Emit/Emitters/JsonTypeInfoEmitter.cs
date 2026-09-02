@@ -587,19 +587,20 @@ internal static class JsonTypeInfoEmitter {
             ns, TypeMapper.MapToCSharpType(prop.DictionaryValueType, null), false);
     }
 
+    /// <summary>
+    /// Whether an optional member of this type needs the nullable form in its property info.
+    /// </summary>
+    /// <remarks>
+    /// The primitive half is <c>TypeMapper.IsNonNullableValueType</c> rather than a list of its
+    /// own. It was a list of its own, and it had drifted: <c>decimal</c> was missing, so an
+    /// optional decimal member emitted <c>CreatePropertyInfo&lt;decimal&gt;</c> over a
+    /// <c>decimal?</c> property and the generated file did not compile. That was invisible while
+    /// no mapping produced a decimal, which is the way a duplicated list fails - not when it is
+    /// written, but when something upstream finally reaches the case it forgot.
+    /// </remarks>
     private static bool IsValueType(string csType, PropertyModel prop, List<SchemaModel> allSchemas) {
-        switch (csType) {
-            case "int":
-            case "uint":
-            case "long":
-            case "float":
-            case "double":
-            case "bool":
-            case "DateTimeOffset":
-            case "DateTime":
-            case "DateOnly":
-            case "JsonElement":
-                return true;
+        if (TypeMapper.IsNonNullableValueType(csType)) {
+            return true;
         }
 
         // Check if it's an enum reference

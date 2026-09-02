@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Hardened.Requests.Runtime.Validation;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
@@ -212,6 +213,83 @@ public class ValidationTests {
             ValidOrder, "/orders", request => request.Headers["Idempotency-Key"] = "0f9ac3b2");
 
         response.Assert.Ok();
+    }
+
+    #endregion
+
+    #region money
+
+    /// <summary>
+    /// H-10. Every <c>number</c> became a <c>double</c>, so money was a double end to end and the
+    /// framework never said so.
+    /// </summary>
+    /// <remarks>
+    /// Both spellings, because the ecosystem uses two and neither is in the OpenAPI specification:
+    /// <c>number</c> + <c>decimal</c> is NSwag's, and <c>string</c> + <c>number</c> is
+    /// openapi-generator's - its <c>ModelUtils.isDecimalSchema</c> tests exactly that pair.
+    /// </remarks>
+    [HardenedTest]
+    public async Task MoneySurvivesTheRoundTripExactly(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":3,"unitPrice":19.99,"discount":0.1}]}""",
+            "/orders");
+
+        response.Assert.Ok();
+
+        var line = response.Deserialize<OrderRequest>().Lines![0];
+
+        // The value a double cannot hold: 19.99 * 3 is 59.97 in decimal and 59.970000000000006 in
+        // binary floating point.
+        Assert.Equal(19.99m, line.UnitPrice);
+        Assert.Equal(59.97m, line.UnitPrice!.Value * 3);
+        Assert.Equal(0.1m, line.Discount);
+    }
+
+    /// <summary>
+    /// And the declared bound still runs. It is emitted as Range(Min = "0.01") - the string form
+    /// ValidationModules parses against the property's own type - because rendering it through
+    /// double is the one thing a decimal member exists to avoid.
+    /// </summary>
+    [HardenedTest]
+    public async Task ABoundOnMoneyIsEnforced(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":3,"unitPrice":0.001}]}""",
+            "/orders");
+
+        Assert.Equal(400, response.StatusCode);
+        Assert.Contains(
+            response.Deserialize<RequestValidationError>().Errors,
+            e => e.Field.Contains("unitPrice") && e.Code == "range");
+    }
+
+    /// <summary>
+    /// The published document keeps the spelling the contract used, so a client generator reads
+    /// back what the author wrote.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheDocumentPublishesBothSpellings(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/openapi.json");
+
+        response.Assert.Ok();
+        response.Body.Position = 0;
+
+        // Served gzipped, because the harness asks for it by default the way a client does.
+        await using var gzip = new System.IO.Compression.GZipStream(
+            response.Body, System.IO.Compression.CompressionMode.Decompress);
+
+        using var document = JsonDocument.Parse(await new StreamReader(gzip).ReadToEndAsync());
+
+        var properties = document.RootElement
+            .GetProperty("components").GetProperty("schemas")
+            .GetProperty("OrderLine").GetProperty("properties");
+
+        var unitPrice = properties.GetProperty("unitPrice");
+        var discount = properties.GetProperty("discount");
+
+        Assert.Equal("number", unitPrice.GetProperty("type").GetString());
+        Assert.Equal("decimal", unitPrice.GetProperty("format").GetString());
+        Assert.Equal("string", discount.GetProperty("type").GetString());
+        Assert.Equal("number", discount.GetProperty("format").GetString());
     }
 
     #endregion
