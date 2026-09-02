@@ -177,4 +177,42 @@ public class ValidationTests {
 
         response.Assert.Ok();
     }
+
+    #region the name a caller can act on
+
+    private const string ValidOrder =
+        """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":2}]}""";
+
+    /// <summary>
+    /// OR-04. <c>Idempotency-Key</c> failing its pattern reported <c>"field": "idempotencyKey"</c>
+    /// - a name that appears nowhere in the request or the contract. Body failures already used
+    /// wire names with indexed paths; header and query failures leaked the C# identifier the
+    /// generator allocated.
+    /// </summary>
+    [HardenedTest]
+    public async Task AHeaderFailureNamesTheHeader(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            ValidOrder, "/orders", request => request.Headers["Idempotency-Key"] = "not-hex");
+
+        Assert.Equal(400, response.StatusCode);
+
+        var error = response.Deserialize<RequestValidationError>();
+
+        Assert.Contains(error.Errors, e => e.Field == "Idempotency-Key");
+        Assert.DoesNotContain(error.Errors, e => e.Field == "idempotencyKey");
+    }
+
+    /// <summary>
+    /// A valid key gets through, so the constraint is the thing being tested rather than the
+    /// parameter merely being present.
+    /// </summary>
+    [HardenedTest]
+    public async Task AValidHeaderIsAccepted(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            ValidOrder, "/orders", request => request.Headers["Idempotency-Key"] = "0f9ac3b2");
+
+        response.Assert.Ok();
+    }
+
+    #endregion
 }

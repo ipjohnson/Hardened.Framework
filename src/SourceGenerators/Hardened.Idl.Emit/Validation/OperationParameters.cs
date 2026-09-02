@@ -30,10 +30,15 @@ internal static class OperationParameters {
     internal sealed record Model(string OperationId, string InterfaceName, IReadOnlyList<Member> Members);
 
     /// <param name="Name">The C# name, matching what the handler's Parameters class declares.</param>
+    /// <param name="WireName">
+    /// What the caller calls it - the header, query or path name the contract declares - or null
+    /// where that is already the C# name.
+    /// </param>
     /// <param name="Type">Its type.</param>
     /// <param name="Attributes">Constraints, already rendered.</param>
     internal sealed record Member(
-        string Name, ITypeDefinition Type, IReadOnlyList<ConstraintAttributes.Model> Attributes);
+        string Name, string? WireName, ITypeDefinition Type,
+        IReadOnlyList<ConstraintAttributes.Model> Attributes);
 
     public static Model? Build(
         OperationModel operation, ServiceSpecModel spec, string modelsNamespace, PatternRegistry patterns) {
@@ -67,6 +72,7 @@ internal static class OperationParameters {
 
             members.Add(new Member(
                 parameter.MemberName,
+                parameter.Name == parameter.MemberName ? null : parameter.Name,
                 TypeMapper.GetTypeDefinition(modelsNamespace, csType, parameter.IsCSharpNullable),
                 attributes));
         }
@@ -96,7 +102,7 @@ internal static class OperationParameters {
 
             constrained |= attributes.Length > 0;
 
-            members.Add(new Member("body", bodyType, attributes));
+            members.Add(new Member("body", null, bodyType, attributes));
         }
 
         return constrained

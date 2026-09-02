@@ -160,6 +160,15 @@ paths:
       tags:
         - Order
       operationId: placeOrder
+      parameters:
+        # A wire name no C# identifier can be. The member becomes IdempotencyKey and the failure
+        # has to still name the header the caller sent.
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+            pattern: '^[0-9a-f]{8}$'
       requestBody:
         required: true
         content:
