@@ -1,3 +1,5 @@
+using Hardened.Requests.Testing;
+
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -70,4 +72,50 @@ public class DescribedSecurityTests {
 
         response.Assert.Ok();
     }
+
+    #region the caller, in a handler
+
+    /// <summary>
+    /// H-03. A specification-first handler implements a generated interface, so the code-first
+    /// escape - an <c>IExecutionContext</c> parameter - does not exist, and nothing scoped exposed
+    /// the caller. Ownership checks and grant-dependent filtering could not be written without
+    /// hand-rolled plumbing, and both spec-first arms of the trial invented the same bridge
+    /// independently. <c>ICurrentCaller</c> is that bridge, shipped and injected by constructor.
+    /// </summary>
+    [HardenedTest]
+    public async Task AHandlerReadsTheCallerAndAdmitsTheOwner(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get(
+            "/secured/owned/integration-test", Holding("pets:read"));
+
+        Assert.Equal(200, response.StatusCode);
+    }
+
+    /// <summary>
+    /// The refusal the contract cannot express. Both requests hold the grant the description asks
+    /// for and pass authorization; only the handler can tell which of them owns the row.
+    /// </summary>
+    [HardenedTest]
+    public async Task AHandlerReadsTheCallerAndRefusesSomebodyElse(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/secured/owned/somebody-else", Holding("pets:read"));
+
+        Assert.Equal(403, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Present on every request, empty where nothing authenticated - so a handler reads the same
+    /// shape either way and never checks for null. Authorization refuses this one first, which is
+    /// the arrangement: what a caller may do is judged before the handler runs.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnAnonymousRequestIsRefusedBeforeTheHandlerReadsAnything(
+        ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/secured/owned/integration-test");
+
+        Assert.Equal(401, response.StatusCode);
+    }
+
+    private static Action<TestWebRequest> Holding(string grants) =>
+        request => request.Headers[TestGrantsPrincipalSource.GrantsHeader] = grants;
+
+    #endregion
 }
