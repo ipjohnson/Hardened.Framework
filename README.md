@@ -64,8 +64,15 @@ public partial class TodosLibrary;
 
 public class TodoController {
     [Get("/{id}")]
-    public Response<Todo, NotFound> ById(ITodoStore store, int id) =>
-        store.Find(id) ?? new NotFound("todo", $"No todo has id {id}.").AsResponse<Todo, NotFound>();
+    public Response<Todo, NotFound> ById(ITodoStore store, int id) {
+        var todo = store.Find(id);
+
+        if (todo is null) {
+            return new NotFound("todo", $"No todo has id {id}.");
+        }
+
+        return todo;
+    }
 }
 ```
 
@@ -123,14 +130,27 @@ public class TodoService : ITodosService {
 
     public TodoService(ITodoStore store) => _store = store;
 
-    // The ? is generated from the declared 404: returning null answers it, with the body the
-    // document names. Without a declared 404 there is no ?, and the compiler says so.
-    public Task<Todo?> GetTodo(int id) => Task.FromResult(_store.Find(id));
+    // GetTodoResponse, GetTodoOk and GetTodoNotFound are generated from the two declared
+    // statuses, one case each. The set is the return type, so a 404 the contract declares and the
+    // handler never returns is a compiler error rather than a document nothing answers to.
+    public Task<GetTodoResponse> GetTodo(int id) {
+        var todo = _store.Find(id);
+
+        if (todo is null) {
+            return Task.FromResult<GetTodoResponse>(
+                new GetTodoNotFound(new Problem { Detail = $"No todo has id {id}." }));
+        }
+
+        return Task.FromResult<GetTodoResponse>(new GetTodoOk(todo));
+    }
 }
 ```
 
-`Todo`, `Problem` and `ITodosService` are all written by the build, and `minimum: 1` becomes a
-validation filter in front of the handler.
+`Todo`, `Problem`, `ITodosService` and the response set are all written by the build, and
+`minimum: 1` becomes a validation filter in front of the handler. That shape is the `response`
+model, which is what the template scaffolds; the [three return models](#three-return-models) below
+are the choice, and in `throws` mode the same operation is a `Task<Todo?>` whose null answers the
+declared 404.
 
 There are no route attributes anywhere in the project. Add an operation to the contract and the
 build writes the model, the route and the validation, then stops compiling until your service
@@ -199,32 +219,10 @@ three work side by side.
 | **Throws** | one success type | thrown | any SDK |
 | **Union** | the whole set, as a C# `union` | in the return type | .NET 11, `LangVersion` preview |
 
-**Response** is the default: the declared set is where the compiler's checking and the document's
-truthfulness come from, so it is the mode the template reaches for when you say nothing.
-
-**Throws** names the success type and throws every other status. It was called **standard** until
-0.19.0, and it is not a legacy mode - a team that wants errors decided in filters and handlers kept
-lean chooses it deliberately. Nothing in the signature says the route can answer a 404, so nothing
-checks that you handled it, and the document describes only the 200 unless the handler declares the
-rest with `[Throws<NotFound>]` - the attribute the mode is named for.
-
-```csharp
-[Get("/{id}")]
-public Todo ById(ITodoStore store, int id) {
-    var todo = store.Find(id);
-
-    if (todo is null) {
-        throw new NotFound("todo", $"No todo has id {id}.").AsException();
-    }
-
-    return todo;
-}
-```
-
-**Response** puts the whole set in the return type. `Response<T1..Tn>` is an ordinary struct with an
-implicit conversion per case, so the handler returns payloads and never names the wrapper. The
-compiler knows the set and the document describes all of it. In throws mode the same handler names
-`Todo` alone and throws the `NotFound`.
+**Response** is what the template scaffolds, and what the examples above and elsewhere in this
+README use: the declared set is where the compiler's checking and the document's truthfulness come
+from. It puts the whole set in the return type. `Response<T1..Tn>` is an ordinary struct with an
+implicit conversion per case, so the handler returns payloads and never names the wrapper.
 
 ```csharp
 [Get("/{id}")]
@@ -239,8 +237,34 @@ public Response<Todo, NotFound> ById(ITodoStore store, int id) {
 }
 ```
 
+**An application that says nothing still gets throws**, and will until 1.0, so nothing built
+before 0.19.0 moves when its packages do. `response` is the template's default rather than the
+framework's. Code-first there is nothing to set - a handler's return type is the declaration, and
+the template writes no attribute. Spec-first the template writes `<HardenedResponseModel>` out for
+every mode, so the project file says which one it is rather than leaving you to know the default.
+
+**Throws** names the success type and throws every other status. It was called **standard** until
+0.19.0, and it is not a legacy mode - a team that wants errors decided in filters and handlers kept
+lean chooses it deliberately. Nothing in the signature says the route can answer a 404, so nothing
+checks that you handled it, and the document describes only the 200 unless the handler declares the
+rest with `[Throws<NotFound>]` - the attribute the mode is named for.
+
+```csharp
+[Get("/{id}")]
+[Throws<NotFound>]
+public Todo ById(ITodoStore store, int id) {
+    var todo = store.Find(id);
+
+    if (todo is null) {
+        throw new NotFound("todo", $"No todo has id {id}.").AsException();
+    }
+
+    return todo;
+}
+```
+
 **Union** declares the same set as a C# language union, which adds exhaustiveness wherever you
-pattern-match on the result. The handler body is identical to the `Response` version.
+pattern-match on the result. The handler body is identical to the `Response` version above.
 
 ```csharp
 public union TodoResult(Todo, NotFound);
