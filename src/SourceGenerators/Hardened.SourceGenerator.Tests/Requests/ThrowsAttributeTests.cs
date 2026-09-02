@@ -136,6 +136,101 @@ public class ThrowsAttributeTests {
     /// source searches compressed bytes and finds nothing - which is exactly the false negative this
     /// suite hit first time round.
     /// </remarks>
+    #region the validation status it derives
+
+    /// <summary>
+    /// A handler declaring that it answers 422 with the validation envelope has stated the
+    /// operation's validation status; the same declaration sets it for the runtime.
+    /// </summary>
+    /// <remarks>
+    /// H-08. Spec-first has declared this since 0.18 and code-first had nothing, deliberately - the
+    /// verb attributes dropped <c>ValidationErrorStatus</c> on the grounds that no hand-written
+    /// assertion should be a second source of truth beside the document. Deriving it from a
+    /// declaration the document already reads keeps that: there is still one place to write it.
+    /// </remarks>
+    [Fact]
+    public void DeclaringTheValidationEnvelopeSetsTheHandlersValidationStatus() {
+        var result = RequestGeneratorHarness.Generate(Application("""
+            public class PetController {
+                [Post("/pets")]
+                [Throws<Hardened.Requests.Runtime.Validation.RequestValidationError>(422)]
+                public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
+            }
+            """));
+
+        result.AssertNoErrors();
+
+        Assert.Contains("validationErrorStatus: 422", HandlerInfo(result));
+    }
+
+    /// <summary>
+    /// Another thrown type does not, however it is declared. This derives one status from one
+    /// vocabulary, not a status from every declaration.
+    /// </summary>
+    [Fact]
+    public void DeclaringAnotherThrownTypeSetsNoValidationStatus() {
+        var result = RequestGeneratorHarness.Generate(Application("""
+            public class PetController {
+                [Post("/pets")]
+                [Throws<RateLimited>]
+                public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
+            }
+            """));
+
+        result.AssertNoErrors();
+
+        Assert.DoesNotContain("validationErrorStatus", HandlerInfo(result));
+    }
+
+    /// <summary>
+    /// Matched by full name. An application is entitled to a <c>RequestValidationError</c> of its
+    /// own, and one that happens to share the name says nothing about how this framework's
+    /// validation answers.
+    /// </summary>
+    [Fact]
+    public void ATypeMerelySharingTheNameSetsNoValidationStatus() {
+        var result = RequestGeneratorHarness.Generate(Application("""
+            [HttpStatus(422)]
+            public class RequestValidationError { }
+
+            public class PetController {
+                [Post("/pets")]
+                [Throws<RequestValidationError>]
+                public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
+            }
+            """));
+
+        result.AssertNoErrors();
+
+        Assert.DoesNotContain("validationErrorStatus", HandlerInfo(result));
+    }
+
+    /// <summary>
+    /// The declaration still reaches the document, which is the half it already did.
+    /// </summary>
+    /// <remarks>
+    /// Whether the synthesized 400 stands down beside it is not assertable here - this handler
+    /// constrains nothing, so no 400 is synthesized either way. <c>OpenApiDocumentTests</c> covers
+    /// that over an application whose model carries real constraints.
+    /// </remarks>
+    [Fact]
+    public void TheDocumentCarriesTheDeclaredStatus() {
+        var result = RequestGeneratorHarness.Generate(Application("""
+            public class PetController {
+                [Post("/pets")]
+                [Throws<Hardened.Requests.Runtime.Validation.RequestValidationError>(422)]
+                public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
+            }
+            """));
+
+        Assert.Contains("\"422\"", Document(result));
+    }
+
+    private static string HandlerInfo(GeneratorResult result) =>
+        result.GeneratedSources.First(candidate => candidate.Key.Contains("PetController")).Value;
+
+    #endregion
+
     private static string Document(GeneratorResult result) {
         var source = result.GeneratedSources
             .First(candidate => candidate.Key.Contains("OpenApiDocument")).Value;

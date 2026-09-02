@@ -29,6 +29,9 @@ public static class ThrownResponseSelector {
     private const string AttributeSuffix = "Attribute";
     private const string HttpStatusAttribute = "HttpStatusAttribute";
 
+    /// <summary>The envelope every validation refusal answers with.</summary>
+    private const string ValidationErrorType = "Hardened.Requests.Runtime.Validation.RequestValidationError";
+
     /// <summary>The id reported when a declaration names no status.</summary>
     public const string DiagnosticId = "HRDT001";
 
@@ -64,15 +67,17 @@ public static class ThrownResponseSelector {
     }
 
     /// <summary>
-    /// Reads every <c>[Throws&lt;T&gt;]</c> on the method, collecting into <paramref name="unresolved"/>
-    /// the ones naming no status.
+    /// Reads every <c>[Throws&lt;T&gt;]</c> on the method, recording onto
+    /// <paramref name="response"/> the declarations naming no status and the validation status one
+    /// of them derives.
     /// </summary>
     public static IReadOnlyList<ResponseSchemaModel> Read(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax method,
-        List<string> unresolved,
+        ResponseInformationModel response,
         CancellationToken cancellationToken) {
         List<ResponseSchemaModel>? declared = null;
+        List<string>? unresolved = null;
 
         foreach (var attributeList in method.AttributeLists) {
             foreach (var attribute in attributeList.Attributes) {
@@ -87,9 +92,19 @@ public static class ThrownResponseSelector {
                 var status = StatedStatus(context, attribute) ?? DeclaredStatus(errorType);
 
                 if (status == null) {
-                    unresolved.Add(errorType.Name);
+                    (unresolved ??= new List<string>()).Add(errorType.Name);
 
                     continue;
+                }
+
+                // Derived rather than declared twice. A handler saying it answers 422 with the
+                // validation envelope has stated the operation's validation status into the
+                // document already; reading the same declaration for the runtime is what lets
+                // code-first reach the parity spec-first has had, without a second source of truth
+                // on any attribute. The verb attributes dropped ValidationErrorStatus on exactly
+                // those grounds.
+                if (response.ValidationErrorStatus == null && IsValidationEnvelope(errorType)) {
+                    response.ValidationErrorStatus = status;
                 }
 
                 declared ??= new List<ResponseSchemaModel>();
@@ -106,8 +121,23 @@ public static class ThrownResponseSelector {
             }
         }
 
+        if (unresolved != null) {
+            response.ThrowsDiagnostic = string.Join(",", unresolved);
+        }
+
         return (IReadOnlyList<ResponseSchemaModel>?)declared ?? System.Array.Empty<ResponseSchemaModel>();
     }
+
+    /// <summary>
+    /// Whether the declared type is the envelope every validation refusal answers with.
+    /// </summary>
+    /// <remarks>
+    /// By full name rather than by simple name: an application is entitled to a
+    /// <c>RequestValidationError</c> of its own, and one that happens to share the name is not a
+    /// statement about how this framework's validation answers.
+    /// </remarks>
+    private static bool IsValidationEnvelope(INamedTypeSymbol errorType) =>
+        errorType.ToDisplayString() == ValidationErrorType;
 
     /// <summary>The type argument of a <c>[Throws&lt;T&gt;]</c>, or null for any other attribute.</summary>
     private static INamedTypeSymbol? ThrownType(GeneratorSyntaxContext context, AttributeSyntax attribute) {

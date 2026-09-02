@@ -1,5 +1,12 @@
 using Hardened.IntegrationTests.WebApp.SUT.Models;
+using Hardened.Requests.Abstract.Responses;
+using Hardened.Requests.Runtime.Validation;
 using Hardened.Web.Runtime.Attributes;
+using ValidationModules;
+// Both namespaces declare a ValidationException, which is CS0104 without this. Either reaches the
+// same response - ExceptionToModelConverter maps one shape from both - so which is aliased is a
+// choice, and Hardened's is the one this controller means.
+using ValidationException = Hardened.Requests.Runtime.Validation.ValidationException;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 
@@ -34,4 +41,29 @@ public class RegistrationController {
     [Post("/anonymous")]
     public string Unconstrained(MathAddModel model) =>
         string.Join(",", model.Values ?? new List<int>());
+
+    /// <summary>
+    /// The same model on an operation that says what a validation refusal answers.
+    /// </summary>
+    /// <remarks>
+    /// <c>[Throws&lt;RequestValidationError&gt;(422)]</c> puts the 422 in the published document,
+    /// and the same declaration is what the runtime reads: one vocabulary carrying both, rather
+    /// than an assertion on a verb attribute that the document would have to be told about
+    /// separately. A specification-first operation declaring 422 has answered it since 0.18; this
+    /// is how a hand-written one says the same thing.
+    /// </remarks>
+    [Post("/declared-422")]
+    [Throws<RequestValidationError>(422)]
+    public string RegisterDeclaring422(RegistrationModel model) => model.Name ?? "";
+
+    /// <summary>
+    /// A handler validating by hand on an operation that declares 422, so the thrown route to a
+    /// refusal answers what the filter's route does.
+    /// </summary>
+    [Post("/declared-422/by-hand")]
+    [Throws<RequestValidationError>(422)]
+    public string ThrowValidation() =>
+        throw new ValidationException(ValidationResult.FromErrors([
+            new ValidationError("model.name", "required", "model.name is required.")
+        ]));
 }
