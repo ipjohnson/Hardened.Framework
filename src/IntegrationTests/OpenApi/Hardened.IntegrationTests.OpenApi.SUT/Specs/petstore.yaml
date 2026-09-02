@@ -115,6 +115,31 @@ paths:
             application/json:
               schema:
                 type: string
+  # An ownership check, which is the decision only the handler can make: the contract says the
+  # caller must hold pets:read, and nothing in a document can say "and the row must be theirs".
+  # The handler takes ICurrentCaller and compares.
+  /secured/owned/{ownerId}:
+    get:
+      tags:
+        - Secured
+      operationId: securedOwned
+      security:
+        - petstoreOAuth: ["pets:read"]
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The caller owns it.
+          content:
+            application/json:
+              schema:
+                type: string
+        '403':
+          description: The caller is not the owner.
   /secured/either:
     get:
       tags:
