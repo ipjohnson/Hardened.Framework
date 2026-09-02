@@ -13,7 +13,7 @@ public class WebLibrarySourceGenerator : IIncrementalGenerator {
         // source another generator can see.
         context.RegisterPostInitializationOutput(static production => production.AddSource(
             "Hardened.Web.Marker.g.cs",
-            GeneratedSource.Header(RoutingGeneratorPresence.MarkerSource)));
+            GeneratedSource.Header(RoutingGeneratorMarker.Source)));
 
         var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
             EntryPointSelector.UsingAttribute(),

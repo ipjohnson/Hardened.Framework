@@ -76,6 +76,10 @@ public class SpecFirstDocumentTests {
 
         Assert.Empty(result.Errors);
 
+        return PublishedDocumentFrom(result);
+    }
+
+    private static JsonElement PublishedDocumentFrom(GeneratorResult result) {
         var source = result.GeneratedSources
             .First(pair => pair.Key.Contains("OpenApiDocument")).Value;
 
@@ -347,6 +351,58 @@ public class SpecFirstDocumentTests {
             .GetProperty("RequestValidationError");
 
         Assert.Equal("object", schema.GetProperty("type").GetString());
+    }
+
+    #endregion
+
+    #region what the contract says about itself
+
+    /// <summary>
+    /// An entry point that also declares <c>[OpenApiInfo]</c>, with a comma in its description.
+    /// </summary>
+    private const string EntryPointDeclaringInfo =
+        """
+        using Hardened.Shared.Runtime.Attributes;
+        using Hardened.Web.Runtime.Attributes;
+
+        namespace TestNamespace;
+
+        [HardenedModule]
+        [OpenApiInfo("Attribute Title", "9.9", "Parcels, pallets and freight")]
+        public partial class TestApp {
+        }
+        """;
+
+    private static JsonElement Info(string spec, string source) {
+        var result = OpenApiGenerator.Run(spec, source);
+
+        Assert.Empty(result.Errors);
+
+        return PublishedDocumentFrom(result).GetProperty("info");
+    }
+
+    /// <summary>
+    /// The contract's own <c>info</c> wins, which is what <c>[OpenApiInfo]</c>'s remarks promise
+    /// and what nothing was driving.
+    /// </summary>
+    [Fact]
+    public void TheContractsInfoWinsOverTheAttribute() {
+        var info = Info(ConstrainedParameters, EntryPointDeclaringInfo);
+
+        Assert.Equal("Pets", info.GetProperty("title").GetString());
+        Assert.Equal("1.0", info.GetProperty("version").GetString());
+    }
+
+    /// <summary>
+    /// A description the contract does not state is taken from the attribute, commas and all - the
+    /// reading is the same on both front ends, so H-16's truncation would have shown here too.
+    /// </summary>
+    [Fact]
+    public void ADescriptionTheContractOmitsComesFromTheAttributeWhole() {
+        var info = Info(ConstrainedParameters, EntryPointDeclaringInfo);
+
+        Assert.True(info.TryGetProperty("description", out var description));
+        Assert.Equal("Parcels, pallets and freight", description.GetString());
     }
 
     #endregion
