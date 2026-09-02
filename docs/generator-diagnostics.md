@@ -176,7 +176,7 @@ the other.
 | `003` | The description was declared as the wrong item kind. `HOAT003`: a spec left in `AdditionalFiles`, which the generator no longer reads. `HSMT003`: a `.smithy` IDL file pointed at `HardenedSmithyAst`, which takes a JSON AST. |
 | `004` | A model or generated source the extract step should have written is missing. Delete the model directory and rebuild. |
 | `005` | The targets file was imported before the specs were declared, so no generated source reached the compilation. Move the `<Import>` below the item group. |
-| `006` | Warning. The reader parsed the document and had something to say about it, including what a degraded trait promises that the code does not enforce. |
+| `006` | Warning. The reader parsed the document and had something to say about it, including what a degraded trait promises that the code does not enforce. Under `HSMT`, this is also where a prelude shape with no exact C# type is reported - `BigDecimal` becomes `decimal`, `BigInteger` becomes `long` - once per member, naming it. |
 | `007` | A slice selected no operations, so nothing would be generated. |
 | `008` | Warning. A slice removed a schema that is still referenced; the reference degrades to `JsonElement`. |
 | `009` | Warning. The spec is sliced but its document is embedded whole, so the served description claims operations the application does not implement. |

@@ -88,9 +88,11 @@ bound invariantly against the property's own type at generation time - so the bo
 instead of going through the `double` the member exists to avoid, and a malformed one is still a
 build error.
 
-Smithy's `BigDecimal` and `BigInteger` still degrade to `double` and `long` under `HSMT006`.
-Arbitrary precision has no C# type; `decimal` would be closer than `double` and is not the same
-thing, which is its own change.
+Smithy's `BigDecimal` maps to `decimal` and `BigInteger` to `long`, both under an `HSMT006`
+naming the member and what it cost - arbitrary precision has no C# type, so the choice is which
+half to keep. `decimal` keeps exactness and runs out at 28 significant digits; `double` kept
+neither, since 19.99 is not 19.99 in binary floating point at any magnitude, and a model reaching
+for `BigDecimal` has almost always reached for exactness.
 
 Code-first, a `decimal` property publishes `number` / `decimal`, so it reads back as one.
 

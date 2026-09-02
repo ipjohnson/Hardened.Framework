@@ -604,7 +604,11 @@ internal static class SmithySpecParser {
                 };
 
                 foreach (var member in bodyMembers) {
-                    var schemaProperty = BuildProperty(context, member.Key, member.Value);
+                    // Named for the diagnostic as the model spells it rather than as the body
+                    // schema does: one member of one Smithy structure, whatever the reader
+                    // materialises it into.
+                    var schemaProperty = BuildProperty(
+                        context, member.Key, member.Value, SmithyPrelude.LocalName(inputId));
 
                     bodySchema.Properties.Add(schemaProperty);
 
@@ -620,7 +624,8 @@ internal static class SmithySpecParser {
         }
 
         foreach (var member in bodyMembers) {
-            var property = BuildProperty(context, member.Key, member.Value);
+            var property = BuildProperty(
+                context, member.Key, member.Value, SmithyPrelude.LocalName(inputId));
 
             model.RequestBodyProperties.Add(property);
 
@@ -916,7 +921,8 @@ internal static class SmithySpecParser {
         // reaches C# as `verbose`: the wire name is the contract, and the alternative would be a
         // second naming authority, which is the exact defect NameAllocator was built to remove.
         if (target != null) {
-            Describe(context, target, out var type, out var format, out var reference, out var array);
+            Describe(context, target, out var type, out var format, out var reference, out var array,
+                model.OperationId + "." + parameter.Name);
 
             parameter.Type = type;
             parameter.Format = format;
@@ -931,8 +937,12 @@ internal static class SmithySpecParser {
         model.Parameters.Add(parameter);
     }
 
+    /// <param name="owner">
+    /// The shape the member belongs to, so a narrowing diagnostic names which one - two structures
+    /// may each hold an <c>amount</c>, and "'amount' narrows" says nothing about where to look.
+    /// </param>
     private static PropertyModel BuildProperty(
-        ParseContext context, string name, JsonElement member) {
+        ParseContext context, string name, JsonElement member, string owner) {
         var property = new PropertyModel {
             Name = JsonName(member) ?? name,
             IsRequired = SmithyAst.HasTrait(member, SmithyTraits.Required),
@@ -944,7 +954,8 @@ internal static class SmithySpecParser {
         var target = SmithyAst.Target(member);
 
         if (target != null) {
-            Describe(context, target, out var type, out var format, out var reference, out var shape);
+            Describe(context, target, out var type, out var format, out var reference, out var shape,
+                owner + "." + property.Name);
 
             property.Type = type;
             property.Format = format;
@@ -1056,13 +1067,18 @@ internal static class SmithySpecParser {
     /// <c>List&lt;T&gt;</c>. That mirrors what <c>InlineNonObjectRefs</c> does on the OpenAPI side,
     /// and keeps the generated surface to the shapes a caller actually names.
     /// </remarks>
+    /// <param name="memberName">
+    /// The member being described, for a narrowing diagnostic. Null where the caller has no name
+    /// to give - a payload targeting a prelude shape directly, say.
+    /// </param>
     private static void Describe(
         ParseContext context,
         string target,
         out string? type,
         out string? format,
         out string? reference,
-        out ShapeFacts facts) {
+        out ShapeFacts facts,
+        string? memberName = null) {
         type = null;
         format = null;
         reference = null;
@@ -1072,10 +1088,21 @@ internal static class SmithySpecParser {
             type = preludeType;
             format = preludeFormat;
 
-            if (SmithyPrelude.IsLossy(target)) {
-                context.Diagnostics.Add(
-                    $"'{SmithyPrelude.LocalName(target)}' has no exact C# type; " +
-                    "values outside the mapped range will not round-trip.");
+            if (SmithyPrelude.LossDescription(target) is { } loss) {
+                // Once per member, naming it. Three BigDecimal members used to produce three
+                // byte-identical warnings naming none of them, so the count was the only way to
+                // tell how many there were and no way to tell which - and a set of identical
+                // strings deduplicates itself, which is why the name has to be in the message
+                // rather than beside it.
+                var where = memberName == null ? "" : $"'{memberName}' ";
+
+                var message = $"{where}targets {SmithyPrelude.LocalName(target)}, which {loss}.";
+
+                // A structure is walked twice - once as a schema, once as an operation's body - so
+                // without this every narrowed member is reported twice.
+                if (!context.Diagnostics.Contains(message)) {
+                    context.Diagnostics.Add(message);
+                }
             }
 
             return;
@@ -1249,7 +1276,7 @@ internal static class SmithySpecParser {
                 foreach (var member in SmithyAst.Members(shape)) {
                     Note(context, member.Value);
 
-                    var property = BuildProperty(context, member.Key, member.Value);
+                    var property = BuildProperty(context, member.Key, member.Value, schema.Name);
 
                     schema.Properties.Add(property);
 
