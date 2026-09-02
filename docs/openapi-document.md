@@ -54,6 +54,46 @@ serving the source verbatim where that is wanted.
   against what the handler actually throws - the declared response models are where the compiler
   holds the set.
 
+## Numbers, and money
+
+`format` is an open-valued property. OpenAPI names four numeric formats - `int32`, `int64`,
+`float`, `double` - and says a document may use others, so anything else is a convention rather
+than a standard. What the build reads:
+
+| declared | C# |
+|---|---|
+| `number` / `float` | `float` |
+| `number` / `double` | `double` |
+| `number` / `decimal` | `decimal` |
+| `string` / `number` | `decimal` |
+| `number` / anything else, or no format | `double` |
+| `integer` / `int64` | `long` |
+| `integer` / `uint32` | `uint` |
+| `integer` / anything else | `int`, widened to `long` where a declared bound exceeds it |
+
+Two spellings for a decimal because the ecosystem has two and neither is in the specification.
+`number` + `decimal` is NSwag's, measured against 14.1.0: it answers `decimal` for that pair and
+`double` for a formatless `number`. `string` + `number` is openapi-generator's, whose
+`ModelUtils.isDecimalSchema` tests exactly that pair and whose language generators map it to
+`BigDecimal`, `Decimal`, `decimal.Decimal` and so on.
+
+What neither spelling can be is the *absence* of a format. openapi-generator's C# target maps
+every formatless `number` to `decimal`, so a document written against it means a decimal by
+saying nothing - and saying nothing is how every other document means `double`. That one is not
+readable and stays `double`.
+
+A bound on a decimal member is emitted as `Range(Min = "0.01")` rather than as a number.
+`decimal` is not a legal attribute argument type in C#, and ValidationModules parses a string
+bound invariantly against the property's own type at generation time - so the bound stays exact
+instead of going through the `double` the member exists to avoid, and a malformed one is still a
+build error.
+
+Smithy's `BigDecimal` and `BigInteger` still degrade to `double` and `long` under `HSMT006`.
+Arbitrary precision has no C# type; `decimal` would be closer than `double` and is not the same
+thing, which is its own change.
+
+Code-first, a `decimal` property publishes `number` / `decimal`, so it reads back as one.
+
 ## The vocabulary
 
 | Declaration | Where | What it does |

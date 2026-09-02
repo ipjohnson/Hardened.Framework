@@ -109,11 +109,11 @@ internal static class ConstraintAttributes {
             var arguments = new List<string>();
 
             if (minimum.HasValue) {
-                arguments.Add("Min = " + Literal(minimum.Value));
+                arguments.Add("Min = " + Literal(minimum.Value, csType));
             }
 
             if (maximum.HasValue) {
-                arguments.Add("Max = " + Literal(maximum.Value));
+                arguments.Add("Max = " + Literal(maximum.Value, csType));
             }
 
             if (exclusiveMinimum) {
@@ -169,12 +169,25 @@ internal static class ConstraintAttributes {
     }
 
     /// <summary>
-    /// A bound as a C# literal for Range's <c>object?</c> properties. Rendered through double
-    /// because decimal is not a legal attribute argument type; a whole-number bound renders as
-    /// the integer it is.
+    /// A bound as a C# literal for Range's <c>object?</c> properties.
     /// </summary>
-    private static string Literal(decimal value) =>
-        ((double)value).ToString("R", CultureInfo.InvariantCulture);
+    /// <remarks>
+    /// <para>
+    /// Rendered through double, because decimal is not a legal attribute argument type; a
+    /// whole-number bound renders as the integer it is.
+    /// </para>
+    /// <para>
+    /// Except on a decimal member, where going through double is the one thing the type was chosen
+    /// to avoid - a bound of 0.1 would arrive at the comparison as 0.1000000000000000055511151231.
+    /// <c>Range</c> takes <c>object?</c> and ValidationModules parses a string bound invariantly
+    /// against the property's own type at generation time, which its remarks give decimal as the
+    /// first reason for. So the bound stays exact and a malformed one is still a build error.
+    /// </para>
+    /// </remarks>
+    private static string Literal(decimal value, string csType) =>
+        csType == "decimal"
+            ? Quote(value.ToString(CultureInfo.InvariantCulture))
+            : ((double)value).ToString("R", CultureInfo.InvariantCulture);
 
     private static string Quote(string value) =>
         "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
