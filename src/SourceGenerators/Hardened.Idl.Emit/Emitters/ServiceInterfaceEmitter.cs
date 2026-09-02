@@ -13,7 +13,7 @@ internal static class ServiceInterfaceEmitter {
 
     public static InterfaceDefinition Emit(
         IConstructContainer container, ServiceModel service, string modelsNamespace,
-        SpecResponseModel responseModel = SpecResponseModel.Standard) {
+        SpecResponseModel responseModel = SpecResponseModel.Throws) {
         var interfaceDefinition = container.AddInterface(NamingHelper.ToInterfaceName(service.TypeBaseName));
 
         interfaceDefinition.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
@@ -55,7 +55,7 @@ internal static class ServiceInterfaceEmitter {
 
     internal static ITypeDefinition GetReturnType(
         OperationModel operation, string modelsNamespace,
-        SpecResponseModel responseModel = SpecResponseModel.Standard) {
+        SpecResponseModel responseModel = SpecResponseModel.Throws) {
         // Ahead of everything below, because a declared response set replaces the question the rest
         // of this method answers. The two overrides that follow are still checked first inside
         // UnionResponseEmitter's own success branch: a streamed body is many responses rather than

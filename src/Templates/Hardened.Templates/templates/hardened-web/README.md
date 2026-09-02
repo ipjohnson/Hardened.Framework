@@ -25,16 +25,16 @@ Four routes. `GET /todos` has one answer; the other three each declare more than
 |---|---|---|
 | `GET /todos` | 200 | |
 | `GET /todos/{id}` | 200 | 404 when no todo has that id |
-#if (standardMode && codeFirst)
+#if (throwsMode && codeFirst)
 | `POST /todos` | 200 | 409 when the title is taken |
 #endif
-#if (standardMode && specFirst)
+#if (throwsMode && specFirst)
 | `POST /todos` | 201 | 409 when the title is taken |
 #endif
 #if (declaredMode)
 | `POST /todos` | 201 with a `Location` | 409 when the title is taken |
 #endif
-#if (standardMode)
+#if (throwsMode)
 | `DELETE /todos/{id}` | 200 | 404 when no todo has that id |
 #endif
 #if (declaredMode)
@@ -79,7 +79,7 @@ A route is an attribute on a method of a plain class - no base type, no interfac
 
 ```csharp
 [Get("/{id}")]
-public #if (standardMode)Todo#endif#if (responseMode)Response<Todo, NotFound>#endif#if (unionMode)TodoResult#endif ById(ITodoStore store, int id)
+public #if (throwsMode)Todo#endif#if (responseMode)Response<Todo, NotFound>#endif#if (unionMode)TodoResult#endif ById(ITodoStore store, int id)
 ```
 
 `[BasePath]` on `TemplateModuleNameLibrary` prefixes every route in the assembly, so that one is
@@ -111,9 +111,9 @@ because disagreeing is a build error. There are no route attributes anywhere in 
 
 ## How responses are declared
 
-#if (standardMode)
-This application is in **standard** mode. A handler names one success type and reaches every other
-status by throwing:
+#if (throwsMode)
+This application is in **throws** mode (named **standard** before 0.19.0). A handler names one
+success type and reaches every other status by throwing:
 
 ```csharp
 throw new NotFound("todo", $"No todo has id {id}.").AsException();
@@ -121,7 +121,8 @@ throw new NotFound("todo", $"No todo has id {id}.").AsException();
 
 The 404 body is the same one the declared modes return. What is missing is any statement in the
 signature that the route can answer it - so the generated document describes fewer statuses than
-the application actually has.
+the application actually has, unless the handler declares them with `[Throws<NotFound>]`, which is
+this mode's half of the contract and where its name comes from.
 
 #if (codeFirst)
 A single success status is nameable — `[Post("/todos", SuccessStatus = 201)]` answers 201 and says

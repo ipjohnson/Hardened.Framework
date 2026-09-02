@@ -8,7 +8,8 @@
 # from source proves nothing about packaging, which is where the 0.8.0-rc1000 quickstart broke.
 #
 # Usage: scripts/verify-templates.sh [host:contract ...]
-#        default: kestrel:code aspnet:code kestrel:openapi kestrel:smithy
+#        default: the template default (response) on three host/contract rows, throws and union
+#        on both spec directions, and kestrel:smithy rows when the pinned CLI is present
 #
 # smithy is skipped unless the Smithy CLI is on PATH at the pinned version - a build without it
 # fails by design (HSMT011), and that is the toolchain's problem rather than the template's.
@@ -47,15 +48,15 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
     # comment containing a double hyphen, which every other combination was immune to only because
     # that comment sat behind #if (unionMode).
     COMBOS=(kestrel:code aspnet:code kestrel:openapi
-            kestrel:code:response kestrel:openapi:response
+            kestrel:code:throws kestrel:openapi:throws
             kestrel:code:union kestrel:openapi:union)
 
     if command -v smithy >/dev/null 2>&1 && [ "$(smithy --version 2>/dev/null)" = "$SMITHY_PIN" ]; then
-        # The declared model too, not only standard. Smithy's half of it had never run: the targets
-        # file did not pass $(HardenedResponseModel) at all, so a Smithy project asking for a
-        # response set got Standard and got it silently. A row that only ever exercises the default
-        # is how that survived.
-        COMBOS+=(kestrel:smithy kestrel:smithy:response)
+        # The throws model too, not only the default. Smithy's half of the property had never run:
+        # the targets file did not pass $(HardenedResponseModel) at all, so a Smithy project asking
+        # for a response set got throws mode and got it silently. A row that only ever exercises
+        # the default is how that survived.
+        COMBOS+=(kestrel:smithy kestrel:smithy:throws)
     else
         FOUND="$(command -v smithy >/dev/null 2>&1 && smithy --version || echo none)"
         echo "note: skipping the smithy contract - it needs the Smithy CLI at $SMITHY_PIN, found $FOUND"
@@ -149,10 +150,12 @@ for COMBO in "${COMBOS[@]}"; do
     REST="${COMBO#*:}"
     CONTRACT="${REST%%:*}"
 
-    # host:contract, or host:contract:model. Defaulted rather than required, so every combo written
-    # before the response model existed still means what it said.
+    # host:contract, or host:contract:model. A bare combo scaffolds with no --response-model at
+    # all, for the same reason --HardenedVersion is not passed below: the default is what a real
+    # user gets, so the default is what needs testing - and since 0.19.0 the default is response.
+    # Naming a model exercises the flag.
     if [ "$REST" = "$CONTRACT" ]; then
-        MODEL=standard
+        MODEL=default
     else
         MODEL="${REST#*:}"
     fi
@@ -163,8 +166,13 @@ for COMBO in "${COMBOS[@]}"; do
     # --HardenedVersion is deliberately NOT passed. The template stamps the version it was
     # packed with as the default, and that default is what a real user gets - so it is what
     # needs testing. Passing it here would test the flag and leave the default unexercised.
-    dotnet new hardened-web -n Sample -o "$OUT" --host "$HOST" --contract "$CONTRACT" \
-        --response-model "$MODEL" --skip-restore
+    if [ "$MODEL" = "default" ]; then
+        dotnet new hardened-web -n Sample -o "$OUT" --host "$HOST" --contract "$CONTRACT" \
+            --skip-restore
+    else
+        dotnet new hardened-web -n Sample -o "$OUT" --host "$HOST" --contract "$CONTRACT" \
+            --response-model "$MODEL" --skip-restore
+    fi
 
     check_generated "$OUT"
 
@@ -270,8 +278,8 @@ for COMBO in "${COMBOS[@]}"; do
 
         # Which status a create answers with, and the three-way split is the point.
         #
-        # Code-first Standard has one success type per handler and nowhere to name a status beside
-        # it, so it answers 200. Specification-first Standard answers 201, because the contract names
+        # Code-first throws mode has one success type per handler and nowhere to name a status beside
+        # it, so it answers 200. Specification-first throws mode answers 201, because the contract names
         # the status and the generated dispatch carries it - what that mode cannot do is name more
         # than one. The declared models answer 201 from the case itself, either way.
         #
@@ -282,7 +290,7 @@ for COMBO in "${COMBOS[@]}"; do
             -d '{"title":"Written by the verification run"}' \
             "http://localhost:$PORT/todos" || true)
 
-        if [ "$MODEL" = "standard" ] && [ "$CONTRACT" = "code" ]; then
+        if [ "$MODEL" = "throws" ] && [ "$CONTRACT" = "code" ]; then
             EXPECT_CREATED=200
         else
             EXPECT_CREATED=201
@@ -429,10 +437,10 @@ say "host independence"
 # The framework's claim is that handlers, filters, binding and routing do not change with the
 # host. If that is true, only the host project may differ between two generated applications.
 # Comparable only across hosts at the same contract, which is the claim being checked.
-# The -standard suffix, because that is what the output directories are named since the response
-# model joined the combination. The old suffixless paths matched nothing, so this check was
+# The -default suffix, because that is what the bare rows' output directories are named now that
+# they scaffold without the flag. The old suffixless paths matched nothing, so this check was
 # silently skipped on every run - which is why it now says so instead of saying nothing.
-A="$WORK/kestrel-code-standard"; B="$WORK/aspnet-code-standard"
+A="$WORK/kestrel-code-default"; B="$WORK/aspnet-code-default"
 if [ -d "$A" ] && [ -d "$B" ]; then
     # Source only. bin/ and obj/ carry absolute paths and compiler output, which differ for
     # reasons that have nothing to do with the host.
@@ -447,6 +455,25 @@ if [ -d "$A" ] && [ -d "$B" ]; then
     done
 else
     echo "   skipped: both hosts are not in this run's combinations"
+fi
+
+say "renamed value"
+# --response-model standard was the throws mode's name until 0.19.0. The choice stays accepted for
+# one release and scaffolds the same project, and this is the row that notices if either half
+# stops being true - at generation, because the claim is about the template, not the build.
+if [ -d "$WORK/kestrel-code-throws" ]; then
+    OUT_ALIAS="$WORK/alias-standard"
+    dotnet new hardened-web -n Sample -o "$OUT_ALIAS" --host kestrel --contract code \
+        --response-model standard --skip-restore
+    if diff -r -x bin -x obj -x nuget.config \
+        "$WORK/kestrel-code-throws/src" "$OUT_ALIAS/src" >/dev/null 2>&1; then
+        echo "   --response-model standard scaffolds the throws project"
+    else
+        echo "   FAILED: --response-model standard no longer scaffolds what throws scaffolds"
+        FAILED=1
+    fi
+else
+    echo "   skipped: kestrel:code:throws is not in this run's combinations"
 fi
 
 dotnet new uninstall Hardened.Templates >/dev/null 2>&1 || true

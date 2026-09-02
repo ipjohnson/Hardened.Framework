@@ -182,6 +182,6 @@ public class SmithyResponseHeaderTests {
         Assert.True(ResponseSetPlan.PrimarySuccessIsBarePayload(operation));
 
         Assert.False(ResponseSetPlan.DeclaresResponseHeaders(operation));
-        Assert.False(ResponseSetPlan.RequiresResponseSet(operation, SpecResponseModel.Standard));
+        Assert.False(ResponseSetPlan.RequiresResponseSet(operation, SpecResponseModel.Throws));
     }
 }

@@ -19,8 +19,8 @@ public class DocumentStatusTests {
 
     private static readonly Dictionary<string, string[]> Expected = new() {
 #if (codeFirst)
-#if (standardMode)
-        // Standard mode documents what the signature declares. The thrown NotFound and Conflict
+#if (throwsMode)
+        // Throws mode documents what the signature declares. The thrown NotFound and Conflict
         // answer at runtime and are invisible here - the declared models close exactly that gap.
         ["GET /todos"] = ["200"],
         ["GET /todos/{id}"] = ["200", "400"],

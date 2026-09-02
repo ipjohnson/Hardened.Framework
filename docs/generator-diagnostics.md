@@ -88,6 +88,7 @@ the other.
 | `016` | `UiUrl` without `PublishUrl`, so the page would have no document to render. |
 | `017` | `SourceUrl` without `EmbedDocument`, so there is no source to serve. |
 | `020`–`025` | The shared model-diagnostics pass. See below. |
+| `026` | Warning. `$(HardenedResponseModel)` is `Standard`, the throws mode's name before 0.19.0. The mode selected is unchanged; write `Throws`. Reported once per project. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 

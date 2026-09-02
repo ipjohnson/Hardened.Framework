@@ -14,7 +14,7 @@ namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 /// front end that reached the response-set path.
 /// </para>
 /// <para>
-/// The sibling SUT could not catch this: it runs the Standard model, its declared errors are
+/// The sibling SUT could not catch this: it runs the Throws model, its declared errors are
 /// thrown, and <c>RequiresResponseSet</c> stays false - the broken branch never executed there.
 /// </para>
 /// </remarks>

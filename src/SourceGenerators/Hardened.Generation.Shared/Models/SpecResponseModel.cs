@@ -36,10 +36,12 @@ namespace Hardened.Generation.Models;
 public enum SpecResponseModel {
 
     /// <summary>
-    /// <c>Task&lt;Pet&gt;</c>, with declared errors thrown. The default, and what every generated
-    /// interface says today.
+    /// <c>Task&lt;Pet&gt;</c>, with declared errors thrown. What an unset
+    /// <c>$(HardenedResponseModel)</c> still means, so a project scaffolded before the property
+    /// existed keeps generating the interfaces it had. Named <c>Standard</c> until 0.19.0; the
+    /// build task still reads the old property value and says so.
     /// </summary>
-    Standard,
+    Throws,
 
     /// <summary>
     /// <c>Task&lt;GetPetResponse&gt;</c>, where the container is a generated struct matching the

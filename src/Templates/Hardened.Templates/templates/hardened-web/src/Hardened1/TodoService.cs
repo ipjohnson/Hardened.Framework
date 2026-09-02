@@ -54,7 +54,7 @@ public class TodoService : ITodosService {
     public Task<List<Todo>> ListTodos() =>
         Task.FromResult(_store.All().ToList());
 
-#if (standardMode)
+#if (throwsMode)
     /// <summary>
     /// Null is the 404.
     /// </summary>
@@ -74,11 +74,11 @@ public class TodoService : ITodosService {
     /// A 201 carrying the Location the contract declares, or a 409.
     /// </summary>
     /// <remarks>
-    /// The one operation here that names a response set in standard mode, and the contract is why:
+    /// The one operation here that names a response set in throws mode, and the contract is why:
     /// its 201 declares a Location, and a returned Todo has nowhere to put one - Todo is the type
     /// GetTodo answers with too, so a header on it would go out on every read. Declaring a header is
     /// the only thing that does this. Every other operation below declares none and keeps the bare
-    /// return type that standard mode is chosen for.
+    /// return type that throws mode is chosen for.
     ///
     /// The 409 is a case rather than a throw for the same reason: once an operation has a set, the
     /// set is where all of its statuses live.

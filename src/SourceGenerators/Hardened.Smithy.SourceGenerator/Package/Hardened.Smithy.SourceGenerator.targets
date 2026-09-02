@@ -307,10 +307,10 @@
 
     <!--
         ResponseModel is passed here for the same reason the OpenAPI target passes it: ExtractSpecTask
-        reads $(HardenedResponseModel) to choose between Standard, Response and Union, and
+        reads $(HardenedResponseModel) to choose between Throws, Response and Union, and
         ExtractSmithySpec inherits that property along with the rest of the shell.
 
-        It was absent, so a Smithy project setting the property got Standard however it was set, and
+        It was absent, so a Smithy project setting the property got throws mode however it was set, and
         got it silently - the interfaces it generated were valid, just not the ones asked for. The
         OpenAPI path had been passing it since the property existed, which is what made this look
         like a mode that did not work for Smithy rather than a line that was never written.

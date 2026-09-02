@@ -34,7 +34,7 @@ public static class ResponseModelSelector {
     /// What an entry point that says nothing gets, which is what every application built before
     /// this existed says.
     /// </summary>
-    public const ResponseModelValue Default = ResponseModelValue.Standard;
+    public const ResponseModelValue Default = ResponseModelValue.Throws;
 
     /// <summary>
     /// The declared model, or <see cref="Default"/>.
@@ -43,7 +43,10 @@ public static class ResponseModelSelector {
     /// An unrecognised argument also yields the default rather than throwing. The enum is the only
     /// thing a caller can write and the compiler already rejects anything else, so a value that
     /// does not parse here means the attribute was written against a newer Hardened than this
-    /// generator - and emitting standard-mode code is the answer that still builds.
+    /// generator - and emitting throws-mode code is the answer that still builds. The same branch
+    /// reads the pre-0.19.0 spelling <c>Standard</c>, whose member still exists as an obsolete
+    /// alias of <c>Throws</c>: the compiler tells the author about the rename, so nothing here
+    /// has to.
     /// </remarks>
     public static ResponseModelValue Read(EntryPointSelector.Model appModel) {
         if (appModel.AttributeModels == null) {
@@ -61,11 +64,11 @@ public static class ResponseModelSelector {
     }
 
     /// <summary>
-    /// Whether the entry point said anything at all, as opposed to saying <c>Standard</c>.
+    /// Whether the entry point said anything at all, as opposed to saying <c>Throws</c>.
     /// </summary>
     /// <remarks>
     /// The two are the same emit and a different diagnostic. An entry point that wrote
-    /// <c>[ResponseModel(ResponseModel.Standard)]</c> has made a choice and should not be told
+    /// <c>[ResponseModel(ResponseModel.Throws)]</c> has made a choice and should not be told
     /// anything; one that wrote nothing has not, and is not the subject of any message either. Kept
     /// separate so a later mode-mismatch diagnostic can tell them apart without re-reading.
     /// </remarks>
@@ -98,7 +101,7 @@ public static class ResponseModelSelector {
             case nameof(ResponseModelValue.Union):
                 return ResponseModelValue.Union;
             default:
-                return ResponseModelValue.Standard;
+                return ResponseModelValue.Throws;
         }
     }
 }
@@ -113,7 +116,7 @@ public static class ResponseModelSelector {
 /// <c>ResponseModelSelectorTests</c> asserts rather than assumes.
 /// </remarks>
 public enum ResponseModelValue {
-    Standard,
+    Throws,
     Response,
     Union
 }

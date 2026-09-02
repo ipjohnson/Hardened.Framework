@@ -9,7 +9,7 @@
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
         <!--
-            The whole point of this fixture. The sibling OpenApi SUT runs Standard, where declared
+            The whole point of this fixture. The sibling OpenApi SUT runs Throws, where declared
             errors are thrown and RequiresResponseSet stays false - so the response-set dispatch,
             the branch that decided a scalar success was bodyless, never executed there.
         -->

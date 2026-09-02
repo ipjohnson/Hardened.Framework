@@ -16,12 +16,12 @@ namespace Hardened.Generation.Models;
 /// </para>
 /// <para>
 /// <b>The flat fields on <c>OperationModel</c> stay</b> and keep naming the primary success, which
-/// is the lowest declared 2xx. Standard mode returns one type and every existing consumer reads
+/// is the lowest declared 2xx. Throws mode returns one type and every existing consumer reads
 /// those individually, so this list is additive rather than a replacement - nothing that worked
 /// before has to learn about it.
 /// </para>
 /// <para>
-/// <b>Why a second success cannot be left out.</b> Standard mode reaches its other statuses by
+/// <b>Why a second success cannot be left out.</b> Throws mode reaches its other statuses by
 /// throwing, and a throw carries a failure. There is no way to throw a 202. So an operation with
 /// more than one declared success has to state them in its return type whatever mode the module is
 /// in, which is why <c>ServiceInterfaceEmitter</c> returns a response set for these regardless.

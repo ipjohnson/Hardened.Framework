@@ -103,7 +103,7 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// <c>ResponseSetPlan.RequiresResponseSet</c>, which reads this and the operation both.
     /// </para>
     /// </remarks>
-    public SpecResponseModel ResponseModel { get; set; } = SpecResponseModel.Standard;
+    public SpecResponseModel ResponseModel { get; set; } = SpecResponseModel.Throws;
 
     /// <summary>
     /// Keywords the description declared that the parser did not map, in the order they were met.

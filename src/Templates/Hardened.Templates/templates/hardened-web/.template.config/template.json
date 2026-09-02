@@ -115,26 +115,30 @@
     "responseModel": {
       "type": "parameter",
       "datatype": "choice",
-      "defaultValue": "standard",
+      "defaultValue": "response",
       "description": "How a handler declares more than one kind of response.",
       "choices": [
         {
-          "choice": "standard",
-          "description": "One return type per handler; other statuses are reached by throwing. The default, and what an application that says nothing gets."
+          "choice": "response",
+          "description": "Handlers return Response<T1..Tn>, a struct any C# compiler can build. The declared set reaches the generated document, so 404 and 409 are described rather than implied. The default."
         },
         {
-          "choice": "response",
-          "description": "Handlers return Response<T1..Tn>, a struct any C# compiler can build. The declared set reaches the generated document, so 404 and 409 are described rather than implied."
+          "choice": "throws",
+          "description": "One return type per handler; other statuses are reached by throwing, and [Throws<T>] is how they reach the document."
         },
         {
           "choice": "union",
           "description": "Handlers return a C# 15 union. Same declared set as response, plus exhaustiveness in your own code. Needs a compiler that can do C# 15 - the .NET 11 SDK - and reports a build error naming LangVersion below it."
+        },
+        {
+          "choice": "standard",
+          "description": "The old name for throws; scaffolds the same project. Goes away at 1.0."
         }
       ]
     },
-    "standardMode": {
+    "throwsMode": {
       "type": "computed",
-      "value": "(responseModel == 'standard')"
+      "value": "(responseModel == 'throws' || responseModel == 'standard')"
     },
     "responseMode": {
       "type": "computed",

@@ -81,9 +81,11 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// what the emitter writes.
     /// </para>
     /// <para>
-    /// An unrecognised value is Standard rather than a build failure. The property is set by hand
+    /// An unrecognised value is Throws rather than a build failure. The property is set by hand
     /// in a csproj with no completion behind it, and failing every build of a project that
-    /// mistyped it would be a worse trade than generating the interfaces it had yesterday.
+    /// mistyped it would be a worse trade than generating the interfaces it had yesterday. Absent
+    /// means Throws for the same reason: that is what every project scaffolded before 0.19.0
+    /// gets, and those projects wrote no property at all.
     /// </para>
     /// </remarks>
     public string ResponseModel { get; set; } = "";
@@ -156,8 +158,8 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// <remarks>
     /// A number means the same thing under every prefix, and everything reporting under one prefix
     /// shares one numbering - which includes reporters that are not this class. This shell uses
-    /// 001-009 and 016-017, the packaged targets use 003-005 and 015, the Smithy CLI task uses
-    /// 010-014, and <see cref="SpecDiagnostics"/> uses 020 up. The full table is
+    /// 001-009, 016-017 and 026, the packaged targets use 003-005 and 015, the Smithy CLI task
+    /// uses 010-014, and <see cref="SpecDiagnostics"/> uses 020-025. The full table is
     /// docs/generator-diagnostics.md.
     /// </remarks>
     protected abstract string DiagnosticPrefix { get; }
@@ -492,22 +494,38 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             model, Namespace, ExcludeFromCoverage, document, specPath, SelectedResponseModel());
 
     /// <summary>
-    /// The mode <c>$(HardenedResponseModel)</c> names, defaulting to Standard.
+    /// The mode <c>$(HardenedResponseModel)</c> names, defaulting to Throws.
     /// </summary>
     /// <remarks>
-    /// An unrecognised value is Standard rather than a build failure. The property is set by hand
+    /// An unrecognised value is Throws rather than a build failure. The property is set by hand
     /// in a csproj with no completion behind it, and failing every build of a project that mistyped
-    /// it would be a worse trade than generating the interfaces it had yesterday.
+    /// it would be a worse trade than generating the interfaces it had yesterday. The one value
+    /// that gets a word said about it is "Standard", the mode's name before 0.19.0: it still
+    /// selects the same mode, under a 026 warning naming the new value, so a project upgrading its
+    /// packages keeps building and learns the current spelling from the build that proved it.
     /// </remarks>
     private SpecResponseModel SelectedResponseModel() {
         if (string.Equals(ResponseModel, "Response", System.StringComparison.OrdinalIgnoreCase)) {
             return SpecResponseModel.Response;
         }
 
-        return string.Equals(ResponseModel, "Union", System.StringComparison.OrdinalIgnoreCase)
-            ? SpecResponseModel.Union
-            : SpecResponseModel.Standard;
+        if (string.Equals(ResponseModel, "Union", System.StringComparison.OrdinalIgnoreCase)) {
+            return SpecResponseModel.Union;
+        }
+
+        if (string.Equals(ResponseModel, "Standard", System.StringComparison.OrdinalIgnoreCase) &&
+            !_renamedResponseModelWarned) {
+            _renamedResponseModelWarned = true;
+            Log.LogWarning(null, DiagnosticPrefix + "026", null, null, 0, 0, 0, 0,
+                "$(HardenedResponseModel) is 'Standard', which was renamed 'Throws' in 0.19.0. " +
+                "The mode selected is unchanged; write <HardenedResponseModel>Throws</HardenedResponseModel>.");
+        }
+
+        return SpecResponseModel.Throws;
     }
+
+    /// <summary>Whether the 026 rename notice has been reported, so one project logs it once.</summary>
+    private bool _renamedResponseModelWarned;
 
     /// <summary>
     /// Rewriting an unchanged file would bump its timestamp, and both the compiler's up-to-date

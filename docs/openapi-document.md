@@ -49,7 +49,7 @@ serving the source verbatim where that is wanted.
   `application/json`, because the exception path serializes JSON whatever the success was. An
   operation with a generated validator declares the `400` that validator answers, with the
   `RequestValidationError` schema.
-- **Statuses in Standard mode** - `[Throws<T>(status)]` puts a thrown status into the document
+- **Statuses in throws mode** - `[Throws<T>(status)]` puts a thrown status into the document
   with its schema; `SuccessStatus` on the verb attribute names the success. Neither is checked
   against what the handler actually throws - the declared response models are where the compiler
   holds the set.
@@ -61,12 +61,12 @@ serving the source verbatim where that is wanted.
 | `[Enable<OpenApiDocumentPublishing>]` | entry point | emits and serves the document (code-first) |
 | `<HardenedOpenApiSpec>` + `PublishUrl`/`SourceUrl`/`UiUrl` | csproj item | the contract, where the generated document, the source text and the reference page are served |
 | `<HardenedSmithyModel>` / `<HardenedSmithyAst>` | csproj item | the Smithy contract, same metadata |
-| `$(HardenedResponseModel)` | csproj property | `Standard` / `Response` / `Union` for a described project |
+| `$(HardenedResponseModel)` | csproj property | `Response` / `Throws` / `Union` for a described project; absent means `Throws`, and the pre-0.19.0 value `Standard` still reads as `Throws` under a 026 warning |
 | `[ResponseModel(...)]` | entry point | the same choice, code-first |
 | `[OpenApiInfo(title, version, description)]` | entry point | the document's `info`, code-first |
 | `[Server(url, description)]` | entry point | a `servers` entry |
 | `[Throws<T>(status)]` | handler | a thrown status, into the document |
-| `SuccessStatus = 201` | verb attribute | the success status, code-first Standard mode |
+| `SuccessStatus = 201` | verb attribute | the success status, code-first throws mode |
 | `[JsonEnumNaming(...)]` | assembly or enum | the wire vocabulary: converters, binder, document |
 | `IAuthenticationScheme` + shape attribute | scheme class | a security scheme, declared by being used |
 | `[Authorize<TAuth>]` / `[Authorize<TAuth, TPolicy>]` | handler or controller | the requirement, enforced and published |

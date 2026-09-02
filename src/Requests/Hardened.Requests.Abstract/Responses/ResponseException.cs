@@ -9,7 +9,7 @@ namespace Hardened.Requests.Abstract.Responses;
 /// <remarks>
 /// <para>
 /// The built-in types are declarations first: what a response set is built from, and what the
-/// generator reads a status off. But a handler in standard mode returns one type and has nowhere to
+/// generator reads a status off. But a handler in throws mode returns one type and has nowhere to
 /// put a second, so without this they would be useful only after the union work landed. Throwing
 /// one costs nothing extra - <c>ExceptionToModelConverter</c> already answers an
 /// <see cref="IStatusCodeException"/> with its status, its headers and its declared body - and it

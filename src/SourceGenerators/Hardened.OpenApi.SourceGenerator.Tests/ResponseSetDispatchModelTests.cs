@@ -108,7 +108,7 @@ public class ResponseSetDispatchModelTests {
     [Fact]
     public void Standard_CarriesNoCases() {
         var model = RequestModelBuilder
-            .BuildModels(Spec(SpecResponseModel.Standard), "Test.Api.Models", "Test.Api.Services",
+            .BuildModels(Spec(SpecResponseModel.Throws), "Test.Api.Models", "Test.Api.Services",
                 "Test.Api.Generated", "Test.Api.Validation")
             .Single(m => m.HandlerMethod == "GetTodo");
 

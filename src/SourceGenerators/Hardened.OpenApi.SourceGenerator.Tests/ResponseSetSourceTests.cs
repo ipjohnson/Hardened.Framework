@@ -126,9 +126,9 @@ public class ResponseSetSourceTests {
     #region the mode selector
 
     [Fact]
-    public void AnEntryPointWithNoAttributeIsStandard() {
+    public void AnEntryPointWithNoAttributeIsThrows() {
         Assert.Equal(
-            ResponseModelValue.Standard,
+            ResponseModelValue.Throws,
             ResponseModelSelector.Read(new EntryPointSelector.Model {
                 EntryPointType = CSharpAuthor.TypeDefinition.Get("MyApp", "Application"),
                 AttributeModels = System.Array.Empty<AttributeModel>()
@@ -139,8 +139,9 @@ public class ResponseSetSourceTests {
     [InlineData("Hardened.Requests.Abstract.Responses.ResponseModel.Union", ResponseModelValue.Union)]
     [InlineData("ResponseModel.Response", ResponseModelValue.Response)]
     [InlineData("Union", ResponseModelValue.Union)]
-    [InlineData("ResponseModel.Standard", ResponseModelValue.Standard)]
-    [InlineData("ResponseModel.Whatever", ResponseModelValue.Standard)]
+    [InlineData("ResponseModel.Throws", ResponseModelValue.Throws)]
+    [InlineData("ResponseModel.Standard", ResponseModelValue.Throws)]
+    [InlineData("ResponseModel.Whatever", ResponseModelValue.Throws)]
     public void TheDeclaredModeIsRead(string arguments, ResponseModelValue expected) {
         var model = new EntryPointSelector.Model {
             EntryPointType = CSharpAuthor.TypeDefinition.Get("MyApp", "Application"),
