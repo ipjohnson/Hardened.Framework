@@ -57,6 +57,17 @@ internal static class ValidationEmitter {
 
             property.Set = null;
 
+            // What the caller calls it, where that is not the C# name. ValidationModules reads
+            // [JsonPropertyName] to spell a failure's field, so Idempotency-Key failing its pattern
+            // reports "Idempotency-Key" rather than "idempotencyKey" - a name that appears nowhere
+            // in the request or the contract. Nothing serializes this interface; the attribute is
+            // here as the field-naming vocabulary the validator already reads.
+            if (member.WireName != null) {
+                property.AddAttribute(
+                    TypeDefinition.Get("System.Text.Json.Serialization", "JsonPropertyNameAttribute"),
+                    new CodeOutputComponent($"\"{member.WireName}\"") { Indented = false });
+            }
+
             foreach (var attribute in member.Attributes) {
                 Apply(property, attribute);
             }
