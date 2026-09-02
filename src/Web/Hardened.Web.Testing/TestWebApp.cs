@@ -130,6 +130,17 @@ public class TestWebApp : TestContext, ITestWebApp {
             return new MemoryStream(System.Text.Encoding.UTF8.GetBytes(raw));
         }
 
+        // And bytes go as themselves too, for a body that is not text at all. Without this they
+        // serialized as a JSON array of numbers, so an upload, a truncated payload or a byte
+        // sequence that is not valid UTF-8 could only be exercised against a live socket.
+        if (bodyValue is byte[] bytes) {
+            return new MemoryStream(bytes);
+        }
+
+        if (bodyValue is ReadOnlyMemory<byte> memory) {
+            return new MemoryStream(memory.ToArray());
+        }
+
         // Resolve IJsonSerializer first so its constructor populates the
         // shared JsonSerializerConfiguration.Options TypeInfoResolverChain
         // with the source-gen contexts the application has registered. The
@@ -164,6 +175,13 @@ public class TestWebApp : TestContext, ITestWebApp {
         if (questionMark > -1) {
             pathMinusQuery = path.Substring(0, questionMark);
         }
+
+        // Decoded, because a transport hands one over decoded. Passing it through undecoded made
+        // /events/%20 reach the handler as the literal three characters and match nothing, while
+        // the same request over a socket decoded to whitespace and reached the validator - which
+        // is the divergence a harness exists not to have. See RequestPathDecoder for the rule and
+        // where it was measured.
+        pathMinusQuery = RequestPathDecoder.Decode(pathMinusQuery);
 
         // Read from the headers the caller set rather than passed as "", which is what it used to
         // be. TestExecutionRequest takes Accept as a constructor argument instead of parsing it, so

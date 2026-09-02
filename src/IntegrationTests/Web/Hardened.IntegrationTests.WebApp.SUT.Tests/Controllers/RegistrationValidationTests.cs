@@ -120,4 +120,37 @@ public class RegistrationValidationTests {
 
         response.Assert.Ok();
     }
+
+    #region a body the harness sends as it is
+
+    /// <summary>
+    /// H-29. Every <c>Post</c> overload takes <c>object</c>, and everything that is not a string
+    /// was serialized - so a body that is not text at all could only be exercised against a live
+    /// socket. Bytes go as themselves now.
+    /// </summary>
+    [HardenedTest]
+    public async Task ABodySentAsBytesGoesOnTheWireAsItself(ITestWebApp testWebApp) {
+        var body = System.Text.Encoding.UTF8.GetBytes(
+            """{"name":"Ada","age":36,"address":{"city":"London","country":"GB"}}""");
+
+        var response = await testWebApp.Post(body, "/registration");
+
+        response.Assert.Ok();
+        Assert.Equal("Ada", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// And a malformed one is refused rather than serialized into something well formed, which is
+    /// what makes the JSON-reader refusal testable in process.
+    /// </summary>
+    [HardenedTest]
+    public async Task MalformedBytesReachTheDeserializerAsMalformed(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            System.Text.Encoding.UTF8.GetBytes("{\"name\":"), "/registration");
+
+        response.Assert.BadRequest();
+        Assert.Equal("ValidationError", response.Deserialize<RequestValidationError>().Type);
+    }
+
+    #endregion
 }
