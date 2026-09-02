@@ -49,6 +49,10 @@ public class WebExecutionHandlerCodeGenerator {
         // class that was never written.
         FormAndBodyDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
+        // And the same treatment again: a token that binds nothing leaves a handler that compiles
+        // and routes, and refuses every request once it is running.
+        RouteBindingDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 
         sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, GeneratedSource.Header(sourceFile));

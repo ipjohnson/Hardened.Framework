@@ -1,4 +1,4 @@
-namespace Hardened.SourceGenerator.Models.Request;
+﻿namespace Hardened.SourceGenerator.Models.Request;
 
 /// <summary>
 /// How much of a path a route token matches, and what it may contain.
@@ -75,6 +75,37 @@ public static class RouteTokens {
         var index = depth - 1;
 
         return index >= 0 && index < tokens.Count ? Constraint(tokens[index]) : null;
+    }
+
+    /// <summary>
+    /// The names every well-formed token in <paramref name="pathTemplate"/> binds to, in order.
+    /// </summary>
+    /// <remarks>
+    /// An unclosed brace ends the walk, the way <see cref="BindsParameter"/> stops looking at one.
+    /// <c>RouteTokenSyntax</c> is what reports it; this only answers what does bind.
+    /// </remarks>
+    public static IReadOnlyList<string> Names(string pathTemplate) {
+        List<string>? names = null;
+
+        var open = pathTemplate.IndexOf('{');
+
+        while (open >= 0) {
+            var close = pathTemplate.IndexOf('}', open);
+
+            if (close < 0) {
+                break;
+            }
+
+            var name = Name(pathTemplate.Substring(open + 1, close - open - 1));
+
+            if (name.Length > 0) {
+                (names ??= new List<string>()).Add(name);
+            }
+
+            open = pathTemplate.IndexOf('{', close + 1);
+        }
+
+        return (IReadOnlyList<string>?)names ?? Array.Empty<string>();
     }
 
     /// <summary>
