@@ -337,4 +337,98 @@ public class RouteConstraintTests {
             Generate(route).GeneratorDiagnostics,
             diagnostic => diagnostic.Id == DiagnosticId);
     }
+
+    #region one path, several verbs
+
+    /// <summary>
+    /// One path is one node however many verbs answer at it, so a constraint declared on any of
+    /// them constrains the segment.
+    /// </summary>
+    /// <remarks>
+    /// A description routinely declares the same path parameter twice - the petstore fixture gives
+    /// <c>/pets/{petId}</c> a pattern on GET and a bare string on PATCH, PUT and DELETE - and the
+    /// tree took the constraint from whichever entry it reached first. So the segment was
+    /// constrained or not according to the order the operations happened to arrive in, and adding
+    /// an unrelated route elsewhere in the document silently turned a 404 into a 400.
+    /// </remarks>
+    private static GeneratedRoutingTable TwoVerbs(string first, string second) =>
+        GeneratedRoutingTable.For($$"""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class ItemController {
+                [Get("/items/{{first}}")]
+                public string Read(string id) => id;
+
+                [Delete("/items/{{second}}")]
+                public string Remove(string id) => id;
+            }
+            """);
+
+    [Fact]
+    public void AConstraintDeclaredOnTheFirstVerbConstrainsTheSegment() {
+        var routing = TwoVerbs("{id:int}", "{id}");
+
+        Assert.Equal("Read", routing.Handler("GET", "/items/42").InvokeMethod);
+        Assert.Null(routing.Route("GET", "/items/abc"));
+        Assert.Null(routing.Route("DELETE", "/items/abc"));
+    }
+
+    /// <summary>
+    /// And on the second, which is the half that was order-dependent.
+    /// </summary>
+    [Fact]
+    public void AConstraintDeclaredOnTheSecondVerbConstrainsTheSegmentToo() {
+        var routing = TwoVerbs("{id}", "{id:int}");
+
+        Assert.Equal("Read", routing.Handler("GET", "/items/42").InvokeMethod);
+        Assert.Null(routing.Route("GET", "/items/abc"));
+        Assert.Null(routing.Route("DELETE", "/items/abc"));
+    }
+
+    /// <summary>
+    /// Neither declaring one leaves the segment unconstrained, which is where the binder answers.
+    /// </summary>
+    [Fact]
+    public void NoVerbDeclaringOneLeavesTheSegmentUnconstrained() {
+        var routing = TwoVerbs("{id}", "{id}");
+
+        Assert.Equal("Read", routing.Handler("GET", "/items/abc").InvokeMethod);
+    }
+
+    /// <summary>
+    /// Per continuation, not across the whole position: <c>/items/{id:int}</c> and
+    /// <c>/items/{id}/parts</c> are two nodes, and the first's constraint does not reach the
+    /// second.
+    /// </summary>
+    [Fact]
+    public void AConstraintDoesNotLeakToADifferentContinuation() {
+        var routing = GeneratedRoutingTable.For("""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public class ItemController {
+                [Get("/items/{id:int}")]
+                public string Item(string id) => id;
+
+                [Get("/items/{id}/parts")]
+                public string Parts(string id) => id;
+            }
+            """);
+
+        Assert.Null(routing.Route("GET", "/items/abc"));
+        Assert.Equal("Parts", routing.Handler("GET", "/items/abc/parts").InvokeMethod);
+    }
+
+    #endregion
 }

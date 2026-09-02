@@ -130,14 +130,41 @@ public class RouteTreeGenerator<T> {
 
             // Per continuation rather than across the whole position: /users/{id:int} and
             // /users/{id}/posts become two nodes here - grouped by what follows the token - and only
-            // routes sharing a continuation have to agree. Two that do and disagree is HRDR001,
-            // reported before this runs.
-            node.WildCardConstraint = RouteTokens.Constraint(group.Value[0].WildCardTokens, wildCardDepth);
+            // routes sharing a continuation have to agree. Two that do and declare different
+            // constraints is HRDR001, reported before this runs.
+            //
+            // Read across the group rather than from its first entry, for the reason the catch-all
+            // above is. One path is one node however many verbs answer at it, and a description
+            // routinely declares the same path parameter twice: the petstore fixture gives
+            // /pets/{petId} a pattern on GET and a bare string on PATCH, PUT and DELETE. Taking the
+            // first entry meant the segment was constrained or not according to which operation the
+            // table happened to reach first - so adding an unrelated route elsewhere in the
+            // document silently turned a 404 into a 400.
+            node.WildCardConstraint = Constraint(group.Value, wildCardDepth);
 
             returnList.Add(node);
         }
 
         return returnList;
+    }
+
+    /// <summary>
+    /// The constraint the routes through this continuation declare, or null where none does.
+    /// </summary>
+    /// <remarks>
+    /// A segment either names a resource or does not, and that is a fact about the path rather than
+    /// about the verb - so one route declaring a constraint constrains the node. The alternative,
+    /// applying it only where every route agrees, would let a document loosen a declared constraint
+    /// by describing the same parameter twice and leaving it off the second time.
+    /// </remarks>
+    private static string? Constraint(List<Entry> entries, int wildCardDepth) {
+        foreach (var entry in entries) {
+            if (RouteTokens.Constraint(entry.WildCardTokens, wildCardDepth) is { } constraint) {
+                return constraint;
+            }
+        }
+
+        return null;
     }
 
     private IReadOnlyList<RouteTreeLeafNode<T>> CreateLeafNodes(List<Entry> entries, int stringIndex) {
