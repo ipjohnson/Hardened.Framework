@@ -1,10 +1,14 @@
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.Runtime.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT;
 
 /// <summary>
-/// A specification-first application, which registers nothing of its own.
+/// A specification-first application, whose one registration is a caller for its tests to state.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -20,6 +24,18 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// emitter back in the path that exists to have none.
 /// </para>
 /// </remarks>
+/// <remarks>
+/// <para>
+/// <c>TestGrantsPrincipalSource</c> is the shipped testing source, through the same seam a
+/// production one uses. It declines every request that does not carry <c>X-Test-Grants</c>, so
+/// every route in this fixture answers exactly as it did before it was registered - and a test
+/// that wants a caller now has one to name.
+/// </para>
+/// </remarks>
 [HardenedModule]
 [HardenedWebModule]
-public partial class OpenApiTestApp { }
+public partial class OpenApiTestApp : IServiceCollectionConfiguration {
+    public void ConfigureServices(IServiceCollection services) {
+        services.AddSingleton<IPrincipalSource, TestGrantsPrincipalSource>();
+    }
+}

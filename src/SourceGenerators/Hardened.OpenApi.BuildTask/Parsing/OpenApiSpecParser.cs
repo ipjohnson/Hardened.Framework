@@ -212,6 +212,7 @@ internal static class OpenApiSpecParser {
         // allocator never names a type nothing will emit; base types are dropped before that
         // because a dropped base changes which members a type declares. Choices go first of all,
         // because dropping one is another way a reference stops naming something.
+        RecordDanglingReferences(model);
         DropUndecidableChoices(model);
         InlineNonObjectRefs(model);
         DropIncompatibleBaseTypes(model);
@@ -361,6 +362,49 @@ internal static class OpenApiSpecParser {
                 dropped.Contains(TypeMapper.GetRefName(reference.Value))) {
                 reference.Set(null);
             }
+        }
+    }
+
+    /// <summary>
+    /// References the document makes to schemas it never declares.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// First of the reference passes, because every one after it clears references, and a
+    /// <c>$ref</c> naming nothing is indistinguishable afterwards from one naming something the
+    /// parser deliberately resolved to a different shape. A dangling reference in a response
+    /// degraded the success case to a bodyless one, so a handler written against the broken
+    /// interface compiled and answered 200 with an empty body - and the only errors were CS0246s
+    /// in application code that happened to name the missing model, or nothing at all.
+    /// </para>
+    /// <para>
+    /// Compared against the schemas the reader produced rather than against the ones that will be
+    /// emitted. A top-level array alias, an <c>anyOf</c> with no shape of its own and an
+    /// undecidable <c>oneOf</c> are all declared and all resolved to something else on purpose;
+    /// what this is looking for is a name the document does not contain.
+    /// </para>
+    /// </remarks>
+    private static void RecordDanglingReferences(ServiceSpecModel model) {
+        var declared = new HashSet<string>();
+
+        foreach (var schema in model.Schemas) {
+            declared.Add(schema.Name);
+        }
+
+        // One report per place the document makes the reference, and the primary success is one
+        // place: the operation's flat response fields mirror it, and reporting both would make one
+        // edit look like two.
+        var reported = new HashSet<string>();
+
+        foreach (var reference in ModelRefs.All(model)) {
+            if (string.IsNullOrEmpty(reference.Value) ||
+                declared.Contains(TypeMapper.GetRefName(reference.Value!)) ||
+                !reported.Add(reference.Location + "\u0000" + reference.Value)) {
+                continue;
+            }
+
+            model.DanglingReferences.Add(
+                new DanglingReferenceModel(reference.Value!, reference.Location));
         }
     }
 

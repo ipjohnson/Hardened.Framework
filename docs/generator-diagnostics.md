@@ -54,6 +54,32 @@ public class CatalogHandler : HandlerBase, ICatalogService { }
 C# requires the base class to come first, and the base list is searched by name, so HOAG031 fires
 only when *no* entry matches a described service.
 
+## Routing
+
+### HRDR006 — no routing generator is compiling this assembly's routes
+
+A module declaring routes with nothing turning them into a routing table. It compiled without a
+warning into an application that answered 404 to every route it declared, and the template's
+`AGENTS.md` documented the trap without the build ever mentioning it.
+
+```
+'Depot.EventsController' declares routes and nothing in this project turns them into a routing
+table, so every one of them answers 404 at run time. Reference Hardened.Web.SourceGenerator as
+an analyzer, or drop the route attributes if this assembly is not meant to serve them.
+```
+
+The build cannot see a missing analyzer from inside the analyzer that is missing, so the question
+is asked from one that is still there. `Hardened.Web.SourceGenerator` and
+`Hardened.Idl.SourceGenerator` each declare `Hardened.Web.Generated.WebRoutingGeneratorMarker` as
+post-initialization output — the one kind of generated source another generator can see — and
+`Hardened.Library.SourceGenerator`, which every Hardened project references, reports its absence.
+
+Triggered by a route declaration rather than by `[HardenedWebModule]`. That attribute means "bring
+the web pipeline", which is a thing an assembly with no routes of its own legitimately does — the
+framework's own `AspNetCoreRuntime` is one.
+
+One report per assembly, not one per route: there is a single thing to fix.
+
 ## Other diagnostics
 
 | Id | Meaning |
@@ -62,7 +88,7 @@ only when *no* entry matches a described service.
 | `HOAG002` | The description could not be parsed; the build task's message is passed through. |
 | `HOAG010` | A handler was skipped because a parameter type did not resolve. Other handlers are unaffected. |
 | `HOAG020` | An operation declares a markup content type but names no view to render it. |
-| `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. |
+| `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. `HRDR006` is above. |
 
 ## Description build tasks (HOAT, HSMT)
 
@@ -88,6 +114,8 @@ the other.
 | `016` | `UiUrl` without `PublishUrl`, so the page would have no document to render. |
 | `017` | `SourceUrl` without `EmbedDocument`, so there is no source to serve. |
 | `020`–`025` | The shared model-diagnostics pass. See below. |
+| `026` | Warning. `$(HardenedResponseModel)` is `Standard`, the throws mode's name before 0.19.0. The mode selected is unchanged; write `Throws`. Reported once per project. |
+| `027` | The description references something it does not declare. Part of the model-diagnostics pass; see below. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 
@@ -113,6 +141,34 @@ generated file.
 | `023` | An `enum` declaring both string and numeric values, which no C# enum can carry. Declare one kind. |
 | `024` | Warning. A declared keyword or trait the generator does not enforce, named with a representative location. Remove it, or enforce the rule in the handler. |
 | `025` | Two error responses on one operation share one status, which would generate the same case type twice. Give them distinct statuses or merge the shapes. |
+| `027` | A reference to something the description does not declare. |
+
+#### 027 — a reference to something the description does not declare
+
+```
+'GET /events (200)' references '#/components/schemas/DoesNotExist', which the description
+does not declare. Nothing is generated for it, so the member it types would be absent and a
+response body would be dropped. Declare the schema, or point the reference at one that exists.
+```
+
+Fatal, unlike everything else in the block, because there is no answer to fall back on. A dangling
+`$ref` in a response degraded the success case to a bodyless one, so a handler written against the
+generated interface compiled and answered 200 with an empty body; the only errors were CS0246s a
+hop away in application code that happened to name the missing model.
+
+One report per place the reference is made — a document referencing a schema it dropped usually
+does so from several, and each is a separate edit. The operation's flat response fields mirror its
+primary success, so those count as one place rather than two.
+
+Under `HSMT` this covers a target the model references and does not declare: an operation a service
+binds, an operation's input or output, a member's target, and an error shape bound to an operation.
+The Smithy CLI refuses all of these before the parser sees them, so only a committed AST reaches it.
+
+**What it does not catch.** A `$ref` on a schema property is resolved by the reader before this
+parser sees it, and an unresolvable one is discarded there — the property arrives with no reference,
+no type and no shape, and becomes `JsonElement`. Nothing in the object model records that the
+reference was ever made, and the reader reports nothing either. Catching that needs the raw
+document rather than the object model.
 
 ### Renumbered in 0.18
 

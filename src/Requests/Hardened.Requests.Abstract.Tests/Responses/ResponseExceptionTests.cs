@@ -7,7 +7,7 @@ namespace Hardened.Requests.Abstract.Tests.Responses;
 /// Throwing a response type, which is how these reach the wire before the response modes exist.
 ///
 /// <para>
-/// A handler in standard mode returns one type and has nowhere to put a second, so without this the
+/// A handler in throws mode returns one type and has nowhere to put a second, so without this the
 /// built-in types would be declarations and nothing else until the union work landed. What makes it
 /// work is that <c>ExceptionToModelConverter</c> already answers an <c>IStatusCodeException</c> with
 /// its status and its headers, and reads a declared body off <c>StatusCodeException.Value</c> - so

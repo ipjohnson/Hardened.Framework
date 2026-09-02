@@ -97,8 +97,8 @@ compile.
 
 ## How this application declares its responses
 
-#if (standardMode)
-**Standard.** Each handler names one success type, and every other status is thrown:
+#if (throwsMode)
+**Throws.** Each handler names one success type, and every other status is thrown. Named **standard** before 0.19.0:
 
 ```csharp
 throw new NotFound("todo", $"No todo has id {id}.").AsException();

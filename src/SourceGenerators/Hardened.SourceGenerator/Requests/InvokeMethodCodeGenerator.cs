@@ -57,7 +57,7 @@ public static class InvokeMethodCodeGenerator {
     /// has any. A response set reaches <c>ApplyHeaders</c> through its switch, and this path had no
     /// switch to reach it through - so a type carrying a header answered without one, which is what
     /// a Smithy output binding <c>@httpHeader</c> and a hand-written <c>Created&lt;T&gt;</c> both
-    /// looked like in standard mode.
+    /// looked like in throws mode.
     /// </para>
     /// <para>
     /// A run-time test rather than a generated decision, because the generator does not always know:

@@ -885,12 +885,14 @@ internal static class SpecModelSerializer {
     }
 
     /// <summary>
-    /// The response model a written record names, defaulting to Standard.
+    /// The response model a written record names, defaulting to Throws.
     /// </summary>
     /// <remarks>
-    /// An unrecognised value is Standard rather than a throw, matching how the build task reads
+    /// An unrecognised value is Throws rather than a failure, matching how the build task reads
     /// $(HardenedResponseModel): a model file written by a newer build should degrade to the shape
-    /// every consumer already understands rather than fail the read.
+    /// every consumer already understands rather than fail the read. The same branch covers a
+    /// record written before the 0.19.0 rename, whose "Standard" parses to the value it always
+    /// meant.
     /// </remarks>
     private static SpecResponseModel ParseResponseModel(string? value) {
         if (string.Equals(value, nameof(SpecResponseModel.Response), StringComparison.OrdinalIgnoreCase)) {
@@ -899,6 +901,6 @@ internal static class SpecModelSerializer {
 
         return string.Equals(value, nameof(SpecResponseModel.Union), StringComparison.OrdinalIgnoreCase)
             ? SpecResponseModel.Union
-            : SpecResponseModel.Standard;
+            : SpecResponseModel.Throws;
     }
 }

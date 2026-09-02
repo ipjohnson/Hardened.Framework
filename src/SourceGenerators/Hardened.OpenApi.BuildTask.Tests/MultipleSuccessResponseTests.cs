@@ -20,7 +20,7 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// one of it was kept.
 /// </para>
 /// <para>
-/// The other half is that a second success cannot be reached by throwing. Standard mode names one
+/// The other half is that a second success cannot be reached by throwing. Throws mode names one
 /// success and throws for everything else, and a throw carries a failure - there is no way to throw
 /// a 202. So these operations answer with a response set whatever mode the module asked for, which
 /// is the one place the module's choice is overridden rather than obeyed.
@@ -110,11 +110,11 @@ public class MultipleSuccessResponseTests {
     #region the signature
 
     /// <summary>
-    /// Standard mode, and still a response set - because the alternative is a document describing a
+    /// Throws mode, and still a response set - because the alternative is a document describing a
     /// 202 the handler has no way to produce.
     /// </summary>
     [Fact]
-    public void ServiceInterface_MultipleSuccesses_ReturnsAResponseSetEvenInStandardMode() {
+    public void ServiceInterface_MultipleSuccesses_ReturnsAResponseSetEvenInThrowsMode() {
         var service = new ServiceModel {
             Tag = "Jobs",
             Operations = new List<OperationModel> { Operation("getJob") }
@@ -126,10 +126,10 @@ public class MultipleSuccessResponseTests {
     }
 
     /// <summary>
-    /// One success and one error is the case Standard mode was built for, and it is unchanged.
+    /// One success and one error is the case throws mode was built for, and it is unchanged.
     /// </summary>
     [Fact]
-    public void ServiceInterface_OneSuccess_StillThrowsInStandardMode() {
+    public void ServiceInterface_OneSuccess_StillThrowsInThrowsMode() {
         var service = new ServiceModel {
             Tag = "Jobs",
             Operations = new List<OperationModel> { Operation("cancelJob") }

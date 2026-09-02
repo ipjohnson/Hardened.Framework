@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Authorization;
 
@@ -23,6 +24,13 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// Installed by <see cref="AuthenticationStartupService"/> only when at least one source is
 /// registered, so an application using none carries no per-request cost at all.
 /// </para>
+/// <para>
+/// The answer is put on the request scope as well as on the context, which is what makes
+/// <see cref="ICurrentCaller"/> resolvable in a specification-first handler - one whose signature a
+/// generated interface fixes, so it cannot take the context as a parameter. Written from the
+/// context rather than from the source's return value, so a request no source answered for reads
+/// whatever the context holds.
+/// </para>
 /// </remarks>
 public sealed class AuthenticationMiddleware : IExecutionFilter {
     private readonly IPrincipalSource[] _sources;
@@ -42,6 +50,13 @@ public sealed class AuthenticationMiddleware : IExecutionFilter {
 
                 break;
             }
+        }
+
+        // One resolve per request of an application that opted into authentication. Asked for
+        // rather than required, because a host that composed this middleware without the request
+        // module's registrations still has a caller to establish.
+        if (context.RequestServices?.GetService<CurrentCaller>() is { } caller) {
+            caller.Principal = context.CallerPrincipal;
         }
 
         await chain.Next();

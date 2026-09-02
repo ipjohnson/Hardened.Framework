@@ -248,8 +248,13 @@ public static class OpenApiDocumentGenerator {
     /// <summary>
     /// The <c>[OpenApiInfo("title", "version")]</c> an entry point declares, read the way
     /// <see cref="WriteServers"/> reads <c>[Server]</c>: off the attribute list, by name prefix,
-    /// arguments as source text with their quotes trimmed.
+    /// arguments as source text with their quotes taken off.
     /// </summary>
+    /// <remarks>
+    /// Split at the commas that separate arguments rather than at every comma. A description is
+    /// prose and prose has commas in it, and the truncation was silent: the document published
+    /// everything up to the first one.
+    /// </remarks>
     private static (string? Title, string? Version, string? Description) InfoAttribute(
         EntryPointSelector.Model appModel) {
         if (appModel.AttributeModels == null) {
@@ -261,11 +266,11 @@ public static class OpenApiDocumentGenerator {
                 continue;
             }
 
-            var parts = attribute.Arguments.Split(',');
+            var parts = AttributeArguments.Split(attribute.Arguments);
 
-            var title = parts.Length > 0 ? parts[0].Trim().Trim('"') : "";
-            var infoVersion = parts.Length > 1 ? parts[1].Trim().Trim('"') : "";
-            var description = parts.Length > 2 ? parts[2].Trim().Trim('"') : "";
+            var title = AttributeArguments.Text(parts, 0, "title");
+            var infoVersion = AttributeArguments.Text(parts, 1, "version");
+            var description = AttributeArguments.Text(parts, 2, "description");
 
             return (
                 title.Length > 0 ? title : null,
@@ -288,12 +293,10 @@ public static class OpenApiDocumentGenerator {
                 continue;
             }
 
-            // "url", "description" - split on the first comma only, because a URL may contain one
-            // and the description is whatever remains.
-            var arguments = attribute.Arguments;
-            var comma = arguments.IndexOf(',');
-
-            var url = (comma < 0 ? arguments : arguments.Substring(0, comma)).Trim().Trim('"');
+            // "url", "description" - split at the commas between arguments, because both may
+            // contain one of their own.
+            var parts = AttributeArguments.Split(attribute.Arguments);
+            var url = AttributeArguments.Text(parts, 0, "url");
 
             if (url.Length == 0) {
                 continue;
@@ -303,13 +306,11 @@ public static class OpenApiDocumentGenerator {
 
             builder.Append("{\"url\":\"").Append(JsonSchemaWriter.Escape(url)).Append('"');
 
-            if (comma >= 0) {
-                var description = arguments.Substring(comma + 1).Trim().Trim('"');
+            var description = AttributeArguments.Text(parts, 1, "description");
 
-                if (description.Length > 0) {
-                    builder.Append(",\"description\":\"")
-                        .Append(JsonSchemaWriter.Escape(description)).Append('"');
-                }
+            if (description.Length > 0) {
+                builder.Append(",\"description\":\"")
+                    .Append(JsonSchemaWriter.Escape(description)).Append('"');
             }
 
             builder.Append('}');

@@ -23,7 +23,6 @@
   </PropertyGroup>
 <!--#endif -->
 <!--#if (specFirst) -->
-<!--#if (declaredMode) -->
 
   <!--
     Which response model the build generates the service interface in. The contract declares the
@@ -33,8 +32,15 @@
     An MSBuild property rather than the [ResponseModel] attribute, because in a contract-first
     project the interface is generated before any attribute is read - the build task writes the
     signature this names, and the handler implements whatever it wrote.
+
+    Written for every mode, Throws included, so the choice is in this file rather than in a
+    default. An absent property still means Throws, because that is what every project scaffolded
+    before the property was written out got.
   -->
   <PropertyGroup>
+<!--#if (throwsMode) -->
+    <HardenedResponseModel>Throws</HardenedResponseModel>
+<!--#endif -->
 <!--#if (responseMode) -->
     <HardenedResponseModel>Response</HardenedResponseModel>
 <!--#endif -->
@@ -42,7 +48,6 @@
     <HardenedResponseModel>Union</HardenedResponseModel>
 <!--#endif -->
   </PropertyGroup>
-<!--#endif -->
 <!--#endif -->
 
   <ItemGroup>

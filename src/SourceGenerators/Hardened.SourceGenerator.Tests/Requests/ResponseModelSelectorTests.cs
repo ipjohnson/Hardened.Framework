@@ -24,25 +24,25 @@ public class ResponseModelSelectorTests {
     /// exactly as it did.
     /// </summary>
     [Fact]
-    public void Read_DefaultsToStandardWhenTheEntryPointSaysNothing() {
+    public void Read_DefaultsToThrowsWhenTheEntryPointSaysNothing() {
         var model = EntryPoint();
 
-        Assert.Equal(ResponseModelValue.Standard, ResponseModelSelector.Read(model));
+        Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
     }
 
     [Fact]
-    public void Read_DefaultsToStandardWhenThereAreNoAttributesAtAll() {
+    public void Read_DefaultsToThrowsWhenThereAreNoAttributesAtAll() {
         var model = EntryPoint();
         model.AttributeModels = null!;
 
-        Assert.Equal(ResponseModelValue.Standard, ResponseModelSelector.Read(model));
+        Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
     }
 
     [Fact]
     public void Read_IgnoresOtherModuleAttributes() {
         var model = EntryPoint(Attribute("CaseInsensitiveRoutesAttribute", ""));
 
-        Assert.Equal(ResponseModelValue.Standard, ResponseModelSelector.Read(model));
+        Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
     }
 
     #endregion
@@ -70,7 +70,7 @@ public class ResponseModelSelectorTests {
 
     /// <summary>
     /// Legal C# where the parameter type makes the enum unambiguous, and a spelling a generator
-    /// that only handled the qualified form would silently read as Standard.
+    /// that only handled the qualified form would silently read as Throws.
     /// </summary>
     [Fact]
     public void Read_UnderstandsTheBareMember() {
@@ -96,21 +96,33 @@ public class ResponseModelSelectorTests {
     }
 
     [Fact]
-    public void Read_ReadsStandardAsStandard() {
+    public void Read_ReadsThrowsAsThrows() {
+        var model = EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Throws"));
+
+        Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
+    }
+
+    /// <summary>
+    /// The mode's name until 0.19.0. The public enum keeps the member as an obsolete alias, so
+    /// source that wrote it still compiles - and this is the half that keeps it meaning the same
+    /// mode.
+    /// </summary>
+    [Fact]
+    public void Read_ReadsTheRenamedStandardSpellingAsThrows() {
         var model = EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Standard"));
 
-        Assert.Equal(ResponseModelValue.Standard, ResponseModelSelector.Read(model));
+        Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
     }
 
     /// <summary>
     /// A value this generator does not know means the attribute was written against a newer
-    /// Hardened. Standard is the answer that still builds.
+    /// Hardened. Throws is the answer that still builds.
     /// </summary>
     [Fact]
-    public void Read_FallsBackToStandardForAnUnknownMember() {
+    public void Read_FallsBackToThrowsForAnUnknownMember() {
         var model = EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Whatever"));
 
-        Assert.Equal(ResponseModelValue.Standard, ResponseModelSelector.Read(model));
+        Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
     }
 
     #endregion
@@ -118,14 +130,14 @@ public class ResponseModelSelectorTests {
     #region declared versus defaulted
 
     /// <summary>
-    /// Saying Standard and saying nothing produce the same emit and are not the same statement.
+    /// Saying Throws and saying nothing produce the same emit and are not the same statement.
     /// </summary>
     [Fact]
-    public void IsDeclared_SeparatesAnExplicitStandardFromSilence() {
+    public void IsDeclared_SeparatesAnExplicitThrowsFromSilence() {
         Assert.False(ResponseModelSelector.IsDeclared(EntryPoint()));
 
         Assert.True(ResponseModelSelector.IsDeclared(
-            EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Standard"))));
+            EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Throws"))));
     }
 
     #endregion

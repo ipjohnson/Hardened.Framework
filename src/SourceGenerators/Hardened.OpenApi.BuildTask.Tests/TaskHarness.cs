@@ -33,7 +33,9 @@ internal sealed class TaskHarness : IDisposable {
         return path;
     }
 
-    public Result Run(params string[] specPaths) {
+    public Result Run(params string[] specPaths) => RunWithResponseModel("", specPaths);
+
+    public Result RunWithResponseModel(string responseModel, params string[] specPaths) {
         var engine = new RecordingBuildEngine();
 
         var task = new ExtractOpenApiSpec {
@@ -42,6 +44,7 @@ internal sealed class TaskHarness : IDisposable {
             OutputDirectory = OutputDirectory,
             GeneratedSourceDirectory = GeneratedSourceDirectory,
             Namespace = "Test.Api",
+            ResponseModel = responseModel,
         };
 
         var succeeded = task.Execute();
@@ -49,6 +52,7 @@ internal sealed class TaskHarness : IDisposable {
         return new Result(
             succeeded,
             engine.Errors,
+            engine.Warnings,
             task.ModelFiles.Select(item => item.ItemSpec).ToArray(),
             task.GeneratedSources.Select(item => item.ItemSpec).ToArray());
     }
@@ -70,9 +74,12 @@ internal sealed class TaskHarness : IDisposable {
     internal sealed record Result(
         bool Succeeded,
         IReadOnlyList<BuildErrorEventArgs> Errors,
+        IReadOnlyList<BuildWarningEventArgs> Warnings,
         IReadOnlyList<string> ModelFiles,
         IReadOnlyList<string> GeneratedSources) {
         public bool HasError(string code) => Errors.Any(error => error.Code == code);
+
+        public int WarningCount(string code) => Warnings.Count(warning => warning.Code == code);
 
         public string ErrorText => string.Join("\n", Errors.Select(error => $"{error.Code}: {error.Message}"));
     }
@@ -80,9 +87,11 @@ internal sealed class TaskHarness : IDisposable {
     private sealed class RecordingBuildEngine : IBuildEngine {
         public List<BuildErrorEventArgs> Errors { get; } = new();
 
+        public List<BuildWarningEventArgs> Warnings { get; } = new();
+
         public void LogErrorEvent(BuildErrorEventArgs e) => Errors.Add(e);
 
-        public void LogWarningEvent(BuildWarningEventArgs e) { }
+        public void LogWarningEvent(BuildWarningEventArgs e) => Warnings.Add(e);
 
         public void LogMessageEvent(BuildMessageEventArgs e) { }
 

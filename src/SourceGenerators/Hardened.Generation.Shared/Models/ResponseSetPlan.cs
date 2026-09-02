@@ -27,7 +27,7 @@ internal static class ResponseSetPlan {
     /// <para>
     /// Per operation rather than per service, because the second clause is not a preference the
     /// module expressed. An operation declaring more than one success has nowhere to put the second
-    /// except its return type: Standard mode reaches its other statuses by throwing, and a throw
+    /// except its return type: Throws mode reaches its other statuses by throwing, and a throw
     /// carries a failure - there is no way to throw a 202. Left alone it would emit a document
     /// describing a status the handler cannot produce.
     /// </para>
@@ -47,13 +47,13 @@ internal static class ResponseSetPlan {
         var declaresMultipleSuccesses = operation.SuccessResponses.Count > 1;
 
         // A declared header forces a set the same way a second success does, and for the same
-        // reason: the bare payload type cannot express it. Standard mode is already dragged into a
+        // reason: the bare payload type cannot express it. Throws mode is already dragged into a
         // set by a second success - "there is no way to throw a 202" - and there is no way to put a
         // Location on a returned Pet either. Without this the fix reaches two response models of
-        // three and standard-mode documents go on declaring headers nothing sends.
+        // three and throws-mode documents go on declaring headers nothing sends.
         var declaresResponseHeaders = DeclaresResponseHeaders(operation);
 
-        return (responseModel != SpecResponseModel.Standard ||
+        return (responseModel != SpecResponseModel.Throws ||
                 declaresMultipleSuccesses ||
                 declaresResponseHeaders) &&
                !operation.RawBytesResponse &&

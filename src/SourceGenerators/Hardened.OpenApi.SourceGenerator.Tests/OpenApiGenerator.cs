@@ -86,7 +86,7 @@ internal static class OpenApiGenerator {
         var responseModel = Property(buildProperties, "HardenedResponseModel") switch {
             "Response" => SpecResponseModel.Response,
             "Union" => SpecResponseModel.Union,
-            _ => SpecResponseModel.Standard
+            _ => SpecResponseModel.Throws
         };
 
         foreach (var spec in specs) {

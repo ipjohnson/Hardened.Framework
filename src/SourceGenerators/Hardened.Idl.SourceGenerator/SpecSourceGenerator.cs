@@ -47,6 +47,14 @@ namespace Hardened.Idl.SourceGenerator;
 public class SpecSourceGenerator : IIncrementalGenerator {
 
     public void Initialize(IncrementalGeneratorInitializationContext context) {
+        // Says "a routing generator is running" to the library generator, which reports its
+        // absence. A specification-first project carries no attribute routes of its own, but one
+        // may declare a code-first module beside its contract - and it is this generator that
+        // would compile the routes if it did.
+        context.RegisterPostInitializationOutput(static production => production.AddSource(
+            "Hardened.Web.Marker.g.cs",
+            GeneratedSource.Header(RoutingGeneratorMarker.Source)));
+
         // Read the models the build task wrote, keeping both successes and errors for diagnostics
         var parseResults = context.AdditionalTextsProvider
             .Where(IsSpecModelFile)

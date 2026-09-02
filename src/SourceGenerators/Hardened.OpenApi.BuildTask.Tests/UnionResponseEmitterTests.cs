@@ -251,7 +251,7 @@ public class UnionResponseEmitterTests {
         var operation = Operation(errors: [Error(404, "#/components/schemas/ApiError")]);
 
         var standard = ServiceInterfaceEmitter.GetReturnType(
-            operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Standard);
+            operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Throws);
 
         var response = ServiceInterfaceEmitter.GetReturnType(
             operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Response);

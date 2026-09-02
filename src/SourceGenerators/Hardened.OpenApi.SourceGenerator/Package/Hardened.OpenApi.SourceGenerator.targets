@@ -162,7 +162,7 @@
         as a property. It is a filter stamp by name and history; it is the task-input stamp in fact.
 
         $(HardenedResponseModel) is the property case, and it was missing. Switching a project
-        between Standard, Response and Union changes every generated signature and touches no spec
+        between Throws, Response and Union changes every generated signature and touches no spec
         file, so the check found the stamp unmoved, skipped the target, and left the previous mode's
         service interfaces on disk - a build that reports success and generates the mode you were in
         yesterday. Nothing surfaces it: the old code still compiles, because it was valid output for

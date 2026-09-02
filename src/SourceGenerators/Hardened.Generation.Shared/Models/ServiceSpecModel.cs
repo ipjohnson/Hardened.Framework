@@ -103,7 +103,7 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// <c>ResponseSetPlan.RequiresResponseSet</c>, which reads this and the operation both.
     /// </para>
     /// </remarks>
-    public SpecResponseModel ResponseModel { get; set; } = SpecResponseModel.Standard;
+    public SpecResponseModel ResponseModel { get; set; } = SpecResponseModel.Throws;
 
     /// <summary>
     /// Keywords the description declared that the parser did not map, in the order they were met.
@@ -116,6 +116,18 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// models differing only here generate the same code and must not miss a cache hit over it.
     /// </remarks>
     public List<UnmappedKeywordModel> UnmappedKeywords { get; set; } = new();
+
+    /// <summary>
+    /// References the description makes to schemas it never declares, in the order they were met.
+    /// </summary>
+    /// <remarks>
+    /// Filled by the parser and read by <c>SpecDiagnostics</c>, on the same terms as
+    /// <see cref="UnmappedKeywords"/>: the reference is cleared before anything is named, so this
+    /// is the only record that it was ever made. Not serialized and absent from
+    /// <see cref="Equals(ServiceSpecModel?)"/> - the build stops on one of these, so no model
+    /// carrying any is ever read back.
+    /// </remarks>
+    public List<DanglingReferenceModel> DanglingReferences { get; set; } = new();
 
     public bool Equals(ServiceSpecModel? other) {
         if (other is not null && ContentNegotiation != other.ContentNegotiation) return false;

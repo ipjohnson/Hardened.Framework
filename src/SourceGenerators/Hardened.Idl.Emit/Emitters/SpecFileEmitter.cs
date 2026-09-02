@@ -40,7 +40,7 @@ internal static class SpecFileEmitter {
         bool excludeFromCoverage,
         string document = "",
         string specPath = "",
-        SpecResponseModel responseModel = SpecResponseModel.Standard) {
+        SpecResponseModel responseModel = SpecResponseModel.Throws) {
         // An unnamed namespace writes no wrapper of its own, so this is the file rather than a
         // namespace in it. Filter types declare their own namespace in the spec and may sit outside
         // the root entirely, which is why the file needs to hold more than one top-level block.

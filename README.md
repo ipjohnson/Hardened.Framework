@@ -38,7 +38,7 @@ can be swapped without touching the code.
 
 | Template | What you get |
 |---|---|
-| `hardened-web` | The todo API above: an implementation library, a host, and tests. `--host kestrel\|aspnet\|aws-lambda`, `--contract code\|openapi\|smithy`, `--response-model standard\|response\|union` |
+| `hardened-web` | The todo API above: an implementation library, a host, and tests. `--host kestrel\|aspnet\|aws-lambda`, `--contract code\|openapi\|smithy`, `--response-model response\|throws\|union` |
 | `hardened-function` | A serverless function and tests, on AWS Lambda today. `--trigger invoke\|sqs` |
 | `hardened-library` | A reusable module an application picks up with one attribute |
 
@@ -64,8 +64,8 @@ public partial class TodosLibrary;
 
 public class TodoController {
     [Get("/{id}")]
-    public Todo ById(ITodoStore store, int id) =>
-        store.Find(id) ?? throw new NotFound("todo", $"No todo has id {id}.").AsException();
+    public Response<Todo, NotFound> ById(ITodoStore store, int id) =>
+        store.Find(id) ?? new NotFound("todo", $"No todo has id {id}.").AsResponse<Todo, NotFound>();
 }
 ```
 
@@ -74,8 +74,9 @@ the route and body values, so anything the container knows about can be asked fo
 nothing has to be stored on the class. A parameter typed as a concrete class is bound from the
 request body instead.
 
-The 404 is thrown here because the return type names only the success case. Putting it in the
-signature instead is what the [three return models](#three-return-models) below are about.
+The 404 is in the signature, so the compiler knows the route can answer it and the document
+describes it. Naming only the success type and throwing the rest is a mode of its own - the
+[three return models](#three-return-models) below are the choice.
 
 The application names its runtime and the libraries it composes, and that is the whole bootstrap:
 
@@ -194,13 +195,18 @@ three work side by side.
 
 | | The handler says | Other statuses | Needs |
 |---|---|---|---|
-| **Standard** | one success type | thrown | any SDK |
 | **Response** | the whole set, as `Response<T1..Tn>` | in the return type | any SDK |
+| **Throws** | one success type | thrown | any SDK |
 | **Union** | the whole set, as a C# `union` | in the return type | .NET 11, `LangVersion` preview |
 
-**Standard** is the default. The signature names the success type and every other status is thrown.
-Nothing in the signature says the route can answer a 404, so nothing checks that you handled it, and
-the document describes only the 200.
+**Response** is the default: the declared set is where the compiler's checking and the document's
+truthfulness come from, so it is the mode the template reaches for when you say nothing.
+
+**Throws** names the success type and throws every other status. It was called **standard** until
+0.19.0, and it is not a legacy mode - a team that wants errors decided in filters and handlers kept
+lean chooses it deliberately. Nothing in the signature says the route can answer a 404, so nothing
+checks that you handled it, and the document describes only the 200 unless the handler declares the
+rest with `[Throws<NotFound>]` - the attribute the mode is named for.
 
 ```csharp
 [Get("/{id}")]
@@ -217,7 +223,8 @@ public Todo ById(ITodoStore store, int id) {
 
 **Response** puts the whole set in the return type. `Response<T1..Tn>` is an ordinary struct with an
 implicit conversion per case, so the handler returns payloads and never names the wrapper. The
-compiler knows the set and the document describes all of it.
+compiler knows the set and the document describes all of it. In throws mode the same handler names
+`Todo` alone and throws the `NotFound`.
 
 ```csharp
 [Get("/{id}")]
@@ -249,13 +256,13 @@ are built-in records that carry their status, and most have a `<T>` form that ta
 in place of the default one.
 
 Code-first, the return type alone decides. Contract-first, the statuses come from the contract and
-`<HardenedResponseModel>Standard|Response|Union</HardenedResponseModel>` decides the generated
+`<HardenedResponseModel>Response|Throws|Union</HardenedResponseModel>` decides the generated
 interface's shape. Declared 404s as nullable returns, and operations with two success statuses, are
 in [declared responses](https://ipjohnson.github.io/Hardened.Docs/guide/responses).
 
-`--response-model standard|response|union` on the template generates the todo API in whichever of
+`--response-model response|throws|union` on the template generates the todo API in whichever of
 the three you pick, so the difference between them is something to read rather than to take on
-trust.
+trust. The old value `standard` still scaffolds throws mode, and goes away at 1.0.
 
 ## Filters
 

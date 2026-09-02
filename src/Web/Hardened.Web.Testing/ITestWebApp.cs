@@ -8,7 +8,12 @@ public interface ITestWebApp : ITestContext {
     /// <summary>
     /// Get method
     /// </summary>
-    /// <param name="path">request path</param>
+    /// <param name="path">
+    /// The request path, percent-encoded as a client would send it. It is decoded before the
+    /// pipeline sees it, the way a transport decodes one - so <c>"/events/%20"</c> reaches the
+    /// handler as a space, and <c>%2F</c> alone stays as written because decoding it would put a
+    /// separator inside a segment.
+    /// </param>
     /// <param name="webRequest">web request configuration</param>
     /// <returns></returns>
     Task<TestWebResponse> Get(string path, Action<TestWebRequest>? webRequest = null);
@@ -16,9 +21,16 @@ public interface ITestWebApp : ITestContext {
     /// <summary>
     /// Post value to path
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="path"></param>
-    /// <param name="webRequest"></param>
+    /// <param name="value">
+    /// The body. A <c>string</c> or a <c>byte[]</c> goes on the wire as itself; anything else is
+    /// serialized as JSON. That is how a malformed body is sent - <c>Post("{", path)</c> is a
+    /// request the deserializer refuses - and how a body that is not text at all is.
+    /// </param>
+    /// <param name="path">
+    /// The request path, percent-encoded as a client would send it. It is decoded before the
+    /// pipeline sees it, the way a transport decodes one.
+    /// </param>
+    /// <param name="webRequest">Headers and cancellation for the request.</param>
     /// <returns></returns>
     Task<TestWebResponse> Post(object value, string path, Action<TestWebRequest>? webRequest = null);
 

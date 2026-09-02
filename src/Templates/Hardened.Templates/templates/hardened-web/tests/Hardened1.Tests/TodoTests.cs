@@ -56,12 +56,12 @@ public class TodoTests {
         (await app.Delete("/todos/9999")).Assert.NotFound();
     }
 
-#if (standardMode)
+#if (throwsMode)
     /// <summary>
     /// 200, not 201 - and that is the point of the assertion rather than an oversight.
     /// </summary>
     /// <remarks>
-    /// Standard mode names one success type per handler and has no way to put a status beside it,
+    /// Throws mode names one success type per handler and has no way to put a status beside it,
     /// so a created todo comes back at 200. Generate this template with --response-model response
     /// and the same route answers 201 with a Location header, because the status moved into the
     /// signature. This test is what makes that difference visible rather than a claim in a comment.

@@ -76,24 +76,36 @@ public class ResponseModelGeneratorTests {
     }
 
     /// <summary>
-    /// Saying Standard is a choice, and a choice that works. It must not be told anything.
+    /// Saying Throws is a choice, and a choice that works. It must not be told anything.
     /// </summary>
     [Fact]
-    public void AnExplicitStandard_BuildsWithNoDiagnostic() {
+    public void AnExplicitThrows_BuildsWithNoDiagnostic() {
+        AssertNoModeDiagnostics(Generate(
+            "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
+            "Hardened.Requests.Abstract.Responses.ResponseModel.Throws)]"));
+    }
+
+    /// <summary>
+    /// The pre-0.19.0 spelling. The member survives as an obsolete alias, so the compiler tells
+    /// the author about the rename; the generator reads it as the mode it always meant and adds
+    /// nothing.
+    /// </summary>
+    [Fact]
+    public void TheRenamedStandardSpelling_StillBuildsWithNoModeDiagnostic() {
         AssertNoModeDiagnostics(Generate(
             "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
             "Hardened.Requests.Abstract.Responses.ResponseModel.Standard)]"));
     }
 
     /// <summary>
-    /// Standard mode still emits a routing table, which is what says the attribute did not
+    /// Throws mode still emits a routing table, which is what says the attribute did not
     /// disturb anything on the path that already worked.
     /// </summary>
     [Fact]
-    public void AnExplicitStandard_StillEmitsTheRoutingTable() {
+    public void AnExplicitThrows_StillEmitsTheRoutingTable() {
         var result = Generate(
             "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
-            "Hardened.Requests.Abstract.Responses.ResponseModel.Standard)]");
+            "Hardened.Requests.Abstract.Responses.ResponseModel.Throws)]");
 
         Assert.Contains(result.GeneratedSources, pair => pair.Key.Contains("Routing"));
     }

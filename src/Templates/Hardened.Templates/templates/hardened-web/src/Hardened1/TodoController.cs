@@ -42,10 +42,10 @@ public class TodoController {
     [Get("/")]
     public IReadOnlyList<Todo> All(ITodoStore store) => store.All();
 
-#if (standardMode)
+#if (throwsMode)
     /// <summary>One todo, or 404.</summary>
     /// <remarks>
-    /// Standard mode: the signature names the success type, and every other status is thrown. The
+    /// Throws mode: the signature names the success type, and every other status is thrown. The
     /// thrown value is the same NotFound record the declared modes return, so the 404 body is
     /// identical either way - what differs is whether the compiler knows the route can answer it.
     /// </remarks>
@@ -64,7 +64,7 @@ public class TodoController {
     /// <remarks>
     /// This answers 200 rather than 201. A handler in this mode has one success type and no way to
     /// name a status beside it - returning Created&lt;Todo&gt; would serialise it as an ordinary
-    /// body at 200, because the standard dispatch does not read IHttpStatusResponse off a returned
+    /// body at 200, because the throws-mode dispatch does not read IHttpStatusResponse off a returned
     /// value. Compare the same method under --response-model response, where 201 is in the type.
     /// </remarks>
     [Post("/")]

@@ -202,6 +202,10 @@ namespace Hardened.Requests.Abstract.Authorization
         string? Subject { get; }
         bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value);
     }
+    public interface ICurrentCaller
+    {
+        Hardened.Requests.Abstract.Authorization.ICallerPrincipal Principal { get; }
+    }
     public interface IPrincipalSource
     {
         System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.ICallerPrincipal?> Authenticate(Hardened.Requests.Abstract.Execution.IExecutionContext context);
@@ -952,9 +956,12 @@ namespace Hardened.Requests.Abstract.Responses
     }
     public enum ResponseModel
     {
-        Standard = 0,
+        Throws = 0,
         Response = 1,
         Union = 2,
+        [System.Obsolete("The Standard response model was renamed Throws in 0.19.0; write ResponseModel.Thr" +
+            "ows.")]
+        Standard = 0,
     }
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
     public sealed class ResponseModelAttribute : System.Attribute
