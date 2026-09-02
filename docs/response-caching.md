@@ -121,7 +121,7 @@ guards, and applied to every handler nobody read anything.
 ## What is not cached
 
 **A handler whose authorization reads the request.** The filter runs at
-`FilterOrder.BeforeSerialization`, which is after authorization over grants alone and before
+`FilterOrder.ResponseCache`, which is after authorization over grants alone and before
 authorization that reads bound parameters. A stored answer to "may this caller edit *this* pet"
 served to a second caller is a data leak, so the filter is not installed at all — decided once per
 handler from `IExecutionRequestHandlerInfo.Requirement.RequiresContext`. A requirement over grants

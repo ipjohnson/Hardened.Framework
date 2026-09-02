@@ -12,9 +12,9 @@ namespace Hardened.Requests.Runtime.Caching;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Installed at <see cref="Abstract.RequestFilter.FilterOrder.BeforeSerialization"/>, one position
-/// ahead of <c>IoFilter</c>. That is what makes a hit skip the bind, the handler and the serialize
-/// rather than only the handler - the whole point of storing bytes instead of the value the handler
+/// Installed at <see cref="Abstract.RequestFilter.FilterOrder.ResponseCache"/>, one stage ahead of
+/// <c>IoFilter</c>. That is what makes a hit skip the bind, the handler and the serialize rather
+/// than only the handler - the whole point of storing bytes instead of the value the handler
 /// returned.
 /// </para>
 /// <para>

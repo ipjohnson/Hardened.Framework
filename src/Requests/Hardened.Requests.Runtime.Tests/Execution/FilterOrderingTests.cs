@@ -87,66 +87,126 @@ public class FilterOrderingTests {
     }
 
     /// <summary>
-    /// Every value on <see cref="ExecutionFilterOrder"/>, registered at once and in reverse so
-    /// the sort has to do the work. The pipeline's own three filters interleave with them at
-    /// their documented positions, which is the point: a filter author picks an
-    /// <c>ExecutionFilterOrder</c> to land on a particular side of parameter binding and
-    /// handler invocation.
+    /// Every named stage, registered at once and in reverse so the sort has to do the work, with
+    /// the pipeline's own three filters interleaved at their documented positions.
     ///
     /// <para>
-    /// <see cref="ExecutionFilterOrder.Last"/> is absent from the expected sequence because it
-    /// sorts above <see cref="FilterOrder.EndPointInvoke"/>, and the invoke filter is terminal
-    /// - see <see cref="AFilterOrderedAfterTheHandlerNeverRuns"/>.
+    /// This is the whole ordering contract in one assertion. It replaced a test over
+    /// <c>ExecutionFilterOrder</c>, a second ordering vocabulary whose names had stopped describing
+    /// where its values landed - <c>RetryFilter = -5000</c> against a retry stage behind
+    /// serialization - and which nothing shipped ever used.
     /// </para>
     /// </summary>
     [Fact]
-    public async Task TheWholeExecutionFilterOrderRangeRunsInAscendingOrder() {
+    public async Task EveryStageRunsInPipelineOrder() {
         var log = new List<string>();
 
+        // Name and order together, so a stage that moves fails here rather than being reordered
+        // silently. The three the pipeline pins itself are not registered.
+        var stages = new (string Name, int Order)[] {
+            ("rate-limit-transport", FilterOrder.RateLimitTransport),
+            ("authentication",       FilterOrder.Authentication),
+            ("rate-limit-principal", FilterOrder.RateLimitPrincipal),
+            ("grant-authorization",  FilterOrder.GrantAuthorization),
+            ("conditional",          FilterOrder.Conditional),
+            ("response-cache",       FilterOrder.ResponseCache),
+            ("before-serialization", FilterOrder.BeforeSerialization),
+            ("validation",           FilterOrder.Validation),
+            ("authorization",        FilterOrder.Authorization),
+            ("retry",                FilterOrder.Retry),
+            ("default",              FilterOrder.DefaultValue),
+        };
+
         await Run(log, registry => {
-            foreach (var value in Enum.GetValues<ExecutionFilterOrder>().OrderByDescending(v => v)) {
-                registry.RegisterFilter(new Pipeline.Recording(log, value.ToString()), (int)value);
+            foreach (var stage in stages.Reverse()) {
+                registry.RegisterFilter(new Pipeline.Recording(log, stage.Name), stage.Order);
             }
         });
 
         Assert.Equal(new[] {
-            nameof(ExecutionFilterOrder.Init),               // -10000
-            nameof(ExecutionFilterOrder.FullRequestMetrics), //  -7000
-            nameof(ExecutionFilterOrder.RetryFilter),        //  -5000
-            Instance,                                        //  -1000  FilterOrder.HandlerCreation
-            nameof(ExecutionFilterOrder.BeforeSerialize),    //     -1
-            nameof(ExecutionFilterOrder.BindParameters),     //      0
-            nameof(ExecutionFilterOrder.First),              //      1
-            nameof(ExecutionFilterOrder.Second),             //      2
-            nameof(ExecutionFilterOrder.Third),              //      3
-            Io,                                              //      5  FilterOrder.Serialization
-            nameof(ExecutionFilterOrder.Normal),             //    100
-            Invoke                                           //   2000  FilterOrder.EndPointInvoke
+            Instance,                 //  -10000  HandlerCreation
+            "rate-limit-transport",   //    1000
+            "authentication",         //    2000
+            "rate-limit-principal",   //    3000
+            "grant-authorization",    //    4000
+            "conditional",            //    5000
+            "response-cache",         //    6000
+            "before-serialization",   //    6500  Before + Serialization
+            Io,                       //    7000  Serialization
+            "validation",             //    8000
+            "authorization",          //    9000
+            "retry",                  //   10000
+            "default",                //  100000
+            Invoke                    //  200000  EndPointInvoke
         }, log);
     }
 
     /// <summary>
-    /// A filter registered before parameter binding sees the request ahead of the IO filter;
-    /// one registered after it does not. Table-driven across the range because each value is
-    /// a separate branch through the same comparison.
+    /// A limiter keyed on the caller refuses before the body is read.
+    /// </summary>
+    /// <remarks>
+    /// It did not until the scale was widened. The stage sat behind <c>Retry</c> because the
+    /// integers either side of serialization were taken, so a request that was about to be refused
+    /// on volume was deserialized first - which is most of what a limiter exists to avoid.
+    /// </remarks>
+    [Fact]
+    public void PrincipalRateLimitingRefusesAheadOfTheBodyRead() {
+        Assert.True(FilterOrder.RateLimitPrincipal < FilterOrder.Serialization);
+        Assert.True(FilterOrder.RateLimitPrincipal > FilterOrder.Authentication);
+    }
+
+    /// <summary>
+    /// Every stage has room either side of it for a filter an application writes.
+    /// </summary>
+    /// <remarks>
+    /// The reason the scale is wide. On consecutive integers the natural spelling of "just after
+    /// authentication" - <c>Authentication + 100</c> - landed past serialization, validation,
+    /// authorization and retry, and there was no spelling that did not.
+    /// </remarks>
+    [Fact]
+    public async Task AFilterCanSitBetweenTwoStages() {
+        var log = new List<string>();
+
+        await Run(log, registry => {
+            registry.RegisterFilter(
+                new Pipeline.Recording(log, "after-auth"),
+                FilterOrder.After + FilterOrder.Authentication);
+            registry.RegisterFilter(
+                new Pipeline.Recording(log, "before-auth"),
+                FilterOrder.Before + FilterOrder.Authentication);
+            registry.RegisterFilter(
+                new Pipeline.Recording(log, "authentication"), FilterOrder.Authentication);
+        });
+
+        Assert.Equal(
+            new[] { Instance, "before-auth", "authentication", "after-auth", Io, Invoke }, log);
+    }
+
+    /// <summary>
+    /// A filter registered before serialization sees the request ahead of the IO filter; one
+    /// registered after it does not. Table-driven across the stages, because each is a separate
+    /// branch through the same comparison.
     /// </summary>
     [Theory]
-    [InlineData(ExecutionFilterOrder.Init, true)]
-    [InlineData(ExecutionFilterOrder.FullRequestMetrics, true)]
-    [InlineData(ExecutionFilterOrder.RetryFilter, true)]
-    [InlineData(ExecutionFilterOrder.BeforeSerialize, true)]
-    [InlineData(ExecutionFilterOrder.BindParameters, true)]
-    [InlineData(ExecutionFilterOrder.First, true)]
-    [InlineData(ExecutionFilterOrder.Second, true)]
-    [InlineData(ExecutionFilterOrder.Third, true)]
-    [InlineData(ExecutionFilterOrder.Normal, false)]
+    [InlineData(FilterOrder.HandlerCreation, true)]
+    [InlineData(FilterOrder.RateLimitTransport, true)]
+    [InlineData(FilterOrder.Authentication, true)]
+    [InlineData(FilterOrder.RateLimitPrincipal, true)]
+    [InlineData(FilterOrder.GrantAuthorization, true)]
+    [InlineData(FilterOrder.Conditional, true)]
+    [InlineData(FilterOrder.ResponseCache, true)]
+    [InlineData(FilterOrder.BeforeSerialization, true)]
+    [InlineData(FilterOrder.Validation, false)]
+    [InlineData(FilterOrder.Authorization, false)]
+    [InlineData(FilterOrder.Retry, false)]
+    [InlineData(FilterOrder.DefaultValue, false)]
     public async Task AFilterRunsBeforeSerializationExactlyWhenItsOrderIsLower(
-        ExecutionFilterOrder order, bool expectedBeforeIo) {
+        int order, bool expectedBeforeIo) {
 
         var log = new List<string>();
 
         var result = await Run(log, registry =>
-            registry.RegisterFilter(new Pipeline.Recording(log, "subject"), (int)order));
+            registry.RegisterFilter(new Pipeline.Recording(log, "subject"), order));
 
         Assert.Contains("subject", result);
         Assert.Equal(expectedBeforeIo, result.IndexOf("subject") < result.IndexOf(Io));
@@ -155,9 +215,7 @@ public class FilterOrderingTests {
     /// <summary>
     /// The invoke filter is terminal - it never calls <c>Next</c> - so a filter sorted above
     /// <see cref="FilterOrder.EndPointInvoke"/> is built into the chain and then silently
-    /// never reached. <see cref="ExecutionFilterOrder.Last"/> is <c>int.MaxValue</c> and is
-    /// therefore unreachable in a standard handler pipeline, which is worth pinning because
-    /// nothing reports it: the filter simply does not run.
+    /// never reached. Worth pinning because nothing reports it: the filter simply does not run.
     /// </summary>
     [Theory]
     [InlineData(FilterOrder.EndPointInvoke + 1)]
@@ -174,8 +232,8 @@ public class FilterOrderingTests {
 
     /// <summary>
     /// A <see cref="RequestFilterInfo"/> with no order is sorted as
-    /// <see cref="FilterOrder.DefaultValue"/>, which puts it after everything at
-    /// <see cref="ExecutionFilterOrder.Normal"/> and before the handler.
+    /// <see cref="FilterOrder.DefaultValue"/>, which puts it after every stage and before the
+    /// handler.
     /// </summary>
     [Fact]
     public async Task AFilterWithNoOrderSortsAtTheDefaultValue() {
@@ -234,19 +292,24 @@ public class FilterOrderingTests {
     public async Task AttributeFiltersAndGlobalFiltersShareOneOrdering() {
         var log = new List<string>();
 
+        // Positions named as stages rather than as literals. The literals this used to carry were
+        // picked to straddle the old consecutive integers and stopped meaning anything the moment
+        // the scale changed, which is the failure the named constants exist to prevent.
         var result = await Run(
             log,
             registry => {
-                registry.RegisterFilter(new Pipeline.Recording(log, "global-early"), -6000);
-                registry.RegisterFilter(new Pipeline.Recording(log, "global-late"), 500);
+                registry.RegisterFilter(
+                    new Pipeline.Recording(log, "global-early"), FilterOrder.Authentication);
+                registry.RegisterFilter(
+                    new Pipeline.Recording(log, "global-late"), FilterOrder.Retry);
             },
-            AtOrder(log, "attribute-earliest", -9000),
-            AtOrder(log, "attribute-middle", 200));
+            AtOrder(log, "attribute-earliest", FilterOrder.HandlerCreation - 100),
+            AtOrder(log, "attribute-middle", FilterOrder.Validation));
 
         Assert.Equal(new[] {
             "attribute-earliest",
-            "global-early",
             Instance,
+            "global-early",
             Io,
             "attribute-middle",
             "global-late",

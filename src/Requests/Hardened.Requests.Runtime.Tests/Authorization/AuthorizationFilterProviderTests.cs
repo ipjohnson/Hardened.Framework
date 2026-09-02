@@ -307,7 +307,7 @@ public class AuthorizationFilterProviderTests {
     public void AGrantOnlyRequirementRunsAheadOfSerialization() {
         var filter = Filter(false, new AuthorizeGrantsAttribute("pets:read"))!;
 
-        Assert.Equal(FilterOrder.Authentication + 1, filter.Order);
+        Assert.Equal(FilterOrder.GrantAuthorization, filter.Order);
         Assert.True(filter.Order < FilterOrder.Serialization);
     }
 

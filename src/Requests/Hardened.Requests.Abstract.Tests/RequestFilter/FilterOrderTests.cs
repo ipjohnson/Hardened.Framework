@@ -27,13 +27,17 @@ public class FilterOrderTests {
     }
 
     /// <summary>
-    /// A requirement over grants alone is authorized at <c>Authentication + 1</c>, so that slot has
-    /// to exist and still be ahead of serialization. This is why the gap is two rather than one -
-    /// the arithmetic, not the literal, is the thing that matters.
+    /// A requirement over grants alone is authorized at <see cref="FilterOrder.GrantAuthorization"/>,
+    /// which has to be after a caller exists and still ahead of serialization.
     /// </summary>
+    /// <remarks>
+    /// This was spelled <c>Authentication + 1</c> on both sides until the stage got a name. A
+    /// position documented in three files and expressed nowhere is one nothing can sit beside.
+    /// </remarks>
     [Fact]
-    public void TheSlotAfterAuthenticationIsStillAheadOfSerialization() {
-        Assert.True(FilterOrder.Authentication + 1 < FilterOrder.BeforeSerialization);
+    public void GrantAuthorizationRunsAfterAuthenticationAndAheadOfSerialization() {
+        Assert.True(FilterOrder.GrantAuthorization > FilterOrder.Authentication);
+        Assert.True(FilterOrder.GrantAuthorization < FilterOrder.Serialization);
     }
 
     /// <summary>
@@ -52,7 +56,7 @@ public class FilterOrderTests {
     /// </summary>
     [Fact]
     public void BothAuthorizationPositionsRunBeforeTheHandler() {
-        Assert.True(FilterOrder.Authentication + 1 < FilterOrder.EndPointInvoke);
+        Assert.True(FilterOrder.GrantAuthorization < FilterOrder.EndPointInvoke);
         Assert.True(FilterOrder.Authorization < FilterOrder.EndPointInvoke);
     }
 
@@ -66,23 +70,30 @@ public class FilterOrderTests {
     }
 
     /// <summary>
-    /// Neither new value collides with an existing one. A collision is not an error - the sort is
-    /// stable and both filters would run - but it makes the relative order an accident of
-    /// registration rather than a decision.
+    /// Neither authorization slot collides with another stage. A collision is not an error - the
+    /// sort is stable, so both filters run in registration order - but between two <em>stages</em>
+    /// it would make the relative order an accident of registration rather than a decision. Two
+    /// filters deliberately sharing a position through <see cref="FilterOrder.Before"/> or
+    /// <see cref="FilterOrder.After"/> is the case that is fine.
     /// </summary>
     [Fact]
     public void NeitherAuthorizationSlotCollidesWithAnExistingStage() {
         int[] existing = [
             FilterOrder.HandlerCreation,
+            FilterOrder.RateLimitTransport,
+            FilterOrder.RateLimitPrincipal,
+            FilterOrder.Conditional,
+            FilterOrder.ResponseCache,
             FilterOrder.BeforeSerialization,
             FilterOrder.Serialization,
             FilterOrder.Validation,
+            FilterOrder.Retry,
             FilterOrder.DefaultValue,
             FilterOrder.EndPointInvoke,
         ];
 
         Assert.DoesNotContain(FilterOrder.Authentication, existing);
-        Assert.DoesNotContain(FilterOrder.Authentication + 1, existing);
+        Assert.DoesNotContain(FilterOrder.GrantAuthorization, existing);
         Assert.DoesNotContain(FilterOrder.Authorization, existing);
     }
 }

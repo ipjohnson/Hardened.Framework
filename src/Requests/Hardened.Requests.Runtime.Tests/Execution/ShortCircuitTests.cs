@@ -130,7 +130,7 @@ public class ShortCircuitTests {
 
         var registry = new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>());
         registry.RegisterFilter(new Pipeline.ShortCircuiting(log, "gate"),
-            (int)ExecutionFilterOrder.Init);
+            FilterOrder.HandlerCreation - 1);
 
         var context = Pipeline.Context(configureServices: services => {
             services.AddSingleton<IGlobalFilterRegistry>(registry);

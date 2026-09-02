@@ -60,7 +60,7 @@ public class AuthorizationFilterProvider {
         // cannot. Decided here, once per handler, rather than per request.
         var order = requirement.RequiresContext
             ? FilterOrder.Authorization
-            : FilterOrder.Authentication + 1;
+            : FilterOrder.GrantAuthorization;
 
         var filter = new AuthorizationFilter(
             requirement, beforeSerialization: order < FilterOrder.Serialization);

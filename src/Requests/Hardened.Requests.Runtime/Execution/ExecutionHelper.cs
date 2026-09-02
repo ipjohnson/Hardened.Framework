@@ -225,10 +225,20 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
             filterList.AddRange(requestFilterProvider.GetFilters(handlerInfo));
         }
 
-        filterList.Sort((x, y) =>
-            Comparer<int>.Default.Compare(x.Order ?? FilterOrder.DefaultValue, y.Order ?? FilterOrder.DefaultValue));
-
-        return new ExecutionHandlerSetup(handlerInfo, filterList.Select(f => f.FilterFunc).ToArray());
+        // OrderBy rather than List.Sort, because it is stable and List.Sort is not.
+        //
+        // Two filters at one order is not a mistake to be designed out: FilterOrder.Before and
+        // FilterOrder.After name a position rather than a stage, so two registrations asking for
+        // the same place get the same integer, which is correct - they asked for the same place.
+        // What was wrong was the tie breaking differently between runs, which for anything
+        // straddling serialization decides whether a body is written. Registration order is now
+        // what settles it, and registration order is deterministic.
+        return new ExecutionHandlerSetup(
+            handlerInfo,
+            filterList
+                .OrderBy(filter => filter.Order ?? FilterOrder.DefaultValue)
+                .Select(filter => filter.FilterFunc)
+                .ToArray());
     }
 
     /// <summary>

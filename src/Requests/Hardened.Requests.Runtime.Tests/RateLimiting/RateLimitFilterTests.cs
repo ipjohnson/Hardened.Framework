@@ -257,7 +257,8 @@ public class RateLimitFilterTests {
     [Fact]
     public void RateLimitAttribute_UsesOrdersNothingElseClaims() {
         var taken = new[] {
-            FilterOrder.HandlerCreation, FilterOrder.Authentication, FilterOrder.BeforeSerialization,
+            FilterOrder.HandlerCreation, FilterOrder.Authentication, FilterOrder.GrantAuthorization,
+            FilterOrder.Conditional, FilterOrder.ResponseCache, FilterOrder.BeforeSerialization,
             FilterOrder.Serialization, FilterOrder.Validation, FilterOrder.Authorization,
             FilterOrder.Retry, FilterOrder.DefaultValue, FilterOrder.EndPointInvoke
         };
