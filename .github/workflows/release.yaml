@@ -212,6 +212,7 @@ jobs:
         run: |
           for project in \
             src/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj \
+            src/Requests/Hardened.Requests.Caching.Memory/Hardened.Requests.Caching.Memory.csproj \
             src/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj \
             src/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj \
             src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj \
@@ -264,7 +265,9 @@ jobs:
           # 22 after Hardened.Templates, the dotnet new templates, arrived in #154. It was added to
           # the solution and not here, so the coverage check above would have failed the next
           # release - which is the check working, and the fourth time this list has drifted.
-          EXPECTED=22
+          # 23 after Hardened.Requests.Caching.Memory, the response cache store, arrived with
+          # response caching.
+          EXPECTED=23
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

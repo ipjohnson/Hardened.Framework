@@ -6,6 +6,7 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.AspNetCore.Runtime;
 using Hardened.Web.Runtime.Handlers;
+using Hardened.Requests.Caching.Memory;
 using Hardened.Web.Runtime.OpenApi;
 
 namespace Hardened.IntegrationTests.WebApp.SUT;
@@ -30,6 +31,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT;
 [Enable<OpenApiDocumentPublishing>]
 [HardenedOpenApiUi(Title = "Integration Tests")]
 [HardenedOpenApiUi(Path = "/docs/internal", Title = "Internal", DocumentPath = "/internal.json")]
+[HardenedMemoryResponseCache]
 [AspNetCoreRuntime]
 public partial class Application : IServiceCollectionConfiguration {
 

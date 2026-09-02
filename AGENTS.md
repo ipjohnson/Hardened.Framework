@@ -164,4 +164,5 @@ function runtimes do not reference it.
 - `docs/generator-diagnostics.md` — every diagnostic the generators raise
 - `docs/described-authorization.md` — what a contract's `security` becomes
 - `docs/validation-usage.md` — constraints, custom validators, the error response
+- `docs/response-caching.md` — `[CacheResponse<T>]`, the store package, what is never cached
 - Full user documentation: <https://ipjohnson.github.io/Hardened.Docs>

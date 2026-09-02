@@ -22,6 +22,15 @@ public static class KnownHeaders {
     public const string Cookie = "Cookie";
 
     /// <summary>
+    /// A cookie the response sets.
+    /// </summary>
+    /// <remarks>
+    /// Named here because it is the one response header that must never be replayed to a
+    /// second caller. <c>CachedResponse</c> strips it as a response is captured.
+    /// </remarks>
+    public const string SetCookie = "Set-Cookie";
+
+    /// <summary>
     /// The validator for the representation being sent.
     /// </summary>
     /// <remarks>

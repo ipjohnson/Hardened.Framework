@@ -34,6 +34,7 @@
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Caching.Memory\Hardened.Requests.Caching.Memory.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
         <ProjectReference Include="..\..\Requests\Serializers\Hardened.Requests.Serializers.Newtonsoft\Hardened.Requests.Serializers.Newtonsoft.csproj"/>
