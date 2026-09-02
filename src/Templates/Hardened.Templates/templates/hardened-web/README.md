@@ -87,7 +87,8 @@ served at `/todos/{id}`. `[Get]`, `[Post]`, `[Put]`, `[Delete]` and `[Patch]` al
 way.
 
 Services arrive as parameters, and you ask for an interface. A parameter typed as a concrete class
-is bound from the request body instead. A service is registered next to the class it belongs to,
+is bound from the request body instead - `HRDR007`, where the class can only be constructed from
+services. A service is registered next to the class it belongs to,
 with `[SingletonService]`, `[ScopedService]` or `[TransientService]` - the module lists nothing, so
 it cannot fall out of step.
 #endif
