@@ -531,6 +531,17 @@ components:
           type: integer
           format: int32
           minimum: 1
+        # Money, in the two spellings the ecosystem uses, with a bound a double cannot hold
+        # exactly. Both reach C# decimal, and the bound goes on the attribute as a string because
+        # rendering it through double is what the type exists to avoid.
+        unitPrice:
+          type: number
+          format: decimal
+          minimum: 0.01
+        discount:
+          type: string
+          format: number
+          minimum: 0.1
     PetSpecies:
       type: string
       enum:
