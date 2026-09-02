@@ -41,12 +41,21 @@ public interface IPrincipalSource {
 /// A principal source for one declared authentication scheme.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The scheme type is the same one <c>[Authorize&lt;TScheme&gt;]</c> names and the published
 /// document keys its <c>securitySchemes</c> entry by, so "find references" connects the
 /// operations requiring a scheme with the source that implements it. The runtime does not
 /// dispatch on the type parameter - every registered source is asked in order - so implementing
 /// the plain <see cref="IPrincipalSource"/> works identically; this form exists to state the
 /// tie.
+/// </para>
+/// <para>
+/// A registration attribute registers a class as the interface it declares, so a source written
+/// this way is in the container under the closed generic rather than under
+/// <see cref="IPrincipalSource"/>. <c>AuthenticationStartupService</c> collects both, in one
+/// registration order, which is what makes "works identically" true of registration as well as
+/// of dispatch.
+/// </para>
 /// </remarks>
 public interface IPrincipalSource<TScheme> : IPrincipalSource
     where TScheme : IAuthenticationScheme;

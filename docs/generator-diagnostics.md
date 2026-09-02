@@ -56,6 +56,47 @@ only when *no* entry matches a described service.
 
 ## Routing
 
+### HRDR002 — unsupported route token syntax
+
+A brace form the template accepts and Hardened does not compile, or a template that is not
+well formed at all. Both compile and route today, and neither does what it was written to do.
+
+| Written | What it actually means |
+|---|---|
+| `{id?}` | A mandatory segment named `id?`. The path it was meant to make optional does not match at all. |
+| `{id=5}` | A mandatory segment named `id=5`. Nothing binds to `id`; give the C# parameter the default. |
+| `{id:isbn}` | A constraint nothing declares. Declare it with `[RouteConstraint("isbn")]`, or drop it and let the parameter type refuse a bad value. |
+| `{id` | A brace with no partner. The rest is matched as literal text, so the route answers nothing anyone sends. |
+| `}` | The same, from the other end. |
+| `{}`, `{:int}` | A token with no name, which binds nothing. |
+| `{id}/x/{id}` | One name declared twice. Only one of the two segments a request sends could reach the parameter. |
+
+Every offending token in a route is reported, and the handler is still emitted — the routing table
+filters on unresolved parameters rather than on token syntax, so dropping it would bury this
+diagnostic under CS0246s.
+
+### HRDR005 — route token binds no parameter
+
+A token the template compiles that no parameter binds, beside a parameter that fell onto the
+request body because of it.
+
+```
+Route '/events/{eventid}' on 'EventController.Get' declares '{eventid}', which no parameter
+binds. 'eventId' differs from it only by case, so it is read from the request body instead.
+Route tokens bind by exact name: spell the token '{eventId}', or rename the parameter to
+'eventid'.
+```
+
+Both halves are required. A token that binds nothing is not a mistake on its own — one declared in
+a shared `[BasePath]` binds nothing on the handlers under it that do not need it. What makes it a
+defect is the parameter that went somewhere else because of it: onto a body a `GET`, `HEAD`,
+`OPTIONS` or `TRACE` does not carry, or — whatever the verb — onto a body when its name differs
+from the token only by case. `DELETE` is not treated as bodyless: HTTP permits a body on one and
+some APIs send it.
+
+A described parameter binds by the wire name its contract declares, not by the C# identifier
+allocated for it.
+
 ### HRDR006 — no routing generator is compiling this assembly's routes
 
 A module declaring routes with nothing turning them into a routing table. It compiled without a
@@ -80,6 +121,36 @@ framework's own `AspNetCoreRuntime` is one.
 
 One report per assembly, not one per route: there is a single thing to fix.
 
+## Validation
+
+### HRDV004 — nested constraints are never reached
+
+A generated validator descends into a member only where `[ValidateNested]` says to, so omitting it
+switches off every constraint on the child type. Nothing said so at build time or at run time: the
+trial's price tiers stored as 201 with an empty code and a negative price, from a model whose
+constraints were all declared and all correct.
+
+```
+'CreateEvent.PriceTiers' does not declare [ValidateNested] and its element type 'PriceTier'
+declares constraints, so none of them run and an invalid 'PriceTier' is accepted with no
+error. Add [ValidateNested] to the property, or set <NoWarn>$(NoWarn);HRDV004</NoWarn> if the
+skip is intended.
+```
+
+A warning rather than an error, because not descending is sometimes what was meant — a member
+validated by a later step, a shared type whose constraints belong to another operation. The
+`NoWarn` is what makes that choice deliberate rather than silent.
+
+Reported on a property of a type that constrains something itself, whose member, array element,
+collection element or dictionary value is a type declared in the same compilation carrying
+constraints in either vocabulary. A type that constrains nothing is not a model this generator
+validates — a data seed holding a list of records, a response case wrapping a body — and its
+validator was never going to descend anywhere.
+
+Descending by default is the better answer and is on the table for 1.0. It cannot be the answer in
+a 0.x release: it changes what an existing application answers, from 201 to 400, on payloads it
+accepts today.
+
 ## Other diagnostics
 
 | Id | Meaning |
@@ -88,7 +159,7 @@ One report per assembly, not one per route: there is a single thing to fix.
 | `HOAG002` | The description could not be parsed; the build task's message is passed through. |
 | `HOAG010` | A handler was skipped because a parameter type did not resolve. Other handlers are unaffected. |
 | `HOAG020` | An operation declares a markup content type but names no view to render it. |
-| `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. `HRDR006` is above. |
+| `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. The ones with an entry have a section above. |
 
 ## Description build tasks (HOAT, HSMT)
 
@@ -105,7 +176,7 @@ the other.
 | `003` | The description was declared as the wrong item kind. `HOAT003`: a spec left in `AdditionalFiles`, which the generator no longer reads. `HSMT003`: a `.smithy` IDL file pointed at `HardenedSmithyAst`, which takes a JSON AST. |
 | `004` | A model or generated source the extract step should have written is missing. Delete the model directory and rebuild. |
 | `005` | The targets file was imported before the specs were declared, so no generated source reached the compilation. Move the `<Import>` below the item group. |
-| `006` | Warning. The reader parsed the document and had something to say about it, including what a degraded trait promises that the code does not enforce. |
+| `006` | Warning. The reader parsed the document and had something to say about it, including what a degraded trait promises that the code does not enforce. Under `HSMT`, this is also where a prelude shape with no exact C# type is reported - `BigDecimal` becomes `decimal`, `BigInteger` becomes `long` - once per member, naming it. |
 | `007` | A slice selected no operations, so nothing would be generated. |
 | `008` | Warning. A slice removed a schema that is still referenced; the reference degrades to `JsonElement`. |
 | `009` | Warning. The spec is sliced but its document is embedded whole, so the served description claims operations the application does not implement. |

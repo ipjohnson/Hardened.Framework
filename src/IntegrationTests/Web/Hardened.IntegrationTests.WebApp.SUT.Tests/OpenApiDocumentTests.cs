@@ -255,4 +255,38 @@ public class OpenApiDocumentTests {
 
         Assert.Equal("string", response.GetProperty("type").GetString());
     }
+
+    #region the declared validation status
+
+    private static async Task<string[]> Statuses(ITestWebApp testWebApp, string path) {
+        using var document = await Fetch(testWebApp);
+
+        return document.RootElement
+            .GetProperty("paths").GetProperty(path).GetProperty("post").GetProperty("responses")
+            .EnumerateObject().Select(status => status.Name).OrderBy(name => name).ToArray();
+    }
+
+    /// <summary>
+    /// The operation publishes the status it answers, and only that one. The trial's code-first arm
+    /// declared 422 by hand and the document carried the synthesized 400 beside it - a status the
+    /// operation could no longer produce.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnOperationDeclaring422PublishesItAndNoSynthesized400(ITestWebApp testWebApp) {
+        var statuses = await Statuses(testWebApp, "/registration/declared-422");
+
+        Assert.Contains("422", statuses);
+        Assert.DoesNotContain("400", statuses);
+    }
+
+    /// <summary>
+    /// And an operation that declares nothing still publishes the 400 it answers, which is what the
+    /// synthesis is for.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnOperationDeclaringNothingStillPublishesThe400(ITestWebApp testWebApp) {
+        Assert.Contains("400", await Statuses(testWebApp, "/registration/for/{tenant}"));
+    }
+
+    #endregion
 }

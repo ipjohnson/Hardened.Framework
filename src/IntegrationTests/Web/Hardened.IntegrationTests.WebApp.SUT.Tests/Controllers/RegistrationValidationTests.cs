@@ -153,4 +153,63 @@ public class RegistrationValidationTests {
     }
 
     #endregion
+
+    #region an operation that declares its validation status
+
+    /// <summary>
+    /// H-08. A spec-first operation declares 422 and the runtime honours it; code-first had no way
+    /// to say the same thing, and the trial's 422 requirement took a marker attribute plus a
+    /// wrapping <c>IExceptionToModelConverter</c> to satisfy - while the served document still
+    /// carried an unreachable 400 beside the hand-declared 422.
+    /// </summary>
+    /// <remarks>
+    /// Derived from <c>[Throws&lt;RequestValidationError&gt;(422)]</c> rather than declared twice.
+    /// The handler has already put that status in the document; reading the same declaration for
+    /// the runtime is what closes the gap without a second source of truth on a verb attribute.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AConstraintFailureAnswersTheDeclaredStatus(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            new { Name = "", Age = 30 }, "/registration/declared-422");
+
+        Assert.Equal(422, response.StatusCode);
+        Assert.Contains(
+            response.Deserialize<RequestValidationError>().Errors, e => e.Field == "model.name");
+    }
+
+    /// <summary>A handler validating by hand reaches the same status.</summary>
+    [HardenedTest]
+    public async Task AThrownValidationExceptionAnswersTheDeclaredStatus(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            new { Name = "Ada", Age = 30 }, "/registration/declared-422/by-hand");
+
+        Assert.Equal(422, response.StatusCode);
+    }
+
+    /// <summary>
+    /// And so does a body the deserializer refuses, which is the half that split the status in two
+    /// on every spec-first operation declaring 422 until the converter looked it up.
+    /// </summary>
+    [HardenedTest]
+    public async Task ABodyTheDeserializerRefusesAnswersTheDeclaredStatus(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            new { Name = "Ada", Age = "not a number" }, "/registration/declared-422");
+
+        Assert.Equal(422, response.StatusCode);
+        Assert.Equal(
+            "ValidationError", response.Deserialize<RequestValidationError>().Type);
+    }
+
+    /// <summary>
+    /// The control. An operation that declares nothing still answers the stock 400, so the
+    /// derivation reaches the operation that asked for it and no other.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnOperationDeclaringNothingStillAnswers400(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration");
+
+        response.Assert.BadRequest();
+    }
+
+    #endregion
 }

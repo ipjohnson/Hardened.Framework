@@ -25,6 +25,13 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// the application, so a declaration that does not mean what it says has to stop the build rather
 /// than reach production.
 /// </para>
+///
+/// <para>
+/// The template itself is read strictly for the same reason. An unbalanced brace, a token with no
+/// name, and one name declared twice each produced a route that compiled and matched nothing the
+/// author meant it to match — <c>[Get("/{eventId")]</c> built with zero warnings and answered 400
+/// to every request shape.
+/// </para>
 /// </summary>
 public static class RouteTokenSyntax {
 
@@ -39,7 +46,16 @@ public static class RouteTokenSyntax {
         Optional,
 
         /// <summary><c>{id=5}</c> — a default value.</summary>
-        Default
+        Default,
+
+        /// <summary><c>{id</c>, or a stray <c>}</c> — a brace with no partner.</summary>
+        Unbalanced,
+
+        /// <summary><c>{}</c> or <c>{:int}</c> — a token with nothing to bind to.</summary>
+        Unnamed,
+
+        /// <summary>The same token name twice in one route.</summary>
+        Duplicate
     }
 
     public readonly struct Finding {
@@ -77,33 +93,66 @@ public static class RouteTokenSyntax {
     public static IReadOnlyList<Finding> Scan(
         string pathTemplate, IReadOnlyCollection<string>? declaredConstraints = null) {
         List<Finding>? findings = null;
+        HashSet<string>? seen = null;
 
         var open = pathTemplate.IndexOf('{');
+        var stray = pathTemplate.IndexOf('}');
+
+        // A closing brace before any opening one is as unbalanced as the reverse, and reads the
+        // same way to whoever typed it.
+        if (stray >= 0 && (open < 0 || stray < open)) {
+            Add(ref findings, new Finding(
+                pathTemplate.Substring(stray, 1), Form.Unbalanced, "", null));
+        }
 
         while (open >= 0) {
             var close = pathTemplate.IndexOf('}', open);
 
+            // A brace that is never closed used to end the scan silently, which is how
+            // [Get("/{eventId")] built with zero warnings: the rest of the template became literal
+            // text, the route matched nothing anybody sent, and the parameter it was written to
+            // bind was read from the request body instead.
             if (close < 0) {
+                Add(ref findings, new Finding(
+                    pathTemplate.Substring(open), Form.Unbalanced,
+                    Name(pathTemplate.Substring(open + 1)), null));
+
                 break;
             }
 
             var body = pathTemplate.Substring(open + 1, close - open - 1);
-            var form = Classify(body, declaredConstraints);
+            var token = pathTemplate.Substring(open, close - open + 1);
+            var name = Name(body);
 
-            if (form != Form.Supported) {
-                findings ??= new List<Finding>();
+            // A second '{' inside a token is the same mistake seen from the other end: one of the
+            // two braces has no partner.
+            if (body.IndexOf('{') >= 0) {
+                Add(ref findings, new Finding(token, Form.Unbalanced, name, null));
+            }
+            else if (name.Length == 0) {
+                Add(ref findings, new Finding(token, Form.Unnamed, name, null));
+            }
+            else if (!(seen ??= new HashSet<string>(StringComparer.Ordinal)).Add(name)) {
+                Add(ref findings, new Finding(token, Form.Duplicate, name, null));
+            }
+            else {
+                var form = Classify(body, declaredConstraints);
 
-                findings.Add(new Finding(
-                    pathTemplate.Substring(open, close - open + 1),
-                    form,
-                    Name(body),
-                    RouteTokens.Constraint(body)));
+                if (form != Form.Supported) {
+                    Add(ref findings, new Finding(token, form, name, RouteTokens.Constraint(body)));
+                }
             }
 
             open = pathTemplate.IndexOf('{', close + 1);
         }
 
         return (IReadOnlyList<Finding>?)findings ?? Array.Empty<Finding>();
+    }
+
+    private static void Add(ref List<Finding>? findings, Finding finding) {
+        findings ??= new List<Finding>();
+
+        findings.Add(finding);
     }
 
     /// <summary>
@@ -143,6 +192,23 @@ public static class RouteTokenSyntax {
                     $"the token name, so nothing binds to '{name}'. Give the handler's '{name}' " +
                     $"parameter a C# default instead; the template controls matching and C# " +
                     $"supplies the value.";
+
+            case Form.Unbalanced:
+                return
+                    "This brace has no partner, so what was written as a token is matched as " +
+                    "literal text and the parameter it was written to bind is read from the " +
+                    "request body instead. Close the token.";
+
+            case Form.Unnamed:
+                return
+                    "A token with no name binds nothing. Name it, or drop the braces if the " +
+                    "segment is literal.";
+
+            case Form.Duplicate:
+                return
+                    $"'{name}' is declared twice in this route. Two tokens of one name cannot both " +
+                    $"bind the handler's '{name}' parameter, and only one of the two segments a " +
+                    $"request sends would reach it. Give them distinct names.";
 
             default:
                 return "";

@@ -26,6 +26,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// means, and the generator refuses a declaration that names neither.
 /// </para>
 /// <para>
+/// <b>One declaration it also decides.</b> <c>[Throws&lt;RequestValidationError&gt;(422)]</c> says
+/// the operation answers validation failures with 422, so that is the status the runtime answers
+/// them with - the filter's refusal, a handler's own <c>ValidationException</c>, and a body the
+/// deserializer could not read alike. A described operation declaring 422 has behaved this way
+/// since 0.18; this is how a hand-written one says it, without a second place to write it down.
+/// </para>
+/// <para>
 /// <b>What this deliberately does not promise.</b> It does not assert that the handler throws this,
 /// nor that it throws nothing else. An unmapped exception is unplanned by definition and the runtime
 /// already has somewhere to put it. Verifying completeness is the road ASP.NET went down with its

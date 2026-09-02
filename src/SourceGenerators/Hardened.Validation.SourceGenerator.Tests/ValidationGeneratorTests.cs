@@ -556,6 +556,246 @@ public class ValidationGeneratorTests {
 
     #endregion
 
+
+    // ---------------------------------------- nested constraints nothing reaches
+
+    /// <summary>
+    /// A parent that validates, a child that declares constraints, and the one attribute that
+    /// connects them.
+    /// </summary>
+    private static string Nested(string property) => $$"""
+        using System.Collections.Generic;
+        using ValidationModules.Constraints;
+
+        namespace TestApp.Models;
+
+        public class PriceTier {
+            [Pattern("^[A-Z]+$")]
+            public string Code { get; set; } = "";
+
+            [Range(1, 1000)]
+            public int Price { get; set; }
+        }
+
+        public class CreateEvent {
+            [Required]
+            [StringLength(Min = 1, Max = 200)]
+            public string Title { get; set; } = "";
+
+            {{property}}
+        }
+        """;
+
+    /// <summary>
+    /// CS-11. Removing <c>[ValidateNested]</c> from the collection stopped every constraint on
+    /// <c>PriceTier</c> from running, and invalid tiers stored as 201 with no build or runtime
+    /// signal - though the generator compiled those constraints itself and can see the property
+    /// that no longer reaches them.
+    /// </summary>
+    [Fact]
+    public void ACollectionWithoutValidateNestedIsReported() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Models.cs", Nested("public List<PriceTier> PriceTiers { get; set; } = new();")));
+
+        var warning = Assert.Single(Warnings(result, "HRDV004"));
+
+        Assert.Contains("PriceTiers", warning.GetMessage());
+        Assert.Contains("PriceTier", warning.GetMessage());
+        Assert.Contains("element", warning.GetMessage());
+        Assert.Contains("[ValidateNested]", warning.GetMessage());
+    }
+
+    /// <summary>
+    /// The message names both fixes, because not descending is sometimes what was meant.
+    /// </summary>
+    [Fact]
+    public void TheMessageNamesTheSuppressionAsWellAsTheFix() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Models.cs", Nested("public List<PriceTier> PriceTiers { get; set; } = new();")));
+
+        Assert.Contains("HRDV004", Assert.Single(Warnings(result, "HRDV004")).GetMessage());
+    }
+
+    [Fact]
+    public void AWarningRatherThanAnError() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Models.cs", Nested("public List<PriceTier> PriceTiers { get; set; } = new();")));
+
+        Assert.Equal(
+            DiagnosticSeverity.Warning, Assert.Single(Warnings(result, "HRDV004")).Severity);
+    }
+
+    /// <summary>Every shape a descent can take, and every one of them stops without the attribute.</summary>
+    [Theory]
+    [InlineData("public PriceTier Tier { get; set; } = new();", "member")]
+    [InlineData("public PriceTier[] Tiers { get; set; } = [];", "element")]
+    [InlineData("public List<PriceTier> Tiers { get; set; } = new();", "element")]
+    [InlineData("public IReadOnlyList<PriceTier> Tiers { get; } = [];", "element")]
+    [InlineData("public Dictionary<string, PriceTier> Tiers { get; set; } = new();", "element")]
+    public void EveryNestedShapeIsReported(string property, string kind) {
+        var result = Run(("Entry.cs", EntryPoint), ("Models.cs", Nested(property)));
+
+        Assert.Contains(kind, Assert.Single(Warnings(result, "HRDV004")).GetMessage());
+    }
+
+    /// <summary>The attribute is the whole of what silences it.</summary>
+    [Theory]
+    [InlineData("[ValidateNested]\n    public PriceTier Tier { get; set; } = new();")]
+    [InlineData("[ValidateNested]\n    public List<PriceTier> Tiers { get; set; } = new();")]
+    public void DeclaringValidateNestedIsNotReported(string property) {
+        var result = Run(("Entry.cs", EntryPoint), ("Models.cs", Nested(property)));
+
+        Assert.Empty(Warnings(result, "HRDV004"));
+
+        result.AssertNoErrors();
+    }
+
+    /// <summary>A child with nothing to check has nothing to become unreachable.</summary>
+    [Fact]
+    public void AChildWithNoConstraintsIsNotReported() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Models.cs", """
+                using ValidationModules.Constraints;
+
+                namespace TestApp.Models;
+
+                public class Address {
+                    public string City { get; set; } = "";
+                }
+
+                public class Customer {
+                    [Required]
+                    public string Name { get; set; } = "";
+
+                    public Address Home { get; set; } = new();
+                }
+                """));
+
+        Assert.Empty(Warnings(result, "HRDV004"));
+    }
+
+    /// <summary>
+    /// A parent that constrains nothing is not a model this generator validates - a data seed
+    /// holding a list of records, a response case wrapping a body - and a validator that checks
+    /// nothing was never going to descend anywhere.
+    /// </summary>
+    [Fact]
+    public void AParentThatConstrainsNothingIsNotReported() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Models.cs", """
+                using System.Collections.Generic;
+                using ValidationModules.Constraints;
+
+                namespace TestApp.Models;
+
+                public class PriceTier {
+                    [Pattern("^[A-Z]+$")]
+                    public string Code { get; set; } = "";
+                }
+
+                public class SeedData {
+                    public IReadOnlyList<PriceTier> Tiers { get; } = [];
+                }
+                """));
+
+        Assert.Empty(Warnings(result, "HRDV004"));
+    }
+
+    /// <summary>A string is a sequence of characters, not a nested model.</summary>
+    [Fact]
+    public void AStringMemberIsNotADescent() {
+        var result = Run(
+            ("Entry.cs", EntryPoint), ("Customer.cs", Model()));
+
+        Assert.Empty(Warnings(result, "HRDV004"));
+    }
+
+    /// <summary>
+    /// A type that holds one of itself would otherwise report against its own constraints.
+    /// </summary>
+    [Fact]
+    public void ASelfReferenceIsNotReported() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Models.cs", """
+                using ValidationModules.Constraints;
+
+                namespace TestApp.Models;
+
+                public class Node {
+                    [Required]
+                    public string Name { get; set; } = "";
+
+                    public Node? Parent { get; set; }
+                }
+                """));
+
+        Assert.Empty(Warnings(result, "HRDV004"));
+    }
+
+    /// <summary>The DataAnnotations vocabulary reaches the same place, on both sides.</summary>
+    [Fact]
+    public void DataAnnotationsConstraintsCountAsConstraints() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Models.cs", """
+                using System.Collections.Generic;
+                using System.ComponentModel.DataAnnotations;
+
+                namespace TestApp.Models;
+
+                public class Line {
+                    [Range(1, 100)]
+                    public int Quantity { get; set; }
+                }
+
+                public class Order {
+                    [Required]
+                    public string Reference { get; set; } = "";
+
+                    public List<Line> Lines { get; set; } = new();
+                }
+                """));
+
+        Assert.Single(Warnings(result, "HRDV004"));
+    }
+
+    /// <summary>
+    /// An attribute that names a member rather than constraining it is not a constraint.
+    /// <c>[Display]</c> does not derive from <c>ValidationAttribute</c>, which is what the check
+    /// walks the base chain for rather than listing names.
+    /// </summary>
+    [Fact]
+    public void ANamingAttributeIsNotAConstraint() {
+        var result = Run(
+            ("Entry.cs", EntryPoint),
+            ("Models.cs", """
+                using System.Collections.Generic;
+                using System.ComponentModel.DataAnnotations;
+
+                namespace TestApp.Models;
+
+                public class Line {
+                    [Display(Name = "How many")]
+                    public int Quantity { get; set; }
+                }
+
+                public class Order {
+                    [Required]
+                    public string Reference { get; set; } = "";
+
+                    public List<Line> Lines { get; set; } = new();
+                }
+                """));
+
+        Assert.Empty(Warnings(result, "HRDV004"));
+    }
+
     /// <summary>
     /// The whole arrangement, compiled: entry point, several constrained models, both attribute
     /// vocabularies, and the registration that wires them together.

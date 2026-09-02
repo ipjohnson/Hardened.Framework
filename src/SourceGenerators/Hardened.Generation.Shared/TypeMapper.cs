@@ -19,6 +19,15 @@ internal static class TypeMapper {
             ("string", "date") => "DateOnly",
             ("string", "uuid") => "string",
             ("string", "byte") => "byte[]",
+            // Money as an exact decimal, in the two spellings the ecosystem actually uses. Neither
+            // is in the OpenAPI specification, which names int32, int64, float and double and
+            // nothing else - format is an open-valued property, so both are legal and both are
+            // conventions rather than standards.
+            //
+            // "string" + "number" is openapi-generator's: ModelUtils.isDecimalSchema tests exactly
+            // that pair, and around thirty of its language generators map it to a decimal type.
+            // Ahead of ("string", _) or it would go on being a string.
+            ("string", "number") => "decimal",
             ("string", "binary") => "byte[]",
             ("string", _) => "string",
             ("integer", "int64") => "long",
@@ -26,6 +35,12 @@ internal static class TypeMapper {
             ("integer", _) => "int",
             ("number", "float") => "float",
             ("number", "double") => "double",
+            // "number" + "decimal" is NSwag's, measured against 14.1.0: it answers decimal for this
+            // pair and double for a formatless number. openapi-generator warns "Unknown `format`
+            // decimal" and discards it, so a document written for that tool means a decimal by
+            // leaving the format off - which is the one reading this cannot take, because the same
+            // absence is how every other document says double.
+            ("number", "decimal") => "decimal",
             ("number", _) => "double",
             ("boolean", _) => "bool",
             _ => "JsonElement"
