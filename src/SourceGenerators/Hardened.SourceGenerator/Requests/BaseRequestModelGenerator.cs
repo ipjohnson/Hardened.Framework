@@ -24,14 +24,11 @@ public abstract class BaseRequestModelGenerator {
 
         var parameters = GetParameters(context, methodDeclaration, nameModel, cancellationToken);
 
-        // Read before Compose, because the unresolved ones ride on the response model and the
-        // emit step is where there is a context to report them into.
-        var unresolved = new List<string>();
-        var thrown = ThrownResponseSelector.Read(context, methodDeclaration, unresolved, cancellationToken);
-
-        if (unresolved.Count > 0) {
-            response.ThrowsDiagnostic = string.Join(",", unresolved);
-        }
+        // Read before Compose, because two things it derives ride on the response model: the
+        // declarations naming no status, which the emit step has a context to report, and the
+        // validation status a [Throws<RequestValidationError>(422)] states.
+        var thrown = ThrownResponseSelector.Read(
+            context, methodDeclaration, response, cancellationToken);
 
         var model = Compose(
             nameModel,

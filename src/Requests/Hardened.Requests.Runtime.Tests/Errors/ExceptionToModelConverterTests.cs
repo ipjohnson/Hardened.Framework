@@ -2,6 +2,7 @@ using System.Text.Json;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Errors;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Validation;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
@@ -21,12 +22,24 @@ public class ExceptionToModelConverterTests {
     /// Carries a real header dictionary, because an exception that names its own status may also
     /// name headers to send with it.
     /// </summary>
-    private static IExecutionContext Context() {
+    /// <param name="validationErrorStatus">
+    /// The status the operation's contract declared for validation failures, or null for an
+    /// operation that declared none.
+    /// </param>
+    private static IExecutionContext Context(int? validationErrorStatus = null) {
         var response = Substitute.For<IExecutionResponse>();
         response.Headers.Returns(new Dictionary<string, StringValues>());
 
         var context = Substitute.For<IExecutionContext>();
         context.Response.Returns(response);
+
+        if (validationErrorStatus != null) {
+            // The type the pipeline carries, rather than a substitute: ValidationErrorStatus is a
+            // default interface member, and a stub for it would prove the stub works.
+            context.HandlerInfo.Returns(new ExecutionRequestHandlerInfo(
+                "/events", "POST", typeof(ExceptionToModelConverterTests), "Handle",
+                validationErrorStatus: validationErrorStatus));
+        }
 
         return context;
     }
@@ -408,6 +421,104 @@ public class ExceptionToModelConverterTests {
 
         Assert.Equal(400, status);
         Assert.IsType<RequestValidationError>(model);
+    }
+
+    #endregion
+
+    #region the declared validation status
+
+    /// <summary>
+    /// An operation whose contract declares 422 for validation answers 422 from the deserializer,
+    /// not only from the filter.
+    /// </summary>
+    /// <remarks>
+    /// Two spec-first trial arms declared 422 and were answered 400 for an undeclared enum value,
+    /// because this branch hardcoded the status the validation branch above it looks up. Which
+    /// layer caught the value is not something a caller can see, so it cannot be something the
+    /// status depends on - and the 400 it answered was absent from the document the operation
+    /// published.
+    /// </remarks>
+    [Fact]
+    public void AnUndeclaredEnumValueAnswersTheDeclaredValidationStatus() {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(validationErrorStatus: 422),
+            new JsonException("'cooking' is not a value Genre declares."));
+
+        Assert.Equal(422, status);
+        Assert.IsType<RequestValidationError>(model);
+    }
+
+    /// <summary>
+    /// Malformed JSON is the same refusal from the same layer, so it answers the same status.
+    /// </summary>
+    [Fact]
+    public void MalformedJsonAnswersTheDeclaredValidationStatus() {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(validationErrorStatus: 422), ThrownReading("{\"genre\":5}", "$.genre"));
+
+        Assert.Equal(422, status);
+        Assert.Equal("body.genre", Assert.Single(
+            Assert.IsType<RequestValidationError>(model).Errors).Field);
+    }
+
+    /// <summary>
+    /// So does an omitted required member, which the deserializer refuses on the validator's behalf
+    /// and this converter already answers in the validator's own shape.
+    /// </summary>
+    [Fact]
+    public void AMissingRequiredMemberAnswersTheDeclaredValidationStatus() {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(validationErrorStatus: 422),
+            new JsonException(
+                "JSON deserialization for type 'CreateEvent' was missing required properties: 'genre'."));
+
+        Assert.Equal(422, status);
+        Assert.Equal("required", Assert.Single(
+            Assert.IsType<RequestValidationError>(model).Errors).Code);
+    }
+
+    /// <summary>
+    /// Both routes to a refused body agree, which is the whole point: one operation, one validation
+    /// status.
+    /// </summary>
+    [Fact]
+    public void AConstraintFailureAndAnUnreadableBodyAnswerTheSameStatus() {
+        var context = Context(validationErrorStatus: 422);
+
+        var (fromFilter, _) = Converter.ConvertExceptionToModel(
+            context,
+            new ValidationException(ValidationModules.ValidationResult.FromErrors(new[] {
+                new ValidationModules.ValidationError("body.name", "required", "name is required"),
+            })));
+
+        var (fromDeserializer, _) = Converter.ConvertExceptionToModel(
+            context, new JsonException("'cooking' is not a value Genre declares."));
+
+        Assert.Equal(fromFilter, fromDeserializer);
+    }
+
+    /// <summary>
+    /// An operation that declared nothing still answers the stock 400, which is what every
+    /// code-first handler does.
+    /// </summary>
+    [Fact]
+    public void AnUnreadableBodyStillAnswers400WhereNothingDeclaredAStatus() {
+        var (status, _) = Converter.ConvertExceptionToModel(
+            Context(), new JsonException("'cooking' is not a value Genre declares."));
+
+        Assert.Equal(400, status);
+    }
+
+    /// <summary>
+    /// The declared status is for validation, not for everything the operation can fail at. A
+    /// server fault on an operation declaring 422 is still a 500.
+    /// </summary>
+    [Fact]
+    public void TheDeclaredValidationStatusDoesNotMoveAnUnrelatedFailure() {
+        var (status, _) = Converter.ConvertExceptionToModel(
+            Context(validationErrorStatus: 422), new InvalidOperationException("disk on fire"));
+
+        Assert.Equal(500, status);
     }
 
     #endregion

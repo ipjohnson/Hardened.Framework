@@ -95,9 +95,20 @@ public interface IExecutionRequestHandlerInfo {
     /// The status a validation failure answers with, or null for the stock 400.
     /// </summary>
     /// <remarks>
-    /// Set only from a described operation declaring 422. A contract that publishes a 422 for its
-    /// validation error is a promise the converter has to keep; a hand-written handler has no
-    /// source of truth behind such an assertion, which is why no attribute carries this.
+    /// <para>
+    /// Set from a described operation declaring 422, and from a hand-written handler carrying
+    /// <c>[Throws&lt;RequestValidationError&gt;(422)]</c>. A contract that publishes a 422 for its
+    /// validation error is a promise the converter has to keep, and that attribute is how a
+    /// code-first handler publishes the same one - so the status is derived from the declaration
+    /// the document already reads rather than asserted a second time on a verb attribute, which is
+    /// what those attributes dropped it for.
+    /// </para>
+    /// <para>
+    /// Every refusal that answers the validation envelope, not only the ones a generated filter
+    /// raises: an undeclared enum value and malformed JSON are caught inside deserialization and
+    /// answer this too. Which layer caught the value is not visible to the caller, so it cannot
+    /// decide the status.
+    /// </para>
     /// </remarks>
     int? ValidationErrorStatus => null;
 
