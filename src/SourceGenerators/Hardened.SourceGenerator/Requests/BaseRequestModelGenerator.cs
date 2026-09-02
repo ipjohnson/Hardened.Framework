@@ -452,7 +452,62 @@ public abstract class BaseRequestModelGenerator {
                 ParameterBindType.Path,parameterIndex);
         }
 
-        return CreateRequestParameterInformation(parameter, parameterType, ParameterBindType.Body,parameterIndex);
+        return CreateRequestParameterInformation(
+            parameter, parameterType, ParameterBindType.Body, parameterIndex,
+            constructorRequiresServices: ConstructorRequiresServices(generatorSyntaxContext, parameter));
+    }
+
+    /// <summary>
+    /// Whether the type has public constructors and every one of them takes an interface.
+    /// </summary>
+    /// <remarks>
+    /// Asked only of a parameter that has fallen to the body, and answered from the semantic model
+    /// because the syntax alone cannot say what a name resolves to. The rule is narrow on purpose:
+    /// the deserializer cannot construct an interface, so a type whose every constructor demands
+    /// one can never be read from a request body, whatever the author intended. A body model with
+    /// a parameterless constructor, and an immutable one whose constructor takes its own data, both
+    /// fail the test and are left alone.
+    /// </remarks>
+    private static bool ConstructorRequiresServices(
+        GeneratorSyntaxContext generatorSyntaxContext,
+        ParameterSyntax parameter) {
+        if (parameter.Type == null) {
+            return false;
+        }
+
+        if (generatorSyntaxContext.SemanticModel.GetTypeInfo(parameter.Type).Type
+            is not INamedTypeSymbol type) {
+            return false;
+        }
+
+        if (type.TypeKind != TypeKind.Class || type.IsAbstract || type.IsRecord) {
+            return false;
+        }
+
+        var constructors = 0;
+
+        foreach (var constructor in type.InstanceConstructors) {
+            if (constructor.DeclaredAccessibility != Accessibility.Public) {
+                continue;
+            }
+
+            constructors++;
+
+            var takesService = false;
+
+            foreach (var constructorParameter in constructor.Parameters) {
+                if (constructorParameter.Type.TypeKind == TypeKind.Interface) {
+                    takesService = true;
+                    break;
+                }
+            }
+
+            if (!takesService) {
+                return false;
+            }
+        }
+
+        return constructors > 0;
     }
 
     public static RequestParameterInformation CreateRequestParameterInformation(
@@ -462,7 +517,8 @@ public abstract class BaseRequestModelGenerator {
         int parameterIndex,
         bool? required = null,
         string? bindingName = null,
-        AttributeModel? customAttribute = null) {
+        AttributeModel? customAttribute = null,
+        bool constructorRequiresServices = false) {
         if (!parameterType.IsNullable && parameter.ToFullString().Contains("?")) {
             parameterType = parameterType.MakeNullable();
         }
@@ -481,7 +537,8 @@ public abstract class BaseRequestModelGenerator {
             parameterBindType,
             bindingName ?? string.Empty,
             parameterIndex,
-            customAttribute);
+            customAttribute,
+            constructorRequiresServices);
     }
 
     protected abstract RequestParameterInformation? GetParameterInfoFromAttributes(
