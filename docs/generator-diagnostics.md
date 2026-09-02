@@ -115,6 +115,7 @@ the other.
 | `017` | `SourceUrl` without `EmbedDocument`, so there is no source to serve. |
 | `020`–`025` | The shared model-diagnostics pass. See below. |
 | `026` | Warning. `$(HardenedResponseModel)` is `Standard`, the throws mode's name before 0.19.0. The mode selected is unchanged; write `Throws`. Reported once per project. |
+| `027` | The description references something it does not declare. Part of the model-diagnostics pass; see below. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 
@@ -140,6 +141,34 @@ generated file.
 | `023` | An `enum` declaring both string and numeric values, which no C# enum can carry. Declare one kind. |
 | `024` | Warning. A declared keyword or trait the generator does not enforce, named with a representative location. Remove it, or enforce the rule in the handler. |
 | `025` | Two error responses on one operation share one status, which would generate the same case type twice. Give them distinct statuses or merge the shapes. |
+| `027` | A reference to something the description does not declare. |
+
+#### 027 — a reference to something the description does not declare
+
+```
+'GET /events (200)' references '#/components/schemas/DoesNotExist', which the description
+does not declare. Nothing is generated for it, so the member it types would be absent and a
+response body would be dropped. Declare the schema, or point the reference at one that exists.
+```
+
+Fatal, unlike everything else in the block, because there is no answer to fall back on. A dangling
+`$ref` in a response degraded the success case to a bodyless one, so a handler written against the
+generated interface compiled and answered 200 with an empty body; the only errors were CS0246s a
+hop away in application code that happened to name the missing model.
+
+One report per place the reference is made — a document referencing a schema it dropped usually
+does so from several, and each is a separate edit. The operation's flat response fields mirror its
+primary success, so those count as one place rather than two.
+
+Under `HSMT` this covers a target the model references and does not declare: an operation a service
+binds, an operation's input or output, a member's target, and an error shape bound to an operation.
+The Smithy CLI refuses all of these before the parser sees them, so only a committed AST reaches it.
+
+**What it does not catch.** A `$ref` on a schema property is resolved by the reader before this
+parser sees it, and an unresolvable one is discarded there — the property arrives with no reference,
+no type and no shape, and becomes `JsonElement`. Nothing in the object model records that the
+reference was ever made, and the reader reports nothing either. Catching that needs the raw
+document rather than the object model.
 
 ### Renumbered in 0.18
 
