@@ -126,7 +126,7 @@ unmeasured rather than untested.
 ## Releasing
 
 A `v*` tag drives `release.yaml`, and the tag is the source of truth for the version. The current
-line is `0.15.0-rc1000`; there was no 0.7.0. Do not describe versions as `1.0.0-*`.
+line is `0.17.0-rc1000`; there was no 0.7.0. Do not describe versions as `1.0.0-*`.
 
 **The pack list in `release.yaml` is hand-maintained and has drifted four times.** A new packable
 project has to be added to it *and* to `EXPECTED`, which is a literal on purpose. Adding it to the
