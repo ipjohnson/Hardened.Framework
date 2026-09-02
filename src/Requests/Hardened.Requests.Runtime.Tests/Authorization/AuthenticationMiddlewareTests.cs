@@ -1,7 +1,9 @@
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Authorization;
+using Hardened.Requests.Runtime.DependencyInjection;
 using Hardened.Requests.Runtime.Tests.Support;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
 
@@ -95,4 +97,79 @@ public class AuthenticationMiddlewareTests {
 
         Assert.Equal("one", seen?.Subject);
     }
+
+    #region the caller, on the request scope
+
+    /// <summary>
+    /// A context whose services are an application's - the request module's own registrations,
+    /// which is what puts the holder there.
+    /// </summary>
+    private static IExecutionContext ApplicationContext() =>
+        Pipeline.Context(
+            configureServices: services => new HardenedRequestModule().ConfigureServices(services));
+
+    private static ICallerPrincipal Resolved(IExecutionContext context) =>
+        context.RequestServices.GetRequiredService<ICurrentCaller>().Principal;
+
+    /// <summary>
+    /// H-03. A specification-first handler implements a generated interface, so it cannot take
+    /// <c>IExecutionContext</c> as a parameter and had no way to read the caller at all. The
+    /// middleware puts the answer on the request scope as well as on the context, which is what
+    /// makes <see cref="ICurrentCaller"/> resolvable in one.
+    /// </summary>
+    [Fact]
+    public async Task TheEstablishedCallerIsPutOnTheRequestScope() {
+        var context = ApplicationContext();
+
+        await new AuthenticationMiddleware([Source(new CallerPrincipal("test", subject: "ada"))])
+            .Execute(Chain(context));
+
+        Assert.Equal("ada", Resolved(context).Subject);
+    }
+
+    /// <summary>
+    /// Written from the context rather than from the source's return value, so a request no source
+    /// answered for reads what the context holds - the anonymous principal, present rather than
+    /// null.
+    /// </summary>
+    [Fact]
+    public async Task ARequestNoSourceAnsweredForReadsTheAnonymousPrincipal() {
+        var context = ApplicationContext();
+
+        await new AuthenticationMiddleware([Source(null)]).Execute(Chain(context));
+
+        Assert.Same(AnonymousCallerPrincipal.Instance, Resolved(context));
+        Assert.False(Resolved(context).IsAuthenticated);
+    }
+
+    /// <summary>
+    /// One request's caller is not another's, which is the whole reason the holder is scoped.
+    /// </summary>
+    [Fact]
+    public async Task OneRequestsCallerDoesNotReachAnother() {
+        var authenticated = ApplicationContext();
+        var untouched = ApplicationContext();
+
+        await new AuthenticationMiddleware([Source(new CallerPrincipal("test", subject: "ada"))])
+            .Execute(Chain(authenticated));
+
+        Assert.Equal("ada", Resolved(authenticated).Subject);
+        Assert.Same(AnonymousCallerPrincipal.Instance, Resolved(untouched));
+    }
+
+    /// <summary>
+    /// Asked for rather than required: a host that composed this middleware without the request
+    /// module's registrations still has a caller to establish.
+    /// </summary>
+    [Fact]
+    public async Task AContextWithoutTheHolderStillAuthenticates() {
+        var context = Pipeline.Context();
+
+        await new AuthenticationMiddleware([Source(new CallerPrincipal("test", subject: "ada"))])
+            .Execute(Chain(context));
+
+        Assert.Equal("ada", context.CallerPrincipal.Subject);
+    }
+
+    #endregion
 }

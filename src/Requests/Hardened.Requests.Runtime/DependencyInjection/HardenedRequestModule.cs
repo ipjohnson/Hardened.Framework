@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Links;
@@ -44,6 +45,13 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         services.AddSingleton(
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
                 .GetConfiguration<IAuthorizationConfiguration>()));
+
+        // The caller, as a service a handler can take. Scoped rather than resolved from the
+        // context, because the container has no per-request instance of the context to build one
+        // from. Two registrations rather than one: the middleware fills the holder and everything
+        // else reads the interface, which is what keeps the setter off the contract.
+        services.AddScoped<CurrentCaller>();
+        services.AddScoped<ICurrentCaller>(provider => provider.GetRequiredService<CurrentCaller>());
 
         // Always installed. It costs one call per handler at startup and returns null for a handler
         // that carries no authorization attribute, so an application that has not opted in to

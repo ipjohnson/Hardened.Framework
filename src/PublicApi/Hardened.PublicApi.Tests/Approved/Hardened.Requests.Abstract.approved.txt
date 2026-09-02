@@ -202,6 +202,10 @@ namespace Hardened.Requests.Abstract.Authorization
         string? Subject { get; }
         bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value);
     }
+    public interface ICurrentCaller
+    {
+        Hardened.Requests.Abstract.Authorization.ICallerPrincipal Principal { get; }
+    }
     public interface IPrincipalSource
     {
         System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.ICallerPrincipal?> Authenticate(Hardened.Requests.Abstract.Execution.IExecutionContext context);
