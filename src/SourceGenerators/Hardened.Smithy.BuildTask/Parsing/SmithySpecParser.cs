@@ -200,8 +200,8 @@ internal static class SmithySpecParser {
 
         foreach (var operationId in Operations(context, service)) {
             if (!context.Ast.TryGetShape(operationId, out var operation)) {
-                context.Diagnostics.Add(
-                    $"service '{tag}' binds operation '{operationId}', which the model does not declare.");
+                Dangling(context, operationId, "service '" + tag + "' binds operation");
+
                 continue;
             }
 
@@ -525,8 +525,7 @@ internal static class SmithySpecParser {
         }
 
         if (!context.Ast.TryGetShape(inputId, out var input)) {
-            context.Diagnostics.Add(
-                $"operation '{operationName}' takes '{inputId}', which the model does not declare.");
+            Dangling(context, inputId, "operation '" + operationName + "' takes");
 
             return;
         }
@@ -674,8 +673,7 @@ internal static class SmithySpecParser {
         }
 
         if (!context.Ast.TryGetShape(outputId, out var output)) {
-            context.Diagnostics.Add(
-                $"operation '{operationName}' returns '{outputId}', which the model does not declare.");
+            Dangling(context, outputId, "operation '" + operationName + "' returns");
 
             return headers;
         }
@@ -804,6 +802,11 @@ internal static class SmithySpecParser {
         ParseContext context, JsonElement operation, OperationModel model, ProtocolBinding protocol) {
         foreach (var errorId in SmithyAst.TargetList(operation, "errors")) {
             if (!context.Ast.TryGetShape(errorId, out var error)) {
+                // Dropped in silence until now, which is the quietest of the four: the operation
+                // keeps its other errors, the generated interface simply never declares this one,
+                // and the status the model promised is answered by nothing.
+                Dangling(context, errorId, "operation '" + model.OperationId + "' declares error");
+
                 continue;
             }
 
@@ -1079,7 +1082,7 @@ internal static class SmithySpecParser {
         }
 
         if (!context.Ast.TryGetShape(target, out var shape)) {
-            context.Diagnostics.Add($"'{target}' is referenced but not declared; it becomes JsonElement.");
+            Dangling(context, target, "member");
 
             return;
         }
@@ -1384,6 +1387,26 @@ internal static class SmithySpecParser {
 
         return SmithyAst.Kind(shape) is "list" or "set" or "map";
     }
+
+    /// <summary>
+    /// Records a shape the model references and does not declare.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// These were warnings that named what the parser did instead - JsonElement for a member, a
+    /// dropped operation, an error the interface never declares. Every one of them is the shape
+    /// the OpenAPI front end's dangling <c>$ref</c> takes, and it is an error there: a reference
+    /// naming nothing is not a degrade the author chose, it is a model that says one thing and
+    /// generates another.
+    /// </para>
+    /// <para>
+    /// The CLI refuses an undeclared target before this parser ever sees it, so a model built from
+    /// sources cannot reach here. A committed AST can, which is exactly the case with no other
+    /// check in front of it.
+    /// </para>
+    /// </remarks>
+    private static void Dangling(ParseContext context, string target, string where) =>
+        context.Model.DanglingReferences.Add(new DanglingReferenceModel(target, where));
 
     /// <summary>Records every trait a shape carries, for the report at the end.</summary>
     private static void Note(ParseContext context, JsonElement shape) {

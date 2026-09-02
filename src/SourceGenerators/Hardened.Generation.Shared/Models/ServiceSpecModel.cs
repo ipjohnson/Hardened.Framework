@@ -117,6 +117,18 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// </remarks>
     public List<UnmappedKeywordModel> UnmappedKeywords { get; set; } = new();
 
+    /// <summary>
+    /// References the description makes to schemas it never declares, in the order they were met.
+    /// </summary>
+    /// <remarks>
+    /// Filled by the parser and read by <c>SpecDiagnostics</c>, on the same terms as
+    /// <see cref="UnmappedKeywords"/>: the reference is cleared before anything is named, so this
+    /// is the only record that it was ever made. Not serialized and absent from
+    /// <see cref="Equals(ServiceSpecModel?)"/> - the build stops on one of these, so no model
+    /// carrying any is ever read back.
+    /// </remarks>
+    public List<DanglingReferenceModel> DanglingReferences { get; set; } = new();
+
     public bool Equals(ServiceSpecModel? other) {
         if (other is not null && ContentNegotiation != other.ContentNegotiation) return false;
         if (other is not null && ResponseModel != other.ResponseModel) return false;

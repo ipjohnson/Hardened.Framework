@@ -14,7 +14,7 @@ namespace Hardened.Idl;
 /// with a message that never mentions the document that caused it.
 /// </para>
 /// <para>
-/// Codes are the front end's prefix plus 020-025, one number per finder. The prefix is a
+/// Codes are the front end's prefix plus 020-025 and 027, one number per finder. The prefix is a
 /// parameter because this pass runs for every front end and a finding belongs to the document
 /// that caused it: a Smithy model's mixed enum reported as HOAT anything sends its author to the
 /// OpenAPI documentation. 020 up is this pass's block; everything below it belongs to the task
@@ -192,9 +192,38 @@ internal static class SpecDiagnostics {
     /// </summary>
     internal const string MixedEnumType = "mixed-enum";
 
+    /// <summary>
+    /// References the description makes to something it never declares.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Fatal, unlike everything else in the 020 block that resolves to a workable answer. There is
+    /// no answer here: a dangling reference in a response degraded the success case to a bodyless
+    /// one, so a handler written against the generated interface compiled and answered 200 with an
+    /// empty body. The only errors were CS0246s a hop away in application code that happened to
+    /// name the missing model, or nothing at all.
+    /// </para>
+    /// <para>
+    /// One report per reference rather than per name: a document referencing a schema it dropped
+    /// usually does so from several places, and each is a separate edit.
+    /// </para>
+    /// </remarks>
+    private static void FindDanglingReferences(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
+        foreach (var dangling in model.DanglingReferences) {
+            problems.Add(new Problem(
+                prefix + "027",
+                $"'{dangling.Location}' references '{dangling.Reference}', which the description " +
+                "does not declare. Nothing is generated for it, so the member it types would be " +
+                "absent and a response body would be dropped. Declare the schema, or point the " +
+                "reference at one that exists."));
+        }
+    }
+
     public static IReadOnlyList<Problem> Find(ServiceSpecModel model, string diagnosticPrefix) {
         var problems = new List<Problem>();
 
+        FindDanglingReferences(model, diagnosticPrefix, problems);
         FindDuplicateSchemaNames(model, diagnosticPrefix, problems);
         FindUnresolvableChoices(model, diagnosticPrefix, problems);
         FindMixedEnums(model, diagnosticPrefix, problems);
