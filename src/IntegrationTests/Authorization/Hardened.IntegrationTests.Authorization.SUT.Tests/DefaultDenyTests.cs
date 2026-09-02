@@ -1,3 +1,4 @@
+using Hardened.IntegrationTests.Authorization.SUT;
 using Hardened.Requests.Testing;
 
 namespace Hardened.IntegrationTests.Authorization.SUT.Tests;
@@ -130,6 +131,50 @@ public class DefaultDenyTests {
 
         response.Assert.Ok();
     }
+
+    #endregion
+
+    #region the typed source
+
+    /// <summary>
+    /// CS-01 and SU-04, end to end. <c>ApiKeyPrincipalSource</c> implements only
+    /// <c>IPrincipalSource&lt;ApiKeyScheme&gt;</c> and carries the plain <c>[SingletonService]</c>,
+    /// so the generated registration names the closed generic and nothing else. Nothing but a real
+    /// application can show that such a source reaches the middleware: the whole failure was that
+    /// it was registered, resolvable, and never asked.
+    /// </summary>
+    [HardenedTest]
+    public async Task ATypedSourceAuthenticatesARealRequest(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/guarded/implicit", WithApiKey());
+
+        response.Assert.Ok();
+    }
+
+    /// <summary>
+    /// And the principal it built is the one authorization judges, grants included.
+    /// </summary>
+    [HardenedTest]
+    public async Task ATypedSourcesGrantsAreTheOnesJudged(ITestWebApp testWebApp) {
+        var admitted = await testWebApp.Get("/guarded/pets", WithApiKey());
+        var refused = await testWebApp.Get("/guarded/pets-manage", WithApiKey());
+
+        admitted.Assert.Ok();
+        refused.Assert.Forbidden();
+    }
+
+    /// <summary>
+    /// The two forms are one ordered list. A typed source that declines leaves the request to the
+    /// plain source registered beside it, rather than ending it.
+    /// </summary>
+    [HardenedTest]
+    public async Task ATypedSourceDecliningFallsThroughToThePlainOne(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/guarded/implicit", Authenticated());
+
+        response.Assert.Ok();
+    }
+
+    private static Action<TestWebRequest> WithApiKey() =>
+        request => request.Headers[ApiKeyPrincipalSource.KeyHeader] = ApiKeyPrincipalSource.KnownKey;
 
     #endregion
 }
