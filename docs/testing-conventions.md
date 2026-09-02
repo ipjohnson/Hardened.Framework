@@ -170,7 +170,35 @@ Every test project is already created and registered in the solution. If you fin
 editing them conflict. `coverage-baseline.json` is the one shared file you are expected to touch,
 and only to raise your own assembly's floor.
 
-## 12. xunit version
+## 12. Moving time
+
+`HardenedCoreModule` registers `TimeProvider.System`, so an application takes `TimeProvider` and a
+test substitutes it:
+
+```csharp
+[Get("/holds/{id}")]
+public Hold? Get([FromServices] TimeProvider timeProvider, string id) =>
+    _store.Get(id) is { } hold && hold.ExpiresAt > timeProvider.GetUtcNow() ? hold : null;
+```
+
+```csharp
+[HardenedTest]
+public async Task AHoldExpires(ITestWebApp app, [Mock] TimeProvider timeProvider) {
+    timeProvider.GetUtcNow().Returns(DateTimeOffset.UtcNow.AddHours(1));
+
+    (await app.Get($"/holds/{id}")).Assert.NotFound();
+}
+```
+
+`[FromServices]` rather than a bare parameter: `TimeProvider` is an abstract class, and the
+convention that resolves a parameter from the container reads interfaces — a concrete type falls
+through to the body branch.
+
+Registered with `TryAdd`, so an application that registers its own keeps it. Nothing in the
+framework reads time through it; it is registered because every application needs a clock and none
+should have to write one — three trial arms wrote the same ten lines independently.
+
+## 13. xunit version
 
 New test projects use **xunit.v3**.
 
