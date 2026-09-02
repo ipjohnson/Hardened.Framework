@@ -96,9 +96,12 @@ public interface IExecutionRequestHandlerInfo {
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Set only from a described operation declaring 422. A contract that publishes a 422 for its
-    /// validation error is a promise the converter has to keep; a hand-written handler has no
-    /// source of truth behind such an assertion, which is why no attribute carries this.
+    /// Set from a described operation declaring 422, and from a hand-written handler carrying
+    /// <c>[Throws&lt;RequestValidationError&gt;(422)]</c>. A contract that publishes a 422 for its
+    /// validation error is a promise the converter has to keep, and that attribute is how a
+    /// code-first handler publishes the same one - so the status is derived from the declaration
+    /// the document already reads rather than asserted a second time on a verb attribute, which is
+    /// what those attributes dropped it for.
     /// </para>
     /// <para>
     /// Every refusal that answers the validation envelope, not only the ones a generated filter
