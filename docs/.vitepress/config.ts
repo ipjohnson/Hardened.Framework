@@ -86,6 +86,7 @@ export default defineConfig({
           items: [
             { text: 'Routing', link: '/guide/routing' },
             { text: 'Parameter binding', link: '/guide/parameter-binding' },
+            { text: 'Validation', link: '/guide/validation' },
             { text: 'Authorization', link: '/guide/authorization' },
             { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
             { text: 'Generating from OpenAPI', link: '/guide/openapi' },

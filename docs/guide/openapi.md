@@ -168,7 +168,8 @@ Three things in that interface come from the document rather than from a choice:
 
 Both the interface and the records are `partial`, so a project adds members to either without
 editing generated files. Alongside them the build emits a handler per operation, the routing table,
-and a validation filter that checks the schema's constraints before your code runs.
+and a validation filter that checks the schema's constraints before your code runs. What the
+filter enforces and how a failure answers is [Validation](/guide/validation).
 
 ## The implementation
 
