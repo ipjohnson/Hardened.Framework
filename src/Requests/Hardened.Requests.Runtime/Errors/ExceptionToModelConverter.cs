@@ -64,8 +64,15 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         // this one answered 500, which told a client its own typo was a server fault. Shaped as a
         // validation error rather than an ErrorModel so one malformed field reads the same however
         // it was caught.
+        //
+        // Under the operation's declared validation status for that same reason. An operation
+        // declaring 422 answered 422 from its filter and 400 from its deserializer - one refusal
+        // split across two statuses by which layer happened to catch the value, and the 400 was
+        // absent from the document the operation published.
         if (exp is JsonException jsonException) {
-            return (400, BodyReadError(jsonException, BodyField(context)));
+            return (
+                context.HandlerInfo?.ValidationErrorStatus ?? 400,
+                BodyReadError(jsonException, BodyField(context)));
         }
 
         // Client errors are identified by type, not by the shape of the type's name.
