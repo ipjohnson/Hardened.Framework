@@ -72,6 +72,50 @@ public static class ValidationGeneratorDiagnostics {
         isEnabledByDefault: true);
 
     /// <summary>
+    /// A property whose type carries constraints that nothing will run.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A generated validator descends into a member only where <c>[ValidateNested]</c> says to.
+    /// Omit it and every constraint on the child type stops running: the trial's price tiers stored
+    /// as 201 with an empty code and a negative price, from a model whose constraints were all
+    /// declared and all correct. Nothing at build time and nothing at run time said so.
+    /// </para>
+    /// <para>
+    /// <b>A warning rather than an error</b>, because not descending is a legitimate choice - a
+    /// member validated by a later step, a shared type whose constraints belong to another
+    /// operation. The <c>NoWarn</c> is what makes that choice deliberate rather than silent.
+    /// </para>
+    /// <para>
+    /// Reported against the parent's property rather than the child's constraints, because that is
+    /// where the one-word fix goes. The child type is named too: the constraints that go unrun are
+    /// not visible from the line the diagnostic sits on.
+    /// </para>
+    /// </remarks>
+    public static readonly DiagnosticDescriptor UnreachableNestedConstraintsDescriptor = new(
+        "HRDV004",
+        "Nested constraints are never reached",
+        "'{0}.{1}' does not declare [ValidateNested] and its {2} type '{3}' declares constraints, " +
+        "so none of them run and an invalid '{3}' is accepted with no error. Add [ValidateNested] " +
+        "to the property, or set <NoWarn>$(NoWarn);HRDV004</NoWarn> if the skip is intended.",
+        "Hardened.Validation",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    /// <summary>
+    /// Reports <see cref="UnreachableNestedConstraintsDescriptor"/> against the parent's property.
+    /// </summary>
+    public static Diagnostic UnreachableNestedConstraints(
+        INamedTypeSymbol owner, IPropertySymbol property, ITypeSymbol nested, bool isElement) =>
+        Diagnostic.Create(
+            UnreachableNestedConstraintsDescriptor,
+            property.Locations.Length > 0 ? property.Locations[0] : Location.None,
+            owner.Name,
+            property.Name,
+            isElement ? "element" : "member",
+            nested.Name);
+
+    /// <summary>
     /// Reports <see cref="RequiredValueTypeCannotBeMissedDescriptor"/> against the member.
     /// </summary>
     /// <remarks>

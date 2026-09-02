@@ -80,6 +80,36 @@ framework's own `AspNetCoreRuntime` is one.
 
 One report per assembly, not one per route: there is a single thing to fix.
 
+## Validation
+
+### HRDV004 — nested constraints are never reached
+
+A generated validator descends into a member only where `[ValidateNested]` says to, so omitting it
+switches off every constraint on the child type. Nothing said so at build time or at run time: the
+trial's price tiers stored as 201 with an empty code and a negative price, from a model whose
+constraints were all declared and all correct.
+
+```
+'CreateEvent.PriceTiers' does not declare [ValidateNested] and its element type 'PriceTier'
+declares constraints, so none of them run and an invalid 'PriceTier' is accepted with no
+error. Add [ValidateNested] to the property, or set <NoWarn>$(NoWarn);HRDV004</NoWarn> if the
+skip is intended.
+```
+
+A warning rather than an error, because not descending is sometimes what was meant — a member
+validated by a later step, a shared type whose constraints belong to another operation. The
+`NoWarn` is what makes that choice deliberate rather than silent.
+
+Reported on a property of a type that constrains something itself, whose member, array element,
+collection element or dictionary value is a type declared in the same compilation carrying
+constraints in either vocabulary. A type that constrains nothing is not a model this generator
+validates — a data seed holding a list of records, a response case wrapping a body — and its
+validator was never going to descend anywhere.
+
+Descending by default is the better answer and is on the table for 1.0. It cannot be the answer in
+a 0.x release: it changes what an existing application answers, from 201 to 400, on payloads it
+accepts today.
+
 ## Other diagnostics
 
 | Id | Meaning |
@@ -88,7 +118,7 @@ One report per assembly, not one per route: there is a single thing to fix.
 | `HOAG002` | The description could not be parsed; the build task's message is passed through. |
 | `HOAG010` | A handler was skipped because a parameter type did not resolve. Other handlers are unaffected. |
 | `HOAG020` | An operation declares a markup content type but names no view to render it. |
-| `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. `HRDR006` is above. |
+| `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. The ones with an entry have a section above. |
 
 ## Description build tasks (HOAT, HSMT)
 
