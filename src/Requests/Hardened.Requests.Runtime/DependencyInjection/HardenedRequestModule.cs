@@ -59,8 +59,10 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         services.AddSingleton<IStartupService, AuthorizationStartupService>();
 
         // Same footing: one resolve at startup, and no middleware at all unless something
-        // registered an IPrincipalSource.
-        services.AddSingleton<IStartupService, AuthenticationStartupService>();
+        // registered an IPrincipalSource. Constructed over this collection rather than resolved
+        // from the provider, because a source registered as IPrincipalSource<TScheme> is reachable
+        // only by its closed service type and a built provider cannot be asked what those are.
+        services.AddSingleton<IStartupService>(new AuthenticationStartupService(services));
     }
 
     /// <summary>
