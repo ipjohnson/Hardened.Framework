@@ -53,7 +53,7 @@ public class SpecSourceGenerator : IIncrementalGenerator {
         // would compile the routes if it did.
         context.RegisterPostInitializationOutput(static production => production.AddSource(
             "Hardened.Web.Marker.g.cs",
-            GeneratedSource.Header(RoutingGeneratorPresence.MarkerSource)));
+            GeneratedSource.Header(RoutingGeneratorMarker.Source)));
 
         // Read the models the build task wrote, keeping both successes and errors for diagnostics
         var parseResults = context.AdditionalTextsProvider

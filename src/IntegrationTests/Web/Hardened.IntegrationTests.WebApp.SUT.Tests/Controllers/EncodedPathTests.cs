@@ -50,6 +50,16 @@ public class EncodedPathTests {
         Assert.Equal("a%2Fb", await Token(app, "a%2Fb"));
     }
 
+    /// <summary>
+    /// In either case. An escape is hex, and hex is case-insensitive - Kestrel decodes
+    /// <c>%c3%a9</c> and leaves <c>%2f</c>, exactly as it does the capitals.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheCaseOfAnEscapeDoesNotMatter(ITestWebApp app) {
+        Assert.Equal("a%2fb", await Token(app, "a%2fb"));
+        Assert.Equal("café", await Token(app, "caf%c3%a9"));
+    }
+
     /// <summary>A plus is a plus in a path. Only a query string reads one as a space.</summary>
     [HardenedTest]
     public async Task APlusIsNotASpace(ITestWebApp app) {
@@ -60,5 +70,23 @@ public class EncodedPathTests {
     [HardenedTest]
     public async Task SomethingThatIsNotAnEscapeIsLeftAlone(ITestWebApp app) {
         Assert.Equal("a%zz", await Token(app, "a%zz"));
+    }
+
+    /// <summary>
+    /// And neither is an escape that runs out of path before it has two digits.
+    /// </summary>
+    /// <summary>
+    /// Nor are two characters that sit outside hex on the other side of it.
+    /// </summary>
+    [HardenedTest]
+    public async Task DigitsBelowHexAreNotAnEscapeEither(ITestWebApp app) {
+        Assert.Equal("a%-1b", await Token(app, "a%-1b"));
+        Assert.Equal("a%G0b", await Token(app, "a%G0b"));
+    }
+
+    [HardenedTest]
+    public async Task AnEscapeWithNothingAfterItIsLeftAlone(ITestWebApp app) {
+        Assert.Equal("a%", await Token(app, "a%"));
+        Assert.Equal("a%2", await Token(app, "a%2"));
     }
 }

@@ -47,7 +47,7 @@ public class LibrarySourceGenerator : IIncrementalGenerator {
         IncrementalGeneratorInitializationContext context) {
         IncrementalValueProvider<ImmutableArray<string>>? routes = null;
 
-        foreach (var attribute in RoutingGeneratorPresence.VerbAttributes) {
+        foreach (var attribute in MissingRoutingGenerator.VerbAttributes) {
             var declared = context.SyntaxProvider.ForAttributeWithMetadataName(
                     attribute,
                     static (node, _) => node is Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,
@@ -68,7 +68,7 @@ public class LibrarySourceGenerator : IIncrementalGenerator {
 
         context.RegisterSourceOutput(
             context.CompilationProvider.Combine(routes.Value),
-            static (production, pair) => RoutingGeneratorPresence.Report(
+            static (production, pair) => MissingRoutingGenerator.Report(
                 production, pair.Left, pair.Right.Distinct().OrderBy(name => name).ToArray()));
     }
 }

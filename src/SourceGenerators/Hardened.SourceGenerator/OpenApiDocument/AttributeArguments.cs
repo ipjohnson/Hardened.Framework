@@ -1,13 +1,18 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Hardened.SourceGenerator.Shared;
+namespace Hardened.SourceGenerator.OpenApiDocument;
 
 /// <summary>
 /// The positional arguments of an attribute, read back out of the source text
 /// <see cref="AttributeModel.Arguments"/> holds.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Beside its only caller rather than in the shared folder. Five generator assemblies link that
+/// folder in, and a reader of attribute arguments compiled into the four that never call one is
+/// dead weight in each of them.
+/// </para>
 /// <para>
 /// The model joins arguments with ", " and keeps each one as it was written, quotes included - so
 /// reading them back is splitting on the commas that separate arguments and no others.
