@@ -65,15 +65,19 @@ internal static class SmithyPrelude {
             case "smithy.api#PrimitiveDouble":
                 type = "number"; format = "double"; return true;
 
-            // Neither has a C# type that both holds every value and survives the JSON type-info
-            // emitter - see the decimal note on TypeMapper. Mapped to the widest thing that does,
-            // and reported, because silently narrowing a value the model calls valid is the failure
+            // Neither has a C# type that holds every value the model calls valid, so both are
+            // mapped to the closest one that does and reported - silently narrowing is the failure
             // worth naming.
             case "smithy.api#BigInteger":
                 type = "integer"; format = "int64"; return true;
 
+            // decimal rather than double. Both narrow, and they narrow differently: double loses
+            // the value's exactness at any magnitude, so 19.99 is not 19.99 and money stops
+            // adding up, while decimal is exact and runs out at 28 significant digits. A model
+            // reaching for BigDecimal has almost always reached for exactness rather than for
+            // range, and that is the half decimal keeps.
             case "smithy.api#BigDecimal":
-                type = "number"; format = "double"; return true;
+                type = "number"; format = "decimal"; return true;
 
             // RFC 3339 by default, which is what DateTimeOffset holds. @timestampFormat can say
             // otherwise and is read by the parser, not here.
@@ -93,6 +97,23 @@ internal static class SmithyPrelude {
     /// <summary>Whether the shape loses precision on the way to C#, for a diagnostic.</summary>
     internal static bool IsLossy(string shapeId) =>
         shapeId is "smithy.api#BigInteger" or "smithy.api#BigDecimal";
+
+    /// <summary>
+    /// What the narrowing costs, for the message. Null where the shape narrows nothing.
+    /// </summary>
+    /// <remarks>
+    /// Names the C# type and the limit rather than saying "no exact type", because the two shapes
+    /// lose different things and an author's next move differs: a BigDecimal that needed more than
+    /// 28 digits has nowhere to go, and one that needed exactness has arrived.
+    /// </remarks>
+    internal static string? LossDescription(string shapeId) => shapeId switch {
+        "smithy.api#BigInteger" =>
+            "becomes long, so a value outside 64 bits does not round-trip",
+        "smithy.api#BigDecimal" =>
+            "becomes decimal, which is exact but holds 28 significant digits rather than " +
+            "arbitrarily many",
+        _ => null
+    };
 
     /// <summary>Whether the id names a prelude shape at all.</summary>
     internal static bool IsPrelude(string shapeId) =>
