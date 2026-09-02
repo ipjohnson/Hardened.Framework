@@ -66,6 +66,10 @@ public class RouteTokenSyntaxTests {
     [Theory]
     [InlineData("/items/{id?}")]
     [InlineData("/items/{id=5}")]
+    [InlineData("/items/{id")]
+    [InlineData("/items/}")]
+    [InlineData("/items/{}")]
+    [InlineData("/items/{id}/parts/{id}")]
     public void AnUnsupportedTokenFormIsAnError(string route) {
         Assert.Equal(DiagnosticSeverity.Error, Reported(route).Severity);
     }
@@ -77,6 +81,8 @@ public class RouteTokenSyntaxTests {
     [Theory]
     [InlineData("/items/{id?}", "{id?}")]
     [InlineData("/items/{id=5}", "{id=5}")]
+    [InlineData("/items/{id", "{id")]
+    [InlineData("/items/{}", "{}")]
     public void TheMessageNamesTheTokenAsWritten(string route, string token) {
         Assert.Contains(token, Reported(route).GetMessage());
     }
@@ -132,4 +138,61 @@ public class RouteTokenSyntaxTests {
 
         Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("ItemController_ItemById"));
     }
+
+    #region a template that is not well formed
+
+    /// <summary>
+    /// CS-12. <c>[Get("/{eventId")]</c> built with zero warnings: the unclosed token was matched as
+    /// literal text, so the route answered nothing anybody sent, and the parameter it was written
+    /// to bind was read from the request body instead.
+    /// </summary>
+    [Fact]
+    public void AnUnclosedTokenSaysWhatItCostsAndHowToFixIt() {
+        var message = Reported("/items/{id").GetMessage();
+
+        Assert.Contains("no partner", message);
+        Assert.Contains("literal text", message);
+    }
+
+    /// <summary>
+    /// A closing brace with no opening one is the same mistake seen from the other end.
+    /// </summary>
+    [Fact]
+    public void AStrayClosingBraceIsReported() {
+        Assert.Equal(DiagnosticSeverity.Error, Reported("/items/}").Severity);
+    }
+
+    /// <summary>
+    /// A token with no name is not a token. It binds nothing and matches one segment of anything.
+    /// </summary>
+    [Theory]
+    [InlineData("/items/{}")]
+    [InlineData("/items/{:int}")]
+    public void AnUnnamedTokenIsReported(string route) {
+        Assert.Contains("binds nothing", Reported(route).GetMessage());
+    }
+
+    /// <summary>
+    /// One name declared twice cannot bind one parameter twice, so only one of the two segments a
+    /// request sends ever reaches it.
+    /// </summary>
+    [Fact]
+    public void ANameDeclaredTwiceIsReported() {
+        var message = Reported("/items/{id}/parts/{id}").GetMessage();
+
+        Assert.Contains("declared twice", message);
+        Assert.Contains("distinct names", message);
+    }
+
+    /// <summary>
+    /// Two tokens that differ are not a duplicate, which is the ordinary shape of a nested route.
+    /// </summary>
+    [Fact]
+    public void TwoDistinctTokensAreNotADuplicate() {
+        Assert.DoesNotContain(
+            Generate("/items/{id}/parts/{partId}").GeneratorDiagnostics,
+            reported => reported.Id == DiagnosticId);
+    }
+
+    #endregion
 }

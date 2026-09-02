@@ -56,6 +56,47 @@ only when *no* entry matches a described service.
 
 ## Routing
 
+### HRDR002 — unsupported route token syntax
+
+A brace form the template accepts and Hardened does not compile, or a template that is not
+well formed at all. Both compile and route today, and neither does what it was written to do.
+
+| Written | What it actually means |
+|---|---|
+| `{id?}` | A mandatory segment named `id?`. The path it was meant to make optional does not match at all. |
+| `{id=5}` | A mandatory segment named `id=5`. Nothing binds to `id`; give the C# parameter the default. |
+| `{id:isbn}` | A constraint nothing declares. Declare it with `[RouteConstraint("isbn")]`, or drop it and let the parameter type refuse a bad value. |
+| `{id` | A brace with no partner. The rest is matched as literal text, so the route answers nothing anyone sends. |
+| `}` | The same, from the other end. |
+| `{}`, `{:int}` | A token with no name, which binds nothing. |
+| `{id}/x/{id}` | One name declared twice. Only one of the two segments a request sends could reach the parameter. |
+
+Every offending token in a route is reported, and the handler is still emitted — the routing table
+filters on unresolved parameters rather than on token syntax, so dropping it would bury this
+diagnostic under CS0246s.
+
+### HRDR005 — route token binds no parameter
+
+A token the template compiles that no parameter binds, beside a parameter that fell onto the
+request body because of it.
+
+```
+Route '/events/{eventid}' on 'EventController.Get' declares '{eventid}', which no parameter
+binds. 'eventId' differs from it only by case, so it is read from the request body instead.
+Route tokens bind by exact name: spell the token '{eventId}', or rename the parameter to
+'eventid'.
+```
+
+Both halves are required. A token that binds nothing is not a mistake on its own — one declared in
+a shared `[BasePath]` binds nothing on the handlers under it that do not need it. What makes it a
+defect is the parameter that went somewhere else because of it: onto a body a `GET`, `HEAD`,
+`OPTIONS` or `TRACE` does not carry, or — whatever the verb — onto a body when its name differs
+from the token only by case. `DELETE` is not treated as bodyless: HTTP permits a body on one and
+some APIs send it.
+
+A described parameter binds by the wire name its contract declares, not by the C# identifier
+allocated for it.
+
 ### HRDR006 — no routing generator is compiling this assembly's routes
 
 A module declaring routes with nothing turning them into a routing table. It compiled without a
