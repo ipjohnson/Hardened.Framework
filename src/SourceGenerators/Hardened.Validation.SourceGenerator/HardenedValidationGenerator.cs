@@ -180,8 +180,203 @@ public class HardenedValidationGenerator : IIncrementalGenerator {
         var diagnostics = frontEnd.Diagnostics.ToList();
 
         diagnostics.AddRange(RequiredValueTypesThatCannotBeMissed(symbol));
+        diagnostics.AddRange(UnreachableNestedConstraints(symbol, model));
 
         return new ModelResult(model, diagnostics.ToImmutableArray());
+    }
+
+    /// <summary>
+    /// Members whose type declares constraints that this type's validator will never reach.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The generated validator descends into a member only where <c>[ValidateNested]</c> says to,
+    /// so omitting it silently switches off every constraint on the child type. The generator
+    /// compiled those constraints and can see the property that fails to reach them, which is what
+    /// makes this sayable at all.
+    /// </para>
+    /// <para>
+    /// Sited on the symbol rather than the built model for the reason the required-value-type check
+    /// is: what decides it is the member's C# type and the child type's attributes, and the
+    /// validation IR has already resolved both away.
+    /// </para>
+    /// <para>
+    /// Only child types declared in this compilation are considered. Those are the ones this
+    /// generator emits validators for, so "a constraint that just became unreachable" is knowable
+    /// rather than guessed at - a type from a package may have been validated at its own boundary.
+    /// </para>
+    /// <para>
+    /// And only parents that constrain something themselves. Every type declaration in the
+    /// compilation reaches this generator, most of which are not models at all - a data seed
+    /// holding a list of records, a response case wrapping a body - and a validator that checks
+    /// nothing was never going to descend anywhere. What the warning is about is a model that
+    /// validates, with one property the validation stops at.
+    /// </para>
+    /// </remarks>
+    private static IEnumerable<Diagnostic> UnreachableNestedConstraints(
+        INamedTypeSymbol symbol, ValidatedTypeModel? model) {
+        if (!Constrains(model)) {
+            yield break;
+        }
+
+        foreach (var member in symbol.GetMembers()) {
+            if (member is not IPropertySymbol property || property.IsStatic ||
+                property.DeclaredAccessibility != Accessibility.Public) {
+                continue;
+            }
+
+            if (DeclaresValidateNested(property)) {
+                continue;
+            }
+
+            var nested = NestedType(property.Type, out var isElement);
+
+            if (nested == null || SymbolEqualityComparer.Default.Equals(nested, symbol) ||
+                !DeclaredInSource(nested) || !CarriesConstraints(nested)) {
+                continue;
+            }
+
+            yield return ValidationGeneratorDiagnostics.UnreachableNestedConstraints(
+                symbol, property, nested, isElement);
+        }
+    }
+
+    /// <summary>Whether the built model checks anything at all.</summary>
+    private static bool Constrains(ValidatedTypeModel? model) {
+        if (model == null) {
+            return false;
+        }
+
+        foreach (var property in model.Properties) {
+            if (property.Constraints.Count > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool DeclaresValidateNested(IPropertySymbol property) {
+        foreach (var attribute in property.GetAttributes()) {
+            if (attribute.AttributeClass?.ToDisplayString()
+                == "ValidationModules.Constraints.ValidateNestedAttribute") {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The type a descent would validate: the element of a collection, the value of a dictionary,
+    /// or the member's own type. Null where there is nothing with structure to descend into.
+    /// </summary>
+    /// <remarks>
+    /// A string is a sequence of characters and never a nested model, which is why it is taken out
+    /// before the enumerable test rather than after it.
+    /// </remarks>
+    private static INamedTypeSymbol? NestedType(ITypeSymbol type, out bool isElement) {
+        isElement = false;
+
+        if (type is IArrayTypeSymbol array) {
+            isElement = true;
+
+            return Model(array.ElementType);
+        }
+
+        if (type.SpecialType == SpecialType.System_String) {
+            return null;
+        }
+
+        if (type is INamedTypeSymbol named) {
+            if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T) {
+                return Model(named.TypeArguments[0]);
+            }
+
+            foreach (var candidate in Self(named).Concat(named.AllInterfaces)) {
+                var definition = candidate.OriginalDefinition.ToDisplayString();
+
+                if (definition is "System.Collections.Generic.IDictionary<TKey, TValue>"
+                               or "System.Collections.Generic.IReadOnlyDictionary<TKey, TValue>") {
+                    isElement = true;
+
+                    return Model(candidate.TypeArguments[1]);
+                }
+            }
+
+            foreach (var candidate in Self(named).Concat(named.AllInterfaces)) {
+                if (candidate.OriginalDefinition.ToDisplayString()
+                    == "System.Collections.Generic.IEnumerable<T>") {
+                    isElement = true;
+
+                    return Model(candidate.TypeArguments[0]);
+                }
+            }
+        }
+
+        return Model(type);
+    }
+
+    private static IEnumerable<INamedTypeSymbol> Self(INamedTypeSymbol type) {
+        yield return type;
+    }
+
+    /// <summary>The type as something a validator could be generated for, or null.</summary>
+    private static INamedTypeSymbol? Model(ITypeSymbol type) =>
+        type is INamedTypeSymbol named &&
+        named.TypeKind is TypeKind.Class or TypeKind.Struct &&
+        named.SpecialType == SpecialType.None
+            ? named
+            : null;
+
+    private static bool DeclaredInSource(INamedTypeSymbol type) {
+        foreach (var location in type.Locations) {
+            if (location.IsInSource) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether any member of the type carries a constraint from either vocabulary the front end
+    /// reads.
+    /// </summary>
+    /// <remarks>
+    /// Matched by walking the attribute's base chain to <c>ValidationConstraintAttribute</c> or
+    /// <c>ValidationAttribute</c> rather than by listing names: those two bases are what the front
+    /// end compiles, and a list would go stale the first time either vocabulary gained a
+    /// constraint. It also keeps <c>[Display]</c> and <c>[Key]</c> out, which name a member rather
+    /// than constrain it.
+    /// </remarks>
+    private static bool CarriesConstraints(INamedTypeSymbol type) {
+        foreach (var member in type.GetMembers()) {
+            if (member is not IPropertySymbol property || property.IsStatic) {
+                continue;
+            }
+
+            foreach (var attribute in property.GetAttributes()) {
+                if (IsConstraint(attribute.AttributeClass)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsConstraint(INamedTypeSymbol? attributeClass) {
+        for (var type = attributeClass; type != null; type = type.BaseType) {
+            var name = type.ToDisplayString();
+
+            if (name is "ValidationModules.Constraints.ValidationConstraintAttribute"
+                     or "System.ComponentModel.DataAnnotations.ValidationAttribute") {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
