@@ -56,13 +56,18 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         // Always installed. It costs one call per handler at startup and returns null for a handler
         // that carries no authorization attribute, so an application that has not opted in to
         // anything pays nothing per request.
-        services.AddSingleton<IStartupService, AuthorizationStartupService>();
+        //
+        // TryAddEnumerable for the reason the CORS one is: a startup service registered twice runs
+        // twice, and this one installs a filter provider.
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IStartupService, AuthorizationStartupService>());
 
         // Same footing: one resolve at startup, and no middleware at all unless something
         // registered an IPrincipalSource. Constructed over this collection rather than resolved
         // from the provider, because a source registered as IPrincipalSource<TScheme> is reachable
         // only by its closed service type and a built provider cannot be asked what those are.
-        services.AddSingleton<IStartupService>(new AuthenticationStartupService(services));
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IStartupService>(new AuthenticationStartupService(services)));
     }
 
     /// <summary>

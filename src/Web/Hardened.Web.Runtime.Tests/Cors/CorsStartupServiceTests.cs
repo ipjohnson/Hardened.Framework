@@ -153,4 +153,52 @@ public class CorsStartupServiceTests {
 
         Assert.Same(provider.GetRequiredService<CorsFilter>(), provider.GetRequiredService<CorsFilter>());
     }
+
+    #region composed twice
+
+    /// <summary>
+    /// H-30. An application composing two web modules logged the "no allowed origins" notice
+    /// twice, byte-identical.
+    /// </summary>
+    /// <remarks>
+    /// The notice was the visible half. The same second registration also put a second CORS filter
+    /// in the middleware chain, so every request ran the filter twice - which is the half worth
+    /// fixing, and which a duplicated log line was the only sign of.
+    /// </remarks>
+    [Fact]
+    public void TheModuleAppliedTwiceRegistersOneStartupService() {
+        var services = new ServiceCollection();
+
+        new HardenedWebModule().ConfigureServices(services);
+        new HardenedWebModule().ConfigureServices(services);
+
+        // Named rather than typed: the startup service is internal, and these reach it the way an
+        // application does - through the module's registrations.
+        Assert.Single(
+            services,
+            descriptor => descriptor.ServiceType == typeof(IStartupService) &&
+                          descriptor.ImplementationType?.Name == "CorsStartupService");
+    }
+
+    /// <summary>And so the filter goes into the chain once.</summary>
+    [Fact]
+    public async Task TheModuleAppliedTwiceInstallsOneFilter() {
+        var services = new ServiceCollection();
+
+        new HardenedWebModule().ConfigureServices(services);
+        new HardenedWebModule().ConfigureServices(services);
+
+        var middleware = Substitute.For<IMiddlewareService>();
+
+        services.AddSingleton(new CorsConfiguration());
+        services.AddSingleton(middleware);
+
+        var provider = services.BuildServiceProvider();
+
+        await RunStartup(provider);
+
+        middleware.Received(1).Use(Arg.Any<Func<IExecutionContext, IExecutionFilter>>());
+    }
+
+    #endregion
 }
