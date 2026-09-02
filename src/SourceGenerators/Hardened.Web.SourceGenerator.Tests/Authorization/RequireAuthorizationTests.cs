@@ -355,12 +355,19 @@ public class RequireAuthorizationTests {
         Assert.Equal(result.FirstRun, result.SecondRun);
 
         // And nothing it emitted was rebuilt to find that out: as many outputs were served from
-        // cache as there are generated files. The steps that did run are the diagnostic ones, which
-        // emit no source.
+        // cache as there are generated files with a step behind them. The steps that did run are
+        // the diagnostic ones, which emit no source.
+        //
+        // The routing-generator marker is not one of them. Post-initialization output is written
+        // once for the compilation and has no incremental step at all, which is better than cached
+        // rather than worse - so it is taken out of the count rather than expected in it.
         var cached = result.OutputReasons.Count(
             reason => reason == IncrementalStepRunReason.Cached);
 
-        Assert.Equal(result.FirstRun.Count, cached);
+        var fromSteps = result.FirstRun.Count(
+            source => !source.Key.Contains("Hardened.Web.Marker"));
+
+        Assert.Equal(fromSteps, cached);
     }
 
     #endregion
