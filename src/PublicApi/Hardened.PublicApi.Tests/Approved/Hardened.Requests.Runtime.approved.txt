@@ -108,6 +108,36 @@ namespace Hardened.Requests.Runtime.Authorization
         public RequireAuthorizationAttribute() { }
     }
 }
+namespace Hardened.Requests.Runtime.Caching
+{
+    public sealed class ByPayload : Hardened.Requests.Abstract.Caching.ICacheKeyProvider
+    {
+        public System.Threading.Tasks.ValueTask<string?> Key(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public static Hardened.Requests.Abstract.Caching.ICacheKeyProvider Create(string[] values) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=true)]
+    public sealed class CacheResponseAttribute<TProvider> : System.Attribute, Hardened.Requests.Abstract.Caching.ICacheResponseDeclaration, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+        where TProvider : Hardened.Requests.Abstract.Caching.ICacheKeyProvider
+    {
+        public CacheResponseAttribute(params string[] values) { }
+        public int Duration { get; set; }
+        public string[] Values { get; }
+        public Hardened.Requests.Abstract.Caching.ICacheKeyProvider CreateKeyProvider() { }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    public sealed class ResponseCacheFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public const int DefaultDuration = 60;
+        public ResponseCacheFilter(Hardened.Requests.Abstract.Caching.ICacheKeyProvider[] keyProviders, string handlerKey, int duration) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+        public static Hardened.Requests.Runtime.Caching.ResponseCacheFilter Compose(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Caching.ICacheResponseDeclaration> declarations) { }
+    }
+    public class ResponseCacheStoreMissingException : System.InvalidOperationException
+    {
+        public ResponseCacheStoreMissingException(string handler) { }
+        public string Handler { get; }
+    }
+}
 namespace Hardened.Requests.Runtime.Configuration
 {
     public interface IJsonSerializerConfiguration
@@ -339,6 +369,11 @@ namespace Hardened.Requests.Runtime.Filters
         public AsyncEnumerableIoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing = null) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
+    public class ConditionalFilterProvider : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+    {
+        public ConditionalFilterProvider(Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider provider, System.Func<Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo, bool> when) { }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class GlobalFilterRegistry : Hardened.Requests.Abstract.RequestFilter.IGlobalFilterRegistry
     {
@@ -346,6 +381,10 @@ namespace Hardened.Requests.Runtime.Filters
         public System.Collections.Generic.List<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo requestHandlerInfo) { }
         public void RegisterFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo, Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo?> filterFunc) { }
         public void RegisterFilter(Hardened.Requests.Abstract.Execution.IExecutionFilter filter, int order = 1000) { }
+    }
+    public static class GlobalFilterServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGlobalFilter(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider provider, System.Func<Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo, bool>? when = null) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class InstanceFilterProvider : Hardened.Requests.Abstract.RequestFilter.IInstanceFilterProvider

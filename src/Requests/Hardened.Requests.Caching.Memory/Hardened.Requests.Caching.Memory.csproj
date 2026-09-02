@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
+        <Description>In-process response caching for Hardened. Stores what a handler answered and serves it again without running the handler. Opt in by referencing this package and writing [HardenedMemoryResponseCache].</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Requests.Caching.Memory</PackageId>
+    </PropertyGroup>
+
+    <!--
+      Declared rather than inherited, matching Hardened.Web.StaticContent: analyzers do not flow
+      transitively, so a package consumer writing a [HardenedModule] would not get the generator
+      otherwise.
+    -->
+    <ItemGroup>
+        <PackageReference Include="DependencyModules.Runtime" Version="$(DependencyModulesVersion)" />
+        <PackageReference Include="DependencyModules.SourceGenerator" Version="$(DependencyModulesVersion)" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+
+        <!--
+          The only reference to this package in the repository, and the reason response caching is a
+          package rather than a flag. Microsoft.Extensions.Caching.Memory is in the ASP.NET Core
+          shared framework, so 8.0.0 would unify away and cost nothing - but 8.0.0 raises NU1903 for
+          CVE-2024-43483, a hash-flooding denial of service at CVSS 8.8, and CI escalates warnings to
+          errors. 8.0.1 is therefore the floor, and above the shared framework's baseline it is
+          copied app-local: one 45 KB assembly on a web host, two and 76 KB on a Lambda runtime with
+          no framework reference.
+
+          Worth taking rather than writing. MemoryCache in .NET 8 is not timer-driven -
+          StartScanForExpiredItemsIfNeeded is called from TryGetValue, SetEntry and Remove - and
+          TryGetValue checks expiry on read, so it stays correct across a Lambda freeze of any
+          length and only reclamation happens late.
+        -->
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>

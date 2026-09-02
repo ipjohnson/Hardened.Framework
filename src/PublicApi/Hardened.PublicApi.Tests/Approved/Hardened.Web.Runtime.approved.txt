@@ -127,6 +127,24 @@ namespace Hardened.Web.Runtime.CacheControl
         public static string? Format(Hardened.Web.Runtime.CacheControl.CacheControlEnum type, int maxAge, bool immutable = false) { }
     }
 }
+namespace Hardened.Web.Runtime.Caching
+{
+    public sealed class VaryByHeader : Hardened.Requests.Abstract.Caching.ICacheKeyProvider
+    {
+        public System.Threading.Tasks.ValueTask<string?> Key(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public static Hardened.Requests.Abstract.Caching.ICacheKeyProvider Create(string[] values) { }
+    }
+    public sealed class VaryByQuery : Hardened.Requests.Abstract.Caching.ICacheKeyProvider
+    {
+        public System.Threading.Tasks.ValueTask<string?> Key(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public static Hardened.Requests.Abstract.Caching.ICacheKeyProvider Create(string[] values) { }
+    }
+    public sealed class VaryByRoute : Hardened.Requests.Abstract.Caching.ICacheKeyProvider
+    {
+        public System.Threading.Tasks.ValueTask<string?> Key(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public static Hardened.Requests.Abstract.Caching.ICacheKeyProvider Create(string[] values) { }
+    }
+}
 namespace Hardened.Web.Runtime.Configuration
 {
     public interface IWebRoutingConfiguration

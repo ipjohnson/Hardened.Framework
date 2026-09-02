@@ -1,0 +1,42 @@
+namespace Hardened.Requests.Caching.Memory
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    public class HardenedMemoryResponseCache : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public HardenedMemoryResponseCache() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class HardenedMemoryResponseCacheAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public HardenedMemoryResponseCacheAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public interface IMemoryResponseCacheConfiguration
+    {
+        long MaximumBodySize { get; }
+        long SizeLimit { get; }
+    }
+    public class MemoryResponseCacheConfiguration : Hardened.Requests.Caching.Memory.IMemoryResponseCacheConfiguration
+    {
+        public const long DefaultMaximumBodySize = 67108864;
+        public const long DefaultSizeLimit = 104857600;
+        public MemoryResponseCacheConfiguration() { }
+        public long MaximumBodySize { get; set; }
+        public long SizeLimit { get; set; }
+    }
+    public static class MemoryResponseCacheServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureMemoryResponseCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Hardened.Requests.Caching.Memory.MemoryResponseCacheConfiguration> configure) { }
+    }
+    public sealed class MemoryResponseCacheStore : Hardened.Requests.Abstract.Caching.IResponseCacheStore, System.IDisposable
+    {
+        public MemoryResponseCacheStore(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Caching.Memory.IMemoryResponseCacheConfiguration> configuration) { }
+        public void Dispose() { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Caching.CachedResponse?> Get(string key, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.ValueTask Set(string key, Hardened.Requests.Abstract.Caching.CachedResponse response, System.TimeSpan duration, System.Threading.CancellationToken cancellationToken) { }
+    }
+}

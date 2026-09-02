@@ -15,6 +15,10 @@
     "branch": 100.0,
     "line": 95.4
   },
+  "Hardened.Requests.Caching.Memory": {
+    "branch": 100.0,
+    "line": 100.0
+  },
   "Hardened.Requests.Runtime": {
     "branch": 93.7,
     "line": 97.2

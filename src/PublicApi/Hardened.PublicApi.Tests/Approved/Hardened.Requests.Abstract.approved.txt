@@ -240,6 +240,33 @@ namespace Hardened.Requests.Abstract.Authorization
         public static Hardened.Requests.Abstract.Authorization.Requirement operator |(Hardened.Requests.Abstract.Authorization.Requirement left, Hardened.Requests.Abstract.Authorization.Requirement right) { }
     }
 }
+namespace Hardened.Requests.Abstract.Caching
+{
+    public sealed class CachedResponse
+    {
+        public CachedResponse(int status, string? contentType, byte[] body, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>> headers) { }
+        public byte[] Body { get; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>> Headers { get; }
+        public long Size { get; }
+        public int Status { get; }
+    }
+    public interface ICacheKeyProvider
+    {
+        System.Threading.Tasks.ValueTask<string?> Key(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        Hardened.Requests.Abstract.Caching.ICacheKeyProvider Create(string[] values);
+    }
+    public interface ICacheResponseDeclaration
+    {
+        int Duration { get; }
+        Hardened.Requests.Abstract.Caching.ICacheKeyProvider CreateKeyProvider();
+    }
+    public interface IResponseCacheStore
+    {
+        System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Caching.CachedResponse?> Get(string key, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.ValueTask Set(string key, Hardened.Requests.Abstract.Caching.CachedResponse response, System.TimeSpan duration, System.Threading.CancellationToken cancellationToken);
+    }
+}
 namespace Hardened.Requests.Abstract.Diagnostics
 {
     public static class CorrelationIdentifier
@@ -534,6 +561,7 @@ namespace Hardened.Requests.Abstract.Headers
         public const string Origin = "Origin";
         public const string Range = "Range";
         public const string RetryAfter = "Retry-After";
+        public const string SetCookie = "Set-Cookie";
         public const string Vary = "Vary";
         public static class Cors
         {
