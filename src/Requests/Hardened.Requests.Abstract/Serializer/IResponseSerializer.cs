@@ -4,7 +4,7 @@ namespace Hardened.Requests.Abstract.Serializer;
 
 /// <summary>
 /// Where a response serializer sits relative to the others. Lower runs first, matching
-/// <c>ExecutionFilterOrder</c>.
+/// <c>FilterOrder</c>.
 /// </summary>
 /// <remarks>
 /// <para>

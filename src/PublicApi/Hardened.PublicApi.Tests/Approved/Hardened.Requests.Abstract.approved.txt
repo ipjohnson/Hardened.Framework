@@ -317,19 +317,6 @@ namespace Hardened.Requests.Abstract.Execution
         public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
         public string? Get(string key) { }
     }
-    public enum ExecutionFilterOrder
-    {
-        Init = -10000,
-        FullRequestMetrics = -7000,
-        RetryFilter = -5000,
-        BeforeSerialize = -1,
-        BindParameters = 0,
-        First = 1,
-        Second = 2,
-        Third = 3,
-        Normal = 100,
-        Last = 2147483647,
-    }
     public interface IExecutionChain
     {
         Hardened.Requests.Abstract.Execution.IExecutionContext Context { get; }
@@ -678,24 +665,29 @@ namespace Hardened.Requests.Abstract.RequestFilter
 {
     public static class FilterOrder
     {
-        public const int Authentication = 2;
-        public const int Authorization = 7;
-        public const int BeforeSerialization = 4;
-        public const int DefaultValue = 1000;
-        public const int EndPointHandlers = 2000;
-        public const int EndPointInvoke = 2000;
-        public const int HandlerCreation = -1000;
-        public const int RateLimitPrincipal = 9;
-        public const int RateLimitTransport = 1;
-        public const int Retry = 8;
-        public const int Serialization = 5;
-        public const int Validation = 6;
+        public const int After = 500;
+        public const int Authentication = 2000;
+        public const int Authorization = 9000;
+        public const int Before = -500;
+        public const int BeforeSerialization = 6500;
+        public const int Conditional = 5000;
+        public const int DefaultValue = 100000;
+        public const int EndPointHandlers = 200000;
+        public const int EndPointInvoke = 200000;
+        public const int GrantAuthorization = 4000;
+        public const int HandlerCreation = -10000;
+        public const int RateLimitPrincipal = 3000;
+        public const int RateLimitTransport = 1000;
+        public const int ResponseCache = 6000;
+        public const int Retry = 10000;
+        public const int Serialization = 7000;
+        public const int Validation = 8000;
     }
     public interface IGlobalFilterRegistry
     {
         System.Collections.Generic.List<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo requestHandlerInfo);
         void RegisterFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo, Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo?> filterFunc);
-        void RegisterFilter(Hardened.Requests.Abstract.Execution.IExecutionFilter filter, int order = 1000);
+        void RegisterFilter(Hardened.Requests.Abstract.Execution.IExecutionFilter filter, int order = 100000);
     }
     public interface IIOFilterProvider
     {

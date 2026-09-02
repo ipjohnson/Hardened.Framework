@@ -15,14 +15,21 @@ namespace Hardened.Requests.Runtime.Tests.Caching;
 /// </summary>
 public class CacheResponseAttributeTests {
 
+    /// <summary>
+    /// The cache has a stage of its own rather than sharing the pre-serialization slot, because its
+    /// position is a correctness requirement: ahead of serialization so a hit skips the bind and the
+    /// handler, and behind grant authorization so it never answers for a caller who was refused.
+    /// </summary>
     [Fact]
-    public void TheFilterIsInstalledAheadOfSerialization() {
+    public void TheFilterIsInstalledAtTheResponseCacheStage() {
         var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
         var handler = CacheTestSupport.Handler([attribute]);
 
         var filter = Assert.Single(attribute.GetFilters(handler));
 
-        Assert.Equal(FilterOrder.BeforeSerialization, filter.Order);
+        Assert.Equal(FilterOrder.ResponseCache, filter.Order);
+        Assert.True(filter.Order < FilterOrder.Serialization);
+        Assert.True(filter.Order > FilterOrder.GrantAuthorization);
         Assert.IsType<ResponseCacheFilter>(filter.FilterFunc(null!));
     }
 

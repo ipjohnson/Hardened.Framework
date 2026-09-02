@@ -23,7 +23,7 @@ Order  1000  DefaultValue (user filters)
 Order  2000  EndPointInvoke (calls the endpoint method)
 ```
 
-The `ValidationFilter` runs at `FilterOrder.Validation` (= `Serialization + 1` = 6), ensuring parameters are already deserialized and bound before validation occurs.
+The `ValidationFilter` runs at `FilterOrder.Validation`, one stage behind `Serialization`, so parameters are already deserialized and bound before validation occurs.
 
 ### Components
 

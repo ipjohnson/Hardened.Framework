@@ -63,11 +63,12 @@ public class GlobalFilterRegistryTests {
     }
 
     [Theory]
-    [InlineData((int)ExecutionFilterOrder.Init)]
-    [InlineData((int)ExecutionFilterOrder.RetryFilter)]
+    [InlineData(FilterOrder.HandlerCreation)]
+    [InlineData(FilterOrder.Authentication)]
     [InlineData(FilterOrder.Serialization)]
     [InlineData(FilterOrder.Validation)]
-    [InlineData((int)ExecutionFilterOrder.Normal)]
+    [InlineData(FilterOrder.Before + FilterOrder.Serialization)]
+    [InlineData(FilterOrder.DefaultValue)]
     public void AnExplicitOrderIsCarriedThroughToTheFilterInfo(int order) {
         var registry = Registry();
 

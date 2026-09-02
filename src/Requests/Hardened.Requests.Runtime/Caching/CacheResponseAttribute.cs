@@ -32,7 +32,7 @@ namespace Hardened.Requests.Runtime.Caching;
 ///
 /// <para>
 /// <b>A resource-scoped handler is never cached.</b> The filter runs at
-/// <see cref="FilterOrder.BeforeSerialization"/>, which is after authorization over grants alone
+/// <see cref="FilterOrder.ResponseCache"/>, which is after authorization over grants alone
 /// and before authorization that reads bound parameters - so a stored response for "may this caller
 /// edit <em>this</em> pet" would be served to a caller the resource check would refuse. ASP.NET
 /// Core ships that hazard as a documentation note telling you to call <c>UseOutputCache</c> after
@@ -100,7 +100,7 @@ public sealed class CacheResponseAttribute<TProvider> :
 
         var filter = ResponseCacheFilter.Compose(handlerInfo, declarations);
 
-        yield return new RequestFilterInfo(_ => filter, FilterOrder.BeforeSerialization);
+        yield return new RequestFilterInfo(_ => filter, FilterOrder.ResponseCache);
     }
 
     /// <summary>
