@@ -39,6 +39,15 @@
         <ProjectReference Include="..\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"/>
 
         <!--
+            For the routing-generator-absent diagnostic, which is decided in the library generator
+            because that is the one still referenced when the web generator is not. Same terms as
+            the reference above: this assembly compiles its own copy of the shared source, so every
+            shared type is ambiguous across the two, and the tests that touch it name only
+            LibrarySourceGenerator and the diagnostic's id.
+        -->
+        <ProjectReference Include="..\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"/>
+
+        <!--
             The same OpenAPI reader the build task parses specifications with, so the round trip can
             check the emitted document against something other than the code that wrote it. Reading
             it back with Hardened's own parser would let a misunderstanding shared by the writer and

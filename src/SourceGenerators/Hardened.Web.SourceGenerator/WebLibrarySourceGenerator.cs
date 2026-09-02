@@ -7,6 +7,14 @@ namespace Hardened.Web.SourceGenerator;
 [Generator]
 public class WebLibrarySourceGenerator : IIncrementalGenerator {
     public void Initialize(IncrementalGeneratorInitializationContext context) {
+        // Says "a routing generator is running" to the library generator, which reports its
+        // absence - a module with handlers and no routing generator builds clean into an
+        // application that answers 404 to everything. Post-init because that is the only generated
+        // source another generator can see.
+        context.RegisterPostInitializationOutput(static production => production.AddSource(
+            "Hardened.Web.Marker.g.cs",
+            GeneratedSource.Header(RoutingGeneratorPresence.MarkerSource)));
+
         var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
             EntryPointSelector.UsingAttribute(),
             EntryPointSelector.TransformModel(false)
