@@ -370,6 +370,109 @@ public class NameAllocatorTests {
         }
     }
 
+    #region generated error wrappers
+
+    /// <summary>
+    /// A named error whose name is free keeps it, and its exception takes the suffixed form.
+    /// </summary>
+    /// <remarks>
+    /// One allocation per distinct error rather than per operation that declares it, which is the
+    /// whole of the change: both operations here declare <c>PetMissing</c>, and under the old rule
+    /// that was <c>GetPetNotFoundException</c> beside <c>GetPetLabelNotFoundException</c>.
+    /// </remarks>
+    [Fact]
+    public void ANamedErrorGetsOneNameForEveryOperationThatDeclaresIt() {
+        var errors = Errors(Parse(NamedErrors));
+
+        Assert.All(
+            errors.Where(error => error.Name == "PetMissing"),
+            error => {
+                Assert.Equal("PetMissing", error.TypeName);
+                Assert.Equal("PetMissingException", error.ExceptionTypeName);
+            });
+
+        Assert.Equal(2, errors.Count(error => error.Name == "PetMissing"));
+    }
+
+    /// <summary>
+    /// And one whose name a schema already holds moves, rather than the schema moving.
+    /// </summary>
+    /// <remarks>
+    /// The case a Smithy model is in by construction - an error is a named shape, so the payload
+    /// record has the plain name already. The document's own type keeps it and the wrapper is
+    /// qualified by what distinguishes it: it is the response rather than the payload. The
+    /// exception asks for a name nothing else wants and is unaffected.
+    /// </remarks>
+    [Fact]
+    public void AnErrorNamedAfterASchemaMovesAndTheSchemaDoesNot() {
+        var model = Parse(NamedErrors);
+
+        var error = Errors(model).Single(candidate => candidate.Name == "ApiError");
+
+        Assert.Contains(model.Schemas, schema => schema.Name == "ApiError");
+        Assert.Equal("ApiErrorError", error.TypeName);
+        Assert.Equal("ApiErrorException", error.ExceptionTypeName);
+    }
+
+    /// <summary>
+    /// An error that binds to a shipped response is allocated nothing, because nothing is emitted
+    /// for it. A name here would be a type the emitters never wrote.
+    /// </summary>
+    [Fact]
+    public void AnErrorThatBindsIsAllocatedNoName() {
+        var error = Errors(Parse(NamedErrors)).Single(candidate => candidate.StatusCode == 410);
+
+        Assert.Null(error.Name);
+        Assert.Null(error.TypeName);
+        Assert.Null(error.ExceptionTypeName);
+    }
+
+    private static IEnumerable<ErrorResponseModel> Errors(ServiceSpecModel model) =>
+        model.Services.SelectMany(service => service.Operations)
+            .SelectMany(operation => operation.ErrorResponses);
+
+    /// <summary>
+    /// Two operations sharing one named error, a named error colliding with a schema, and one that
+    /// binds - the three answers, in one document.
+    /// </summary>
+    private const string NamedErrors = """
+        openapi: "3.0.3"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets/{petId}:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              responses:
+                '200': { description: ok }
+                '404': { $ref: '#/components/responses/PetMissing' }
+                '409': { $ref: '#/components/responses/ApiError' }
+                '410': { description: gone }
+          /pets/{petId}/label:
+            get:
+              tags: [Pet]
+              operationId: getPetLabel
+              responses:
+                '200': { description: ok }
+                '404': { $ref: '#/components/responses/PetMissing' }
+        components:
+          responses:
+            PetMissing:
+              description: no pet
+              content:
+                application/json: { schema: { $ref: '#/components/schemas/ApiError' } }
+            ApiError:
+              description: conflicting
+              content:
+                application/json: { schema: { $ref: '#/components/schemas/ApiError' } }
+          schemas:
+            ApiError:
+              type: object
+              properties: { message: { type: string } }
+        """;
+
+    #endregion
+
     /// <summary>The same document with everything listed the other way round.</summary>
     private const string CollidingReordered = """
         openapi: "3.0.3"

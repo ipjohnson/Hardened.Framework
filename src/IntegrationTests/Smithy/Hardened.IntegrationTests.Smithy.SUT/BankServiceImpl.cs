@@ -32,14 +32,16 @@ public class BankServiceImpl : IBankService {
     /// Throws the error the model declares, which is how a declared failure reaches the wire.
     /// </summary>
     /// <remarks>
-    /// The signature still returns a balance. <c>GetBalanceBadRequestException</c> is generated from
-    /// the operation's <c>errors</c> list, and its payload is the <c>AccountNotFound</c> record - to
-    /// which the reader added the <c>__type</c> field the protocol identifies errors by, so nothing
-    /// here has to know that awsJson wants one.
+    /// The signature still returns a balance. <c>AccountNotFoundException</c> is named for the error
+    /// shape the model declares rather than for this operation, so <c>Transfer</c> - which binds the
+    /// same shape - throws the same type, and an AWS-generated client built from this model calls
+    /// the error what the server does. Its payload is the <c>AccountNotFound</c> record, to which
+    /// the reader added the <c>__type</c> field the protocol identifies errors by, so nothing here
+    /// has to know that awsJson wants one.
     /// </remarks>
     public Task<GetBalanceOutput> GetBalance(GetBalanceInput body) {
         if (!Balances.TryGetValue(body.AccountId, out var cents)) {
-            throw new GetBalanceBadRequestException(
+            throw new AccountNotFoundException(
                 new AccountNotFound($"No account {body.AccountId}."));
         }
 

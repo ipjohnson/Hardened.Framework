@@ -59,10 +59,16 @@
       task's copy says nothing about this one. UnionResponseEmitter's header path is the reason:
       Smithy binds a response header to a member of the output structure, so it never emits a
       header-carrying case type of its own and nothing here reached that code.
+
+      ShippedResponses is here for the same reason and one more: it is the decision that says
+      whether a declared error binds to a framework record or gets a type generated, and this front
+      end is the one that always answers "generated" - a Smithy error is a named shape.
     -->
     <ItemGroup>
         <Compile Include="../Hardened.OpenApi.BuildTask.Tests/UnionResponseEmitterTests.cs"
                  Link="Shared/UnionResponseEmitterTests.cs"/>
+        <Compile Include="../Hardened.OpenApi.BuildTask.Tests/ShippedResponsesTests.cs"
+                 Link="Shared/ShippedResponsesTests.cs"/>
         <Compile Include="../Hardened.OpenApi.BuildTask.Tests/EmitterHarness.cs"
                  Link="Shared/EmitterHarness.cs"/>
     </ItemGroup>

@@ -155,13 +155,20 @@ public class MultipleSuccessResponseTests {
     /// The primary success is named by its own schema; every other one is wrapped, because the
     /// wrapper is what carries the status.
     /// </summary>
+    /// <remarks>
+    /// The declared error is a branch too, and it is the framework's own record rather than a type
+    /// generated for this operation - a success case carries the operation's own payload shape and
+    /// has nothing to share, where a 404 over a schema is the same 404 wherever it is declared.
+    /// </remarks>
     [Fact]
     public void Emit_WrapsEverySuccessExceptThePrimary() {
         var result = Emit(Operation("getJob"));
 
         Assert.Contains("public GetJobResponse(Test.Api.Models.Job value)", result);
         Assert.Contains("public GetJobResponse(Test.Api.Models.GetJobAccepted value)", result);
-        Assert.Contains("public GetJobResponse(Test.Api.Models.GetJobNotFound value)", result);
+        Assert.Contains(
+            "public GetJobResponse(Hardened.Requests.Abstract.Responses.NotFound<Test.Api.Models.Problem> value)",
+            result);
     }
 
     /// <summary>

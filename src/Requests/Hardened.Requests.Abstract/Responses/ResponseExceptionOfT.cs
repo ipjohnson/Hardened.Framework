@@ -12,10 +12,12 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// <para>
 /// <b>It is possible at all because a case type is a plain record.</b> Had the built-in responses
-/// derived from <c>Exception</c> - the shape a generated <c>GetPetNotFoundException</c> takes on the
-/// specification-first throw path - a type could be a thrown error or a union case and not both.
+/// derived from <c>Exception</c> - the shape the specification-first throw path used to generate a
+/// type per operation and status for - a type could be a thrown error or a union case and not both.
 /// Keeping them plain is what lets one <c>NotFound</c> serve as a declared case, a returned value,
-/// and the payload of a thrown exception.
+/// and the payload of a thrown exception. It is also what lets the IDL front ends bind a declared
+/// error to these instead of generating anything: throws mode reaches the same record through
+/// <c>AsException()</c> that response mode returns directly.
 /// </para>
 /// <para>
 /// Derived from the non-generic form, so <c>catch (ResponseException)</c> still catches every one of

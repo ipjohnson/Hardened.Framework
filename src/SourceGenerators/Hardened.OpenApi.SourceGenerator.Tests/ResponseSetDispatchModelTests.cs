@@ -123,10 +123,15 @@ public class ResponseSetDispatchModelTests {
     }
 
     /// <summary>
-    /// The success is named by its own schema; the error is a generated wrapper whose Body is the
-    /// payload. Sending the wrapper instead would ship that payload nested under a member no client
-    /// was told about, which is exactly what the missing switch did.
+    /// The success is named by its own schema; the error is a wrapper whose Body is the payload.
+    /// Sending the wrapper instead would ship that payload nested under a member no client was told
+    /// about, which is exactly what the missing switch did.
     /// </summary>
+    /// <remarks>
+    /// The wrapper is the framework's own <c>NotFound&lt;T&gt;</c> rather than a type generated for
+    /// this operation. The switch arm has to name what the build task actually emitted, and the two
+    /// run in different processes - so this is the assertion that they agree.
+    /// </remarks>
     [Fact]
     public void Response_TheErrorCaseCarriesItsBodyRatherThanItself() {
         var cases = Cases(SpecResponseModel.Response, "GetTodo");
@@ -137,7 +142,9 @@ public class ResponseSetDispatchModelTests {
         Assert.Equal("global::Test.Api.Models.Todo", success.TypeName);
         Assert.False(success.CarriesBody);
 
-        Assert.Equal("global::Test.Api.Models.GetTodoNotFound", error.TypeName);
+        Assert.Equal(
+            "global::Hardened.Requests.Abstract.Responses.NotFound<global::Test.Api.Models.Problem>",
+            error.TypeName);
         Assert.True(error.CarriesBody);
         Assert.Equal("global::Test.Api.Models.Problem", error.BodyTypeName);
     }

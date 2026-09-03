@@ -14,7 +14,16 @@ namespace Hardened.Idl;
 /// with a message that never mentions the document that caused it.
 /// </para>
 /// <para>
-/// Codes are the front end's prefix plus 020-025 and 027, one number per finder. The prefix is a
+/// <b><c>025</c> is gone rather than reworded.</b> It rejected two error responses at one status on
+/// one operation, which is a thing a valid Smithy model says routinely - two <c>@error("client")</c>
+/// shapes both default to 400 - and it was reported because the case type was named for the
+/// operation and the status, so the two generated one record twice. The case type is named for the
+/// error now, or binds to a shipped wrapper over the payload the error carries, and two shapes at
+/// one status are two types either way. The diagnostic was a consequence of the naming rule and
+/// left with it.
+/// </para>
+/// <para>
+/// Codes are the front end's prefix plus 020-024 and 027, one number per finder. The prefix is a
 /// parameter because this pass runs for every front end and a finding belongs to the document
 /// that caused it: a Smithy model's mixed enum reported as HOAT anything sends its author to the
 /// OpenAPI documentation. 020 up is this pass's block; everything below it belongs to the task
@@ -228,7 +237,6 @@ internal static class SpecDiagnostics {
         FindUnresolvableChoices(model, diagnosticPrefix, problems);
         FindMixedEnums(model, diagnosticPrefix, problems);
         FindUnmappedKeywords(model, diagnosticPrefix, problems);
-        FindCollidingErrorStatuses(model, diagnosticPrefix, problems);
 
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
@@ -271,39 +279,6 @@ internal static class SpecDiagnostics {
     /// only surfaced as CS0101 in generated code.
     /// </para>
     /// </remarks>
-    /// <summary>
-    /// Two declared errors sharing one status on one operation.
-    /// </summary>
-    /// <remarks>
-    /// The case type is named for the operation and the status, so two errors at 409 emit the
-    /// same record twice - six compiler errors in generated code, none of which names the model.
-    /// A valid model can say this (Smithy binds a status to the error shape, so two shapes can
-    /// carry the same code), which is exactly why it has to be reported here: smithy validate
-    /// accepts it and the compiler garbles it.
-    /// </remarks>
-    private static void FindCollidingErrorStatuses(
-        ServiceSpecModel model, string prefix, List<Problem> problems) {
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                var seen = new Dictionary<int, string?>();
-
-                foreach (var error in operation.ErrorResponses) {
-                    if (seen.TryGetValue(error.StatusCode, out var first)) {
-                        problems.Add(new Problem(
-                            prefix + "025",
-                            $"operation '{operation.OperationId}' declares two error responses " +
-                            $"at status {error.StatusCode} ('{first}' and '{error.Ref}'). One " +
-                            "status has one case type, so this generates the same record twice. " +
-                            "Give the errors distinct statuses, or merge them into one shape " +
-                            "carrying both bodies."));
-                    } else {
-                        seen[error.StatusCode] = error.Ref;
-                    }
-                }
-            }
-        }
-    }
-
     private static void FindDuplicateSchemaNames(
         ServiceSpecModel model, string prefix, List<Problem> problems) {
         var seen = new Dictionary<string, string>();

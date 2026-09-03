@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Text;
 using CSharpAuthor;
@@ -9,76 +8,83 @@ using Hardened.Generation;
 namespace Hardened.Idl.Emitters;
 
 /// <summary>
-/// The exception an implementation throws to produce a response the specification declares.
+/// The exception an implementation throws to produce a response the specification declares, where
+/// the framework ships no type for it.
 /// </summary>
 /// <remarks>
 /// <para>
-/// One type per operation and status - <c>GetPetNotFoundException</c> - rather than one shared type
-/// per status. It names the operation it belongs to, so what a handler is allowed to throw is
-/// discoverable from the handler, and it avoids colliding with the framework's own
-/// <c>BadRequestException</c>, which a status-only name would.
+/// <b>One type per declared error, not per operation and status.</b> It used to be the second:
+/// <c>GetPetNotFoundException</c> beside <c>GetPetLabelNotFoundException</c> - same base, same
+/// status, same payload type, same body accessor, differing only in which operation the author was
+/// looking at. Nothing downstream read either type's identity, because a generated exception
+/// carries exactly two facts and both are baked into its constructor.
 /// </para>
 /// <para>
-/// The signature is unchanged: <c>Task&lt;Pet&gt; GetPet(string petId)</c> still returns a pet, and
-/// the declared 404 arrives by being thrown. That is what makes this non-breaking - expressing
-/// error responses in the return type would rewrite every existing signature, for a case most
-/// specifications do not have.
+/// <b>And most declared errors get no type here at all.</b> The rule the operation prefix existed
+/// to serve - two responses in one set must not resolve to one C# type - is solved by the per-status
+/// wrapper, and <c>Hardened.Requests.Abstract.Responses</c> already ships those. A declared 404 with
+/// a <c>Problem</c> is thrown as <c>new NotFound&lt;Problem&gt;(problem).AsException()</c>, which is
+/// the same record a code-first handler returns. <see cref="ShippedResponses.For"/> is the one
+/// decision, and what reaches this emitter is what it declined to bind: an error the description
+/// named, or a status registered nowhere.
+/// </para>
+/// <para>
+/// The signature is unchanged either way: <c>Task&lt;Pet&gt; GetPet(string petId)</c> still returns
+/// a pet, and the declared 404 arrives by being thrown. That is what makes throws mode
+/// non-breaking - expressing error responses in the return type would rewrite every existing
+/// signature, for a case most specifications do not have.
 /// </para>
 /// </remarks>
 internal static class ErrorResponseEmitter {
 
-    /// <param name="includeOperation">
-    /// Which operations answer by throwing. A service is no longer wholly in one form or the other:
-    /// an operation declaring more than one success is in the response-set form whatever the module
-    /// asked for, and emitting an exception type for it as well would give one declared status two
-    /// ways to be answered.
+    /// <param name="errors">
+    /// The distinct errors that need a generated exception, one entry each. Computed by
+    /// <see cref="SpecFileEmitter"/> across the whole document rather than walked per operation
+    /// here, because two operations declaring one error want one type - which is the entire point
+    /// of the change - and two <em>services</em> declaring it would otherwise emit the same class
+    /// twice into one namespace.
     /// </param>
     public static IReadOnlyList<ClassDefinition> Emit(
-        IConstructContainer container, ServiceModel service, string modelsNamespace,
-        Func<OperationModel, bool>? includeOperation = null) {
+        IConstructContainer container, IReadOnlyList<ErrorResponseModel> errors,
+        string modelsNamespace) {
         var emitted = new List<ClassDefinition>();
 
-        foreach (var operation in service.Operations) {
-            if (includeOperation != null && !includeOperation(operation)) {
-                continue;
-            }
-
-            foreach (var response in operation.ErrorResponses) {
-                emitted.Add(EmitException(container, operation, response, modelsNamespace));
-            }
+        foreach (var error in errors) {
+            emitted.Add(EmitException(container, error, modelsNamespace));
         }
 
         return emitted;
     }
 
     private static ClassDefinition EmitException(
-        IConstructContainer container, OperationModel operation, ErrorResponseModel response,
-        string modelsNamespace) {
-        var name =
-            operation.MethodName +
-            StatusName(response.StatusCode) +
-            "Exception";
-
-        var definition = container.AddClass(name);
+        IConstructContainer container, ErrorResponseModel error, string modelsNamespace) {
+        // Allocated by NameAllocator against the same scope the schemas take their names from,
+        // because a Smithy error shape wants the name its own payload record already holds. Set for
+        // exactly the errors ShippedResponses.For declined, which is what this list holds.
+        var definition = container.AddClass(error.ExceptionTypeName!);
 
         definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
         definition.AddBaseType(
             TypeDefinition.Get("Hardened.Requests.Abstract.Errors", "StatusCodeException"));
 
-        definition.Comment = DocComment.Format(response.Description)
-            ?? $"The {response.StatusCode} response declared for {operation.HttpMethod} {operation.Path}.";
+        // No operation in the fallback any more, and there cannot be one: this type is shared by
+        // every operation that declares the error. The description's own prose is still preferred,
+        // and for a Smithy error that is the shape's @documentation.
+        definition.Comment = DocComment.Format(error.Description)
+            ?? $"The {error.StatusCode} response the description declares" +
+               (error.Name == null ? "." : $" as '{error.Name}'.");
 
         var constructor = definition.AddConstructor(
             new CodeOutputComponent(
-                response.Ref == null
-                    ? $"base({response.StatusCode})"
-                    : $"base({response.StatusCode}, value)") { Indented = false });
+                error.Ref == null
+                    ? $"base({error.StatusCode})"
+                    : $"base({error.StatusCode}, value)") { Indented = false });
 
         constructor.Modifiers |= ComponentModifier.Public;
 
-        if (response.Ref != null) {
+        if (error.Ref != null) {
             var payload = TypeDefinition.Get(
-                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(response.Ref)));
+                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref)));
 
             constructor.AddParameter(payload, "value");
 
@@ -102,34 +108,4 @@ internal static class ErrorResponseEmitter {
 
         return definition;
     }
-
-    /// <summary>
-    /// The status as a name. Anything without a well-known one keeps its number, which reads badly
-    /// but is unambiguous - and a specification using 418 deserves a type as much as one using 404.
-    /// </summary>
-    private static string StatusName(int statusCode) =>
-        statusCode switch {
-            400 => "BadRequest",
-            401 => "Unauthorized",
-            402 => "PaymentRequired",
-            403 => "Forbidden",
-            404 => "NotFound",
-            405 => "MethodNotAllowed",
-            406 => "NotAcceptable",
-            408 => "RequestTimeout",
-            409 => "Conflict",
-            410 => "Gone",
-            412 => "PreconditionFailed",
-            413 => "PayloadTooLarge",
-            415 => "UnsupportedMediaType",
-            422 => "UnprocessableEntity",
-            423 => "Locked",
-            429 => "TooManyRequests",
-            500 => "InternalServerError",
-            501 => "NotImplemented",
-            502 => "BadGateway",
-            503 => "ServiceUnavailable",
-            504 => "GatewayTimeout",
-            _ => "Status" + statusCode
-        };
 }

@@ -1,6 +1,7 @@
 using Hardened.IntegrationTests.OpenApi.SUT.Models;
 using Hardened.IntegrationTests.OpenApi.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT;
 
@@ -86,10 +87,13 @@ public class PetServiceImpl : IPetService {
     /// why this handler found nothing.
     /// </remarks>
     public Task<Pet?> GetPet(string petId) {
-        // The declared 429, raised. The generated exception is named for the operation and status
-        // it belongs to, so what a handler may throw is discoverable from the handler.
+        // The declared 429, raised. Nothing is generated for it: the description declares a 429
+        // with a Problem, and RateLimited<T> is the record the framework already ships for that -
+        // so this is the same throw a code-first handler writes, and it carries the Retry-After a
+        // generated exception had nowhere to put.
         if (petId == "throttled") {
-            throw new GetPetTooManyRequestsException(new Problem { Title = "Slow down." });
+            throw new RateLimited<Problem>(
+                TimeSpan.FromSeconds(30), new Problem { Title = "Slow down." }).AsException();
         }
 
         return Task.FromResult<Pet?>(
@@ -119,13 +123,13 @@ public class PetServiceImpl : IPetService {
     /// <summary>
     /// A scalar <c>text/plain</c> success beside a declared JSON 404, which is the shape whose
     /// errors could not answer at all while the declared set was collected from the successes
-    /// alone. The 404 is thrown rather than returned: a scalar success stays non-nullable, so the
-    /// generated exception is the one route to this operation's declared error.
+    /// alone. The 404 is thrown rather than returned: a scalar success stays non-nullable, so a
+    /// throw is the one route to this operation's declared error.
     /// </summary>
     public Task<string> GetPetLabel(string petId, int? copies) {
         if (petId == "missing") {
-            throw new GetPetLabelNotFoundException(
-                new Problem { Status = 404, Title = "Not Found" });
+            throw new NotFound<Problem>(
+                new Problem { Status = 404, Title = "Not Found" }).AsException();
         }
 
         var line = $"Pet {petId}";

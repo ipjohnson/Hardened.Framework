@@ -1,3 +1,5 @@
+using Hardened.Generation;
+
 namespace Hardened.Generation.Models;
 
 /// <summary>
@@ -109,48 +111,31 @@ internal static class ResponseSetPlan {
     public static string ContainerName(OperationModel operation) =>
         operation.MethodName + "Response";
 
-    /// <summary>The case type for one declared status.</summary>
+    /// <summary>The case type for one declared success status.</summary>
+    /// <remarks>
+    /// <para>
+    /// Still named for the operation, unlike the error cases beside it. A success case carries the
+    /// operation's own payload shape - <c>GetLabelOk(string Body)</c> - so two operations declaring
+    /// a 200 have nothing to share, where two operations declaring one 404 over one schema want one
+    /// type.
+    /// </para>
+    /// <para>
+    /// A declared error takes its name from <see cref="ErrorCaseName"/> instead, or binds to a
+    /// shipped response and gets no generated type at all.
+    /// </para>
+    /// </remarks>
     public static string CaseName(OperationModel operation, int statusCode) =>
-        operation.MethodName + StatusName(statusCode);
+        operation.MethodName + ShippedResponses.StatusName(statusCode);
 
     /// <summary>
-    /// The status's name, on the same scheme <c>ErrorResponseEmitter</c> uses.
+    /// The case type for one declared error, or null where it binds to a shipped response.
     /// </summary>
     /// <remarks>
-    /// Duplicated from that emitter rather than shared, because the two schemes must be free to
-    /// diverge without one silently renaming the other's types - and a generated type name is API.
+    /// Read off the model rather than composed here. <c>NameAllocator</c> decided it, because
+    /// deciding it needs the whole document - a Smithy error shape wants the name its own payload
+    /// record already holds, and only a pass that sees both can arbitrate that.
     /// </remarks>
-    private static string StatusName(int statusCode) {
-        switch (statusCode) {
-            // The 2xx names match the built-in response types a code-first handler returns -
-            // Created, Accepted, NoContent - so the same status reads the same in both directions.
-            // They were absent because only errors were ever wrapped; a success was named by its
-            // schema or not carried at all.
-            case 200: return "Ok";
-            case 201: return "Created";
-            case 202: return "Accepted";
-            case 203: return "NonAuthoritative";
-            case 204: return "NoContent";
-            case 205: return "ResetContent";
-            case 206: return "PartialContent";
-            case 400: return "BadRequest";
-            case 401: return "Unauthorized";
-            case 403: return "Forbidden";
-            case 404: return "NotFound";
-            case 405: return "MethodNotAllowed";
-            case 406: return "NotAcceptable";
-            case 409: return "Conflict";
-            case 410: return "Gone";
-            case 412: return "PreconditionFailed";
-            case 415: return "UnsupportedMediaType";
-            case 422: return "UnprocessableContent";
-            case 429: return "TooManyRequests";
-            case 500: return "InternalServerError";
-            case 503: return "ServiceUnavailable";
-            default: return "Status" + statusCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        }
-    }
-
+    public static string? ErrorCaseName(ErrorResponseModel error) => error.TypeName;
 
     /// <summary>
     /// Whether the operation's primary success has a payload the union can name directly.

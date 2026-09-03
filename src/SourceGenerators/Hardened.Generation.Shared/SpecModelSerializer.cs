@@ -237,6 +237,9 @@ internal static class SpecModelSerializer {
                         StatusCode = record.Int("StatusCode") ?? 0,
                         Ref = record.String("Ref"),
                         Description = record.String("Description"),
+                        Name = record.String("Name"),
+                        TypeName = record.String("TypeName"),
+                        ExceptionTypeName = record.String("ExceptionTypeName"),
                     });
                     lastResponseHeaders = operation?.ErrorResponses[operation.ErrorResponses.Count - 1].Headers;
                     break;
@@ -595,6 +598,13 @@ internal static class SpecModelSerializer {
             record2.AddAlways("StatusCode", errorResponse.StatusCode.ToString(CultureInfo.InvariantCulture));
             record2.Add("Ref", errorResponse.Ref);
             record2.Add("Description", errorResponse.Description);
+            record2.Add("Name", errorResponse.Name);
+
+            // The allocated names, not re-derived on the other side. The generator writes the
+            // switch over these types and never sees the file the task wrote them into, so a
+            // second derivation is a switch arm naming a type nothing emitted.
+            record2.Add("TypeName", errorResponse.TypeName);
+            record2.Add("ExceptionTypeName", errorResponse.ExceptionTypeName);
             record2.WriteTo(builder);
 
             WriteResponseHeaders(builder, errorResponse.Headers);

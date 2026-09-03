@@ -2112,7 +2112,8 @@ internal static class OpenApiSpecParser {
                     var errorResponse = new ErrorResponseModel {
                         StatusCode = errorStatus,
                         Ref = SchemaRef(errorContent.Value?.Schema),
-                        Description = FirstNonEmpty(respKvp.Value?.Description)
+                        Description = FirstNonEmpty(respKvp.Value?.Description),
+                        Name = ResponseRefName(respKvp.Value)
                     };
 
                     ReadResponseHeaders(respKvp.Value, errorResponse.Headers);
@@ -2420,6 +2421,31 @@ internal static class OpenApiSpecParser {
     /// <summary>Whether the schema admits null, however the document said so.</summary>
     private static bool IsNullable(IOpenApiSchema? schema) =>
         schema?.Type is { } type && type.HasFlag(JsonSchemaType.Null);
+
+    /// <summary>
+    /// The <c>components/responses</c> key a response is a <c>$ref</c> to, or null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The author naming the error, which is the only way an OpenAPI description does. A response
+    /// written inline under an operation is a status, a description and a schema and nothing else -
+    /// there is no name to keep - so this is null for almost every declared error and the error
+    /// binds to a shipped wrapper instead. A response lifted into <c>components/responses</c> is
+    /// the author saying "this one is a thing", and that name becomes the generated type's.
+    /// </para>
+    /// <para>
+    /// Not the schema's name. Two named responses can share one schema - a <c>Problem</c> serving
+    /// <c>NotFoundError</c> and <c>ConflictError</c> - and the schema names the payload where this
+    /// names the response.
+    /// </para>
+    /// <para>
+    /// A type test, for the same reason <see cref="SchemaRef"/> is one: from Microsoft.OpenApi 2.0
+    /// a <c>$ref</c> is its own implementation of the interface rather than a <c>Reference</c>
+    /// property on every response.
+    /// </para>
+    /// </remarks>
+    private static string? ResponseRefName(IOpenApiResponse? response) =>
+        response is OpenApiResponseReference reference ? reference.Reference?.Id : null;
 
     /// <summary>
     /// The <c>$ref</c> a schema is, or null when it is written inline.

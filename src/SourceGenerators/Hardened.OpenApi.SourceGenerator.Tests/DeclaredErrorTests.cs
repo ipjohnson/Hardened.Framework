@@ -46,14 +46,79 @@ public class DeclaredErrorTests {
         Assert.Equal("#/components/schemas/Pet", operation.ResponseRef);
     }
 
+    /// <summary>
+    /// An error the description did not name binds to the record the framework ships for its
+    /// status, and nothing is generated for it.
+    /// </summary>
+    /// <remarks>
+    /// This fixture used to produce three classes - <c>GetPetNotFoundException</c>,
+    /// <c>GetPetConflictException</c>, <c>GetPetServiceUnavailableException</c> - the first two
+    /// identical but for the status they passed to their base. Nothing downstream read either
+    /// type's identity, so the whole of what they were was an integer and a payload type.
+    /// </remarks>
     [Fact]
-    public void EachDeclaredErrorGetsAnException() {
+    public void AnUnnamedDeclaredErrorGeneratesNothing() {
         var generated = OpenApiGenerator.Run(Specs.DeclaredErrors).AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public partial class GetPetNotFoundException", generated);
-        Assert.Contains("public partial class GetPetConflictException", generated);
-        Assert.Contains("public partial class GetPetServiceUnavailableException", generated);
+        Assert.DoesNotContain("Exception", generated);
+    }
+
+    /// <summary>
+    /// And the interface says what to throw instead, because the type no longer says it.
+    /// </summary>
+    /// <remarks>
+    /// The one thing the operation prefix genuinely bought: a reader could learn what
+    /// <c>GetPet</c> throws from a type named after it. On the method is where the question belongs
+    /// - one line per declared error, rather than a public type per operation and status in the
+    /// consumer's assembly.
+    /// </remarks>
+    [Fact]
+    public void TheInterfaceSaysWhatTheOperationThrows() {
+        var generated = OpenApiGenerator.Run(Specs.DeclaredErrors).AssertNoErrors()
+            .SourceContaining("petstore.g.cs");
+
+        Assert.Contains(
+            "Throws NotFound&lt;ApiError&gt;, Conflict&lt;ApiError&gt;, ServiceUnavailable.",
+            generated);
+    }
+
+    /// <summary>
+    /// An error the author lifted into <c>components/responses</c> keeps that name, and gets one
+    /// type however many operations reference it.
+    /// </summary>
+    /// <remarks>
+    /// Both operations in the fixture declare <c>PetMissing</c>. Under the old rule that was
+    /// <c>GetPetNotFoundException</c> and <c>GetPetLabelNotFoundException</c> - the same class
+    /// under two names, which is the defect this whole change is about.
+    /// </remarks>
+    [Fact]
+    public void ANamedErrorGetsOneTypeForEveryOperationThatDeclaresIt() {
+        var generated = OpenApiGenerator.Run(Specs.NamedErrorResponses).AssertNoErrors()
+            .SourceContaining("petstore.g.cs");
+
+        Assert.Contains("public partial class PetMissingException", generated);
+        Assert.Contains("public partial class PetLockedException", generated);
+        Assert.Contains("public partial class DrainingException", generated);
+
+        Assert.DoesNotContain("GetPetLabelNotFoundException", generated);
+        Assert.DoesNotContain("GetPetNotFoundException", generated);
+    }
+
+    /// <summary>
+    /// Two named errors over one schema are two types. The schema names the payload and the
+    /// response name names the error, so collapsing them by payload would be the same defect from
+    /// the other direction.
+    /// </summary>
+    [Fact]
+    public void TwoNamedErrorsSharingASchemaAreTwoTypes() {
+        var generated = OpenApiGenerator.Run(Specs.NamedErrorResponses).AssertNoErrors()
+            .SourceContaining("petstore.g.cs");
+
+        Assert.Contains(
+            "public PetMissingException(global::TestNamespace.Models.ApiError value)", generated);
+        Assert.Contains(
+            "public PetLockedException(global::TestNamespace.Models.ApiError value)", generated);
     }
 
     /// <summary>
@@ -83,6 +148,11 @@ public class DeclaredErrorTests {
     /// <summary>
     /// A handler throwing the declared error, which is the thing that could not be written.
     /// </summary>
+    /// <remarks>
+    /// Through the shipped records and <c>AsException()</c>, which is the same throw a code-first
+    /// handler writes. That it compiles against types the framework already ships is the point:
+    /// the declared error needed no generated type to be answerable.
+    /// </remarks>
     [Fact]
     public void AHandlerCanThrowTheDeclaredError() {
         OpenApiGenerator.Run(
@@ -91,12 +161,40 @@ public class DeclaredErrorTests {
                     """
                     [Handler]
                     public class PetServiceImpl : IPetService {
-                        public Task<Pet> GetPet(string petId) {
+                        public Task<Pet?> GetPet(string petId) {
                             if (petId == "missing") {
-                                throw new GetPetNotFoundException(new ApiError("not_found", "no such pet"));
+                                throw new NotFound<ApiError>(
+                                    new ApiError("not_found", "no such pet")).AsException();
                             }
 
-                            throw new GetPetServiceUnavailableException();
+                            throw new ServiceUnavailable().AsException();
+                        }
+                    }
+                    """))
+            .AssertNoErrors();
+    }
+
+    /// <summary>
+    /// And a handler throwing a named one, which is the type that is still generated.
+    /// </summary>
+    [Fact]
+    public void AHandlerCanThrowANamedError() {
+        OpenApiGenerator.Run(
+                Specs.NamedErrorResponses,
+                OpenApiGenerator.EntryPointWithHandler(
+                    """
+                    [Handler]
+                    public class PetServiceImpl : IPetService {
+                        public Task<Pet?> GetPet(string petId) {
+                            if (petId == "missing") {
+                                throw new PetMissingException(new ApiError("not_found", "no such pet"));
+                            }
+
+                            throw new DrainingException();
+                        }
+
+                        public Task<string> GetPetLabel(string petId) {
+                            throw new PetMissingException(new ApiError("not_found", "no such pet"));
                         }
                     }
                     """))
@@ -106,16 +204,16 @@ public class DeclaredErrorTests {
     /// <summary>A response with no declared body takes no payload argument.</summary>
     [Fact]
     public void AnErrorWithNoPayloadTakesNoArgument() {
-        var generated = OpenApiGenerator.Run(Specs.DeclaredErrors).AssertNoErrors()
+        var generated = OpenApiGenerator.Run(Specs.NamedErrorResponses).AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         var undented = string.Join("\n",
             generated.Replace("\r\n", "\n").Split('\n').Select(line => line.Trim()));
 
-        Assert.Contains("public GetPetServiceUnavailableException()\n: base(503)", undented);
+        Assert.Contains("public DrainingException()\n: base(503)", undented);
 
         // The ones that do declare a body get typed access to it.
-        Assert.Contains("public GetPetNotFoundException(global::TestNamespace.Models.ApiError value)\n: base(404, value)", undented);
+        Assert.Contains("public PetMissingException(global::TestNamespace.Models.ApiError value)\n: base(404, value)", undented);
         Assert.Contains("public global::TestNamespace.Models.ApiError Body => (global::TestNamespace.Models.ApiError)Value!;", undented);
     }
 }

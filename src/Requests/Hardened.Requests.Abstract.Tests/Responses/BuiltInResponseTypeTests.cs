@@ -18,20 +18,57 @@ namespace Hardened.Requests.Abstract.Tests.Responses;
 public class BuiltInResponseTypeTests {
 
     /// <summary>
-    /// Every built-in type, found by reflection rather than listed, so a type added later is
-    /// covered by these without anyone remembering to add it.
+    /// Every built-in response type, found by reflection rather than listed, so a type added later
+    /// is covered by these without anyone remembering to add it.
     /// </summary>
-    public static TheoryData<Type> BuiltInResponseTypes {
-        get {
-            var data = new TheoryData<Type>();
+    public static TheoryData<Type> BuiltInResponseTypes => Carrying(typeof(IHttpStatusResponse));
 
-            foreach (var type in typeof(NotFound).Assembly.GetExportedTypes()) {
-                if (type.GetCustomAttribute<HttpStatusAttribute>() != null) {
-                    data.Add(type);
-                }
+    /// <summary>
+    /// Every status marker, which carries the same attribute and answers a different question.
+    /// </summary>
+    /// <remarks>
+    /// A marker is a status as a type, for <c>Status&lt;TCode, TBody&gt;</c> to close over - it is
+    /// not a response and never reaches the wire, so the response invariants below do not apply to
+    /// it and its own two do.
+    /// </remarks>
+    public static TheoryData<Type> StatusMarkers => Carrying(typeof(IStatusCode));
+
+    /// <remarks>
+    /// The contract is a <c>Type</c> rather than a type argument: <c>IStatusCode</c> declares a
+    /// <c>static abstract</c> member, and an interface that does cannot be one (CS8920).
+    /// </remarks>
+    private static TheoryData<Type> Carrying(Type contract) {
+        var data = new TheoryData<Type>();
+
+        foreach (var type in typeof(NotFound).Assembly.GetExportedTypes()) {
+            if (type.GetCustomAttribute<HttpStatusAttribute>() != null &&
+                contract.IsAssignableFrom(type)) {
+                data.Add(type);
+            }
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// The two sets above are the whole of what carries the attribute.
+    /// </summary>
+    /// <remarks>
+    /// Both are found by reflection so nothing has to be remembered, and this is what keeps that
+    /// true: a third kind of <c>[HttpStatus]</c> type would otherwise be covered by neither and
+    /// silently untested.
+    /// </remarks>
+    [Fact]
+    public void EveryTypeCarryingTheAttributeIsAResponseOrAMarker() {
+        foreach (var type in typeof(NotFound).Assembly.GetExportedTypes()) {
+            if (type.GetCustomAttribute<HttpStatusAttribute>() == null) {
+                continue;
             }
 
-            return data;
+            Assert.True(
+                typeof(IHttpStatusResponse).IsAssignableFrom(type) ||
+                typeof(IStatusCode).IsAssignableFrom(type),
+                type.Name + " carries [HttpStatus] and is neither a response nor a marker.");
         }
     }
 
@@ -64,6 +101,66 @@ public class BuiltInResponseTypeTests {
             typeof(IHttpStatusResponse).IsAssignableFrom(type),
             type.Name + " must implement IHttpStatusResponse.");
     }
+
+    #endregion
+
+    #region status markers
+
+    /// <summary>
+    /// The marker's own version of the agreement above, and it exists for the same reason.
+    /// </summary>
+    /// <remarks>
+    /// A marker states its status twice for the reason <c>IStatusCode</c> documents: the generator
+    /// reads attributes out of metadata and cannot evaluate a property body, and the runtime reads
+    /// <c>TCode.Status</c> without reflecting. On a one-line struct the drift risk is small, and
+    /// this is what makes it zero.
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(StatusMarkers))]
+    public void StatusMarker_AttributeAgreesWithTheStaticProperty(Type type) {
+        var declared = type.GetCustomAttribute<HttpStatusAttribute>()!.StatusCode;
+
+        var property = type.GetProperty(
+            nameof(IStatusCode.Status), BindingFlags.Public | BindingFlags.Static);
+
+        Assert.NotNull(property);
+        Assert.Equal(declared, property!.GetValue(null));
+    }
+
+    /// <summary>
+    /// A marker is a type argument and nothing else, so it is a struct - which is what makes
+    /// <c>TCode.Status</c> devirtualize at compile time and keeps the escape hatch AOT-safe.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(StatusMarkers))]
+    public void StatusMarker_IsAValueType(Type type) {
+        Assert.True(type.IsValueType, type.Name + " must be a struct.");
+    }
+
+    /// <summary>
+    /// The escape hatch itself: a status the framework ships no record for, reached by closing one
+    /// generic over a marker. Two statuses are two closed types, which is the only property CS0457
+    /// cares about.
+    /// </summary>
+    [Fact]
+    public void Status_TakesItsStatusFromTheMarker() {
+        Assert.Equal(418, Read(new Status<Http.ImATeapot, string>("body")));
+        Assert.Equal(423, Read(new Status<Http.Locked>()));
+    }
+
+    [Fact]
+    public void Status_CarriesItsBodyRatherThanItself() {
+        Assert.Equal(
+            "body", ((ICarriesResponseBody)new Status<Http.ImATeapot, string>("body")).Body);
+    }
+
+    [Fact]
+    public void Status_WithNoBodySerializesNothing() {
+        Assert.False(HasBody(new Status<Http.Locked>()));
+        Assert.True(HasBody(new Status<Http.ImATeapot, string>("body")));
+    }
+
+    private static int Read(IHttpStatusResponse response) => response.Status;
 
     #endregion
 

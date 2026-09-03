@@ -230,7 +230,7 @@ the other.
 | `015` | `HSMT` only. The model declares more than one `PublishUrl` or `UiUrl`. One model is one service at one address. |
 | `016` | `UiUrl` without `PublishUrl`, so the page would have no document to render. |
 | `017` | `SourceUrl` without `EmbedDocument`, so there is no source to serve. |
-| `020`–`025` | The shared model-diagnostics pass. See below. |
+| `020`–`024` | The shared model-diagnostics pass. See below. |
 | `026` | Warning. `$(HardenedResponseModel)` is `Standard`, the throws mode's name before 0.19.0. The mode selected is unchanged; write `Throws`. Reported once per project. |
 | `027` | The description references something it does not declare. Part of the model-diagnostics pass; see below. |
 
@@ -244,7 +244,7 @@ the other.
 | `HSMT013` | Warning. What the CLI said without failing, with the same per-finding attribution. |
 | `HSMT014` | The CLI exited cleanly but wrote no AST. Unlike `HSMT012`, the fix is not in a `.smithy` file. |
 
-### The model-diagnostics pass (020–025)
+### The model-diagnostics pass (020–024)
 
 Problems any description can state that would generate C# which does not compile, found before
 anything is emitted so they are reported against the document rather than as compiler errors in a
@@ -257,8 +257,14 @@ generated file.
 | `022` | Warning. A `oneOf` with no discriminator whose branches cannot all be told apart by shape. Payloads are matched by parsing into each branch; declare a discriminator to decide it in the document. |
 | `023` | An `enum` declaring both string and numeric values, which no C# enum can carry. Declare one kind. |
 | `024` | Warning. A declared keyword or trait the generator does not enforce, named with a representative location. Remove it, or enforce the rule in the handler. |
-| `025` | Two error responses on one operation share one status, which would generate the same case type twice. Give them distinct statuses or merge the shapes. |
 | `027` | A reference to something the description does not declare. |
+
+`025` is retired. It rejected two error responses at one status on one operation, and a valid
+Smithy model says that routinely — two `@error("client")` shapes both default to 400. The reason it
+had to be reported was that the case type was named for the operation and the status, so the two
+generated one record twice. A declared error is now named for the error, or binds to a shipped
+wrapper over the payload it carries, and two shapes at one status are two types either way. Nothing
+replaces it; a model that used to be rejected now builds.
 
 #### 027 — a reference to something the description does not declare
 

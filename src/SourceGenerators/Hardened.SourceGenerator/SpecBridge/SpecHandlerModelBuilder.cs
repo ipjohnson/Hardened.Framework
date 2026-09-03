@@ -595,20 +595,77 @@ internal static class SpecHandlerModelBuilder {
         }
 
         foreach (var error in operation.ErrorResponses) {
+            cases.Add(ErrorCase(error, modelsNamespace));
+        }
+
+        return UnionResponseSelector.Encode(cases);
+    }
+
+    /// <summary>
+    /// One declared error as a case of the switch: the type it resolves to, and what it answers
+    /// with.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>ShippedResponses.For</c> decides, exactly as it does in <c>UnionResponseEmitter</c>. Most
+    /// declared errors bind to a record the framework ships - <c>NotFound&lt;Problem&gt;</c> - and
+    /// the switch arm names that rather than a type generated per operation; the rest name what the
+    /// build task wrote, under the name <c>NameAllocator</c> put on the model.
+    /// </para>
+    /// <para>
+    /// The three flags come from the bound record rather than being assumed. A generated error case
+    /// always carried a body and never applied headers, so both were literals here; a shipped one
+    /// may do neither - <c>NotAcceptable</c> serializes nothing - or both, since
+    /// <c>RateLimited&lt;T&gt;</c> writes its own <c>Retry-After</c>.
+    /// </para>
+    /// </remarks>
+    private static UnionCaseModel ErrorCase(ErrorResponseModel error, string modelsNamespace) {
+        var payload = error.Ref == null
+            ? null
+            : Qualified(modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref)));
+
+        var binding = ShippedResponses.For(error);
+
+        if (binding == null) {
             // carriesBody, because a generated error case is a wrapper whose Body is the payload the
             // document declared. Sending the wrapper ships that payload nested under a Body member.
-            cases.Add(new UnionCaseModel(
-                Qualified(modelsNamespace, ResponseSetPlan.CaseName(operation, error.StatusCode)),
+            return new UnionCaseModel(
+                Qualified(modelsNamespace, error.TypeName!),
                 error.StatusCode,
                 appliesHeaders: error.Headers.Count > 0,
                 hasBody: true,
                 carriesBody: true,
-                bodyTypeName: error.Ref == null
-                    ? null
-                    : Qualified(modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref)))));
+                bodyTypeName: payload);
         }
 
-        return UnionResponseSelector.Encode(cases);
+        var shipped = binding.Value;
+        var carriesBody = shipped.TakesBody && payload != null;
+
+        return new UnionCaseModel(
+            ShippedTypeName(shipped, payload),
+            error.StatusCode,
+            appliesHeaders: shipped.AppliesHeaders,
+            hasBody: shipped.HasBody,
+            carriesBody: carriesBody,
+            bodyTypeName: carriesBody ? payload : null);
+    }
+
+    /// <summary>A bound shipped response as the fully qualified name the switch arm names it by.</summary>
+    private static string ShippedTypeName(ShippedResponses.Binding shipped, string? payload) {
+        var type = "global::" + ShippedResponses.Namespace + "." + shipped.TypeName;
+
+        if (shipped.Marker == null) {
+            return shipped.TakesBody && payload != null ? type + "<" + payload + ">" : type;
+        }
+
+        // Status<Http.Locked, Problem> - the escape hatch, for a registered status the framework
+        // ships no record for.
+        var marker = "global::" + ShippedResponses.Namespace + "." +
+                     ShippedResponses.MarkerHolderName + "." + shipped.Marker;
+
+        return shipped.TakesBody && payload != null
+            ? type + "<" + marker + ", " + payload + ">"
+            : type + "<" + marker + ">";
     }
 
     /// <summary>

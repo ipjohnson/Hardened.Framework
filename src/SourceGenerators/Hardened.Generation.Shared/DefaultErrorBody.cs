@@ -48,8 +48,14 @@ internal static class DefaultErrorBody {
     public const string HolderTypeName = "DefaultErrorBodies";
 
     /// <summary>The field's simple name for a schema and status.</summary>
+    /// <remarks>
+    /// <c>ShippedResponses.StatusName</c> rather than a table of its own. This file used to keep
+    /// one, derived from <see cref="ReasonPhrase"/> - which is a wire phrase and answers a different
+    /// question - and the two agreed for 404 and disagreed for 429. A field naming a status and a
+    /// type naming the same status now read the same.
+    /// </remarks>
     public static string FieldName(string schemaName, int statusCode) =>
-        StatusName(statusCode) + NamingHelper.ToPascalCase(schemaName);
+        ShippedResponses.StatusName(statusCode) + NamingHelper.ToPascalCase(schemaName);
 
     /// <summary>
     /// The schema a null return would answer this operation with, or null where there is none.
@@ -177,6 +183,12 @@ internal static class DefaultErrorBody {
     /// <summary>
     /// The reason phrase, which is public information about the status and nothing else.
     /// </summary>
+    /// <remarks>
+    /// A value written into a generated body's <c>title</c>, which is the whole of what it is for.
+    /// It used to compose the field's name as well, and the two questions had drifted - the phrase
+    /// for 429 is "Too Many Requests" and the framework's record for it is <c>RateLimited</c>.
+    /// Naming is <c>ShippedResponses.StatusName</c>'s.
+    /// </remarks>
     public static string ReasonPhrase(int statusCode) {
         switch (statusCode) {
             case 400: return "Bad Request";
@@ -194,13 +206,5 @@ internal static class DefaultErrorBody {
             case 503: return "Service Unavailable";
             default: return "Error";
         }
-    }
-
-    private static string StatusName(int statusCode) {
-        var phrase = ReasonPhrase(statusCode);
-
-        return phrase == "Error"
-            ? "Status" + statusCode.ToString(CultureInfo.InvariantCulture)
-            : phrase.Replace(" ", "");
     }
 }

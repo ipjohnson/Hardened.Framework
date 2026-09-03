@@ -48,15 +48,16 @@ public class PetStoreServiceImpl : IPetStoreService {
     /// NameAllocator assigns every name in the model from the wire spelling.
     /// </summary>
     /// <remarks>
-    /// The return is nullable because the model declares a <c>NotFound</c> error for this
+    /// The return is nullable because the model declares a <c>PetNotFound</c> error for this
     /// operation, which is the contract saying a null answer is allowed here. Returning null
-    /// answers 404; throwing the generated exception type is how a handler says more than that.
+    /// answers 404; throwing <c>PetNotFoundException</c> is how a handler says more than that.
     /// </remarks>
     public Task<GetPetOutput?> GetPet(string petId, bool? verbose, string? xTraceId) {
-        // The declared Throttled error, raised. The generated exception is named for the operation
-        // and status it belongs to, so what a handler may throw is discoverable from the handler.
+        // The declared Throttled error, raised. The exception is named for the error shape the
+        // model declares, which is the name every other Smithy code generator gives it - and one
+        // type, however many operations bind the shape.
         if (petId == "throttled") {
-            throw new GetPetTooManyRequestsException(new Throttled("Slow down."));
+            throw new ThrottledException(new Throttled("Slow down."));
         }
 
         var pet = Pets.FirstOrDefault(p => p.Id == petId);
