@@ -1,4 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Runtime.Caching;
+using Hardened.Requests.Testing;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
@@ -141,9 +143,73 @@ public class ResponseCacheTests {
         Assert.NotEqual(await warm.ReadTextAsync(), await grantless.ReadTextAsync());
     }
 
+    /// <summary>
+    /// The defect all three trial arms found: a second subscriber served the first subscriber's
+    /// row, with a 200.
+    /// </summary>
+    /// <remarks>
+    /// The guard the framework read was <c>Requirement.RequiresContext</c>, true only for a
+    /// requirement built from a predicate. An ownership check written as handler code answering 404
+    /// - which is what a description forces, because it can require authentication and cannot
+    /// require ownership - was invisible to it. <c>CacheScope.PerCaller</c> is the declaration that
+    /// says so, and it keys the entry on the caller.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnOwnerScopedHandlerAnswersEachCallerTheirOwn(ITestWebApp testWebApp) {
+        var first = await testWebApp.Get(
+            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
+
+        var second = await testWebApp.Get(
+            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-two"));
+
+        Assert.Equal("subscriber-one-1", first.Deserialize<string>());
+        Assert.Equal("subscriber-two-2", second.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// And each caller's own entry is still an entry, so the feature survives being made safe.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnOwnerScopedHandlerStillAnswersOneCallerFromTheStore(ITestWebApp testWebApp) {
+        await testWebApp.Get(
+            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
+
+        var repeat = await testWebApp.Get(
+            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
+
+        Assert.Equal("subscriber-one-1", repeat.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// A guarded handler that says nothing about who may be served its answer fails naming itself,
+    /// rather than picking one of the two readings of silence.
+    /// </summary>
+    /// <remarks>
+    /// Raised as the handler's filter chain is built, which is the first request its route matches -
+    /// so it reaches a test as the exception and a running host as a logged 500. That is where the
+    /// other two failures a declaration can express are raised, and for the same reason: it names
+    /// the handler and is asked once rather than per request.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AGuardedHandlerThatStatesNoScopeFails(ITestWebApp testWebApp) {
+        var failure = await Assert.ThrowsAsync<CacheScopeUndeclaredException>(
+            () => testWebApp.Get(
+                "/response-cache/unstated-scope", Caller("pets:read", "subscriber-one")));
+
+        Assert.Equal("GET /response-cache/unstated-scope", failure.Handler);
+        Assert.Contains("CacheScope.PerCaller", failure.Message);
+    }
+
     private static Action<TestWebRequest> Language(string value) =>
         request => request.Headers["Accept-Language"] = new StringValues(value);
 
     private static Action<TestWebRequest> Grants(string value) =>
-        request => request.Headers["X-Test-Grants"] = new StringValues(value);
+        request => request.Headers[TestGrantsPrincipalSource.GrantsHeader] = new StringValues(value);
+
+    /// <summary>Which caller, for the tests where one caller's data reaching another is the point.</summary>
+    private static Action<TestWebRequest> Caller(string grants, string subject) =>
+        request => {
+            request.Headers[TestGrantsPrincipalSource.GrantsHeader] = new StringValues(grants);
+            request.Headers[TestGrantsPrincipalSource.SubjectHeader] = new StringValues(subject);
+        };
 }

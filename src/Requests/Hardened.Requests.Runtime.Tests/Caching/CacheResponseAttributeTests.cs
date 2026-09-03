@@ -90,16 +90,83 @@ public class CacheResponseAttributeTests {
 
     /// <summary>
     /// A requirement over grants alone settles before serialization, which is ahead of the cache, so
-    /// it is safe to cache behind one.
+    /// it is safe to cache behind one - once the declaration has said who the answer is for.
     /// </summary>
     [Fact]
     public void AGrantOnlyHandlerIsStillCached() {
-        var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
+        var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey> {
+            Scope = CacheScope.AllCallers
+        };
 
         var handler = CacheTestSupport.Handler(
             [attribute], requirement: Requirement.Grant("catalog:read"));
 
         Assert.Single(attribute.GetFilters(handler));
+    }
+
+    /// <summary>
+    /// The defect three trial arms found, from the other end: a handler whose answer might depend
+    /// on who asked, cached without anybody having decided that it does not.
+    /// </summary>
+    /// <remarks>
+    /// The framework used to decide this from <c>Requirement.RequiresContext</c>, which is true
+    /// only for a predicate requirement - so an ownership check written as handler code, which is
+    /// what a description forces, was cached and served to the next caller. Nothing on the handler
+    /// distinguishes that from a shared read, so the declaration has to.
+    /// </remarks>
+    [Theory]
+    [InlineData("grant")]
+    [InlineData("authenticated")]
+    public void AGuardedHandlerThatStatesNoScopeNamesTheHandler(string kind) {
+        var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
+
+        var handler = CacheTestSupport.Handler(
+            [attribute],
+            requirement: kind == "grant"
+                ? Requirement.Grant("catalog:read")
+                : Requirement.Authenticated());
+
+        var exception = Assert.Throws<CacheScopeUndeclaredException>(
+            () => attribute.GetFilters(handler).ToList());
+
+        Assert.Equal("GET /catalog", exception.Handler);
+        Assert.Contains("CacheScope.PerCaller", exception.Message);
+        Assert.Contains("CacheScope.AllCallers", exception.Message);
+    }
+
+    /// <summary>
+    /// A handler that requires nothing of its caller has one audience whatever it answers, so there
+    /// is nothing to decide and the ordinary public read stays free of ceremony.
+    /// </summary>
+    [Fact]
+    public void AnUnguardedHandlerNeedsNoScope() {
+        var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
+
+        Assert.Single(attribute.GetFilters(CacheTestSupport.Handler([attribute])));
+    }
+
+    /// <summary>
+    /// Composed attributes share one entry, so it has one audience. Two that disagree is a mistake
+    /// rather than a precedence question.
+    /// </summary>
+    [Fact]
+    public void TwoScopesThatDisagreeNameTheHandler() {
+        var first = new CacheResponseAttribute<CacheTestSupport.FixedKey> {
+            Scope = CacheScope.AllCallers
+        };
+
+        var second = new CacheResponseAttribute<CacheTestSupport.SecondKey> {
+            Scope = CacheScope.PerCaller
+        };
+
+        var handler = CacheTestSupport.Handler([first, second]);
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => first.GetFilters(handler).ToList());
+
+        Assert.Contains("GET /catalog", exception.Message);
+        Assert.Contains(nameof(CacheScope.AllCallers), exception.Message);
+        Assert.Contains(nameof(CacheScope.PerCaller), exception.Message);
     }
 
     /// <summary>

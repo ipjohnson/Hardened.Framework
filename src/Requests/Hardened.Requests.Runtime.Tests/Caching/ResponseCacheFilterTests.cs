@@ -1,4 +1,5 @@
 using System.Text;
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -484,6 +485,94 @@ public class ResponseCacheFilterTests {
         await Pipeline.Chain(context, Filter(), Writing("secret")).Next();
 
         Assert.Empty(store.Writes);
+    }
+
+    /// <summary>
+    /// One caller's answer is never handed to another, whatever the handler put in it.
+    /// </summary>
+    /// <remarks>
+    /// The key carries the caller, so the ownership check that did not run on the hit does not need
+    /// to: the entry belongs to the caller it was filled for.
+    /// </remarks>
+    [Fact]
+    public async Task PerCallerAnswersEachCallerFromTheirOwnEntry() {
+        var store = new CacheTestSupport.RecordingStore();
+
+        await Pipeline.Chain(
+            AsCaller(store, "subscriber-one"), PerCaller(), Writing("one")).Next();
+
+        var other = AsCaller(store, "subscriber-two");
+
+        await Pipeline.Chain(other, PerCaller(), Writing("two")).Next();
+
+        Assert.Equal("two", BodyOf(other));
+    }
+
+    /// <summary>
+    /// And the same caller twice is still a hit, so the feature survives being made safe.
+    /// </summary>
+    [Fact]
+    public async Task PerCallerStillAnswersTheSameCallerFromTheStore() {
+        var store = new CacheTestSupport.RecordingStore();
+        var ran = 0;
+
+        await Pipeline.Chain(
+            AsCaller(store, "subscriber-one"),
+            PerCaller(),
+            Writing("one", () => ran++)).Next();
+
+        await Pipeline.Chain(
+            AsCaller(store, "subscriber-one"),
+            PerCaller(),
+            Writing("one", () => ran++)).Next();
+
+        Assert.Equal(1, ran);
+    }
+
+    /// <summary>
+    /// Two issuers naming the same subject are two callers. An application that accepts more than
+    /// one is the application where that matters.
+    /// </summary>
+    [Fact]
+    public async Task PerCallerSeparatesTheSameSubjectFromTwoIssuers() {
+        var store = new CacheTestSupport.RecordingStore();
+
+        await Pipeline.Chain(
+            AsCaller(store, "subject", issuer: "https://first"), PerCaller(), Writing("one")).Next();
+
+        var other = AsCaller(store, "subject", issuer: "https://second");
+
+        await Pipeline.Chain(other, PerCaller(), Writing("two")).Next();
+
+        Assert.Equal("two", BodyOf(other));
+    }
+
+    /// <summary>
+    /// A caller with no subject has nothing to key on, and the entry that would result is the
+    /// shared one this scope exists to refuse. So the request is neither looked up nor stored.
+    /// </summary>
+    [Fact]
+    public async Task PerCallerLeavesACallerWithNoSubjectUncached() {
+        var store = new CacheTestSupport.RecordingStore();
+        var context = Context(store);
+
+        await Pipeline.Chain(context, PerCaller(), Writing("one")).Next();
+
+        Assert.Equal("one", BodyOf(context));
+        Assert.Empty(store.Reads);
+        Assert.Empty(store.Writes);
+    }
+
+    private static ResponseCacheFilter PerCaller() =>
+        new([new CacheTestSupport.FixedKey()], "GET /catalog", 60, CacheScope.PerCaller);
+
+    private static IExecutionContext AsCaller(
+        CacheTestSupport.RecordingStore store, string subject, string? issuer = null) {
+        var context = Context(store);
+
+        context.CallerPrincipal = new CallerPrincipal("test", subject: subject, issuer: issuer);
+
+        return context;
     }
 
     private static Pipeline.Inline Writing(string body, Action? onRun = null) =>

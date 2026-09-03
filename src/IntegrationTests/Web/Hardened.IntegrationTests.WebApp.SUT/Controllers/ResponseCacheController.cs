@@ -1,5 +1,6 @@
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Caching;
 using Hardened.Web.Runtime.Attributes;
@@ -22,9 +23,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 public class ResponseCacheController {
 
     private readonly HandlerCallCounter _counter;
+    private readonly ICurrentCaller _currentCaller;
 
-    public ResponseCacheController(HandlerCallCounter counter) {
+    public ResponseCacheController(HandlerCallCounter counter, ICurrentCaller currentCaller) {
         _counter = counter;
+        _currentCaller = currentCaller;
     }
 
     [Get("/catalog")]
@@ -66,8 +69,35 @@ public class ResponseCacheController {
     /// </remarks>
     [Get("/granted")]
     [AuthorizeGrants("pets:read")]
-    [CacheResponse<VaryByRoute>(Duration = 60)]
+    [CacheResponse<VaryByRoute>(Duration = 60, Scope = CacheScope.AllCallers)]
     public string Granted() => _counter.Next("granted").ToString();
+
+    /// <summary>
+    /// The shape three trial arms found one caller's data in: an authenticated read whose ownership
+    /// check is the handler's own code, cached.
+    /// </summary>
+    /// <remarks>
+    /// Nothing on the handler distinguishes this from <see cref="Granted"/>. A description can say
+    /// "the caller must be authenticated" and cannot say "and the row must be theirs", so the check
+    /// is here, answering 404 rather than 403 so the row's existence is not disclosed - and that is
+    /// invisible to anything reading the requirement. <c>CacheScope.PerCaller</c> is the author
+    /// saying what the metadata cannot.
+    /// </remarks>
+    [Get("/owned-by-subject")]
+    [AuthorizeGrants("pets:read")]
+    [CacheResponse<VaryByRoute>(Duration = 60, Scope = CacheScope.PerCaller)]
+    public string OwnedBySubject() =>
+        _currentCaller.Principal.Subject + "-" + _counter.Next("owned-by-subject");
+
+    /// <summary>
+    /// The same read with nothing said about who may be served it, so the first request to it
+    /// fails naming the handler rather than serving one caller's answer to another.
+    /// </summary>
+    [Get("/unstated-scope")]
+    [AuthorizeGrants("pets:read")]
+    [CacheResponse<VaryByRoute>(Duration = 60)]
+    public string UnstatedScope() =>
+        _currentCaller.Principal.Subject + "-" + _counter.Next("unstated-scope");
 }
 
 /// <summary>

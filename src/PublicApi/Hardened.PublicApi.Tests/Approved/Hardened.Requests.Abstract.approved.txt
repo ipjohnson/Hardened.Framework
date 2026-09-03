@@ -246,6 +246,12 @@ namespace Hardened.Requests.Abstract.Authorization
 }
 namespace Hardened.Requests.Abstract.Caching
 {
+    public enum CacheScope
+    {
+        Unstated = 0,
+        AllCallers = 1,
+        PerCaller = 2,
+    }
     public sealed class CachedResponse
     {
         public CachedResponse(int status, string? contentType, byte[] body, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>> headers) { }
@@ -263,6 +269,7 @@ namespace Hardened.Requests.Abstract.Caching
     public interface ICacheResponseDeclaration
     {
         int Duration { get; }
+        Hardened.Requests.Abstract.Caching.CacheScope Scope { get; }
         Hardened.Requests.Abstract.Caching.ICacheKeyProvider CreateKeyProvider();
     }
     public interface IResponseCacheStore
@@ -537,22 +544,32 @@ namespace Hardened.Requests.Abstract.Headers
         public const string AcceptRanges = "Accept-Ranges";
         public const string Allow = "Allow";
         public const string CacheControl = "Cache-Control";
+        public const string Connection = "Connection";
         public const string ContentEncoding = "Content-Encoding";
         public const string ContentLength = "Content-Length";
         public const string ContentRange = "Content-Range";
         public const string ContentType = "Content-Type";
         public const string Cookie = "Cookie";
+        public const string Date = "Date";
         public const string ETag = "ETag";
         public const string IfMatch = "If-Match";
         public const string IfModifiedSince = "If-Modified-Since";
         public const string IfNoneMatch = "If-None-Match";
         public const string IfRange = "If-Range";
+        public const string KeepAlive = "Keep-Alive";
         public const string LastModified = "Last-Modified";
         public const string Location = "Location";
         public const string Origin = "Origin";
+        public const string ProxyAuthenticate = "Proxy-Authenticate";
+        public const string ProxyAuthorization = "Proxy-Authorization";
         public const string Range = "Range";
         public const string RetryAfter = "Retry-After";
+        public const string Server = "Server";
         public const string SetCookie = "Set-Cookie";
+        public const string TE = "TE";
+        public const string Trailer = "Trailer";
+        public const string TransferEncoding = "Transfer-Encoding";
+        public const string Upgrade = "Upgrade";
         public const string Vary = "Vary";
         public static class Cors
         {

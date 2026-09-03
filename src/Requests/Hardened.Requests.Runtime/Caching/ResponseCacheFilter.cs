@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Text;
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -100,6 +101,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     private readonly ICacheKeyProvider[] _keyProviders;
     private readonly string _handlerKey;
     private readonly TimeSpan _duration;
+    private readonly CacheScope _scope;
 
     /// <summary>
     /// Resolved once, on the first request this filter serves. There is no service provider where
@@ -108,10 +110,21 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// </summary>
     private IResponseCacheStore? _store;
 
-    public ResponseCacheFilter(ICacheKeyProvider[] keyProviders, string handlerKey, int duration) {
+    /// <param name="scope">
+    /// Who a stored response may be served to. <see cref="CacheScope.Unstated"/> is taken as
+    /// <see cref="CacheScope.AllCallers"/> here: whether leaving it unstated is allowed at all is
+    /// decided in <see cref="Compose"/>, which is the half that can see what the handler requires
+    /// of its caller.
+    /// </param>
+    public ResponseCacheFilter(
+        ICacheKeyProvider[] keyProviders,
+        string handlerKey,
+        int duration,
+        CacheScope scope = CacheScope.AllCallers) {
         _keyProviders = keyProviders;
         _handlerKey = handlerKey;
         _duration = TimeSpan.FromSeconds(duration <= 0 ? DefaultDuration : duration);
+        _scope = scope;
     }
 
     /// <summary>
@@ -119,14 +132,16 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// </summary>
     /// <remarks>
     /// Called once per handler, as its filter chain is built. Every failure a declaration can
-    /// express - a strategy handed values it cannot use, two durations that disagree - is raised
-    /// here, naming the handler, rather than on a request.
+    /// express - a strategy handed values it cannot use, two durations that disagree, a guarded
+    /// handler that has not said who its stored response may be served to - is raised here, naming
+    /// the handler, rather than on a request.
     /// </remarks>
     public static ResponseCacheFilter Compose(
         IExecutionRequestHandlerInfo handlerInfo,
         IReadOnlyList<ICacheResponseDeclaration> declarations) {
         var providers = new ICacheKeyProvider[declarations.Count];
         var duration = 0;
+        var scope = CacheScope.Unstated;
 
         for (var i = 0; i < declarations.Count; i++) {
             var declaration = declarations[i];
@@ -139,6 +154,17 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
                     $"[CacheResponse] on {handlerInfo.Method} {handlerInfo.Path} could not build its " +
                     $"cache key strategy: {exception.Message}",
                     exception);
+            }
+
+            if (declaration.Scope != CacheScope.Unstated) {
+                if (scope != CacheScope.Unstated && scope != declaration.Scope) {
+                    throw new InvalidOperationException(
+                        $"{handlerInfo.Method} {handlerInfo.Path} declares [CacheResponse] twice " +
+                        $"with different scopes, {scope} and {declaration.Scope}. Composed " +
+                        "attributes share one entry, so it has one audience.");
+                }
+
+                scope = declaration.Scope;
             }
 
             if (declaration.Duration == 0) {
@@ -159,8 +185,20 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             }
         }
 
-        return new ResponseCacheFilter(
-            providers, handlerInfo.Method + " " + handlerInfo.Path, duration);
+        var handlerKey = handlerInfo.Method + " " + handlerInfo.Path;
+        var requirement = handlerInfo.Requirement;
+
+        if (scope == CacheScope.Unstated) {
+            // A handler that requires nothing of its caller has one audience whatever it answers,
+            // so there is nothing for an author to decide and nothing to interrupt them over.
+            if (requirement != null) {
+                throw new CacheScopeUndeclaredException(handlerKey, requirement);
+            }
+
+            scope = CacheScope.AllCallers;
+        }
+
+        return new ResponseCacheFilter(providers, handlerKey, duration, scope);
     }
 
     public async Task Execute(IExecutionChain chain) {
@@ -216,14 +254,29 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// </para>
     /// </remarks>
     private async ValueTask<string?> Key(IExecutionContext context) {
-        // One strategy is the ordinary case, and needs neither a builder nor a separator.
-        if (_keyProviders.Length == 1) {
+        string? caller = null;
+
+        if (_scope == CacheScope.PerCaller) {
+            caller = Caller(context.CallerPrincipal);
+
+            if (caller == null) {
+                return null;
+            }
+        }
+
+        // One strategy and one audience is the ordinary case, and needs neither a builder nor a
+        // separator.
+        if (_keyProviders.Length == 1 && caller == null) {
             var only = await _keyProviders[0].Key(context);
 
             return only == null ? null : _handlerKey + Separator + only;
         }
 
         var key = new StringBuilder(_handlerKey);
+
+        if (caller != null) {
+            key.Append(Separator).Append(caller);
+        }
 
         foreach (var provider in _keyProviders) {
             var part = await provider.Key(context);
@@ -236,6 +289,27 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         }
 
         return key.ToString();
+    }
+
+    /// <summary>
+    /// What separates one caller's entries from another's, or null when nothing does.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The issuer as well as the subject. A subject is unique to whoever issued it, so two trusted
+    /// issuers naming the same subject are two callers - and an application that accepts more than
+    /// one is exactly the application where that matters.
+    /// </para>
+    /// <para>
+    /// A caller with no subject returns null, which leaves the request neither looked up nor
+    /// stored. The alternative is one entry shared by every caller who has no subject, which is the
+    /// entry <see cref="CacheScope.PerCaller"/> exists to refuse.
+    /// </para>
+    /// </remarks>
+    private static string? Caller(ICallerPrincipal principal) {
+        var subject = principal.Subject;
+
+        return string.IsNullOrEmpty(subject) ? null : principal.Issuer + Separator + subject;
     }
 
     private IResponseCacheStore Store(IExecutionContext context) {
