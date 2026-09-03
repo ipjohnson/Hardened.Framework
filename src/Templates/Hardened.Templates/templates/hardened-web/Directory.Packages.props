@@ -24,6 +24,9 @@
     <PackageVersion Include="Hardened.Web.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Web.Kestrel.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Web.AspNetCore.Runtime" Version="$(HardenedVersion)" />
+    <!-- The store [CacheResponse] needs. Listed rather than referenced, so adding the reference is
+         one line in a csproj and not two files. -->
+    <PackageVersion Include="Hardened.Requests.Caching.Memory" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Shared.Testing" Version="$(HardenedVersion)" />
 <!--#if (unionMode) -->
     <!--

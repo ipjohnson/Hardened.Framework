@@ -26,6 +26,9 @@
   <ItemGroup Label="Hardened">
     <PackageVersion Include="Hardened.Shared.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Requests.Runtime" Version="$(HardenedVersion)" />
+    <!-- The store [CacheResponse] needs. ByPayload is the strategy for a function handler, which
+         is the one place a URL key cannot be the whole input. -->
+    <PackageVersion Include="Hardened.Requests.Caching.Memory" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Shared.Testing" Version="$(HardenedVersion)" />
   </ItemGroup>
 
