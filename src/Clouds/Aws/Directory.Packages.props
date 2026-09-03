@@ -42,15 +42,15 @@
       rather than silent.
     -->
     <ItemGroup Label="Hardened.Framework">
-        <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.18.0-rc1000" />
-        <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.18.0-rc1000" />
-        <PackageVersion Include="Hardened.Requests.Abstract" Version="0.18.0-rc1000" />
-        <PackageVersion Include="Hardened.Requests.Runtime" Version="0.18.0-rc1000" />
-        <PackageVersion Include="Hardened.Shared.Runtime" Version="0.18.0-rc1000" />
-        <PackageVersion Include="Hardened.Shared.Testing" Version="0.18.0-rc1000" />
-        <PackageVersion Include="Hardened.SourceGenerator" Version="0.18.0-rc1000" />
-        <PackageVersion Include="Hardened.Web.Runtime" Version="0.18.0-rc1000" />
-        <PackageVersion Include="Hardened.Web.SourceGenerator" Version="0.18.0-rc1000" />
+        <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.19.0-rc1000" />
+        <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.19.0-rc1000" />
+        <PackageVersion Include="Hardened.Requests.Abstract" Version="0.19.0-rc1000" />
+        <PackageVersion Include="Hardened.Requests.Runtime" Version="0.19.0-rc1000" />
+        <PackageVersion Include="Hardened.Shared.Runtime" Version="0.19.0-rc1000" />
+        <PackageVersion Include="Hardened.Shared.Testing" Version="0.19.0-rc1000" />
+        <PackageVersion Include="Hardened.SourceGenerator" Version="0.19.0-rc1000" />
+        <PackageVersion Include="Hardened.Web.Runtime" Version="0.19.0-rc1000" />
+        <PackageVersion Include="Hardened.Web.SourceGenerator" Version="0.19.0-rc1000" />
     </ItemGroup>
 
     <ItemGroup Label="DependencyModules and code generation">
