@@ -37,12 +37,19 @@ public static class RoutingGeneratorMarker {
     /// method leaves a source that already opens with the marker alone, which would mean this file
     /// carrying the marker and neither the nullable context nor the CS1591 pragma that travel with
     /// it.
+    ///
+    /// <para>
+    /// <c>partial</c> because two routing generators in one compilation each emit this, and a
+    /// second declaration of a non-partial type is a CS0101 that says nothing about why there are
+    /// two. Declared twice it merges, and the count of declarations is what
+    /// <c>CollidingRoutingGenerators</c> reads to report the real problem.
+    /// </para>
     /// </remarks>
     public const string Source =
         "namespace Hardened.Web.Generated {\n" +
         "    /// <summary>Declared by a Hardened routing generator so other generators can tell\n" +
         "    /// whether route declarations are being compiled for this compilation.</summary>\n" +
-        "    internal static class WebRoutingGeneratorMarker {\n" +
+        "    internal static partial class WebRoutingGeneratorMarker {\n" +
         "    }\n" +
         "}\n";
 }

@@ -35,6 +35,7 @@ Change the thing it was generated from.
 | `CS0246` on a type you did not write | Never built. Build first. |
 | `'Application' does not contain 'PopulateServiceCollection'` | A `*.SourceGenerator` package was removed from a csproj |
 | Duplicate definitions under `obj/**/generated/` | A generator was renamed and its old output is still there. Delete `obj/`. |
+| `HRDR008` | Two routing generators reached this project. Add `PrivateAssets="all"` to the reference that brought the second. |
 | Builds clean, every route answers 404 | The routing generator is absent. The runtime packages carry no analyzers. |
 | A handler parameter arrives empty, or `CS0128` on `contentSerializationService` | A concrete class as a handler parameter is bound from the request body. Inject an interface, or mark it `[FromServices]`. |
 #if (specFirst)

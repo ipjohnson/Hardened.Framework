@@ -121,6 +121,27 @@ framework's own `AspNetCoreRuntime` is one.
 
 One report per assembly, not one per route: there is a single thing to fix.
 
+### HRDR008 — more than one routing generator is compiling this assembly
+
+A Roslyn generator travels through a `ProjectReference`, and through a `PackageReference` that is
+not a development dependency, unless the reference says `PrivateAssets="all"`. Reference a
+code-first module project from a specification-first library, or the library from a code-first
+host, and both generator sets run over one compilation.
+
+```
+Hardened.Web.SourceGenerator and Hardened.Idl.SourceGenerator are both compiling this project's
+routes, so every generated name - the routing table, the links type and a class per handler - is
+declared twice, as CS0102 and CS0111 in obj/**/generated/**. A generator reaches this project
+through a ProjectReference, or a PackageReference that is not a development dependency, unless
+the reference says PrivateAssets="all". Add it to the one that brought the second generator.
+```
+
+The same marker HRDR006 reads for absence answers this one by being declared twice — it is
+`partial` so that the second declaration merges rather than raising a `CS0101` that says nothing
+about why there are two. The generators are named from the paths Roslyn gives generated files,
+which start with the generator's assembly, because the fix is on whichever reference brought the
+second one rather than anywhere in the code.
+
 ## Validation
 
 ### HRDV004 — nested constraints are never reached
