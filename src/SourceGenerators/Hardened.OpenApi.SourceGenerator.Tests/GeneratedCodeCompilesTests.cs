@@ -976,4 +976,169 @@ public class GeneratedCodeCompilesTests {
     }
 
     #endregion
+
+    #region declared errors that are not generated types
+
+    /// <summary>
+    /// Four declared errors, one per way a status can resolve: a shipped generic record, a shipped
+    /// bare one, a closed <c>Status&lt;&gt;</c> over a marker, and a generated case for the status
+    /// registered nowhere.
+    /// </summary>
+    private const string EveryErrorResolution =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets/{id}:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema: { type: string }
+              responses:
+                '200':
+                  description: The pet.
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Pet' }
+                '404':
+                  description: No pet.
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Problem' }
+                '403':
+                  description: Not yours.
+                '418':
+                  description: Short and stout.
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Problem' }
+                '529':
+                  description: Overloaded, and registered nowhere.
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Problem' }
+        components:
+          schemas:
+            Pet:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+            Problem:
+              type: object
+              required: [detail]
+              properties:
+                detail: { type: string }
+        """;
+
+    /// <summary>
+    /// Every resolution compiles, and a handler can return each one.
+    /// </summary>
+    /// <remarks>
+    /// The whole chain in one test, because the halves meet only in generated code: the build task
+    /// writes the container and whatever case types survive, and the Roslyn generator writes the
+    /// switch over them from its own copy of the same decision. A disagreement is a switch arm
+    /// naming a type nothing emitted, which is a compiler error here and nowhere else.
+    /// </remarks>
+    [Fact]
+    public void EveryWayAnErrorCanResolveCompiles() {
+        var result = OpenApiGenerator.Run(
+            EveryErrorResolution,
+            OpenApiGenerator.EntryPointWithHandler(
+                """
+                [Handler]
+                public class PetServiceImpl : IPetService {
+                    public Task<GetPetResponse> GetPet(string id) =>
+                        Task.FromResult<GetPetResponse>(id switch {
+                            "missing" => new NotFound<Problem>(new Problem("no pet")),
+                            "secret" => new Forbidden(),
+                            "teapot" => new Status<Http.ImATeapot, Problem>(new Problem("short")),
+                            "busy" => new Status529Problem(new Problem("overloaded")),
+                            _ => new Pet(id)
+                        });
+                }
+                """),
+            buildProperties: new Dictionary<string, string> { ["HardenedResponseModel"] = "Response" });
+
+        result.AssertNoErrors();
+
+        var generated = result.SourceContaining("petstore.g.cs");
+
+        // Only the unregistered status gets a type. The other three are the framework's own.
+        Assert.Contains("public sealed partial record Status529Problem", generated);
+        Assert.DoesNotContain("GetPetNotFound", generated);
+        Assert.DoesNotContain("GetPetForbidden", generated);
+        Assert.DoesNotContain("GetPetStatus418", generated);
+    }
+
+    /// <summary>
+    /// A declared header is the one thing a shipped wrapper cannot carry, so the error gets a case
+    /// type - named for the status and its schema, and shared by every operation declaring it.
+    /// </summary>
+    private const string ErrorWithADeclaredHeader =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets:
+            get:
+              tags: [Pet]
+              operationId: listPets
+              responses:
+                '200':
+                  description: The pets.
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Pet' }
+                '429':
+                  description: Slow down.
+                  headers:
+                    X-Rate-Limit:
+                      description: Requests left in the window.
+                      schema: { type: string }
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Problem' }
+        components:
+          schemas:
+            Pet:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+            Problem:
+              type: object
+              required: [detail]
+              properties:
+                detail: { type: string }
+        """;
+
+    [Fact]
+    public void AnErrorDeclaringAHeaderStillGetsACaseTypeThatCarriesIt() {
+        var result = OpenApiGenerator.Run(
+            ErrorWithADeclaredHeader,
+            OpenApiGenerator.EntryPointWithHandler(
+                """
+                [Handler]
+                public class PetServiceImpl : IPetService {
+                    public Task<ListPetsResponse> ListPets() =>
+                        Task.FromResult<ListPetsResponse>(
+                            new RateLimitedProblem(new Problem("slow down"), "0"));
+                }
+                """),
+            buildProperties: new Dictionary<string, string> { ["HardenedResponseModel"] = "Response" });
+
+        result.AssertNoErrors();
+
+        var generated = result.SourceContaining("petstore.g.cs");
+
+        Assert.Contains("public sealed partial record RateLimitedProblem", generated);
+        Assert.Contains("headers[\"X-Rate-Limit\"] = XRateLimit", generated);
+    }
+
+    #endregion
 }

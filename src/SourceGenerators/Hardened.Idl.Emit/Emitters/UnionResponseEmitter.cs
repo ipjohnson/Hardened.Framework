@@ -6,26 +6,32 @@ using Hardened.Generation.Models;
 namespace Hardened.Idl.Emitters;
 
 /// <summary>
-/// An operation's declared responses, as a named union and one case type per status.
+/// An operation's declared responses, as a named union over the types they resolve to.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The sibling of <see cref="ErrorResponseEmitter"/>, and it emits the same names without the
-/// <c>Exception</c> suffix. That one expresses a declared error by having the implementation throw,
+/// The sibling of <see cref="ErrorResponseEmitter"/>, and it resolves a declared error to the same
+/// place that one does. That one expresses a declared error by having the implementation throw,
 /// leaving the signature saying <c>Task&lt;Pet&gt;</c>; this one puts the whole response set in the
-/// return type. Which of the two runs is the module's response model, and only one of them does -
-/// emitting both would offer two ways to answer the same 404 and no way to tell which a handler
-/// used.
+/// return type. Which of the two runs is decided per operation, and only one of them runs for any
+/// given operation - emitting both would offer two ways to answer the same 404 and no way to tell
+/// which a handler used.
 /// </para>
 /// <para>
-/// <b>The per-status wrapper types are mandatory, not stylistic.</b> The repo's own
-/// <c>DeclaredErrors</c> fixture declares 404 and 409 both <c>$ref</c>-ing <c>ApiError</c>, so the
-/// naive shape is <c>Response&lt;Pet, ApiError, ApiError&gt;</c> - two identical conversions, which
-/// is CS0457 at the point of use. Wrapping per status makes every case a distinct type. It also
-/// buys the two things <c>Response&lt;T1..Tn&gt;</c> cannot give the specification-first path:
-/// unbounded arity, since the container is generated per operation rather than shipped at fixed
-/// arities, and a status that declares no body at all - a 503 with nothing to send is a case type
-/// carrying nothing, which no <c>Response&lt;T&gt;</c> position can express.
+/// <b>The per-status wrapper is mandatory, not stylistic.</b> The repo's own <c>DeclaredErrors</c>
+/// fixture declares 404 and 409 both <c>$ref</c>-ing <c>ApiError</c>, so the naive shape is
+/// <c>Response&lt;Pet, ApiError, ApiError&gt;</c> - two identical conversions, which is CS0457 at
+/// the point of use. Wrapping per status makes every case a distinct type.
+/// </para>
+/// <para>
+/// <b>What is no longer mandatory is generating the wrapper.</b>
+/// <c>Hardened.Requests.Abstract.Responses</c> ships one per status, so the same fixture is
+/// <c>Response&lt;Pet, NotFound&lt;ApiError&gt;, Conflict&lt;ApiError&gt;&gt;</c> and nothing is
+/// emitted for either case. The container is still generated per operation, which is what keeps the
+/// unbounded arity <c>Response&lt;T1..T8&gt;</c> cannot give the specification-first path.
+/// <see cref="ShippedResponses.For"/> decides; a case type is written here only for what it
+/// declined - an error the description named, one carrying a header no shipped wrapper can hold, or
+/// a status registered nowhere.
 /// </para>
 /// <para>
 /// The container's shape is <see cref="OneOfEmitter"/>'s, deliberately: a public single-parameter
@@ -38,11 +44,16 @@ namespace Hardened.Idl.Emitters;
 internal static class UnionResponseEmitter {
 
     /// <summary>Where the response contracts a generated case implements live.</summary>
-    private const string ResponsesNamespace = "Hardened.Requests.Abstract.Responses";
+    private const string ResponsesNamespace = ShippedResponses.Namespace;
 
     /// <summary>
-    /// The union type and its case types, for every operation the service declares.
+    /// The union type and the success cases it needs, for every operation the service declares.
     /// </summary>
+    /// <remarks>
+    /// The error cases are not here: they are shared across operations and across services, so
+    /// <see cref="EmitErrorCaseTypes"/> writes them once for the whole document. This still names
+    /// them, because a branch is a name whether or not this emitter is the thing that wrote it.
+    /// </remarks>
     public static IReadOnlyList<ClassDefinition> Emit(
         IConstructContainer container, ServiceModel service, string modelsNamespace,
         bool asLanguageUnion = false, SpecResponseModel responseModel = SpecResponseModel.Response) {
@@ -53,47 +64,123 @@ internal static class UnionResponseEmitter {
                 continue;
             }
 
-            var cases = new List<CaseType>();
+            var branches = new List<ITypeDefinition>();
+
+            var success = SuccessBranchType(operation, modelsNamespace);
+
+            if (success != null) {
+                branches.Add(success);
+            }
 
             // A declared success that carries no body, or that is not the primary one, needs a case
             // type of its own - it has no schema to stand in for it the way a $ref success does.
             // 204 is the common shape: the branch exists, it is empty, and the dispatch already
             // knows what to do with a case whose hasBody is false.
+            //
+            // Still per operation, unlike the errors. A success case carries the operation's own
+            // payload shape, so two operations declaring a 200 have nothing to share.
             foreach (var response in operation.SuccessResponses) {
                 if (!ResponseSetPlan.NeedsSuccessCaseType(operation, response)) {
                     continue;
                 }
 
+                var name = ResponseSetPlan.CaseName(operation, response.StatusCode);
+
                 var successCase = EmitCaseType(
-                    container, operation, response.StatusCode,
+                    container, name, response.StatusCode,
                     PayloadType(
                         response.Ref, response.Type, response.Format,
                         response.IsArray, response.ArrayItemsRef, response.ArrayItemsType,
                         modelsNamespace),
                     response.Description,
-                    modelsNamespace, response.Headers);
+                    $"The {response.StatusCode} response declared for " +
+                    $"{operation.HttpMethod} {operation.Path}.",
+                    response.Headers);
 
-                emitted.Add(successCase.Definition);
-                cases.Add(successCase);
+                emitted.Add(successCase);
+                branches.Add(TypeDefinition.Get(modelsNamespace, name));
             }
 
-            foreach (var response in operation.ErrorResponses) {
-                var caseType = EmitCaseType(
-                    container, operation, response.StatusCode,
-                    PayloadType(response.Ref, null, null, false, null, null, modelsNamespace),
-                    response.Description,
-                    modelsNamespace, response.Headers);
-
-                emitted.Add(caseType.Definition);
-                cases.Add(caseType);
+            foreach (var error in operation.ErrorResponses) {
+                branches.Add(ErrorBranchType(error, modelsNamespace));
             }
 
-            emitted.Add(
-                EmitContainer(container, operation, cases, modelsNamespace, asLanguageUnion));
+            emitted.Add(EmitContainer(container, operation, branches, asLanguageUnion));
         }
 
         return emitted;
     }
+
+    /// <summary>
+    /// One case type per declared error the shipped set cannot express, for the whole document.
+    /// </summary>
+    /// <param name="errors">
+    /// The distinct errors, one entry each. Computed by <see cref="SpecFileEmitter"/> rather than
+    /// walked per operation here: two operations declaring one 404 over one schema want one case
+    /// type, and emitting it per operation is what made <c>GetLabelNotFound</c> and
+    /// <c>ArchiveLabelNotFound</c> two names for one record.
+    /// </param>
+    public static IReadOnlyList<ClassDefinition> EmitErrorCaseTypes(
+        IConstructContainer container, IReadOnlyList<ErrorResponseModel> errors,
+        string modelsNamespace) {
+        var emitted = new List<ClassDefinition>();
+
+        foreach (var error in errors) {
+            emitted.Add(EmitCaseType(
+                container, error.TypeName!, error.StatusCode,
+                PayloadType(error.Ref, null, null, false, null, null, modelsNamespace),
+                error.Description,
+                // No operation in the fallback, and there cannot be one: this case is shared by
+                // every operation that declares the error.
+                $"The {error.StatusCode} response the description declares" +
+                (error.Name == null ? "." : $" as '{error.Name}'."),
+                error.Headers));
+        }
+
+        return emitted;
+    }
+
+    /// <summary>
+    /// The type a declared error reaches the union as: a shipped response, or a generated case.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ShippedResponses.For"/> is the one decision, asked here and by the Roslyn
+    /// generator that writes the switch over these branches. The two run in different processes and
+    /// meet only in the generated code, so a second derivation of it is a switch arm naming a type
+    /// nothing emitted.
+    /// </remarks>
+    private static ITypeDefinition ErrorBranchType(
+        ErrorResponseModel error, string modelsNamespace) {
+        var binding = ShippedResponses.For(error);
+
+        if (binding == null) {
+            return TypeDefinition.Get(modelsNamespace, error.TypeName!);
+        }
+
+        var shipped = binding.Value;
+        var payload = PayloadType(error.Ref, null, null, false, null, null, modelsNamespace);
+
+        // Status<Http.Locked, Problem> - the escape hatch, for a registered status the framework
+        // ships no record for. Two statuses are two closed types, so CS0457 never fires and the
+        // framework does not have to know the number in advance.
+        if (shipped.Marker != null) {
+            var marker = TypeDefinition.Get(
+                ShippedResponses.Namespace,
+                ShippedResponses.MarkerHolderName + "." + shipped.Marker);
+
+            return shipped.TakesBody && payload != null
+                ? Shipped(shipped.TypeName, marker, payload)
+                : Shipped(shipped.TypeName, marker);
+        }
+
+        return shipped.TakesBody && payload != null
+            ? Shipped(shipped.TypeName, payload)
+            : TypeDefinition.Get(ShippedResponses.Namespace, shipped.TypeName);
+    }
+
+    private static ITypeDefinition Shipped(string name, params ITypeDefinition[] arguments) =>
+        new GenericTypeDefinition(
+            TypeDefinitionEnum.ClassDefinition, ShippedResponses.Namespace, name, arguments);
 
     /// <summary>
     /// One record per declared status, carrying the body that status declares, or nothing.
@@ -107,13 +194,10 @@ internal static class UnionResponseEmitter {
     /// an interface or a computed member to a type it did not write. Sealing to keep the match order
     /// unambiguous never required refusing that.
     /// </remarks>
-    private static CaseType EmitCaseType(
-        IConstructContainer container, OperationModel operation, int statusCode,
-        ITypeDefinition? payload,
-        string? description, string modelsNamespace,
+    private static ClassDefinition EmitCaseType(
+        IConstructContainer container, string name, int statusCode, ITypeDefinition? payload,
+        string? description, string fallbackComment,
         IReadOnlyList<ResponseHeaderModel>? headers = null) {
-        var name = ResponseSetPlan.CaseName(operation, statusCode);
-
         var definition = container.AddClass(name);
 
         definition.TypeKeyword = ClassKeyword.Record;
@@ -124,14 +208,13 @@ internal static class UnionResponseEmitter {
         // and generated code is read more often than it is written.
         definition.TerminateWithSemicolon = true;
 
-        definition.Comment = DocComment.Format(description)
-            ?? $"The {statusCode} response declared for {operation.HttpMethod} {operation.Path}.";
+        definition.Comment = DocComment.Format(description) ?? fallbackComment;
 
         // [HttpStatus], so the dispatch generator reads this case's status from the type rather
         // than from the specification it can no longer see. It is the same attribute a hand-written
         // response type carries, which is what keeps one status resolution serving both front ends.
         definition.AddAttribute(
-            TypeDefinition.Get("Hardened.Requests.Abstract.Responses", "HttpStatusAttribute"),
+            TypeDefinition.Get(ResponsesNamespace, "HttpStatusAttribute"),
             new CodeOutputComponent(
                 statusCode.ToString(System.Globalization.CultureInfo.InvariantCulture)) {
                 Indented = false
@@ -153,7 +236,7 @@ internal static class UnionResponseEmitter {
                 EmitApplyHeaders(definition, headerParameters);
             }
 
-            return new CaseType(definition, name, hasBody: false);
+            return definition;
         }
 
         var constructor = definition.AddConstructor();
@@ -193,7 +276,7 @@ internal static class UnionResponseEmitter {
 
         EmitApplyHeaders(definition, headerParameters);
 
-        return new CaseType(definition, name, hasBody: true);
+        return definition;
     }
 
     /// <summary>
@@ -313,21 +396,9 @@ internal static class UnionResponseEmitter {
     /// only they can collide with each other on a shared schema.
     /// </remarks>
     private static ClassDefinition EmitContainer(
-        IConstructContainer container, OperationModel operation, IReadOnlyList<CaseType> cases,
-        string modelsNamespace, bool asLanguageUnion) {
+        IConstructContainer container, OperationModel operation,
+        IReadOnlyList<ITypeDefinition> branchTypes, bool asLanguageUnion) {
         var name = ResponseSetPlan.ContainerName(operation);
-
-        var branchTypes = new List<ITypeDefinition>();
-
-        var success = SuccessBranchType(operation, modelsNamespace);
-
-        if (success != null) {
-            branchTypes.Add(success);
-        }
-
-        foreach (var caseType in cases) {
-            branchTypes.Add(TypeDefinition.Get(modelsNamespace, caseType.Name));
-        }
 
         var branches = new List<string>();
 
@@ -394,37 +465,6 @@ internal static class UnionResponseEmitter {
         return type;
     }
 
-    /// <summary>
-    /// Whether a declared success needs a case type of its own rather than being named by its schema.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The primary success is the operation's own payload type, so it needs no wrapper - a handler
-    /// returns the pet it already had. It needs one only when there is no payload to name, which is
-    /// 204 and every other bodyless success.
-    /// </para>
-    /// <para>
-    /// Every other success is wrapped whatever its body, because the wrapper is what carries the
-    /// status. Two successes sharing one schema would otherwise put the same type in the union
-    /// twice, and two identical conversions are ambiguous at the use site rather than at the
-    /// declaration - the same wall the per-status error wrappers exist for.
-    /// </para>
-    /// <para>
-    /// Deliberately expressed against <see cref="SuccessBranchType"/>'s own answer rather than by
-    /// restating its conditions. Restating them is how a branch and the case type meant to replace
-    /// it come to disagree about which one an operation got.
-    /// </para>
-    /// </remarks>
-
-
-    /// <summary>
-    /// The operation's success payload as a branch, or null where it answers with no body.
-    /// </summary>
-    /// <remarks>
-    /// Deliberately narrower than <c>ServiceInterfaceEmitter.GetReturnType</c>. A streamed or
-    /// raw-bytes response is not a response set - the first is many bodies and the second is one the
-    /// application already holds encoded - and neither belongs in a union of statuses.
-    /// </remarks>
     /// <summary>
     /// The body a declared response carries: its named schema, a list of one, or the scalar the
     /// contract typed without naming.
@@ -493,10 +533,18 @@ internal static class UnionResponseEmitter {
         return type.Namespace + "." + type.Name + "<" + string.Join(",", arguments) + ">";
     }
 
+    /// <summary>
+    /// The operation's success payload as a branch, or null where it answers with no body.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately narrower than <c>ServiceInterfaceEmitter.GetReturnType</c>. A streamed or
+    /// raw-bytes response is not a response set - the first is many bodies and the second is one the
+    /// application already holds encoded - and neither belongs in a union of statuses.
+    /// </remarks>
     private static ITypeDefinition? SuccessBranchType(
         OperationModel operation, string modelsNamespace) {
         // Not HasNamedSuccessPayload: a primary success that declares headers is emitted as a
-        // wrapper by the loop above and is already in `cases`, so naming the payload here too would
+        // wrapper by the success loop and is already a branch, so naming the payload here too would
         // give the union two branches for one status.
         if (!ResponseSetPlan.PrimarySuccessIsBarePayload(operation)) {
             return null;
@@ -518,20 +566,5 @@ internal static class UnionResponseEmitter {
         }
 
         return null;
-    }
-
-    private readonly struct CaseType {
-
-        public CaseType(ClassDefinition definition, string name, bool hasBody) {
-            Definition = definition;
-            Name = name;
-            HasBody = hasBody;
-        }
-
-        public ClassDefinition Definition { get; }
-
-        public string Name { get; }
-
-        public bool HasBody { get; }
     }
 }

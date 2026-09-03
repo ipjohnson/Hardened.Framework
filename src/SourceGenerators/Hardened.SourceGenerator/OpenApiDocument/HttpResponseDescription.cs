@@ -5,13 +5,14 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Not shared with <c>DefaultErrorBody.ReasonPhrase</c>, and that is deliberate.</b> The two
-/// tables hold some of the same strings and answer different questions. That one feeds
-/// <c>StatusName</c>, which composes <em>generated type names</em> - <c>NotFoundApiError</c>,
-/// <c>ConflictApiError</c> - so teaching it the 2xx phrases a document needs would rename types in
-/// the specification-first path for a reason that has nothing to do with them. A table that names
-/// types and a table that describes responses are one refactor apart from being the same thing and
-/// must not be made so.
+/// <b>Not shared with the tables that name types, and that is deliberate.</b> There is one of
+/// those - <c>ShippedResponses.StatusName</c>, which the specification-first path composes
+/// <c>NotFoundProblem</c> and <c>ConflictProblem</c> from - and it holds some of the same strings
+/// while answering a different question. Teaching it the 2xx phrases a document needs would rename
+/// generated types for a reason that has nothing to do with them, and giving this one a type name
+/// would put <c>ContentTooLarge</c> in a document where RFC 9110 writes "Content Too Large". A
+/// table that names types and a table that describes responses are one refactor apart from being
+/// the same thing and must not be made so.
 /// </para>
 /// <para>
 /// The phrases are RFC 9110's own, because a description is read by whoever reads the document and

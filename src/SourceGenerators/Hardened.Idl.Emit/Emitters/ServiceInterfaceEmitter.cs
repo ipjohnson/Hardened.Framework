@@ -39,7 +39,8 @@ internal static class ServiceInterfaceEmitter {
             // is XML-safe and reads the same everywhere the entity did.
             method.Comment =
                 $"{operation.HttpMethod} {operation.Path} → {operation.SuccessStatusCode}" +
-                (description == null ? "" : "\n\n" + description);
+                (description == null ? "" : "\n\n" + description) +
+                ThrowsLine(operation, responseModel);
 
             if (operation.IsDeprecated) {
                 Deprecation.Apply(method);
@@ -51,6 +52,82 @@ internal static class ServiceInterfaceEmitter {
         }
 
         return interfaceDefinition;
+    }
+
+    /// <summary>
+    /// What a handler in throws mode may throw to answer a declared error, as a line of prose.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is what the operation prefix used to buy.</b> A reader looking at
+    /// <c>IPetService.GetPet</c> could learn what it throws from a type named after it -
+    /// <c>GetPetNotFoundException</c> - and a declared error that binds to
+    /// <c>NotFound&lt;Problem&gt;</c> takes that away. So the interface says it, which is the
+    /// question's proper home: one line per declared error, on the method, rather than a public
+    /// type per operation and status in the consumer's assembly.
+    /// </para>
+    /// <para>
+    /// Prose rather than <c>&lt;exception cref&gt;</c>, which is the element for this. CSharpAuthor
+    /// escapes comment text at the boundary - deliberately, because prose is what these properties
+    /// are handed and prose silently producing malformed XML is the worse failure - so markup
+    /// written here would render as text. The type names still read correctly: the escaping turns
+    /// <c>NotFound&lt;Problem&gt;</c> into entities that a documentation viewer renders back.
+    /// </para>
+    /// <para>
+    /// Only for the operations that answer by throwing. One answering with a response set states
+    /// every case in its return type already, where the compiler checks it.
+    /// </para>
+    /// </remarks>
+    private static string ThrowsLine(OperationModel operation, SpecResponseModel responseModel) {
+        if (operation.ErrorResponses.Count == 0 ||
+            ResponseSetPlan.RequiresResponseSet(operation, responseModel)) {
+            return "";
+        }
+
+        var thrown = new List<string>();
+
+        foreach (var error in operation.ErrorResponses) {
+            var name = ThrownTypeName(error);
+
+            if (!thrown.Contains(name)) {
+                thrown.Add(name);
+            }
+        }
+
+        return "\n\nThrows " + string.Join(", ", thrown) + ".";
+    }
+
+    /// <summary>The type a declared error is thrown as, unqualified, for the doc comment.</summary>
+    /// <remarks>
+    /// The shipped record where the error binds to one, reached through <c>AsException()</c>; the
+    /// generated exception otherwise. <c>ShippedResponses.For</c> answers, rather than this
+    /// deciding a second time - a doc comment naming a type the emitter did not write is worse than
+    /// no doc comment.
+    /// </remarks>
+    private static string ThrownTypeName(ErrorResponseModel error) {
+        var binding = ShippedResponses.For(error);
+
+        if (binding == null) {
+            return error.ExceptionTypeName ?? ShippedResponses.GeneratedName(error) + "Exception";
+        }
+
+        var payload = error.Ref == null
+            ? null
+            : NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref));
+
+        var shipped = binding.Value;
+
+        if (shipped.Marker != null) {
+            var marker = ShippedResponses.MarkerHolderName + "." + shipped.Marker;
+
+            return shipped.TakesBody && payload != null
+                ? $"{shipped.TypeName}<{marker}, {payload}>"
+                : $"{shipped.TypeName}<{marker}>";
+        }
+
+        return shipped.TakesBody && payload != null
+            ? $"{shipped.TypeName}<{payload}>"
+            : shipped.TypeName;
     }
 
     internal static ITypeDefinition GetReturnType(
@@ -98,8 +175,9 @@ internal static class ServiceInterfaceEmitter {
             // handler is allowed to do. Returning null answers 404 with the body the document
             // declared for it; without a declared 404 the `?` is absent and the compiler says so.
             //
-            // A handler that wants to explain the refusal throws the generated exception type
-            // instead, which carries a body it wrote. Null is the "nothing to say" answer.
+            // A handler that wants to explain the refusal throws the 404 the description declared
+            // instead - NotFound<Problem>, or the type generated for a named error - which carries
+            // a body it wrote. Null is the "nothing to say" answer.
             return Task(Model(operation.ResponseRef, modelsNamespace, DeclaresNotFound(operation)));
         }
 

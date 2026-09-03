@@ -29,9 +29,13 @@ public static class ProblemTypes {
 
     public const string Unauthorized = Prefix + "unauthorized";
 
+    public const string PaymentRequired = Prefix + "payment-required";
+
     public const string Forbidden = Prefix + "forbidden";
 
     public const string NotFound = Prefix + "not-found";
+
+    public const string RequestTimeout = Prefix + "request-timeout";
 
     public const string Conflict = Prefix + "conflict";
 
@@ -39,9 +43,23 @@ public static class ProblemTypes {
 
     public const string PreconditionFailed = Prefix + "precondition-failed";
 
+    public const string ContentTooLarge = Prefix + "content-too-large";
+
+    public const string UnsupportedMediaType = Prefix + "unsupported-media-type";
+
+    public const string UnprocessableContent = Prefix + "unprocessable-content";
+
     public const string PreconditionRequired = Prefix + "precondition-required";
 
     public const string RateLimited = Prefix + "rate-limited";
 
+    public const string InternalServerError = Prefix + "internal-server-error";
+
+    public const string NotImplemented = Prefix + "not-implemented";
+
+    public const string BadGateway = Prefix + "bad-gateway";
+
     public const string ServiceUnavailable = Prefix + "service-unavailable";
+
+    public const string GatewayTimeout = Prefix + "gateway-timeout";
 }

@@ -15,10 +15,10 @@ namespace Hardened.Requests.Abstract.Responses;
 /// wrapper with the payload nested inside it.
 /// </para>
 /// <para>
-/// This is the hand-written equivalent of what the specification-first emitter generates for a
-/// declared status - <c>GetPetNotFound(ApiError Body)</c> - so the two front ends describe a
-/// declared error the same way, and two statuses sharing one payload type are two distinct case
-/// types rather than the CS0457 that <c>PreconditionFailed, PreconditionFailed</c> would be.
+/// This is what a specification-first build binds a declared status with a body to, so a declared
+/// error and a hand-written one are one type rather than two names for it - and two statuses
+/// sharing one payload schema are two distinct case types rather than the CS0457 that
+/// <c>PreconditionFailed, PreconditionFailed</c> would be.
 /// </para>
 /// </remarks>
 [HttpStatus(412)]

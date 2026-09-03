@@ -841,7 +841,15 @@ internal static class SmithySpecParser {
             model.ErrorResponses.Add(new ErrorResponseModel {
                 StatusCode = status,
                 Ref = reference,
-                Description = Text(error, SmithyTraits.Documentation)
+                Description = Text(error, SmithyTraits.Documentation),
+
+                // The shape's own name, which is the thing this front end knows and OpenAPI
+                // usually does not. An error in Smithy is a named shape bound to operations -
+                // bank.smithy declares AccountNotFound once and binds it to two - so the generated
+                // type is named after it, once, shared by both. That is what every other Smithy
+                // code generator emits from the same model, and it is why the status is no longer
+                // enough to key a type on: two @error("client") shapes both default to 400.
+                Name = SmithyPrelude.LocalName(errorId)
             });
         }
 

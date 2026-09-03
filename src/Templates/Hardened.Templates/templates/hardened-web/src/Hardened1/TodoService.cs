@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Responses;
 using Hardened1.Models;
 using Hardened1.Services;
 
@@ -41,6 +42,30 @@ public class TodoService : ITodosService {
     private static TodoNotFound NotFoundBody(string message) => new(message);
 
     private static TodoTitleTaken ConflictBody(string message) => new(message);
+#endif
+
+    // And the type that carries the body to the wire, which is where the languages diverge again.
+    //
+    // An anonymous OpenAPI error binds to the record the framework already ships for its status -
+    // NotFound<Problem>, Conflict<Problem> - so the build generates nothing for it and the same
+    // type serves a code-first handler. A Smithy error is a named shape, so the build generates one
+    // type named for the shape and every operation binding it uses that one. Neither is named after
+    // an operation, which is why adding a second operation with the same 404 adds no type.
+#if (declaredMode)
+#if (openapi)
+    private static NotFound<Problem> NotFoundCase(string detail) => new(NotFoundBody(detail));
+#endif
+#if (smithy)
+    private static TodoNotFoundError NotFoundCase(string message) => new(NotFoundBody(message));
+#endif
+#endif
+#if (openapi)
+    private static Conflict<Problem> ConflictCase(string detail) => new(ConflictBody(detail));
+#endif
+#if (smithy)
+#if (declaredMode)
+    private static TodoTitleTakenError ConflictCase(string message) => new(ConflictBody(message));
+#endif
 #endif
 
     /// <summary>
@@ -86,8 +111,7 @@ public class TodoService : ITodosService {
     public Task<CreateTodoResponse> CreateTodo(NewTodo body) {
         if (_store.TitleExists(body.Title)) {
             return Task.FromResult<CreateTodoResponse>(
-                new CreateTodoConflict(
-                    ConflictBody($"A todo titled '{body.Title}' already exists.")));
+                ConflictCase($"A todo titled '{body.Title}' already exists."));
         }
 
         var created = _store.Add(body.Title);
@@ -104,8 +128,7 @@ public class TodoService : ITodosService {
     /// </summary>
     public Task<Todo> CreateTodo(NewTodo body) {
         if (_store.TitleExists(body.Title)) {
-            throw new CreateTodoConflictException(
-                ConflictBody($"A todo titled '{body.Title}' already exists."));
+            throw ConflictBody($"A todo titled '{body.Title}' already exists.").AsException();
         }
 
         return Task.FromResult(_store.Add(body.Title));
@@ -113,10 +136,19 @@ public class TodoService : ITodosService {
 #endif
 
     /// <summary>204 on success - the contract declares no body, so the signature has no result.</summary>
+    /// <remarks>
+    /// AsException() is the whole of the throw in both languages. It is the framework's own verb for
+    /// turning a response into a thrown one, and the build generates the overload that reaches a
+    /// declared error's body - so the type is named once rather than beside the body it carries.
+    /// </remarks>
     public Task RemoveTodo(int id) {
         if (!_store.Remove(id)) {
-            throw new RemoveTodoNotFoundException(
-                NotFoundBody($"No todo has id {id}."));
+#if (openapi)
+            throw new NotFound<Problem>(NotFoundBody($"No todo has id {id}.")).AsException();
+#endif
+#if (smithy)
+            throw NotFoundBody($"No todo has id {id}.").AsException();
+#endif
         }
 
         return Task.CompletedTask;
@@ -136,7 +168,7 @@ public class TodoService : ITodosService {
 
         if (todo is null) {
             return Task.FromResult<GetTodoResponse>(
-                new GetTodoNotFound(NotFoundBody($"No todo has id {id}.")));
+                NotFoundCase($"No todo has id {id}."));
         }
 
         return Task.FromResult<GetTodoResponse>(todo);
@@ -146,8 +178,7 @@ public class TodoService : ITodosService {
     public Task<CreateTodoResponse> CreateTodo(NewTodo body) {
         if (_store.TitleExists(body.Title)) {
             return Task.FromResult<CreateTodoResponse>(
-                new CreateTodoConflict(
-                    ConflictBody($"A todo titled '{body.Title}' already exists.")));
+                ConflictCase($"A todo titled '{body.Title}' already exists."));
         }
 
         var created = _store.Add(body.Title);
@@ -174,7 +205,7 @@ public class TodoService : ITodosService {
     public Task<RemoveTodoResponse> RemoveTodo(int id) {
         if (!_store.Remove(id)) {
             return Task.FromResult<RemoveTodoResponse>(
-                new RemoveTodoNotFound(NotFoundBody($"No todo has id {id}.")));
+                NotFoundCase($"No todo has id {id}."));
         }
 
         return Task.FromResult<RemoveTodoResponse>(new RemoveTodoNoContent());

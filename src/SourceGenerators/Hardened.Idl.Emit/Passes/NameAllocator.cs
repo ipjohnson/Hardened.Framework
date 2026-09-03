@@ -28,6 +28,12 @@ namespace Hardened.Idl;
 /// new one, which is what makes this closable rather than something to keep extending.
 /// </para>
 /// <para>
+/// <b>Not only the document's own names.</b> The types the build generates beside them land in the
+/// same namespace and compete for the same identifiers - a validator, a choice converter, and a
+/// wrapper for a declared error whose Smithy shape name its own payload record already holds. Those
+/// are allocated here too, after the schemas, so a document's own type keeps its name.
+/// </para>
+/// <para>
 /// <b>Allocated names are idempotent under <see cref="NamingHelper.ToPascalCase"/>.</b> That is the
 /// invariant that lets the emitters keep deriving: passing an allocated name through the sanitizer
 /// again returns it unchanged, so a call site that re-derives gets the same answer rather than a
@@ -130,9 +136,90 @@ internal static class NameAllocator {
     public static void Apply(ServiceSpecModel model, string specFileName) {
         var file = NamingHelper.ToPascalCase(specFileName);
 
-        AllocateTypeNames(model, file);
+        var types = AllocateTypeNames(model, file);
+
         AllocateOperationNames(model, file);
+        AllocateErrorTypeNames(model, types);
         AllocateMemberNames(model);
+    }
+
+    /// <summary>
+    /// The types a declared error generates, where it does not bind to a shipped response.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Why this needs a pass at all.</b> A Smithy error is a named shape, and keeping that name
+    /// is the point - <c>AccountNotFound</c> bound to two operations is one
+    /// <c>AccountNotFoundException</c>, which is what every other Smithy code generator emits from
+    /// the same model. But the shape is also a schema, so its payload record already holds the plain
+    /// name. The case type asks for it, loses, and takes <c>AccountNotFoundError</c>; the exception
+    /// asks for a name nothing else wants and keeps it.
+    /// </para>
+    /// <para>
+    /// After the schemas, so the schema always wins that argument - a document's own type keeps its
+    /// name and the generated wrapper moves. Sorted by key, so which of two errors wanting one name
+    /// gets it does not depend on the order the description happened to list them in.
+    /// </para>
+    /// <para>
+    /// One allocation per distinct error rather than per operation that declares it, which is the
+    /// whole change: <c>GetPetNotFoundException</c> beside <c>GetPetLabelNotFoundException</c> was
+    /// one class under two names, and nothing downstream ever read either type's identity.
+    /// </para>
+    /// </remarks>
+    private static void AllocateErrorTypeNames(ServiceSpecModel model, Scope types) {
+        var errors = new List<ErrorResponseModel>();
+
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                foreach (var error in operation.ErrorResponses) {
+                    if (ShippedResponses.For(error) == null) {
+                        errors.Add(error);
+                    }
+                }
+            }
+        }
+
+        if (errors.Count == 0) {
+            return;
+        }
+
+        errors.Sort((left, right) => string.CompareOrdinal(
+            ShippedResponses.GeneratedKey(left), ShippedResponses.GeneratedKey(right)));
+
+        var allocated = new Dictionary<string, ErrorTypeNames>(StringComparer.Ordinal);
+
+        foreach (var error in errors) {
+            var key = ShippedResponses.GeneratedKey(error);
+
+            if (!allocated.TryGetValue(key, out var names)) {
+                var desired = ShippedResponses.GeneratedName(error);
+
+                names = new ErrorTypeNames(
+                    // Qualified by what distinguishes a case type from the schema it carries, which
+                    // is that it is the response rather than the payload. A number would say
+                    // nothing, and the document is not what these two collided over.
+                    types.Allocate(desired, desired + "Error"),
+                    types.Allocate(desired + "Exception", desired + "ErrorException"));
+
+                allocated.Add(key, names);
+            }
+
+            error.TypeName = names.TypeName;
+            error.ExceptionTypeName = names.ExceptionTypeName;
+        }
+    }
+
+    /// <summary>Both names one declared error can be generated under, allocated together.</summary>
+    private readonly struct ErrorTypeNames {
+
+        public ErrorTypeNames(string typeName, string exceptionTypeName) {
+            TypeName = typeName;
+            ExceptionTypeName = exceptionTypeName;
+        }
+
+        public string TypeName { get; }
+
+        public string ExceptionTypeName { get; }
     }
 
     /// <summary>
@@ -151,9 +238,13 @@ internal static class NameAllocator {
     /// <c>Monitor</c> is always allocated first and always wins the argument.
     /// </para>
     /// </remarks>
-    private static void AllocateTypeNames(ServiceSpecModel model, string file) {
+    private static Scope AllocateTypeNames(ServiceSpecModel model, string file) {
         var scope = new Scope(new[] {
             file + "Patterns", file + "Specification", file + "JsonTypeInfoResolver",
+
+            // The static class the throwing shorthand lives in. An extension method has to be in a
+            // non-generic static class, so unlike the wrappers below it has nowhere else to go.
+            file + "Errors",
 
             // Exactly the names the type mapper resolves by spelling - no more. It looks a type up
             // by its rendered name, so a schema called DateTime became System.DateTime everywhere
@@ -198,6 +289,10 @@ internal static class NameAllocator {
                 }
             }
         }
+
+        // Handed back rather than rebuilt, because the wrappers generated for declared errors land
+        // in this same namespace and have to lose to the schemas already in it.
+        return scope;
     }
 
     /// <summary>

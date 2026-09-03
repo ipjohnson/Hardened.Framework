@@ -20,35 +20,44 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// second is where the sharp edges are — the payload cast is written as raw code, so it bypasses
 /// the output context that qualifies every other type in the file.
 /// </para>
+/// <para>
+/// <b>What is emitted at all is not decided here.</b> Most declared errors bind to a shipped
+/// response and reach this emitter never — <see cref="ShippedResponsesTests"/> covers that, and
+/// <see cref="NameAllocatorTests"/> covers what the ones that survive are called. This takes a list
+/// and writes it.
+/// </para>
 /// </remarks>
 public class ErrorResponseEmitterTests {
 
-    private static OperationModel Operation(
-        string methodName = "GetPet",
-        string path = "/pets/{petId}",
-        string httpMethod = "GET",
-        params ErrorResponseModel[] errors) =>
+    /// <summary>
+    /// One error, with the name the allocator would have put on it already there.
+    /// </summary>
+    /// <remarks>
+    /// Set rather than allocated, because the allocator needs a whole document to arbitrate
+    /// against and this emitter needs only the answer. The end-to-end path — a description in,
+    /// a named type out — is in <see cref="NameAllocatorTests"/>.
+    /// </remarks>
+    private static ErrorResponseModel Error(
+        int statusCode = 404, string? bodyRef = null, string? description = null,
+        string? name = null, string exceptionTypeName = "NotFoundException") =>
         new() {
-            OperationId = methodName,
-            MethodName = methodName,
-            Path = path,
-            HttpMethod = httpMethod,
-            ErrorResponses = new List<ErrorResponseModel>(errors)
+            StatusCode = statusCode,
+            Ref = bodyRef,
+            Description = description,
+            Name = name,
+            ExceptionTypeName = exceptionTypeName
         };
 
-    private static string Emit(params OperationModel[] operations) =>
+    private static string Emit(params ErrorResponseModel[] errors) =>
         EmitterHarness.Write(ns => ErrorResponseEmitter.Emit(
-            ns,
-            new ServiceModel { Tag = "pets", Operations = new List<OperationModel>(operations) },
-            EmitterHarness.ModelsNamespace));
+            ns, new List<ErrorResponseModel>(errors), EmitterHarness.ModelsNamespace));
 
-    private static IReadOnlyList<string> Names(params OperationModel[] operations) {
+    private static IReadOnlyList<string> Names(params ErrorResponseModel[] errors) {
         var emitted = new List<string>();
 
         EmitterHarness.Write(ns => {
             foreach (var definition in ErrorResponseEmitter.Emit(
-                         ns,
-                         new ServiceModel { Tag = "pets", Operations = new List<OperationModel>(operations) },
+                         ns, new List<ErrorResponseModel>(errors),
                          EmitterHarness.ModelsNamespace)) {
                 emitted.Add(definition.Name);
             }
@@ -60,84 +69,30 @@ public class ErrorResponseEmitterTests {
     #region naming
 
     /// <summary>
-    /// Named for the operation as well as the status, so what a handler may throw is discoverable
-    /// from the handler — and so it cannot collide with the framework's own
-    /// <c>BadRequestException</c>, which a status-only name would.
+    /// Named by the allocator, and nothing here re-derives it. The name used to be composed from
+    /// the operation and the status at the point of emission, which is what made
+    /// <c>GetPetNotFoundException</c> and <c>GetPetLabelNotFoundException</c> two names for one
+    /// class.
     /// </summary>
     [Fact]
-    public void AnExceptionIsNamedForItsOperationAndStatus() {
+    public void AnExceptionTakesTheNameOnTheModel() {
         Assert.Equal(
-            ["GetPetNotFoundException"],
-            Names(Operation(errors: new ErrorResponseModel { StatusCode = 404 })));
-    }
-
-    [Theory]
-    [InlineData(400, "GetPetBadRequestException")]
-    [InlineData(401, "GetPetUnauthorizedException")]
-    [InlineData(402, "GetPetPaymentRequiredException")]
-    [InlineData(403, "GetPetForbiddenException")]
-    [InlineData(404, "GetPetNotFoundException")]
-    [InlineData(405, "GetPetMethodNotAllowedException")]
-    [InlineData(406, "GetPetNotAcceptableException")]
-    [InlineData(408, "GetPetRequestTimeoutException")]
-    [InlineData(409, "GetPetConflictException")]
-    [InlineData(410, "GetPetGoneException")]
-    [InlineData(412, "GetPetPreconditionFailedException")]
-    [InlineData(413, "GetPetPayloadTooLargeException")]
-    [InlineData(415, "GetPetUnsupportedMediaTypeException")]
-    [InlineData(422, "GetPetUnprocessableEntityException")]
-    [InlineData(423, "GetPetLockedException")]
-    [InlineData(429, "GetPetTooManyRequestsException")]
-    [InlineData(500, "GetPetInternalServerErrorException")]
-    [InlineData(501, "GetPetNotImplementedException")]
-    [InlineData(502, "GetPetBadGatewayException")]
-    [InlineData(503, "GetPetServiceUnavailableException")]
-    [InlineData(504, "GetPetGatewayTimeoutException")]
-    public void EveryWellKnownStatusHasAName(int statusCode, string expected) {
-        Assert.Equal(
-            [expected], Names(Operation(errors: new ErrorResponseModel { StatusCode = statusCode })));
-    }
-
-    /// <summary>
-    /// A status with no well-known name keeps its number. Reads badly, but a specification using
-    /// 418 deserves a type as much as one using 404.
-    /// </summary>
-    [Theory]
-    [InlineData(418, "GetPetStatus418Exception")]
-    [InlineData(451, "GetPetStatus451Exception")]
-    [InlineData(599, "GetPetStatus599Exception")]
-    public void AnUnrecognisedStatusKeepsItsNumber(int statusCode, string expected) {
-        Assert.Equal(
-            [expected], Names(Operation(errors: new ErrorResponseModel { StatusCode = statusCode })));
+            ["AccountNotFoundException"],
+            Names(Error(name: "AccountNotFound", exceptionTypeName: "AccountNotFoundException")));
     }
 
     [Fact]
-    public void EveryDeclaredErrorOnAnOperationGetsAType() {
+    public void EveryErrorInTheSetGetsAType() {
         Assert.Equal(
-            ["GetPetNotFoundException", "GetPetConflictException"],
-            Names(Operation(errors:
-                [new ErrorResponseModel { StatusCode = 404 }, new ErrorResponseModel { StatusCode = 409 }])));
-    }
-
-    [Fact]
-    public void EveryOperationInTheServiceContributes() {
-        Assert.Equal(
-            ["GetPetNotFoundException", "DeletePetConflictException"],
+            ["NotFoundProblemException", "ConflictProblemException"],
             Names(
-                Operation("GetPet", errors: new ErrorResponseModel { StatusCode = 404 }),
-                Operation("DeletePet", errors: new ErrorResponseModel { StatusCode = 409 })));
+                Error(404, exceptionTypeName: "NotFoundProblemException"),
+                Error(409, exceptionTypeName: "ConflictProblemException")));
     }
 
     [Fact]
-    public void AnOperationDeclaringNoErrorsEmitsNothing() {
-        Assert.Empty(Names(Operation()));
-    }
-
-    [Fact]
-    public void AServiceWithNoOperationsEmitsNothing() {
-        EmitterHarness.Write(ns => Assert.Empty(
-            ErrorResponseEmitter.Emit(
-                ns, new ServiceModel { Tag = "pets" }, EmitterHarness.ModelsNamespace)));
+    public void AnEmptySetEmitsNothing() {
+        Assert.Empty(Names());
     }
 
     #endregion
@@ -150,9 +105,9 @@ public class ErrorResponseEmitterTests {
     /// </summary>
     [Fact]
     public void TheExceptionIsAPublicPartialStatusCodeException() {
-        var output = Emit(Operation(errors: new ErrorResponseModel { StatusCode = 404 }));
+        var output = Emit(Error());
 
-        Assert.Contains("public partial class GetPetNotFoundException", output);
+        Assert.Contains("public partial class NotFoundException", output);
         Assert.Contains("StatusCodeException", output);
     }
 
@@ -162,7 +117,7 @@ public class ErrorResponseEmitterTests {
     /// </summary>
     [Fact]
     public void AResponseWithNoBodyTakesNoConstructorArgument() {
-        var output = Emit(Operation(errors: new ErrorResponseModel { StatusCode = 404 }));
+        var output = Emit(Error());
 
         Assert.Contains("base(404)", output);
         Assert.DoesNotContain("Body", output);
@@ -170,8 +125,7 @@ public class ErrorResponseEmitterTests {
 
     [Fact]
     public void AResponseWithABodyPassesItToTheBase() {
-        var output = Emit(Operation(errors:
-            new ErrorResponseModel { StatusCode = 404, Ref = "#/components/schemas/Error" }));
+        var output = Emit(Error(bodyRef: "#/components/schemas/Error"));
 
         Assert.Contains("base(404, value)", output);
     }
@@ -181,8 +135,7 @@ public class ErrorResponseEmitterTests {
     /// </summary>
     [Fact]
     public void AResponseWithABodyExposesItTyped() {
-        var output = Emit(Operation(errors:
-            new ErrorResponseModel { StatusCode = 404, Ref = "#/components/schemas/Error" }));
+        var output = Emit(Error(bodyRef: "#/components/schemas/Error"));
 
         Assert.Contains("Error Body", output);
     }
@@ -194,8 +147,7 @@ public class ErrorResponseEmitterTests {
     /// </summary>
     [Fact]
     public void TheTypedAccessorDoesNotHideTheBasesValue() {
-        var output = Emit(Operation(errors:
-            new ErrorResponseModel { StatusCode = 404, Ref = "#/components/schemas/Error" }));
+        var output = Emit(Error(bodyRef: "#/components/schemas/Error"));
 
         Assert.DoesNotContain("new ", output);
         Assert.Contains("Value!", output);
@@ -208,16 +160,15 @@ public class ErrorResponseEmitterTests {
     /// </summary>
     [Fact]
     public void TheBodyCastIsGlobalQualified() {
-        var output = Emit(Operation(errors:
-            new ErrorResponseModel { StatusCode = 404, Ref = "#/components/schemas/Error" }));
+        var output = Emit(Error(bodyRef: "#/components/schemas/Error"));
 
         Assert.Contains($"(global::{EmitterHarness.ModelsNamespace}.Error)Value!", output);
     }
 
     [Fact]
     public void ARefIsPascalCasedIntoATypeName() {
-        var output = Emit(Operation(errors:
-            new ErrorResponseModel { StatusCode = 409, Ref = "#/components/schemas/conflict_detail" }));
+        var output = Emit(Error(409, "#/components/schemas/conflict_detail",
+            exceptionTypeName: "ConflictConflictDetailException"));
 
         Assert.Contains("ConflictDetail Body", output);
     }
@@ -228,9 +179,7 @@ public class ErrorResponseEmitterTests {
 
     [Fact]
     public void TheDeclaredDescriptionBecomesTheDocComment() {
-        var output = Emit(Operation(errors: new ErrorResponseModel {
-            StatusCode = 404, Description = "No pet with that identifier."
-        }));
+        var output = Emit(Error(description: "No pet with that identifier."));
 
         Assert.Contains("No pet with that identifier.", output);
     }
@@ -238,11 +187,22 @@ public class ErrorResponseEmitterTests {
     /// <summary>
     /// A response the document did not describe still gets a comment, built from what is known.
     /// </summary>
+    /// <remarks>
+    /// No operation in it, and there cannot be one: the type is shared by every operation that
+    /// declares the error, which is the whole reason it is emitted once.
+    /// </remarks>
     [Fact]
     public void AResponseWithNoDescriptionGetsAGeneratedOne() {
-        var output = Emit(Operation(errors: new ErrorResponseModel { StatusCode = 404 }));
+        Assert.Contains(
+            "The 404 response the description declares.", Emit(Error()));
+    }
 
-        Assert.Contains("The 404 response declared for GET /pets/{petId}.", output);
+    [Fact]
+    public void ANamedErrorWithNoDescriptionSaysWhatItWasCalled() {
+        Assert.Contains(
+            "The 400 response the description declares as 'AccountNotFound'.",
+            Emit(Error(400, name: "AccountNotFound",
+                exceptionTypeName: "AccountNotFoundException")));
     }
 
     #endregion

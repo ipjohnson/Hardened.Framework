@@ -92,6 +92,8 @@ public static class UnionResponseSelector {
 
     private const string BodyInterfaceName = "ICarriesResponseBody";
 
+    private const string StatusCodeInterfaceName = "IStatusCode";
+
     private const string ResponsesNamespace = "Hardened.Requests.Abstract.Responses";
 
     /// <summary>
@@ -323,7 +325,56 @@ public static class UnionResponseSelector {
             }
         }
 
-        return successStatus;
+        var marked = MarkedStatus(caseType);
+
+        return marked ?? successStatus;
+    }
+
+    /// <summary>
+    /// The status a generic case takes from its first type argument, where that argument is a
+    /// status marker.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>Status&lt;Http.ImATeapot, Problem&gt;</c> is the escape hatch behind the shipped response
+    /// records: no table can hold every status a description may declare, so the tail is expressed
+    /// by closing one generic over a marker type. The wrapper carries no <c>[HttpStatus]</c> of its
+    /// own - it cannot, since it does not know the number - so the marker is where the status is.
+    /// </para>
+    /// <para>
+    /// <b>Below the attribute, never above it.</b> <c>NotFound&lt;Problem&gt;</c> is generic too and
+    /// carries its own attribute, so the loop returns before this runs. Reading the argument first
+    /// would take the status off <c>Problem</c> for every wrapper that already stated one.
+    /// </para>
+    /// <para>
+    /// Expressed against the marker's own <c>[HttpStatus]</c> rather than against
+    /// <c>IStatusCode.Status</c>, because a generator reads attributes out of metadata and cannot
+    /// evaluate a property body - which is the reason a marker restates the number in both places.
+    /// The rule generalises past the framework's own types: someone's
+    /// <c>MyEnvelope&lt;Http.ImATeapot, T&gt;</c> resolves without this knowing that type exists.
+    /// </para>
+    /// </remarks>
+    private static int? MarkedStatus(ITypeSymbol caseType) {
+        if (caseType is not INamedTypeSymbol { IsGenericType: true } generic ||
+            generic.TypeArguments.Length == 0) {
+            return null;
+        }
+
+        var marker = generic.TypeArguments[0];
+
+        if (!Implements(marker, StatusCodeInterfaceName)) {
+            return null;
+        }
+
+        foreach (var attribute in marker.GetAttributes()) {
+            if (attribute.AttributeClass?.Name == HttpStatusAttributeName &&
+                attribute.ConstructorArguments.Length > 0 &&
+                attribute.ConstructorArguments[0].Value is int declared) {
+                return declared;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -339,21 +390,38 @@ public static class UnionResponseSelector {
         Implements(caseType, HeaderInterfaceName);
 
     /// <summary>
-    /// The single type argument of a case that wraps a body, or null.
+    /// The type argument of a case that wraps a body, or null.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Every wrapping response is generic in exactly the thing it carries -
-    /// <c>Created&lt;T&gt;</c>, <c>NotFound&lt;T&gt;</c> - so the argument is the body. A wrapper
-    /// with more than one is not a shape anything here produces, and guessing which argument was
-    /// the payload would be worse than describing the wrapper.
+    /// <c>Created&lt;T&gt;</c>, <c>NotFound&lt;T&gt;</c> - so the argument is the body.
+    /// </para>
+    /// <para>
+    /// <c>Status&lt;TCode, TBody&gt;</c> is the one shape with two, and the first is the status
+    /// marker rather than a payload. Skipping it is what keeps the document from describing a 418
+    /// as returning an <c>Http.ImATeapot</c>. Anything else with two arguments is not a shape
+    /// produced here, and guessing which one was the payload would be worse than describing the
+    /// wrapper.
+    /// </para>
     /// </remarks>
     private static string? BodyType(ITypeSymbol caseType) {
         if (!Implements(caseType, BodyInterfaceName)) {
             return null;
         }
 
-        return caseType is INamedTypeSymbol { TypeArguments.Length: 1 } generic
-            ? generic.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+        if (caseType is not INamedTypeSymbol generic) {
+            return null;
+        }
+
+        var arguments = generic.TypeArguments;
+
+        if (arguments.Length == 1) {
+            return arguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        }
+
+        return arguments.Length == 2 && Implements(arguments[0], StatusCodeInterfaceName)
+            ? arguments[1].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
             : null;
     }
 

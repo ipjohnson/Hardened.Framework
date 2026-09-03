@@ -19,6 +19,51 @@ internal class ErrorResponseModel : IEquatable<ErrorResponseModel> {
 
     public string? Description { get; set; }
 
+    /// <summary>The name the description gave this error, or null where it gave none.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The field the front ends differ on, and the reason one naming rule cannot serve both.</b>
+    /// In Smithy an error <em>is</em> a named shape: <c>bank.smithy</c> declares
+    /// <c>AccountNotFound</c> once and binds it to two operations, so this is always set and the
+    /// generated type is named after it - which is what every other Smithy code generator emits
+    /// from the same model, and what stops a Hardened server and an AWS-generated client disagreeing
+    /// about what the error is called.
+    /// </para>
+    /// <para>
+    /// In OpenAPI a response is usually anonymous - a status, a description and a schema - and this
+    /// stays null, so the error binds to a shipped wrapper instead. It is set only where
+    /// <c>components/responses</c> gave the response a key, which is the author naming it.
+    /// </para>
+    /// <para>
+    /// Not the schema's name. Two error shapes can carry one schema and one shape can be reused
+    /// across statuses; the schema names the payload and this names the error.
+    /// </para>
+    /// </remarks>
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// The case type generated for this error, or null where it binds to a shipped response.
+    /// </summary>
+    /// <remarks>
+    /// Allocated by <c>NameAllocator</c> against the same scope the schemas take their names from,
+    /// and carried here rather than re-derived: a Smithy error shape wants the name its payload
+    /// record already has, so the arbitration has an answer only one pass can make. Read by the
+    /// emitter that writes the type and by the generator that writes the switch over it, which run
+    /// in different processes and meet only in the generated code.
+    /// </remarks>
+    public string? TypeName { get; set; }
+
+    /// <summary>
+    /// The exception type generated for this error in throws mode, or null where it binds.
+    /// </summary>
+    /// <remarks>
+    /// Allocated separately from <see cref="TypeName"/> rather than suffixed onto it, because the
+    /// collision the case type loses - a Smithy shape name the payload record already holds - is
+    /// one <c>AccountNotFoundException</c> never has. Suffixing the arbitrated answer would give
+    /// throws mode a name it had no reason to accept.
+    /// </remarks>
+    public string? ExceptionTypeName { get; set; }
+
     /// <summary>The headers this response declares it carries.</summary>
     /// <remarks>
     /// A declared error carries headers as readily as a success does - <c>Retry-After</c> on a 429
@@ -32,6 +77,8 @@ internal class ErrorResponseModel : IEquatable<ErrorResponseModel> {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return StatusCode == other.StatusCode && Ref == other.Ref && Description == other.Description &&
+               Name == other.Name && TypeName == other.TypeName &&
+               ExceptionTypeName == other.ExceptionTypeName &&
                Headers.SequenceEqual(other.Headers);
     }
 

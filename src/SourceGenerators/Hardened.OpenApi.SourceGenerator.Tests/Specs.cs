@@ -822,6 +822,105 @@ internal static class Specs {
         """;
 
     /// <summary>
+    /// Errors the author lifted into <c>components/responses</c>, which is how an OpenAPI
+    /// description names one.
+    /// </summary>
+    /// <remarks>
+    /// The OpenAPI half of keying by identity. An error written inline is a status and a schema and
+    /// binds to a shipped record; one with a key of its own is the author saying "this one is a
+    /// thing", and that name becomes the generated type's. Two of them share <c>ApiError</c>
+    /// deliberately - the schema names the payload, this names the response, and collapsing them
+    /// would put one type behind two names again. <c>Throttled</c> has a schema of its own, which
+    /// is the case that gets the throwing shorthand, and <c>Draining</c> has no body at all.
+    /// </remarks>
+    internal const string NamedErrorResponses =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets/{petId}:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              parameters:
+                - name: petId
+                  in: path
+                  required: true
+                  schema: { type: string }
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+                '404':
+                  $ref: '#/components/responses/PetMissing'
+                '409':
+                  $ref: '#/components/responses/PetLocked'
+                '429':
+                  $ref: '#/components/responses/Throttled'
+                '503':
+                  $ref: '#/components/responses/Draining'
+          /pets/{petId}/label:
+            get:
+              tags: [Pet]
+              operationId: getPetLabel
+              parameters:
+                - name: petId
+                  in: path
+                  required: true
+                  schema: { type: string }
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    text/plain:
+                      schema: { type: string }
+                '404':
+                  $ref: '#/components/responses/PetMissing'
+        components:
+          responses:
+            PetMissing:
+              description: No pet with that identifier.
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/ApiError'
+            PetLocked:
+              description: The pet is being modified elsewhere.
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/ApiError'
+            Throttled:
+              description: Too many requests.
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Backoff'
+            Draining:
+              description: Nothing to say about it.
+          schemas:
+            Pet:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+            ApiError:
+              type: object
+              required: [code, message]
+              properties:
+                code: { type: string }
+                message: { type: string }
+            Backoff:
+              type: object
+              required: [seconds]
+              properties:
+                seconds: { type: integer, format: int32 }
+        """;
+
+    /// <summary>
     /// <c>minProperties</c> and <c>maxProperties</c> on a schema that becomes a dictionary.
     /// </summary>
     internal const string PropertyCountBounds =

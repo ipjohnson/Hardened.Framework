@@ -244,6 +244,7 @@ internal static class OpenApiGenerator {
         using System.Collections.Generic;
         using System.Threading.Tasks;
         using Hardened.Requests.Abstract.Attributes;
+        using Hardened.Requests.Abstract.Responses;
         using Hardened.Shared.Runtime.Attributes;
         using TestNamespace.Models;
         using TestNamespace.Services;

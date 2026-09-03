@@ -15,6 +15,14 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// exactly one of the two runs.
 /// </para>
 /// <para>
+/// <b>A declared error is usually not a case type at all.</b> It resolves to the record the
+/// framework already ships for its status, so the operation's container names
+/// <c>NotFound&lt;ApiError&gt;</c> and nothing is emitted for it. What still gets a case type -
+/// a named error, one carrying a header, a status registered nowhere - is
+/// <see cref="ShippedResponsesTests"/>' subject, and the shape of one is under
+/// <c>EmitErrorCaseTypes</c> below.
+/// </para>
+/// <para>
 /// The shape under test is the C# basic union pattern - a public single-parameter constructor per
 /// case and a public <c>object? Value</c> - because that is what the code-first selector matches
 /// structurally. Nothing in the compiler enforces it here either, so getting it wrong would produce
@@ -39,6 +47,19 @@ public class UnionResponseEmitterTests {
     private static ErrorResponseModel Error(int status, string? schemaRef) =>
         new() { StatusCode = status, Ref = schemaRef };
 
+    /// <summary>An error the shipped set cannot express, with the name the allocator would give it.</summary>
+    private static ErrorResponseModel NamedError(
+        int status, string? schemaRef, string name, string typeName) =>
+        new() { StatusCode = status, Ref = schemaRef, Name = name, TypeName = typeName };
+
+    private static string EmitCases(params ErrorResponseModel[] errors) =>
+        EmitterHarness.Write(ns => UnionResponseEmitter.EmitErrorCaseTypes(
+            ns, new List<ErrorResponseModel>(errors), EmitterHarness.ModelsNamespace));
+
+    /// <summary>The shipped record for a status, spelled as the container names it.</summary>
+    private static string Shipped(string name) =>
+        "Hardened.Requests.Abstract.Responses." + name;
+
     private static string Emit(params OperationModel[] operations) =>
         Emit(asLanguageUnion: false, operations);
 
@@ -52,17 +73,16 @@ public class UnionResponseEmitterTests {
     #region the case types
 
     /// <summary>
-    /// One per declared status, named for the operation it belongs to - so what a handler may
-    /// return is discoverable from the handler, and two operations declaring the same status do not
-    /// collide.
+    /// A declared error resolves to the record the framework ships for its status, so no case type
+    /// is emitted for it. This is where <c>GetPetNotFound</c> and <c>GetPetConflict</c> used to be.
     /// </summary>
     [Fact]
-    public void OneCaseTypePerDeclaredStatus() {
+    public void ADeclaredErrorResolvesToTheShippedRecord() {
         var emitted = Emit(Operation(
             errors: [Error(404, "#/components/schemas/ApiError"), Error(409, "#/components/schemas/ApiError")]));
 
-        Assert.Contains("GetPetNotFound", emitted);
-        Assert.Contains("GetPetConflict", emitted);
+        Assert.DoesNotContain("record GetPetNotFound", emitted);
+        Assert.DoesNotContain("record GetPetConflict", emitted);
     }
 
     /// <summary>
@@ -70,37 +90,70 @@ public class UnionResponseEmitterTests {
     /// referencing ApiError, so the unwrapped shape would be two identical conversions - CS0457 at
     /// the point of use.
     /// </summary>
+    /// <remarks>
+    /// Still two distinct types, and that was always what the constraint asked for. The per-status
+    /// wrapper is what clears CS0457; the operation prefix never was.
+    /// </remarks>
     [Fact]
     public void TwoStatusesSharingASchemaBecomeTwoDistinctCaseTypes() {
         var emitted = Emit(Operation(
             errors: [Error(404, "#/components/schemas/ApiError"), Error(409, "#/components/schemas/ApiError")]));
 
-        Assert.Contains("GetPetResponse(Test.Api.Models.GetPetNotFound value)", emitted);
-        Assert.Contains("GetPetResponse(Test.Api.Models.GetPetConflict value)", emitted);
+        Assert.Contains(
+            $"GetPetResponse({Shipped("NotFound")}<Test.Api.Models.ApiError> value)", emitted);
+        Assert.Contains(
+            $"GetPetResponse({Shipped("Conflict")}<Test.Api.Models.ApiError> value)", emitted);
     }
 
     /// <summary>
-    /// A status declaring no body is a case carrying nothing, which no <c>Response&lt;T&gt;</c>
-    /// position can express and which is why the specification-first path generates its container.
+    /// A status declaring no body resolves to the bare shipped form, which carries the framework's
+    /// own problem document rather than a schema the description never named.
     /// </summary>
     [Fact]
-    public void AStatusWithNoBodyBecomesACaseTypeCarryingNothing() {
+    public void AStatusWithNoBodyResolvesToTheBareShippedForm() {
         var emitted = Emit(Operation(errors: [Error(503, null)]));
 
-        Assert.Contains("GetPetServiceUnavailable", emitted);
-        Assert.DoesNotContain("GetPetServiceUnavailable(", emitted);
+        Assert.Contains($"GetPetResponse({Shipped("ServiceUnavailable")} value)", emitted);
+        Assert.DoesNotContain("GetPetServiceUnavailable", emitted);
     }
 
     /// <summary>
-    /// Each carries its status as <c>[HttpStatus]</c>, which is how the dispatch generator resolves
-    /// it - the specification is not there to read by then. It is the same attribute a hand-written
-    /// response type carries, so one status resolution serves both front ends.
+    /// A registered status with no shipped record closes the one generic over a marker, so the
+    /// framework costs a line per status instead of a record.
+    /// </summary>
+    [Fact]
+    public void AStatusWithNoShippedRecordResolvesToAClosedStatusGeneric() {
+        var emitted = Emit(Operation(errors: [Error(418, "#/components/schemas/ApiError")]));
+
+        Assert.Contains(
+            $"GetPetResponse({Shipped("Status")}<{Shipped("Http.ImATeapot")},Test.Api.Models.ApiError> value)",
+            emitted);
+    }
+
+    /// <summary>
+    /// And a status registered nowhere is the one case a table cannot answer, so it gets a type.
+    /// </summary>
+    [Fact]
+    public void AnUnregisteredStatusStillGetsACaseType() {
+        var emitted = Emit(Operation(
+            errors: [new ErrorResponseModel {
+                StatusCode = 529, Ref = "#/components/schemas/ApiError", TypeName = "Status529ApiError"
+            }]));
+
+        Assert.Contains("GetPetResponse(Test.Api.Models.Status529ApiError value)", emitted);
+    }
+
+    /// <summary>
+    /// Each generated case carries its status as <c>[HttpStatus]</c>, which is how the dispatch
+    /// generator resolves it - the specification is not there to read by then. It is the same
+    /// attribute a hand-written response type carries, so one status resolution serves both front
+    /// ends.
     /// </summary>
     [Fact]
     public void EachCaseTypeCarriesItsStatusAsAnAttribute() {
-        var emitted = Emit(Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
-
-        Assert.Contains("HttpStatus(404)", emitted);
+        Assert.Contains(
+            "HttpStatus(404)",
+            EmitCases(NamedError(404, "#/components/schemas/ApiError", "PetMissing", "PetMissingError")));
     }
 
     /// <summary>
@@ -114,9 +167,37 @@ public class UnionResponseEmitterTests {
     /// </remarks>
     [Fact]
     public void CaseTypesAreSealedPartialRecords() {
-        var emitted = Emit(Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+        Assert.Contains(
+            "public sealed partial record PetMissingError",
+            EmitCases(NamedError(404, "#/components/schemas/ApiError", "PetMissing", "PetMissingError")));
+    }
 
-        Assert.Contains("public sealed partial record GetPetNotFound", emitted);
+    /// <summary>
+    /// One case type per distinct error, not one per operation that declares it. Two operations
+    /// declaring the same 404 used to emit the same record twice under two names.
+    /// </summary>
+    [Fact]
+    public void OneCaseTypePerDistinctError() {
+        var emitted = EmitCases(
+            NamedError(404, "#/components/schemas/ApiError", "PetMissing", "PetMissingError"),
+            NamedError(409, "#/components/schemas/ApiError", "PetTaken", "PetTakenError"));
+
+        Assert.Contains("public sealed partial record PetMissingError", emitted);
+        Assert.Contains("public sealed partial record PetTakenError", emitted);
+    }
+
+    /// <summary>
+    /// The name comes off the model rather than from the operation and the status. Nothing here
+    /// re-derives it: the allocator arbitrated it against the schema names, which is the one place
+    /// that can be decided.
+    /// </summary>
+    [Fact]
+    public void ACaseTypeTakesTheNameOnTheModel() {
+        Assert.Contains(
+            "public sealed partial record AccountNotFoundError",
+            EmitCases(NamedError(
+                400, "#/components/schemas/AccountNotFound", "AccountNotFound",
+                "AccountNotFoundError")));
     }
 
     #endregion
@@ -143,7 +224,8 @@ public class UnionResponseEmitterTests {
         Assert.Contains("public struct GetPetResponse", emitted);
         Assert.Contains("object? Value", emitted);
         Assert.Contains("public GetPetResponse(Test.Api.Models.Pet value)", emitted);
-        Assert.Contains("public GetPetResponse(Test.Api.Models.GetPetNotFound value)", emitted);
+        Assert.Contains(
+            $"public GetPetResponse({Shipped("NotFound")}<Test.Api.Models.ApiError> value)", emitted);
     }
 
     /// <summary>
@@ -154,7 +236,9 @@ public class UnionResponseEmitterTests {
         var emitted = Emit(Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
 
         Assert.Contains("implicit operator GetPetResponse(Test.Api.Models.Pet value)", emitted);
-        Assert.Contains("implicit operator GetPetResponse(Test.Api.Models.GetPetNotFound value)", emitted);
+        Assert.Contains(
+            $"implicit operator GetPetResponse({Shipped("NotFound")}<Test.Api.Models.ApiError> value)",
+            emitted);
     }
 
     /// <summary>
@@ -177,7 +261,7 @@ public class UnionResponseEmitterTests {
         var emitted = Emit(Operation(responseRef: null, errors: [Error(404, null)]));
 
         Assert.Contains("public struct GetPetResponse", emitted);
-        Assert.Contains("public GetPetResponse(Test.Api.Models.GetPetNotFound value)", emitted);
+        Assert.Contains($"public GetPetResponse({Shipped("NotFound")} value)", emitted);
     }
 
     #endregion
@@ -196,7 +280,7 @@ public class UnionResponseEmitterTests {
             Operation(errors: [Error(404, "#/components/schemas/ApiError"), Error(503, null)]));
 
         Assert.Contains(
-            "public union GetPetResponse(Pet, GetPetNotFound, GetPetServiceUnavailable);", emitted);
+            "public union GetPetResponse(Pet, NotFound<ApiError>, ServiceUnavailable);", emitted);
 
         Assert.DoesNotContain("public struct GetPetResponse", emitted);
         Assert.DoesNotContain("implicit operator GetPetResponse", emitted);
@@ -208,16 +292,19 @@ public class UnionResponseEmitterTests {
     /// </summary>
     [Fact]
     public void TheCaseTypesAreIdenticalInBothModes() {
-        var operation = Operation(errors: [Error(404, "#/components/schemas/ApiError"), Error(503, null)]);
+        var operation = Operation("CancelPet", responseRef: null);
+
+        operation.SuccessResponses.Add(new SuccessResponseModel { StatusCode = 204 });
+        operation.SuccessResponses.Add(new SuccessResponseModel { StatusCode = 202 });
 
         var asStruct = Emit(asLanguageUnion: false, operation);
         var asUnion = Emit(asLanguageUnion: true, operation);
 
         foreach (var line in new[] {
-                     "public sealed partial record GetPetNotFound",
-                     "HttpStatus(404)",
-                     "public sealed partial record GetPetServiceUnavailable",
-                     "HttpStatus(503)"
+                     "public sealed partial record CancelPetNoContent",
+                     "HttpStatus(204)",
+                     "public sealed partial record CancelPetAccepted",
+                     "HttpStatus(202)"
                  }) {
             Assert.Contains(line, asStruct);
             Assert.Contains(line, asUnion);

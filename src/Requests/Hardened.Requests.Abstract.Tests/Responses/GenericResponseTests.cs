@@ -10,9 +10,9 @@ namespace Hardened.Requests.Abstract.Tests.Responses;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The hand-written equivalent of what the specification-first emitter generates for a declared
-/// status - <c>GetPetNotFound(ApiError Body)</c> - so both front ends describe a declared error the
-/// same way. It also makes two statuses sharing one payload expressible:
+/// What a specification-first build binds a declared status with a body to, so a declared error and
+/// a hand-written one are one type rather than two names for it. It also makes two statuses sharing
+/// one payload expressible:
 /// <c>Response&lt;Todo, NotFound&lt;ApiError&gt;, Conflict&lt;ApiError&gt;&gt;</c> is two distinct
 /// closed types, where <c>Response&lt;Todo, ApiError, ApiError&gt;</c> is CS0457.
 /// </para>
@@ -118,8 +118,9 @@ public class GenericResponseTests {
         var plain = openGeneric.Assembly.GetType(
             openGeneric.Namespace + "." + openGeneric.Name.Split('`')[0]);
 
-        // Created<T> has no non-generic counterpart and is not a problem type.
-        if (plain == null) {
+        // Created<T> has no non-generic counterpart, and MethodNotAllowed's whole answer is a
+        // status and an Allow header - neither is a problem kind, so neither has a URI to agree on.
+        if (plain == null || plain.GetProperty("Type") == null) {
             return;
         }
 
