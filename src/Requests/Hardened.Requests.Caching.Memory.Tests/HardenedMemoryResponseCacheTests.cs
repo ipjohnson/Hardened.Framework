@@ -105,5 +105,7 @@ public class HardenedMemoryResponseCacheTests {
         public ValueTask Set(
             string key, CachedResponse response, TimeSpan duration, CancellationToken cancellationToken) =>
             default;
+
+        public ValueTask EvictByTag(string tag, CancellationToken cancellationToken) => default;
     }
 }

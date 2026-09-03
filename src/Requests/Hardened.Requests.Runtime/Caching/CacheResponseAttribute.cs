@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
@@ -31,13 +32,22 @@ namespace Hardened.Requests.Runtime.Caching;
 /// </para>
 ///
 /// <para>
-/// <b>A resource-scoped handler is never cached.</b> The filter runs at
-/// <see cref="FilterOrder.ResponseCache"/>, which is after authorization over grants alone
-/// and before authorization that reads bound parameters - so a stored response for "may this caller
-/// edit <em>this</em> pet" would be served to a caller the resource check would refuse. ASP.NET
-/// Core ships that hazard as a documentation note telling you to call <c>UseOutputCache</c> after
-/// <c>UseAuthorization</c>. Here the filter is not installed at all, decided once per handler from
-/// <see cref="IExecutionRequestHandlerInfo.Requirement"/>.
+/// <b>A handler that requires anything of its caller has to say who its answer may be served
+/// to.</b> Set <see cref="Scope"/> to <see cref="CacheScope.PerCaller"/> when the answer depends on
+/// who asked, or to <see cref="CacheScope.AllCallers"/> when every caller the guard admits gets the
+/// same bytes. Leaving it unstated on a guarded handler is a failure naming the handler as its
+/// filter chain is built, because both readings of silence are behaviour somebody would call a
+/// defect - see <see cref="CacheScope"/>. A handler requiring nothing needs none of this.
+/// </para>
+///
+/// <para>
+/// <b>A requirement that reads the request is still never cached.</b> The filter runs at
+/// <see cref="FilterOrder.ResponseCache"/>, which is after authorization over grants alone and
+/// before authorization that reads bound parameters - so such a requirement does not run on a hit
+/// at all, and keying per caller would not make it run. The filter is not installed, decided once
+/// per handler from <see cref="Requirement.RequiresContext"/>. ASP.NET Core ships the same hazard
+/// as a documentation note telling you to call <c>UseOutputCache</c> after
+/// <c>UseAuthorization</c>.
 /// </para>
 /// </summary>
 /// <typeparam name="TProvider">
@@ -56,9 +66,9 @@ namespace Hardened.Requests.Runtime.Caching;
 /// </para>
 /// <para>
 /// The cost is that the compiler no longer catches two of the same strategy, and that
-/// <see cref="Duration"/> can appear more than once. The first attribute that sets one wins and two
-/// that disagree fail as the chain is built, which keeps the ordinary single-attribute case free of
-/// ceremony.
+/// <see cref="Duration"/> and <see cref="Scope"/> can each appear more than once. The first
+/// attribute that sets one wins and two that disagree fail as the chain is built, which keeps the
+/// ordinary single-attribute case free of ceremony.
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = true)]
@@ -86,6 +96,40 @@ public sealed class CacheResponseAttribute<TProvider> :
     /// </remarks>
     public int Duration { get; set; }
 
+    /// <summary>
+    /// Who a stored response may be served to.
+    /// </summary>
+    /// <remarks>
+    /// Required on a handler that requires anything of its caller, and meaningless on one that does
+    /// not. Like <see cref="Duration"/> it is left at its default rather than assigned in the
+    /// constructor, so that "the author did not say" survives composition.
+    /// </remarks>
+    public CacheScope Scope { get; set; }
+
+    /// <summary>
+    /// The names an entry from this handler can be invalidated by.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// [Get("/rates/{symbol}")]
+    /// [CacheResponse&lt;VaryByRoute&gt;(Duration = 3600, Tags = ["rates"])]
+    /// public Rate Read(string symbol) =&gt; _rates.Latest(symbol);
+    ///
+    /// // and where a new set is published
+    /// await _store.EvictByTag("rates", cancellationToken);
+    /// </code>
+    /// </example>
+    /// <remarks>
+    /// A name the declaration chooses, rather than the key the filter composed. The key carries the
+    /// handler's method and path, a unit separator, the caller when the scope is per-caller and
+    /// then each strategy's part - which is a shape nothing publishes and an application should not
+    /// have to rebuild to invalidate its own entries. Composed attributes contribute to one set, in
+    /// the order they were declared.
+    /// </remarks>
+    public string[] Tags { get; set; } = [];
+
+    IReadOnlyList<string> ICacheResponseDeclaration.Tags => Tags;
+
     public ICacheKeyProvider CreateKeyProvider() => TProvider.Create(Values);
 
     public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
@@ -93,6 +137,7 @@ public sealed class CacheResponseAttribute<TProvider> :
             yield break;
         }
 
+        // A requirement that reads the request does not run on a hit, and no scope makes it run.
         // Decided here rather than warned about. See the class remarks.
         if (handlerInfo.Requirement?.RequiresContext == true) {
             yield break;

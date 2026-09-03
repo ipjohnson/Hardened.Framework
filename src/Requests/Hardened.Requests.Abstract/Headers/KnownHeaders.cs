@@ -25,8 +25,8 @@ public static class KnownHeaders {
     /// A cookie the response sets.
     /// </summary>
     /// <remarks>
-    /// Named here because it is the one response header that must never be replayed to a
-    /// second caller. <c>CachedResponse</c> strips it as a response is captured.
+    /// Named here because it must never be replayed to a second caller: it identifies one. The
+    /// response cache drops it as a response is captured, along with the hop-by-hop headers below.
     /// </remarks>
     public const string SetCookie = "Set-Cookie";
 
@@ -93,6 +93,55 @@ public static class KnownHeaders {
 
     /// <summary>How long to wait before trying again. Belongs on a 429 and on a 503.</summary>
     public const string RetryAfter = "Retry-After";
+
+    /// <summary>
+    /// How the body is framed on this connection.
+    /// </summary>
+    /// <remarks>
+    /// Hop-by-hop: it describes one connection rather than the representation travelling over it,
+    /// and RFC 9110 forbids storing or forwarding one. Named here because a stored copy of it is
+    /// what made every response-cache hit malformed - the host declared chunked framing on the way
+    /// in, the entry kept it, and the replayed bytes went out with no chunk header and no
+    /// terminator.
+    /// </remarks>
+    public const string TransferEncoding = "Transfer-Encoding";
+
+    /// <summary>
+    /// What this connection does when the message ends, and the header that names which others are
+    /// hop-by-hop.
+    /// </summary>
+    public const string Connection = "Connection";
+
+    /// <summary>Hop-by-hop. How long an idle connection is held open.</summary>
+    public const string KeepAlive = "Keep-Alive";
+
+    /// <summary>Hop-by-hop. The transfer codings this connection will accept.</summary>
+    public const string TE = "TE";
+
+    /// <summary>Hop-by-hop. Which fields arrive after a chunked body.</summary>
+    public const string Trailer = "Trailer";
+
+    /// <summary>Hop-by-hop. The protocol this connection could switch to.</summary>
+    public const string Upgrade = "Upgrade";
+
+    /// <summary>Hop-by-hop. A challenge from the proxy, not from the origin.</summary>
+    public const string ProxyAuthenticate = "Proxy-Authenticate";
+
+    /// <summary>Hop-by-hop. A credential for the proxy, not for the origin.</summary>
+    public const string ProxyAuthorization = "Proxy-Authorization";
+
+    /// <summary>
+    /// When the message was generated.
+    /// </summary>
+    /// <remarks>
+    /// Written per response by the host. A stored copy replayed later dates a response to the
+    /// moment a different one was produced, which is the value every downstream cache computes an
+    /// age from.
+    /// </remarks>
+    public const string Date = "Date";
+
+    /// <summary>What produced the response. The host's to write, and the same on all of them.</summary>
+    public const string Server = "Server";
 
     public static class Cors {
         public const string AccessControlAllowOrigin = "Access-Control-Allow-Origin";

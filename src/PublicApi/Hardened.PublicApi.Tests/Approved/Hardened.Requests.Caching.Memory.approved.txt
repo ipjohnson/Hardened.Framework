@@ -34,8 +34,9 @@ namespace Hardened.Requests.Caching.Memory
     }
     public sealed class MemoryResponseCacheStore : Hardened.Requests.Abstract.Caching.IResponseCacheStore, System.IDisposable
     {
-        public MemoryResponseCacheStore(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Caching.Memory.IMemoryResponseCacheConfiguration> configuration) { }
+        public MemoryResponseCacheStore(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Caching.Memory.IMemoryResponseCacheConfiguration> configuration, System.TimeProvider timeProvider) { }
         public void Dispose() { }
+        public System.Threading.Tasks.ValueTask EvictByTag(string tag, System.Threading.CancellationToken cancellationToken) { }
         public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Caching.CachedResponse?> Get(string key, System.Threading.CancellationToken cancellationToken) { }
         public System.Threading.Tasks.ValueTask Set(string key, Hardened.Requests.Abstract.Caching.CachedResponse response, System.TimeSpan duration, System.Threading.CancellationToken cancellationToken) { }
     }

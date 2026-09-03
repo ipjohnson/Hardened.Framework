@@ -25,6 +25,25 @@ public interface ICacheResponseDeclaration {
     int Duration { get; }
 
     /// <summary>
+    /// Who a stored response may be served to.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted so that a declaration written before this existed still compiles. It means
+    /// <see cref="CacheScope.Unstated"/>, which is a failure naming the handler on anything that
+    /// requires something of its caller rather than a quiet reading of it.
+    /// </remarks>
+    CacheScope Scope => CacheScope.Unstated;
+
+    /// <summary>
+    /// The names an entry from this handler can be invalidated by.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted to none, so a declaration written before this existed still compiles and still
+    /// expires on its duration alone.
+    /// </remarks>
+    IReadOnlyList<string> Tags => [];
+
+    /// <summary>
     /// The strategy this declaration names, built from the values it carries.
     /// </summary>
     /// <remarks>

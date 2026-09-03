@@ -1,4 +1,5 @@
 using System.Text;
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -299,15 +300,303 @@ public class ResponseCacheFilterTests {
     /// The store is the whole opt-in, so a handler that declares caching in an application with no
     /// store says so rather than quietly serving uncached.
     /// </summary>
+    /// <remarks>
+    /// Recorded on the response rather than thrown. This stage is ahead of the filter that turns a
+    /// failure into bytes, and throwing unwound past it - so this message reached the log and the
+    /// caller got a 500 with Content-Length: 0.
+    /// </remarks>
     [Fact]
     public async Task NoRegisteredStoreNamesTheHandler() {
-        var chain = Pipeline.Chain(Pipeline.Context(), Filter(), Writing("catalog"));
+        var context = Pipeline.Context();
+
+        await Pipeline.Chain(context, Filter(), Writing("catalog")).Next();
 
         var exception =
-            await Assert.ThrowsAsync<ResponseCacheStoreMissingException>(() => chain.Next());
+            Assert.IsType<ResponseCacheStoreMissingException>(context.Response.ExceptionValue);
 
         Assert.Equal("GET /catalog", exception.Handler);
         Assert.Contains("Hardened.Requests.Caching.Memory", exception.Message);
+    }
+
+    /// <summary>
+    /// And the chain continues, which is what lets the serialization filter write the failure as
+    /// the framework's error envelope instead of a bodyless 500.
+    /// </summary>
+    [Fact]
+    public async Task NoRegisteredStoreStillReachesTheFilterThatWritesIt() {
+        var reached = false;
+
+        await Pipeline.Chain(Pipeline.Context(), Filter(), new Pipeline.Inline(_ => {
+            reached = true;
+
+            return Task.CompletedTask;
+        })).Next();
+
+        Assert.True(reached);
+    }
+
+    /// <summary>
+    /// The header that made every cache hit malformed on a real socket, found in the
+    /// 0.19.0-rc1000 trial.
+    /// </summary>
+    /// <remarks>
+    /// A host frames a response with no <c>Content-Length</c> as <c>Transfer-Encoding: chunked</c>
+    /// and puts that header on the response it is writing. The capture kept it, and the hit
+    /// re-declared chunked framing and then wrote the stored bytes unframed - zero body on Kestrel,
+    /// a protocol error on ASP.NET Core. <c>ITestWebApp</c> has no transport, so nothing in this
+    /// repository could see it.
+    /// </remarks>
+    [Theory]
+    [InlineData(KnownHeaders.TransferEncoding, "chunked")]
+    [InlineData(KnownHeaders.ContentLength, "149")]
+    [InlineData(KnownHeaders.Connection, "keep-alive")]
+    [InlineData(KnownHeaders.KeepAlive, "timeout=5")]
+    [InlineData(KnownHeaders.Trailer, "Expires")]
+    [InlineData(KnownHeaders.Upgrade, "websocket")]
+    [InlineData(KnownHeaders.Date, "Wed, 03 Sep 2026 09:00:00 GMT")]
+    [InlineData(KnownHeaders.Server, "Kestrel")]
+    public async Task ATransportHeaderIsNeverStored(string name, string value) {
+        var store = new CacheTestSupport.RecordingStore();
+
+        // Set inside the chain, which is where the transport sets it: the body is copied to the
+        // real stream in CaptureAndStore's finally, and framing is decided by that write.
+        await Pipeline.Chain(Context(store), Filter(), new Pipeline.Inline(chain => {
+            chain.Context.Response.Headers[name] = new StringValues(value);
+
+            return Task.CompletedTask;
+        })).Next();
+
+        var second = Context(store);
+
+        await Pipeline.Chain(second, Filter()).Next();
+
+        Assert.False(second.Response.Headers.ContainsKey(name));
+    }
+
+    /// <summary>
+    /// A header the response already carried belongs to the request that carried it, not to the
+    /// representation.
+    /// </summary>
+    /// <remarks>
+    /// The filters that write these sit ahead of this stage, so they run on a hit as well as on a
+    /// miss and write the current request's value. Storing one froze the first caller's
+    /// <c>X-Correlation-Id</c> onto every later caller for the whole duration, and did the same to
+    /// <c>RateLimit-Remaining</c>.
+    /// </remarks>
+    [Fact]
+    public async Task AHeaderTheChainDidNotWriteIsNotStored() {
+        var store = new CacheTestSupport.RecordingStore();
+        var first = Context(store);
+
+        first.Response.Headers["X-Correlation-Id"] = new StringValues("first");
+
+        await Pipeline.Chain(first, Filter(), Writing("catalog")).Next();
+
+        var second = Context(store);
+
+        second.Response.Headers["X-Correlation-Id"] = new StringValues("second");
+
+        await Pipeline.Chain(second, Filter()).Next();
+
+        Assert.Equal("second", second.Response.Headers["X-Correlation-Id"]);
+    }
+
+    /// <summary>
+    /// A header the chain changed is stored, because a miss would have changed it the same way.
+    /// </summary>
+    [Fact]
+    public async Task AHeaderTheChainChangedIsStored() {
+        var store = new CacheTestSupport.RecordingStore();
+        var first = Context(store);
+
+        first.Response.Headers[KnownHeaders.CacheControl] = new StringValues("no-store");
+
+        await Pipeline.Chain(first, Filter(), new Pipeline.Inline(chain => {
+            chain.Context.Response.Headers[KnownHeaders.CacheControl] =
+                new StringValues("public, max-age=60");
+
+            return Task.CompletedTask;
+        })).Next();
+
+        var second = Context(store);
+
+        second.Response.Headers[KnownHeaders.CacheControl] = new StringValues("no-store");
+
+        await Pipeline.Chain(second, Filter()).Next();
+
+        Assert.Equal("public, max-age=60", second.Response.Headers[KnownHeaders.CacheControl]);
+    }
+
+    /// <summary>
+    /// The authorization bypass this filter shipped with, found in the 0.19.0-rc1000 trial.
+    /// </summary>
+    /// <remarks>
+    /// <c>AuthorizationFilter</c> and <c>RateLimitFilter</c> sit ahead of this stage and refuse by
+    /// recording the failure and calling <c>Next</c>, so the serialization filter behind can write
+    /// it. Replaying a stored 200 over that record answered the refused caller with an entry a
+    /// permitted caller had filled.
+    /// </remarks>
+    [Fact]
+    public async Task ARefusedRequestIsNotAnsweredFromTheStore() {
+        var store = new CacheTestSupport.RecordingStore();
+
+        await Pipeline.Chain(Context(store), Filter(), Writing("secret")).Next();
+
+        var refused = Context(store);
+
+        refused.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
+
+        // The warming request read the store on its way to missing. What matters is what the
+        // refused one does, so only its reads are in scope.
+        store.Reads.Clear();
+
+        // Nothing stands in for the handler here, because nothing runs one: the serialization
+        // filter reads the same record and writes the refusal instead of binding and invoking.
+        await Pipeline.Chain(refused, Filter()).Next();
+
+        Assert.Equal("", BodyOf(refused));
+        Assert.Empty(store.Reads);
+    }
+
+    /// <summary>
+    /// The refusal survives the stage, so the filter behind still has one to write.
+    /// </summary>
+    [Fact]
+    public async Task ARefusedRequestKeepsItsRefusal() {
+        var store = new CacheTestSupport.RecordingStore();
+        var refusal = new UnauthorizedAccessException("no grant");
+        var context = Context(store);
+
+        context.Response.ExceptionValue = refusal;
+
+        await Pipeline.Chain(context, Filter()).Next();
+
+        Assert.Same(refusal, context.Response.ExceptionValue);
+    }
+
+    /// <summary>
+    /// A refused request continues down the chain, which is what lets the serialization filter
+    /// write the refusal. Returning here instead would answer nothing at all.
+    /// </summary>
+    [Fact]
+    public async Task ARefusedRequestStillReachesTheFilterThatWritesIt() {
+        var store = new CacheTestSupport.RecordingStore();
+        var context = Context(store);
+        var reached = false;
+
+        context.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
+
+        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(_ => {
+            reached = true;
+
+            return Task.CompletedTask;
+        })).Next();
+
+        Assert.True(reached);
+    }
+
+    /// <summary>
+    /// Nor does a refused request fill the store. A key computed from a request nobody was allowed
+    /// to make is one the next caller would hit.
+    /// </summary>
+    [Fact]
+    public async Task ARefusedRequestIsNotStored() {
+        var store = new CacheTestSupport.RecordingStore();
+        var context = Context(store);
+
+        context.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
+
+        await Pipeline.Chain(context, Filter(), Writing("secret")).Next();
+
+        Assert.Empty(store.Writes);
+    }
+
+    /// <summary>
+    /// One caller's answer is never handed to another, whatever the handler put in it.
+    /// </summary>
+    /// <remarks>
+    /// The key carries the caller, so the ownership check that did not run on the hit does not need
+    /// to: the entry belongs to the caller it was filled for.
+    /// </remarks>
+    [Fact]
+    public async Task PerCallerAnswersEachCallerFromTheirOwnEntry() {
+        var store = new CacheTestSupport.RecordingStore();
+
+        await Pipeline.Chain(
+            AsCaller(store, "subscriber-one"), PerCaller(), Writing("one")).Next();
+
+        var other = AsCaller(store, "subscriber-two");
+
+        await Pipeline.Chain(other, PerCaller(), Writing("two")).Next();
+
+        Assert.Equal("two", BodyOf(other));
+    }
+
+    /// <summary>
+    /// And the same caller twice is still a hit, so the feature survives being made safe.
+    /// </summary>
+    [Fact]
+    public async Task PerCallerStillAnswersTheSameCallerFromTheStore() {
+        var store = new CacheTestSupport.RecordingStore();
+        var ran = 0;
+
+        await Pipeline.Chain(
+            AsCaller(store, "subscriber-one"),
+            PerCaller(),
+            Writing("one", () => ran++)).Next();
+
+        await Pipeline.Chain(
+            AsCaller(store, "subscriber-one"),
+            PerCaller(),
+            Writing("one", () => ran++)).Next();
+
+        Assert.Equal(1, ran);
+    }
+
+    /// <summary>
+    /// Two issuers naming the same subject are two callers. An application that accepts more than
+    /// one is the application where that matters.
+    /// </summary>
+    [Fact]
+    public async Task PerCallerSeparatesTheSameSubjectFromTwoIssuers() {
+        var store = new CacheTestSupport.RecordingStore();
+
+        await Pipeline.Chain(
+            AsCaller(store, "subject", issuer: "https://first"), PerCaller(), Writing("one")).Next();
+
+        var other = AsCaller(store, "subject", issuer: "https://second");
+
+        await Pipeline.Chain(other, PerCaller(), Writing("two")).Next();
+
+        Assert.Equal("two", BodyOf(other));
+    }
+
+    /// <summary>
+    /// A caller with no subject has nothing to key on, and the entry that would result is the
+    /// shared one this scope exists to refuse. So the request is neither looked up nor stored.
+    /// </summary>
+    [Fact]
+    public async Task PerCallerLeavesACallerWithNoSubjectUncached() {
+        var store = new CacheTestSupport.RecordingStore();
+        var context = Context(store);
+
+        await Pipeline.Chain(context, PerCaller(), Writing("one")).Next();
+
+        Assert.Equal("one", BodyOf(context));
+        Assert.Empty(store.Reads);
+        Assert.Empty(store.Writes);
+    }
+
+    private static ResponseCacheFilter PerCaller() =>
+        new([new CacheTestSupport.FixedKey()], "GET /catalog", 60, CacheScope.PerCaller);
+
+    private static IExecutionContext AsCaller(
+        CacheTestSupport.RecordingStore store, string subject, string? issuer = null) {
+        var context = Context(store);
+
+        context.CallerPrincipal = new CallerPrincipal("test", subject: subject, issuer: issuer);
+
+        return context;
     }
 
     private static Pipeline.Inline Writing(string body, Action? onRun = null) =>

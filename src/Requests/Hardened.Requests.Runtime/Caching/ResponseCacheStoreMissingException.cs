@@ -5,15 +5,20 @@ namespace Hardened.Requests.Runtime.Caching;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Thrown rather than ignored. The alternative is an attribute that compiles, travels into the
+/// Raised rather than ignored. The alternative is an attribute that compiles, travels into the
 /// handler's metadata and does nothing - which is the failure <c>[CacheControl]</c> spent three
 /// years in, and the one a separate package exists to avoid.
 /// </para>
 /// <para>
-/// <b>It is raised on the first request to the handler, not at startup.</b> Handlers are
-/// constructed lazily, on the first request their route matches, so there is no point at which the
-/// application knows which of them declare this. Failing here is as early as the question can be
-/// asked.
+/// <b>It is raised on a request to the handler, not at startup.</b> Handlers are constructed
+/// lazily, on the first request their route matches, so there is no point at which the application
+/// knows which of them declare this. Failing here is as early as the question can be asked.
+/// </para>
+/// <para>
+/// <b>Recorded on the response rather than thrown.</b> The cache stage is ahead of the one that
+/// turns a failure into bytes, and a filter on that side of the line refuses by recording and
+/// continuing. Thrown, it unwound past the filter that would have written a body, so this message
+/// reached the log and the caller got a 500 with nothing in it.
 /// </para>
 /// </remarks>
 public class ResponseCacheStoreMissingException : InvalidOperationException {

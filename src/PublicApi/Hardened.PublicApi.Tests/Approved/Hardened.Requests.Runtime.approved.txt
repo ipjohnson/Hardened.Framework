@@ -121,14 +121,21 @@ namespace Hardened.Requests.Runtime.Caching
     {
         public CacheResponseAttribute(params string[] values) { }
         public int Duration { get; set; }
+        public Hardened.Requests.Abstract.Caching.CacheScope Scope { get; set; }
+        public string[] Tags { get; set; }
         public string[] Values { get; }
         public Hardened.Requests.Abstract.Caching.ICacheKeyProvider CreateKeyProvider() { }
         public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
+    public class CacheScopeUndeclaredException : System.InvalidOperationException
+    {
+        public CacheScopeUndeclaredException(string handler, Hardened.Requests.Abstract.Authorization.Requirement requirement) { }
+        public string Handler { get; }
+    }
     public sealed class ResponseCacheFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
         public const int DefaultDuration = 60;
-        public ResponseCacheFilter(Hardened.Requests.Abstract.Caching.ICacheKeyProvider[] keyProviders, string handlerKey, int duration) { }
+        public ResponseCacheFilter(Hardened.Requests.Abstract.Caching.ICacheKeyProvider[] keyProviders, string handlerKey, int duration, Hardened.Requests.Abstract.Caching.CacheScope scope = 1, string[]? tags = null) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
         public static Hardened.Requests.Runtime.Caching.ResponseCacheFilter Compose(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Caching.ICacheResponseDeclaration> declarations) { }
     }

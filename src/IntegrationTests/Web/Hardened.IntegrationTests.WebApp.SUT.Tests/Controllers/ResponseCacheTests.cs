@@ -1,4 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Runtime.Caching;
+using Hardened.Requests.Testing;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
@@ -107,9 +109,125 @@ public class ResponseCacheTests {
         Assert.Equal("1", second.Deserialize<string>());
     }
 
+    /// <summary>
+    /// The question no test in this repository asked until the 0.19.0-rc1000 trial: what a caller
+    /// the guard refuses gets from a cache a permitted caller filled.
+    /// </summary>
+    /// <remarks>
+    /// It got the stored 200 and the body with it. The refusal is recorded ahead of this stage and
+    /// written behind it, so the cache has to read it rather than treat "still travelling" as "still
+    /// permitted". <c>AGrantGuardedHandlerIsStillCached</c> above is the other half: warming and
+    /// reading as a permitted caller was all that was ever exercised.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AWarmCacheStillRefusesTheGrantlessCaller(ITestWebApp testWebApp) {
+        var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
+
+        warm.Assert.Ok();
+
+        var grantless = await testWebApp.Get("/response-cache/granted");
+
+        Assert.True(grantless.StatusCode is 401 or 403,
+            $"a grantless caller was answered {grantless.StatusCode} from the warm cache");
+    }
+
+    /// <summary>
+    /// And the refused caller is answered the refusal rather than nothing, which is what recording
+    /// it and continuing buys over short-circuiting here.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheRefusedCallerIsNotGivenTheStoredBody(ITestWebApp testWebApp) {
+        var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
+        var grantless = await testWebApp.Get("/response-cache/granted");
+
+        Assert.NotEqual(await warm.ReadTextAsync(), await grantless.ReadTextAsync());
+    }
+
+    /// <summary>
+    /// The defect all three trial arms found: a second subscriber served the first subscriber's
+    /// row, with a 200.
+    /// </summary>
+    /// <remarks>
+    /// The guard the framework read was <c>Requirement.RequiresContext</c>, true only for a
+    /// requirement built from a predicate. An ownership check written as handler code answering 404
+    /// - which is what a description forces, because it can require authentication and cannot
+    /// require ownership - was invisible to it. <c>CacheScope.PerCaller</c> is the declaration that
+    /// says so, and it keys the entry on the caller.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnOwnerScopedHandlerAnswersEachCallerTheirOwn(ITestWebApp testWebApp) {
+        var first = await testWebApp.Get(
+            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
+
+        var second = await testWebApp.Get(
+            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-two"));
+
+        Assert.Equal("subscriber-one-1", first.Deserialize<string>());
+        Assert.Equal("subscriber-two-2", second.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// And each caller's own entry is still an entry, so the feature survives being made safe.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnOwnerScopedHandlerStillAnswersOneCallerFromTheStore(ITestWebApp testWebApp) {
+        await testWebApp.Get(
+            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
+
+        var repeat = await testWebApp.Get(
+            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
+
+        Assert.Equal("subscriber-one-1", repeat.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// A guarded handler that says nothing about who may be served its answer fails naming itself,
+    /// rather than picking one of the two readings of silence.
+    /// </summary>
+    /// <remarks>
+    /// Raised as the handler's filter chain is built, which is the first request its route matches -
+    /// so it reaches a test as the exception and a running host as a logged 500. That is where the
+    /// other two failures a declaration can express are raised, and for the same reason: it names
+    /// the handler and is asked once rather than per request.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AGuardedHandlerThatStatesNoScopeFails(ITestWebApp testWebApp) {
+        var failure = await Assert.ThrowsAsync<CacheScopeUndeclaredException>(
+            () => testWebApp.Get(
+                "/response-cache/unstated-scope", Caller("pets:read", "subscriber-one")));
+
+        Assert.Equal("GET /response-cache/unstated-scope", failure.Handler);
+        Assert.Contains("CacheScope.PerCaller", failure.Message);
+    }
+
+    /// <summary>
+    /// A published change reaches a cached read, which the trial found was impossible: an
+    /// application could not reach its own entries at all, so an hour-long entry meant an hour.
+    /// </summary>
+    [HardenedTest]
+    public async Task APublishReachesACachedRead(ITestWebApp testWebApp) {
+        var first = await testWebApp.Get("/response-cache/tagged");
+        var cached = await testWebApp.Get("/response-cache/tagged");
+
+        await testWebApp.Post("", "/response-cache/publish");
+
+        var afterPublish = await testWebApp.Get("/response-cache/tagged");
+
+        Assert.Equal("1", first.Deserialize<string>());
+        Assert.Equal("1", cached.Deserialize<string>());
+        Assert.Equal("2", afterPublish.Deserialize<string>());
+    }
+
     private static Action<TestWebRequest> Language(string value) =>
         request => request.Headers["Accept-Language"] = new StringValues(value);
 
     private static Action<TestWebRequest> Grants(string value) =>
-        request => request.Headers["X-Test-Grants"] = new StringValues(value);
+        request => request.Headers[TestGrantsPrincipalSource.GrantsHeader] = new StringValues(value);
+
+    /// <summary>Which caller, for the tests where one caller's data reaching another is the point.</summary>
+    private static Action<TestWebRequest> Caller(string grants, string subject) =>
+        request => {
+            request.Headers[TestGrantsPrincipalSource.GrantsHeader] = new StringValues(grants);
+            request.Headers[TestGrantsPrincipalSource.SubjectHeader] = new StringValues(subject);
+        };
 }

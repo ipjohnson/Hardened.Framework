@@ -59,6 +59,11 @@ public partial class HardenedMemoryResponseCache : IServiceCollectionConfigurati
                 serviceProvider.GetRequiredService<IConfigurationManager>()
                     .GetConfiguration<IMemoryResponseCacheConfiguration>()));
 
+        // Try, so an application or a test that has substituted a clock keeps it. The store reads
+        // this to decide whether an entry is still valid, which is what makes a duration something
+        // a test can move rather than something it has to wait out.
+        services.TryAddSingleton(TimeProvider.System);
+
         // Try, so a deployment that has a shared store - Amz replaces this one registration -
         // wins over the in-process one whichever order the modules were listed in.
         services.TryAddSingleton<IResponseCacheStore, MemoryResponseCacheStore>();

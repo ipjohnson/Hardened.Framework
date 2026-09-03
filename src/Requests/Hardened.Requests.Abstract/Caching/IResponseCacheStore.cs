@@ -14,7 +14,7 @@ namespace Hardened.Requests.Abstract.Caching;
 /// <para>
 /// <b>Not <c>IMemoryCache</c> and not <c>IDistributedCache</c>.</b> Microsoft made the same split
 /// with <c>IOutputCacheStore</c>, and their reason for it holds here: <c>IDistributedCache</c> has
-/// no atomic operations, which is what invalidating a group of entries needs.
+/// no atomic operations, which is what <see cref="EvictByTag"/> needs.
 /// <c>IMemoryCache</c> has that problem too, plus an <c>object</c>-keyed API that boxes on the hot
 /// path. Typing against this interface is what lets a Lambda deployment replace one registration
 /// with a shared store and change nothing else.
@@ -43,4 +43,29 @@ public interface IResponseCacheStore {
     /// </remarks>
     ValueTask Set(
         string key, CachedResponse response, TimeSpan duration, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Drops every entry stored under <paramref name="tag"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The only way an application reaches its own entries, and deliberately the only way. A
+    /// <c>Remove(key)</c> would mean composing the key the filter composed - the handler's
+    /// "METHOD path", a unit separator, the caller when the scope is per-caller, then each
+    /// strategy's part - which is a shape nothing publishes and no adopter should have to
+    /// reverse-engineer. A tag is a name the declaration chose.
+    /// </para>
+    /// <para>
+    /// Group invalidation is the reason this interface exists rather than
+    /// <c>IDistributedCache</c>, which has no atomic operation to do it with, so this is the member
+    /// that argument was about. A store that cannot do it atomically should still do it: entries
+    /// dropped one at a time is a worse guarantee than all at once, and both are better than a
+    /// publish nobody can see for a minute.
+    /// </para>
+    /// <para>
+    /// A tag nothing was stored under is not an error. An application invalidating what it just
+    /// wrote does not know whether anything had read it yet.
+    /// </para>
+    /// </remarks>
+    ValueTask EvictByTag(string tag, CancellationToken cancellationToken);
 }
