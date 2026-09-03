@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Hardened.Requests.Abstract.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -117,19 +118,23 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
             // A key written again may have been indexed under different tags. Unindexing what is
             // being replaced is what keeps EvictByTag from dropping an entry that is no longer
             // tagged that way, and it is why the callback ignores a replacement.
+            // Not null when the lookup succeeded: this store is the only thing that writes to its
+            // own cache, and it never writes one.
             if (_cache.TryGetValue(key, out Entry? replaced)) {
-                Forget(key, replaced);
+                Forget(key, replaced!);
             }
 
-            _cache.Set(key, new Entry(response, _timeProvider.GetUtcNow() + duration), new MemoryCacheEntryOptions {
+            var entry = new Entry(response, _timeProvider.GetUtcNow() + duration) {
+                TagSets = Index(key, response.Tags)
+            };
+
+            _cache.Set(key, entry, new MemoryCacheEntryOptions {
                 AbsoluteExpirationRelativeToNow = duration,
 
                 // Sized, because MemoryCacheOptions.SizeLimit is only enforced when every entry says
                 // how big it is - and an entry with no size on a cache with a limit throws.
                 Size = response.Size
             }.RegisterPostEvictionCallback(OnEvicted));
-
-            Index(key, response.Tags);
         }
 
         return default;
@@ -171,30 +176,74 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
     /// store was given. <see cref="MemoryCache"/> holds its own, on the machine clock, and that one
     /// only decides when the memory is freed.
     /// </remarks>
-    private sealed record Entry(CachedResponse Response, DateTimeOffset ExpiresAt);
+    private sealed record Entry(CachedResponse Response, DateTimeOffset ExpiresAt) {
 
-    /// <remarks>Called holding the lock.</remarks>
-    private void Index(string key, IReadOnlyList<string> tags) {
-        foreach (var tag in tags) {
+        /// <summary>
+        /// The index sets this entry was added to, so leaving them needs no lookup. Empty for an
+        /// entry whose declaration named no tags, which is most of them.
+        /// </summary>
+        public IReadOnlyList<(string Tag, HashSet<string> Keys)> TagSets { get; init; } = [];
+    }
+
+    /// <summary>
+    /// Adds <paramref name="key"/> to each tag's keys, and hands back the sets it joined.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The sets rather than the tag names, because the entry keeps them: leaving an index is then a
+    /// removal from a set the entry already holds, with no dictionary lookup that could miss. The
+    /// case that would have missed is real - a tag evicted while an entry carrying it is still in
+    /// the cache - and it arrives on the thread pool, where no test can meet it.
+    /// </para>
+    /// <para>Called holding the lock.</para>
+    /// </remarks>
+    private IReadOnlyList<(string Tag, HashSet<string> Keys)> Index(
+        string key, IReadOnlyList<string> tags) {
+        if (tags.Count == 0) {
+            return [];
+        }
+
+        var joined = new (string, HashSet<string>)[tags.Count];
+
+        for (var i = 0; i < tags.Count; i++) {
+            var tag = tags[i];
+
             if (!_keysByTag.TryGetValue(tag, out var tagged)) {
                 _keysByTag[tag] = tagged = new HashSet<string>(StringComparer.Ordinal);
             }
 
             tagged.Add(key);
+            joined[i] = (tag, tagged);
         }
+
+        return joined;
     }
 
     /// <summary>
-    /// Takes an entry that is no longer in the cache out of the index.
+    /// Takes an entry <see cref="MemoryCache"/> reclaimed out of the index.
     /// </summary>
     /// <remarks>
-    /// Without it the index grows for the life of the process: every expired entry would leave its
-    /// key behind under every tag it carried, and an eviction by tag would walk keys that are long
-    /// gone.
+    /// <para>
+    /// <b>The only cleanup this store does not schedule itself.</b> <c>Set</c>, <c>Get</c> and
+    /// <see cref="EvictByTag"/> each unindex before they remove, so by the time this runs for one
+    /// of them there is nothing left to do. What is left is what <see cref="MemoryCache"/>
+    /// reclaims on its own - an expiry its own scan found, a compaction under the size limit - and
+    /// without this the index would name those keys for the life of the process.
+    /// </para>
+    /// <para>
+    /// Excluded from coverage rather than asserted. <see cref="MemoryCache"/> raises these on the
+    /// thread pool, so whether it has run at any moment is a race, and no sequence of <c>Get</c>,
+    /// <c>Set</c> and <see cref="EvictByTag"/> can both schedule one and observe its effect: the
+    /// index is not readable from outside, and every consequence of it is one the synchronous
+    /// paths have already produced. A test here would assert a timing window.
+    /// </para>
     /// </remarks>
+    [ExcludeFromCodeCoverage(
+        Justification = "Raised by MemoryCache on the thread pool, for reclamation this store did " +
+                        "not schedule. No test driving the public surface can execute it.")]
     private void OnEvicted(object key, object? value, EvictionReason reason, object? state) {
         // A replacement has already been unindexed by Set, which knew the new entry's tags.
-        if (reason == EvictionReason.Replaced) {
+        if (reason == EvictionReason.Replaced || value is not Entry evicted) {
             return;
         }
 
@@ -203,32 +252,33 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
             // evicted: these arrive on the thread pool, so a key can be stored again before its
             // predecessor's callback runs. Unindexing then would leave a response nothing can
             // invalidate.
-            if (_cache.TryGetValue(key, out Entry? current) && !ReferenceEquals(current, value)) {
+            if (_cache.TryGetValue(key, out Entry? current) && !ReferenceEquals(current, evicted)) {
                 return;
             }
 
-            Forget(key, value);
+            Forget((string)key, evicted);
         }
     }
 
-    /// <remarks>Called holding the lock.</remarks>
-    private void Forget(object key, object? value) {
-        if (value is not Entry entry) {
-            return;
-        }
-
-        var name = (string)key;
-
-        foreach (var tag in entry.Response.Tags) {
-            if (!_keysByTag.TryGetValue(tag, out var tagged)) {
-                continue;
-            }
-
-            tagged.Remove(name);
-
-            if (tagged.Count == 0) {
-                _keysByTag.Remove(tag);
-            }
+    /// <summary>
+    /// Takes an entry that is no longer in the cache out of the sets it joined.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Without it the index grows for the life of the process: every entry would leave its key
+    /// behind under every tag it carried, and an eviction by tag would walk keys that are long
+    /// gone.
+    /// </para>
+    /// <para>
+    /// A set emptied this way is left in place. Removing it would have to prove the dictionary
+    /// still holds this set rather than one built for the same tag since - and an empty set costs
+    /// one entry per tag an application uses, which is a number the application writes by hand.
+    /// </para>
+    /// <para>Called holding the lock.</para>
+    /// </remarks>
+    private static void Forget(string key, Entry entry) {
+        foreach (var (_, tagged) in entry.TagSets) {
+            tagged.Remove(key);
         }
     }
 }
