@@ -35,7 +35,13 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
             return config;
         });
         services.AddSingleton<CorsFilter>();
-        services.AddSingleton<IStartupService, CorsStartupService>();
+
+        // TryAddEnumerable rather than Add: a startup service registered twice runs twice, and this
+        // one puts the CORS filter in the middleware chain - so a second registration is a second
+        // filter on every request, with the "no allowed origins" notice logged beside it once per
+        // copy. An application composing two web modules saw both.
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IStartupService, CorsStartupService>());
 
         services.TryAddSingleton<HealthCheckConfiguration>();
 
