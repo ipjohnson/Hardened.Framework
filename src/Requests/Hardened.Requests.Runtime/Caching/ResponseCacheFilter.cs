@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text;
 using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
@@ -56,6 +57,45 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// no two different requests can compose the same key by moving the boundary between two parts.
     /// </remarks>
     private const char Separator = '\u001f';
+
+    /// <summary>
+    /// The response headers a stored entry never keeps, whatever wrote them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Hop-by-hop first, and that is the whole of a defect.</b> A response framed by the host as
+    /// <c>Transfer-Encoding: chunked</c> had that header captured with it, and a hit re-declared
+    /// chunked framing and then wrote the stored bytes with no chunk header and no terminator: zero
+    /// body on Kestrel, a protocol error on ASP.NET Core, on every cached operation and every key
+    /// strategy. RFC 9110 is explicit that these describe a connection rather than a representation
+    /// and must never be stored or forwarded, and the reason nothing here caught it is that
+    /// <c>ITestWebApp</c> has no transport to set one.
+    /// </para>
+    /// <para>
+    /// <c>Content-Length</c> for the same reason from the other end: the transport frames what is
+    /// actually written on the hit, and a stored length can only duplicate or contradict it.
+    /// <c>Date</c> and <c>Server</c> belong to the host and to the moment - a replayed <c>Date</c>
+    /// is what every downstream cache computes an age from.
+    /// </para>
+    /// <para>
+    /// <c>Set-Cookie</c> is here because it belongs to the caller rather than to the
+    /// representation. Replaying one hands a second caller the first one's session.
+    /// </para>
+    /// </remarks>
+    private static readonly FrozenSet<string> NotStored = new[] {
+        KnownHeaders.SetCookie,
+        KnownHeaders.TransferEncoding,
+        KnownHeaders.ContentLength,
+        KnownHeaders.Connection,
+        KnownHeaders.KeepAlive,
+        KnownHeaders.TE,
+        KnownHeaders.Trailer,
+        KnownHeaders.Upgrade,
+        KnownHeaders.ProxyAuthenticate,
+        KnownHeaders.ProxyAuthorization,
+        KnownHeaders.Date,
+        KnownHeaders.Server
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private readonly ICacheKeyProvider[] _keyProviders;
     private readonly string _handlerKey;
@@ -255,6 +295,11 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         var transportBody = response.Body;
         var buffer = new MemoryStream();
 
+        // Taken before the chain is entered, and taken after the key was composed so that a
+        // strategy writing its own header - VaryByHeader writes Vary - is on this side of the line
+        // rather than captured. See Replayable.
+        var carried = Carried(response.Headers);
+
         response.Body = buffer;
 
         try {
@@ -276,7 +321,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             response.Status ?? 200,
             response.ContentType,
             buffer.ToArray(),
-            Replayable(response.Headers));
+            Replayable(response.Headers, carried));
 
         await store.Set(key, entry, _duration, context.CancellationToken);
     }
@@ -294,20 +339,54 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         response.ExceptionValue == null && (response.Status ?? 200) == 200;
 
     /// <summary>
+    /// Headers this response already carried before the chain inside the cache was entered.
+    /// </summary>
+    /// <remarks>
+    /// Allocated on the miss path only, next to a buffer holding the whole body.
+    /// </remarks>
+    private static Dictionary<string, StringValues> Carried(
+        IDictionary<string, StringValues> headers) {
+        var carried = new Dictionary<string, StringValues>(
+            headers.Count, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var header in headers) {
+            carried[header.Key] = header.Value;
+        }
+
+        return carried;
+    }
+
+    /// <summary>
     /// The response headers a second caller may be given.
     /// </summary>
     /// <remarks>
-    /// Everything except <c>Set-Cookie</c>, which is about the caller rather than the representation
-    /// - replaying one hands a second caller the first one's session. Stripped as the response is
-    /// captured rather than as one is replayed, so a store written by an older build cannot leak one
-    /// either.
+    /// <para>
+    /// Stripped as the response is captured rather than as one is replayed, so a store written by
+    /// an older build cannot leak one either.
+    /// </para>
+    /// <para>
+    /// <b>Only what the chain inside the cache produced.</b> A header this response already carried
+    /// on the way in was written by a filter ordered ahead of this stage, which runs on a hit as
+    /// well as on a miss - so storing its value freezes one request's <c>X-Correlation-Id</c>, or
+    /// one request's <c>RateLimit-Remaining</c>, onto every later caller, while leaving out
+    /// nothing: the filter that wrote it writes it again. A header the chain <em>changed</em> is
+    /// kept, because a miss would have changed it the same way.
+    /// </para>
+    /// <para>
+    /// <see cref="NotStored"/> covers what is never the representation's whatever wrote it.
+    /// </para>
     /// </remarks>
     private static IReadOnlyList<KeyValuePair<string, StringValues>> Replayable(
-        IDictionary<string, StringValues> headers) {
+        IDictionary<string, StringValues> headers,
+        Dictionary<string, StringValues> carried) {
         var replayable = new List<KeyValuePair<string, StringValues>>(headers.Count);
 
         foreach (var header in headers) {
-            if (string.Equals(header.Key, KnownHeaders.SetCookie, StringComparison.OrdinalIgnoreCase)) {
+            if (NotStored.Contains(header.Key)) {
+                continue;
+            }
+
+            if (carried.TryGetValue(header.Key, out var before) && before.Equals(header.Value)) {
                 continue;
             }
 

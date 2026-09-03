@@ -311,6 +311,98 @@ public class ResponseCacheFilterTests {
     }
 
     /// <summary>
+    /// The header that made every cache hit malformed on a real socket, found in the
+    /// 0.19.0-rc1000 trial.
+    /// </summary>
+    /// <remarks>
+    /// A host frames a response with no <c>Content-Length</c> as <c>Transfer-Encoding: chunked</c>
+    /// and puts that header on the response it is writing. The capture kept it, and the hit
+    /// re-declared chunked framing and then wrote the stored bytes unframed - zero body on Kestrel,
+    /// a protocol error on ASP.NET Core. <c>ITestWebApp</c> has no transport, so nothing in this
+    /// repository could see it.
+    /// </remarks>
+    [Theory]
+    [InlineData(KnownHeaders.TransferEncoding, "chunked")]
+    [InlineData(KnownHeaders.ContentLength, "149")]
+    [InlineData(KnownHeaders.Connection, "keep-alive")]
+    [InlineData(KnownHeaders.KeepAlive, "timeout=5")]
+    [InlineData(KnownHeaders.Trailer, "Expires")]
+    [InlineData(KnownHeaders.Upgrade, "websocket")]
+    [InlineData(KnownHeaders.Date, "Wed, 03 Sep 2026 09:00:00 GMT")]
+    [InlineData(KnownHeaders.Server, "Kestrel")]
+    public async Task ATransportHeaderIsNeverStored(string name, string value) {
+        var store = new CacheTestSupport.RecordingStore();
+
+        // Set inside the chain, which is where the transport sets it: the body is copied to the
+        // real stream in CaptureAndStore's finally, and framing is decided by that write.
+        await Pipeline.Chain(Context(store), Filter(), new Pipeline.Inline(chain => {
+            chain.Context.Response.Headers[name] = new StringValues(value);
+
+            return Task.CompletedTask;
+        })).Next();
+
+        var second = Context(store);
+
+        await Pipeline.Chain(second, Filter()).Next();
+
+        Assert.False(second.Response.Headers.ContainsKey(name));
+    }
+
+    /// <summary>
+    /// A header the response already carried belongs to the request that carried it, not to the
+    /// representation.
+    /// </summary>
+    /// <remarks>
+    /// The filters that write these sit ahead of this stage, so they run on a hit as well as on a
+    /// miss and write the current request's value. Storing one froze the first caller's
+    /// <c>X-Correlation-Id</c> onto every later caller for the whole duration, and did the same to
+    /// <c>RateLimit-Remaining</c>.
+    /// </remarks>
+    [Fact]
+    public async Task AHeaderTheChainDidNotWriteIsNotStored() {
+        var store = new CacheTestSupport.RecordingStore();
+        var first = Context(store);
+
+        first.Response.Headers["X-Correlation-Id"] = new StringValues("first");
+
+        await Pipeline.Chain(first, Filter(), Writing("catalog")).Next();
+
+        var second = Context(store);
+
+        second.Response.Headers["X-Correlation-Id"] = new StringValues("second");
+
+        await Pipeline.Chain(second, Filter()).Next();
+
+        Assert.Equal("second", second.Response.Headers["X-Correlation-Id"]);
+    }
+
+    /// <summary>
+    /// A header the chain changed is stored, because a miss would have changed it the same way.
+    /// </summary>
+    [Fact]
+    public async Task AHeaderTheChainChangedIsStored() {
+        var store = new CacheTestSupport.RecordingStore();
+        var first = Context(store);
+
+        first.Response.Headers[KnownHeaders.CacheControl] = new StringValues("no-store");
+
+        await Pipeline.Chain(first, Filter(), new Pipeline.Inline(chain => {
+            chain.Context.Response.Headers[KnownHeaders.CacheControl] =
+                new StringValues("public, max-age=60");
+
+            return Task.CompletedTask;
+        })).Next();
+
+        var second = Context(store);
+
+        second.Response.Headers[KnownHeaders.CacheControl] = new StringValues("no-store");
+
+        await Pipeline.Chain(second, Filter()).Next();
+
+        Assert.Equal("public, max-age=60", second.Response.Headers[KnownHeaders.CacheControl]);
+    }
+
+    /// <summary>
     /// The authorization bypass this filter shipped with, found in the 0.19.0-rc1000 trial.
     /// </summary>
     /// <remarks>
