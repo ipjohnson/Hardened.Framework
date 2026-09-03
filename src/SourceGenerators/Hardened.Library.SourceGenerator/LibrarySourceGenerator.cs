@@ -24,6 +24,14 @@ public class LibrarySourceGenerator : IIncrementalGenerator {
         ConfigurationIncrementalGenerator.Setup(context, applicationModel);
 
         ReportAMissingRoutingGenerator(context);
+
+        // The opposite wrong answer to the same question, and it needs no route declarations to
+        // ask: two routing generators duplicate every generated name whether or not this project
+        // wrote any routes by hand.
+        context.RegisterSourceOutput(
+            context.CompilationProvider,
+            static (production, compilation) =>
+                CollidingRoutingGenerators.Report(production, compilation));
     }
 
     /// <summary>
