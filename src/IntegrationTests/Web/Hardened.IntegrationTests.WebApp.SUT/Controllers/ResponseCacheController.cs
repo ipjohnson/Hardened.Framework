@@ -24,10 +24,13 @@ public class ResponseCacheController {
 
     private readonly HandlerCallCounter _counter;
     private readonly ICurrentCaller _currentCaller;
+    private readonly IResponseCacheStore _store;
 
-    public ResponseCacheController(HandlerCallCounter counter, ICurrentCaller currentCaller) {
+    public ResponseCacheController(
+        HandlerCallCounter counter, ICurrentCaller currentCaller, IResponseCacheStore store) {
         _counter = counter;
         _currentCaller = currentCaller;
+        _store = store;
     }
 
     [Get("/catalog")]
@@ -98,6 +101,27 @@ public class ResponseCacheController {
     [CacheResponse<VaryByRoute>(Duration = 60)]
     public string UnstatedScope() =>
         _currentCaller.Principal.Subject + "-" + _counter.Next("unstated-scope");
+
+    /// <summary>
+    /// A read whose entry outlives anything worth waiting for, invalidated by name when the thing
+    /// it read changes.
+    /// </summary>
+    /// <remarks>
+    /// The pair is the whole feature. Without <see cref="Publish"/> an application's only way to
+    /// reach its own entries was to expire them, so a published change appeared within the cache
+    /// lifetime and never sooner.
+    /// </remarks>
+    [Get("/tagged")]
+    [CacheResponse<VaryByRoute>(Duration = 3600, Tags = ["catalog"])]
+    public string Tagged() => _counter.Next("tagged").ToString();
+
+    /// <summary>What an application does where it changes what a cached read reads.</summary>
+    [Post("/publish")]
+    public async Task<string> Publish(CancellationToken cancellationToken) {
+        await _store.EvictByTag("catalog", cancellationToken);
+
+        return "published";
+    }
 }
 
 /// <summary>

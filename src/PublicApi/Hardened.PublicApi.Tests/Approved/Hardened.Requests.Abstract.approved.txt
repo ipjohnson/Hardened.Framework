@@ -254,12 +254,13 @@ namespace Hardened.Requests.Abstract.Caching
     }
     public sealed class CachedResponse
     {
-        public CachedResponse(int status, string? contentType, byte[] body, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>> headers) { }
+        public CachedResponse(int status, string? contentType, byte[] body, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>> headers, System.Collections.Generic.IReadOnlyList<string>? tags = null) { }
         public byte[] Body { get; }
         public string? ContentType { get; }
         public System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>> Headers { get; }
         public long Size { get; }
         public int Status { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Tags { get; }
     }
     public interface ICacheKeyProvider
     {
@@ -270,10 +271,12 @@ namespace Hardened.Requests.Abstract.Caching
     {
         int Duration { get; }
         Hardened.Requests.Abstract.Caching.CacheScope Scope { get; }
+        System.Collections.Generic.IReadOnlyList<string> Tags { get; }
         Hardened.Requests.Abstract.Caching.ICacheKeyProvider CreateKeyProvider();
     }
     public interface IResponseCacheStore
     {
+        System.Threading.Tasks.ValueTask EvictByTag(string tag, System.Threading.CancellationToken cancellationToken);
         System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Caching.CachedResponse?> Get(string key, System.Threading.CancellationToken cancellationToken);
         System.Threading.Tasks.ValueTask Set(string key, Hardened.Requests.Abstract.Caching.CachedResponse response, System.TimeSpan duration, System.Threading.CancellationToken cancellationToken);
     }

@@ -224,6 +224,38 @@ public class CacheResponseAttributeTests {
     }
 
     /// <summary>
+    /// The tags every declaration named reach the entry, in the order they were declared, and a
+    /// tag two of them named is one tag.
+    /// </summary>
+    [Fact]
+    public async Task ComposedTagsBecomeOneSet() {
+        var first = new CacheResponseAttribute<CacheTestSupport.FixedKey> {
+            Tags = ["rates", "symbols"]
+        };
+
+        var second = new CacheResponseAttribute<CacheTestSupport.SecondKey> {
+            Tags = ["symbols", "alerts"]
+        };
+
+        var handler = CacheTestSupport.Handler([first, second]);
+        var filter = ResponseCacheFilter.Compose(handler, [first, second]);
+
+        Assert.Equal(["rates", "symbols", "alerts"], (await Stored(filter)).Tags);
+    }
+
+    /// <summary>
+    /// A declaration naming none is an entry nothing can invalidate by name, which is what every
+    /// declaration written before tags existed is.
+    /// </summary>
+    [Fact]
+    public async Task ADeclarationWithNoTagsStoresNone() {
+        var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
+        var handler = CacheTestSupport.Handler([attribute]);
+
+        Assert.Empty((await Stored(ResponseCacheFilter.Compose(handler, [attribute]))).Tags);
+    }
+
+    /// <summary>
     /// The attribute's own values reach the strategy that was named.
     /// </summary>
     [Fact]
@@ -250,6 +282,23 @@ public class CacheResponseAttributeTests {
         await Pipeline.Chain(context, filter).Next();
 
         return Assert.Single(store.Writes).Duration;
+    }
+
+    /// <summary>
+    /// The entry this filter hands the store, observed by serving one request through it.
+    /// </summary>
+    private static async Task<CachedResponse> Stored(ResponseCacheFilter filter) {
+        var store = new CacheTestSupport.RecordingStore();
+
+        var context = Pipeline.Context(
+            configureServices: services => services.AddSingleton<IResponseCacheStore>(store));
+
+        await Pipeline.Chain(context, filter).Next();
+
+        var key = Assert.Single(store.Writes).Key;
+
+        return Assert.IsType<CachedResponse>(
+            await store.Get(key, TestContext.Current.CancellationToken));
     }
 
     private sealed class RecordingProvider : ICacheKeyProvider {

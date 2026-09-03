@@ -36,6 +36,8 @@ internal static class CacheTestSupport {
 
         public List<(string Key, TimeSpan Duration)> Writes { get; } = [];
 
+        public List<string> Evictions { get; } = [];
+
         public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken) {
             Reads.Add(key);
 
@@ -47,6 +49,20 @@ internal static class CacheTestSupport {
             string key, CachedResponse response, TimeSpan duration, CancellationToken cancellationToken) {
             Writes.Add((key, duration));
             _entries[key] = response;
+
+            return default;
+        }
+
+        /// <summary>
+        /// Drops what it was given under that tag, so a test can assert on the entry rather than on
+        /// the call.
+        /// </summary>
+        public ValueTask EvictByTag(string tag, CancellationToken cancellationToken) {
+            Evictions.Add(tag);
+
+            foreach (var entry in _entries.Where(e => e.Value.Tags.Contains(tag)).ToList()) {
+                _entries.Remove(entry.Key);
+            }
 
             return default;
         }

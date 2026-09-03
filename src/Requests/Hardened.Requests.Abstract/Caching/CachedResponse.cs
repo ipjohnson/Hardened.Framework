@@ -28,11 +28,13 @@ public sealed class CachedResponse {
         int status,
         string? contentType,
         byte[] body,
-        IReadOnlyList<KeyValuePair<string, StringValues>> headers) {
+        IReadOnlyList<KeyValuePair<string, StringValues>> headers,
+        IReadOnlyList<string>? tags = null) {
         Status = status;
         ContentType = contentType;
         Body = body;
         Headers = headers;
+        Tags = tags ?? [];
     }
 
     public int Status { get; }
@@ -42,6 +44,16 @@ public sealed class CachedResponse {
     public byte[] Body { get; }
 
     public IReadOnlyList<KeyValuePair<string, StringValues>> Headers { get; }
+
+    /// <summary>
+    /// The names this entry can be invalidated by. Empty when the declaration named none.
+    /// </summary>
+    /// <remarks>
+    /// Carried on the entry rather than passed beside it, because a store that persists entries has
+    /// to persist these with them: an index rebuilt from anything else is an index that can be
+    /// wrong about which entries a tag names. See <see cref="IResponseCacheStore.EvictByTag"/>.
+    /// </remarks>
+    public IReadOnlyList<string> Tags { get; }
 
     /// <summary>
     /// What this entry costs a store that caps its size.

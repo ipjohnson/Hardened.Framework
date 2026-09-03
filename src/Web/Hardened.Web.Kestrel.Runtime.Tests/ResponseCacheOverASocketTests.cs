@@ -297,6 +297,14 @@ public class ResponseCacheOverASocketTests {
 
                 return default;
             }
+
+            public ValueTask EvictByTag(string tag, CancellationToken cancellationToken) {
+                foreach (var entry in _entries.Where(e => e.Value.Tags.Contains(tag)).ToList()) {
+                    _entries.Remove(entry.Key);
+                }
+
+                return default;
+            }
         }
     }
 }

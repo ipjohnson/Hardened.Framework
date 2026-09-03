@@ -200,6 +200,24 @@ public class ResponseCacheTests {
         Assert.Contains("CacheScope.PerCaller", failure.Message);
     }
 
+    /// <summary>
+    /// A published change reaches a cached read, which the trial found was impossible: an
+    /// application could not reach its own entries at all, so an hour-long entry meant an hour.
+    /// </summary>
+    [HardenedTest]
+    public async Task APublishReachesACachedRead(ITestWebApp testWebApp) {
+        var first = await testWebApp.Get("/response-cache/tagged");
+        var cached = await testWebApp.Get("/response-cache/tagged");
+
+        await testWebApp.Post("", "/response-cache/publish");
+
+        var afterPublish = await testWebApp.Get("/response-cache/tagged");
+
+        Assert.Equal("1", first.Deserialize<string>());
+        Assert.Equal("1", cached.Deserialize<string>());
+        Assert.Equal("2", afterPublish.Deserialize<string>());
+    }
+
     private static Action<TestWebRequest> Language(string value) =>
         request => request.Headers["Accept-Language"] = new StringValues(value);
 

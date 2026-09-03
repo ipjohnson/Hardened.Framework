@@ -106,6 +106,30 @@ public sealed class CacheResponseAttribute<TProvider> :
     /// </remarks>
     public CacheScope Scope { get; set; }
 
+    /// <summary>
+    /// The names an entry from this handler can be invalidated by.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// [Get("/rates/{symbol}")]
+    /// [CacheResponse&lt;VaryByRoute&gt;(Duration = 3600, Tags = ["rates"])]
+    /// public Rate Read(string symbol) =&gt; _rates.Latest(symbol);
+    ///
+    /// // and where a new set is published
+    /// await _store.EvictByTag("rates", cancellationToken);
+    /// </code>
+    /// </example>
+    /// <remarks>
+    /// A name the declaration chooses, rather than the key the filter composed. The key carries the
+    /// handler's method and path, a unit separator, the caller when the scope is per-caller and
+    /// then each strategy's part - which is a shape nothing publishes and an application should not
+    /// have to rebuild to invalidate its own entries. Composed attributes contribute to one set, in
+    /// the order they were declared.
+    /// </remarks>
+    public string[] Tags { get; set; } = [];
+
+    IReadOnlyList<string> ICacheResponseDeclaration.Tags => Tags;
+
     public ICacheKeyProvider CreateKeyProvider() => TProvider.Create(Values);
 
     public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {

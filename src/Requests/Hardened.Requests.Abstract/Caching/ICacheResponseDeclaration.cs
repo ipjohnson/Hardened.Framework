@@ -35,6 +35,15 @@ public interface ICacheResponseDeclaration {
     CacheScope Scope => CacheScope.Unstated;
 
     /// <summary>
+    /// The names an entry from this handler can be invalidated by.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted to none, so a declaration written before this existed still compiles and still
+    /// expires on its duration alone.
+    /// </remarks>
+    IReadOnlyList<string> Tags => [];
+
+    /// <summary>
     /// The strategy this declaration names, built from the values it carries.
     /// </summary>
     /// <remarks>

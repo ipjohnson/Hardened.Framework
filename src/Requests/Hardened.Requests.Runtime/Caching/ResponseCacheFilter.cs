@@ -102,6 +102,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     private readonly string _handlerKey;
     private readonly TimeSpan _duration;
     private readonly CacheScope _scope;
+    private readonly string[] _tags;
 
     /// <summary>
     /// Resolved once, on the first request this filter serves. There is no service provider where
@@ -116,15 +117,20 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// decided in <see cref="Compose"/>, which is the half that can see what the handler requires
     /// of its caller.
     /// </param>
+    /// <param name="tags">
+    /// The names an entry from this handler can be invalidated by, or none.
+    /// </param>
     public ResponseCacheFilter(
         ICacheKeyProvider[] keyProviders,
         string handlerKey,
         int duration,
-        CacheScope scope = CacheScope.AllCallers) {
+        CacheScope scope = CacheScope.AllCallers,
+        string[]? tags = null) {
         _keyProviders = keyProviders;
         _handlerKey = handlerKey;
         _duration = TimeSpan.FromSeconds(duration <= 0 ? DefaultDuration : duration);
         _scope = scope;
+        _tags = tags ?? [];
     }
 
     /// <summary>
@@ -142,6 +148,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         var providers = new ICacheKeyProvider[declarations.Count];
         var duration = 0;
         var scope = CacheScope.Unstated;
+        List<string>? tags = null;
 
         for (var i = 0; i < declarations.Count; i++) {
             var declaration = declarations[i];
@@ -154,6 +161,14 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
                     $"[CacheResponse] on {handlerInfo.Method} {handlerInfo.Path} could not build its " +
                     $"cache key strategy: {exception.Message}",
                     exception);
+            }
+
+            foreach (var tag in declaration.Tags) {
+                // Deduped, because two composed declarations naming the same tag is one tag, and an
+                // index that held the key twice would have to be right about removing it twice.
+                if (!(tags ??= []).Contains(tag, StringComparer.Ordinal)) {
+                    tags.Add(tag);
+                }
             }
 
             if (declaration.Scope != CacheScope.Unstated) {
@@ -198,7 +213,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             scope = CacheScope.AllCallers;
         }
 
-        return new ResponseCacheFilter(providers, handlerKey, duration, scope);
+        return new ResponseCacheFilter(providers, handlerKey, duration, scope, tags?.ToArray());
     }
 
     public async Task Execute(IExecutionChain chain) {
@@ -414,7 +429,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             response.Status ?? 200,
             response.ContentType,
             buffer.ToArray(),
-            Replayable(response.Headers, carried));
+            Replayable(response.Headers, carried),
+            _tags);
 
         await store.Set(key, entry, _duration, context.CancellationToken);
     }
