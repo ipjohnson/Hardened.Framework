@@ -300,15 +300,39 @@ public class ResponseCacheFilterTests {
     /// The store is the whole opt-in, so a handler that declares caching in an application with no
     /// store says so rather than quietly serving uncached.
     /// </summary>
+    /// <remarks>
+    /// Recorded on the response rather than thrown. This stage is ahead of the filter that turns a
+    /// failure into bytes, and throwing unwound past it - so this message reached the log and the
+    /// caller got a 500 with Content-Length: 0.
+    /// </remarks>
     [Fact]
     public async Task NoRegisteredStoreNamesTheHandler() {
-        var chain = Pipeline.Chain(Pipeline.Context(), Filter(), Writing("catalog"));
+        var context = Pipeline.Context();
+
+        await Pipeline.Chain(context, Filter(), Writing("catalog")).Next();
 
         var exception =
-            await Assert.ThrowsAsync<ResponseCacheStoreMissingException>(() => chain.Next());
+            Assert.IsType<ResponseCacheStoreMissingException>(context.Response.ExceptionValue);
 
         Assert.Equal("GET /catalog", exception.Handler);
         Assert.Contains("Hardened.Requests.Caching.Memory", exception.Message);
+    }
+
+    /// <summary>
+    /// And the chain continues, which is what lets the serialization filter write the failure as
+    /// the framework's error envelope instead of a bodyless 500.
+    /// </summary>
+    [Fact]
+    public async Task NoRegisteredStoreStillReachesTheFilterThatWritesIt() {
+        var reached = false;
+
+        await Pipeline.Chain(Pipeline.Context(), Filter(), new Pipeline.Inline(_ => {
+            reached = true;
+
+            return Task.CompletedTask;
+        })).Next();
+
+        Assert.True(reached);
     }
 
     /// <summary>

@@ -109,6 +109,30 @@ public class ResponseCacheOverASocketTests {
     }
 
     /// <summary>
+    /// A handler that declares caching in an application with no store answers the framework's
+    /// error envelope rather than a 500 with nothing in it.
+    /// </summary>
+    /// <remarks>
+    /// It answered <c>500</c> and <c>Content-Length: 0</c>. The filter threw at
+    /// <c>FilterOrder.ResponseCache</c>, one stage ahead of the filter that turns a failure into
+    /// bytes, so the failure unwound past the only thing that would have written a body. Recording
+    /// it and continuing is the rule for that side of the line, and the envelope is what a caller
+    /// gets from every other server fault. The message that names the handler and the package to
+    /// reference stays in the log, where an unexpected 500's detail belongs.
+    /// </remarks>
+    [Fact]
+    public async Task NoRegisteredStoreAnswersAnEnvelopeRatherThanAnEmptyFiveHundred() {
+        await using var harness = await Harness.Start(
+            TestContext.Current.CancellationToken, withStore: false);
+
+        var response = await harness.Raw(TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(500, (int)response.StatusCode);
+        Assert.Contains("ServerError", body);
+    }
+
+    /// <summary>
     /// A Hardened application on Kestrel, listening on a port the OS picked, answering one route
     /// from behind a response cache.
     /// </summary>
@@ -127,7 +151,12 @@ public class ResponseCacheOverASocketTests {
         /// <summary>Every entry the store was handed, for asserting on what was captured.</summary>
         public List<CachedResponse> Stored { get; } = [];
 
-        public static async Task<Harness> Start(CancellationToken cancellationToken) {
+        /// <param name="withStore">
+        /// False composes the application the way an author who declared [CacheResponse] and
+        /// referenced no store package composed theirs.
+        /// </param>
+        public static async Task<Harness> Start(
+            CancellationToken cancellationToken, bool withStore = true) {
             // A short timeout because the failure this exists for is a hang, not a bad answer: a
             // response that declares chunked framing and writes none leaves the client waiting for
             // a terminator that never comes. The default hundred seconds is a hundred seconds of
@@ -135,7 +164,7 @@ public class ResponseCacheOverASocketTests {
             var harness = new Harness(new HttpClient { Timeout = TimeSpan.FromSeconds(10) });
             var store = new RecordingStore(harness.Stored);
 
-            harness._app = Build(store);
+            harness._app = Build(withStore ? store : null);
 
             harness.Compose(store);
 
@@ -153,12 +182,15 @@ public class ResponseCacheOverASocketTests {
         }
 
         public async Task<HttpResponseMessage> Response(CancellationToken cancellationToken) {
-            var response = await _client.GetAsync("/rates", cancellationToken);
+            var response = await Raw(cancellationToken);
 
             response.EnsureSuccessStatusCode();
 
             return response;
         }
+
+        public Task<HttpResponseMessage> Raw(CancellationToken cancellationToken) =>
+            _client.GetAsync("/rates", cancellationToken);
 
         public async ValueTask DisposeAsync() {
             _client.Dispose();
@@ -166,7 +198,7 @@ public class ResponseCacheOverASocketTests {
             await _app.DisposeAsync();
         }
 
-        private static HardenedKestrelApplication Build(IResponseCacheStore store) {
+        private static HardenedKestrelApplication Build(IResponseCacheStore? store) {
             var services = new ServiceCollection();
 
             services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
@@ -176,7 +208,9 @@ public class ResponseCacheOverASocketTests {
 
             // The filter resolves this from the root provider on its first request, so it has to be
             // in the collection before the application is built.
-            services.AddSingleton(store);
+            if (store != null) {
+                services.AddSingleton(store);
+            }
 
             // Port 0, so the OS picks one and concurrent test classes cannot collide.
             return HardenedKestrelApplication.Create(
@@ -219,6 +253,13 @@ public class ResponseCacheOverASocketTests {
 
             public async Task Execute(IExecutionChain chain) {
                 var response = chain.Context.Response;
+
+                // What IoFilter does at FilterOrder.Serialization: a request already decided is
+                // not bound and its handler is not invoked, so that whatever recorded the failure
+                // is what the caller is answered with.
+                if (response.ExceptionValue != null) {
+                    return;
+                }
 
                 _harness.Answered++;
 

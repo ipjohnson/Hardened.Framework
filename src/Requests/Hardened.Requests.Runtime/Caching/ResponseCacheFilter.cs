@@ -219,6 +219,20 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             return;
         }
 
+        var store = Store(context);
+
+        if (store == null) {
+            // Recorded and continued rather than thrown, which is the rule for everything ahead of
+            // FilterOrder.Serialization and one this filter used to break: throwing here unwound
+            // past the filter that writes a response, so the excellent message reached the log and
+            // the caller got a 500 with Content-Length: 0.
+            context.Response.ExceptionValue = new ResponseCacheStoreMissingException(_handlerKey);
+
+            await chain.Next();
+
+            return;
+        }
+
         var key = await Key(context);
 
         if (key == null) {
@@ -227,7 +241,6 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             return;
         }
 
-        var store = Store(context);
         var cached = await store.Get(key, context.CancellationToken);
 
         if (cached != null) {
@@ -312,12 +325,18 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         return string.IsNullOrEmpty(subject) ? null : principal.Issuer + Separator + subject;
     }
 
-    private IResponseCacheStore Store(IExecutionContext context) {
+    /// <summary>
+    /// The registered store, or null when the application registered none.
+    /// </summary>
+    /// <remarks>
+    /// Asked before the key is composed, so a declaration with nowhere to put its answers fails the
+    /// same way on every request rather than only on the requests a strategy was willing to key -
+    /// and so a <c>ByPayload</c> handler does not hash a body on the way to failing.
+    /// </remarks>
+    private IResponseCacheStore? Store(IExecutionContext context) {
         // Racy by construction and harmless: two requests may both resolve, and both are handed the
         // same singleton.
-        return _store ??=
-            context.RootServiceProvider.GetService<IResponseCacheStore>() ??
-            throw new ResponseCacheStoreMissingException(_handlerKey);
+        return _store ??= context.RootServiceProvider.GetService<IResponseCacheStore>();
     }
 
     /// <summary>
