@@ -23,6 +23,12 @@ namespace Hardened.Requests.Runtime.Caching;
 /// so a request served from the store is still measured and still logged.
 /// </para>
 /// <para>
+/// <b>A request a filter ahead of this one refused is neither answered from the store nor stored.</b>
+/// Those filters record the refusal and continue rather than short-circuiting, because the filter
+/// that writes it is behind them - so "still travelling" does not mean "still permitted", and this
+/// stage has to read what they recorded rather than infer it from having been reached.
+/// </para>
+/// <para>
 /// <b>Not for a handler that streams.</b> Capturing a response means buffering it, so a handler
 /// returning <c>IAsyncEnumerable&lt;T&gt;</c> would hold its whole sequence in memory and answer no
 /// sooner than it finished. This does not refuse one: whether a handler streams is decided by the
@@ -119,6 +125,22 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
 
     public async Task Execute(IExecutionChain chain) {
         var context = chain.Context;
+
+        // A request already refused is not one the store may answer.
+        //
+        // Everything ahead of FilterOrder.Serialization refuses by recording the failure on the
+        // response and calling Next, so that the serialization filter can write it - which means an
+        // authorization or rate-limit refusal reaches this filter as a request that is still
+        // travelling. Replaying a stored 200 over it discards the refusal and answers the caller who
+        // was turned away, from an entry a permitted caller filled. Both refusers sit ahead of this
+        // stage precisely so they settle first; reading what they recorded is what makes that
+        // ordering mean anything.
+        if (context.Response.ExceptionValue != null) {
+            await chain.Next();
+
+            return;
+        }
+
         var key = await Key(context);
 
         if (key == null) {

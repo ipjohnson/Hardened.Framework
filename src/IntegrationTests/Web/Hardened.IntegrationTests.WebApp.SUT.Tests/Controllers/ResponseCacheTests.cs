@@ -107,6 +107,40 @@ public class ResponseCacheTests {
         Assert.Equal("1", second.Deserialize<string>());
     }
 
+    /// <summary>
+    /// The question no test in this repository asked until the 0.19.0-rc1000 trial: what a caller
+    /// the guard refuses gets from a cache a permitted caller filled.
+    /// </summary>
+    /// <remarks>
+    /// It got the stored 200 and the body with it. The refusal is recorded ahead of this stage and
+    /// written behind it, so the cache has to read it rather than treat "still travelling" as "still
+    /// permitted". <c>AGrantGuardedHandlerIsStillCached</c> above is the other half: warming and
+    /// reading as a permitted caller was all that was ever exercised.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AWarmCacheStillRefusesTheGrantlessCaller(ITestWebApp testWebApp) {
+        var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
+
+        warm.Assert.Ok();
+
+        var grantless = await testWebApp.Get("/response-cache/granted");
+
+        Assert.True(grantless.StatusCode is 401 or 403,
+            $"a grantless caller was answered {grantless.StatusCode} from the warm cache");
+    }
+
+    /// <summary>
+    /// And the refused caller is answered the refusal rather than nothing, which is what recording
+    /// it and continuing buys over short-circuiting here.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheRefusedCallerIsNotGivenTheStoredBody(ITestWebApp testWebApp) {
+        var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
+        var grantless = await testWebApp.Get("/response-cache/granted");
+
+        Assert.NotEqual(await warm.ReadTextAsync(), await grantless.ReadTextAsync());
+    }
+
     private static Action<TestWebRequest> Language(string value) =>
         request => request.Headers["Accept-Language"] = new StringValues(value);
 

@@ -55,9 +55,15 @@ public class ResponseCacheController {
     public string Owned(string ownerId) => ownerId + "-" + _counter.Next("owned");
 
     /// <summary>
-    /// Guarded by grants alone, which settle before serialization and so ahead of the cache. Safe
-    /// to cache behind, and the case the resource-scoped rule must not also refuse.
+    /// Guarded by grants alone, which settle before serialization and so ahead of the cache, and
+    /// the case the resource-scoped rule must not also refuse.
     /// </summary>
+    /// <remarks>
+    /// This comment used to say "safe to cache behind" and stopped there, which is how the
+    /// authorization bypass shipped. Settling ahead of the cache is not by itself what makes it
+    /// safe: a refusal ahead of serialization is <em>recorded</em> and travels on, so the cache has
+    /// to read it. <c>AWarmCacheStillRefusesTheGrantlessCaller</c> is the test that says so.
+    /// </remarks>
     [Get("/granted")]
     [AuthorizeGrants("pets:read")]
     [CacheResponse<VaryByRoute>(Duration = 60)]

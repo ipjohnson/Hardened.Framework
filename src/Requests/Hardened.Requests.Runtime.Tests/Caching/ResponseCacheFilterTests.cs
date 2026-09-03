@@ -310,6 +310,90 @@ public class ResponseCacheFilterTests {
         Assert.Contains("Hardened.Requests.Caching.Memory", exception.Message);
     }
 
+    /// <summary>
+    /// The authorization bypass this filter shipped with, found in the 0.19.0-rc1000 trial.
+    /// </summary>
+    /// <remarks>
+    /// <c>AuthorizationFilter</c> and <c>RateLimitFilter</c> sit ahead of this stage and refuse by
+    /// recording the failure and calling <c>Next</c>, so the serialization filter behind can write
+    /// it. Replaying a stored 200 over that record answered the refused caller with an entry a
+    /// permitted caller had filled.
+    /// </remarks>
+    [Fact]
+    public async Task ARefusedRequestIsNotAnsweredFromTheStore() {
+        var store = new CacheTestSupport.RecordingStore();
+
+        await Pipeline.Chain(Context(store), Filter(), Writing("secret")).Next();
+
+        var refused = Context(store);
+
+        refused.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
+
+        // The warming request read the store on its way to missing. What matters is what the
+        // refused one does, so only its reads are in scope.
+        store.Reads.Clear();
+
+        // Nothing stands in for the handler here, because nothing runs one: the serialization
+        // filter reads the same record and writes the refusal instead of binding and invoking.
+        await Pipeline.Chain(refused, Filter()).Next();
+
+        Assert.Equal("", BodyOf(refused));
+        Assert.Empty(store.Reads);
+    }
+
+    /// <summary>
+    /// The refusal survives the stage, so the filter behind still has one to write.
+    /// </summary>
+    [Fact]
+    public async Task ARefusedRequestKeepsItsRefusal() {
+        var store = new CacheTestSupport.RecordingStore();
+        var refusal = new UnauthorizedAccessException("no grant");
+        var context = Context(store);
+
+        context.Response.ExceptionValue = refusal;
+
+        await Pipeline.Chain(context, Filter()).Next();
+
+        Assert.Same(refusal, context.Response.ExceptionValue);
+    }
+
+    /// <summary>
+    /// A refused request continues down the chain, which is what lets the serialization filter
+    /// write the refusal. Returning here instead would answer nothing at all.
+    /// </summary>
+    [Fact]
+    public async Task ARefusedRequestStillReachesTheFilterThatWritesIt() {
+        var store = new CacheTestSupport.RecordingStore();
+        var context = Context(store);
+        var reached = false;
+
+        context.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
+
+        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(_ => {
+            reached = true;
+
+            return Task.CompletedTask;
+        })).Next();
+
+        Assert.True(reached);
+    }
+
+    /// <summary>
+    /// Nor does a refused request fill the store. A key computed from a request nobody was allowed
+    /// to make is one the next caller would hit.
+    /// </summary>
+    [Fact]
+    public async Task ARefusedRequestIsNotStored() {
+        var store = new CacheTestSupport.RecordingStore();
+        var context = Context(store);
+
+        context.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
+
+        await Pipeline.Chain(context, Filter(), Writing("secret")).Next();
+
+        Assert.Empty(store.Writes);
+    }
+
     private static Pipeline.Inline Writing(string body, Action? onRun = null) =>
         new(async chain => {
             onRun?.Invoke();
