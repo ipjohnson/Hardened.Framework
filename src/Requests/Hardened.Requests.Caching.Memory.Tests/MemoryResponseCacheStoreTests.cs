@@ -12,12 +12,14 @@ public class MemoryResponseCacheStoreTests {
 
     private static MemoryResponseCacheStore Store(
         long sizeLimit = MemoryResponseCacheConfiguration.DefaultSizeLimit,
-        long maximumBodySize = MemoryResponseCacheConfiguration.DefaultMaximumBodySize) =>
+        long maximumBodySize = MemoryResponseCacheConfiguration.DefaultMaximumBodySize,
+        TimeProvider? clock = null) =>
         new(Options.Create<IMemoryResponseCacheConfiguration>(
-            new MemoryResponseCacheConfiguration {
-                SizeLimit = sizeLimit,
-                MaximumBodySize = maximumBodySize
-            }));
+                new MemoryResponseCacheConfiguration {
+                    SizeLimit = sizeLimit,
+                    MaximumBodySize = maximumBodySize
+                }),
+            clock ?? TimeProvider.System);
 
     private static CachedResponse Response(
         int bodyLength = 4,
@@ -275,5 +277,83 @@ public class MemoryResponseCacheStoreTests {
         await store.EvictByTag("nothing", TestContext.Current.CancellationToken);
 
         Assert.NotNull(await store.Get("k", TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// The duration is decided on the clock the store was given, so a test can move time instead of
+    /// waiting.
+    /// </summary>
+    /// <remarks>
+    /// Nothing in the response-cache contract took a clock, so a test for a five-minute entry could
+    /// only sleep and a test for the specification's day-long entry could not be written. Every
+    /// trial arm substituted the whole store to get past it.
+    /// </remarks>
+    [Fact]
+    public async Task AnEntryIsGoneOnceTheClockPassesItsDuration() {
+        var clock = new TestClock();
+        using var store = Store(clock: clock);
+
+        await store.Set(
+            "k", Response(), TimeSpan.FromDays(1), TestContext.Current.CancellationToken);
+
+        clock.Advance(TimeSpan.FromDays(1));
+
+        Assert.Null(await store.Get("k", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task AnEntryInsideItsDurationIsStillServed() {
+        var clock = new TestClock();
+        using var store = Store(clock: clock);
+
+        await store.Set(
+            "k", Response(), TimeSpan.FromDays(1), TestContext.Current.CancellationToken);
+
+        clock.Advance(TimeSpan.FromHours(23));
+
+        Assert.NotNull(await store.Get("k", TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// An expired entry is dropped rather than withheld, so the tag index stops naming a response
+    /// nothing will be served.
+    /// </summary>
+    [Fact]
+    public async Task AnExpiredEntryIsNotEvictedAgainByItsTag() {
+        var clock = new TestClock();
+        using var store = Store(clock: clock);
+
+        await store.Set(
+            "k",
+            Response(tags: "rates"),
+            TimeSpan.FromMinutes(5),
+            TestContext.Current.CancellationToken);
+
+        clock.Advance(TimeSpan.FromMinutes(6));
+
+        Assert.Null(await store.Get("k", TestContext.Current.CancellationToken));
+
+        await store.Set(
+            "k",
+            Response(tags: "alerts"),
+            TimeSpan.FromMinutes(5),
+            TestContext.Current.CancellationToken);
+
+        await store.EvictByTag("rates", TestContext.Current.CancellationToken);
+
+        Assert.NotNull(await store.Get("k", TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// A clock a test moves by hand. Written here rather than taken from
+    /// Microsoft.Extensions.TimeProvider.Testing, which would be a package reference for four
+    /// lines.
+    /// </summary>
+    private sealed class TestClock : TimeProvider {
+        private DateTimeOffset _now = new(2026, 9, 3, 9, 0, 0, TimeSpan.Zero);
+
+        public override DateTimeOffset GetUtcNow() => _now;
+
+        public void Advance(TimeSpan by) => _now += by;
     }
 }
