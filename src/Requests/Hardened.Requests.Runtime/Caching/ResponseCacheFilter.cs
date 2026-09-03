@@ -46,7 +46,9 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// </summary>
     /// <remarks>
     /// ASP.NET Core's output cache defaults to the same minute. The alternative default is
-    /// "forever", which is the wrong one for a store nothing can invalidate by tag yet.
+    /// "forever", which is the wrong one to reach by saying nothing: a declaration that meant it
+    /// can name a duration, and one that did not think about it should not get an entry only a
+    /// tag can ever remove.
     /// </remarks>
     public const int DefaultDuration = 60;
 
