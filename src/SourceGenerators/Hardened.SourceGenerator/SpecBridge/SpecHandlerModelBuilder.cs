@@ -303,7 +303,8 @@ internal static class SpecHandlerModelBuilder {
                 null,
                 ParameterBindType.Body,
                 "",
-                index++));
+                index++,
+                constructorRequiresServices: symbols?.RequestBodyRequiresServices ?? false));
         } else if (operation.RequestBodyRef != null) {
             var bodyTypeName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.RequestBodyRef));
             var bodyType = TypeDefinition.Get(modelsNamespace, bodyTypeName);
@@ -739,9 +740,7 @@ internal static class SpecHandlerModelBuilder {
 
                 return at < 0 ? order.IndexOf(parameter.Name) : at;
             })
-            .Select((parameter, index) => new RequestParameterInformation(
-                parameter.ParameterType, parameter.Name, parameter.Required, parameter.DefaultValue,
-                parameter.BindingType, parameter.BindingName, index, parameter.CustomAttribute))
+            .Select((parameter, index) => parameter.WithIndex(index))
             .ToList();
     }
     /// <summary>

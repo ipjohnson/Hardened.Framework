@@ -13,7 +13,12 @@ public class RequestParameterInformation {
         ParameterBindType bindingType,
         string bindingName,
         int parameterIndex,
-        AttributeModel? customAttribute = null) {
+        AttributeModel? customAttribute = null,
+        bool constructorRequiresServices = false) {
+        ConstructorRequiresServices = constructorRequiresServices;
+
+
+
         ParameterType = parameterType;
         Name = name;
         Required = required;
@@ -60,9 +65,46 @@ public class RequestParameterInformation {
     /// </remarks>
     internal ParameterModel? SpecParameter { get; set; }
 
+    /// <summary>
+    /// Whether every public constructor of <see cref="ParameterType"/> takes an interface.
+    /// </summary>
+    /// <remarks>
+    /// Recorded at the syntax transform, where the semantic model is in hand, and read at the
+    /// output stage, where a diagnostic can be reported. A type shaped like that has no reading as
+    /// a request body: the deserializer cannot construct an interface, so a body parameter typed
+    /// this way is a service the author meant to inject. Same carry-forward as
+    /// <see cref="ParameterBindType.Unresolved"/>, for the same reason - a syntax provider cannot
+    /// report a diagnostic.
+    /// </remarks>
+    public bool ConstructorRequiresServices { get; }
+
     public int ParameterIndex {
         get;
     }
+
+    /// <summary>
+    /// The same parameter at a different position, with everything else carried across.
+    /// </summary>
+    /// <remarks>
+    /// Exists for the reason <c>RequestHandlerModel.WithFilters</c> does. Rebuilt by hand this
+    /// dropped the parameter's prose, its contract declaration and whether its type can only be
+    /// constructed from services, and nothing failed when it did - the last of those silently
+    /// turned off the diagnostic that reports it. Adding a property here is now the only place that
+    /// has to change.
+    /// </remarks>
+    public RequestParameterInformation WithIndex(int parameterIndex) =>
+        new(ParameterType,
+            Name,
+            Required,
+            DefaultValue,
+            BindingType,
+            BindingName,
+            parameterIndex,
+            CustomAttribute,
+            ConstructorRequiresServices) {
+            Description = Description,
+            SpecParameter = SpecParameter
+        };
 
     public override bool Equals(object obj) {
         if (obj is not RequestParameterInformation requestParameterInformation) {
@@ -109,6 +151,10 @@ public class RequestParameterInformation {
             return false;
         }
 
+        if (ConstructorRequiresServices != requestParameterInformation.ConstructorRequiresServices) {
+            return false;
+        }
+
         return true;
     }
 
@@ -128,6 +174,8 @@ public class RequestParameterInformation {
             if (CustomAttribute is not null) {
                 hashCode = (hashCode * 397) ^ CustomAttribute.GetHashCode();
             }
+
+            hashCode = (hashCode * 397) ^ ConstructorRequiresServices.GetHashCode();
             
             return hashCode;
         }

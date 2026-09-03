@@ -59,6 +59,18 @@ public sealed class OperationSymbols {
     /// </remarks>
     public string? RequestBodyName { get; set; }
 
+    /// <summary>
+    /// Whether every public constructor of <see cref="RequestBodyType"/> takes an interface.
+    /// </summary>
+    /// <remarks>
+    /// Set only by the code-first front end, which is the only one that can be wrong about this: a
+    /// described body is whatever the description says it is, while a C# parameter becomes the body
+    /// by falling through every other branch. Carried because this builder rebuilds the parameter
+    /// list, so anything the front end worked out and did not put here is lost by the time the
+    /// handler stage reports on it.
+    /// </remarks>
+    public bool RequestBodyRequiresServices { get; set; }
+
     /// <summary>Parameter types by parameter name, for the ones already resolved.</summary>
     public Dictionary<string, ITypeDefinition>? ParameterTypes { get; set; }
 

@@ -121,6 +121,31 @@ framework's own `AspNetCoreRuntime` is one.
 
 One report per assembly, not one per route: there is a single thing to fix.
 
+### HRDR007 — service parameter binds from the request body
+
+A handler parameter typed as its concrete class rather than the interface it is registered against.
+
+```
+Parameter 'store' of 'EventController.Handle' is read from the request body. A parameter that names
+no route token and is not an interface binds from the body, and 'EventStore' has no constructor
+that does not take one, so no body can be read into it. Mark 'store' [FromServices], or type it as
+the interface it is registered against.
+```
+
+The convention is that a parameter naming no route token and typed as an interface comes from the
+container, and anything else is the body. Typing a service as its implementing class therefore
+makes it the body parameter, and the build fails as a `CS7036` inside `obj/**/generated/**` — in a
+file the author did not write, naming neither the convention that decided this nor the parameter
+whose meaning changed.
+
+Reported narrowly, because the two shapes are otherwise indistinguishable: a body model is a
+concrete class too. What separates them is that the deserializer cannot construct an interface, so
+a type whose every public constructor takes one has no reading as a body at all. A body model with
+a parameterless constructor, and an immutable one whose constructor takes its own data, are left
+alone — as is a service the deserializer could construct, which arrives empty instead. Both fixes
+in the message work; `[FromServices]` is the one that does not require the service to have an
+interface.
+
 ## Validation
 
 ### HRDV004 — nested constraints are never reached
