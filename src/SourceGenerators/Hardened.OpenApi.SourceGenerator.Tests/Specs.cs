@@ -830,7 +830,8 @@ internal static class Specs {
     /// binds to a shipped record; one with a key of its own is the author saying "this one is a
     /// thing", and that name becomes the generated type's. Two of them share <c>ApiError</c>
     /// deliberately - the schema names the payload, this names the response, and collapsing them
-    /// would put one type behind two names again.
+    /// would put one type behind two names again. <c>Throttled</c> has a schema of its own, which
+    /// is the case that gets the throwing shorthand, and <c>Draining</c> has no body at all.
     /// </remarks>
     internal const string NamedErrorResponses =
         """
@@ -857,6 +858,8 @@ internal static class Specs {
                   $ref: '#/components/responses/PetMissing'
                 '409':
                   $ref: '#/components/responses/PetLocked'
+                '429':
+                  $ref: '#/components/responses/Throttled'
                 '503':
                   $ref: '#/components/responses/Draining'
           /pets/{petId}/label:
@@ -890,6 +893,12 @@ internal static class Specs {
                 application/json:
                   schema:
                     $ref: '#/components/schemas/ApiError'
+            Throttled:
+              description: Too many requests.
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Backoff'
             Draining:
               description: Nothing to say about it.
           schemas:
@@ -904,6 +913,11 @@ internal static class Specs {
               properties:
                 code: { type: string }
                 message: { type: string }
+            Backoff:
+              type: object
+              required: [seconds]
+              properties:
+                seconds: { type: integer, format: int32 }
         """;
 
     /// <summary>

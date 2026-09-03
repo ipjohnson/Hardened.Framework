@@ -101,10 +101,19 @@ internal static class SpecFileEmitter {
             // Partitioned by response model, because a declared status has exactly one way to be
             // answered: the operations that throw need an exception, the ones returning a set need
             // a case type, and an error declared by some of each needs both.
-            responses.AddRange(
-                ErrorResponseEmitter.Emit(
-                    models, GeneratedErrors(model, responseModel, inResponseSet: false),
-                    modelsNamespace));
+            var thrown = GeneratedErrors(model, responseModel, inResponseSet: false);
+
+            responses.AddRange(ErrorResponseEmitter.Emit(models, thrown, modelsNamespace));
+
+            // Throwing shorthand for those, so the exception is inferred from the body rather than
+            // named beside it. Only for the ones this file wrote a type for: an error that binds to
+            // a shipped record reaches AsException() through the generic extension already.
+            var factories = ErrorFactoryEmitter.Emit(
+                models, thrown, modelsNamespace, model.FileName);
+
+            if (factories != null) {
+                responses.Add(factories);
+            }
 
             responses.AddRange(
                 UnionResponseEmitter.EmitErrorCaseTypes(

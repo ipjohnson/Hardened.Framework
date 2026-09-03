@@ -201,6 +201,40 @@ public class DeclaredErrorTests {
             .AssertNoErrors();
     }
 
+    /// <summary>
+    /// The throwing shorthand, which is what keeps a named error from reading as its own type
+    /// twice.
+    /// </summary>
+    /// <remarks>
+    /// <c>Backoff</c> names one error, so it gets the method. <c>ApiError</c> carries both
+    /// <c>PetMissing</c> and <c>PetLocked</c>, so a second overload would have the same signature
+    /// and there is no single exception an <c>ApiError</c> means - those two stay written out.
+    /// </remarks>
+    [Fact]
+    public void ANamedErrorsBodyCanThrowItself() {
+        var result = OpenApiGenerator.Run(
+            Specs.NamedErrorResponses,
+            OpenApiGenerator.EntryPointWithHandler(
+                """
+                [Handler]
+                public class PetServiceImpl : IPetService {
+                    public Task<Pet?> GetPet(string petId) =>
+                        throw new Backoff(30).AsException();
+
+                    public Task<string> GetPetLabel(string petId) =>
+                        throw new PetMissingException(new ApiError("not_found", "no such pet"));
+                }
+                """));
+
+        result.AssertNoErrors();
+
+        var generated = result.SourceContaining("petstore.g.cs");
+
+        Assert.Contains("public static class PetstoreErrors", generated);
+        Assert.Contains("ThrottledException AsException(this", generated);
+        Assert.DoesNotContain("AsException(this global::TestNamespace.Models.ApiError", generated);
+    }
+
     /// <summary>A response with no declared body takes no payload argument.</summary>
     [Fact]
     public void AnErrorWithNoPayloadTakesNoArgument() {

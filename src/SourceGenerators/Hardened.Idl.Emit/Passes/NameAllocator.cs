@@ -242,6 +242,10 @@ internal static class NameAllocator {
         var scope = new Scope(new[] {
             file + "Patterns", file + "Specification", file + "JsonTypeInfoResolver",
 
+            // The static class the throwing shorthand lives in. An extension method has to be in a
+            // non-generic static class, so unlike the wrappers below it has nowhere else to go.
+            file + "Errors",
+
             // Exactly the names the type mapper resolves by spelling - no more. It looks a type up
             // by its rendered name, so a schema called DateTime became System.DateTime everywhere
             // it was referenced; Zoom declares one, and it is a date range with `from` and `to`,

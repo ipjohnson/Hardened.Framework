@@ -55,9 +55,10 @@ public class PetStoreServiceImpl : IPetStoreService {
     public Task<GetPetOutput?> GetPet(string petId, bool? verbose, string? xTraceId) {
         // The declared Throttled error, raised. The exception is named for the error shape the
         // model declares, which is the name every other Smithy code generator gives it - and one
-        // type, however many operations bind the shape.
+        // type, however many operations bind the shape. AsException() infers it from the body, so
+        // the shape is named once.
         if (petId == "throttled") {
-            throw new ThrottledException(new Throttled("Slow down."));
+            throw new Throttled("Slow down.").AsException();
         }
 
         var pet = Pets.FirstOrDefault(p => p.Id == petId);

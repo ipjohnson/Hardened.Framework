@@ -41,8 +41,9 @@ public class BankServiceImpl : IBankService {
     /// </remarks>
     public Task<GetBalanceOutput> GetBalance(GetBalanceInput body) {
         if (!Balances.TryGetValue(body.AccountId, out var cents)) {
-            throw new AccountNotFoundException(
-                new AccountNotFound($"No account {body.AccountId}."));
+            // AsException() rather than naming AccountNotFound twice, which is the same shorthand
+            // the shipped records get and is generated because this shape names one error.
+            throw new AccountNotFound($"No account {body.AccountId}.").AsException();
         }
 
         return Task.FromResult(new GetBalanceOutput(cents, "USD"));
