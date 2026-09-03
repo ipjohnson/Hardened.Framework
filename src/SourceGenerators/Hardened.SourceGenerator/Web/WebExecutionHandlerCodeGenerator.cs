@@ -53,6 +53,10 @@ public class WebExecutionHandlerCodeGenerator {
         // and routes, and refuses every request once it is running.
         RouteBindingDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
+        // And again: a service typed as its concrete class binds from the body, which compiles
+        // here and fails in the serializer the emitted code calls into.
+        ServiceParameterDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 
         sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, GeneratedSource.Header(sourceFile));

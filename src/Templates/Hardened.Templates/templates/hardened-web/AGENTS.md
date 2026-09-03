@@ -37,7 +37,8 @@ Change the thing it was generated from.
 | Duplicate definitions under `obj/**/generated/` | A generator was renamed and its old output is still there. Delete `obj/`. |
 | `HRDR008` | Two routing generators reached this project. Add `PrivateAssets="all"` to the reference that brought the second. |
 | Builds clean, every route answers 404 | The routing generator is absent. The runtime packages carry no analyzers. |
-| A handler parameter arrives empty, or `CS0128` on `contentSerializationService` | A concrete class as a handler parameter is bound from the request body. Inject an interface, or mark it `[FromServices]`. |
+| `HRDR007` on a handler parameter | A concrete class as a handler parameter is bound from the request body. Type it as an interface, or mark it `[FromServices]`. |
+| A handler parameter arrives empty, or `CS0128` on `contentSerializationService` | The same mistake with a type the deserializer can construct, so `HRDR007` does not fire. Same two fixes. |
 #if (specFirst)
 | `HOAT001` naming a contract that exists | The path in the csproj does not match the file |
 #endif
@@ -92,8 +93,9 @@ method's exact signature.
 
 **Services arrive as handler parameters**, alongside route and body values — `ITodoStore store` in
 every handler here. Ask for an interface. A parameter typed as a concrete class is bound from the
-request body instead, which on a route that also takes a body generates two body reads and does not
-compile.
+request body instead. Where the class can only be constructed from services, that is `HRDR007`;
+where the deserializer could construct it, the parameter simply arrives empty, and on a route that
+also takes a body it generates two body reads and does not compile.
 #endif
 
 ## How this application declares its responses
