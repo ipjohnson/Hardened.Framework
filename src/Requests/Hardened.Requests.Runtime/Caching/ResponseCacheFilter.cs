@@ -241,8 +241,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         if (store == null) {
             // Recorded and continued rather than thrown, which is the rule for everything ahead of
             // FilterOrder.Serialization and one this filter used to break: throwing here unwound
-            // past the filter that writes a response, so the excellent message reached the log and
-            // the caller got a 500 with Content-Length: 0.
+            // past the filter that writes a response, so the message naming the handler reached the
+            // log and the caller got a 500 with Content-Length: 0.
             context.Response.ExceptionValue = new ResponseCacheStoreMissingException(_handlerKey);
 
             await chain.Next();
@@ -270,12 +270,14 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     }
 
     /// <summary>
-    /// The composite key, or null when any strategy declined this request.
+    /// The composite key, or null when a strategy declined this request or the caller cannot be
+    /// told apart from another.
     /// </summary>
     /// <remarks>
     /// <para>
     /// Prefixed with the handler's method and path, so two handlers keyed the same way - two routes
-    /// both varying on <c>culture</c> - do not answer each other's requests.
+    /// both varying on <c>culture</c> - do not answer each other's requests, and then by the caller
+    /// when the scope is <see cref="CacheScope.PerCaller"/>.
     /// </para>
     /// <para>
     /// A null from any one strategy leaves the whole request neither looked up nor stored. There is
