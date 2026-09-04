@@ -595,9 +595,10 @@ public abstract class BaseRequestModelGenerator {
                 "text/plain";
         }
 
-        // Framing is named here and validated where a diagnostic can be reported - a syntax
-        // transform cannot report one, so an attribute on a handler that streams nothing has to be
-        // carried forward rather than rejected in place.
+        // Framing is named here and reported where a diagnostic can be - a syntax transform
+        // cannot report one, so an attribute on a handler that streams nothing is carried forward
+        // as a finding rather than rejected in place. The mismatch is decided here because this is
+        // where the return type is known.
         var framing = context.Node.GetAttribute("ServerSentEvents") != null
             ? StreamFramingNames.ServerSentEvents
             : null;
@@ -606,6 +607,7 @@ public abstract class BaseRequestModelGenerator {
 
         return new ResponseInformationModel {
             StreamFraming = framing,
+            StreamFramingDiagnostic = framing != null && !isAsyncEnumerable ? framing : null,
             IsAsync = isAsync,
             IsAsyncEnumerable = isAsyncEnumerable,
             AsyncEnumerableItemType = asyncEnumerableItemType,

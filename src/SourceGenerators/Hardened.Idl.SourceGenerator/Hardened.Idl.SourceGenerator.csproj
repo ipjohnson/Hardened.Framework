@@ -105,6 +105,9 @@
         <Compile Include="../Hardened.SourceGenerator/Web/CompressDiagnostics.cs">
             <Link>Web\CompressDiagnostics.cs</Link>
         </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/StreamFramingDiagnostics.cs">
+            <Link>Web\StreamFramingDiagnostics.cs</Link>
+        </Compile>
     </ItemGroup>
 
     <!--
