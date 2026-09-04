@@ -1247,7 +1247,12 @@ internal static class SmithySpecParser {
         var schema = new SchemaModel {
             Name = name,
             Description = Text(shape, SmithyTraits.Documentation),
-            IsDeprecated = SmithyAst.HasTrait(shape, SmithyTraits.Deprecated)
+            IsDeprecated = SmithyAst.HasTrait(shape, SmithyTraits.Deprecated),
+
+            // Carried onto the schema because DefaultErrorBody needs it, and it is the only place
+            // that knows: by the time a schema reaches the shared generation model, an error shape
+            // and a payload look alike. See SchemaModel.IsErrorShape.
+            IsErrorShape = SmithyAst.HasTrait(shape, SmithyTraits.Error)
         };
 
         switch (SmithyAst.Kind(shape)) {

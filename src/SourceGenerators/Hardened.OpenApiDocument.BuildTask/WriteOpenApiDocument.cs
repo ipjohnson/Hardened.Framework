@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text;
 using Hardened.Generation.Document;
 using Microsoft.Build.Framework;
@@ -74,6 +76,8 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
     public const string UnknownVersionCode = "029";
 
     public const string StreamLostItemSchemaCode = "030";
+
+    public const string RepeatedOperationKeyCode = "031";
 
     private const string PublishingAttribute = "[Enable<OpenApiDocumentPublishing>]";
 
@@ -159,6 +163,18 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
             return false;
         }
 
+        foreach (var path in RepeatedOperationKeys(document)) {
+            Log.LogWarning(null, prefix + RepeatedOperationKeyCode, null, ProjectFile(), 0, 0, 0, 0,
+                $"The served document puts more than one operation at '{path}' under the same method, " +
+                "so the exported file repeats a key that OpenAPI has no way to tell apart. Readers " +
+                "refuse it and no client can be generated from it. This is what an RPC protocol " +
+                "looks like in OpenAPI - awsJson1_0 and awsJson1_1 put every operation at POST / and " +
+                "dispatch on X-Amz-Target - and the service itself is unaffected. Give each operation " +
+                "its own method and path with Smithy's @http trait for a document a generator can " +
+                $"read, or set <NoWarn>$(NoWarn);{prefix}{RepeatedOperationKeyCode}</NoWarn> to keep " +
+                "exporting the file as it is.");
+        }
+
         if (version != null) {
             foreach (var operation in OpenApiDocumentLowering.Lower(document, version)) {
                 Log.LogWarning(null, prefix + StreamLostItemSchemaCode, null, ProjectFile(), 0, 0, 0, 0,
@@ -204,6 +220,46 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
 
     private static bool HasExtension(string path, string extension) =>
         string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Every path the document puts two operations under one method at, in document order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// OpenAPI's Path Item is a map keyed by method, so this is a key repeated in an object - a
+    /// shape the tree carries faithfully and a reader refuses. It is read off the written tree
+    /// rather than from the model, because the export is what has to answer for the file: the task
+    /// never sees the description, and the same file is what a generator will be pointed at.
+    /// </para>
+    /// <para>
+    /// A warning rather than an error. The input is not wrong, unlike <c>028</c> and <c>029</c>,
+    /// and the file is a faithful record of what the service serves - worth having for a diff or
+    /// an archive even where no generator can read it. Under <c>ContinuousIntegrationBuild</c> it
+    /// fails the build like every other warning here, which is where it matters.
+    /// </para>
+    /// </remarks>
+    private static IEnumerable<string> RepeatedOperationKeys(JsonObject document) {
+        if (document.Get("paths") is not JsonObject paths) {
+            yield break;
+        }
+
+        foreach (var path in paths.Members) {
+            if (path.Value is not JsonObject item) {
+                continue;
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var reported = false;
+
+            foreach (var operation in item.Members) {
+                if (!seen.Add(operation.Key) && !reported) {
+                    reported = true;
+
+                    yield return path.Key;
+                }
+            }
+        }
+    }
 
     private static bool StartsWith(byte[] bytes, string prefix) {
         if (bytes.Length < prefix.Length) {

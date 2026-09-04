@@ -357,7 +357,7 @@ the other.
 | `020`–`024` | The shared model-diagnostics pass. See below. |
 | `026` | Warning. `$(HardenedResponseModel)` is `Standard`, the throws mode's name before 0.19.0. The mode selected is unchanged; write `Throws`. Reported once per project. |
 | `027` | The description references something it does not declare. Part of the model-diagnostics pass; see below. |
-| `018`, `019`, `028`–`030` | The document export, which the three generator packages share. See below. |
+| `018`, `019`, `028`–`031` | The document export, which the three generator packages share. See below. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 
@@ -369,7 +369,7 @@ the other.
 | `HSMT013` | Warning. What the CLI said without failing, with the same per-finding attribution. |
 | `HSMT014` | The CLI exited cleanly but wrote no AST. Unlike `HSMT012`, the fix is not in a `.smithy` file. |
 
-### The document export (018, 019, 028–030)
+### The document export (018, 019, 028–031)
 
 `<HardenedOpenApiOutput>` writes the OpenAPI document an assembly serves to a file after the
 compile, read out of the compiled assembly by the `Hardened.OpenApiDocument.BuildTask` task that all
@@ -385,6 +385,7 @@ onward follows the model-diagnostics pass, since `025` is retired and stays so.
 | `028` | The output path's extension names no format. Use `.json` for indented JSON, or `.yaml` or `.yml` for YAML. |
 | `029` | `<HardenedOpenApiOutputVersion>` is not `3.0.0` or `3.1.0`. Remove it to write the version the application serves. |
 | `030` | Warning. The file was lowered to a version with no `itemSchema`, and the named operation streams its response; the file describes it with its media type and no schema. Remove `<HardenedOpenApiOutputVersion>` to export the 3.2 document the application serves. Once per operation. |
+| `031` | Warning. The served document puts more than one operation at the named path under the same method, so the file repeats a key OpenAPI cannot tell apart: readers refuse it and no client can be generated from it. Once per path. |
 
 ```
 <HardenedOpenApiOutput> is set to 'openapi/Todos.json', but Todos.dll carries no served OpenAPI
@@ -392,6 +393,32 @@ document. The document is written only for a module that enables publishing, and
 that one copy. Add [Enable<OpenApiDocumentPublishing>] to the module that declares the routes, or
 remove the property.
 ```
+
+#### 031 - two operations at one method and path
+
+```
+The served document puts more than one operation at '/' under the same method, so the exported
+file repeats a key that OpenAPI has no way to tell apart. Readers refuse it and no client can be
+generated from it.
+```
+
+What an RPC protocol looks like in OpenAPI. `awsJson1_0` and `awsJson1_1` put every operation at
+`POST /` and dispatch on `X-Amz-Target`, so a service speaking one has as many `post` keys under
+`/` as it has operations. OpenAPI's Path Item is a map keyed by method, so it can hold one.
+
+**The service is unaffected.** Those protocols are supported and cost less to serve than
+`restJson1` - dispatch is an exact-match switch rather than a route tree. What cannot be done is
+describe them in OpenAPI, and the export carries the model faithfully rather than inventing paths
+the service does not serve. A document with synthetic `POST /Bank.GetBalance` keys would generate
+a client that calls URLs answering 404.
+
+A model that wants a generated client gives each operation its own method and path with `@http`,
+which is what `restJson1` uses. Where the protocol is the point, `<NoWarn>` the code and treat the
+file as a record of what is served rather than as generator input.
+
+A warning rather than an error, because the input is not wrong the way `028` and `029` are and the
+file is worth having for a diff or an archive. Under `ContinuousIntegrationBuild` it fails the
+build like every other warning here.
 
 The export writes what the server serves - the normalised document, never the source contract -
 and what it writes does not change the served document: a `.yaml` file at 3.0.0 leaves

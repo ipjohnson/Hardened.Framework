@@ -89,18 +89,21 @@ records what happened when they met the code.
 
 ## Discovered and not fixed
 
-- A Smithy service in throws mode answers a declared 404 by returning null, and the runtime
-  writes no body at all: `404` with `Content-Length: 0`, while the served document promises the
-  `TodoNotFound` shape, a `@error` structure with a required `message`. A Kiota client registered
-  that shape for the 404 and throws a bare `ApiException` saying the error failed to deserialize.
-  The declared models answer with the body, so the scaffolded test runs there and is skipped with
-  the defect named under `--contract smithy --response-model throws`. Runtime dispatch for a null
-  return with a named error shape is the place to fix it; it was not touched here.
+- ~~A Smithy service in throws mode answers a declared 404 by returning null, and the runtime
+  writes no body at all.~~ **Fixed.** `SchemaModel.IsErrorShape` carries the `@error` trait through
+  to `DefaultErrorBody`, which fills a required `message` with the status's reason phrase - the
+  same act as filling 7807's `title`, and licensed by the same thing: Smithy gives that member one
+  meaning. Keyed on the trait rather than the member's name, because `{ message: string }` is an
+  ordinary shape. The scaffolded test is no longer skipped under
+  `--contract smithy --response-model throws`, and `PetStoreRoutingTests` covers the same shape
+  in-repo.
 - An OpenAPI service in throws mode answers the same null return with the document's `Problem` and
   no `detail`, which deserializes. The generated client throws the typed
   `Problem` either way; only its detail differs between the modes, and the scaffolded test asserts
-  the detail under the declared models alone. Whether a null return should carry a default detail
-  is a runtime question, left open.
+  the detail under the declared models alone. **Settled as intended**: `status` and `title` are
+  facts about the status code and are filled; `detail` is a fact about this occurrence, which the
+  framework does not have. Inventing one would put words in the handler's mouth, and a handler with
+  something to say throws instead. ASP.NET Core answers a bare 404 with no body at all.
 
 - The Smithy integration application's served document repeats the `post` key under `/`, because
   its bank service speaks the AWS JSON protocol and every operation is `POST /` told apart by a
@@ -108,6 +111,11 @@ records what happened when they met the code.
   carries it faithfully in both formats, but Microsoft.OpenApi's reader refuses the document, so
   the Smithy application is excluded from the JSON-versus-YAML parse comparison with the reason in
   the test. A Kiota client cannot be generated from that document either.
+
+  Not fixable as OpenAPI: a Path Item is a map keyed by method and holds one `post`. Synthesising
+  a path per operation would describe routes the service does not serve. **The export says so now**
+  under `031`, a warning naming the path, rather than leaving an unusable file to be discovered by
+  whatever was pointed at it.
 - `RequestPathDecoder` documents `a%zz`, `a%` and `a%2` as left alone, and the socket probe
   confirms Kestrel does the same. `System.Uri` will not carry those three, so they are asserted
   over a raw socket only; the handler is held to the rows an `HttpClient` can send.
