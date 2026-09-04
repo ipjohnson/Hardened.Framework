@@ -7,6 +7,19 @@ internal class SchemaModel : IEquatable<SchemaModel> {
     /// <summary>The spec's <c>deprecated</c>, which becomes <c>[Obsolete]</c>.</summary>
     public bool IsDeprecated { get; set; }
 
+    /// <summary>
+    /// Whether the description declared this schema as an error rather than as a payload.
+    /// </summary>
+    /// <remarks>
+    /// Set by the Smithy front end for a shape carrying <c>@error</c>, and false for everything
+    /// OpenAPI produces, which has no way to say it: a <c>$ref</c> under a 4xx response is a
+    /// schema like any other. Provenance rather than shape, because the thing it licenses -
+    /// filling a required <c>message</c> in <c>DefaultErrorBody</c> - is only safe where the
+    /// description says the member is an error message, and <c>{ message: string }</c> is far too
+    /// ordinary a shape to read that off.
+    /// </remarks>
+    public bool IsErrorShape { get; set; }
+
     /// <summary>The schema's <c>description</c>, as the generated type's doc comment.</summary>
     public string? Description { get; set; }
     public List<PropertyModel> Properties { get; set; } = new();
@@ -109,6 +122,7 @@ internal class SchemaModel : IEquatable<SchemaModel> {
         if (ReferenceEquals(this, other)) return true;
         return Name == other.Name && Kind == other.Kind &&
                Description == other.Description && IsDeprecated == other.IsDeprecated &&
+               IsErrorShape == other.IsErrorShape &&
                Type == other.Type && Format == other.Format &&
                ArrayItemsRef == other.ArrayItemsRef &&
                ArrayItemsType == other.ArrayItemsType &&

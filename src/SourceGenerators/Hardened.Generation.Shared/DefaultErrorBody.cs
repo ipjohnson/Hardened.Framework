@@ -34,6 +34,12 @@ namespace Hardened.Generation;
 /// so filling them is conformance rather than a guess. Matched on shape, not on the schema's name,
 /// so an unrelated schema whose <c>status</c> means something else is not mistaken for one.
 /// </item>
+/// <item>
+/// Smithy's <c>message</c>, on a shape the model declared with <c>@error</c>. The specification
+/// gives that member one meaning, so the reason phrase goes in it for the same reason it goes in
+/// 7807's <c>title</c>. Keyed on the trait rather than the member's name: an ordinary payload
+/// with a <c>message</c> is not an error.
+/// </item>
 /// <item>Nothing. An optional member with neither is left at its C# default.</item>
 /// </list>
 /// <para>
@@ -99,7 +105,7 @@ internal static class DefaultErrorBody {
 
         foreach (var property in SchemaShape.Constructor(schema)) {
             var csType = TypeMapper.MapPropertyToCSharpType(property);
-            var value = Value(property, csType, statusCode, isProblem);
+            var value = Value(property, csType, statusCode, isProblem, schema.IsErrorShape);
 
             if (value != null) {
                 arguments.Add(value);
@@ -129,12 +135,22 @@ internal static class DefaultErrorBody {
     }
 
     private static string? Value(
-        PropertyModel property, string csType, int statusCode, bool isProblem) {
+        PropertyModel property, string csType, int statusCode, bool isProblem, bool isErrorShape) {
         // The document's own default first. It is the one source here that is not an inference.
         var declared = DefaultLiteral.Format(property.Default, csType);
 
         if (declared != null) {
             return declared;
+        }
+
+        // Smithy's message member, which the specification defines as the error message of an
+        // @error structure. Filling it is the same act as filling 7807's title: the description
+        // said what the member means, so writing the reason phrase into it is conformance rather
+        // than a guess. Keyed on the shape carrying @error rather than on the member's name,
+        // because { message: string } is an ordinary shape and an ordinary payload's message is
+        // not this.
+        if (isErrorShape && property.Name == "message" && csType == "string") {
+            return "\"" + ReasonPhrase(statusCode) + "\"";
         }
 
         if (!isProblem) {

@@ -336,6 +336,7 @@ internal static class SpecModelSerializer {
         record.Add("Kind", schema.Kind.ToString());
         record.Add("Description", schema.Description);
         record.Add("IsDeprecated", schema.IsDeprecated);
+        record.Add("IsErrorShape", schema.IsErrorShape);
         record.Add("EnumMemberNamesAreDeclared", schema.EnumMemberNamesAreDeclared);
         record.Add("DiscriminatorPropertyName", schema.DiscriminatorPropertyName);
         record.Add("BaseRef", schema.BaseRef);
@@ -426,6 +427,7 @@ internal static class SpecModelSerializer {
         Kind = ReadSchemaKind(record.String("Kind")),
         Description = record.String("Description"),
         IsDeprecated = record.Bool("IsDeprecated"),
+        IsErrorShape = record.Bool("IsErrorShape"),
         EnumMemberNamesAreDeclared = record.Bool("EnumMemberNamesAreDeclared"),
         DiscriminatorPropertyName = record.String("DiscriminatorPropertyName"),
         BaseRef = record.String("BaseRef"),

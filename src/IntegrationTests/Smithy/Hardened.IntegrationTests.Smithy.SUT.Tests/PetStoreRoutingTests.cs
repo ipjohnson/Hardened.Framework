@@ -176,4 +176,35 @@ public class PetStoreRoutingTests {
 
         response.Assert.NotFound();
     }
+
+    /// <summary>
+    /// A miss answers the shape the model declared for the status, not an empty body.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// GetPet returns null for a pet it does not hold, which is a 404. PetNotFound is an
+    /// <c>@error</c> with a <c>@required message</c>, and nothing in the request says what that
+    /// message should be - so the response used to carry the status and no body at all, while the
+    /// served document promised the shape. A generated client registers that shape for the status,
+    /// finds nothing to deserialize and throws a bare transport exception rather than the typed
+    /// error, which is how the defect was found.
+    /// </para>
+    /// <para>
+    /// The message is the status's reason phrase, because that is the whole of what is known here:
+    /// Smithy gives <c>message</c> one meaning, so filling it is conformance, and nothing invents
+    /// a reason the handler did not give. A handler with something to say throws
+    /// <c>new PetNotFound("...").AsException()</c> instead, as the Throttled route does.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task GetPet_AnswersAMissWithTheDeclaredErrorShape(ITestWebApp app) {
+        var response = await app.Get("/pets/no-such-pet");
+
+        response.Assert.NotFound();
+
+        var error = response.Deserialize<PetNotFound>();
+
+        Assert.NotNull(error);
+        Assert.Equal("Not Found", error.Message);
+    }
 }

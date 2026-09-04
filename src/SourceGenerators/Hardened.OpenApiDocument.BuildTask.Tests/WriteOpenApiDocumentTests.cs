@@ -43,8 +43,12 @@ public class WriteOpenApiDocumentTests : IDisposable {
 
         Assert.True(result.Succeeded, result.ErrorText);
         Assert.Empty(result.Errors);
-        Assert.Empty(result.Warnings);
         Assert.True(result.Changed);
+
+        // The Smithy application's bank service repeats an operation key, which the export reports
+        // under 031 and which is not what this test is about. Everything else says nothing.
+        Assert.DoesNotContain(result.Warnings, warning => !warning.Code!.EndsWith(
+            WriteOpenApiDocument.RepeatedOperationKeyCode, StringComparison.Ordinal));
 
         var expected = JsonTreeWriter.WriteIndented(JsonTree.Parse(ServedDocumentOf(assembly)));
 
@@ -79,6 +83,10 @@ public class WriteOpenApiDocumentTests : IDisposable {
     /// exports still succeed, and the day the served document stops repeating the key this test
     /// fails and the application joins the theory.
     /// </summary>
+    /// <remarks>
+    /// The export says so now, under <c>031</c>, rather than leaving a file to be discovered
+    /// unreadable by whatever was pointed at it. A warning, so the file is still written.
+    /// </remarks>
     [Fact]
     public void TheSmithyApplicationRepeatsAnOperationKeyAndStillExportsBothFormats() {
         Assert.True(_harness.Run(TaskHarness.Fixture(TaskHarness.SmithyApp), "out.json").Succeeded);
@@ -99,6 +107,48 @@ public class WriteOpenApiDocumentTests : IDisposable {
         var yaml = File.ReadAllText(_harness.Under("out.yaml"));
 
         Assert.Equal(posts, yaml.Split('\n').Count(line => line == "    post:"));
+    }
+
+    /// <summary>
+    /// And the export says which path, once, rather than leaving the file to be found unreadable
+    /// by whatever was pointed at it.
+    /// </summary>
+    /// <remarks>
+    /// One report per path however many operations collide there: the reader's answer is the same
+    /// after the second, and the fix - give each operation its own method and path - is one edit to
+    /// the model rather than one per operation.
+    /// </remarks>
+    [Fact]
+    public void ARepeatedOperationKeyIsReported() {
+        var result = _harness.Run(TaskHarness.Fixture(TaskHarness.SmithyApp), "reported.json");
+
+        Assert.True(result.Succeeded, result.ErrorText);
+
+        var warning = Assert.Single(
+            result.Warnings,
+            candidate => candidate.Code.EndsWith(
+                WriteOpenApiDocument.RepeatedOperationKeyCode, StringComparison.Ordinal));
+
+        Assert.Contains("'/'", warning.Message);
+        Assert.Contains("@http", warning.Message);
+        Assert.Contains("no client can be generated", warning.Message);
+
+        // The file is still there. The warning is about what a reader will make of it, not about
+        // whether writing it was the right thing to do.
+        Assert.True(File.Exists(_harness.Under("reported.json")));
+    }
+
+    /// <summary>
+    /// The applications whose documents key their operations the way OpenAPI does say nothing.
+    /// </summary>
+    [Theory]
+    [InlineData(TaskHarness.WebApp)]
+    [InlineData(TaskHarness.OpenApiApp)]
+    public void ADocumentWithNoRepeatedKeyIsSilent(string assembly) {
+        var result = _harness.Run(TaskHarness.Fixture(assembly), "quiet.json");
+
+        Assert.True(result.Succeeded, result.ErrorText);
+        Assert.DoesNotContain(WriteOpenApiDocument.RepeatedOperationKeyCode, result.WarningText);
     }
 
     [Fact]
@@ -176,12 +226,16 @@ public class WriteOpenApiDocumentTests : IDisposable {
         Assert.DoesNotContain("itemSchema", written);
     }
 
+    /// <remarks>
+    /// Nothing about <em>lowering</em>, which is what this measures. The Smithy application also
+    /// repeats an operation key, and 031 says so on every export of it whatever the version.
+    /// </remarks>
     [Fact]
     public void LoweringAnApplicationWithNoStreamingWarnsNothing() {
         var result = _harness.Run(TaskHarness.Fixture(TaskHarness.SmithyApp), "lowered.json", version: "3.0.0");
 
         Assert.True(result.Succeeded, result.ErrorText);
-        Assert.Empty(result.Warnings);
+        Assert.DoesNotContain(WriteOpenApiDocument.StreamLostItemSchemaCode, result.WarningText);
         Assert.Contains("\"openapi\": \"3.0.0\"", File.ReadAllText(_harness.Under("lowered.json")));
     }
 

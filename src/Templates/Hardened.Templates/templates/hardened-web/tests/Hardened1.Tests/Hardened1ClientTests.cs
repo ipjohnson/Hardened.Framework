@@ -105,16 +105,14 @@ public class TemplateModuleNameClientTests {
     /// </summary>
 #if (throwsMode)
     /// <remarks>
-    /// Skipped rather than bent. In throws mode this service answers the 404 by returning null,
-    /// and the runtime writes no body for a named error shape it has no message for - while the
-    /// document promises a TodoNotFound body. The client sees a bare ApiException whose registered
-    /// error failed to deserialize. That is a runtime gap the generated client makes visible, not
-    /// a client defect; the declared models answer with the body, and this test runs there.
+    /// In throws mode this service answers the 404 by returning null, and the message is the
+    /// status's reason phrase: Smithy gives an @error's message one meaning, so the runtime fills
+    /// it rather than sending the bodiless 404 that used to make the client throw a bare
+    /// ApiException. A handler with something to say throws
+    /// new TodoNotFound("...").AsException() instead.
     /// </remarks>
-    [HardenedTest(Skip = "Smithy throws mode answers a null return with a bodiless 404; the document declares a TodoNotFound body. See the framework's client-by-default handoff notes.")]
-#else
-    [HardenedTest]
 #endif
+    [HardenedTest]
     public async Task UnknownTodo_IsATypedError(TemplateModuleNameClient client) {
         var failure = await Assert.ThrowsAsync<ClientModels.TodoNotFound>(() => client.Todos[9999].GetAsync());
 
