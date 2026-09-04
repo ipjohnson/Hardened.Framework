@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Threading;
 using Hardened.Generation;
 using Hardened.Generation.Models;
@@ -29,8 +29,18 @@ public class DeclaredResponseHeaderTests {
         OpenApiSpecParser.Parse(Specs.DeclaredResponseHeaders, "test", CancellationToken.None)!;
 
     private static OperationModel CreatePet(ServiceSpecModel model) =>
+        Operation(model, "createPet");
+
+    /// <summary>
+    /// One success and the shared 429 - so an error's header is the only thing that could force a
+    /// response set, which <c>createPet</c> cannot show because it declares two successes.
+    /// </summary>
+    private static OperationModel ListPets(ServiceSpecModel model) =>
+        Operation(model, "listPets");
+
+    private static OperationModel Operation(ServiceSpecModel model, string operationId) =>
         model.Services.SelectMany(service => service.Operations)
-            .Single(operation => operation.OperationId == "createPet");
+            .Single(operation => operation.OperationId == operationId);
 
     [Fact]
     public void TheParserReadsAHeaderDeclaredOnASuccess() {
@@ -108,6 +118,57 @@ public class DeclaredResponseHeaderTests {
         Assert.False(ResponseSetPlan.NeedsSuccessCaseType(
             operation, operation.SuccessResponses.Single(r => r.StatusCode == 201)));
     }
+
+    #region what an error's header does to the signature
+
+    /// <summary>
+    /// An error's headers do not widen a throws-mode operation. Throws mode reaches an error by
+    /// throwing, and the thrown type carries the header, so there is nothing a response set would
+    /// buy - and counting them here is what made a <c>Retry-After</c> on a shared
+    /// <c>components.responses</c> entry change the signature of every operation that named it.
+    /// </summary>
+    [Fact]
+    public void AnErrorDeclaringAHeaderDoesNotForceAResponseSetInThrowsMode() {
+        var operation = ListPets(Parse());
+
+        Assert.True(operation.ErrorResponses.Single(r => r.StatusCode == 429).Headers.Count > 0);
+
+        Assert.False(ResponseSetPlan.RequiresResponseSet(operation, SpecResponseModel.Throws));
+    }
+
+    /// <summary>
+    /// And a success's header still does, because a returned Pet has nowhere to put a Location.
+    /// </summary>
+    [Fact]
+    public void ASuccessDeclaringAHeaderStillForcesAResponseSetInThrowsMode() {
+        var operation = CreatePet(Parse());
+
+        Assert.True(ResponseSetPlan.RequiresResponseSet(operation, SpecResponseModel.Throws));
+    }
+
+    /// <summary>
+    /// The other response models are unaffected: they are already a set, and a case type carrying
+    /// the header is the right answer there.
+    /// </summary>
+    [Fact]
+    public void AnErrorDeclaringAHeaderStillBelongsToASetInResponseMode() {
+        Assert.True(
+            ResponseSetPlan.RequiresResponseSet(ListPets(Parse()), SpecResponseModel.Response));
+    }
+
+    /// <summary>
+    /// The whole-operation predicate still sees it, which is the clause that asks whether there is
+    /// anything to put in a set at all.
+    /// </summary>
+    [Fact]
+    public void TheWholeOperationPredicateStillCountsAnErrorHeader() {
+        var operation = ListPets(Parse());
+
+        Assert.True(ResponseSetPlan.DeclaresResponseHeaders(operation));
+        Assert.False(ResponseSetPlan.DeclaresSuccessResponseHeaders(operation));
+    }
+
+    #endregion
 
     [Fact]
     public void TheEmittedCaseTypeTakesTheHeaderAndWritesIt() {

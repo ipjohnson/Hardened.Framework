@@ -196,7 +196,7 @@ internal sealed class ConditionalResponseStream : Stream {
     /// the resource what it holds.
     /// </remarks>
     private bool Storable() =>
-        _response.ExceptionValue == null && (_response.Status ?? 200) == 200;
+        !_response.Refused && (_response.Status ?? 200) == 200;
 
     /// <summary>
     /// Whether the caller holds what this response is about to send. Asked only once the response

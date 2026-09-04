@@ -255,6 +255,36 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("(global::System.Collections.Generic.Dictionary<string,string>)args[0]", result);
     }
 
+    /// <summary>
+    /// The collection table is typed from the same mapping as the property, so a map value that
+    /// keeps its format here is what stops the table registering <c>Dictionary&lt;string, double&gt;</c>
+    /// against a property typed <c>Dictionary&lt;string, decimal&gt;</c>.
+    /// </summary>
+    [Fact]
+    public void Emit_DecimalValuedDictionary_KeepsTheValueFormat() {
+        var schemas = new List<SchemaModel> {
+            new() {
+                Name = "Rates",
+                Kind = SchemaKind.Object,
+                Properties = new List<PropertyModel> {
+                    new() {
+                        Name = "quotes",
+                        IsDictionary = true,
+                        DictionaryValueType = "number",
+                        DictionaryValueFormat = "decimal",
+                        IsRequired = true,
+                    }
+                }
+            }
+        };
+
+        var result = EmitterHarness.JsonTypeInfo(schemas, "rates");
+
+        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,decimal>>(options", result);
+        Assert.Contains("JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,decimal>, string, decimal>(", result);
+        Assert.DoesNotContain("Dictionary<string,double>", result);
+    }
+
     [Fact]
     public void Emit_DictionaryWithObjectRef_GeneratesDictionaryOfRef() {
         var schemas = new List<SchemaModel> {

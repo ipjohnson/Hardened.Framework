@@ -1,4 +1,5 @@
 ﻿using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Shared;
 
@@ -31,7 +32,30 @@ public class RequestParameterInformation {
 
     public ITypeDefinition ParameterType { get; }
 
+    /// <summary>The name the parameter was declared with, and the name a caller uses for it.</summary>
+    /// <remarks>
+    /// Not necessarily a C# identifier - a route token or a parameter can be spelled <c>base</c>,
+    /// which is a keyword. <see cref="MemberName"/> is the identifier; this is the wire name, and
+    /// <see cref="BindingName"/> replaces it when an attribute renames the parameter.
+    /// </remarks>
     public string Name { get; }
+
+    /// <summary>
+    /// The C# identifier for this parameter: <see cref="Name"/>, escaped when it is a keyword.
+    /// </summary>
+    /// <remarks>
+    /// Everything the generator emits as an identifier reads this - the Parameters property, the
+    /// binder's assignment target, the handler argument, a link method's parameter. Everything that
+    /// emits a string a caller sent reads <see cref="Name"/> or <see cref="BindingName"/> instead,
+    /// because <c>@base</c> is neither a query key nor the field a validation error names.
+    ///
+    /// <para>
+    /// The spec-first side gets this from <c>NameAllocator</c>, which escapes as it allocates. The
+    /// code-first side had no equivalent, so a route token named after a keyword emitted a
+    /// parameter declaration that did not compile.
+    /// </para>
+    /// </remarks>
+    public string MemberName => NamingHelper.EscapeIdentifier(Name);
 
     public bool Required { get; }
 

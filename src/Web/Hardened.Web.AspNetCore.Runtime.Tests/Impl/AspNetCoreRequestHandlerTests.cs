@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
@@ -63,13 +63,95 @@ public class AspNetCoreRequestHandlerTests {
     public async Task HandleRequest_ClosesTheRequestOutWhenTheChainThrows() {
         var harness = new Harness(chainEffect: _ => throw new InvalidOperationException("boom"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask));
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
 
         harness.MetricLogger.Received(1).Record(RequestMetrics.TotalRequestDuration, Arg.Any<double>());
         harness.RequestLogger.Received(1).RequestEnd(Arg.Any<IExecutionContext>());
         harness.MetricLogger.Received(1).Dispose();
     }
+
+    #region a chain that throws
+
+    /// <summary>
+    /// Caught rather than rethrown, which is what the Kestrel host has always done. Letting it
+    /// reach ASP.NET logs the failure against the server instead of the application, and aborts
+    /// the connection outright once any bytes have gone out.
+    /// </summary>
+    [Fact]
+    public async Task HandleRequest_DoesNotLetAChainExceptionReachAspNet() {
+        var harness = new Harness(chainEffect: _ => throw new InvalidOperationException("boom"));
+
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
+    }
+
+    [Fact]
+    public async Task HandleRequest_ReportsAChainExceptionToTheRequestLogger() {
+        var thrown = new InvalidOperationException("boom");
+        var harness = new Harness(chainEffect: _ => throw thrown);
+
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
+
+        harness.RequestLogger.Received(1).RequestFailed(Arg.Any<IExecutionContext>(), thrown);
+    }
+
+    [Fact]
+    public async Task HandleRequest_AnswersFiveHundredWhenTheChainThrows() {
+        var harness = new Harness(chainEffect: _ => throw new InvalidOperationException("boom"));
+
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
+
+        Assert.Equal(500, harness.HttpContext.Response.StatusCode);
+    }
+
+    /// <summary>
+    /// A response already on the wire keeps the status it sent. Setting it would throw in its own
+    /// right, which is the failure this whole path exists to stop.
+    /// </summary>
+    [Fact]
+    public async Task HandleRequest_LeavesTheStatusAloneWhenTheResponseHasAlreadyStarted() {
+        var harness = new Harness(
+            startResponse: true, chainEffect: _ => throw new InvalidOperationException("boom"));
+
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
+
+        Assert.Equal(200, harness.HttpContext.Response.StatusCode);
+    }
+
+    /// <summary>
+    /// The 500 counts as answered, so a failed request is not then handed to whatever is behind
+    /// <c>UseHardened</c> to be answered a second time.
+    /// </summary>
+    [Fact]
+    public async Task HandleRequest_DoesNotFallThroughAfterTheChainThrew() {
+        var harness = new Harness(chainEffect: _ => throw new InvalidOperationException("boom"));
+        var nextInvoked = false;
+
+        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
+            nextInvoked = true;
+
+            return Task.CompletedTask;
+        });
+
+        Assert.False(nextInvoked);
+    }
+
+    /// <summary>
+    /// The fallthrough is not covered. An exception from there belongs to the middleware behind
+    /// <c>UseHardened</c>, and to whatever exception handling that application installed.
+    /// </summary>
+    [Fact]
+    public async Task HandleRequest_LetsAFallthroughExceptionThrough() {
+        var harness = new Harness();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.Handler.HandleRequest(
+                harness.HttpContext, _ => throw new InvalidOperationException("downstream")));
+
+        harness.RequestLogger.DidNotReceive().RequestFailed(
+            Arg.Any<IExecutionContext>(), Arg.Any<Exception>());
+    }
+
+    #endregion
 
     [Fact]
     public async Task HandleRequest_RunsTheExecutionChain() {

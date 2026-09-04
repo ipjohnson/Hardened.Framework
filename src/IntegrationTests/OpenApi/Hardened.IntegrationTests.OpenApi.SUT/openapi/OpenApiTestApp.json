@@ -154,6 +154,17 @@
               "minimum": 1,
               "maximum": 100
             }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         ],
         "responses": {
@@ -166,6 +177,24 @@
                   "items": {
                     "$ref": "#/components/schemas/Pet"
                   }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The caller is being throttled.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before trying again.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }
@@ -240,6 +269,24 @@
         "responses": {
           "200": {
             "description": "Just the names"
+          },
+          "429": {
+            "description": "The caller is being throttled.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before trying again.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         }
       }

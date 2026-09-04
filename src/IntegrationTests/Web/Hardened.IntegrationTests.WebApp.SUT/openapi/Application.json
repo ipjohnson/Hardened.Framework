@@ -58,6 +58,9 @@
     },
     {
       "name": "Streaming"
+    },
+    {
+      "name": "Unsatisfiable"
     }
   ],
   "paths": {
@@ -350,6 +353,121 @@
           {
             "name": "X-Tenant",
             "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/header-list": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "headerList",
+        "summary": "A repeated header, which RFC 9110 says a recipient may join with commas - so both spellings have to read the same way.",
+        "parameters": [
+          {
+            "name": "X-Tag",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/keyword-query": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromKeywordQuery",
+        "summary": "The same name from a query string rather than the path.",
+        "parameters": [
+          {
+            "name": "event",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/keyword/{base}/{class}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromKeywordPathTokens",
+        "summary": "A route token named after a C# keyword. The path is the contract's, so the handler has no say in it; the parameter is written @base because that is the only way to declare it.",
+        "description": "The generator read Identifier.Text, which carries the @, and compared it with the token base. It did not match, so the parameter fell through to the body and the build failed with HRDR005 saying nothing bound the token.",
+        "parameters": [
+          {
+            "name": "base",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "class",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string"
@@ -671,6 +789,174 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-array": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "queryArray",
+        "summary": "An array rather than a list, which the binder copies into.",
+        "parameters": [
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-list": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "queryList",
+        "summary": "A list query parameter, which is how OpenAPI's default array style arrives: ?symbols=EUR&amp;symbols=GBP. The joined form, ?symbols=EUR,GBP, is the same parameter written with explode: false and binds to the same list.",
+        "parameters": [
+          {
+            "name": "symbols",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-list-required": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "queryListRequired",
+        "summary": "Absent is a 422 here rather than an empty list.",
+        "parameters": [
+          {
+            "name": "symbols",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-list-typed": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "queryListTyped",
+        "summary": "Each item converted, not just the list assembled.",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
                 }
               }
             }
@@ -1779,6 +2065,26 @@
         ],
         "operationId": "server",
         "summary": "Anything else is a server error.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/unsatisfiable": {
+      "get": {
+        "tags": [
+          "Unsatisfiable"
+        ],
+        "operationId": "get",
         "responses": {
           "200": {
             "description": "OK",

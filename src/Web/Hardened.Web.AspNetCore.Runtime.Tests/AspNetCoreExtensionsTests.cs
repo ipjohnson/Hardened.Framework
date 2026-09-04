@@ -1,5 +1,6 @@
-using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Shared.Runtime.Application;
 using Hardened.Web.AspNetCore.Runtime;
 using Hardened.Web.AspNetCore.Runtime.Impl;
 using Hardened.Web.Runtime.Handlers;
@@ -31,7 +32,8 @@ public class AspNetCoreExtensionsTests {
 
     private static IApplicationBuilder Builder(
         IMiddlewareService? middleware = null,
-        IWebExecutionHandlerService? handler = null) {
+        IWebExecutionHandlerService? handler = null,
+        params IStartupService[] startupServices) {
         var services = new ServiceCollection();
 
         if (middleware != null) {
@@ -42,7 +44,23 @@ public class AspNetCoreExtensionsTests {
             services.AddSingleton(handler);
         }
 
+        foreach (var startupService in startupServices) {
+            services.AddSingleton(startupService);
+        }
+
         return new ApplicationBuilder(services.BuildServiceProvider());
+    }
+
+    /// <summary>A startup service that records that it ran, and what it appended.</summary>
+    private sealed class RecordingStartupService(Action<IServiceProvider> onStartup) : IStartupService {
+        public int Runs { get; private set; }
+
+        public Task<bool> Startup(IServiceProvider rootProvider) {
+            Runs++;
+            onStartup(rootProvider);
+
+            return Task.FromResult(true);
+        }
     }
 
     [Fact]
@@ -100,6 +118,81 @@ public class AspNetCoreExtensionsTests {
         Assert.Throws<InvalidOperationException>(
             () => Builder(Substitute.For<IMiddlewareService>()).UseHardened());
     }
+
+    #region startup services
+
+    /// <summary>
+    /// The third thing <c>UseHardened</c> has to do. An <c>IStartupService</c> is where the
+    /// framework's own authentication and CORS filters come from, so a host that runs none of them
+    /// serves every request with no principal and refuses the authorized ones.
+    /// </summary>
+    [Fact]
+    public void UseHardenedRunsTheRegisteredStartupServices() {
+        var startup = new RecordingStartupService(_ => { });
+
+        Builder(Substitute.For<IMiddlewareService>(), Substitute.For<IWebExecutionHandlerService>(), startup)
+            .UseHardened();
+
+        Assert.Equal(1, startup.Runs);
+    }
+
+    [Fact]
+    public void EachStartupServiceReceivesTheApplicationServices() {
+        IServiceProvider? received = null;
+        var startup = new RecordingStartupService(provider => received = provider);
+
+        var builder = Builder(
+            Substitute.For<IMiddlewareService>(), Substitute.For<IWebExecutionHandlerService>(), startup);
+
+        builder.UseHardened();
+
+        Assert.Same(builder.ApplicationServices, received);
+    }
+
+    /// <summary>
+    /// The ordering the Kestrel host documents, asserted here because the ASP.NET bridge had it
+    /// backwards. The web handler is terminal - it does not call <c>Next()</c> - so a filter a
+    /// startup service appends after it never runs.
+    /// </summary>
+    [Fact]
+    public void TheWebHandlerIsRegisteredAfterTheStartupServicesHaveRun() {
+        var middleware = Substitute.For<IMiddlewareService>();
+        var handler = Substitute.For<IWebExecutionHandlerService>();
+        var order = new List<string>();
+
+        middleware.Use(Arg.Do<Func<IExecutionContext, IExecutionFilter>>(
+            value => order.Add(ReferenceEquals(value(Substitute.For<IExecutionContext>()), handler)
+                ? "handler"
+                : "startup")));
+
+        var startup = new RecordingStartupService(provider =>
+            provider.GetRequiredService<IMiddlewareService>().Use(_ => Substitute.For<IExecutionFilter>()));
+
+        Builder(middleware, handler, startup).UseHardened();
+
+        Assert.Equal(["startup", "handler"], order);
+    }
+
+    /// <summary>
+    /// An application scaffolded before <c>UseHardened</c> ran startup itself still calls
+    /// <c>ApplicationLogic.Start</c> afterwards. Running the set twice would install the
+    /// authentication middleware and the CORS filter twice over.
+    /// </summary>
+    [Fact]
+    public async Task StartAfterUseHardenedRunsTheStartupServicesNoSecondTime() {
+        var startup = new RecordingStartupService(_ => { });
+
+        var builder = Builder(
+            Substitute.For<IMiddlewareService>(), Substitute.For<IWebExecutionHandlerService>(), startup);
+
+        builder.UseHardened();
+
+        await ApplicationLogic.Start(builder.ApplicationServices, null);
+
+        Assert.Equal(1, startup.Runs);
+    }
+
+    #endregion
 
     #region the middleware itself
 

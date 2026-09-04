@@ -127,12 +127,12 @@ public static class BindRequestParametersMethodGenerator {
             }
         );
 
-        invokeMethod.Assign(Await(attributeDataStatement)).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(Await(attributeDataStatement)).To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     private static void BindServiceProviderType(RequestParameterInformation parameterInformation,
         MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar) {
-        invokeMethod.Assign(context.Property("RequestServices")).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(context.Property("RequestServices")).To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     private static void BindFromServiceProviderType(RequestParameterInformation parameterInformation,
@@ -154,7 +154,7 @@ public static class BindRequestParametersMethodGenerator {
 
         invokeStatement.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
 
-        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     private static void BindExecutionSpecialType(RequestParameterInformation parameterInformation,
@@ -171,7 +171,7 @@ public static class BindRequestParametersMethodGenerator {
             invokeStatement = context.Property("CancellationToken");
         }
 
-        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     private static void BindRequestValueToParameter(RequestParameterInformation parameterInformation,
@@ -209,31 +209,9 @@ public static class BindRequestParametersMethodGenerator {
 
         var stringInvokeStatement = context.Property("KnownServices").Property("StringConverterService");
 
-        IOutputComponent? invokeStatement;
-
-        if (!string.IsNullOrEmpty(parameterInformation.DefaultValue)) {
-            invokeStatement =
-                stringInvokeStatement.InvokeGeneric("ParseWithDefault", new[] {
-                        parameterInformation.ParameterType
-                    },
-                    valueStatement, QuoteString(bindingName), parameterInformation.DefaultValue!);
-        }
-        else if (parameterInformation.Required) {
-            invokeStatement =
-                stringInvokeStatement.InvokeGeneric("ParseRequired", new[] {
-                        parameterInformation.ParameterType
-                    },
-                    valueStatement, QuoteString(bindingName));
-        }
-        else {
-            invokeStatement =
-                stringInvokeStatement.InvokeGeneric("ParseOptional", new[] {
-                        parameterInformation.ParameterType
-                    },
-                    valueStatement, QuoteString(bindingName));
-        }
-
-        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod
+            .Assign(Convert(parameterInformation, stringInvokeStatement, valueStatement, bindingName))
+            .To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     /// <summary>
@@ -259,31 +237,81 @@ public static class BindRequestParametersMethodGenerator {
 
         var stringInvokeStatement = context.Property("KnownServices").Property("StringConverterService");
 
-        IOutputComponent? invokeStatement;
+        invokeMethod
+            .Assign(Convert(parameterInformation, stringInvokeStatement, valueStatement, bindingName))
+            .To(parametersVar.Property(parameterInformation.MemberName));
+    }
+
+    /// <summary>
+    /// The conversion call for one parameter, whatever string-valued source it came from.
+    /// </summary>
+    /// <remarks>
+    /// Path, query, header, cookie and form all hand over a <c>StringValues</c>, so they all convert
+    /// the same way and a change here reaches spec-first and code-first alike - this emitter is the
+    /// only one either of them has.
+    /// </remarks>
+    private static IOutputComponent Convert(RequestParameterInformation parameterInformation,
+        InstanceDefinition stringInvokeStatement, IOutputComponent valueStatement, string bindingName) {
+        var itemType = CollectionParameter.ItemType(parameterInformation.ParameterType);
+
+        if (itemType != null) {
+            return ConvertMany(parameterInformation, stringInvokeStatement, valueStatement, bindingName, itemType);
+        }
 
         if (!string.IsNullOrEmpty(parameterInformation.DefaultValue)) {
-            invokeStatement =
-                stringInvokeStatement.InvokeGeneric("ParseWithDefault", new[] {
-                        parameterInformation.ParameterType
-                    },
-                    valueStatement, QuoteString(bindingName), parameterInformation.DefaultValue!);
-        }
-        else if (parameterInformation.Required) {
-            invokeStatement =
-                stringInvokeStatement.InvokeGeneric("ParseRequired", new[] {
-                        parameterInformation.ParameterType
-                    },
-                    valueStatement, QuoteString(bindingName));
-        }
-        else {
-            invokeStatement =
-                stringInvokeStatement.InvokeGeneric("ParseOptional", new[] {
-                        parameterInformation.ParameterType
-                    },
-                    valueStatement, QuoteString(bindingName));
+            return stringInvokeStatement.InvokeGeneric("ParseWithDefault", new[] {
+                    parameterInformation.ParameterType
+                },
+                valueStatement, QuoteString(bindingName), parameterInformation.DefaultValue!);
         }
 
-        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
+        if (parameterInformation.Required) {
+            return stringInvokeStatement.InvokeGeneric("ParseRequired", new[] {
+                    parameterInformation.ParameterType
+                },
+                valueStatement, QuoteString(bindingName));
+        }
+
+        return stringInvokeStatement.InvokeGeneric("ParseOptional", new[] {
+                parameterInformation.ParameterType
+            },
+            valueStatement, QuoteString(bindingName));
+    }
+
+    /// <summary>
+    /// A parameter the handler declared as a collection, from every value the request carried under
+    /// its name.
+    /// </summary>
+    /// <remarks>
+    /// The converter is asked for the item type and answers a <c>List</c>, which satisfies every
+    /// collection interface a handler can declare. An array is the one shape it does not, so that
+    /// case adds the copy - and it is a copy either way, since the list is built one item at a time.
+    /// </remarks>
+    private static IOutputComponent ConvertMany(RequestParameterInformation parameterInformation,
+        InstanceDefinition stringInvokeStatement, IOutputComponent valueStatement, string bindingName,
+        ITypeDefinition itemType) {
+        var required = parameterInformation.Required && string.IsNullOrEmpty(parameterInformation.DefaultValue);
+
+        IOutputComponent invokeStatement = stringInvokeStatement.InvokeGeneric(
+            required ? "ParseRequiredMany" : "ParseOptionalMany",
+            new[] { itemType },
+            valueStatement, QuoteString(bindingName));
+
+        if (parameterInformation.ParameterType.IsArray) {
+            // Null-conditional on the optional side: an absent parameter stays absent rather than
+            // becoming an empty array, which is the distinction ParseOptionalMany draws.
+            invokeStatement = required
+                ? invokeStatement.Invoke("ToArray")
+                : Question(invokeStatement).Invoke("ToArray");
+
+            invokeStatement.AddUsingNamespace("System.Linq");
+        }
+
+        if (!string.IsNullOrEmpty(parameterInformation.DefaultValue)) {
+            return NullCoalesce(invokeStatement, parameterInformation.DefaultValue!);
+        }
+
+        return invokeStatement;
     }
 
     private static void BindBodyParameter(RequestParameterInformation parameterInformation,
@@ -301,6 +329,6 @@ public static class BindRequestParametersMethodGenerator {
             }, context));
 
         invokeMethod.Assign(Bang(Parenthesis(deserializeStatement)))
-            .To(parametersVar.Property(parameterInformation.Name));
+            .To(parametersVar.Property(parameterInformation.MemberName));
     }
 }

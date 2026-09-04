@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using Hardened.Requests.Runtime.Middleware;
 using Hardened.Web.AspNetCore.Runtime;
 using Microsoft.AspNetCore.Builder;
@@ -21,9 +21,9 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// </para>
 /// <para>
 /// So this one starts the application the way <c>Program.cs</c> does and asks for the bytes over
-/// TCP. It uses <c>/response-cache/catalog</c>, which is cached and unauthenticated, because
-/// authentication does not run under the ASP.NET host with the startup the template writes - that
-/// is a separate open defect, and it is not what this test is measuring.
+/// TCP. It uses <c>/response-cache/catalog</c>, which is cached and unauthenticated, to keep the
+/// caching question separate from the authorization one - <c>AspNetStartupOverASocketTests</c>
+/// covers the startup services this host now runs.
 /// </para>
 /// </remarks>
 public class ResponseCacheOverASocketTests {

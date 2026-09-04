@@ -1,4 +1,4 @@
-using Hardened.IntegrationTests.WebApp.SUT.Models;
+﻿using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Web.Runtime.Attributes;
 
@@ -18,6 +18,22 @@ public class BindingController {
 
     [Get("/pair/{first}/{second}")]
     public string FromMultiplePathTokens(string first, string second) => $"{first}:{second}";
+
+    /// <summary>
+    /// A route token named after a C# keyword. The path is the contract's, so the handler has no
+    /// say in it; the parameter is written <c>@base</c> because that is the only way to declare it.
+    /// </summary>
+    /// <remarks>
+    /// The generator read <c>Identifier.Text</c>, which carries the <c>@</c>, and compared it with
+    /// the token <c>base</c>. It did not match, so the parameter fell through to the body and the
+    /// build failed with HRDR005 saying nothing bound the token.
+    /// </remarks>
+    [Get("/keyword/{base}/{class}")]
+    public string FromKeywordPathTokens(string @base, string @class) => $"{@base}:{@class}";
+
+    /// <summary>The same name from a query string rather than the path.</summary>
+    [Get("/keyword-query")]
+    public string FromKeywordQuery([FromQueryString] string? @event) => @event ?? "none";
 
     /// <summary>
     /// Deliberately overlaps /path/{id} above: same prefix, a path token in the same
@@ -73,6 +89,42 @@ public class BindingController {
 
     [Get("/query-typed")]
     public int TypedQuery([FromQueryString] int page) => page + 1;
+
+    #region collections
+
+    /// <summary>
+    /// A list query parameter, which is how OpenAPI's default array style arrives:
+    /// <c>?symbols=EUR&amp;symbols=GBP</c>. The joined form, <c>?symbols=EUR,GBP</c>, is the same
+    /// parameter written with <c>explode: false</c> and binds to the same list.
+    /// </summary>
+    [Get("/query-list")]
+    public string QueryList([FromQueryString] List<string>? symbols) =>
+        symbols == null ? "none" : string.Join("|", symbols);
+
+    /// <summary>Each item converted, not just the list assembled.</summary>
+    [Get("/query-list-typed")]
+    public int QueryListTyped([FromQueryString] List<int>? ids) =>
+        ids == null ? -1 : ids.Sum();
+
+    /// <summary>An array rather than a list, which the binder copies into.</summary>
+    [Get("/query-array")]
+    public string QueryArray([FromQueryString] string[]? tags) =>
+        tags == null ? "none" : string.Join("|", tags);
+
+    /// <summary>Absent is a 422 here rather than an empty list.</summary>
+    [Get("/query-list-required")]
+    public string QueryListRequired([FromQueryString] List<string> symbols) =>
+        string.Join("|", symbols);
+
+    /// <summary>
+    /// A repeated header, which RFC 9110 says a recipient may join with commas - so both spellings
+    /// have to read the same way.
+    /// </summary>
+    [Get("/header-list")]
+    public string HeaderList([FromHeader("X-Tag")] List<string>? tags) =>
+        tags == null ? "none" : string.Join("|", tags);
+
+    #endregion
 
     [Get("/cookie")]
     public string FromCookie([FromCookie] string session) => session;

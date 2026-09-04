@@ -231,7 +231,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         string bindingName,
         int parameterIndex) {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
-        var name = parameter.Identifier.Text;
+        var name = parameter.Identifier.ValueText;
 
         string? defaultValue = null;
 
@@ -374,7 +374,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
                     DispatchKey = nameModel.DispatchKey,
                     Parameters = described.Select(p => new ParameterModel {
                         Name = Wire(p),
-                        MemberNameOverride = p.Name,
+                        MemberNameOverride = p.MemberName,
                         In = Location(p.BindingType),
                         IsRequired = p.Required,
                         // What the parameter's own constraints say for the document, read off

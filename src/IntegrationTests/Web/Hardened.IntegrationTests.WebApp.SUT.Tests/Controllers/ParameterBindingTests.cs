@@ -1,4 +1,5 @@
-using Hardened.IntegrationTests.WebApp.SUT.Models;
+﻿using Hardened.IntegrationTests.WebApp.SUT.Models;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
@@ -99,6 +100,161 @@ public class ParameterBindingTests {
     /// [FromHeader] binding. Documented since the framework's first release and, until the
     /// generator fix, incapable of compiling.
     /// </summary>
+    #region a token named after a keyword
+
+    /// <summary>
+    /// A route token named after a C# keyword. The path belongs to the contract, so the only way to
+    /// declare its parameter is <c>@base</c> - and the generator compared that spelling, escape
+    /// included, against the token <c>base</c>. It never matched, so the parameter went to the body
+    /// and the build failed with HRDR005.
+    /// </summary>
+    [HardenedTest]
+    public async Task APathTokenNamedAfterAKeywordBinds(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/keyword/one/two");
+
+        response.Assert.Ok();
+        Assert.Equal("one:two", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// And the wire name is the token, not the escape - a caller sends <c>event</c>, and a
+    /// validation error names <c>event</c>.
+    /// </summary>
+    [HardenedTest]
+    public async Task AQueryParameterNamedAfterAKeywordBindsByItsUnescapedName(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/keyword-query?event=started");
+
+        response.Assert.Ok();
+        Assert.Equal("started", response.Deserialize<string>());
+    }
+
+    [HardenedTest]
+    public async Task AQueryParameterNamedAfterAKeywordIsStillOptional(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/keyword-query");
+
+        response.Assert.Ok();
+        Assert.Equal("none", response.Deserialize<string>());
+    }
+
+    #endregion
+
+    #region collections
+
+    /// <summary>
+    /// OpenAPI's default array style, <c>explode: true</c>: the key repeats. The query parser used
+    /// to overwrite on a repeat, so this arrived as <c>GBP</c> alone and then failed to convert to
+    /// a list at all.
+    /// </summary>
+    [HardenedTest]
+    public async Task ARepeatedQueryKeyBindsAsAList(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-list?symbols=EUR&symbols=GBP&symbols=JPY");
+
+        response.Assert.Ok();
+        Assert.Equal("EUR|GBP|JPY", response.Deserialize<string>());
+    }
+
+    /// <summary>The same parameter written with <c>explode: false</c>.</summary>
+    [HardenedTest]
+    public async Task ACommaJoinedQueryValueBindsAsAList(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-list?symbols=EUR,GBP,JPY");
+
+        response.Assert.Ok();
+        Assert.Equal("EUR|GBP|JPY", response.Deserialize<string>());
+    }
+
+    [HardenedTest]
+    public async Task OneValueBindsAsAListOfOne(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-list?symbols=EUR");
+
+        response.Assert.Ok();
+        Assert.Equal("EUR", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// Absent is null, not an empty list. A handler that has to tell "sent nothing" from "sent an
+    /// empty list" can, which is the distinction ParseOptional draws for every other type.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnAbsentListParameterIsNull(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-list");
+
+        response.Assert.Ok();
+        Assert.Equal("none", response.Deserialize<string>());
+    }
+
+    [HardenedTest]
+    public async Task EachItemConvertsToTheDeclaredItemType(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-list-typed?ids=1&ids=2,3");
+
+        response.Assert.Ok();
+        Assert.Equal(6, response.Deserialize<int>());
+    }
+
+    /// <summary>An item that will not convert fails the request, as a scalar one does.</summary>
+    [HardenedTest]
+    public async Task AnItemThatWillNotConvertIsRejected(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-list-typed?ids=1,abc");
+
+        response.Assert.BadRequest();
+    }
+
+    [HardenedTest]
+    public async Task AnArrayParameterBinds(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-array?tags=red&tags=green");
+
+        response.Assert.Ok();
+        Assert.Equal("red|green", response.Deserialize<string>());
+    }
+
+    [HardenedTest]
+    public async Task AnAbsentArrayParameterIsNull(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-array");
+
+        response.Assert.Ok();
+        Assert.Equal("none", response.Deserialize<string>());
+    }
+
+    [HardenedTest]
+    public async Task ARequiredListParameterIsRefusedWhenAbsent(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-list-required");
+
+        response.Assert.BadRequest();
+    }
+
+    [HardenedTest]
+    public async Task ARequiredListParameterBindsWhenPresent(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/query-list-required?symbols=EUR");
+
+        response.Assert.Ok();
+        Assert.Equal("EUR", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// A repeated header line, which is what a client sends when it does not join them itself.
+    /// </summary>
+    [HardenedTest]
+    public async Task ARepeatedHeaderBindsAsAList(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/header-list",
+            request => request.Headers["X-Tag"] = new StringValues(["red", "green"]));
+
+        response.Assert.Ok();
+        Assert.Equal("red|green", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// And the joined spelling, which RFC 9110 says a recipient may produce from the repeated one.
+    /// </summary>
+    [HardenedTest]
+    public async Task ACommaJoinedHeaderBindsAsAList(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/header-list",
+            request => request.Headers["X-Tag"] = "red, green");
+
+        response.Assert.Ok();
+        Assert.Equal("red|green", response.Deserialize<string>());
+    }
+
+    #endregion
+
     [HardenedTest]
     public async Task HeaderBinds(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/binding/header",

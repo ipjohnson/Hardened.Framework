@@ -1,3 +1,4 @@
+﻿using System.Collections.Generic;
 using System.Linq;
 using Hardened.Generation.Models;
 using Hardened.Idl;
@@ -21,6 +22,102 @@ public class SpecDiagnosticsTests {
 
         return new ServiceSpecModel { FileName = "spec", Schemas = { schema } };
     }
+
+    #region a path token nothing declares
+
+    private static ServiceSpecModel SpecWithRoute(string path, params string[] pathParameters) {
+        var operation = new OperationModel {
+            OperationId = "getNote",
+            HttpMethod = "GET",
+            Path = path
+        };
+
+        foreach (var name in pathParameters) {
+            operation.Parameters.Add(new ParameterModel { Name = name, In = "path" });
+        }
+
+        return new ServiceSpecModel {
+            FileName = "spec",
+            Services = { new ServiceModel { Tag = "Pet", Operations = { operation } } }
+        };
+    }
+
+    private static IEnumerable<SpecDiagnostics.Problem> Unbound(ServiceSpecModel model) =>
+        SpecDiagnostics.Find(model, "HOAT").Where(problem => problem.Code == "HOAT026");
+
+    /// <summary>
+    /// OpenAPI requires a template expression in a path to have a matching path parameter, and a
+    /// description that breaks the rule built clean. The route table registers the token so the
+    /// route still matches, the service interface omits it so the handler cannot read it, and the
+    /// generated link method takes it - three things disagreeing about one segment.
+    /// </summary>
+    [Fact]
+    public void APathTokenNoParameterDeclaresIsReported() {
+        var problem = Assert.Single(
+            Unbound(SpecWithRoute("/pets/{petId}/notes/{noteId}", "petId")));
+
+        Assert.Equal("HOAT026", problem.Code);
+        Assert.Contains("noteId", problem.Message);
+        Assert.Contains("GET /pets/{petId}/notes/{noteId}", problem.Message);
+    }
+
+    /// <summary>
+    /// A warning. The generator has an answer - match the token and discard the value - and a
+    /// description fetched from elsewhere is not always the author's to correct.
+    /// </summary>
+    [Fact]
+    public void TheReportIsNotFatal() {
+        Assert.False(Assert.Single(Unbound(SpecWithRoute("/pets/{petId}"))).Fatal);
+    }
+
+    [Fact]
+    public void EveryDeclaredTokenReportsNothing() {
+        Assert.Empty(Unbound(SpecWithRoute("/pets/{petId}/notes/{noteId}", "petId", "noteId")));
+    }
+
+    [Fact]
+    public void APathWithNoTokensReportsNothing() {
+        Assert.Empty(Unbound(SpecWithRoute("/pets")));
+    }
+
+    [Fact]
+    public void EachUndeclaredTokenIsItsOwnReport() {
+        Assert.Equal(2, Unbound(SpecWithRoute("/pets/{petId}/notes/{noteId}")).Count());
+    }
+
+    /// <summary>
+    /// Path parameters match by exact name, so a case-only difference declares nothing - and it is
+    /// never what anyone meant, which is why the message says so.
+    /// </summary>
+    [Fact]
+    public void ANameDifferingOnlyInCaseIsReportedAndNamed() {
+        var problem = Assert.Single(Unbound(SpecWithRoute("/pets/{petid}", "petId")));
+
+        Assert.Contains("petid", problem.Message);
+        Assert.Contains("only in case", problem.Message);
+    }
+
+    /// <summary>A query parameter of the same name does not bind a path token.</summary>
+    [Fact]
+    public void AParameterInAnotherLocationDoesNotDeclareTheToken() {
+        var model = SpecWithRoute("/pets/{petId}");
+
+        model.Services[0].Operations[0].Parameters.Add(
+            new ParameterModel { Name = "petId", In = "query" });
+
+        Assert.Single(Unbound(model));
+    }
+
+    /// <summary>
+    /// The route-constraint form names its parameter before the colon, so the token is the part
+    /// that has to be declared.
+    /// </summary>
+    [Fact]
+    public void AConstrainedTokenIsMatchedOnItsNameAlone() {
+        Assert.Empty(Unbound(SpecWithRoute("/pets/{petId:int}", "petId")));
+    }
+
+    #endregion
 
     /// <summary>
     /// <c>record Message(string Message)</c> is CS0542. <c>{"message": "..."}</c> under a schema

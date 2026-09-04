@@ -1,4 +1,4 @@
-using Hardened.Shared.Runtime.Application;
+﻿using Hardened.Shared.Runtime.Application;
 using Hardened1.Host;
 #if (kestrel)
 using Hardened.Web.Kestrel.Runtime;
@@ -64,12 +64,9 @@ new Application().PopulateServiceCollection(builder.Services);
 
 var app = builder.Build();
 
+// Runs the registered startup services as well, so an IStartupService - a global filter, a
+// warmed cache - runs here as it does under the Kestrel host.
 app.UseHardened();
-
-// Startup services are run by the Kestrel and function hosts, and by the test harness. The
-// ASP.NET bridge does not run them, so anything registered as IStartupService - a global
-// filter, a warmed cache - needs this line to run at all.
-await ApplicationLogic.Start(app.Services, null);
 
 // The URL is set here rather than through builder.WebHost.UseUrls, which needs a
 // Microsoft.AspNetCore.Hosting using this project does not otherwise want.

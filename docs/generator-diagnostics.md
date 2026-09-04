@@ -178,6 +178,34 @@ ValidationModules front end that reads one off a property, so a constraint that 
 parameter's type is reported under that front end's own `VM` id, exactly as it would be on a
 property. The id is not reused.
 
+### HRDV006 — constraints are declared and nothing compiles them
+
+A handler declares constraints, on a parameter or on a model it binds, and no validation generator
+is compiling this assembly.
+
+```
+'OrderController.Create' declares constraints and nothing in this project compiles them into a
+validator, so none of them is enforced. Reference Hardened.Validation.SourceGenerator as an
+analyzer, or remove the constraint attributes if this assembly is not meant to enforce them.
+```
+
+The constraint attributes come from a package the application already references. Compiling them
+into a validator is a second package, an analyzer, and referencing the first without the second
+enforces nothing. Code-first is the silent form: the constraints simply never run. Specification-
+first is the loud one, where the filter is attached against a validator nobody emitted and every
+constrained operation answers a 500.
+
+One report per assembly, naming the first handler alphabetically. The missing reference is a single
+thing to fix, and forty constrained handlers would otherwise say the same sentence forty times.
+
+A warning rather than an error: the constraints still describe the contract, the published document
+still carries them, and an assembly that declares models for someone else to validate is a real
+arrangement. `<NoWarn>HRDV006</NoWarn>` if that is what you are doing.
+
+The question is answered by the same front end that would have compiled the constraints, rather
+than by a scan for attribute names, so what the diagnostic counts as a constraint and what the
+generator would have compiled cannot disagree.
+
 ### HRDV005 — a condition on a parameter constraint names a model member
 
 `When` and `Unless` on a constraint name a bool property or method of the model the constraint
@@ -262,6 +290,32 @@ ordinary buffered handler and ignores the framing, so the response would be JSON
 would describe it as JSON, while the author believed they had written an event stream.
 
 An error, with no `NoWarn`. Either return `IAsyncEnumerable<T>` or remove the attribute.
+
+## Caching
+
+### HRDW005 — response caching is declared and no store is registered
+
+A handler carries `[CacheResponse]` and the application applies no module that registers an
+`IResponseCacheStore`.
+
+```
+'CatalogController.Catalog' declares [CacheResponse] and this application registers no response
+cache store, so every request to it answers an error. Add the Hardened.Requests.Caching.Memory
+package and [HardenedMemoryResponseCache] to the module, or register an IResponseCacheStore
+yourself and suppress HRDW005.
+```
+
+The attribute alone does nothing. The store ships in its own package, and an application declaring
+one without the other builds clean and answers `ResponseCacheStoreMissingException` on every cached
+route. Every arm of the 0.19 trial made this mistake and found out from a request.
+
+One report per assembly however many handlers declare caching, naming each of them: the missing
+store is a single mistake, and a report each would say the same thing several times.
+
+A **warning**, unlike the two above. The check reads the entry point's module attributes, which is
+where `[HardenedMemoryResponseCache]` goes; a store registered by hand inside `ConfigureServices` is
+a legitimate arrangement and invisible to it. `<NoWarn>HRDW005</NoWarn>` if that is what you are
+doing.
 
 ## Other diagnostics
 
@@ -356,7 +410,7 @@ The `hardened-web` template's project files carry three checks of their own, in 
 | `HTPL002` | The Kiota tool could not be restored, so the client cannot be generated. The pin is in `.config/dotnet-tools.json`; a fresh machine needs network for the first restore. |
 | `HTPL003` | The Kiota tool and `Microsoft.Kiota.Bundle` disagree. The tool version in `.config/dotnet-tools.json` and `KiotaBundleVersion` in `Directory.Packages.props` move together; the message names both versions and both files. |
 
-### The model-diagnostics pass (020–024)
+### The model-diagnostics pass (020–027)
 
 Problems any description can state that would generate C# which does not compile, found before
 anything is emitted so they are reported against the document rather than as compiler errors in a
@@ -369,6 +423,7 @@ generated file.
 | `022` | Warning. A `oneOf` with no discriminator whose branches cannot all be told apart by shape. Payloads are matched by parsing into each branch; declare a discriminator to decide it in the document. |
 | `023` | An `enum` declaring both string and numeric values, which no C# enum can carry. Declare one kind. |
 | `024` | Warning. A declared keyword or trait the generator does not enforce, named with a representative location. Remove it, or enforce the rule in the handler. |
+| `026` | Warning. A path template names a token the operation declares no path parameter for. The route matches and the value is discarded. |
 | `027` | A reference to something the description does not declare. |
 
 `025` is retired. It rejected two error responses at one status on one operation, and a valid
@@ -377,6 +432,29 @@ had to be reported was that the case type was named for the operation and the st
 generated one record twice. A declared error is now named for the error, or binds to a shipped
 wrapper over the payload it carries, and two shapes at one status are two types either way. Nothing
 replaces it; a model that used to be rejected now builds.
+
+#### 026 — a path token no parameter declares
+
+```
+'GET /pets/{petId}/notes/{noteId}' declares '{noteId}' and the operation declares no path
+parameter of that name. The route still matches and the value is discarded, so the handler
+cannot read the segment that chose the resource. Declare the parameter, or take the token out
+of the path.
+```
+
+OpenAPI requires every template expression in a path to have a matching path parameter, and Smithy's
+`@http` uri the same. A description that breaks the rule builds clean and produces three things that
+disagree about one segment: the route table registers the token, so `/pets/1/notes/5` still matches;
+the service interface omits it, so the handler cannot read the value; and the generated link method
+takes it, because a token that binds nothing still needs a value to be linkable at all.
+
+A warning. The generator has an answer — match the token and discard its value — and a description
+fetched from elsewhere is not always the author's to correct.
+
+A parameter whose name differs from the token only in case is named in the message. Path parameters
+match by exact name, so it declares nothing, and a case-only difference is never what anyone meant.
+`HRDR005` is the code-first half of the same mistake; it is reported from a generator the
+specification-first front ends do not run, which is why this exists separately.
 
 #### 027 — a reference to something the description does not declare
 

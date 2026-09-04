@@ -379,7 +379,7 @@ public abstract class BaseRequestModelGenerator {
         ParameterSyntax parameter, 
         int parameterIndex) {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
-        var name = parameter.Identifier.Text;
+        var name = parameter.Identifier.ValueText;
 
         string? defaultValue = null;
 
@@ -418,11 +418,11 @@ public abstract class BaseRequestModelGenerator {
         if (parameterType == null) {
             return new RequestParameterInformation(
                 TypeDefinition.Get("", parameter.Type?.ToString() ?? "?"),
-                parameter.Identifier.Text,
+                parameter.Identifier.ValueText,
                 false,
                 null,
                 ParameterBindType.Unresolved,
-                parameter.Identifier.Text,
+                parameter.Identifier.ValueText,
                 parameterIndex);
         }
 
@@ -467,7 +467,10 @@ public abstract class BaseRequestModelGenerator {
                 ParameterBindType.FromServiceProvider,parameterIndex);
         }
 
-        var id = parameter.Identifier.Text;
+        // ValueText, not Text: a parameter written `@base` is the route token `base`, and Text
+        // carries the escape - so the match against the path failed and the parameter fell
+        // through to the body, where HRDR005 reported a token nothing bound.
+        var id = parameter.Identifier.ValueText;
 
         if (RouteTokens.BindsParameter(requestHandlerNameModel.Path, id)) {
             return CreateRequestParameterInformation(parameter, parameterType,
@@ -553,7 +556,7 @@ public abstract class BaseRequestModelGenerator {
         
         return new RequestParameterInformation(
             parameterType,
-            parameter.Identifier.Text,
+            parameter.Identifier.ValueText,
             required ?? !parameterType.IsNullable,
             defaultValue,
             parameterBindType,

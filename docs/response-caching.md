@@ -22,9 +22,14 @@ exactly what a trimmer cannot remove, so registering one unconditionally would p
 public partial class Application { }
 ```
 
-Without a store, a request to a handler declaring `[CacheResponse]` fails with
-`ResponseCacheStoreMissingException` naming the handler, the package to reference and the attribute
-to add. The attribute never silently does nothing.
+The build says so first: a handler declaring `[CacheResponse]` in an application applying no store
+module is `HRDW005`, a warning naming every handler that would fail. A store registered by hand in
+`ConfigureServices` is invisible to that check, so it is a warning rather than an error and
+`<NoWarn>HRDW005</NoWarn>` turns it off.
+
+Past the build, a request to such a handler fails with `ResponseCacheStoreMissingException` naming
+the handler, the package to reference and the attribute to add. The attribute never silently does
+nothing.
 
 The failure is recorded on the response and the chain continues, which is the rule for everything
 ahead of `FilterOrder.Serialization`: the filter that turns a failure into bytes is behind this

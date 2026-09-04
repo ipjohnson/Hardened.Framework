@@ -124,6 +124,7 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public bool IsDictionary { get; set; }
     public string? DictionaryValueType { get; set; }
     public string? DictionaryValueRef { get; set; }
+    public string? DictionaryValueFormat { get; set; }
     public List<string>? EnumValues { get; set; }
 
     /// <summary>

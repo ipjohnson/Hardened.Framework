@@ -444,6 +444,66 @@ public class SpecParsingTests {
         Assert.Equal("Dictionary<string, string>", TypeMapper.MapPropertyToCSharpType(labels));
     }
 
+    /// <summary>
+    /// H-20 from the 0.19.0-rc1000 trial. A map's value type was stored without its format, so a
+    /// map of <c>number</c>/<c>decimal</c> became <c>Dictionary&lt;string, double&gt;</c> while the
+    /// same schema as an array was exact: money silently stopped being exact and the published
+    /// document still said <c>format: decimal</c>.
+    /// </summary>
+    [Fact]
+    public void ADecimalValuedMapKeepsItsFormat() {
+        var model = Parse(
+            """
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths: {}
+            components:
+              schemas:
+                Rates:
+                  type: object
+                  properties:
+                    quotes:
+                      type: object
+                      additionalProperties: { type: number, format: decimal }
+            """);
+
+        var quotes = model.Schemas.First(s => s.Name == "Rates").Properties.First(p => p.Name == "quotes");
+
+        Assert.Equal("decimal", quotes.DictionaryValueFormat);
+        Assert.Equal("Dictionary<string, decimal>", TypeMapper.MapPropertyToCSharpType(quotes));
+    }
+
+    /// <summary>
+    /// The same omission on a parameter: an array parameter's item format was never read, so a
+    /// list of decimals bound as a list of doubles.
+    /// </summary>
+    [Fact]
+    public void AnArrayParameterKeepsItsItemFormat() {
+        var model = Parse(
+            """
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /rates:
+                get:
+                  tags: [Rate]
+                  operationId: listRates
+                  parameters:
+                    - name: amounts
+                      in: query
+                      schema:
+                        type: array
+                        items: { type: number, format: decimal }
+                  responses:
+                    '200': { description: ok }
+            """);
+
+        var amounts = model.Services.First(s => s.Tag == "Rate").Operations.Single().Parameters.Single();
+
+        Assert.Equal("decimal", amounts.ArrayItemsFormat);
+        Assert.Equal("List<decimal>", TypeMapper.MapParameterToCSharpType(amounts));
+    }
+
     // ── optionality ───────────────────────────────────────────────────────────────────────────
 
     /// <summary>

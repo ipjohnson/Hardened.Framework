@@ -1,4 +1,4 @@
-using Hardened.IntegrationTests.OpenApi.SUT.Models;
+﻿using Hardened.IntegrationTests.OpenApi.SUT.Models;
 using Hardened.IntegrationTests.OpenApi.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Responses;
@@ -22,12 +22,34 @@ public class PetServiceImpl : IPetService {
         new Pet("2", "Luna", "dog")
     ];
 
-    public Task<List<Pet>> ListPets(int? limit) {
-        if (limit.HasValue) {
-            return Task.FromResult(Pets.Take(limit.Value).ToList());
+    /// <summary>
+    /// <paramref name="tags"/> is the described array parameter, which the generator types as a
+    /// <c>List</c> and the binder could not fill: every string-valued source went through one
+    /// scalar <c>Parse</c> call, so a repeated key was overwritten before binding and a comma-joined
+    /// value failed to convert.
+    /// </summary>
+    public Task<List<Pet>> ListPets(int? limit, List<string>? tags) {
+        // The shared 429 the description declares with a Retry-After, thrown from an operation that
+        // returns a plain list. The header used to widen this signature and ListPetNames into
+        // response sets, because an error's declared headers counted towards "this operation needs
+        // a set" - so a header on one components.responses entry changed the return type of every
+        // operation that referenced it. Throws mode reaches the error by throwing, and the
+        // generated exception carries the header itself.
+        if (tags is not null && tags.Contains("throttled")) {
+            throw new Problem { Title = "Slow down." }.AsException("30");
         }
 
-        return Task.FromResult(Pets.ToList());
+        var pets = Pets.AsEnumerable();
+
+        if (tags is { Count: > 0 }) {
+            pets = pets.Where(pet => pet.Tag != null && tags.Contains(pet.Tag));
+        }
+
+        if (limit.HasValue) {
+            pets = pets.Take(limit.Value);
+        }
+
+        return Task.FromResult(pets.ToList());
     }
 
     /// <summary>
@@ -39,6 +61,7 @@ public class PetServiceImpl : IPetService {
     /// </remarks>
     public Task<List<string>> ListPetNames() =>
         Task.FromResult(Pets.Select(pet => pet.Name).ToList());
+
 
     /// <summary>
     /// The 201 the description declares, and the <c>Location</c> it declares beside it.

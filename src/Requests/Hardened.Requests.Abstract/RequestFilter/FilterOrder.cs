@@ -27,7 +27,9 @@ namespace Hardened.Requests.Abstract.RequestFilter;
 /// Everything ahead of <see cref="Serialization"/> can refuse a request before its body has been
 /// read, and the stages there are in cheapest-refusal-first order. A filter on that side of the
 /// line refuses by recording the failure and continuing, so the serialization filter can write the
-/// response; behind it, an ordinary short circuit is what stops the handler.
+/// response; behind it, an ordinary short circuit is what stops the handler. What a refusal left on
+/// the response is <c>IExecutionResponse.Refused</c>, which is how a filter ahead of the line tells
+/// a request still travelling from one already turned away.
 /// </para>
 /// <para>
 /// <b>What a handler's chain was composed into is written once, as it is built</b>, when the

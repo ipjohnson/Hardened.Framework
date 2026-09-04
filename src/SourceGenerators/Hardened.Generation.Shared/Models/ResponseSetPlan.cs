@@ -1,4 +1,4 @@
-using Hardened.Generation;
+﻿using Hardened.Generation;
 
 namespace Hardened.Generation.Models;
 
@@ -49,15 +49,20 @@ internal static class ResponseSetPlan {
         var declaresMultipleSuccesses = operation.SuccessResponses.Count > 1;
 
         // A declared header forces a set the same way a second success does, and for the same
-        // reason: the bare payload type cannot express it. Throws mode is already dragged into a
-        // set by a second success - "there is no way to throw a 202" - and there is no way to put a
-        // Location on a returned Pet either. Without this the fix reaches two response models of
-        // three and throws-mode documents go on declaring headers nothing sends.
+        // reason: the bare payload type cannot express it. There is no way to put a Location on a
+        // returned Pet, so a success that declares one is dragged into a set even in throws mode.
+        //
+        // An error's headers are not that argument. Throws mode reaches an error by throwing, and
+        // the thrown type carries them - ErrorResponseEmitter writes ApplyHeaders on it, and the
+        // runtime calls that for any IStatusCodeException. Counting them here is what made a
+        // Retry-After added to a shared components.responses.TooManyRequests change the signature
+        // of every operation that referenced it.
+        var declaresSuccessHeaders = DeclaresSuccessResponseHeaders(operation);
         var declaresResponseHeaders = DeclaresResponseHeaders(operation);
 
         return (responseModel != SpecResponseModel.Throws ||
                 declaresMultipleSuccesses ||
-                declaresResponseHeaders) &&
+                declaresSuccessHeaders) &&
                !operation.RawBytesResponse &&
                operation.ItemSchemaRef == null &&
                (operation.ErrorResponses.Count > 0 ||
@@ -87,14 +92,30 @@ internal static class ResponseSetPlan {
     /// and costs the signature.
     /// </remarks>
     public static bool DeclaresResponseHeaders(OperationModel operation) {
-        foreach (var response in operation.SuccessResponses) {
-            if (response.Headers.Count > 0 && !response.HeadersOnPayload) {
-                return true;
-            }
+        if (DeclaresSuccessResponseHeaders(operation)) {
+            return true;
         }
 
         foreach (var response in operation.ErrorResponses) {
             if (response.Headers.Count > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether a success this operation declares needs a case type built to carry a header.
+    /// </summary>
+    /// <remarks>
+    /// The half of <see cref="DeclaresResponseHeaders"/> that decides a signature. A success is
+    /// returned, so a header it declares has nowhere to go but the return type; an error is thrown,
+    /// and the exception carries its own.
+    /// </remarks>
+    public static bool DeclaresSuccessResponseHeaders(OperationModel operation) {
+        foreach (var response in operation.SuccessResponses) {
+            if (response.Headers.Count > 0 && !response.HeadersOnPayload) {
                 return true;
             }
         }

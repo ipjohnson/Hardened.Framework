@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -173,6 +173,74 @@ public class ApplicationLogicTests {
         Assert.Same(withService, received);
         Assert.NotSame(provider, received);
     }
+
+    #region running once per provider
+
+    /// <summary>
+    /// A startup service appends to singletons the application shares - the middleware chain, the
+    /// filter registry - so the set runs once per provider however many callers ask for it. Both
+    /// the host and the application reach this method on ASP.NET Core.
+    /// </summary>
+    [Fact]
+    public async Task TheRegisteredStartupServicesRunOncePerProvider() {
+        var runs = 0;
+        var provider = Provider(new GatedStartupService(_ => {
+            runs++;
+            return Task.FromResult(true);
+        }));
+
+        await ApplicationLogic.Start(provider, null);
+        await ApplicationLogic.Start(provider, null);
+
+        Assert.Equal(1, runs);
+    }
+
+    [Fact]
+    public async Task AnotherProviderRunsItsOwnStartupServices() {
+        var runs = 0;
+
+        IStartupService Counting() => new GatedStartupService(_ => {
+            runs++;
+            return Task.FromResult(true);
+        });
+
+        await ApplicationLogic.Start(Provider(Counting()), null);
+        await ApplicationLogic.Start(Provider(Counting()), null);
+
+        Assert.Equal(2, runs);
+    }
+
+    /// <summary>
+    /// The gate covers the registered services alone. The startup task argument is work the caller
+    /// passed in deliberately, so dropping it silently would be worse than running it again.
+    /// </summary>
+    [Fact]
+    public async Task TheStartupTaskArgumentStillRunsOnASecondCall() {
+        var provider = Provider(Returning(true));
+        var taskRuns = 0;
+
+        Task<bool> Counting(IServiceProvider _) {
+            taskRuns++;
+            return Task.FromResult(true);
+        }
+
+        await ApplicationLogic.Start(provider, Counting);
+        var result = await ApplicationLogic.Start(provider, Counting);
+
+        Assert.Equal(2, taskRuns);
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task ASecondCallReportsOnTheStartupTaskItRan() {
+        var provider = Provider(Returning(true));
+
+        await ApplicationLogic.Start(provider, null);
+
+        Assert.Equal(1, await ApplicationLogic.Start(provider, _ => Task.FromResult(false)));
+    }
+
+    #endregion
 
     [Fact]
     public void StartWithWaitRunsStartupToCompletionWhenItFinishesInTime() {

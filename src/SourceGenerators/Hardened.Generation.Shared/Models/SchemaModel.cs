@@ -72,6 +72,7 @@ internal class SchemaModel : IEquatable<SchemaModel> {
     public int? MaxItems { get; set; }
     public string? DictionaryValueType { get; set; }
     public string? DictionaryValueRef { get; set; }
+    public string? DictionaryValueFormat { get; set; }
     public string? Type { get; set; }
     public string? Format { get; set; }
 
@@ -116,6 +117,7 @@ internal class SchemaModel : IEquatable<SchemaModel> {
                MaxItems == other.MaxItems &&
                DictionaryValueType == other.DictionaryValueType &&
                DictionaryValueRef == other.DictionaryValueRef &&
+               DictionaryValueFormat == other.DictionaryValueFormat &&
                DiscriminatorPropertyName == other.DiscriminatorPropertyName &&
                BaseRef == other.BaseRef &&
                DiscriminatorMapping.SequenceEqual(other.DiscriminatorMapping) &&

@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Validation;
 
@@ -21,6 +21,39 @@ public static class HandlerValidationDiagnostics {
     /// at all, is retired: it is compiled now.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Constraints declared in an assembly nothing compiles validators for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The constraint attributes are ordinary types from a package the application already
+    /// references; compiling them into a validator is a second package, an analyzer, and an
+    /// application that references the first without the second builds clean and enforces nothing.
+    /// Code-first is the silent form - the constraints simply never run. Spec-first is the loud one
+    /// - the filter is attached against a validator nobody emitted, and every constrained operation
+    /// answers a 500 naming three hypotheses.
+    /// </para>
+    /// <para>
+    /// A warning rather than an error: the constraints still describe the contract, the document
+    /// still publishes them, and an assembly that declares models for someone else to validate is a
+    /// real arrangement. What it must not be is a surprise.
+    /// </para>
+    /// <para>
+    /// Built per call rather than held in a static field, unlike its neighbour: RS2008 looks for
+    /// the field, and the neighbour predates the rule being enforced here.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor NoValidationGenerator() => new(
+        "HRDV006",
+        "Constraints are declared and nothing compiles them",
+        "'{0}' declares constraints and nothing in this project compiles them into a validator, " +
+        "so none of them is enforced. Reference Hardened.Validation.SourceGenerator as an " +
+        "analyzer, or remove the constraint attributes if this assembly is not meant to enforce " +
+        "them.",
+        "Hardened.Validation",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public static readonly DiagnosticDescriptor ConditionOnParameterConstraint = new(
         "HRDV005",
         "A condition on a parameter constraint names a model member",

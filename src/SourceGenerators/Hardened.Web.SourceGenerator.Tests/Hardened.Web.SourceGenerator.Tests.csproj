@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -93,6 +93,12 @@
                           Aliases="buildtask"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <!--
+            For HRDW005's negative case, which needs the real [HardenedMemoryResponseCache] rather
+            than a stand-in named the same: the diagnostic matches the attribute the store package
+            generates, and a locally declared one would pass whatever that package did next.
+        -->
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Caching.Memory\Hardened.Requests.Caching.Memory.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
     </ItemGroup>

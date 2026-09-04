@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Runtime.CompilerServices;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Shared.Runtime.Application;
 
@@ -29,7 +30,18 @@ public class ApplicationLogic {
     }
 
     /// <summary>
-    /// Execute startup logic 
+    /// The providers whose registered startup services have run. A startup service appends to
+    /// singletons the whole application shares - the middleware chain, the filter registry, the
+    /// CORS configuration - so running the set a second time installs everything a second time.
+    /// Both the host and the application can reach this method, so a second caller is an ordinary
+    /// arrangement rather than a mistake.
+    /// </summary>
+    private static readonly ConditionalWeakTable<IServiceProvider, object> StartedProviders = new();
+
+    /// <summary>
+    /// Execute startup logic. The registered <see cref="IStartupService"/>s run on the first call
+    /// for a given service provider; a later call skips them and reports on its own
+    /// <paramref name="startupTask"/> alone.
     /// </summary>
     /// <param name="serviceProvider"></param>
     /// <param name="startupTask"></param>
@@ -38,8 +50,10 @@ public class ApplicationLogic {
         Func<IServiceProvider, Task<bool>>? startupTask) {
         var startupTasks = new List<Task<bool>>();
 
-        foreach (var startupService in serviceProvider.GetServices<IStartupService>()) {
-            startupTasks.Add(startupService.Startup(serviceProvider));
+        if (StartedProviders.TryAdd(serviceProvider, StartedProviders)) {
+            foreach (var startupService in serviceProvider.GetServices<IStartupService>()) {
+                startupTasks.Add(startupService.Startup(serviceProvider));
+            }
         }
 
         if (startupTask != null) {

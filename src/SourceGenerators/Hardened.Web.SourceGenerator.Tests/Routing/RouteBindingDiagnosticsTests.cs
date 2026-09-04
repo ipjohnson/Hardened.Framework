@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Attributes;
+﻿using Hardened.Requests.Abstract.Attributes;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Attributes;
 using Microsoft.CodeAnalysis;
@@ -147,6 +147,24 @@ public class RouteBindingDiagnosticsTests {
     [Fact]
     public void AParameterBoundFromTheQueryStringIsNotABodyRead() {
         NotReported("Get", "/events/{eventKey}", "[FromQueryString(\"page\")] int page");
+    }
+
+    /// <summary>
+    /// A token named after a C# keyword. The parameter can only be declared <c>@base</c>, and the
+    /// match read <c>Identifier.Text</c>, which carries the escape - so the token bound nothing,
+    /// the parameter went to the body, and a legal route failed to build.
+    /// </summary>
+    [Fact]
+    public void ATokenNamedAfterAKeywordIsNotReported() {
+        NotReported("Get", "/things/{base}", "string @base");
+    }
+
+    /// <summary>And the case rule still applies to one, so the escape did not turn the match off.</summary>
+    [Fact]
+    public void ATokenNamedAfterAKeywordDifferingByCaseIsStillAnError() {
+        Assert.Equal(
+            DiagnosticSeverity.Error,
+            Reported("Get", "/things/{Base}", "string @base").Severity);
     }
 
     /// <summary>

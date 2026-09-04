@@ -1,4 +1,5 @@
-using Hardened.Generation;
+﻿using Hardened.Generation;
+using System;
 using System.Collections.Generic;
 using Hardened.Generation.Models;
 
@@ -217,6 +218,116 @@ internal static class SpecDiagnostics {
     /// usually does so from several places, and each is a separate edit.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// A path template naming a token the operation declares no parameter for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// OpenAPI requires every template expression in a path to have a matching path parameter, and
+    /// Smithy's <c>@http</c> uri the same. A description that breaks the rule builds clean and
+    /// produces three things that disagree: the route table registers the token, so the route still
+    /// matches; the service interface omits it, so the handler cannot read the segment that decided
+    /// which resource was asked for; and the generated link method takes it, because a token that
+    /// binds nothing still needs a value to be linkable.
+    /// </para>
+    /// <para>
+    /// A warning. The generator has an answer - the token is matched and its value discarded - and
+    /// a description fetched from elsewhere is not always the author's to correct.
+    /// </para>
+    /// <para>
+    /// A name differing only in case is called out on its own. Path parameters are matched by exact
+    /// name, and a case-only difference is never what anyone meant.
+    /// </para>
+    /// </remarks>
+    private static void FindUnboundPathTokens(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                if (string.IsNullOrEmpty(operation.Path)) {
+                    continue;
+                }
+
+                foreach (var token in PathTokens(operation.Path)) {
+                    var declared = false;
+                    string? differingByCase = null;
+
+                    foreach (var parameter in operation.Parameters) {
+                        if (parameter.In != "path") {
+                            continue;
+                        }
+
+                        if (string.Equals(parameter.Name, token, StringComparison.Ordinal)) {
+                            declared = true;
+
+                            break;
+                        }
+
+                        if (string.Equals(parameter.Name, token, StringComparison.OrdinalIgnoreCase)) {
+                            differingByCase = parameter.Name;
+                        }
+                    }
+
+                    if (declared) {
+                        continue;
+                    }
+
+                    problems.Add(new Problem(
+                        prefix + "026",
+                        $"'{operation.HttpMethod} {operation.Path}' declares '{{{token}}}' and " +
+                        "the operation declares no path parameter of that name" +
+                        (differingByCase == null
+                            ? ". "
+                            : $" - '{differingByCase}' differs from it only in case. ") +
+                        "The route still matches and the value is discarded, so the handler cannot " +
+                        "read the segment that chose the resource. Declare the parameter, or take " +
+                        "the token out of the path.",
+                        fatal: false));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The template expressions in a path, braces stripped.
+    /// </summary>
+    /// <remarks>
+    /// Anything after a <c>:</c> goes with the braces. A description writes a plain
+    /// <c>{name}</c>, but a path can reach here carrying the route-constraint form, and the
+    /// parameter it names is the part before the colon either way.
+    /// </remarks>
+    private static IEnumerable<string> PathTokens(string path) {
+        var index = 0;
+
+        while (index < path.Length) {
+            var open = path.IndexOf('{', index);
+
+            if (open < 0) {
+                yield break;
+            }
+
+            var close = path.IndexOf('}', open);
+
+            if (close < 0) {
+                yield break;
+            }
+
+            var token = path.Substring(open + 1, close - open - 1);
+            var constraint = token.IndexOf(':');
+
+            if (constraint >= 0) {
+                token = token.Substring(0, constraint);
+            }
+
+            token = token.TrimStart('*');
+
+            if (token.Length > 0) {
+                yield return token;
+            }
+
+            index = close + 1;
+        }
+    }
+
     private static void FindDanglingReferences(
         ServiceSpecModel model, string prefix, List<Problem> problems) {
         foreach (var dangling in model.DanglingReferences) {
@@ -237,6 +348,7 @@ internal static class SpecDiagnostics {
         FindUnresolvableChoices(model, diagnosticPrefix, problems);
         FindMixedEnums(model, diagnosticPrefix, problems);
         FindUnmappedKeywords(model, diagnosticPrefix, problems);
+        FindUnboundPathTokens(model, diagnosticPrefix, problems);
 
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
