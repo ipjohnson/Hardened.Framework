@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
@@ -45,9 +45,7 @@ public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
         _requestLogger.RequestBegin(executionContext);
 
         try {
-            var executionChain = _middlewareService.GetExecutionChain(executionContext);
-
-            await executionChain.Next();
+            await RunChain(executionContext);
 
             if (!Answered(executionContext)) {
                 await requestDelegate(context);
@@ -66,6 +64,44 @@ public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
             // the request finished - EmbeddedMetricLogger writes its EMF line here - so without it
             // any provider that emits on completion emitted nothing at all.
             executionContext.RequestMetrics.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Runs the Hardened chain, and answers the failure itself rather than letting it reach
+    /// ASP.NET.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// What <c>HardenedHttpApplication</c> does on Kestrel, for the same reasons: the server's own
+    /// handler logs against the server rather than the application's <c>IRequestLogger</c>, and
+    /// once the response has started it aborts the connection mid-body. The two hosts answered the
+    /// same application differently on the one path where that matters most.
+    /// </para>
+    /// <para>
+    /// The commonest way to arrive here is a filter writing a response header after
+    /// <c>Next()</c> - the ASP.NET header dictionary is read-only once the response has started,
+    /// and its setter throws. That request now ends as a logged failure rather than a torn-down
+    /// connection.
+    /// </para>
+    /// <para>
+    /// Only the Hardened chain is covered. An exception from the fallthrough delegate belongs to
+    /// whatever middleware is behind <c>UseHardened</c>, and to the exception handling that
+    /// application installed for it.
+    /// </para>
+    /// </remarks>
+    private async Task RunChain(IExecutionContext executionContext) {
+        try {
+            await _middlewareService.GetExecutionChain(executionContext).Next();
+        }
+        catch (Exception exception) {
+            _requestLogger.RequestFailed(executionContext, exception);
+
+            // Once the response has started the status line is already on the wire and there is
+            // nothing left to say. Setting it would throw in its own right.
+            if (!executionContext.Response.ResponseStarted) {
+                executionContext.Response.Status = 500;
+            }
         }
     }
 
