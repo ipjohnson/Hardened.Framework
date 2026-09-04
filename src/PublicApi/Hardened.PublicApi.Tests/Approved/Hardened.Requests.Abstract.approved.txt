@@ -360,7 +360,7 @@ namespace Hardened.Requests.Abstract.Execution
     public interface IExecutionContext
     {
         Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
-        System.Threading.CancellationToken CancellationToken { get; set; }
+        System.Threading.CancellationToken CancellationToken { get; }
         string CorrelationId { get; }
         Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
@@ -373,6 +373,7 @@ namespace Hardened.Requests.Abstract.Execution
         System.IServiceProvider RootServiceProvider { get; }
         Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
         Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request = null, Hardened.Requests.Abstract.Execution.IExecutionResponse? response = null, System.IServiceProvider? serviceProvider = null, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null);
+        void ReplaceCancellationToken(System.Threading.CancellationToken token);
     }
     public interface IExecutionFilter
     {

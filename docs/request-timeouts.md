@@ -204,9 +204,22 @@ answers late.
 the client, and a deadline firing mid-stream cuts the body with no status left to send. `RetryFilter`
 gives up on the same flag for the same reason. A streaming handler should bound its own work.
 
-**Lambda has no disconnect.** The deadline itself works there, because the linked source fires on its
-own timer whatever it links from. What does not work is a client hanging up: all three execution
-contexts in Hardened.Amz seed the token with `CancellationToken.None`.
+**A host has to opt in.** Replacing the token is `IExecutionContext.ReplaceCancellationToken`, a
+defaulted interface member whose default refuses. The framework's three contexts override it;
+Hardened.Amz's do not yet, so a `[Timeout]` on a Lambda function fails the request with a message
+naming the context rather than looking bounded and running forever. A function that declares no
+budget is untouched.
+
+That shape is a compatibility decision. A setter on the property would be a breaking change to every
+implementation already compiled against the interface — the runtime wants a `set_CancellationToken`
+the older assembly does not carry, and the type fails to load on the first request. The template
+verification builds this framework against the newest *published* Hardened.Amz on purpose, so that
+is the case that has to keep working.
+
+**Lambda has no disconnect either.** Once a context does opt in, the deadline works there, because
+the linked source fires on its own timer whatever it links from. What still will not work is a
+client hanging up: all three execution contexts in Hardened.Amz seed the token with
+`CancellationToken.None`.
 
 ## Swapping the token yourself
 
@@ -218,6 +231,7 @@ using var deadline = context.WithCancellation(cts.Token);
 await chain.Next();
 ```
 
-The setter on `IExecutionContext.CancellationToken` stays public, since a test driving a request that
-starts out cancelled needs it, but a hand-written `finally` is one forgotten line away from running
-the rest of a request on a dead token.
+Prefer it to calling `ReplaceCancellationToken` directly: a hand-written `finally` is one forgotten
+line away from running the rest of a request on a dead token. The framework's own contexts also keep
+a public `CancellationToken` setter, so a test driving a request that starts out cancelled can assign
+one without going through the scope.

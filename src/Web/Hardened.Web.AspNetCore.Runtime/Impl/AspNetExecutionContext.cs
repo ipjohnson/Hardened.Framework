@@ -120,6 +120,9 @@ public class AspNetExecutionContext : IExecutionContext {
         get => _cancellationToken ?? _httpContext.RequestAborted;
         set => _cancellationToken = value;
     }
+
+    /// <inheritdoc />
+    public void ReplaceCancellationToken(CancellationToken token) => CancellationToken = token;
 }
 
 public class AspNetExecutionRequest : IExecutionRequest {

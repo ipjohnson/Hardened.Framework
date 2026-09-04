@@ -125,6 +125,9 @@ public sealed class FeatureExecutionContext : IExecutionContext {
 
     public CancellationToken CancellationToken { get; set; }
 
+    /// <inheritdoc />
+    public void ReplaceCancellationToken(CancellationToken token) => CancellationToken = token;
+
     /// <summary>
     /// Flushes and completes the response. Required by Kestrel — see
     /// <see cref="FeatureExecutionResponse.CompleteAsync"/>.

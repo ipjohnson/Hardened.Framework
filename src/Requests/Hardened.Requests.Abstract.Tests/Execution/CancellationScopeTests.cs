@@ -19,10 +19,20 @@ public class CancellationScopeTests {
     /// A context whose token slot actually stores what is written to it, which is all the scope
     /// touches.
     /// </summary>
+    /// <remarks>
+    /// The getter reads a captured value the override writes, rather than a configured constant. A
+    /// substitute whose <c>CancellationToken</c> always returns the same thing would agree with
+    /// every one of these tests while the scope did nothing at all, which is the failure they
+    /// exist to catch.
+    /// </remarks>
     private static IExecutionContext Context(CancellationToken transport) {
         var context = Substitute.For<IExecutionContext>();
+        var current = transport;
 
-        context.CancellationToken = transport;
+        context.CancellationToken.Returns(_ => current);
+
+        context.When(replaced => replaced.ReplaceCancellationToken(Arg.Any<CancellationToken>()))
+            .Do(call => current = call.Arg<CancellationToken>());
 
         return context;
     }

@@ -30,10 +30,10 @@ public readonly struct CancellationScope : IDisposable {
     internal CancellationScope(IExecutionContext context, CancellationToken replacement) {
         _context = context;
         _previous = context.CancellationToken;
-        context.CancellationToken = replacement;
+        context.ReplaceCancellationToken(replacement);
     }
 
-    public void Dispose() => _context.CancellationToken = _previous;
+    public void Dispose() => _context.ReplaceCancellationToken(_previous);
 }
 
 /// <summary>
@@ -46,10 +46,11 @@ public static class ExecutionContextCancellationExtensions {
     /// returns until the scope is disposed.
     /// </summary>
     /// <remarks>
-    /// The setter stays public and this is built on it, so a test that wants to drive a request on
-    /// a cancelled token can assign one. Anything wrapping a span of the pipeline should use this
-    /// instead: a hand-written <c>finally</c> is one forgotten line away from running the rest of
-    /// a request on a dead token.
+    /// Anything wrapping a span of the pipeline should use this rather than
+    /// <c>IExecutionContext.ReplaceCancellationToken</c> directly: a hand-written <c>finally</c> is
+    /// one forgotten line away from running the rest of a request on a dead token. The framework's
+    /// own contexts also keep a public setter, so a test that wants to drive a request on an
+    /// already-cancelled token can assign one.
     /// </remarks>
     public static CancellationScope WithCancellation(
         this IExecutionContext context, CancellationToken replacement) =>

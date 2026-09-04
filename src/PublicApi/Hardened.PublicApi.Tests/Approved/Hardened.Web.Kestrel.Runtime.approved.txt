@@ -66,6 +66,7 @@ namespace Hardened.Web.Kestrel.Runtime.Impl
         public Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request, Hardened.Requests.Abstract.Execution.IExecutionResponse? response, System.IServiceProvider? serviceProvider, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger) { }
         public System.Threading.Tasks.ValueTask CompleteAsync() { }
+        public void ReplaceCancellationToken(System.Threading.CancellationToken token) { }
     }
     public sealed class FeatureExecutionRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
     {

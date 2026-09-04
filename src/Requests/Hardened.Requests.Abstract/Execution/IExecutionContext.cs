@@ -119,13 +119,41 @@ public interface IExecutionContext {
     /// nothing to seed it from, so a disconnect is not observable there.
     /// </para>
     /// <para>
-    /// <b>Settable, because a deadline is expressed by replacing it.</b> A handler declaring a
-    /// <c>CancellationToken</c> parameter has this copied into it as the request is bound, so a
-    /// filter wanting to bound the handler has to change what this returns before the bind rather
-    /// than hand a second token to something. <c>TimeoutFilter</c> is the one that does, and it
-    /// puts the transport's token back on the way out - see <c>CancellationScope</c>, which is how
-    /// anything else should do it.
+    /// Replaced for a span by <see cref="ReplaceCancellationToken"/>, which is how a deadline is
+    /// expressed: a handler declaring a <c>CancellationToken</c> parameter has this copied into it
+    /// as the request is bound, so a filter wanting to bound the handler has to change what this
+    /// returns before the bind rather than hand a second token to something.
     /// </para>
     /// </remarks>
-    CancellationToken CancellationToken { get; set; }
+    CancellationToken CancellationToken { get; }
+
+    /// <summary>
+    /// Makes <paramref name="token"/> what <see cref="CancellationToken"/> returns.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A method with a default rather than a setter on the property, and that is a
+    /// compatibility decision rather than a stylistic one.</b> Adding a setter to the property is a
+    /// breaking change to every implementation already compiled against this interface: the runtime
+    /// wants a <c>set_CancellationToken</c> the older assembly does not carry, and the type fails
+    /// to load on the first request. Hardened.Amz's three execution contexts are exactly that, and
+    /// the template verification builds this framework against the newest published ones on
+    /// purpose, so it is the case that has to keep working.
+    /// </para>
+    /// <para>
+    /// <b>The default refuses rather than doing nothing.</b> A host that cannot replace the token
+    /// cannot enforce a deadline, and silently ignoring a declared one would make a bounded
+    /// operation look bounded while running forever. Refusing says so on the first request that
+    /// declares a budget, and leaves every request that declares none untouched.
+    /// </para>
+    /// <para>
+    /// Callers should use <c>CancellationScope</c> rather than this, so the previous token is put
+    /// back. See its remarks for why the restore is load-bearing.
+    /// </para>
+    /// </remarks>
+    void ReplaceCancellationToken(CancellationToken token) =>
+        throw new NotSupportedException(
+            GetType().Name + " cannot replace the request's cancellation token, so it cannot " +
+            "enforce a deadline. A host supporting [Timeout] overrides " +
+            nameof(ReplaceCancellationToken) + ".");
 }
