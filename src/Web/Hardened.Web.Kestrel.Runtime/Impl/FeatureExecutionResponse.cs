@@ -53,7 +53,6 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,
-            ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize
         };
@@ -92,12 +91,10 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
         }
     }
 
-    public bool ShouldCompress { get; set; }
-
     /// <summary>
-    /// Defaults to the stream the server supplies. A filter that swaps the stream — the
-    /// compression filter does — writes to the override, so reads and writes stay consistent
-    /// rather than one of them going back through the feature.
+    /// Defaults to the stream the server supplies. A filter that swaps the stream - the response
+    /// cache and <c>ResponseCompressionFilter</c> both do - writes to the override, so reads and
+    /// writes stay consistent rather than one of them going back through the feature.
     /// </summary>
     public Stream Body {
         get => _bodyOverride ?? _bodyFeature.Stream;

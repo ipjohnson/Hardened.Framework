@@ -197,6 +197,29 @@ Descending by default is the better answer and is on the table for 1.0. It canno
 a 0.x release: it changes what an existing application answers, from 201 to 400, on payloads it
 accepts today.
 
+## Compression
+
+### HRDW003 — handler declares `[Compress]` more than once
+
+A handler carries two compress declarations: one on the method and one on its class, or `[Compress]`
+beside `[Compress<T>]` on the same element. The compiler refuses two of the same form on one
+element, but cannot see across the class and the method, and the two forms are different attribute
+types.
+
+```
+'PetsController.List' carries 2 [Compress] declarations - on the method and on its class, or
+both [Compress] and [Compress<T>]. One declaration decides how an operation is compressed, so
+remove the others.
+```
+
+Both declarations reach the handler's metadata. At run time the method's filter wraps the body
+first and the class's finds it already wrapped and stands down, so the method's declaration wins
+silently, which is behaviour nobody reading the class can see. Keep the one that says what you
+meant: a class-level `[Compress]` for the default rule over every operation, or the method's
+`[Compress<T>]` where one operation needs its own predicate.
+
+An error, with no `NoWarn`. Removing one declaration is the whole fix.
+
 ## Other diagnostics
 
 | Id | Meaning |

@@ -18,7 +18,6 @@ public class TestExecutionResponse : IExecutionResponse {
             OutputFactory = OutputFactory,
             Output = Output,
             Status = Status,
-            ShouldCompress = ShouldCompress,
             Headers = headerCollection as IDictionary<string, StringValues> ?? Headers,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize,
@@ -37,8 +36,6 @@ public class TestExecutionResponse : IExecutionResponse {
     public IHardenedResponseOutput? Output { get; set; }
 
     public int? Status { get; set; }
-
-    public bool ShouldCompress { get; set; }
 
     public Stream Body { get; set; }
 

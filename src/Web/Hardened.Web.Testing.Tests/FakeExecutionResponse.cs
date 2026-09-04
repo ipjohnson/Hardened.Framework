@@ -30,8 +30,6 @@ internal class FakeExecutionResponse : IExecutionResponse {
 
     public IHardenedResponseOutput? Output { get; set; }
 
-    public bool ShouldCompress { get; set; }
-
     public Exception? ExceptionValue { get; set; }
 
     public bool ResponseStarted => false;

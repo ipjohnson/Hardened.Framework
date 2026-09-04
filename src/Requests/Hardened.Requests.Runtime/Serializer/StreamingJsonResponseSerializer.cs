@@ -32,10 +32,9 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// cosmetic difference: a browser <c>EventSource</c> rejects any other content type.
 /// </para>
 /// <para>
-/// <b>It does not compress either</b>, and the filter turns compression off for the whole stream.
-/// The buffered serializers open a <c>GZipStream</c> per call, so compressing per item would put a
-/// separate gzip member on the wire for each one - legal concatenated gzip that no streaming reader
-/// unpacks incrementally, which defeats the point of streaming.
+/// <b>It does not compress either</b>, and neither does any other serializer. Compression is one
+/// encoder around the whole body, opened by the response compression filter outside this one, so
+/// a compressed stream is a single member that the per-item flush delivers incrementally.
 /// </para>
 /// <para>
 /// Resolution goes through <c>JsonTypeInfoLookup</c> rather than the reflection overload, so

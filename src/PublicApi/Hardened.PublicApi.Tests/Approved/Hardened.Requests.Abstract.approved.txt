@@ -281,6 +281,20 @@ namespace Hardened.Requests.Abstract.Caching
         System.Threading.Tasks.ValueTask Set(string key, Hardened.Requests.Abstract.Caching.CachedResponse response, System.TimeSpan duration, System.Threading.CancellationToken cancellationToken);
     }
 }
+namespace Hardened.Requests.Abstract.Compression
+{
+    public enum CompressionType
+    {
+        Default = 0,
+        GZip = 1,
+        Br = 2,
+    }
+    public interface ICompressionPredicate
+    {
+        bool ShouldCompress(object value, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        Hardened.Requests.Abstract.Compression.ICompressionPredicate Create(object[] args);
+    }
+}
 namespace Hardened.Requests.Abstract.Diagnostics
 {
     public static class CorrelationIdentifier
@@ -421,7 +435,6 @@ namespace Hardened.Requests.Abstract.Execution
         System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
         bool ResponseStarted { get; }
         object? ResponseValue { get; set; }
-        bool ShouldCompress { get; set; }
         bool ShouldSerialize { get; set; }
         int? Status { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection = null);
@@ -602,6 +615,10 @@ namespace Hardened.Requests.Abstract.Headers
         Strict = 0,
         Lax = 1,
         None = 2,
+    }
+    public static class VaryHeader
+    {
+        public static void Add(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, string name) { }
     }
 }
 namespace Hardened.Requests.Abstract.Links

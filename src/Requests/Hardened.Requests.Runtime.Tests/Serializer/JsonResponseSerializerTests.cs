@@ -1,23 +1,31 @@
-using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Serializer;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
 
 namespace Hardened.Requests.Runtime.Tests.Serializer;
 
 /// <summary>
-/// Both JSON response serializers share a compression branch. These tests cover it for each
-/// of them, since the implementations are duplicated rather than shared.
+/// Both buffered JSON response serializers, held to the same table since the implementations are
+/// duplicated rather than shared.
 /// </summary>
-public class ResponseSerializerCompressionTests {
-
+/// <remarks>
+/// This file was <c>ResponseSerializerCompressionTests</c> while the serializers carried a gzip
+/// branch behind <c>IExecutionResponse.ShouldCompress</c>. That branch wrote gzip bytes with no
+/// <c>Content-Encoding</c>, was set by nothing outside its tests, and left every other serializer
+/// uncompressed. Compression is now one filter around the whole body, and
+/// <see cref="AJsonSerializerWritesIdentityBytesWhateverTheClientAccepts"/> pins that these write
+/// what they are given.
+/// </remarks>
+public class JsonResponseSerializerTests {
 
     private static IOptions<IJsonSerializerConfiguration> Config() =>
         Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration {
@@ -25,16 +33,21 @@ public class ResponseSerializerCompressionTests {
         });
 
     private static (IExecutionContext context, MemoryStream body) Context(
-        object? responseValue, bool shouldCompress, string? accept = "application/json") {
+        object? responseValue, string? accept = "application/json", string? acceptEncoding = null) {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
         var response = Substitute.For<IExecutionResponse>();
         var body = new MemoryStream();
+        var headers = new Dictionary<string, StringValues>();
+
+        if (acceptEncoding != null) {
+            headers[KnownHeaders.AcceptEncoding] = acceptEncoding;
+        }
 
         request.Accept.Returns(accept);
+        request.Headers.Returns(headers);
         response.Body.Returns(body);
         response.ResponseValue.Returns(responseValue);
-        response.ShouldCompress.Returns(shouldCompress);
         context.Request.Returns(request);
         context.Response.Returns(response);
 
@@ -58,8 +71,8 @@ public class ResponseSerializerCompressionTests {
 
     [Theory]
     [MemberData(nameof(SerializerNames))]
-    public async Task UncompressedResponseIsPlainJson(string serializerName) {
-        var (context, body) = Context(new Payload("hello", 42), shouldCompress: false);
+    public async Task AResponseIsWrittenAsPlainJson(string serializerName) {
+        var (context, body) = Context(new Payload("hello", 42));
 
         await SerializerNamed(serializerName).SerializeResponse(context);
 
@@ -70,10 +83,28 @@ public class ResponseSerializerCompressionTests {
         Assert.Equal(42, payload.Value);
     }
 
+    /// <summary>
+    /// A serializer writes identity bytes. What the client accepts is the compression filter's
+    /// business, one stage further out, and a serializer that compressed on its own would put a
+    /// second encoder inside the filter's.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(SerializerNames))]
+    public async Task AJsonSerializerWritesIdentityBytesWhateverTheClientAccepts(string serializerName) {
+        var (context, body) = Context(new Payload("plain", 7), acceptEncoding: "gzip, deflate, br");
+
+        await SerializerNamed(serializerName).SerializeResponse(context);
+
+        var written = body.ToArray();
+
+        Assert.Equal((byte)'{', written[0]);
+        Assert.Contains("\"plain\"", System.Text.Encoding.UTF8.GetString(written));
+    }
+
     [Theory]
     [MemberData(nameof(SerializerNames))]
     public async Task NullResponseValueWritesNothing(string serializerName) {
-        var (context, body) = Context(responseValue: null, shouldCompress: false);
+        var (context, body) = Context(responseValue: null);
 
         await SerializerNamed(serializerName).SerializeResponse(context);
 
@@ -83,53 +114,11 @@ public class ResponseSerializerCompressionTests {
     [Theory]
     [MemberData(nameof(SerializerNames))]
     public async Task ContentTypeIsSetToApplicationJson(string serializerName) {
-        var (context, _) = Context(new Payload("x", 1), shouldCompress: false);
+        var (context, _) = Context(new Payload("x", 1));
 
         await SerializerNamed(serializerName).SerializeResponse(context);
 
         context.Response.Received().ContentType = "application/json";
-    }
-
-    /// <summary>
-    /// When ShouldCompress is set the body must actually be gzip data. Writing plain JSON
-    /// while a GZipStream is open over the same body produces output that is not
-    /// decompressible, so this asserts the bytes round-trip through GZipStream.
-    /// </summary>
-    [Theory]
-    [MemberData(nameof(SerializerNames))]
-    public async Task CompressedResponseIsActuallyGzipped(string serializerName) {
-        var (context, body) = Context(new Payload("compress me", 7), shouldCompress: true);
-
-        await SerializerNamed(serializerName).SerializeResponse(context);
-
-        var written = body.ToArray();
-        Assert.NotEmpty(written);
-
-        // gzip magic number - if the body is plain JSON this fails immediately with a
-        // clearer signal than a decompression exception.
-        Assert.True(written.Length >= 2 && written[0] == 0x1f && written[1] == 0x8b,
-            $"{serializerName}: response body is not gzip data (first bytes: " +
-            $"{string.Join(" ", written.Take(4).Select(b => b.ToString("x2")))})");
-
-        using var input = new MemoryStream(written);
-        using var gzip = new GZipStream(input, CompressionMode.Decompress);
-        using var reader = new StreamReader(gzip);
-
-        var payload = JsonSerializer.Deserialize<Payload>(
-            await reader.ReadToEndAsync(TestContext.Current.CancellationToken), new JsonSerializerOptions(JsonSerializerDefaults.Web));
-
-        Assert.Equal("compress me", payload!.Name);
-        Assert.Equal(7, payload.Value);
-    }
-
-    [Theory]
-    [MemberData(nameof(SerializerNames))]
-    public async Task CompressionIsSkippedForNullResponseValue(string serializerName) {
-        var (context, body) = Context(responseValue: null, shouldCompress: true);
-
-        await SerializerNamed(serializerName).SerializeResponse(context);
-
-        Assert.Empty(body.ToArray());
     }
 
     /// <summary>
@@ -147,7 +136,7 @@ public class ResponseSerializerCompressionTests {
     [MemberData(nameof(SerializerNames))]
     public void CanProduceAnswersForTheMediaTypeItIsAskedAbout(string serializerName) {
         var serializer = SerializerNamed(serializerName);
-        var (context, _) = Context(new Payload("x", 1), false, accept: "application/json");
+        var (context, _) = Context(new Payload("x", 1), accept: "application/json");
 
         Assert.True(serializer.CanProduce("application/json", context));
         Assert.True(serializer.CanProduce("*/*", context));

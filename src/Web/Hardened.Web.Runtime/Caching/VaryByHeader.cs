@@ -31,11 +31,9 @@ namespace Hardened.Web.Runtime.Caching;
 public sealed class VaryByHeader : ICacheKeyProvider {
 
     private readonly string[] _names;
-    private readonly StringValues _vary;
 
     private VaryByHeader(string[] names) {
         _names = names;
-        _vary = new StringValues(string.Join(", ", names));
     }
 
     public static ICacheKeyProvider Create(string[] values) {
@@ -58,7 +56,11 @@ public sealed class VaryByHeader : ICacheKeyProvider {
     }
 
     public ValueTask<string?> Key(IExecutionContext context) {
-        context.Response.Headers[KnownHeaders.Vary] = _vary;
+        // Merged rather than assigned, so a Vary the CORS filter already wrote survives and the
+        // one the compression filter adds later joins it.
+        foreach (var name in _names) {
+            VaryHeader.Add(context.Response.Headers, name);
+        }
 
         var key = new StringBuilder();
         var headers = context.Request.Headers;

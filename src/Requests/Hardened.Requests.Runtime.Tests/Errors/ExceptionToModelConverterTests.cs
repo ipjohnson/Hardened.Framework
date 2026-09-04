@@ -179,16 +179,20 @@ public class ExceptionToModelConverterTests {
     }
 
     /// <summary>
-    /// BadContentEncodingException is raised when a client sends an unsupported
-    /// Content-Encoding, so it is a client error. It previously reached 400 only because
-    /// its name contains "Bad"; it now derives from BadRequestException and earns it.
+    /// BadContentEncodingException is raised when a client sends a Content-Encoding the request
+    /// filter does not decode. It reached 400 first by having "Bad" in its name, then by deriving
+    /// from BadRequestException; it is now the 415 RFC 9110 specifies, carrying the codings the
+    /// server does accept, which only a status-carrying exception can write.
     /// </summary>
     [Fact]
-    public void UnsupportedContentEncodingIsAClientError() {
-        var (status, _) = Converter.ConvertExceptionToModel(
-            Context(), new BadContentEncodingException("deflate"));
+    public void UnsupportedContentEncodingIsA415NamingWhatIsAccepted() {
+        var context = Context();
 
-        Assert.Equal(400, status);
+        var (status, _) = Converter.ConvertExceptionToModel(
+            context, new BadContentEncodingException("deflate"));
+
+        Assert.Equal(415, status);
+        Assert.Equal("gzip, br", context.Response.Headers["Accept-Encoding"].ToString());
     }
 
     /// <summary>

@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Hardened.Requests.Abstract.Execution;
@@ -64,24 +63,9 @@ public class AotResponseSerializer : IResponseSerializer {
             return;
         }
 
-        if (context.Response.ShouldCompress) {
-            await using var gzipStream = new GZipStream(context.Response.Body, CompressionLevel.Fastest, true);
-
-            // Serialize into the gzip stream, not the response body underneath it - writing
-            // to the body directly leaves the payload uncompressed while a GZipStream is
-            // open over it.
-            await System.Text.Json.JsonSerializer.SerializeAsync(
-                gzipStream,
-                context.Response.ResponseValue,
-                Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For(_serializerOptions, context.Response.ResponseValue));
-
-            await gzipStream.FlushAsync();
-        }
-        else {
-            await System.Text.Json.JsonSerializer.SerializeAsync(
-                context.Response.Body,
-                context.Response.ResponseValue,
-                Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For(_serializerOptions, context.Response.ResponseValue));
-        }
+        await System.Text.Json.JsonSerializer.SerializeAsync(
+            context.Response.Body,
+            context.Response.ResponseValue,
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For(_serializerOptions, context.Response.ResponseValue));
     }
 }

@@ -102,6 +102,9 @@
         <Compile Include="../Hardened.SourceGenerator/Web/WebExecutionHandlerCodeGenerator.cs">
             <Link>Web\WebExecutionHandlerCodeGenerator.cs</Link>
         </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/CompressDiagnostics.cs">
+            <Link>Web\CompressDiagnostics.cs</Link>
+        </Compile>
     </ItemGroup>
 
     <!--

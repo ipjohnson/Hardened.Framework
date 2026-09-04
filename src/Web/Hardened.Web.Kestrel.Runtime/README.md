@@ -85,14 +85,12 @@ HTTP parsing or framing, which Kestrel adds equally to every hosted option — s
   builder.AddSource("Hardened.Requests");   // and .AddMeter("Hardened.Requests")
   ```
 - **ASP.NET authentication and authorization** middleware.
-- **General response compression.** Hardened's `GZipStaticContentCompressor` covers static content
-  only, so dynamic responses have no equivalent.
 - Static files, rate limiting, forwarded headers, HSTS, HTTPS redirection, health checks — the
   middleware ecosystem generally.
 - `IHttpContextAccessor`, and anything in application code that depends on `HttpContext`.
 
-Hardened supplies its own CORS and filter pipeline, so those overlaps are covered. Static files are
-covered by `Hardened.Web.StaticContent`, a separate package.
+Hardened supplies its own CORS, response compression and filter pipeline, so those overlaps are
+covered. Static files are covered by `Hardened.Web.StaticContent`, a separate package.
 
 ## Hosting inside a generic host
 

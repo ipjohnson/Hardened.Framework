@@ -228,7 +228,7 @@ public abstract class ExecutionResponseConformanceTests {
     //   is a parameter on a shipped interface that two of five implementations act on and no
     //   caller uses, which is the same shape as the status properties on the route attributes.
     //
-    // - That ShouldCompress, IsBinary and ShouldSerialize survive Clone. They are flags the
+    // - That IsBinary and ShouldSerialize survive Clone. They are flags the
     //   pipeline reads rather than things a client observes, so Complete has nothing to report
     //   them through, and asserting them would mean reading the object back - which is the thing
     //   this suite exists to stop doing.

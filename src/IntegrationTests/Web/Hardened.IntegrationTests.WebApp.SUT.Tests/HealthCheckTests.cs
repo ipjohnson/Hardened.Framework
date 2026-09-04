@@ -35,7 +35,9 @@ public class HealthCheckTests {
     public async Task TheBodyIsJsonNamingTheStatus(ITestWebApp testWebApp) {
         var response = await testWebApp.Request("GET", null, "/health/ready");
 
-        var status = JsonDocument.Parse(response.Body!).RootElement.GetProperty("status").GetString();
+        // Through the decoded accessor: this fixture compresses every JSON response, the probe's
+        // included, for a client that says it accepts it.
+        var status = JsonDocument.Parse(await response.ReadTextAsync()).RootElement.GetProperty("status").GetString();
 
         Assert.Equal("Healthy", status);
     }

@@ -57,6 +57,10 @@ public class WebExecutionHandlerCodeGenerator {
         // here and fails in the serializer the emitted code calls into.
         ServiceParameterDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
+        // And once more: two compress declarations compile and run, with the method's winning
+        // silently over the class's.
+        CompressDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 
         sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, GeneratedSource.Header(sourceFile));
