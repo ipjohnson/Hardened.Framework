@@ -213,7 +213,9 @@ public sealed class TodosClientFactory : ITestClientFactory<TodosClient> {
 A parameter type with neither route fails the test naming both. `app.CreateClient<T>()` is the same
 construction for a client built inside the test, with a credential of the test's choosing.
 `[Mock]` composes with all of it: the mock is in the same graph the handler resolves from, so a
-client reaching the handler sees it.
+client reaching the handler sees it. The framework's
+[`GeneratedClientTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/GeneratedClientTests.cs) is the worked example: a Kiota client over its widest integration
+application, through every door this page describes.
 
 ## Credentials
 

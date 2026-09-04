@@ -176,6 +176,16 @@ Kiota client, an NSwag client, a Refit interface and a hand-written class all au
 way with no code of their own. [Testing web handlers](/guide/testing-web) has the rest of the
 harness.
 
+The framework's own integration suite has the same shape over a much wider surface.
+[`GeneratedClientTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/GeneratedClientTests.cs) drives a client Kiota generated from that application's exported
+document, and is the reference when the scaffold's three tests are not enough: path and query
+parameters, a body in and a value out, one path under four verbs, a declared 201 and 204 read from
+`LastResponse`, an enum arriving as the generated member, the typed `RequestValidationError` for a
+declared 422 and for the default 400, a bare `ApiException` carrying 401 for a refusal the document
+does not declare, three credentials on three parameters of the client type, and a `[Mock]` behind
+a route reached through the client. The factory beside it, in `TestClients.cs`, is the one above
+with the names changed.
+
 Under `--response-model throws` the scaffold's test is different, and the difference is the
 response-model argument in a consumer's hands: throws mode documents only the 200, so the generated
 client has no 404 branch, and the same request that throws a typed `NotFound` under the response
