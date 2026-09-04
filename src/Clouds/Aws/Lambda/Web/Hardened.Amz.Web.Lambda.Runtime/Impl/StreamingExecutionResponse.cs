@@ -1,4 +1,4 @@
-using Hardened.Amz.Shared.Lambda.Runtime.Streaming;
+﻿using Hardened.Amz.Shared.Lambda.Runtime.Streaming;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Outputs;
@@ -26,7 +26,6 @@ internal sealed class StreamingExecutionResponse : IExecutionResponse {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,
-            ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize,
             // Carried, as the buffered response does. A fork whose Body did not come across would
@@ -48,8 +47,6 @@ internal sealed class StreamingExecutionResponse : IExecutionResponse {
     public Func<IExecutionContext, IHardenedResponseOutput>? OutputFactory { get; set; }
 
     public int? Status { get; set; }
-
-    public bool ShouldCompress { get; set; }
 
     /// <summary>
     /// The stream the pipeline writes to. A filter may wrap it, which is why

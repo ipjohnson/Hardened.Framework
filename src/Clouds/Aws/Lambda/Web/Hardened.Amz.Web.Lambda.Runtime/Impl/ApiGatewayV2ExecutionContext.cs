@@ -77,5 +77,19 @@ internal class ApiGatewayV2ExecutionContext : IExecutionContext {
 
     public MachineTimestamp StartTime { get; }
 
-    public CancellationToken CancellationToken { get; } = CancellationToken.None;
+    /// <summary>
+    /// Seeded with <see cref="System.Threading.CancellationToken.None"/>, because Lambda surfaces
+    /// no signal for a caller that hung up: the invocation runs to completion whether or not
+    /// anyone is still waiting for it.
+    /// </summary>
+    /// <remarks>
+    /// Settable through <see cref="ReplaceCancellationToken"/> all the same, which is what lets
+    /// <c>[Timeout]</c> bound a handler here. A deadline needs nothing from the transport - the
+    /// filter links a source and cancels it on its own timer - so the budget works even though the
+    /// disconnect it links from never fires.
+    /// </remarks>
+    public CancellationToken CancellationToken { get; private set; } = CancellationToken.None;
+
+    /// <inheritdoc />
+    public void ReplaceCancellationToken(CancellationToken token) => CancellationToken = token;
 }

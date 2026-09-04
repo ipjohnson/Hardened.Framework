@@ -26,7 +26,6 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,
-            ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize,
             // Carried, as LambdaExecutionResponse.Clone does. A fork whose Body did not come across
@@ -87,8 +86,6 @@ public class ApiGatewayV2ExecutionResponse : IExecutionResponse {
             _proxyResponse.StatusCode = value.GetValueOrDefault(200);
         }
     }
-
-    public bool ShouldCompress { get; set; }
 
     /// <summary>
     /// The buffer the response is written into.

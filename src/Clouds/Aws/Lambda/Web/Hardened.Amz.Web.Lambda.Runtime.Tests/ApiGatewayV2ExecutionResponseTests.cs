@@ -1,4 +1,4 @@
-using Amazon.Lambda.APIGatewayEvents;
+﻿using Amazon.Lambda.APIGatewayEvents;
 using Hardened.Amz.Web.Lambda.Runtime.Impl;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -122,7 +122,6 @@ public class ApiGatewayV2ExecutionResponseTests {
 
         response.Output = output;
         response.OutputFactory = factory;
-        response.ShouldCompress = true;
         response.IsBinary = true;
         response.ShouldSerialize = false;
 
@@ -131,7 +130,6 @@ public class ApiGatewayV2ExecutionResponseTests {
         Assert.Equal("value", clone.ResponseValue);
         Assert.Same(output, clone.Output);
         Assert.Same(factory, clone.OutputFactory);
-        Assert.True(clone.ShouldCompress);
         Assert.True(clone.IsBinary);
         Assert.False(clone.ShouldSerialize);
     }

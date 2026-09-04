@@ -25,7 +25,6 @@ public class LambdaExecutionResponse : IExecutionResponse {
             OutputFactory = OutputFactory,
             Output = Output,
             Status = Status,
-            ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize,
         };
@@ -48,8 +47,6 @@ public class LambdaExecutionResponse : IExecutionResponse {
     public Func<IExecutionContext, IHardenedResponseOutput>? OutputFactory { get; set; }
 
     public int? Status { get; set; }
-
-    public bool ShouldCompress { get; set; }
 
     public Stream Body { get; set; }
 

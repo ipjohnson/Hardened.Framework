@@ -1,4 +1,4 @@
-using Hardened.Amz.Function.Lambda.Runtime.Execution;
+﻿using Hardened.Amz.Function.Lambda.Runtime.Execution;
 using Hardened.Amz.Function.Lambda.Runtime.Tests.Infrastructure;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Headers;
@@ -106,5 +106,41 @@ public class LambdaExecutionContextTests {
     [Fact]
     public void ALambdaInvocationCarriesNoCancellationToken() {
         Assert.Equal(CancellationToken.None, Create().CancellationToken);
+    }
+
+    /// <summary>
+    /// What lets <c>[Timeout]</c> bound a handler here. The Framework asks a context to replace the
+    /// request's token for the span of a deadline, and refuses by default for a host that has not
+    /// said it can - so without this override a declared budget fails the request instead of
+    /// bounding it.
+    /// </summary>
+    [Fact]
+    public void ReplacingTheCancellationTokenIsWhatTheContextReturnsAfterwards() {
+        using var deadline = new CancellationTokenSource();
+
+        var context = Create();
+
+        context.ReplaceCancellationToken(deadline.Token);
+
+        Assert.Equal(deadline.Token, context.CancellationToken);
+    }
+
+    /// <summary>
+    /// And it goes back, because the deadline is a span rather than the rest of the request. The
+    /// Framework's <c>CancellationScope</c> is what restores it, and a context that could not
+    /// return to the token it started on would leave everything after the handler running on a
+    /// cancelled one.
+    /// </summary>
+    [Fact]
+    public void TheTokenCanBeRestoredAfterASpan() {
+        using var deadline = new CancellationTokenSource();
+
+        var context = Create();
+        var before = context.CancellationToken;
+
+        context.ReplaceCancellationToken(deadline.Token);
+        context.ReplaceCancellationToken(before);
+
+        Assert.Equal(before, context.CancellationToken);
     }
 }
