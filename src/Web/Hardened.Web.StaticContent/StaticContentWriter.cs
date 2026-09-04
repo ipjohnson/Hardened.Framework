@@ -149,12 +149,12 @@ public static class StaticContentWriter {
 
     /// <summary>
     /// Whether the client already holds this representation. The rule, and the order the two
-    /// conditionals are read in, is <see cref="ConditionalGet"/>'s - the same one a handler's
-    /// response is judged by.
+    /// conditionals are read in, is <see cref="Precondition"/>'s - the same one
+    /// <c>[ConditionalGet]</c> judges a handler's response by.
     /// </summary>
     private static bool NotModified(
         IExecutionContext context, StaticContentEntry entry, string? etag) =>
-        ConditionalGet.NotModified(
+        Precondition.NotModified(
             RequestHeader(context, KnownHeaders.IfNoneMatch),
             RequestHeader(context, KnownHeaders.IfModifiedSince),
             etag,

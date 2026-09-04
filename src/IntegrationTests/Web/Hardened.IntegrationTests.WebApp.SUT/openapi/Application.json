@@ -1165,6 +1165,37 @@
         }
       }
     },
+    "/conditional/generated": {
+      "get": {
+        "tags": [
+          "Conditional"
+        ],
+        "operationId": "generated",
+        "summary": "A body that is the same for the same query, so the tag the filter computes over it is stable per value and a different value is a different representation.",
+        "parameters": [
+          {
+            "name": "culture",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cookies/set": {
       "get": {
         "tags": [

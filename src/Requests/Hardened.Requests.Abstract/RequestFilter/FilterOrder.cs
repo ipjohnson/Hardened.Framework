@@ -135,12 +135,14 @@ public static class FilterOrder {
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Occupied by <c>ConditionalRequestFilter</c>, which the web module installs on every GET
-    /// handler: a request carrying <c>If-None-Match</c> or <c>If-Modified-Since</c> is answered 304
-    /// when the response it would otherwise have been given carries the validator it names. The
-    /// response cache tags every entry it stores, static content hashes what it serves, and a
-    /// handler that knows its resource's version writes <c>ETag</c> or <c>Last-Modified</c>
-    /// itself. The rule for what matches is <c>ConditionalGet</c>.
+    /// Occupied by <c>ConditionalGetFilter</c>, which <c>[ConditionalGet]</c> installs on an
+    /// operation or a class and <c>[Enable&lt;ConditionalGet&gt;]</c> on every GET handler: a
+    /// request carrying <c>If-None-Match</c> or <c>If-Modified-Since</c> is answered 304 when the
+    /// response it would otherwise have been given carries the validator it names. The response
+    /// cache tags every entry it stores, static content hashes what it serves, the filter tags
+    /// what it sends when the handler wrote no validator of its own, and a handler that knows its
+    /// resource's version writes <c>ETag</c> or <c>Last-Modified</c> itself. Nothing installs the
+    /// filter without a declaration. The rule for what matches is <c>Precondition</c>.
     /// </para>
     /// <para>
     /// Ahead of <see cref="ResponseCache"/>, and that ordering is the design rather than a

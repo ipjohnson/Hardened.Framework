@@ -1,10 +1,8 @@
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
-using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.DependencyInjection;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
-using Hardened.Web.Runtime.Conditional;
 using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Cors;
 using Hardened.Web.Runtime.Handlers;
@@ -44,13 +42,6 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
         // copy. An application composing two web modules saw both.
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IStartupService, CorsStartupService>());
-
-        // Always on, for every GET handler. A request carrying neither If-None-Match nor
-        // If-Modified-Since costs two header lookups. TryAddEnumerable for the reason the CORS one
-        // is: a second load of this module must not install a second copy, and the registry takes
-        // every registered provider through its constructor.
-        services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IRequestFilterProvider, ConditionalRequestProvider>());
 
         services.TryAddSingleton<HealthCheckConfiguration>();
 

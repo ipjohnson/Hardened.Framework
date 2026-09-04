@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Abstract.Headers;
@@ -52,6 +53,26 @@ public static class EntityTagHeader {
     /// </remarks>
     public static string Format(string opaque, string variant) =>
         "\"" + opaque + "-" + variant + "\"";
+
+    /// <summary>
+    /// The strong entity-tag for <paramref name="content"/> exactly as it is sent: a SHA-256 of
+    /// the bytes, base64, quoted.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// One definition of what a computed tag looks like, for the response cache tagging what it
+    /// stores and <c>[ConditionalGet]</c> tagging what it sends, so the same bytes carry the same
+    /// tag whichever of them computed it.
+    /// </para>
+    /// <para>
+    /// SHA-256 rather than something cheaper, for the reasons <c>ByPayload</c> gives: two
+    /// representations colliding hands a client a 304 for a body it does not hold, and
+    /// <c>MD5.Create()</c> throws outright on a FIPS-enforcing host. Strong, because it names
+    /// exactly these bytes; whatever re-encodes them on the way out weakens it.
+    /// </para>
+    /// </remarks>
+    public static string ForContent(ReadOnlySpan<byte> content) =>
+        Format(Convert.ToBase64String(SHA256.HashData(content)));
 
     /// <summary>
     /// Whether <paramref name="ifNoneMatch"/> names <paramref name="etag"/>, or is <c>*</c>.

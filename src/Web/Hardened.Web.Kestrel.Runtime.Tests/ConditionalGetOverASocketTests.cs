@@ -236,7 +236,7 @@ public class ConditionalGetOverASocketTests {
         private void Compose() {
             var middleware = _app.Services.GetRequiredService<IMiddlewareService>();
 
-            middleware.Use(_ => new ConditionalRequestFilter());
+            middleware.Use(_ => new ConditionalGetFilter());
             middleware.Use(_ => new ResponseCompressionFilter(configuration: new CompressionConfiguration()));
             middleware.Use(_ => new ResponseCacheFilter(
                 [new EveryRequest()], "GET /rates", ResponseCacheFilter.DefaultDuration));

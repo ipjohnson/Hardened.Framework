@@ -188,9 +188,26 @@ namespace Hardened.Web.Runtime.Compression
 }
 namespace Hardened.Web.Runtime.Conditional
 {
-    public sealed class ConditionalRequestFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    [DependencyModules.Runtime.Attributes.DependencyModule(GenerateAttribute=false)]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class ConditionalGet : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
-        public ConditionalRequestFilter() { }
+        public ConditionalGet() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public sealed class ConditionalGetAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+    {
+        public ConditionalGetAttribute() { }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+        public static bool Declares(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    public sealed class ConditionalGetFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public ConditionalGetFilter() { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }

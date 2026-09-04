@@ -14,17 +14,18 @@ namespace Hardened.Requests.Abstract.Headers;
 /// stronger statement than a timestamp, and a client that sent both meant the validator.
 /// </para>
 /// <para>
-/// One implementation, asked by the conditional-request filter about a handler's response and by
-/// the static content writer about a file's, so the two cannot disagree about the rule.
+/// One implementation, asked by <c>[ConditionalGet]</c> about a handler's response and by the
+/// static content writer about a file's, so the two cannot disagree about the rule. Named for what
+/// RFC 9110 calls these header fields.
 /// </para>
 /// <para>
 /// A response carrying no validator is never a 304. A client can only revalidate what it was given
-/// a validator for, so nothing here computes one: the response cache tags what it stores, static
-/// content hashes what it serves, and a handler that knows its resource's version writes
-/// <c>ETag</c> or <c>Last-Modified</c> itself.
+/// a validator for, so whoever asks has to have one to hand: the response cache tags what it
+/// stores, static content hashes what it serves, <c>[ConditionalGet]</c> tags what it sends, and a
+/// handler that knows its resource's version writes <c>ETag</c> or <c>Last-Modified</c> itself.
 /// </para>
 /// </remarks>
-public static class ConditionalGet {
+public static class Precondition {
 
     /// <summary>
     /// Whether the caller already holds the representation described by <paramref name="etag"/>

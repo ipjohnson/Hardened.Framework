@@ -6,19 +6,22 @@ using Microsoft.Extensions.Primitives;
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
-/// Conditional GET through the real pipeline: the validator a cached read carries, the 304 a
-/// client holding it is answered, and the same for a handler that writes its own.
+/// <c>[ConditionalGet]</c> through the real pipeline: the validator a cached read carries, the
+/// 304 a client holding it is answered, the tag computed for a handler that writes none, and
+/// the same for a handler that writes its own.
 /// </summary>
 /// <remarks>
-/// Nothing here declares anything for it. The filter is installed on every GET by the web module,
-/// which is what these prove - a built application, with the generated handler metadata and the
-/// module's registrations, rather than a filter driven by hand.
+/// A built application, with the generated handler metadata carrying the attribute from the
+/// method or the class, rather than a filter driven by hand - and one handler that declares
+/// nothing, to show it gets nothing.
 /// </remarks>
 public class ConditionalGetTests {
 
     private const string Catalog = "/response-cache/catalog?culture=en-GB";
 
     private const string Document = "/conditional/document";
+
+    private const string Generated = "/conditional/generated?culture=en";
 
     private static Action<TestWebRequest> IfNoneMatch(string tag) =>
         request => request.Headers[KnownHeaders.IfNoneMatch] = new StringValues(tag);
@@ -30,6 +33,12 @@ public class ConditionalGetTests {
         request => {
             IfNoneMatch(tag)(request);
             IfModifiedSince(when)(request);
+        };
+
+    private static Action<TestWebRequest> Plain(Action<TestWebRequest>? also = null) =>
+        request => {
+            request.Headers[KnownHeaders.AcceptEncoding] = new StringValues("identity");
+            also?.Invoke(request);
         };
 
     private static string Tag(TestWebResponse response) =>
@@ -104,6 +113,55 @@ public class ConditionalGetTests {
         Assert.False(head.Headers.ContainsKey(KnownHeaders.ContentLength));
     }
 
+    // ---------------------------------------------------------------- a computed validator
+
+    /// <summary>
+    /// A handler that declares the attribute and writes no tag has one computed over the bytes
+    /// it sends. Strong, because the filter tagged the bytes after the encoder wrote them, so
+    /// nothing re-encoded them afterwards.
+    /// </summary>
+    [HardenedTest]
+    public async Task AHandlerWithNoTagOfItsOwnIsTaggedOverTheBytesItSends(ITestWebApp testWebApp) {
+        var first = await testWebApp.Get(Generated);
+
+        first.Assert.Ok();
+
+        Assert.Matches("^\"[A-Za-z0-9+/=]+\"$", Tag(first));
+        Assert.Equal("generated-en", first.Deserialize<string>());
+
+        var revalidated = await testWebApp.Get(Generated, IfNoneMatch(Tag(first)));
+
+        AssertNotModified(revalidated);
+        Assert.Equal(Tag(first), Tag(revalidated));
+    }
+
+    /// <summary>
+    /// The tag covers the bytes as sent, so a client that takes the body plain holds a different
+    /// tag from one that takes it compressed, and neither is told the other's has not changed.
+    /// </summary>
+    [HardenedTest]
+    public async Task EachRepresentationIsRevalidatedAgainstItsOwnTag(ITestWebApp testWebApp) {
+        var compressed = await testWebApp.Get(Generated);
+        var plain = await testWebApp.Get(Generated, Plain());
+
+        Assert.NotEqual(Tag(compressed), Tag(plain));
+
+        var crossed = await testWebApp.Get(Generated, Plain(IfNoneMatch(Tag(compressed))));
+
+        crossed.Assert.Ok();
+
+        Assert.Equal(Tag(plain), Tag(crossed));
+        Assert.Equal("generated-en", crossed.Deserialize<string>());
+    }
+
+    [HardenedTest]
+    public async Task ADifferentBodyIsADifferentTag(ITestWebApp testWebApp) {
+        var en = await testWebApp.Get(Generated);
+        var fr = await testWebApp.Get("/conditional/generated?culture=fr");
+
+        Assert.NotEqual(Tag(en), Tag(fr));
+    }
+
     // ---------------------------------------------------------------- a handler's own validator
 
     [HardenedTest]
@@ -156,11 +214,11 @@ public class ConditionalGetTests {
     // ---------------------------------------------------------------- what is never a 304
 
     /// <summary>
-    /// Nothing computes a validator for a handler that neither caches nor writes one, so there is
-    /// nothing to match and the body is sent whatever the caller claims to hold.
+    /// A handler that declares nothing carries none of this: no tag, and the body whatever the
+    /// caller claims to hold.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerWithNoValidatorIsSentInFull(ITestWebApp testWebApp) {
+    public async Task AHandlerWithoutTheAttributeIsNeitherTaggedNorRevalidated(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/response-cache/uncached", IfNoneMatch("*"));
 
         response.Assert.Ok();

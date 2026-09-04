@@ -18,18 +18,17 @@ using Xunit;
 namespace Hardened.Web.Runtime.Tests.Conditional;
 
 /// <summary>
-/// The conditional-request filter, driven with real request, response and chain objects and a
-/// stage in the handler's position that sets what a handler would and writes what a serializer
-/// would.
+/// The conditional GET filter, driven with real request, response and chain objects and a stage
+/// in the handler's position that sets what a handler would and writes what a serializer would.
 ///
 /// <para>
-/// Whether the request is conditional is decided at filter entry and asserted through whether
-/// the body was wrapped at all; whether the caller holds the representation is decided on the
-/// first write and asserted through the status, the bytes that reach the transport and the
-/// headers beside them.
+/// Two paths, told apart by whether the response carries an <c>ETag</c> on its first write. One
+/// that does is decided there and then, and the assertion is that the bytes reached the
+/// transport before the chain returned or never reached it at all. One that does not is held
+/// back and tagged as the chain returns, and the assertion is the tag over the bytes as sent.
 /// </para>
 /// </summary>
-public class ConditionalRequestFilterTests {
+public class ConditionalGetFilterTests {
 
     private const string Json = """{"base":"USD","rates":{"EUR":0.92,"GBP":0.79}}""";
 
@@ -38,6 +37,9 @@ public class ConditionalRequestFilterTests {
     private const string Stale = "\"stale\"";
 
     private static readonly DateTimeOffset Noon = new(2026, 8, 18, 12, 0, 0, TimeSpan.Zero);
+
+    /// <summary>What the filter computes for <see cref="Json"/> sent as it is.</summary>
+    private static readonly string Computed = EntityTagHeader.ForContent(Encoding.UTF8.GetBytes(Json));
 
     // ---------------------------------------------------------------- fixtures
 
@@ -93,6 +95,7 @@ public class ConditionalRequestFilterTests {
 
     /// <summary>
     /// A handler that sets what a handler and a serializer would, then writes <paramref name="body"/>.
+    /// The default writes its own tag; <c>etag: null</c> leaves the tag to the filter.
     /// </summary>
     private static Func<IExecutionChain, Task> Writes(
         string body,
@@ -118,6 +121,8 @@ public class ConditionalRequestFilterTests {
             await response.Body.WriteAsync(Encoding.UTF8.GetBytes(body));
         };
 
+    private static ConditionalGetFilter Filter() => new();
+
     private static byte[] Transport(IExecutionContext context) =>
         ((MemoryStream)context.Response.Body).ToArray();
 
@@ -138,10 +143,17 @@ public class ConditionalRequestFilterTests {
         Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.ContentEncoding));
     }
 
-    private static void AssertSentInFull(IExecutionContext context, int? status = null) {
+    private static void AssertSentInFull(IExecutionContext context, int? status = null, string? etag = Tag) {
         Assert.Equal(status, context.Response.Status);
         Assert.Equal(Json, Encoding.UTF8.GetString(Transport(context)));
         Assert.Equal("application/json", context.Response.ContentType);
+
+        if (etag == null) {
+            Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.ETag));
+        }
+        else {
+            Assert.Equal(etag, Header(context, KnownHeaders.ETag));
+        }
     }
 
     private sealed class Stage : IExecutionFilter {
@@ -157,27 +169,8 @@ public class ConditionalRequestFilterTests {
     // ---------------------------------------------------------------- entry
 
     /// <summary>
-    /// The ordinary request. Nothing is wrapped, so nothing is paid.
-    /// </summary>
-    [Fact]
-    public async Task AnUnconditionalRequestIsNotWrapped() {
-        var context = Context();
-        var transport = context.Response.Body;
-        Stream? seen = null;
-
-        await Run(context, async chain => {
-            seen = chain.Context.Response.Body;
-
-            await Writes(Json)(chain);
-        }, new ConditionalRequestFilter());
-
-        Assert.Same(transport, seen);
-        AssertSentInFull(context);
-    }
-
-    /// <summary>
     /// The conditionals mean a 412 on any other method, which is not evaluated here, so the
-    /// request is left alone rather than half-handled.
+    /// request is left alone rather than half-handled: nothing is wrapped, so nothing is tagged.
     /// </summary>
     [Theory]
     [InlineData("POST")]
@@ -185,11 +178,11 @@ public class ConditionalRequestFilterTests {
     [InlineData("DELETE")]
     [InlineData("PATCH")]
     public async Task AMethodOtherThanGetOrHeadIsPassedThrough(string method) {
-        var context = Context(method, ifNoneMatch: Tag);
+        var context = Context(method, ifNoneMatch: Computed);
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter());
+        await Run(context, Writes(Json, etag: null), Filter());
 
-        AssertSentInFull(context);
+        AssertSentInFull(context, etag: null);
     }
 
     /// <summary>
@@ -202,18 +195,18 @@ public class ConditionalRequestFilterTests {
     public async Task AHeadIsRevalidatedLikeAGet(string method) {
         var context = Context(method, ifNoneMatch: Tag);
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter());
+        await Run(context, Writes(Json), Filter());
 
         AssertNotModified(context);
     }
 
     /// <summary>
-    /// A response something ahead of this stage already started cannot change its status, so it
-    /// is not wrapped either.
+    /// A response something ahead of this stage already started can neither be tagged nor have
+    /// its status changed, so it is not wrapped either.
     /// </summary>
     [Fact]
     public async Task AResponseThatAlreadyStartedIsLeftAlone() {
-        var context = Context(ifNoneMatch: Tag);
+        var context = Context(ifNoneMatch: Computed);
         var transport = context.Response.Body;
         Stream? seen = null;
 
@@ -222,11 +215,12 @@ public class ConditionalRequestFilterTests {
         await Run(context, async chain => {
             seen = chain.Context.Response.Body;
 
-            await Writes(Json)(chain);
-        }, new ConditionalRequestFilter());
+            await Writes(Json, etag: null)(chain);
+        }, Filter());
 
         Assert.Same(transport, seen);
         Assert.Null(context.Response.Status);
+        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.ETag));
         Assert.Equal(" " + Json, Encoding.UTF8.GetString(Transport(context)));
     }
 
@@ -238,18 +232,38 @@ public class ConditionalRequestFilterTests {
         var headers = new Dictionary<string, StringValues> { ["if-none-match"] = Tag };
         var context = Context("GET", headers);
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter());
+        await Run(context, Writes(Json), Filter());
 
         AssertNotModified(context);
     }
 
-    // ---------------------------------------------------------------- If-None-Match
+    // ---------------------------------------------------------------- a handler's own validator
+
+    /// <summary>
+    /// The path that costs nothing but the decision. The tag is on the response at the first
+    /// write, so the bytes go straight to the transport: they are there before the chain returns.
+    /// </summary>
+    [Fact]
+    public async Task AHandlerThatWritesItsOwnTagIsPassedStraightThrough() {
+        var context = Context();
+        var transport = (MemoryStream)context.Response.Body;
+        long seenByTransport = -1;
+
+        await Run(context, async chain => {
+            await Writes(Json)(chain);
+
+            seenByTransport = transport.Length;
+        }, Filter());
+
+        Assert.Equal(Encoding.UTF8.GetByteCount(Json), seenByTransport);
+        AssertSentInFull(context);
+    }
 
     [Fact]
     public async Task AMatchingTagIsAnswered304WithNoBody() {
         var context = Context(ifNoneMatch: Tag);
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter());
+        await Run(context, Writes(Json), Filter());
 
         AssertNotModified(context);
     }
@@ -264,7 +278,7 @@ public class ConditionalRequestFilterTests {
     public async Task AWeakOrListedTagStillMatches(string ifNoneMatch) {
         var context = Context(ifNoneMatch: ifNoneMatch);
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter());
+        await Run(context, Writes(Json), Filter());
 
         AssertNotModified(context);
     }
@@ -273,23 +287,7 @@ public class ConditionalRequestFilterTests {
     public async Task AStaleTagIsAnsweredInFull() {
         var context = Context(ifNoneMatch: Stale);
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter());
-
-        AssertSentInFull(context);
-        Assert.Equal(Tag, Header(context, KnownHeaders.ETag));
-    }
-
-    /// <summary>
-    /// Nothing here computes a validator, so a response carrying none is sent in full whatever the
-    /// caller claims to hold.
-    /// </summary>
-    [Theory]
-    [InlineData(Tag)]
-    [InlineData("*")]
-    public async Task AResponseWithNoValidatorIsSentInFull(string ifNoneMatch) {
-        var context = Context(ifNoneMatch: ifNoneMatch);
-
-        await Run(context, Writes(Json, etag: null), new ConditionalRequestFilter());
+        await Run(context, Writes(Json), Filter());
 
         AssertSentInFull(context);
     }
@@ -302,7 +300,7 @@ public class ConditionalRequestFilterTests {
     public async Task IfModifiedSinceAtOrAfterLastModifiedIsAnswered304(int secondsLater) {
         var context = Context(ifModifiedSince: HttpDate.Format(Noon.AddSeconds(secondsLater)));
 
-        await Run(context, Writes(Json, lastModified: HttpDate.Format(Noon)), new ConditionalRequestFilter());
+        await Run(context, Writes(Json, lastModified: HttpDate.Format(Noon)), Filter());
 
         AssertNotModified(context);
         Assert.Equal(HttpDate.Format(Noon), Header(context, KnownHeaders.LastModified));
@@ -312,9 +310,22 @@ public class ConditionalRequestFilterTests {
     public async Task IfModifiedSinceBeforeLastModifiedIsAnsweredInFull() {
         var context = Context(ifModifiedSince: HttpDate.Format(Noon.AddSeconds(-1)));
 
-        await Run(context, Writes(Json, lastModified: HttpDate.Format(Noon)), new ConditionalRequestFilter());
+        await Run(context, Writes(Json, lastModified: HttpDate.Format(Noon)), Filter());
 
         AssertSentInFull(context);
+    }
+
+    /// <summary>
+    /// A handler that wrote a date and no tag is held back and tagged like any other, and the
+    /// date it wrote is still what the caller's date is judged against.
+    /// </summary>
+    [Fact]
+    public async Task AHandlerThatWritesOnlyLastModifiedIsTaggedAndJudgedByTheDate() {
+        var context = Context(ifModifiedSince: HttpDate.Format(Noon));
+
+        await Run(context, Writes(Json, etag: null, lastModified: HttpDate.Format(Noon)), Filter());
+
+        AssertNotModified(context, etag: Computed);
     }
 
     /// <summary>
@@ -325,7 +336,7 @@ public class ConditionalRequestFilterTests {
     public async Task AStaleTagOutranksASatisfiedDate() {
         var context = Context(ifNoneMatch: Stale, ifModifiedSince: HttpDate.Format(Noon));
 
-        await Run(context, Writes(Json, lastModified: HttpDate.Format(Noon)), new ConditionalRequestFilter());
+        await Run(context, Writes(Json, lastModified: HttpDate.Format(Noon)), Filter());
 
         AssertSentInFull(context);
     }
@@ -334,44 +345,117 @@ public class ConditionalRequestFilterTests {
     public async Task IfModifiedSinceAgainstAResponseWithNoLastModifiedIsAnsweredInFull() {
         var context = Context(ifModifiedSince: HttpDate.Format(Noon));
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter());
+        await Run(context, Writes(Json), Filter());
 
         AssertSentInFull(context);
     }
 
-    // ---------------------------------------------------------------- what is never a 304
+    /// <summary>
+    /// A <c>Last-Modified</c> nothing can read is a <c>Last-Modified</c> the response does not
+    /// have, so the date is not judged against it.
+    /// </summary>
+    [Fact]
+    public async Task AnUnparseableLastModifiedIsIgnored() {
+        var context = Context(ifModifiedSince: HttpDate.Format(Noon));
+
+        await Run(context, Writes(Json, lastModified: "yesterday"), Filter());
+
+        AssertSentInFull(context);
+    }
+
+    // ---------------------------------------------------------------- a computed validator
 
     /// <summary>
-    /// A 304 stands in for a 200 and nothing else. A 404 or a 500 is about the moment, a 201 or a
-    /// 204 is not a representation the caller could hold.
+    /// The path that costs a buffer and a hash. Nothing reaches the transport until the chain has
+    /// returned, and then the tag is over exactly the bytes that did.
+    /// </summary>
+    [Fact]
+    public async Task AResponseWithNoTagIsHeldBackAndTaggedOverTheBytesItSends() {
+        var context = Context();
+        var transport = (MemoryStream)context.Response.Body;
+        long seenByTransport = -1;
+
+        await Run(context, async chain => {
+            await Writes(Json, etag: null)(chain);
+
+            seenByTransport = transport.Length;
+        }, Filter());
+
+        Assert.Equal(0, seenByTransport);
+        AssertSentInFull(context, etag: Computed);
+    }
+
+    [Fact]
+    public async Task TheSameBytesGetTheSameTagAndDifferentBytesADifferentOne() {
+        var first = Context();
+        var same = Context();
+        var different = Context();
+
+        await Run(first, Writes(Json, etag: null), Filter());
+        await Run(same, Writes(Json, etag: null), Filter());
+        await Run(different, Writes("""{"base":"GBP"}""", etag: null), Filter());
+
+        Assert.Equal(Header(first, KnownHeaders.ETag), Header(same, KnownHeaders.ETag));
+        Assert.NotEqual(Header(first, KnownHeaders.ETag), Header(different, KnownHeaders.ETag));
+    }
+
+    [Fact]
+    public async Task AClientHoldingTheComputedTagIsAnswered304() {
+        var context = Context(ifNoneMatch: Computed);
+
+        await Run(context, Writes(Json, etag: null), Filter());
+
+        AssertNotModified(context, etag: Computed);
+    }
+
+    [Fact]
+    public async Task AClientHoldingAStaleTagIsAnsweredInFullWithTheNewOne() {
+        var context = Context(ifNoneMatch: Stale);
+
+        await Run(context, Writes(Json, etag: null), Filter());
+
+        AssertSentInFull(context, etag: Computed);
+    }
+
+    /// <summary>
+    /// A 304 stands in for a 200 and nothing else, and only a 200 is a representation worth
+    /// tagging. A 404 or a 500 is about the moment; a 201 or a 204 is not something a caller
+    /// could hold.
     /// </summary>
     [Theory]
     [InlineData(201)]
     [InlineData(204)]
     [InlineData(404)]
     [InlineData(500)]
-    public async Task AStatusOtherThan200IsPassedThrough(int status) {
-        var context = Context(ifNoneMatch: Tag);
+    public async Task AStatusOtherThan200IsNeitherTaggedNorA304(int status) {
+        var own = Context(ifNoneMatch: Tag);
+        var computed = Context(ifNoneMatch: Computed);
 
-        await Run(context, Writes(Json, status: status), new ConditionalRequestFilter());
+        await Run(own, Writes(Json, status: status), Filter());
+        await Run(computed, Writes(Json, etag: null, status: status), Filter());
 
-        AssertSentInFull(context, status);
+        AssertSentInFull(own, status);
+        AssertSentInFull(computed, status, etag: null);
     }
 
     /// <summary>
     /// A refusal recorded ahead of serialization travels on with the request and is written
-    /// behind this stage. A 304 in its place would tell a caller who may not read the resource
-    /// that it has not changed.
+    /// behind this stage. A tag on it, or a 304 in its place, would tell a caller who may not
+    /// read the resource what it holds.
     /// </summary>
     [Fact]
-    public async Task ARefusedRequestIsNotAnswered304() {
-        var context = Context(ifNoneMatch: Tag);
+    public async Task ARefusedRequestIsNeitherTaggedNorAnswered304() {
+        var own = Context(ifNoneMatch: Tag);
+        var computed = Context(ifNoneMatch: Computed);
 
-        context.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
+        own.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
+        computed.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter());
+        await Run(own, Writes(Json), Filter());
+        await Run(computed, Writes(Json, etag: null), Filter());
 
-        AssertSentInFull(context);
+        AssertSentInFull(own);
+        AssertSentInFull(computed, etag: null);
     }
 
     // ---------------------------------------------------------------- when the decision is made
@@ -393,9 +477,38 @@ public class ConditionalRequestFilterTests {
             response.Headers[KnownHeaders.CacheControl] = "public, max-age=60";
 
             return Task.CompletedTask;
-        }, new ConditionalRequestFilter());
+        }, Filter());
 
         AssertNotModified(context);
+    }
+
+    /// <summary>
+    /// An empty body is still a representation. It is tagged as one, and a caller holding that
+    /// tag is told it has not changed.
+    /// </summary>
+    [Fact]
+    public async Task AResponseThatWritesNothingAndHasNoTagIsTaggedAsEmpty() {
+        var empty = EntityTagHeader.ForContent(ReadOnlySpan<byte>.Empty);
+
+        Func<IExecutionChain, Task> nothing = chain => {
+            var response = chain.Context.Response;
+
+            response.Status = 200;
+            response.ContentType = "application/json";
+            response.Headers[KnownHeaders.CacheControl] = "public, max-age=60";
+
+            return Task.CompletedTask;
+        };
+
+        var first = Context();
+        var revalidated = Context(ifNoneMatch: empty);
+
+        await Run(first, nothing, Filter());
+        await Run(revalidated, nothing, Filter());
+
+        Assert.Equal(empty, Header(first, KnownHeaders.ETag));
+        Assert.Empty(Transport(first));
+        AssertNotModified(revalidated, etag: empty);
     }
 
     /// <summary>
@@ -415,9 +528,30 @@ public class ConditionalRequestFilterTests {
 
             await response.Body.FlushAsync();
             await response.Body.WriteAsync(Encoding.UTF8.GetBytes(Json));
-        }, new ConditionalRequestFilter());
+        }, Filter());
 
         AssertNotModified(context);
+    }
+
+    /// <summary>
+    /// And a flush before any write on a response with no tag holds it back like a write would,
+    /// so the flush reaches nothing and the body is still delivered whole and tagged.
+    /// </summary>
+    [Fact]
+    public async Task AFlushBeforeTheFirstWriteHoldsAnUntaggedResponseBack() {
+        var context = Context();
+
+        await Run(context, async chain => {
+            var response = chain.Context.Response;
+
+            response.ContentType = "application/json";
+            response.Headers[KnownHeaders.CacheControl] = "public, max-age=60";
+
+            await response.Body.FlushAsync();
+            await response.Body.WriteAsync(Encoding.UTF8.GetBytes(Json));
+        }, Filter());
+
+        AssertSentInFull(context, etag: Computed);
     }
 
     /// <summary>
@@ -434,10 +568,29 @@ public class ConditionalRequestFilterTests {
             chain.Context.Response.Headers[KnownHeaders.ETag] = Tag;
 
             throw new InvalidOperationException("handler failed");
-        }, new ConditionalRequestFilter()));
+        }, Filter()));
 
         Assert.Null(context.Response.Status);
         Assert.Same(transport, context.Response.Body);
+    }
+
+    /// <summary>
+    /// What was held back is still written when the chain throws - the error path serialized
+    /// into the same buffer - but it is not tagged, since nothing decided it was a representation.
+    /// </summary>
+    [Fact]
+    public async Task AThrowingChainStillWritesWhatWasHeldBack() {
+        var context = Context();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Run(context, async chain => {
+            await chain.Context.Response.Body.WriteAsync(Encoding.UTF8.GetBytes("partial"));
+
+            throw new InvalidOperationException("handler failed");
+        }, Filter()));
+
+        Assert.Equal("partial", Encoding.UTF8.GetString(Transport(context)));
+        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.ETag));
+        Assert.Null(context.Response.Status);
     }
 
     [Fact]
@@ -445,22 +598,22 @@ public class ConditionalRequestFilterTests {
         var context = Context(ifNoneMatch: Stale);
         var transport = context.Response.Body;
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter());
+        await Run(context, Writes(Json), Filter());
 
         Assert.Same(transport, context.Response.Body);
     }
 
     /// <summary>
-    /// A filter registered twice on one handler finds the body already wrapped and stands down,
-    /// so the request is decided once.
+    /// A class-level and a method-level declaration both install a filter. The inner one finds
+    /// the body already wrapped and stands down, so the request is decided once.
     /// </summary>
     [Fact]
     public async Task ADoubleRegistrationWrapsOnce() {
-        var context = Context(ifNoneMatch: Tag);
+        var context = Context(ifNoneMatch: Computed);
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter(), new ConditionalRequestFilter());
+        await Run(context, Writes(Json, etag: null), Filter(), Filter());
 
-        AssertNotModified(context);
+        AssertNotModified(context, etag: Computed);
     }
 
     // ---------------------------------------------------------------- the body stream
@@ -501,7 +654,7 @@ public class ConditionalRequestFilterTests {
             Assert.Throws<NotSupportedException>(() => body.Read(new byte[1], 0, 1));
             Assert.Throws<NotSupportedException>(() => body.Seek(0, SeekOrigin.Begin));
             Assert.Throws<NotSupportedException>(() => body.SetLength(0));
-        }, new ConditionalRequestFilter());
+        }, Filter());
 
         AssertSentInFull(context);
     }
@@ -532,9 +685,41 @@ public class ConditionalRequestFilterTests {
             await body.FlushAsync();
 
             Assert.Equal(bytes.Length, body.Position);
-        }, new ConditionalRequestFilter());
+        }, Filter());
 
         AssertNotModified(context);
+    }
+
+    /// <summary>
+    /// Everything written to an untagged response is held back, through every path there is, and
+    /// arrives whole and in order once the tag is known.
+    /// </summary>
+    [Fact]
+    public async Task EveryWritePathIsHeldBackUntilTheTagIsKnown() {
+        var context = Context();
+        var transport = (MemoryStream)context.Response.Body;
+        var bytes = Encoding.UTF8.GetBytes(Json);
+
+        await Run(context, async chain => {
+            var response = chain.Context.Response;
+            var body = response.Body;
+
+            response.ContentType = "application/json";
+
+            body.WriteByte(bytes[0]);
+            body.Write(bytes, 1, 3);
+            body.Write(bytes.AsSpan(4, 5));
+            await body.WriteAsync(bytes, 9, 7, CancellationToken.None);
+            await body.WriteAsync(bytes.AsMemory(16));
+            body.Flush();
+            await body.FlushAsync();
+
+            Assert.Equal(bytes.Length, body.Position);
+            Assert.Equal(0, transport.Length);
+        }, Filter());
+
+        Assert.Equal(Json, Encoding.UTF8.GetString(Transport(context)));
+        Assert.Equal(Computed, Header(context, KnownHeaders.ETag));
     }
 
     // ---------------------------------------------------------------- compression
@@ -553,7 +738,7 @@ public class ConditionalRequestFilterTests {
     public async Task A304ThroughTheCompressingBodyCarriesNoCodingAndNoBytes() {
         var context = Context(ifNoneMatch: Tag, acceptEncoding: "gzip");
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter(), Compression());
+        await Run(context, Writes(Json), Filter(), Compression());
 
         AssertNotModified(context, etag: "W/" + Tag);
         Assert.Equal("Accept-Encoding", Header(context, KnownHeaders.Vary));
@@ -567,11 +752,54 @@ public class ConditionalRequestFilterTests {
     public async Task AStaleTagThroughTheCompressingBodyIsGzipped() {
         var context = Context(ifNoneMatch: Stale, acceptEncoding: "gzip");
 
-        await Run(context, Writes(Json), new ConditionalRequestFilter(), Compression());
+        await Run(context, Writes(Json), Filter(), Compression());
 
         Assert.Equal("gzip", Header(context, KnownHeaders.ContentEncoding));
         Assert.Equal("W/" + Tag, Header(context, KnownHeaders.ETag));
         Assert.Equal(Json, Decode(Transport(context)));
+    }
+
+    /// <summary>
+    /// A computed tag covers the bytes as sent. Through the encoder those are the encoded bytes,
+    /// so a gzip client holds a different tag from an identity client, as it does for a compressed
+    /// static file - and it is strong, because it names exactly the bytes it was given.
+    /// </summary>
+    [Fact]
+    public async Task AComputedTagCoversTheBytesAsSentThroughTheEncoder() {
+        var gzip = Context(acceptEncoding: "gzip");
+        var identity = Context();
+
+        await Run(gzip, Writes(Json, etag: null), Filter(), Compression());
+        await Run(identity, Writes(Json, etag: null), Filter(), Compression());
+
+        var encoded = Header(gzip, KnownHeaders.ETag);
+
+        Assert.Equal("gzip", Header(gzip, KnownHeaders.ContentEncoding));
+        Assert.Equal(EntityTagHeader.ForContent(Transport(gzip)), encoded);
+        Assert.Equal(Computed, Header(identity, KnownHeaders.ETag));
+        Assert.NotEqual(Computed, encoded);
+    }
+
+    /// <summary>
+    /// Each representation is revalidated against its own tag: the gzip tag is a 304 to a gzip
+    /// client and a full identity body, with the identity tag, to a client that sends it plain.
+    /// </summary>
+    [Fact]
+    public async Task AGzipClientRevalidatesAgainstTheGzipTag() {
+        var first = Context(acceptEncoding: "gzip");
+
+        await Run(first, Writes(Json, etag: null), Filter(), Compression());
+
+        var encoded = Header(first, KnownHeaders.ETag);
+        var gzip = Context(ifNoneMatch: encoded, acceptEncoding: "gzip");
+        var identity = Context(ifNoneMatch: encoded);
+
+        await Run(gzip, Writes(Json, etag: null), Filter(), Compression());
+        await Run(identity, Writes(Json, etag: null), Filter(), Compression());
+
+        AssertNotModified(gzip, etag: encoded);
+        Assert.Equal("Accept-Encoding", Header(gzip, KnownHeaders.Vary));
+        AssertSentInFull(identity, etag: Computed);
     }
 
     private static string Decode(byte[] bytes) {
@@ -621,9 +849,10 @@ public class ConditionalRequestFilterTests {
         new([FixedKey.Create([])], "GET /rates", duration: 60);
 
     /// <summary>
-    /// The whole point of the ordering: a hit is revalidated because this stage is outside the
-    /// cache. The tag the client holds is the one the cache put on the miss, and the hit is a
-    /// 304 that neither ran the handler nor sent the stored bytes.
+    /// The two compose without doing the work twice. The cache tags the entry as it captures it,
+    /// so this filter sees a tag on its first write and passes the bytes straight through on the
+    /// miss; and a hit replays that tag, so the hit is a 304 that neither ran the handler nor sent
+    /// the stored bytes.
     /// </summary>
     [Fact]
     public async Task AHitWithTheTagTheMissCarriedIs304WithoutTheStoredBody() {
@@ -638,22 +867,19 @@ public class ConditionalRequestFilterTests {
 
         var miss = Context(services: services);
 
-        await Run(miss, handler, new ConditionalRequestFilter(), Cache());
+        await Run(miss, handler, Filter(), Cache());
 
         var tag = Header(miss, KnownHeaders.ETag);
 
-        Assert.StartsWith("\"", tag);
-        Assert.Single(store.Stored);
+        Assert.Equal(Computed, tag);
+        Assert.Contains(Assert.Single(store.Stored).Headers, header => header.Key == KnownHeaders.ETag);
 
         var hit = Context(ifNoneMatch: tag, services: services);
 
-        await Run(hit, handler, new ConditionalRequestFilter(), Cache());
+        await Run(hit, handler, Filter(), Cache());
 
         Assert.Equal(1, handled);
-        Assert.Equal(304, hit.Response.Status);
-        Assert.Empty(Transport(hit));
-        Assert.Equal(tag, Header(hit, KnownHeaders.ETag));
-        Assert.False(hit.Response.Headers.ContainsKey(KnownHeaders.ContentType));
+        AssertNotModified(hit, etag: tag);
     }
 
     /// <summary>
@@ -663,19 +889,11 @@ public class ConditionalRequestFilterTests {
     [Fact]
     public async Task AMissWithAMatchingTagIs304AndStillFillsTheStore() {
         var (services, store) = Caching();
-        var probe = Context(services: services);
+        var miss = Context(ifNoneMatch: Computed, services: services);
 
-        await Run(probe, Writes(Json, etag: null), new ConditionalRequestFilter(), Cache());
-
-        var tag = Header(probe, KnownHeaders.ETag);
-        var (again, emptied) = Caching();
-        var miss = Context(ifNoneMatch: tag, services: again);
-
-        await Run(miss, Writes(Json, etag: null), new ConditionalRequestFilter(), Cache());
+        await Run(miss, Writes(Json, etag: null), Filter(), Cache());
 
         Assert.Single(store.Stored);
-        Assert.Single(emptied.Stored);
-        Assert.Equal(304, miss.Response.Status);
-        Assert.Empty(Transport(miss));
+        AssertNotModified(miss, etag: Computed);
     }
 }

@@ -493,10 +493,6 @@ namespace Hardened.Requests.Abstract.Headers
         public string ContentRange(long totalLength) { }
         public static string Unsatisfied(long totalLength) { }
     }
-    public static class ConditionalGet
-    {
-        public static bool NotModified(Microsoft.Extensions.Primitives.StringValues ifNoneMatch, Microsoft.Extensions.Primitives.StringValues ifModifiedSince, string? etag, System.DateTimeOffset? lastModified) { }
-    }
     public class CookieSetOptions : System.IEquatable<Hardened.Requests.Abstract.Headers.CookieSetOptions>
     {
         public static Hardened.Requests.Abstract.Headers.CookieSetOptions Empty;
@@ -512,6 +508,7 @@ namespace Hardened.Requests.Abstract.Headers
     }
     public static class EntityTagHeader
     {
+        public static string ForContent(System.ReadOnlySpan<byte> content) { }
         public static string Format(string opaque) { }
         public static string Format(string opaque, string variant) { }
         public static bool Matches(Microsoft.Extensions.Primitives.StringValues ifNoneMatch, string etag) { }
@@ -608,6 +605,10 @@ namespace Hardened.Requests.Abstract.Headers
             public const string AccessControlRequestHeaders = "Access-Control-Request-Headers";
             public const string AccessControlRequestMethod = "Access-Control-Request-Method";
         }
+    }
+    public static class Precondition
+    {
+        public static bool NotModified(Microsoft.Extensions.Primitives.StringValues ifNoneMatch, Microsoft.Extensions.Primitives.StringValues ifModifiedSince, string? etag, System.DateTimeOffset? lastModified) { }
     }
     public static class RangeHeader
     {

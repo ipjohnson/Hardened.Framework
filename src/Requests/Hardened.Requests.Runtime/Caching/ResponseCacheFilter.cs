@@ -1,5 +1,4 @@
 using System.Collections.Frozen;
-using System.Security.Cryptography;
 using System.Text;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Caching;
@@ -476,16 +475,19 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// </summary>
     /// <remarks>
     /// <para>
-    /// What makes a stored entry revalidatable. A client holding the tag sends it back in
-    /// <c>If-None-Match</c>, and the filter at <c>FilterOrder.Conditional</c> - outside this one,
-    /// so it sees a hit as well as a miss - answers 304 with no body at all. Without a tag every
-    /// hit carried the whole body to a client that already had it.
+    /// What makes a stored entry revalidatable. A handler declaring <c>[ConditionalGet]</c> as
+    /// well as this has the filter at <c>FilterOrder.Conditional</c> - outside this one, so it
+    /// sees a hit as well as a miss - answer a client holding the tag with a 304 and no body, and
+    /// because the tag is already on the response by the time that filter sees the first byte,
+    /// it passes the bytes straight through rather than holding them back to compute one.
     /// </para>
     /// <para>
-    /// A strong tag, because the entry's bytes are what a hit writes, byte for byte. The
-    /// compression filter weakens it as it encodes, which is right: the encoded bytes are a
-    /// different sequence. SHA-256 for the reasons <see cref="ByPayload"/> gives, base64 and quoted
-    /// as static content's tags are.
+    /// Computed here whether or not that filter is declared. The bytes are already in memory and
+    /// a miss is the rare path, so it costs one hash where the handler and the serializer have
+    /// just run; computing it on the way out instead would hash the same stored bytes on every
+    /// hit. A strong tag, because the entry's bytes are what a hit writes, byte for byte; the
+    /// compression filter weakens it as it encodes, which is right, since the encoded bytes are
+    /// a different sequence.
     /// </para>
     /// <para>
     /// A handler that wrote its own tag knows more than a hash does - its version changes when the
@@ -497,9 +499,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             return;
         }
 
-        var hash = SHA256.HashData(buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
-
-        response.Headers[KnownHeaders.ETag] = EntityTagHeader.Format(Convert.ToBase64String(hash));
+        response.Headers[KnownHeaders.ETag] =
+            EntityTagHeader.ForContent(buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
     }
 
     /// <summary>

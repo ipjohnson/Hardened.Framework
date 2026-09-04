@@ -190,43 +190,67 @@ publish nobody can see.
 
 ## Revalidating
 
+```csharp
+[Get("/rates/{symbol}")]
+[CacheResponse<VaryByRoute>(Duration = 3600, Tags = ["rates"])]
+[ConditionalGet]
+public Rate Read(string symbol) => _rates.Latest(symbol);
+```
+
 ```
 GET /rates/EUR
 HTTP/1.1 200 OK
 ETag: "OybX3FuqNfSKoSm+h1FJqQ=="
-Cache-Control: public, max-age=60
 
 GET /rates/EUR
 If-None-Match: "OybX3FuqNfSKoSm+h1FJqQ=="
 HTTP/1.1 304 Not Modified
 ETag: "OybX3FuqNfSKoSm+h1FJqQ=="
-Cache-Control: public, max-age=60
 ```
 
-Every entry the store is handed carries an entity-tag: a SHA-256 of the bytes stored, computed as
-the response is captured when the handler wrote none. It goes out with the miss, so a client has
-something to hold, and is replayed with the hit. A GET or HEAD carrying the tag in
-`If-None-Match` is answered 304 with no body - from the store on a hit, without running the
-handler, and on a miss once the handler has run and the tag matched what it produced.
+`[ConditionalGet]` answers a GET or HEAD whose caller already holds the response with a 304 and
+no body. It goes on an operation or on a class, or on every GET handler in the application as
+`[Enable<ConditionalGet>]`, which stands down for a handler that declares its own. Nothing
+installs it otherwise. A service whose responses are small and change on every read gets nothing
+from a 304, and pays nothing for it.
 
-The 304 is answered by `ConditionalRequestFilter` at `FilterOrder.Conditional`, which the web
-module installs on every GET handler. It sits outside the cache, which is the ordering the stage
-was reserved for: a validator filter inside the cache would never run on a hit, so a cached
-response could never be revalidated. It sits outside compression too, so a 304 carries no coding
-for a body it does not have. A request carrying neither `If-None-Match` nor `If-Modified-Since`
-costs it two header lookups.
+Every entry the store is handed carries an entity-tag, a SHA-256 of the bytes stored, computed as
+the response is captured when the handler wrote none. It goes out with the miss and is replayed
+with the hit, and it is what the filter compares against: a hit is answered 304 without running
+the handler and without the stored body. The filter sits outside the cache, which is the ordering
+`FilterOrder.Conditional` was reserved for, and outside compression, so a 304 carries no coding
+for a body it does not have. The tag is strong, because a hit writes the stored bytes byte for
+byte; the compression filter weakens it as it encodes, so a client that accepts gzip holds
+`W/"..."`, and `If-None-Match` compares weakly either way.
 
-The tag is strong, because a hit writes the stored bytes byte for byte. The compression filter
-weakens it as it encodes, since the encoded bytes are a different sequence, so a client that
-accepts gzip holds `W/"..."`. `If-None-Match` compares weakly either way.
+### What it costs
+
+The filter decides on the first write. A response that already carries an `ETag` by then - the
+cache tagged the entry, a handler wrote one - is decided there and then, a 304 or the bytes
+straight through to the transport. A response carrying none is held back and tagged over the
+bytes as sent once they are all there: a buffer and a hash per response. That is the cost of
+declaring this on a handler that neither caches nor writes a validator, and it buys bandwidth
+only. The handler ran, and a 304 from a hash of its output saved the transfer and the client's
+parse, not the work. It is worth having for a large or frequently polled response, and for a
+shared cache in front of the service, which revalidates when its copy expires and keeps it on a
+304. It is not worth having for a small response that changes on every read, which is why it is
+declared rather than assumed.
+
+The tag covers the bytes as sent. Behind the compression filter a gzip client and an identity
+client hold different tags for one resource, as they do for a compressed static file, and each
+is revalidated against its own.
+
+Do not declare it on a handler returning `IAsyncEnumerable<T>`, for the reason given for the
+cache below: holding a stream back is buffering it.
 
 ### A handler's own validator
 
-Nothing computes a validator for a handler that does not cache. A handler that knows its
-resource's version writes it, and the same filter answers the 304:
+A handler that knows its resource's version writes it, and is passed straight through rather
+than held back:
 
 ```csharp
 [Get("/documents/{id}")]
+[ConditionalGet]
 public Document Read(string id, IExecutionContext context) {
     var document = _documents.Find(id);
 
@@ -239,7 +263,7 @@ public Document Read(string id, IExecutionContext context) {
 
 `If-None-Match` is evaluated when it is present and `If-Modified-Since` only when it is not,
 including when the tag does not match. That is RFC 9110 §13.2.1's order, implemented once in
-`ConditionalGet` and shared with static content. A handler's own tag is kept when the response is
+`Precondition` and shared with static content. A handler's own tag is kept when the response is
 also cached: a version that changes when the resource does says more than a hash of the
 serializer's output.
 

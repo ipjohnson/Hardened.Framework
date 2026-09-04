@@ -8,11 +8,11 @@ namespace Hardened.Requests.Abstract.Tests.Headers;
 /// two conditionals.
 ///
 /// <para>
-/// The rule is shared by the conditional-request filter and the static content writer, so a case
-/// missed here is a case both get wrong the same way.
+/// The rule is shared by <c>[ConditionalGet]</c> and the static content writer, so a case missed
+/// here is a case both get wrong the same way.
 /// </para>
 /// </summary>
-public class ConditionalGetTests {
+public class PreconditionTests {
 
     private const string Tag = "\"abc\"";
 
@@ -25,12 +25,12 @@ public class ConditionalGetTests {
 
     [Fact]
     public void AMatchingTagIsNotModified() {
-        Assert.True(ConditionalGet.NotModified(new StringValues(Tag), StringValues.Empty, Tag, null));
+        Assert.True(Precondition.NotModified(new StringValues(Tag), StringValues.Empty, Tag, null));
     }
 
     [Fact]
     public void ADifferentTagIsModified() {
-        Assert.False(ConditionalGet.NotModified(new StringValues("\"xyz\""), StringValues.Empty, Tag, null));
+        Assert.False(Precondition.NotModified(new StringValues("\"xyz\""), StringValues.Empty, Tag, null));
     }
 
     /// <summary>
@@ -41,7 +41,7 @@ public class ConditionalGetTests {
     [InlineData("\"abc\"")]
     [InlineData("*")]
     public void IfNoneMatchAgainstAResponseWithNoTagIsModified(string header) {
-        Assert.False(ConditionalGet.NotModified(new StringValues(header), StringValues.Empty, null, Noon));
+        Assert.False(Precondition.NotModified(new StringValues(header), StringValues.Empty, null, Noon));
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ public class ConditionalGetTests {
     /// </summary>
     [Fact]
     public void AMismatchedTagIsModifiedWhateverTheDateSays() {
-        Assert.False(ConditionalGet.NotModified(new StringValues("\"xyz\""), Date(Noon), Tag, Noon));
+        Assert.False(Precondition.NotModified(new StringValues("\"xyz\""), Date(Noon), Tag, Noon));
     }
 
     #endregion
@@ -63,17 +63,17 @@ public class ConditionalGetTests {
     /// </summary>
     [Fact]
     public void IfModifiedSinceAtLastModifiedIsNotModified() {
-        Assert.True(ConditionalGet.NotModified(StringValues.Empty, Date(Noon), null, Noon));
+        Assert.True(Precondition.NotModified(StringValues.Empty, Date(Noon), null, Noon));
     }
 
     [Fact]
     public void IfModifiedSinceAfterLastModifiedIsNotModified() {
-        Assert.True(ConditionalGet.NotModified(StringValues.Empty, Date(Noon.AddHours(1)), null, Noon));
+        Assert.True(Precondition.NotModified(StringValues.Empty, Date(Noon.AddHours(1)), null, Noon));
     }
 
     [Fact]
     public void IfModifiedSinceBeforeLastModifiedIsModified() {
-        Assert.False(ConditionalGet.NotModified(StringValues.Empty, Date(Noon.AddSeconds(-1)), null, Noon));
+        Assert.False(Precondition.NotModified(StringValues.Empty, Date(Noon.AddSeconds(-1)), null, Noon));
     }
 
     /// <summary>
@@ -83,7 +83,7 @@ public class ConditionalGetTests {
     /// </summary>
     [Fact]
     public void ASubSecondLastModifiedIsComparedToTheSecond() {
-        Assert.True(ConditionalGet.NotModified(StringValues.Empty, Date(Noon), null, Noon.AddMilliseconds(750)));
+        Assert.True(Precondition.NotModified(StringValues.Empty, Date(Noon), null, Noon.AddMilliseconds(750)));
     }
 
     /// <summary>
@@ -92,18 +92,18 @@ public class ConditionalGetTests {
     /// </summary>
     [Fact]
     public void IfModifiedSinceAgainstAResponseWithNoLastModifiedIsModified() {
-        Assert.False(ConditionalGet.NotModified(StringValues.Empty, Date(Noon), Tag, null));
+        Assert.False(Precondition.NotModified(StringValues.Empty, Date(Noon), Tag, null));
     }
 
     [Fact]
     public void AnUnparseableIfModifiedSinceIsModified() {
-        Assert.False(ConditionalGet.NotModified(StringValues.Empty, new StringValues("yesterday"), null, Noon));
+        Assert.False(Precondition.NotModified(StringValues.Empty, new StringValues("yesterday"), null, Noon));
     }
 
     #endregion
 
     [Fact]
     public void NoConditionalIsModified() {
-        Assert.False(ConditionalGet.NotModified(StringValues.Empty, StringValues.Empty, Tag, Noon));
+        Assert.False(Precondition.NotModified(StringValues.Empty, StringValues.Empty, Tag, Noon));
     }
 }
