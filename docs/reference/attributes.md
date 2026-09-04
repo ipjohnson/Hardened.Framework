@@ -152,7 +152,10 @@ DependencyModules module has its registrations applied too. A view is named on a
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[WebTesting]` | Assembly | Installs `ITestWebApp` |
+| `[WebTesting]` | Assembly | Installs `ITestWebApp`, the test credential source, and a typed client for every test parameter that names one |
+| `[Grants(params string[])]` | Parameter, method, class, assembly | The grants a request is sent with, as `X-Test-Grants`. The narrowest wins |
+| `[Subject(name)]` | Parameter, method, class, assembly | Which caller, as `X-Test-Subject` |
+| `[Anonymous]` | Parameter, method, class, assembly | No credential, cancelling whatever a wider level declared |
 
 ## AWS
 

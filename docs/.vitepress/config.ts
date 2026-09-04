@@ -92,6 +92,7 @@ export default defineConfig({
             { text: 'Generating from OpenAPI', link: '/guide/openapi' },
             { text: 'Generating from Smithy', link: '/guide/smithy' },
             { text: 'The OpenAPI document', link: '/guide/openapi-document' },
+            { text: 'Clients', link: '/guide/clients' },
             { text: 'Declared responses', link: '/guide/responses' },
             { text: 'Content negotiation', link: '/guide/content-negotiation' },
             { text: 'JSON serialization', link: '/guide/json' },

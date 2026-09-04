@@ -8,7 +8,9 @@ document comes from follows from how the application was written:
 | **Code-first** | generated from your handlers during the build | `[Enable<OpenApiDocumentPublishing>]` |
 | **IDL-first** | the contract you already wrote, embedded verbatim | `PublishUrl` on the spec item |
 
-Both end at the same two endpoints, and the reference page is the same module either way.
+Both end at the same two endpoints, and the reference page is the same module either way. Either
+way the build can also write the served document to a file, which is what a client is generated
+from; see [the export](#the-export) below.
 
 ## Serving a generated document
 
@@ -119,6 +121,33 @@ them:
 The same metadata works on `HardenedSmithyModel` and `HardenedSmithyAst`, where `PublishUrl` serves
 the OpenAPI document generated from the model. See [Generating from Smithy](/guide/smithy).
 
+## The export
+
+`<HardenedOpenApiOutput>` writes the document the application serves to a file after every compile,
+whichever front end wrote it:
+
+```xml
+<PropertyGroup>
+  <HardenedOpenApiOutput>openapi/Todos.json</HardenedOpenApiOutput>
+</PropertyGroup>
+```
+
+It exports what the server serves — the normalised document generated from the model, never the
+source contract; `SourceUrl` exists for that — read out of the compiled assembly rather than a
+running application, so it works for a Lambda function or a library with no entry point. The
+format follows the extension: `.json` is indented JSON, `.yaml` or `.yml` is YAML, and anything
+else is a build error naming the three. The served document does not change whatever the file
+says.
+
+| Property | Values | What it does |
+|---|---|---|
+| `HardenedOpenApiOutput` | a path relative to the project | writes the served document there after every compile. Absent means no file |
+| `HardenedOpenApiOutputVersion` | `3.0.0`, `3.1.0` | lowers the written file for a reader that refuses the 3.2 banner: the banner changes, `itemSchema` is dropped and each streaming operation that lost one is named (`030`), and at `3.0.0` the exclusive-bound and nullable spellings become the 3.0 forms. The served document is untouched |
+
+Code-first, the property with no `[Enable<OpenApiDocumentPublishing>]` is `HRDOA018`, naming the
+attribute. Contract-first the same condition reports under `HOAT` or `HSMT`, and means the
+generator did not run. The file is what [a client](/guide/clients) is generated from.
+
 ## What the response model changes
 
 The same handler and the same 404, with a different contract:
@@ -191,6 +220,7 @@ public record CreateTodo(
 
 ## Next
 
+- [Clients](/guide/clients) — generating a client from the exported document
 - [Declared responses](/guide/responses) — the three response models in full
 - [Generating from OpenAPI](/guide/openapi) — going the other direction, contract to code
 - [Generating from Smithy](/guide/smithy) — the same, from a Smithy model

@@ -45,6 +45,7 @@ dotnet new hardened-web -n Greeter [options]
 | `-ho, --host` | `kestrel`, `aspnet`, `aws-lambda` | `kestrel` |
 | `-c, --contract` | `code`, `openapi`, `smithy` | `code` |
 | `-rm, --response-model` | `standard`, `response`, `union` | `standard` |
+| `-cl, --client` | `kiota`, `none` | `kiota` |
 | `--openapi-ui` | `true`, `false` | `true` |
 | `--hardened-version` | any published version | the version the template shipped with |
 | `--skip-restore` | `true`, `false` | `false` |
@@ -58,18 +59,25 @@ creating a todo answers 200 under `standard` and 201 under the other two. See
 combined with `--host aws-lambda`, whose managed runtime is `net8.0` — the generated project refuses
 with `HTPL001` rather than failing at deploy time.
 
+`--client` adds a C# client Kiota generates during the build from the document the library writes,
+with a test that drives it through the in-process pipeline. `none` leaves out the client project,
+the tool manifest, the document export and the client tests. See [Clients](/guide/clients).
+
 ### What you get
 
 ```
 Greeter.sln
+.config/dotnet-tools.json       pins the Kiota tool
 Directory.Packages.props        every version, in one place
 src/Greeter/                    the implementation. Knows nothing about where it runs
+src/Greeter/openapi/Greeter.json   the served document, written by the build and committed
 src/Greeter.Host/               which runtime hosts it, and Program.cs
+src/Greeter.Client/             the generated client. No hand-written code
 tests/Greeter.Tests/            tests, against the library rather than the host
 ```
 
-Swapping `--host` changes only the middle project. The library and the tests are identical whichever
-host you pick, which is why the tests target the library.
+Swapping `--host` changes only the host project. The library, the client and the tests are
+identical whichever host you pick, which is why the tests target the library.
 
 ### Choosing a host
 

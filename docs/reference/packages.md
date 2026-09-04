@@ -40,7 +40,10 @@ Source generator packages are referenced as analysers:
 | `Hardened.Web.Kestrel.Runtime` | `[KestrelRuntime]` and `HardenedKestrelApplication`. Kestrel without the ASP.NET Core request pipeline, and the host to reach for first |
 | `Hardened.Web.AspNetCore.Runtime` | `[AspNetCoreRuntime]` and `app.UseHardened()`, when you need ASP.NET Core's middleware, authentication or hosting diagnostics |
 | `Hardened.Web.StaticContent` | Static file serving, manifests and content compression |
-| `Hardened.Web.Testing` | `ITestWebApp`, `TestWebRequest`, `TestWebResponse` |
+| `Hardened.Web.Testing` | `ITestWebApp`, `TestWebRequest`, `TestWebResponse`, `PipelineHttpMessageHandler`, the credential attributes, `ITestClientFactory<T>`, `LastResponse`. Names no client generator |
+
+No package ships a client. The `src/Todos.Client` project the `hardened-web` template scaffolds
+depends on `Microsoft.Kiota.Bundle` alone; see [Clients](/guide/clients).
 
 ### Templates
 
