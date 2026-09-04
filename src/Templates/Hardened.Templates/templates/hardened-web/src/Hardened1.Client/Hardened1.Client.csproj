@@ -30,8 +30,6 @@
     <PackageId>Hardened1.Client</PackageId>
     <Description>The Kiota-generated client for Hardened1, built from the document the service serves.</Description>
 
-    <!-- The class is named in the safe-identifier form the module class uses, so a dotted project
-         name - Acme.Sample - gives AcmeSampleClient rather than an identifier with a dot in it. -->
     <KiotaSpec>../Hardened1/openapi/Hardened1.json</KiotaSpec>
 
     <!--
@@ -117,7 +115,9 @@
           Condition="'$(DesignTimeBuild)' != 'true'"
           Inputs="$(KiotaSpec);$(MSBuildProjectDirectory)/../../.config/dotnet-tools.json;$(MSBuildProjectDirectory)/../../Directory.Packages.props"
           Outputs="$(KiotaOutput)kiota-lock.json">
-    <!-- Kiota's own warning lines are shown, not counted: a code-first document with no server
+    <!-- The class is named in the safe-identifier form the module class uses, so a dotted project
+         name - Acme.Sample - gives AcmeSampleClient rather than an identifier with a dot in it.
+         Kiota's own warning lines are shown, not counted: a code-first document with no server
          entry draws one on every generation, and a warning-free build is what CI holds this to. -->
     <Exec Command="dotnet kiota generate --language CSharp --openapi &quot;$(KiotaSpec)&quot; --class-name TemplateModuleNameClient --namespace-name $(RootNamespace) --output &quot;$(KiotaOutput)&quot; --clean-output --exclude-backward-compatible --log-level warning"
           WorkingDirectory="$(MSBuildProjectDirectory)"

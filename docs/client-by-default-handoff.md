@@ -74,6 +74,19 @@ records what happened when they met the code.
 
 ## Discovered and not fixed
 
+- A Smithy service in throws mode answers a declared 404 by returning null, and the runtime
+  writes no body at all: `404` with `Content-Length: 0`, while the served document promises the
+  `TodoNotFound` shape, a `@error` structure with a required `message`. A Kiota client registered
+  that shape for the 404 and throws a bare `ApiException` saying the error failed to deserialize.
+  The declared models answer with the body, so the scaffolded test runs there and is skipped with
+  the defect named under `--contract smithy --response-model throws`. Runtime dispatch for a null
+  return with a named error shape is the place to fix it; it was not touched here.
+- An OpenAPI service in throws mode answers the same null return with the document's `Problem` and
+  no `detail`, which deserializes. The generated client throws the typed
+  `Problem` either way; only its detail differs between the modes, and the scaffolded test asserts
+  the detail under the declared models alone. Whether a null return should carry a default detail
+  is a runtime question, left open.
+
 - The Smithy integration application's served document repeats the `post` key under `/`, because
   its bank service speaks the AWS JSON protocol and every operation is `POST /` told apart by a
   header. That is the protocol's shape and was recorded as such in the 0.18 trial; the export
