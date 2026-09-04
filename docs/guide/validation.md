@@ -154,6 +154,32 @@ public async Task<Pet> CreatePet(CreatePetRequest body) {
 `ValidationResult` is ValidationModules' immutable result type. Build it with
 `ValidationResult.FromErrors`; there is no mutable `AddError` form.
 
+## Refusing with a declared status
+
+A rule the constraint vocabulary cannot express is handler code, and the answer usually wants a
+status of its own rather than a 400. Throw the response for that status, and declare it so the
+document says so:
+
+```csharp
+[Post("/pets")]
+[Throws<Conflict<Problem>>]
+public async Task<Pet> CreatePet(CreatePetRequest body) {
+    if (await _pets.NameExists(body.Name)) {
+        throw new Conflict<Problem>(
+            new Problem { Detail = $"A pet named '{body.Name}' already exists." }).AsException();
+    }
+
+    ...
+}
+```
+
+`[Throws<T>]` is what puts the status in the published document. Without it the throw still answers
+409 and the document describes only the 200, so a client generated from it has no case for the
+refusal. See [declared responses](/guide/responses#declaring-what-a-handler-throws).
+
+Prefer this to a 400 whenever the request was well-formed and refused for a reason of its own. Keep
+the validation envelope for "this field is wrong".
+
 ## Choosing the status and the shape
 
 The stock behaviour is a 400 with the envelope above. Both are decided in one replaceable

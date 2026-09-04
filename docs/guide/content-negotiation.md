@@ -45,14 +45,19 @@ A missing header and `*/*` mean the same thing: every serializer qualifies and `
 
 ## Order
 
-`Order` breaks ties between serializers that all satisfy the same preference. Lower runs first,
-matching `ExecutionFilterOrder`.
+`Order` breaks ties between serializers that all satisfy the same preference. Lower is asked first.
+The values are `ResponseSerializerOrder`, and `RequestDeserializerOrder` mirrors it:
 
 | Value | Used by |
 |---|---|
+| `Template` (-1000) | Rendered [views](/guide/templates). Ahead of everything, because a response naming a view is asking for that view and would otherwise be taken by whichever serializer matched the request's `Accept` |
 | `Specialized` (-100) | A serializer for one specific media type |
 | `Normal` (0) | The JSON serializers |
 | `Deferred` (1000) | Raw string, byte and stream output |
+
+The values are spaced so a serializer can be slotted between two of them without renumbering.
+`Deferred` is where `RawResponseSerializer` sits: ahead of JSON it would make every handler
+returning a bare string answer `text/plain` to a client sending no `Accept`.
 
 `Order` decides who is *asked* first; `IsDefaultSerializer` decides who answers when nobody claims
 the response at all.

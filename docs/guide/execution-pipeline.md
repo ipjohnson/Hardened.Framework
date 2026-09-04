@@ -66,34 +66,78 @@ Which serializer writes it is decided per request from the client's `Accept` hea
 
 ## Ordering
 
-Filters are sorted by an integer. Lower runs earlier — that is, further from the handler.
+Filters are sorted by an integer. Lower runs earlier, which is to say further from the handler.
+`FilterOrder` names the positions, and it is the only ordering vocabulary there is.
 
-`ExecutionFilterOrder` names the framework's positions:
+| Stage | Value | What sits there |
+|---|---|---|
+| `HandlerCreation` | `-10000` | Creating the handler instance, and `[Retry]`'s body capture |
+| `RateLimitTransport` | `1000` | [Refusing on volume](/guide/rate-limiting), before anyone has asked who is calling |
+| `Authentication` | `2000` | [Establishing who the caller is](/guide/authentication) |
+| `RateLimitPrincipal` | `3000` | Refusing on volume, once it is known whose volume it is |
+| `GrantAuthorization` | `4000` | [Deciding from grants](/guide/authorization) alone |
+| `Conditional` | `5000` | Answering a [conditional GET](/guide/conditional-requests) with a 304 |
+| `ResponseCache` | `6000` | Serving a [stored response](/guide/response-caching) instead of running the handler |
+| `BeforeSerialization` | `6500` | `Before + Serialization`, where `[CacheControl]` sits |
+| `Serialization` | `7000` | Binding the request, and serializing the response |
+| `Validation` | `8000` | Checking the constraints, over the parameters just bound |
+| `Authorization` | `9000` | Deciding from the resource as well as the caller |
+| `Retry` | `10000` | Re-running the handler after a failure |
+| `DefaultValue` | `100000` | Where a filter that states no order lands |
+| `EndPointHandlers`, `EndPointInvoke` | `200000` | The handler. Terminal, so a filter ordered above it is never reached |
 
-| Name | Value |
-|---|---|
-| `Init` | `-10000` |
-| `FullRequestMetrics` | `-7000` |
-| `RetryFilter` | `-5000` |
-| `BeforeSerialize` | `-1` |
-| `BindParameters` | `0` |
-| `First`, `Second`, `Third` | `1`, `2`, `3` |
-| `Normal` | `100` |
-| `Last` | `int.MaxValue` |
+Every value is a relationship rather than a literal. One anchor at `Serialization` and each stage a
+thousand from its neighbour.
 
-`FilterOrder` names the positions used when registering through the filter registry:
+**The gaps are the feature.** The natural spelling of "just after authentication" is
+`FilterOrder.Authentication + 100`, and on a consecutive-integer scale that landed past
+serialization, validation and authorization. It compiled, it ran, and it meant close to the
+opposite of what was written.
 
-| Name | Value |
-|---|---|
-| `HandlerCreation` | `-1000` |
-| `BeforeSerialization` | `4` |
-| `Serialization` | `5` |
-| `Validation` | `6` |
-| `DefaultValue` | `1000` |
-| `EndPointHandlers`, `EndPointInvoke` | `2000` |
+`Before` and `After` are half a gap, for the common case of sitting between two stages:
 
-A filter that must see the response value picks a number below `Serialization`; one that must see
-the bytes picks a number above it.
+```csharp
+FilterOrder.Before + FilterOrder.ResponseCache   // just outside the cache
+FilterOrder.After + FilterOrder.Authentication   // resolve the tenant from the token
+```
+
+They do not compose. `Before + Before + Serialization` is a whole gap and lands exactly on
+`ResponseCache`. Name the earlier stage instead.
+
+### The line at serialization
+
+Everything ahead of `Serialization` can refuse a request before its body has been read, and those
+stages are in cheapest-refusal-first order. A filter on that side of the line **refuses by recording
+the failure on the response and calling `Next()` anyway**, so the serialization filter can write it.
+Behind the line, an ordinary short circuit is what stops the handler.
+
+Throwing from ahead of the line unwinds past the only thing that would have written a body, and the
+caller gets a bare 500.
+
+### Seeing what a chain composed into
+
+A handler's chain is assembled once, from the attributes on the method and its class, every global
+provider and the pinned filters, then sorted and reduced to factories. Enable the
+`Hardened.Requests.Pipeline` category at Debug and each one is written as it is built:
+
+```
+GET /orders filter chain: InstanceStandIn@-10000, TenantProvider@2000, IoStandIn@7000,
+Generic@8000, TenantProvider@10000, InvokeNoParametersFilter@200000
+```
+
+Each filter and its order, in the order they run. That answers "did my filter land where I meant?",
+and it shows an attribute that never reached the metadata or a global filter that stood down.
+
+It is its own category so it can be turned on alone. A chain is composed once per handler, so an
+application that has not enabled it pays one `IsEnabled` check per handler and nothing per request.
+
+A filter is named by the registration, or failing that by the type that made it. Give
+`RequestFilterInfo` a name to control what appears:
+
+```csharp
+yield return new RequestFilterInfo(
+    _ => new AdminAuditFilter(), FilterOrder.HandlerCreation, nameof(AdminAuditFilter));
+```
 
 ## Attaching a filter to one handler
 
@@ -102,17 +146,15 @@ to. `[Retry]` is the shipped example:
 
 ```csharp
 public class RetryAttribute : Attribute, IRequestFilterProvider {
-    public int Retries { get; set; } = 3;
+    public int Attempts { get; set; } = 3;
 
     public int SleepTime { get; set; } = 500;
 
     public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
         yield return new RequestFilterInfo(
-            context => new RetryFilter(
-                context.RequestServices.GetRequiredService<IMemoryStreamPool>(),
-                Retries,
-                SleepTime),
-            FilterOrder.HandlerCreation - 10);
+            _ => new RetryFilter(Attempts, SleepTime, TotalBudget, AllowNonIdempotent),
+            FilterOrder.Retry,
+            nameof(RetryFilter));
     }
 }
 ```
@@ -120,21 +162,33 @@ public class RetryAttribute : Attribute, IRequestFilterProvider {
 Applied like any other attribute:
 
 ```csharp
-[Post("/int/add")]
-[Retry(Retries = 4)]
-public int Add(IMathService<int> mathService, MathAddModel model) =>
-    mathService.Add(model.Values.ToArray());
+[Get("/rates/{symbol}")]
+[Retry(Attempts = 4)]
+public Rate Read(string symbol) => _upstream.Latest(symbol);
 ```
 
 `RequestFilterInfo` takes a *factory*, not an instance, so a filter can depend on request-scoped
 services. `GetFilters` receives the handler's metadata, so one attribute can behave differently
 depending on what it was applied to.
 
-::: tip Retry needs a rewindable body
-`RetryFilter` takes the memory stream pool because retrying a request means replaying its body,
-which is also why it sits at `HandlerCreation - 10` — early enough to capture the body before
-anything consumes it.
+::: tip Why retry sits behind serialization
+The filter at `Serialization` catches whatever the handler failed with, records it on the response
+and returns normally. A retry filter ordered *ahead* of it is therefore handed a request that looks
+like it succeeded, and stops after one attempt. Ordered behind it, the failure is still on the
+response when the retry filter looks, and the response is serialized once when the retry filter is
+done rather than once per attempt.
+
+It sits behind `Authorization` for a different reason. A refusal is not transient, and retrying one
+spends the whole budget re-deriving the same answer.
+
+The cost of the position is that the handler instance is created once, at `HandlerCreation`, and
+every attempt shares it. A handler that keeps mutable per-request state on itself is not one that
+can be retried.
 :::
+
+`[Retry]` declines client errors, and refuses a non-idempotent verb unless
+`AllowNonIdempotent = true`. `TotalBudget` bounds the whole thing at 10 seconds by default, because
+the caller is waiting for every attempt.
 
 ## Attaching a filter to everything
 

@@ -31,6 +31,7 @@ Source generator packages are referenced as analysers:
 | `Hardened.Requests.Runtime` | The pipeline: filters, serialisation, validation, error handling |
 | `Hardened.Requests.Testing` | Test doubles, and the transport conformance suite every `IExecutionRequest` is held to |
 | `Hardened.Requests.Serializers.Newtonsoft` | A Newtonsoft.Json serialiser, for payloads `System.Text.Json` cannot round-trip |
+| `Hardened.Requests.Caching.Memory` | `[HardenedMemoryResponseCache]`, an in-process `IResponseCacheStore`. Nothing registers a store by default; see [Response caching](/guide/response-caching) |
 
 ### Web
 
@@ -99,12 +100,13 @@ and answers 404 to everything.
 |---|---|
 | `Hardened.Amz.Shared.Lambda.Runtime` | Bootstrap, structured logging, embedded CloudWatch metrics, stage and region types |
 | `Hardened.Amz.Function.Lambda.Runtime` | `[LambdaFunctionModule]`, function invocation and the batch execution filter base |
-| `Hardened.Amz.Function.Lambda.Streaming` | Response streaming for function handlers |
 | `Hardened.Amz.Web.Lambda.Runtime` | `[LambdaWebModule]`, API Gateway proxy events onto the pipeline |
-| `Hardened.Amz.Web.Lambda.Streaming` | Response streaming for web applications |
 | `Hardened.Amz.Web.Lambda.Harness` | Runs a Lambda web application behind a local HTTP listener |
 | `Hardened.Amz.Function.DDB.Runtime` | DynamoDB Streams, with `[NewImage]` and `[OldImage]` |
 | `Hardened.Amz.Function.Sqs.Runtime` | SQS batches, with partial batch responses |
+
+Whether a response streams is `HARDENED_LAMBDA_RESPONSE_MODE`, a deployment setting rather than a
+package choice; see [Response mode](/aws/lambda-web#response-mode).
 
 ### Lambda testing
 

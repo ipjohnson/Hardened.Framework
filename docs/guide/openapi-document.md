@@ -152,7 +152,7 @@ generator did not run. The file is what [a client](/guide/clients) is generated 
 
 The same handler and the same 404, with a different contract:
 
-**Standard** — the signature names one success type and reaches its other statuses by throwing, so
+**Throws** — the signature names one success type and reaches its other statuses by throwing, so
 the generator has one status to write:
 
 ```csharp

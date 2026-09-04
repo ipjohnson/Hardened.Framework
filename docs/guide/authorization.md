@@ -10,7 +10,7 @@ authorization filter reads only that.
 [AuthorizeGrants("...")]    ─┐
 [AuthorizeGrants<T>]         │
 a derived attribute          ├──▶  one Requirement on the handler  ──▶  the authorization filter
-[Authorize<TPolicy>]         │
+[Authorize<TAuth, TPolicy>]  │
 IAuthorizationConvention    ─┘
 ```
 
@@ -126,11 +126,38 @@ public class CanManagePets : AuthorizationPolicy {
 
 ```csharp
 [Get("/pets/{petId}")]
-[Authorize<CanManagePets>]
+[Authorize<BearerAuth, CanManagePets>]
 public Task<Pet> Get(string petId) => ...;
 ```
 
 `&` binds tighter than `|`, so the parentheses are documentation rather than necessity.
+
+**The first type argument is the authentication scheme, not the policy.** `[Authorize<T>]` with one
+argument requires an authenticated caller established through `T`, and the policy rides second. A
+policy written in the first position fails the constraint at the call site, which names
+`IAuthenticationScheme`.
+
+The scheme is one line, and using it anywhere is what declares it:
+
+```csharp
+[HttpAuthenticationScheme("bearer")]
+public sealed class BearerAuth : IAuthenticationScheme;
+```
+
+```csharp
+[Post("/pets")]
+[Authorize<BearerAuth>]
+public Task<Pet> Create(Pet pet) => ...;
+```
+
+The generator collects every scheme the handlers name into the document's
+`components.securitySchemes`, and each operation carries its requirement. See
+[Authentication](/guide/authentication) for the scheme kinds and for what establishes the caller.
+
+`[Authorize<TAuth, TPolicy>]` conjoins `Requirement.Authenticated()` with the policy's own, so a
+policy that only reads the request still demands a caller. The policy is constructed once per closed
+type and its requirement built once, so writing it on a hundred handlers costs one instance and one
+tree.
 
 `Requirement` also has `Predicate` for a test over the caller and the request — "may this caller
 edit *this* pet". Using one moves the whole requirement later in the pipeline, since it may read
@@ -187,6 +214,11 @@ a referenced assembly are covered by the runtime half only, since the diagnostic
 Neither `#pragma warning disable` nor an `.editorconfig` severity affects a diagnostic reported by a
 source generator.
 :::
+
+## Where the caller comes from
+
+Everything above assumes a caller. Establishing one is `IPrincipalSource`, and an application that
+registers none stays anonymous on every request. See [Authentication](/guide/authentication).
 
 ## Resolving grants from elsewhere
 

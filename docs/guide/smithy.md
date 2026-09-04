@@ -171,13 +171,22 @@ public partial record TodoNotFound([property: Required] string Message);
 public partial record TodoTitleTaken([property: Required] string Message);
 ```
 
-Each declared error also produces an exception named for the operation and the status it belongs to,
-carrying that error's body:
+A Smithy error is a named shape, so each one also produces a type named for the shape. One type,
+however many operations bind it, rather than one per operation and status:
 
 ```csharp
-public partial class GetTodoNotFoundException : StatusCodeException { }
-public partial class CreateTodoConflictException : StatusCodeException { }
-public partial class RemoveTodoNotFoundException : StatusCodeException { }
+public partial class TodoNotFoundException : StatusCodeException { }
+public partial class TodoTitleTakenException : StatusCodeException { }
+```
+
+`GetTodo` and `RemoveTodo` both declare `TodoNotFound`, and they share the one exception. That is
+what every other Smithy code generator emits from the same model.
+
+You rarely name it. `AsException()` is generated on the error's body, so the type is written once
+rather than beside the payload it carries:
+
+```csharp
+throw new TodoNotFound($"No todo has id {id}.").AsException();
 ```
 
 Three things in that interface come from the model rather than from a choice:
@@ -212,8 +221,7 @@ public class TodoService : ITodosService {
 
     public Task<Todo> CreateTodo(NewTodo body) {
         if (_store.TitleExists(body.Title)) {
-            throw new CreateTodoConflictException(
-                new TodoTitleTaken($"A todo titled '{body.Title}' already exists."));
+            throw new TodoTitleTaken($"A todo titled '{body.Title}' already exists.").AsException();
         }
 
         return Task.FromResult(_store.Add(body.Title));
@@ -221,7 +229,7 @@ public class TodoService : ITodosService {
 
     public Task RemoveTodo(int id) {
         if (!_store.Remove(id)) {
-            throw new RemoveTodoNotFoundException(new TodoNotFound($"No todo has id {id}."));
+            throw new TodoNotFound($"No todo has id {id}.").AsException();
         }
 
         return Task.CompletedTask;
@@ -313,14 +321,19 @@ public Task<GetTodoResponse> GetTodo(int id) {
 
     if (todo is null) {
         return Task.FromResult<GetTodoResponse>(
-            new GetTodoNotFound(new TodoNotFound($"No todo has id {id}.")));
+            new TodoNotFoundError(new TodoNotFound($"No todo has id {id}.")));
     }
 
     return Task.FromResult<GetTodoResponse>(todo);
 }
 ```
 
-`Standard`, `Response` or `Union`; absent means `Standard`. See
+The error case is named for the shape as well, so `GetTodo` and `RemoveTodo` share
+`TodoNotFoundError` rather than getting one case each. The suffix is there because the payload
+record already holds the shape's own name. A success case is still named for the operation, since
+it carries the operation's own payload and has nothing to share.
+
+`Throws`, `Response` or `Union`; absent means `Throws`. See
 [Declared responses](/guide/responses).
 
 ## Serving the document
@@ -366,7 +379,7 @@ Everything downstream is identical, and a project can use both inputs together. 
 | `HardenedSmithyServiceShapeId` | Selects one service when the model declares several |
 | `HardenedSmithyCliVersion` | The CLI version this build expects. Defaults to `1.73.0` |
 | `HardenedSmithyPinCliVersion` | Whether a version mismatch fails or warns. Defaults to `ContinuousIntegrationBuild` |
-| `HardenedResponseModel` | `Standard`, `Response` or `Union` |
+| `HardenedResponseModel` | `Throws`, `Response` or `Union` |
 | `ExcludeGeneratedCodeFromCoverage` | `[ExcludeFromCodeCoverage]` on generated types. Defaults to `true` |
 
 All `HardenedSmithyModel` items in a project form **one** model in one CLI invocation, since a Smithy

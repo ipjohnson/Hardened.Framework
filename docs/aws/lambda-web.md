@@ -90,23 +90,66 @@ The request goes through the same event conversion, routing and proxy response s
 API Gateway drives, so base64 bodies, header casing and status mapping behave as they will once
 deployed.
 
-## Response streaming
+## Response mode
 
-For responses that should start arriving before they are complete — a long report, a token stream —
-there is a streaming runtime:
+Every response leaves the function in one of two ways, and the deployment decides which.
+
+| `HARDENED_LAMBDA_RESPONSE_MODE` | The function sends | Front doors that accept it |
+|---|---|---|
+| `buffered` (default) | The payload format 2.0 JSON, when the handler returns | API Gateway HTTP API, or a function URL in `BUFFERED` invoke mode |
+| `stream` | A prelude of status, headers and cookies, then the body as it is produced | A function URL in `RESPONSE_STREAM` invoke mode, with or without CloudFront in front |
+
+Reach for `stream` when a response should start arriving before it is complete. A long report, a
+token stream, or anything returning `IAsyncEnumerable<T>`.
+
+This is a deployment setting rather than an attribute because the front doors are strict and the
+function cannot tell them apart from the event. A `RESPONSE_STREAM` URL answers a plain payload
+with a 500, and a buffered front door drops the body of a streamed response. The variable is read
+once at startup, and an unrecognised value fails the application there.
+
+An application can also set it in code:
 
 ```csharp
-using Hardened.Amz.Web.Lambda.Streaming;
-
-[HardenedModule]
-[StreamingLambdaWebModule]
-public partial class Application { }
+private void Configure(IAppConfig config) {
+    config.Amend((LambdaResponseModeConfiguration mode) => mode.Mode = LambdaResponseMode.Stream);
+}
 ```
 
-It writes the Lambda response prelude and then streams the body, which needs the function deployed
-with the `RESPONSE_STREAM` invoke mode. A buffered function with a streaming runtime returns the
-prelude as part of the body, so this has to match the deployment. `Hardened.Amz.Cdk` does not
-configure the invoke mode for you today.
+Under `stream` the pipeline does not change and does not know which operations stream. The response
+body opens the Lambda response stream at its first byte, with whatever status and headers the
+pipeline had decided by then. A buffered operation is one write and a close. A handler returning
+`IAsyncEnumerable<T>` is a write per item, flushed as each item is produced. A refusal opens the
+stream with the refusal's status and a JSON body, so an `EventSource` stops rather than reconnecting
+forever.
+
+Errors follow the same rule. Before the first byte the pipeline serializes the error as usual and
+that byte opens the stream with the error's status, so the client gets a complete, correctly typed
+response. After the first byte the exception is written as trailers and the invocation is recorded
+as failed, and the client sees a truncated stream.
+
+An application with `[ServerSentEvents]` handlers deployed in buffered mode logs a warning at
+startup naming them. Their events would be delivered when the invocation ends, which is not an event
+stream. The build cannot refuse the combination, because the build does not know the deployment.
+
+### Deploying it
+
+`Hardened.Amz.Cdk` writes the variable and the invoke mode from one setting, so the two cannot
+disagree:
+
+```csharp
+var (function, url) = lambdaCdkUtil.FunctionUrlFunctionCreate(new FunctionUrlLambdaRequest {
+    Name = "orders",
+    ApplicationType = typeof(Application),
+    ResponseMode = LambdaResponseMode.Stream,
+});
+```
+
+`HttpApiFunctionCreate` refuses `ResponseMode = Stream`. An HTTP API buffers every response, so a
+stream-mode application behind one is broken rather than degraded.
+
+The function URL defaults to `AWS_IAM` authentication, which is what a CloudFront origin access
+control signs for. Set `AuthType = FunctionUrlAuthType.NONE` for an application that fronts browsers
+directly and does its own authentication.
 
 ## Testing
 

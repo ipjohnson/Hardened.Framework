@@ -203,19 +203,67 @@ public class PetService : IPetService {
 That is the whole wiring. There are no route attributes — the verbs and paths came from the
 document — and nothing to register.
 
-To explain a refusal rather than answer it with the document's default body, throw the generated
-`{Operation}{Status}Exception`:
+To explain a refusal rather than answer it with the document's default body, throw the response the
+declared status binds to:
 
 ```csharp
 public async Task<Pet?> GetPet(string petId) {
     if (await _store.IsArchived(petId)) {
-        throw new GetPetNotFoundException(
-            new Problem(Title: "Archived", Detail: $"Pet {petId} was archived."));
+        throw new NotFound<Problem>(
+            new Problem(Title: "Archived", Detail: $"Pet {petId} was archived.")).AsException();
     }
 
     return await _store.Find(petId);
 }
 ```
+
+An anonymous error, which is what a `$ref` to a shared `Problem` schema is, binds to the record the
+framework already ships for that status. The build generates nothing for it, and a code-first
+handler returns the same type. An error under a `components/responses` key keeps that name instead;
+see [When the build still generates a type](/guide/responses#when-the-build-still-generates-a-type).
+
+## What an attribute on the implementation does
+
+A `[Handler]` class implements a generated interface, and attributes go on its methods as they would
+anywhere. Which of them mean anything depends on **when** they are read.
+
+| | Read at | On a `[Handler]` method |
+|---|---|---|
+| `[Retry]`, `[RateLimit]`, `[CacheResponse<T>]`, `[Compress]`, `[ConditionalGet]`, your own `IRequestFilterProvider` | run time, off the handler's metadata | **Honoured.** This is where a per-operation filter goes in a spec-first project |
+| `[AuthorizeGrants]`, `[Authorize<TAuth>]`, `[AllowAnonymous]`, an `IAuthorizationConvention` | run time, into the handler's `Requirement` | **Honoured**, and can only narrow what the contract admits |
+| `[Throws<T>]`, `[Tag]`, `[Server]` | build time, into the document | **Inert.** The build task writes the document from the contract before the compiler runs, so it never sees them |
+
+The rule is that anything shaping the *document* has to be in the description, and anything shaping
+the *pipeline* can be on the implementation.
+
+```csharp
+[Handler]
+public class PetService : IPetService {
+
+    [CacheResponse<VaryByRoute>(Duration = 60, Scope = CacheScope.AllCallers)]
+    [ConditionalGet]
+    public Task<Pet?> GetPet(string petId) => _store.Find(petId);
+}
+```
+
+A filter can also come from the description itself, with `x-filters` on the operation:
+
+```yaml
+paths:
+  /pets/{petId}:
+    get:
+      operationId: getPet
+      x-filters:
+        Audit:
+          Category: catalog
+```
+
+Each key names a filter attribute type and its object supplies property values. `x-filter-types` at
+the document root declares the types, each with a `namespace` and its `properties`, and
+`generate: false` for one that already exists in a referenced library rather than being emitted.
+
+Reach for `x-filters` when the description is the artefact several implementations share. Reach for
+an attribute on the method when the filter belongs to this implementation.
 
 ## Declaring the whole response set
 
@@ -234,14 +282,14 @@ public Task<GetPetResponse> GetPet(string petId) {
 
     if (pet is null) {
         return Task.FromResult<GetPetResponse>(
-            new GetPetNotFound(new Problem(Detail: $"No pet has id {petId}.")));
+            new NotFound<Problem>(new Problem(Detail: $"No pet has id {petId}.")));
     }
 
     return Task.FromResult<GetPetResponse>(pet);
 }
 ```
 
-`Standard`, `Response` or `Union`; absent means `Standard`. [Declared responses](/guide/responses)
+`Throws`, `Response` or `Union`; absent means `Throws`. [Declared responses](/guide/responses)
 covers the three modes. Two rules hold in every mode: a non-200 success is honoured, so a `201` in
 the document is a 201 on the wire, and an operation declaring two 2xx statuses always gets a
 response container.

@@ -334,6 +334,11 @@ asked for, or the request gets `406`.
 public RateTable Rates() => _rates.Current;
 ```
 
+That is the header half, and it stores nothing. To store the response on the server and serve it
+again without running the handler, see [Response caching](/guide/response-caching). To answer a
+caller who already holds the response with a 304, see
+[Conditional requests](/guide/conditional-requests).
+
 ## Wiring routing into a host
 
 Routing needs the web module, and the host needs the middleware. Under ASP.NET Core:
