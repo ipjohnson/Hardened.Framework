@@ -135,17 +135,20 @@ public static class FilterOrder {
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Nothing occupies this yet.</b> <c>EntityTagHeader</c> can format and weakly compare
-    /// validators and <c>StaticContentWriter</c> is its only caller, so a client revalidating a
-    /// handler's response is still sent a full body. The slot is reserved because the position is
-    /// already decided and moving a <c>const</c> later is a silent break for anything compiled
-    /// against it.
+    /// Occupied by <c>ConditionalRequestFilter</c>, which the web module installs on every GET
+    /// handler: a request carrying <c>If-None-Match</c> or <c>If-Modified-Since</c> is answered 304
+    /// when the response it would otherwise have been given carries the validator it names. The
+    /// response cache tags every entry it stores, static content hashes what it serves, and a
+    /// handler that knows its resource's version writes <c>ETag</c> or <c>Last-Modified</c>
+    /// itself. The rule for what matches is <c>ConditionalGet</c>.
     /// </para>
     /// <para>
     /// Ahead of <see cref="ResponseCache"/>, and that ordering is the design rather than a
     /// preference. A 304 costs no body at all, so it is the cheaper answer and belongs first; and a
     /// validator filter placed inside the cache would never run on a hit, so a cached response could
-    /// never be revalidated.
+    /// never be revalidated. Outside compression for the same reason: a 304 has nothing to encode,
+    /// and the filter that would have encoded it sits inside this stage, so what it wrote is
+    /// dropped with the body.
     /// </para>
     /// </remarks>
     public const int Conditional = ResponseCache - Gap;

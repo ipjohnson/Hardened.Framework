@@ -24,6 +24,9 @@
       "name": "Compression"
     },
     {
+      "name": "Conditional"
+    },
+    {
       "name": "EnumVocabulary"
     },
     {
@@ -1135,6 +1138,26 @@
               "text/plain": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conditional/document": {
+      "get": {
+        "tags": [
+          "Conditional"
+        ],
+        "operationId": "read",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
                 }
               }
             }
@@ -2601,6 +2624,23 @@
             ],
             "minLength": 2,
             "maxLength": 2
+          }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "required": [
+          "version",
+          "served"
+        ],
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "served": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Advances only when the handler runs, so a 304 that ran it is visible."
           }
         }
       },

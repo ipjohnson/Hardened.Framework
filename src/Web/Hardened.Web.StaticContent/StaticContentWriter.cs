@@ -148,31 +148,17 @@ public static class StaticContentWriter {
     }
 
     /// <summary>
-    /// Whether the client already holds this representation.
+    /// Whether the client already holds this representation. The rule, and the order the two
+    /// conditionals are read in, is <see cref="ConditionalGet"/>'s - the same one a handler's
+    /// response is judged by.
     /// </summary>
-    /// <remarks>
-    /// <c>If-None-Match</c> wins outright when it is present, per RFC 9110 §13.2.1 - including when
-    /// it does <em>not</em> match, in which case the date is not consulted at all. A validator is a
-    /// stronger statement than a timestamp, and a client that sent both meant the validator.
-    /// </remarks>
     private static bool NotModified(
-        IExecutionContext context, StaticContentEntry entry, string? etag) {
-        var ifNoneMatch = RequestHeader(context, KnownHeaders.IfNoneMatch);
-
-        if (ifNoneMatch.Count > 0) {
-            return etag != null && EntityTagHeader.Matches(ifNoneMatch, etag);
-        }
-
-        if (entry.LastModified == null) {
-            return false;
-        }
-
-        var ifModifiedSince = RequestHeader(context, KnownHeaders.IfModifiedSince);
-
-        // Not newer than what the client was given. Equality counts as unchanged: the header has
-        // one-second precision, so "the same second" is as close to "the same" as it can express.
-        return TryParseDate(ifModifiedSince, out var since) && entry.LastModified <= since;
-    }
+        IExecutionContext context, StaticContentEntry entry, string? etag) =>
+        ConditionalGet.NotModified(
+            RequestHeader(context, KnownHeaders.IfNoneMatch),
+            RequestHeader(context, KnownHeaders.IfModifiedSince),
+            etag,
+            entry.LastModified);
 
     /// <summary>
     /// Whether a <c>Range</c> is to be honoured, given what <c>If-Range</c> says.
@@ -214,25 +200,8 @@ public static class StaticContentWriter {
         }
 
         return entry.LastModified != null &&
-               TryParseDate(ifRange, out var asOf) &&
+               HttpDate.TryParse(ifRange, out var asOf) &&
                entry.LastModified == asOf;
-    }
-
-    private static bool TryParseDate(StringValues value, out DateTimeOffset parsed) {
-        parsed = default;
-
-        if (value.Count == 0) {
-            return false;
-        }
-
-        // Round-trip through the one format HTTP writes. A client echoing a Last-Modified sends
-        // exactly what it was given, and a malformed date is ignored rather than refused.
-        return DateTimeOffset.TryParseExact(
-                   value.ToString(), "R", CultureInfo.InvariantCulture,
-                   DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out parsed) ||
-               DateTimeOffset.TryParse(
-                   value.ToString(), CultureInfo.InvariantCulture,
-                   DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out parsed);
     }
 
     private static async Task WriteAsRead(IExecutionContext context, StaticContentEntry entry) {

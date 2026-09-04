@@ -186,6 +186,14 @@ namespace Hardened.Web.Runtime.Compression
         public static string? Negotiate(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> requestHeaders, Hardened.Requests.Runtime.Compression.ICompressionConfiguration configuration, Hardened.Requests.Abstract.Compression.CompressionType favor) { }
     }
 }
+namespace Hardened.Web.Runtime.Conditional
+{
+    public sealed class ConditionalRequestFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public ConditionalRequestFilter() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+}
 namespace Hardened.Web.Runtime.Configuration
 {
     public interface IWebRoutingConfiguration

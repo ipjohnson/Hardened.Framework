@@ -502,6 +502,28 @@ public class WebExecutionHandlerServiceTests {
     }
 
     /// <summary>
+    /// A HEAD answered 304 reports no length. The count is of bytes the conditional filter
+    /// discarded, not of the body a 200 would have carried, and RFC 9110 §8.6 lets a 304 carry
+    /// <c>Content-Length</c> only when it is that one.
+    /// </summary>
+    [Fact]
+    public async Task AHeadRequestAnswered304ReportsNoLength() {
+        var fixture = new Fixture();
+
+        fixture.Context.Request.Method.Returns("HEAD");
+        fixture.Context.Response.Body = new MemoryStream();
+        fixture.Context.Response.Status.Returns(304);
+
+        var handlerChain = fixture.RouteMatches("/orders");
+
+        handlerChain.Next().Returns(_ => Task.CompletedTask);
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        Assert.False(fixture.Headers.ContainsKey("Content-Length"));
+    }
+
+    /// <summary>
     /// The body is restored in a <c>finally</c>, so a handler that throws does not leave the
     /// counting stream in place for whatever writes the error response.
     /// </summary>
