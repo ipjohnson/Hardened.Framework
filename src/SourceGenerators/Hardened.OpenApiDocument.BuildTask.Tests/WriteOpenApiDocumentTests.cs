@@ -47,8 +47,8 @@ public class WriteOpenApiDocumentTests : IDisposable {
 
         // The Smithy application's bank service repeats an operation key, which the export reports
         // under 031 and which is not what this test is about. Everything else says nothing.
-        Assert.Empty(result.Warnings.Where(warning => !warning.Code!.EndsWith(
-            WriteOpenApiDocument.RepeatedOperationKeyCode, StringComparison.Ordinal)));
+        Assert.DoesNotContain(result.Warnings, warning => !warning.Code!.EndsWith(
+            WriteOpenApiDocument.RepeatedOperationKeyCode, StringComparison.Ordinal));
 
         var expected = JsonTreeWriter.WriteIndented(JsonTree.Parse(ServedDocumentOf(assembly)));
 
@@ -125,8 +125,9 @@ public class WriteOpenApiDocumentTests : IDisposable {
         Assert.True(result.Succeeded, result.ErrorText);
 
         var warning = Assert.Single(
-            result.Warnings.Where(candidate => candidate.Code.EndsWith(
-                WriteOpenApiDocument.RepeatedOperationKeyCode, StringComparison.Ordinal)));
+            result.Warnings,
+            candidate => candidate.Code.EndsWith(
+                WriteOpenApiDocument.RepeatedOperationKeyCode, StringComparison.Ordinal));
 
         Assert.Contains("'/'", warning.Message);
         Assert.Contains("@http", warning.Message);
