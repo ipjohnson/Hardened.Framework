@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Links;
+﻿using Hardened.Requests.Abstract.Links;
 using Hardened.IntegrationTests.WebApp.SUT;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,6 +26,20 @@ public class LinkTests {
         Assert.Equal("/binding/path/42", Application.Routes.Binding.FromPath("42"));
         Assert.Equal("/binding/pair/a/b", Application.Routes.Binding.FromMultiplePathTokens("a", "b"));
         Assert.Equal("/", Application.Routes.Home.HelloWorld());
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A route whose tokens are named after C# keywords. The link method's parameters are those
+    /// names, so they have to be escaped here as well - and <c>LinkGenerator</c> is shared, so a
+    /// spec-first route with the same token reaches the same emit sites.
+    /// </summary>
+    [HardenedTest]
+    public Task RoutesBuildAPathFromTokensNamedAfterKeywords(ITestWebApp testWebApp) {
+        Assert.Equal(
+            "/binding/keyword/one/two",
+            Application.Routes.Binding.FromKeywordPathTokens("one", "two"));
 
         return Task.CompletedTask;
     }

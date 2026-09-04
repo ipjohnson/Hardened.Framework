@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Attributes;
+﻿using Hardened.Requests.Abstract.Attributes;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Attributes;
 using Xunit;
@@ -69,6 +69,51 @@ public class GeneratedCodeCompilesTests {
                 public string Handle(string id) => id;
             }
             """).AssertNoErrors();
+    }
+
+    /// <summary>
+    /// A route token named after a C# keyword. Every identifier the generator emits for it - the
+    /// Parameters property, the binder's assignment target, the handler argument - has to carry the
+    /// escape, and the wire key beside them must not.
+    /// </summary>
+    [Fact]
+    public void APathTokenNamedAfterAKeywordCompiles() {
+        var result = Generate("""
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            public class ThingController {
+                [Get("/things/{base}")]
+                public string Get(string @base) => @base;
+            }
+            """);
+
+        result.AssertNoErrors();
+
+        Assert.Contains(
+            result.GeneratedSources.Values,
+            source => source.Contains("PathTokens.Get(\"base\")"));
+    }
+
+    [Fact]
+    public void AQueryParameterNamedAfterAKeywordCompiles() {
+        var result = Generate("""
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            public class EventController {
+                [Get("/events")]
+                public string Get([FromQueryString] string @event) => @event;
+            }
+            """);
+
+        result.AssertNoErrors();
+
+        Assert.Contains(
+            result.GeneratedSources.Values,
+            source => source.Contains("QueryString.Get(\"event\")"));
     }
 
     /// <summary>

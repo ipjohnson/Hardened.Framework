@@ -20,6 +20,22 @@ public class BindingController {
     public string FromMultiplePathTokens(string first, string second) => $"{first}:{second}";
 
     /// <summary>
+    /// A route token named after a C# keyword. The path is the contract's, so the handler has no
+    /// say in it; the parameter is written <c>@base</c> because that is the only way to declare it.
+    /// </summary>
+    /// <remarks>
+    /// The generator read <c>Identifier.Text</c>, which carries the <c>@</c>, and compared it with
+    /// the token <c>base</c>. It did not match, so the parameter fell through to the body and the
+    /// build failed with HRDR005 saying nothing bound the token.
+    /// </remarks>
+    [Get("/keyword/{base}/{class}")]
+    public string FromKeywordPathTokens(string @base, string @class) => $"{@base}:{@class}";
+
+    /// <summary>The same name from a query string rather than the path.</summary>
+    [Get("/keyword-query")]
+    public string FromKeywordQuery([FromQueryString] string? @event) => @event ?? "none";
+
+    /// <summary>
     /// Deliberately overlaps /path/{id} above: same prefix, a path token in the same
     /// position, but a different token name. The route tree stores the token name on the
     /// node rather than the route, so both routes share whichever name was registered first

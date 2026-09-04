@@ -78,7 +78,7 @@ public static class ParametersClassGenerator {
         foreach (var parameterInformation in handlerModel.RequestParameterInformationList) {
             var caseBlock = switchStatement.AddCase(index++);
 
-            caseBlock.Return("this." + parameterInformation.Name + "!");
+            caseBlock.Return("this." + parameterInformation.MemberName + "!");
         }
 
         var throwMessage =
@@ -96,7 +96,7 @@ public static class ParametersClassGenerator {
 
             // this., for the reason WriteItemGetProperty gives.
             caseBlock.Assign(StaticCast(parameterInformation.ParameterType, "value"))
-                .To("this." + parameterInformation.Name);
+                .To("this." + parameterInformation.MemberName);
 
             // return, not break: break leaves the switch and falls into the throw below, so every
             // set threw IndexOutOfRangeException including the valid ones. The getter always used
@@ -114,7 +114,7 @@ public static class ParametersClassGenerator {
         foreach (var requestParameterInformation in handlerModel.RequestParameterInformationList) {
             var property = parametersClass.AddProperty(
                 requestParameterInformation.ParameterType,
-                requestParameterInformation.Name);
+                requestParameterInformation.MemberName);
 
             property.DefaultValue = CodeOutputComponent.Get("default!");
         }

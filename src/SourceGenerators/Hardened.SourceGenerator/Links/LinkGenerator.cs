@@ -1,3 +1,4 @@
+﻿using Hardened.Generation;
 using System.Text;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
@@ -104,10 +105,20 @@ public static class LinkGenerator {
         public IReadOnlyList<Parameter> Parameters { get; }
     }
 
+    /// <summary>
+    /// One argument of a generated link method.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Name"/> is escaped on the way in rather than at each of the five places that
+    /// write it, because every one of them is a C# identifier position: the declaration, the
+    /// forwarded argument, and the three spellings of the value in the URL expression. A route may
+    /// name a token <c>base</c>, and the fallback below turns a token nothing binds into a
+    /// parameter name directly, so the escape cannot be left to the model that fed it.
+    /// </remarks>
     private readonly struct Parameter {
         public Parameter(ITypeDefinition type, string name) {
             Type = type;
-            Name = name;
+            Name = NamingHelper.EscapeIdentifier(name);
         }
 
         public ITypeDefinition Type { get; }

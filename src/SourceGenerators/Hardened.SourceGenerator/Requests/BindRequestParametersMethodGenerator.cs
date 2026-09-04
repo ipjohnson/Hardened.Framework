@@ -127,12 +127,12 @@ public static class BindRequestParametersMethodGenerator {
             }
         );
 
-        invokeMethod.Assign(Await(attributeDataStatement)).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(Await(attributeDataStatement)).To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     private static void BindServiceProviderType(RequestParameterInformation parameterInformation,
         MethodDefinition invokeMethod, ParameterDefinition context, InstanceDefinition parametersVar) {
-        invokeMethod.Assign(context.Property("RequestServices")).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(context.Property("RequestServices")).To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     private static void BindFromServiceProviderType(RequestParameterInformation parameterInformation,
@@ -154,7 +154,7 @@ public static class BindRequestParametersMethodGenerator {
 
         invokeStatement.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
 
-        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     private static void BindExecutionSpecialType(RequestParameterInformation parameterInformation,
@@ -171,7 +171,7 @@ public static class BindRequestParametersMethodGenerator {
             invokeStatement = context.Property("CancellationToken");
         }
 
-        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.Name));
+        invokeMethod.Assign(invokeStatement).To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     private static void BindRequestValueToParameter(RequestParameterInformation parameterInformation,
@@ -211,7 +211,7 @@ public static class BindRequestParametersMethodGenerator {
 
         invokeMethod
             .Assign(Convert(parameterInformation, stringInvokeStatement, valueStatement, bindingName))
-            .To(parametersVar.Property(parameterInformation.Name));
+            .To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     /// <summary>
@@ -239,7 +239,7 @@ public static class BindRequestParametersMethodGenerator {
 
         invokeMethod
             .Assign(Convert(parameterInformation, stringInvokeStatement, valueStatement, bindingName))
-            .To(parametersVar.Property(parameterInformation.Name));
+            .To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     /// <summary>
@@ -329,6 +329,6 @@ public static class BindRequestParametersMethodGenerator {
             }, context));
 
         invokeMethod.Assign(Bang(Parenthesis(deserializeStatement)))
-            .To(parametersVar.Property(parameterInformation.Name));
+            .To(parametersVar.Property(parameterInformation.MemberName));
     }
 }

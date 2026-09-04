@@ -249,7 +249,7 @@ public static class InvokeMethodCodeGenerator {
                 InvokeClassGenerator.ParametersType(requestHandlerModel), "parameters");
 
             foreach (var parameterInformation in requestHandlerModel.RequestParameterInformationList) {
-                invoke.AddArgument(parameters.Property(parameterInformation.Name));
+                invoke.AddArgument(parameters.Property(parameterInformation.MemberName));
             }
         }
     }

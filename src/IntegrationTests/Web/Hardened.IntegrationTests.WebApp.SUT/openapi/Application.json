@@ -417,6 +417,77 @@
         }
       }
     },
+    "/binding/keyword-query": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromKeywordQuery",
+        "summary": "The same name from a query string rather than the path.",
+        "parameters": [
+          {
+            "name": "event",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/keyword/{base}/{class}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromKeywordPathTokens",
+        "summary": "A route token named after a C# keyword. The path is the contract's, so the handler has no say in it; the parameter is written @base because that is the only way to declare it.",
+        "description": "The generator read Identifier.Text, which carries the @, and compared it with the token base. It did not match, so the parameter fell through to the body and the build failed with HRDR005 saying nothing bound the token.",
+        "parameters": [
+          {
+            "name": "base",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "class",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/binding/mixed/{id}": {
       "get": {
         "tags": [

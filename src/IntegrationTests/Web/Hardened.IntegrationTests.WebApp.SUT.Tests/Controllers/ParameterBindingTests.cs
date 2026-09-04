@@ -100,6 +100,44 @@ public class ParameterBindingTests {
     /// [FromHeader] binding. Documented since the framework's first release and, until the
     /// generator fix, incapable of compiling.
     /// </summary>
+    #region a token named after a keyword
+
+    /// <summary>
+    /// A route token named after a C# keyword. The path belongs to the contract, so the only way to
+    /// declare its parameter is <c>@base</c> - and the generator compared that spelling, escape
+    /// included, against the token <c>base</c>. It never matched, so the parameter went to the body
+    /// and the build failed with HRDR005.
+    /// </summary>
+    [HardenedTest]
+    public async Task APathTokenNamedAfterAKeywordBinds(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/keyword/one/two");
+
+        response.Assert.Ok();
+        Assert.Equal("one:two", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// And the wire name is the token, not the escape - a caller sends <c>event</c>, and a
+    /// validation error names <c>event</c>.
+    /// </summary>
+    [HardenedTest]
+    public async Task AQueryParameterNamedAfterAKeywordBindsByItsUnescapedName(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/keyword-query?event=started");
+
+        response.Assert.Ok();
+        Assert.Equal("started", response.Deserialize<string>());
+    }
+
+    [HardenedTest]
+    public async Task AQueryParameterNamedAfterAKeywordIsStillOptional(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/binding/keyword-query");
+
+        response.Assert.Ok();
+        Assert.Equal("none", response.Deserialize<string>());
+    }
+
+    #endregion
+
     #region collections
 
     /// <summary>
