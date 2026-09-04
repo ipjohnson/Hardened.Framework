@@ -50,6 +50,7 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[FromServices]` | Parameter | Binds from the container |
 | `[Output<T>]` | Method | Hands the response to a [view or other output](/guide/templates) instead of serialising it. Takes the response out of negotiation: unsupported `Accept` is a `406` |
 | `[RawResponse(contentType?)]` | Method | [Commits](/guide/content-negotiation#forcing-a-content-type) the response to a content type and writes the value unstructured. Defaults to `text/plain` |
+| `[Throws<T>(status?)]` | Method | [Declares a thrown response](/guide/responses#declaring-what-a-handler-throws) for the document. The status comes from `T`'s `[HttpStatus]`, or from the argument |
 
 `ICustomBindingAttribute` is the interface an attribute implements to bind a parameter itself — see
 [Parameter binding](/guide/parameter-binding#custom-binding).

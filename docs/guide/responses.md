@@ -32,13 +32,43 @@ public Todo ById(ITodoStore store, int id) {
 `AsException()` wraps any built-in response type in a `ResponseException`, which carries the status
 and the body. The 404 a client sees is identical to the one the declared modes return; what differs
 is that nothing in the signature says this route can answer it, so nothing checks that you handled
-it and the generated document describes only the 200.
+it and the generated document describes only the 200. `[Throws<T>]` below is how this mode gets
+its failures into the document anyway.
 
 **One success, and only one.** The route attribute names the status that success answers, so
 `[Post("/todos", SuccessStatus = 201)]` is a 201 without a response set. What this mode cannot do
 is carry a second success case: returning `Created<Todo>` serialises it as an ordinary body at the
 declared status, not as a case of its own. Specification-first declares the status in the contract
 instead; see [below](#specification-first).
+
+### Declaring what a handler throws
+
+A throw is a statement in a method body, and nothing about the signature says it can happen.
+`[Throws<T>]` is the declaration the signature cannot make:
+
+```csharp
+[Get("/pets/{petId}")]
+[Throws<NotFound>]
+[Throws<RateLimited>]
+public Task<Pet> GetPet(string petId) { ... }
+```
+
+Each declaration becomes a response in the published document, beside the success the return type
+already describes. In the second trial's measurement this was the difference between a document
+carrying 26 statuses and one carrying 12: without it, a standard-mode application publishes its
+200s and nothing else, and a client generated from that document has no branch for any failure.
+
+The status comes from the type. `RateLimited` carries `[HttpStatus(429)]`, which is the same
+attribute a `Response<>` or union case is read by, so one vocabulary serves all three modes. A
+type carrying no `[HttpStatus]` states the status in the declaration instead:
+`[Throws<Conflict>(409)]`. A declaration naming neither is `HRDT001`, an error, because a
+response the author wrote down and the document does not carry is worse than one they never
+wrote. `Description` on the attribute overrides the document's wording for that response.
+
+`[Throws<T>]` promises nothing about the method body. It does not assert that the handler throws
+this, nor that it throws nothing else; an unmapped exception is unplanned by definition and
+already has somewhere to land. A handler that wants the compiler checking the set declares it in
+the signature with the modes below.
 
 ## Response
 
@@ -194,8 +224,9 @@ signature widens instead. Two schemas at *one* status are a `oneOf` rather than 
 
 | | |
 |---|---|
+| `HRDT001` | a `[Throws<T>]` names a type with no `[HttpStatus]` and states no status of its own |
 | `HRDRM003` | a case is `object` or `dynamic`, so the dispatch would answer that case's status for every response |
 | `HRDRM004` | two cases at different statuses where one is assignable to the other, so the document describes two statuses whose schemas overlap |
 
-Both are errors rather than warnings: the switch compiles and runs either way, and the damage lands
+All are errors rather than warnings: the build compiles and runs either way, and the damage lands
 in the shipped contract.
