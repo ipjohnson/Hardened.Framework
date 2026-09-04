@@ -238,7 +238,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         // was turned away, from an entry a permitted caller filled. Both refusers sit ahead of this
         // stage precisely so they settle first; reading what they recorded is what makes that
         // ordering mean anything.
-        if (context.Response.ExceptionValue != null) {
+        if (context.Response.Refused) {
             await chain.Next();
 
             return;
@@ -468,7 +468,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// is served for a minute.
     /// </remarks>
     private static bool IsStorable(IExecutionResponse response) =>
-        response.ExceptionValue == null && (response.Status ?? 200) == 200;
+        !response.Refused && (response.Status ?? 200) == 200;
 
     /// <summary>
     /// Puts an entity-tag on a response that has none, computed from the bytes about to be stored.

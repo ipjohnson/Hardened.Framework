@@ -433,6 +433,7 @@ namespace Hardened.Requests.Abstract.Execution
         bool IsBinary { get; set; }
         Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
         System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
+        bool Refused { get; }
         bool ResponseStarted { get; }
         object? ResponseValue { get; set; }
         bool ShouldSerialize { get; set; }
