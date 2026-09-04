@@ -1,9 +1,10 @@
-﻿using DependencyModules.Runtime.Attributes;
+using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Filters;
+using Hardened.Requests.Runtime.Streaming;
 using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Execution;
@@ -12,12 +13,15 @@ namespace Hardened.Requests.Runtime.Execution;
 public class IOFilterProvider : IIOFilterProvider {
     private readonly IContextSerializationService _contextSerializationService;
     private readonly Action<IExecutionContext>? _headerActions;
+    private readonly TimeSpan _heartbeatInterval;
 
     public IOFilterProvider(
         IContextSerializationService contextSerializationService,
-        IOptions<IResponseHeaderConfiguration> responseHeaderConfiguration) {
+        IOptions<IResponseHeaderConfiguration> responseHeaderConfiguration,
+        IOptions<IStreamingConfiguration> streamingConfiguration) {
         _contextSerializationService = contextSerializationService;
         _headerActions = SetupHeaderActions(responseHeaderConfiguration.Value);
+        _heartbeatInterval = streamingConfiguration.Value.HeartbeatInterval;
     }
 
     private Action<IExecutionContext>? SetupHeaderActions(IResponseHeaderConfiguration responseHeaderConfiguration) {
@@ -70,7 +74,7 @@ public class IOFilterProvider : IIOFilterProvider {
     }
 
     /// <summary>
-    /// The streamed filter, framed the way the handler asked for.
+    /// The streamed filter, framed the way the handler asked for, with the configured heartbeat.
     /// </summary>
     /// <remarks>
     /// An overload rather than a changed signature: <c>IIOFilterProvider</c> is public, and a
@@ -85,7 +89,8 @@ public class IOFilterProvider : IIOFilterProvider {
             deserializeRequest,
             _contextSerializationService.SerializeResponse,
             _headerActions,
-            framing
+            framing,
+            _heartbeatInterval
         );
     }
 }

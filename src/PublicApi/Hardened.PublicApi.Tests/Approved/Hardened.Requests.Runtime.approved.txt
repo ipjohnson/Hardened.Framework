@@ -385,7 +385,7 @@ namespace Hardened.Requests.Runtime.Execution
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class IOFilterProvider : Hardened.Requests.Abstract.RequestFilter.IIOFilterProvider
     {
-        public IOFilterProvider(Hardened.Requests.Abstract.Serializer.IContextSerializationService contextSerializationService, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IResponseHeaderConfiguration> responseHeaderConfiguration) { }
+        public IOFilterProvider(Hardened.Requests.Abstract.Serializer.IContextSerializationService contextSerializationService, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IResponseHeaderConfiguration> responseHeaderConfiguration, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Streaming.IStreamingConfiguration> streamingConfiguration) { }
         public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest) { }
         public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing) { }
         public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest) { }
@@ -413,7 +413,7 @@ namespace Hardened.Requests.Runtime.Filters
 {
     public class AsyncEnumerableIoFilter<TItem> : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
-        public AsyncEnumerableIoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing = null) { }
+        public AsyncEnumerableIoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing = null, System.TimeSpan heartbeatInterval = default) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
     public class ConditionalFilterProvider : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
@@ -455,6 +455,7 @@ namespace Hardened.Requests.Runtime.Filters
         public NdjsonFraming() { }
         public string ContentType { get; }
         public System.Threading.Tasks.ValueTask WriteCompletion(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.ValueTask<bool> WriteHeartbeat(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
@@ -485,6 +486,7 @@ namespace Hardened.Requests.Runtime.Filters
         public SseFraming() { }
         public string ContentType { get; }
         public System.Threading.Tasks.ValueTask WriteCompletion(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.ValueTask<bool> WriteHeartbeat(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
     }
 }
@@ -846,6 +848,23 @@ namespace Hardened.Requests.Runtime.Serializer
         public bool IsDefaultSerializer { get; }
         public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+}
+namespace Hardened.Requests.Runtime.Streaming
+{
+    public interface IStreamingConfiguration
+    {
+        System.TimeSpan HeartbeatInterval { get; }
+    }
+    public class StreamingConfiguration : Hardened.Requests.Runtime.Streaming.IStreamingConfiguration
+    {
+        public static readonly System.TimeSpan DefaultHeartbeatInterval;
+        public StreamingConfiguration() { }
+        public System.TimeSpan HeartbeatInterval { get; set; }
+    }
+    public static class StreamingServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureStreaming(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Hardened.Requests.Runtime.Streaming.StreamingConfiguration> configure) { }
     }
 }
 namespace Hardened.Requests.Runtime.Validation

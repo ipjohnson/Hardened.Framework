@@ -324,6 +324,35 @@ public class RetryFilterTests {
     }
 
     /// <summary>
+    /// A response with bytes on the wire is not run again. A fork onto a body that already holds
+    /// part of an answer would write a second answer after it, and nothing can take the first
+    /// back - so a started response is treated like an exhausted budget, whatever the failure was.
+    /// The guard is for a handler or a filter that writes to the body itself; a streaming handler
+    /// never trips it, because its enumeration runs outside the fork.
+    /// </summary>
+    [Fact]
+    public async Task Execute_DoesNotAttemptAgainOnceTheResponseHasStarted() {
+        var attempts = 0;
+        var context = Pipeline.Context();
+
+        var downstream = new Pipeline.Inline(chain => {
+            attempts++;
+
+            chain.Context.Response.Body.WriteByte((byte)'x');
+            chain.Context.Response.ExceptionValue =
+                new InvalidOperationException("after the first byte");
+
+            return Task.CompletedTask;
+        });
+
+        await Pipeline.Chain(context, Filter(attempts: 3), downstream).Next();
+
+        Assert.Equal(1, attempts);
+        Assert.Equal(1, context.Response.Body.Length);
+        Assert.Equal("after the first byte", context.Response.ExceptionValue?.Message);
+    }
+
+    /// <summary>
     /// The budget stops the attempts even when the count has not been reached.
     /// </summary>
     [Fact]

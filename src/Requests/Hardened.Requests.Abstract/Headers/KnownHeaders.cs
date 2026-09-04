@@ -13,6 +13,28 @@ public static class KnownHeaders {
 
     public const string CacheControl = "Cache-Control";
 
+    /// <summary>
+    /// The id of the last event a reconnecting <c>EventSource</c> received.
+    /// </summary>
+    /// <remarks>
+    /// Sent by the client on its own, on every reconnect, carrying the last <c>id:</c> field it
+    /// saw. A streaming handler that binds it can resume after that event rather than replaying
+    /// from the start. Hosts deliver header names in whatever case they like - API Gateway and a
+    /// function URL lower-case them - and the header collection matches without regard to case.
+    /// </remarks>
+    public const string LastEventId = "Last-Event-ID";
+
+    /// <summary>
+    /// Whether an nginx in front of this response may buffer it. Everything else ignores it.
+    /// </summary>
+    /// <remarks>
+    /// <c>no</c> turns proxy buffering off for one response, which is what lets a streamed body
+    /// reach the client as it is written rather than when the proxy's buffer fills. Written on
+    /// every event stream, because a stream that works locally and stalls behind a default nginx
+    /// is otherwise a support ticket.
+    /// </remarks>
+    public const string XAccelBuffering = "X-Accel-Buffering";
+
     public const string ContentEncoding = "Content-Encoding";
 
     public const string ContentType = "Content-Type";

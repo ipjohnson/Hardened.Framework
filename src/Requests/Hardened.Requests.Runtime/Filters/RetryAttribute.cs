@@ -16,6 +16,14 @@ namespace Hardened.Requests.Runtime.Filters;
 /// backoff, which is amplification arriving exactly when the system can least absorb it.
 /// </para>
 /// <para>
+/// <b>On a streaming handler a retry covers the call, never the enumeration.</b> A handler
+/// returning <c>IAsyncEnumerable&lt;T&gt;</c> returns a lazy sequence, and an attempt ends when the
+/// call does; the items are produced afterwards, by the filter that writes them, outside any
+/// attempt. So a failure producing the sequence is retried and a failure while enumerating it is
+/// not - it ends the stream, and the client comes back with <c>Last-Event-ID</c>. Making the
+/// enumeration safe to run again is the author's job, and the event id is the tool for it.
+/// </para>
+/// <para>
 /// See <see cref="FilterOrder.Retry"/> for why the filter sits where it does, and what that costs.
 /// </para>
 /// </remarks>

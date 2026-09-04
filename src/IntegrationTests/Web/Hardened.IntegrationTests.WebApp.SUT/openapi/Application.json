@@ -2377,6 +2377,165 @@
         }
       }
     },
+    "/streaming/events-fail-after-first": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "eventsFailAfterFirst",
+        "summary": "Fails after its first event, which is already with the client.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/events-fail-before-first": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "eventsFailBeforeFirst",
+        "summary": "Fails before its first event. The iterator has begun and nothing has reached the wire, so the failure is an error document rather than an empty stream.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/events-guarded": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "eventsGuarded",
+        "summary": "A guarded event stream, for what a refusal on one looks like on the wire.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/events-resume": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "eventsResume",
+        "summary": "The reconnect contract in one handler: resume after the event the client last saw, and end the subscription with a 204 once there is nothing more to say.",
+        "description": "An EventSource sends Last-Event-ID on its own. This reads it, replays from the event after it, and answers the reconnect that arrives holding the last id with a 204 - the one status that makes the client stop. The 204 is decided inside the iterator, which is the natural place to write it and the case the filter has to get right: the status is set after the handler call returned, at the first MoveNextAsync.",
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/events-retry-after-first": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "eventsRetryAfterFirst",
+        "summary": "Under [Retry], yields one event and fails. The retry filter wraps the call that produced the sequence, not the enumeration, so the failure is not retried and the event is not duplicated.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/events-retry-call": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "eventsRetryCall",
+        "summary": "Under [Retry], throws on the first call and returns the sequence on the second. The call is what a retry covers, so the events arrive.",
+        "description": "Not an iterator, on purpose: an iterator's body runs at enumeration, outside the retry fork. The controller is transient, so the count is per request, and both attempts share the instance - which is the documented cost of where FilterOrder.Retry sits.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/events-slow": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "eventsSlow",
+        "summary": "Two events with a silence between them longer than the heartbeat interval a test sets.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/streaming/events-with-ids": {
       "get": {
         "tags": [
@@ -2406,6 +2565,27 @@
         ],
         "operationId": "models",
         "summary": "A model per line, which is the case that used to throw.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-ndjson": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/models-guarded": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "modelsGuarded",
+        "summary": "The newline-delimited twin of .",
         "responses": {
           "200": {
             "description": "OK",

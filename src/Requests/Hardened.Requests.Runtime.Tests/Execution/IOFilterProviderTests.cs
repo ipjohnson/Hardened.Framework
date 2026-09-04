@@ -3,6 +3,7 @@ using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
+using Hardened.Requests.Runtime.Streaming;
 using Hardened.Requests.Runtime.Tests.Support;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -29,7 +30,9 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// </remarks>
 public class IOFilterProviderTests {
 
-    private static IOFilterProvider Provider(Action<ResponseHeaderConfiguration>? configure = null) {
+    private static IOFilterProvider Provider(
+        Action<ResponseHeaderConfiguration>? configure = null,
+        TimeSpan? heartbeatInterval = null) {
         var configuration = new ResponseHeaderConfiguration();
 
         configure?.Invoke(configuration);
@@ -38,8 +41,45 @@ public class IOFilterProviderTests {
 
         serialization.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
 
+        var streaming = new StreamingConfiguration();
+
+        if (heartbeatInterval != null) {
+            streaming.HeartbeatInterval = heartbeatInterval.Value;
+        }
+
         return new IOFilterProvider(
-            serialization, Options.Create<IResponseHeaderConfiguration>(configuration));
+            serialization,
+            Options.Create<IResponseHeaderConfiguration>(configuration),
+            Options.Create<IStreamingConfiguration>(streaming));
+    }
+
+    /// <summary>
+    /// The configured interval reaches the streamed filter. Asserted through a stream that is quiet
+    /// for longer than it, because the interval is otherwise invisible from outside.
+    /// </summary>
+    [Fact]
+    public async Task TheConfiguredHeartbeatIntervalReachesTheStreamedFilter() {
+        var filter = Provider(heartbeatInterval: TimeSpan.FromMilliseconds(10))
+            .ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters, SseFraming.Instance);
+
+        var context = Pipeline.Context();
+
+        await Pipeline.Chain(context, filter,
+            new Pipeline.Inline(c => {
+                c.Context.Response.ResponseValue = QuietThenOne();
+
+                return Task.CompletedTask;
+            })).Next();
+
+        var body = System.Text.Encoding.UTF8.GetString(((MemoryStream)context.Response.Body).ToArray());
+
+        Assert.Contains(": keep-alive\n\n", body);
+    }
+
+    private static async IAsyncEnumerable<string> QuietThenOne() {
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+
+        yield return "one";
     }
 
     private static IExecutionRequestHandlerInfo HandlerInfo() =>

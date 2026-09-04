@@ -57,6 +57,7 @@ public class ExceptionResponseSerializer : IExceptionResponseSerializer {
     /// operation's success.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The operation's own representations get first refusal, so a caller of a JSON operation
     /// still gets JSON errors and an XML one XML. But those representations were declared for the
     /// success body, and an error model often is not writable as any of them - a
@@ -67,6 +68,18 @@ public class ExceptionResponseSerializer : IExceptionResponseSerializer {
     /// keeps the second pass out of the declared-set tier that just refused - and located again.
     /// A <see cref="NotAcceptableException"/> is not caught: the client's stated preference is a
     /// different question, answered where it always was.
+    /// </para>
+    /// <para>
+    /// <b>A refused event stream is a refused request, not an event stream.</b> A browser
+    /// <c>EventSource</c> sends <c>Accept: text/event-stream</c>, and a refusal on that route - an
+    /// authorization failure, a bind failure, a throw before the first item - arrives here with no
+    /// content type committed, because the streaming filter commits one only once it has something
+    /// to write. Nothing produces <c>text/event-stream</c> for an error model, so the locator
+    /// falls through to the default serializer and the answer is JSON under the refusal's status.
+    /// That is the outcome the standard requires: a status other than 200, or a body not typed
+    /// <c>text/event-stream</c>, makes the client fail the connection and stop, where
+    /// <c>text/event-stream</c> around a JSON object would be parsed as garbage and reconnected to
+    /// forever. <c>StreamingTests</c> pins it through a real refusal.
     /// </remarks>
     private IResponseSerializer FindErrorSerializer(IExecutionContext context) {
         try {

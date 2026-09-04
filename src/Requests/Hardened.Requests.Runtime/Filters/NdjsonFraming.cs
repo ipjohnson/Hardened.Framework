@@ -39,4 +39,10 @@ public class NdjsonFraming : IStreamFraming {
 
         return default;
     }
+
+    /// <summary>
+    /// Nothing. The format has no comment syntax, and a blank line is not an item every reader
+    /// skips, so a quiet NDJSON stream cannot be kept alive from inside the body.
+    /// </summary>
+    public ValueTask<bool> WriteHeartbeat(IExecutionContext context) => new(false);
 }
