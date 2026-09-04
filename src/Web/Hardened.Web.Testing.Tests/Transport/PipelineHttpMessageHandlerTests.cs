@@ -37,6 +37,42 @@ public class PipelineHttpMessageHandlerTests {
         Assert.Equal(expected, Assert.Single(host.Contexts).Request.Path);
     }
 
+    /// <summary>
+    /// The public constructor, for a test with nothing but a root provider in hand.
+    /// </summary>
+    [Fact]
+    public async Task TheHandlerIsConstructibleFromTheRootProviderAlone() {
+        var host = new PipelineHost();
+
+        using var client = new HttpClient(new PipelineHttpMessageHandler(host.Provider)) {
+            BaseAddress = new Uri("http://harness/")
+        };
+        using var response = await client.GetAsync("/plain", TestContext.Current.CancellationToken);
+
+        Assert.Equal("/plain", Assert.Single(host.Contexts).Request.Path);
+        Assert.False(Assert.Single(host.Contexts).Request.Headers.ContainsKey("X-Test-Grants"));
+    }
+
+    /// <summary>
+    /// A message with no base address behind it, which the translation takes as it is: a missing
+    /// URI is the root, a relative one is rooted whether or not it was written with a slash.
+    /// </summary>
+    [Theory]
+    [InlineData(null, "/")]
+    [InlineData("/things/1?page=2", "/things/1")]
+    [InlineData("things/1", "/things/1")]
+    public async Task AMessageWithoutABaseAddressIsRootedAsWritten(string? uri, string expectedPath) {
+        using var message = new HttpRequestMessage(HttpMethod.Get, uri == null ? null : new Uri(uri, UriKind.Relative));
+
+        var request = await PipelineHttpMessageHandler.CreateRequestAsync(message, null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedPath, request.Path);
+
+        if (uri != null && uri.Contains('?')) {
+            Assert.Equal("2", request.QueryString.Get("page").ToString());
+        }
+    }
+
     [Fact]
     public async Task ARelativeUrlResolvesAgainstTheBaseAddressTheHandlerIgnores() {
         var host = new PipelineHost();
@@ -108,6 +144,25 @@ public class PipelineHttpMessageHandlerTests {
         Assert.Equal("text/plain", response.Content.Headers.ContentType!.MediaType);
         Assert.Equal("made", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Equal(4, response.Content.Headers.ContentLength);
+    }
+
+    /// <summary>
+    /// The content's length is the body's, whatever the pipeline wrote in the header: a length the
+    /// bytes contradict would be a message the client refuses to read.
+    /// </summary>
+    [Fact]
+    public async Task AContentLengthThePipelineWroteIsReplacedByTheBodys() {
+        var host = new PipelineHost(context => {
+            context.Response.Headers[KnownHeaders.ContentLength] = "999";
+
+            return context.Response.Body.WriteAsync("four"u8.ToArray()).AsTask();
+        });
+
+        using var client = host.Client();
+        using var response = await client.GetAsync("/sized", TestContext.Current.CancellationToken);
+
+        Assert.Equal(4, response.Content.Headers.ContentLength);
+        Assert.Equal("four", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Json;
@@ -25,7 +26,7 @@ public class TestWebApp : TestContext, ITestWebApp {
     /// </param>
     /// <param name="testAssembly">
     /// Where <see cref="CreateClient{TClient}"/> looks for an <see cref="ITestClientFactory{TClient}"/>.
-    /// The entry assembly when null, which is the test assembly under xUnit v3.
+    /// The calling assembly when null.
     /// </param>
     public TestWebApp(
         IApplicationRoot applicationRoot, ILogger logger, TestCredential? credential, Assembly? testAssembly)
@@ -66,11 +67,17 @@ public class TestWebApp : TestContext, ITestWebApp {
     public HttpClient CreateHttpClient(TestCredential? credential = null) =>
         TestClientBuilder.CreateHttpClient(_applicationRoot.Provider, credential ?? _credential);
 
+    /// <remarks>
+    /// The factory is looked for in the test assembly the harness was built for, and for an
+    /// instance built by hand in the assembly that is calling - which is the test assembly too,
+    /// and stays so because the method is never inlined into its caller.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public TClient CreateClient<TClient>(TestCredential? credential = null) where TClient : class =>
         (TClient)TestClientBuilder.Build(
             typeof(TClient),
             CreateHttpClient(credential),
-            _testAssembly ?? Assembly.GetEntryAssembly() ?? typeof(TClient).Assembly);
+            _testAssembly ?? Assembly.GetCallingAssembly());
 
     private async Task<TestWebResponse> ExecuteHttpMethod(string httpMethod, string path,
         Action<TestWebRequest>? webRequest, object? bodyValue = null) {

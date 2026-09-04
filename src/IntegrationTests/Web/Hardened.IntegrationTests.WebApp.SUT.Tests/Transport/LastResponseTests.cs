@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 
@@ -56,6 +57,57 @@ public class LastResponseTests {
 
         Assert.Contains(nameof(ReadingItBeforeAnyRequestFailsNamingTheTest), failure.Message);
         Assert.False(LastResponse.IsAvailable);
+    }
+
+    /// <summary>
+    /// While the runner prepares a test - building its container and resolving its parameters -
+    /// xUnit has the test method in scope and neither a test nor a test case yet. A response
+    /// answered there is not kept, and the test body starts with nothing on record.
+    /// </summary>
+    [HardenedTest]
+    public async Task WhileTheTestIsPreparedNothingIsKept([WhilePreparing] Preparation seen, ITestWebApp app) {
+        Assert.True(seen.TestWasAbsent);
+        Assert.True(seen.CaseWasAbsent);
+        Assert.Equal(nameof(WhileTheTestIsPreparedNothingIsKept), seen.MethodName);
+        Assert.Contains("there is no test running", seen.Message);
+        Assert.False(seen.AvailableAfterARequest);
+
+        Assert.False(LastResponse.IsAvailable);
+
+        await app.Get("/authorization/open");
+
+        Assert.True(LastResponse.IsAvailable);
+    }
+
+    public sealed record Preparation(bool TestWasAbsent, bool CaseWasAbsent, string MethodName, string Message, bool AvailableAfterARequest);
+
+    /// <summary>Runs inside the runner's preparation of the test case, and reports what it saw.</summary>
+    [AttributeUsage(AttributeTargets.Parameter)]
+    private sealed class WhilePreparingAttribute : Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestParameterValueProvider {
+        public void SetupServiceCollection(
+            DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod,
+            Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection,
+            System.Reflection.ParameterInfo parameter) {
+        }
+
+        public async Task<object?> GetParameterValueAsync(
+            DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod,
+            IServiceProvider serviceProvider,
+            System.Reflection.ParameterInfo parameter) {
+            var context = TestContext.Current;
+            var message = Assert.Throws<InvalidOperationException>(() => LastResponse.Status).Message;
+
+            var app = serviceProvider.GetRequiredService<ITestWebApp>();
+
+            await app.Get("/authorization/open");
+
+            return new Preparation(
+                context.Test == null,
+                context.TestCase == null,
+                context.TestMethod?.MethodName ?? "",
+                message,
+                LastResponse.IsAvailable);
+        }
     }
 }
 

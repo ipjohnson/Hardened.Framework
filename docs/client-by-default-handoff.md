@@ -52,6 +52,11 @@ records what happened when they met the code.
   `exclusiveMinimum`/`exclusiveMaximum` and a `type` array with `"null"`, into the 3.0 forms. A
   3.0 reader refuses the 2020-12 spellings, and the generator itself writes the bounds the 3.0 way
   under a 3.0 banner; the nullable type array the generator writes regardless of version.
+- `LastResponse` is keyed on `TestContext.Current.Test` alone. The order's fallback to the test
+  case being prepared turned out to be dead: the DependencyModules runner builds the container
+  and resolves parameters inside xUnit's test-method stage, where the context has the method and
+  neither a test nor a test case, so a request answered there is not kept and a read there says
+  no test is running. The test body, where assertions live, always has the test.
 - The credential attributes on a parameter are `ITestParameterValueProvider`s, which is how two
   parameters of one client type carry two credentials without a new hook in the runner: the
   attributed parameter is built by its attribute, the bare one resolves the instance

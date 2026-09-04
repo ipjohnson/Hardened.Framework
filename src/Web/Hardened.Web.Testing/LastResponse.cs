@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Hardened.Requests.Abstract.Execution;
 using Microsoft.Extensions.Primitives;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Hardened.Web.Testing;
 
@@ -25,11 +26,11 @@ namespace Hardened.Web.Testing;
 /// <para>
 /// Keyed on xUnit v3's <see cref="TestContext.Current"/>, which is per test and flows through
 /// async code, rather than on an <c>AsyncLocal</c> of the harness's own. The
-/// <c>DependencyModules</c> runner builds the container and runs the startup attributes inside
-/// xUnit's own test-case pipeline and invokes the method inside its test pipeline, so the context
-/// is in place for both; <c>LastResponseTests</c> is what says so rather than this remark. A
-/// request answered while the test case is being prepared is kept under the case, and one answered
-/// in the test body under the test, which is where the assertions are.
+/// <c>DependencyModules</c> runner invokes the test method inside xUnit's own test pipeline, so the
+/// context names the test everywhere an assertion can run; <c>LastResponseTests</c> is what says so
+/// rather than this remark. It builds the container and resolves the parameters earlier, inside
+/// the test-method stage, where xUnit has the method in scope and no test or test case yet - a
+/// request answered there is not kept, and reading this there says no test is running.
 /// </para>
 /// <para>
 /// Reading it before anything was answered fails naming the test, because a stale response from
@@ -38,7 +39,7 @@ namespace Hardened.Web.Testing;
 /// </remarks>
 public static class LastResponse {
 
-    private static readonly ConditionalWeakTable<object, Recorded> Responses = new();
+    private static readonly ConditionalWeakTable<ITest, Recorded> Responses = new();
 
     /// <summary>The status the pipeline answered, 200 where it set none.</summary>
     public static int Status => Current().Status;
@@ -71,18 +72,14 @@ public static class LastResponse {
     }
 
     private static Recorded Current() {
-        var context = TestContext.Current;
-
         if (Key() is not { } key) {
             throw new InvalidOperationException(
                 "LastResponse is kept per running xUnit test, and there is no test running.");
         }
 
         if (!Responses.TryGetValue(key, out var recorded)) {
-            var name = context.Test?.TestDisplayName ?? context.TestCase?.TestCaseDisplayName ?? "this test";
-
             throw new InvalidOperationException(
-                $"LastResponse has nothing to report: no request has been answered through the pipeline in '{name}'. " +
+                $"LastResponse has nothing to report: no request has been answered through the pipeline in '{key.TestDisplayName}'. " +
                 "Send one through ITestWebApp, or through a client it built, before reading it.");
         }
 
@@ -90,14 +87,10 @@ public static class LastResponse {
     }
 
     /// <summary>
-    /// The test if one is running, else the test case being prepared - both per test and both
-    /// held by xUnit for exactly as long as the test lives, which is what lets the table be weak.
+    /// The running test, which xUnit holds for exactly as long as the test lives - what lets the
+    /// table be weak - or null outside one.
     /// </summary>
-    private static object? Key() {
-        var context = TestContext.Current;
-
-        return (object?)context.Test ?? context.TestCase;
-    }
+    private static ITest? Key() => TestContext.Current.Test;
 
     private sealed record Recorded(
         int Status,

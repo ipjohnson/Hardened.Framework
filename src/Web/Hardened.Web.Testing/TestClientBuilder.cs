@@ -176,16 +176,7 @@ internal static class TestClientBuilder {
     private static IReadOnlyDictionary<Type, Type> Discover(Assembly assembly) {
         var factories = new Dictionary<Type, Type>();
 
-        Type[] types;
-
-        try {
-            types = assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException failure) {
-            types = failure.Types.Where(type => type != null).ToArray()!;
-        }
-
-        foreach (var type in types) {
+        foreach (var type in assembly.GetTypes()) {
             if (!type.IsClass || type.IsAbstract || !type.IsPublic || type.GetConstructor(Type.EmptyTypes) == null) {
                 continue;
             }
