@@ -63,7 +63,7 @@ internal static class TypeMapper {
         if (property.IsDictionary) {
             var valueType = property.DictionaryValueRef != null
                 ? NamingHelper.ToPascalCase(GetRefName(property.DictionaryValueRef))
-                : MapToCSharpType(property.DictionaryValueType, null);
+                : MapToCSharpType(property.DictionaryValueType, property.DictionaryValueFormat);
             return $"Dictionary<string, {valueType}>";
         }
 
@@ -111,7 +111,7 @@ internal static class TypeMapper {
         if (parameter.IsArray) {
             var itemType = MapToCSharpType(
                 parameter.ArrayItemsType,
-                null,
+                parameter.ArrayItemsFormat,
                 parameter.ArrayItemsRef);
             return $"List<{itemType}>";
         }

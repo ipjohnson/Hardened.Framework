@@ -22,7 +22,7 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// </remarks>
 public class BigDecimalTests {
 
-    private static string Model(string members) =>
+    private static string Model(string members, string shapes = "") =>
         $$"""
           { "smithy": "2.0", "shapes": {
               "com.example#Svc": {
@@ -35,13 +35,13 @@ public class BigDecimalTests {
                   "smithy.api#http": { "method": "POST", "uri": "/charges", "code": 200 } } },
               "com.example#Money": {
                 "type": "structure",
-                "members": { {{members}} } } } }
+                "members": { {{members}} } }{{shapes}} } }
           """;
 
-    private static SchemaModel Parse(string members, out List<string> diagnostics) {
+    private static SchemaModel Parse(string members, out List<string> diagnostics, string shapes = "") {
         diagnostics = new List<string>();
 
-        var model = SmithySpecParser.Parse(Model(members), "money", diagnostics);
+        var model = SmithySpecParser.Parse(Model(members, shapes), "money", diagnostics);
 
         Assert.NotNull(model);
 
@@ -59,6 +59,44 @@ public class BigDecimalTests {
         Assert.Equal("number", amount.Type);
         Assert.Equal("decimal", amount.Format);
         Assert.Equal("decimal", TypeMapper.MapPropertyToCSharpType(amount));
+    }
+
+    /// <summary>
+    /// H-20 from the 0.19.0-rc1000 trial, the Smithy half. A list or a map whose member targets
+    /// <c>BigDecimal</c> dropped the format a bare member kept, so the build warned that the
+    /// member "becomes decimal" while generating <c>double</c>.
+    /// </summary>
+    [Fact]
+    public void AListOfBigDecimalIsAListOfDecimal() {
+        var schema = Parse("""
+            "amounts": { "target": "com.example#Amounts" }
+            """, out _, """
+            , "com.example#Amounts": {
+                "type": "list",
+                "member": { "target": "smithy.api#BigDecimal" } }
+            """);
+
+        var amounts = Assert.Single(schema.Properties);
+
+        Assert.Equal("decimal", amounts.ArrayItemsFormat);
+        Assert.Equal("List<decimal>", TypeMapper.MapPropertyToCSharpType(amounts));
+    }
+
+    [Fact]
+    public void AMapOfBigDecimalIsADictionaryOfDecimal() {
+        var schema = Parse("""
+            "quotes": { "target": "com.example#Quotes" }
+            """, out _, """
+            , "com.example#Quotes": {
+                "type": "map",
+                "key": { "target": "smithy.api#String" },
+                "value": { "target": "smithy.api#BigDecimal" } }
+            """);
+
+        var quotes = Assert.Single(schema.Properties);
+
+        Assert.Equal("decimal", quotes.DictionaryValueFormat);
+        Assert.Equal("Dictionary<string, decimal>", TypeMapper.MapPropertyToCSharpType(quotes));
     }
 
     /// <summary>Float and Double are exact mappings and say nothing.</summary>

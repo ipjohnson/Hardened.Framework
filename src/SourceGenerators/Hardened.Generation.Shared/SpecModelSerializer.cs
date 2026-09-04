@@ -348,6 +348,7 @@ internal static class SpecModelSerializer {
         record.Add("MaxItems", schema.MaxItems);
         record.Add("DictionaryValueType", schema.DictionaryValueType);
         record.Add("DictionaryValueRef", schema.DictionaryValueRef);
+        record.Add("DictionaryValueFormat", schema.DictionaryValueFormat);
         record.WriteTo(builder);
 
         for (var i = 0; i < schema.EnumValues.Count; i++) {
@@ -437,6 +438,7 @@ internal static class SpecModelSerializer {
         MaxItems = record.Int("MaxItems"),
         DictionaryValueType = record.String("DictionaryValueType"),
         DictionaryValueRef = record.String("DictionaryValueRef"),
+        DictionaryValueFormat = record.String("DictionaryValueFormat"),
     };
 
     private static void WriteProperty(StringBuilder builder, string tag, PropertyModel property) {
@@ -459,6 +461,7 @@ internal static class SpecModelSerializer {
         record.Add("IsDictionary", property.IsDictionary);
         record.Add("DictionaryValueType", property.DictionaryValueType);
         record.Add("DictionaryValueRef", property.DictionaryValueRef);
+        record.Add("DictionaryValueFormat", property.DictionaryValueFormat);
         record.Add("EnumValues", property.EnumValues);
         record.Add("OneOf", Encode(property.OneOf));
         record.Add("MinLength", property.MinLength);
@@ -516,6 +519,7 @@ internal static class SpecModelSerializer {
         IsDictionary = record.Bool("IsDictionary"),
         DictionaryValueType = record.String("DictionaryValueType"),
         DictionaryValueRef = record.String("DictionaryValueRef"),
+        DictionaryValueFormat = record.String("DictionaryValueFormat"),
         EnumValues = record.Strings("EnumValues"),
         OneOf = Decode(record.Strings("OneOf")),
         MinLength = record.Int("MinLength"),
@@ -690,6 +694,7 @@ internal static class SpecModelSerializer {
         record.Add("IsArray", parameter.IsArray);
         record.Add("ArrayItemsType", parameter.ArrayItemsType);
         record.Add("ArrayItemsRef", parameter.ArrayItemsRef);
+        record.Add("ArrayItemsFormat", parameter.ArrayItemsFormat);
         record.Add("EnumValues", parameter.EnumValues);
         record.Add("MinLength", parameter.MinLength);
         record.Add("MaxLength", parameter.MaxLength);
@@ -718,6 +723,7 @@ internal static class SpecModelSerializer {
         IsArray = record.Bool("IsArray"),
         ArrayItemsType = record.String("ArrayItemsType"),
         ArrayItemsRef = record.String("ArrayItemsRef"),
+        ArrayItemsFormat = record.String("ArrayItemsFormat"),
         EnumValues = record.Strings("EnumValues"),
         MinLength = record.Int("MinLength"),
         MaxLength = record.Int("MaxLength"),

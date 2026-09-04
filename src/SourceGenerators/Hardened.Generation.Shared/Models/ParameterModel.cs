@@ -56,6 +56,7 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     public bool IsArray { get; set; }
     public string? ArrayItemsType { get; set; }
     public string? ArrayItemsRef { get; set; }
+    public string? ArrayItemsFormat { get; set; }
 
     // Validation constraints
     public int? MinLength { get; set; }
@@ -134,6 +135,7 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
                Type == other.Type && Format == other.Format &&
                Ref == other.Ref && IsArray == other.IsArray &&
                ArrayItemsType == other.ArrayItemsType && ArrayItemsRef == other.ArrayItemsRef &&
+               ArrayItemsFormat == other.ArrayItemsFormat &&
                MinLength == other.MinLength && MaxLength == other.MaxLength &&
                Minimum == other.Minimum && Maximum == other.Maximum &&
                ExclusiveMinimum == other.ExclusiveMinimum && ExclusiveMaximum == other.ExclusiveMaximum &&

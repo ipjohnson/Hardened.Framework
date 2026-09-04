@@ -885,6 +885,7 @@ internal static class OpenApiSpecParser {
             IsDictionary = second.IsDictionary || first.IsDictionary,
             DictionaryValueType = second.DictionaryValueType ?? first.DictionaryValueType,
             DictionaryValueRef = second.DictionaryValueRef ?? first.DictionaryValueRef,
+            DictionaryValueFormat = second.DictionaryValueFormat ?? first.DictionaryValueFormat,
 
             MinLength = second.MinLength ?? first.MinLength,
             MaxLength = second.MaxLength ?? first.MaxLength,
@@ -905,7 +906,8 @@ internal static class OpenApiSpecParser {
             Name = name,
             Kind = SchemaKind.Dictionary,
             DictionaryValueType = SchemaType(addlProps),
-            DictionaryValueRef = GetNonPrimitiveRef(addlProps)
+            DictionaryValueRef = GetNonPrimitiveRef(addlProps),
+            DictionaryValueFormat = addlProps?.Format
         };
     }
 
@@ -1245,6 +1247,7 @@ internal static class OpenApiSpecParser {
             model.IsDictionary = true;
             model.DictionaryValueType = SchemaType(prop.AdditionalProperties);
             model.DictionaryValueRef = GetNonPrimitiveRef(prop.AdditionalProperties);
+            model.DictionaryValueFormat = prop.AdditionalProperties.Format;
             return model;
         }
 
@@ -1589,7 +1592,8 @@ internal static class OpenApiSpecParser {
             Ref = GetNonPrimitiveRef(param.Schema),
             IsArray = SchemaType(param.Schema) == "array",
             ArrayItemsType = SchemaType(param.Schema?.Items),
-            ArrayItemsRef = GetNonPrimitiveRef(param.Schema?.Items)
+            ArrayItemsRef = GetNonPrimitiveRef(param.Schema?.Items),
+            ArrayItemsFormat = param.Schema?.Items?.Format
         };
 
         // Extract validation constraints from parameter schema

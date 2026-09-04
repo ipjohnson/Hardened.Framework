@@ -937,6 +937,7 @@ internal static class SmithySpecParser {
             parameter.Ref = reference;
             parameter.IsArray = array.IsArray;
             parameter.ArrayItemsType = array.ItemType;
+            parameter.ArrayItemsFormat = array.ItemFormat;
             parameter.ArrayItemsRef = array.ItemRef;
         }
 
@@ -970,9 +971,11 @@ internal static class SmithySpecParser {
             property.Ref = reference;
             property.IsArray = shape.IsArray;
             property.ArrayItemsType = shape.ItemType;
+            property.ArrayItemsFormat = shape.ItemFormat;
             property.ArrayItemsRef = shape.ItemRef;
             property.IsDictionary = shape.IsDictionary;
             property.DictionaryValueType = shape.ValueType;
+            property.DictionaryValueFormat = shape.ValueFormat;
             property.DictionaryValueRef = shape.ValueRef;
         }
 
@@ -1042,13 +1045,15 @@ internal static class SmithySpecParser {
     /// <summary>Where a shape id lands in the IR: an inlined primitive, a reference, or a collection.</summary>
     private readonly struct ShapeFacts {
         internal ShapeFacts(
-            bool isArray, string? itemType, string? itemRef,
-            bool isDictionary, string? valueType, string? valueRef) {
+            bool isArray, string? itemType, string? itemFormat, string? itemRef,
+            bool isDictionary, string? valueType, string? valueFormat, string? valueRef) {
             IsArray = isArray;
             ItemType = itemType;
+            ItemFormat = itemFormat;
             ItemRef = itemRef;
             IsDictionary = isDictionary;
             ValueType = valueType;
+            ValueFormat = valueFormat;
             ValueRef = valueRef;
         }
 
@@ -1056,11 +1061,15 @@ internal static class SmithySpecParser {
 
         internal string? ItemType { get; }
 
+        internal string? ItemFormat { get; }
+
         internal string? ItemRef { get; }
 
         internal bool IsDictionary { get; }
 
         internal string? ValueType { get; }
+
+        internal string? ValueFormat { get; }
 
         internal string? ValueRef { get; }
     }
@@ -1179,34 +1188,34 @@ internal static class SmithySpecParser {
 
     private static ShapeFacts ListFacts(ParseContext context, JsonElement shape) {
         if (!shape.TryGetProperty("member", out var member)) {
-            return new ShapeFacts(true, null, null, false, null, null);
+            return new ShapeFacts(true, null, null, null, false, null, null, null);
         }
 
         var target = SmithyAst.Target(member);
 
         if (target == null) {
-            return new ShapeFacts(true, null, null, false, null, null);
+            return new ShapeFacts(true, null, null, null, false, null, null, null);
         }
 
-        Describe(context, target, out var type, out _, out var reference, out _);
+        Describe(context, target, out var type, out var format, out var reference, out _);
 
-        return new ShapeFacts(true, type, reference, false, null, null);
+        return new ShapeFacts(true, type, format, reference, false, null, null, null);
     }
 
     private static ShapeFacts MapFacts(ParseContext context, JsonElement shape) {
         if (!shape.TryGetProperty("value", out var value)) {
-            return new ShapeFacts(false, null, null, true, null, null);
+            return new ShapeFacts(false, null, null, null, true, null, null, null);
         }
 
         var target = SmithyAst.Target(value);
 
         if (target == null) {
-            return new ShapeFacts(false, null, null, true, null, null);
+            return new ShapeFacts(false, null, null, null, true, null, null, null);
         }
 
-        Describe(context, target, out var type, out _, out var reference, out _);
+        Describe(context, target, out var type, out var format, out var reference, out _);
 
-        return new ShapeFacts(false, null, null, true, type, reference);
+        return new ShapeFacts(false, null, null, null, true, type, format, reference);
     }
 
     /// <summary>

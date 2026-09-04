@@ -584,7 +584,7 @@ internal static class JsonTypeInfoEmitter {
         }
 
         return TypeMapper.QualifiedName(
-            ns, TypeMapper.MapToCSharpType(prop.DictionaryValueType, null), false);
+            ns, TypeMapper.MapToCSharpType(prop.DictionaryValueType, prop.DictionaryValueFormat), false);
     }
 
     /// <summary>
