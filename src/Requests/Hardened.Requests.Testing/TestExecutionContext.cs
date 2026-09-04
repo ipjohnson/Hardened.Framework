@@ -86,5 +86,5 @@ public class TestExecutionContext : IExecutionContext {
 
     public MachineTimestamp StartTime { get; }
 
-    public CancellationToken CancellationToken { get; }
+    public CancellationToken CancellationToken { get; set; }
 }

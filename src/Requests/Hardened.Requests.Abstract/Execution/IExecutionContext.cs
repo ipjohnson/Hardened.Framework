@@ -109,7 +109,23 @@ public interface IExecutionContext {
     MachineTimestamp StartTime { get; }
 
     /// <summary>
-    /// Cancellation token, only applicable on some platforms
+    /// What everything running for this request should stop on.
     /// </summary>
-    CancellationToken CancellationToken { get; }
+    /// <remarks>
+    /// <para>
+    /// The transport's own token to begin with - <c>RequestAborted</c> on both web hosts, so a
+    /// client that hangs up cancels the work it was waiting for. The Lambda runtimes in
+    /// Hardened.Amz seed it with <see cref="System.Threading.CancellationToken.None"/> and have
+    /// nothing to seed it from, so a disconnect is not observable there.
+    /// </para>
+    /// <para>
+    /// <b>Settable, because a deadline is expressed by replacing it.</b> A handler declaring a
+    /// <c>CancellationToken</c> parameter has this copied into it as the request is bound, so a
+    /// filter wanting to bound the handler has to change what this returns before the bind rather
+    /// than hand a second token to something. <c>TimeoutFilter</c> is the one that does, and it
+    /// puts the transport's token back on the way out - see <c>CancellationScope</c>, which is how
+    /// anything else should do it.
+    /// </para>
+    /// </remarks>
+    CancellationToken CancellationToken { get; set; }
 }

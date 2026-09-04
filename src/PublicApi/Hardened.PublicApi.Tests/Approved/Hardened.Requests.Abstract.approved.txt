@@ -334,12 +334,20 @@ namespace Hardened.Requests.Abstract.Errors
 }
 namespace Hardened.Requests.Abstract.Execution
 {
+    public readonly struct CancellationScope : System.IDisposable
+    {
+        public void Dispose() { }
+    }
     public delegate System.Threading.Tasks.Task DefaultOutputFunc(Hardened.Requests.Abstract.Execution.IExecutionContext executionContext);
     public class EmptyTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
     {
         public static readonly Hardened.Requests.Abstract.Execution.EmptyTransportInfo Instance;
         public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
         public string? Get(string key) { }
+    }
+    public static class ExecutionContextCancellationExtensions
+    {
+        public static Hardened.Requests.Abstract.Execution.CancellationScope WithCancellation(this Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Threading.CancellationToken replacement) { }
     }
     public interface IExecutionChain
     {
@@ -351,7 +359,7 @@ namespace Hardened.Requests.Abstract.Execution
     public interface IExecutionContext
     {
         Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
-        System.Threading.CancellationToken CancellationToken { get; }
+        System.Threading.CancellationToken CancellationToken { get; set; }
         string CorrelationId { get; }
         Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
         Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
@@ -664,6 +672,7 @@ namespace Hardened.Requests.Abstract.Metrics
     {
         public static readonly Hardened.Shared.Runtime.Metrics.IMetricDefinition HandlerInvokeDuration;
         public static readonly Hardened.Shared.Runtime.Metrics.IMetricDefinition ParameterBindDuration;
+        public static readonly Hardened.Shared.Runtime.Metrics.IMetricDefinition RequestTimedOut;
         public static readonly Hardened.Shared.Runtime.Metrics.IMetricDefinition ResponseDuration;
         public static readonly Hardened.Shared.Runtime.Metrics.IMetricDefinition TotalRequestDuration;
     }
