@@ -410,7 +410,7 @@ The `hardened-web` template's project files carry three checks of their own, in 
 | `HTPL002` | The Kiota tool could not be restored, so the client cannot be generated. The pin is in `.config/dotnet-tools.json`; a fresh machine needs network for the first restore. |
 | `HTPL003` | The Kiota tool and `Microsoft.Kiota.Bundle` disagree. The tool version in `.config/dotnet-tools.json` and `KiotaBundleVersion` in `Directory.Packages.props` move together; the message names both versions and both files. |
 
-### The model-diagnostics pass (020–024)
+### The model-diagnostics pass (020–027)
 
 Problems any description can state that would generate C# which does not compile, found before
 anything is emitted so they are reported against the document rather than as compiler errors in a
@@ -423,6 +423,7 @@ generated file.
 | `022` | Warning. A `oneOf` with no discriminator whose branches cannot all be told apart by shape. Payloads are matched by parsing into each branch; declare a discriminator to decide it in the document. |
 | `023` | An `enum` declaring both string and numeric values, which no C# enum can carry. Declare one kind. |
 | `024` | Warning. A declared keyword or trait the generator does not enforce, named with a representative location. Remove it, or enforce the rule in the handler. |
+| `026` | Warning. A path template names a token the operation declares no path parameter for. The route matches and the value is discarded. |
 | `027` | A reference to something the description does not declare. |
 
 `025` is retired. It rejected two error responses at one status on one operation, and a valid
@@ -431,6 +432,29 @@ had to be reported was that the case type was named for the operation and the st
 generated one record twice. A declared error is now named for the error, or binds to a shipped
 wrapper over the payload it carries, and two shapes at one status are two types either way. Nothing
 replaces it; a model that used to be rejected now builds.
+
+#### 026 — a path token no parameter declares
+
+```
+'GET /pets/{petId}/notes/{noteId}' declares '{noteId}' and the operation declares no path
+parameter of that name. The route still matches and the value is discarded, so the handler
+cannot read the segment that chose the resource. Declare the parameter, or take the token out
+of the path.
+```
+
+OpenAPI requires every template expression in a path to have a matching path parameter, and Smithy's
+`@http` uri the same. A description that breaks the rule builds clean and produces three things that
+disagree about one segment: the route table registers the token, so `/pets/1/notes/5` still matches;
+the service interface omits it, so the handler cannot read the value; and the generated link method
+takes it, because a token that binds nothing still needs a value to be linkable at all.
+
+A warning. The generator has an answer — match the token and discard its value — and a description
+fetched from elsewhere is not always the author's to correct.
+
+A parameter whose name differs from the token only in case is named in the message. Path parameters
+match by exact name, so it declares nothing, and a case-only difference is never what anyone meant.
+`HRDR005` is the code-first half of the same mistake; it is reported from a generator the
+specification-first front ends do not run, which is why this exists separately.
 
 #### 027 — a reference to something the description does not declare
 
