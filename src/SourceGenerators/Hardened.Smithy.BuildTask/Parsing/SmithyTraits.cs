@@ -25,6 +25,17 @@ internal static class SmithyTraits {
 
     internal const string Trait = "smithy.api#trait";
 
+    /// <summary>
+    /// How long an operation may take. This framework's own, not the prelude's.
+    /// </summary>
+    /// <remarks>
+    /// Smithy models the exchange and says nothing about how long a server may spend on it, which
+    /// is a property of the server rather than of the contract between it and its callers. The
+    /// trait is defined in <c>hardened.smithy</c>, shipped beside the build task, and a model that
+    /// wants it declares the dependency the same way it would for any other trait library.
+    /// </remarks>
+    internal const string Timeout = "hardened.api#timeout";
+
     internal const string Http = "smithy.api#http";
     internal const string HttpLabel = "smithy.api#httpLabel";
     internal const string HttpQuery = "smithy.api#httpQuery";
@@ -102,7 +113,8 @@ internal static class SmithyTraits {
         "smithy.api#httpApiKeyAuth", "smithy.api#httpBasicAuth",
         "smithy.api#httpBearerAuth", "smithy.api#httpDigestAuth",
         Readonly, Idempotent, Input, Output, Private, Internal, Mixin,
-        Trait
+        Trait,
+        Timeout
     };
 
     /// <summary>

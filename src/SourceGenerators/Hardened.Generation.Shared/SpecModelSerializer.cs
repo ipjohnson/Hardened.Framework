@@ -565,6 +565,13 @@ internal static class SpecModelSerializer {
         record.Add("RequestBodyType", operation.RequestBodyType);
         record.Add("ResponseContentType", operation.ResponseContentType);
         record.Add("RawBytesResponse", operation.RawBytesResponse);
+
+        // Three flat members rather than a nested record, because the format is flat and a
+        // deadline is three numbers. Absent where the operation declares none, which is what the
+        // null on the way back in reads as.
+        record.Add("TimeoutMilliseconds", operation.Timeout?.Milliseconds);
+        record.Add("TimeoutStatus", operation.Timeout?.Status);
+        record.Add("TimeoutRetryAfterSeconds", operation.Timeout?.RetryAfterSeconds);
         record.Add("ResponseRef", operation.ResponseRef);
         record.Add("ResponseType", operation.ResponseType);
         record.Add("ResponseFormat", operation.ResponseFormat);
@@ -677,6 +684,13 @@ internal static class SpecModelSerializer {
         ResponseArrayItemsType = record.String("ResponseArrayItemsType"),
         ResponseArrayItemsFormat = record.String("ResponseArrayItemsFormat"),
         SuccessStatusCode = record.Int("SuccessStatusCode") ?? 200,
+        Timeout = record.Int("TimeoutMilliseconds") is { } milliseconds
+            ? new TimeoutModel {
+                Milliseconds = milliseconds,
+                Status = record.Int("TimeoutStatus") ?? 504,
+                RetryAfterSeconds = record.Int("TimeoutRetryAfterSeconds") ?? 0
+            }
+            : null,
     };
 
     private static void WriteParameter(StringBuilder builder, ParameterModel parameter) {

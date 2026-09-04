@@ -226,6 +226,7 @@ public static class OpenApiDocumentGenerator {
         WriteParameters(builder, handler, version, enums);
         WriteRequestBody(builder, handler, components);
         WriteResponses(builder, handler, components, version);
+        WriteTimeout(builder, handler);
 
         builder.Append('}');
     }
@@ -488,6 +489,50 @@ public static class OpenApiDocumentGenerator {
         WriteValidationResponse(builder, handler, components);
         WriteAuthenticationResponse(builder, handler, components);
         WriteConstrainedPathResponse(builder, handler);
+
+        builder.Append('}');
+    }
+
+    /// <summary>
+    /// The deadline this operation is bounded by, as the extension the parser reads back.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Written so the exported document round-trips. A code-first application's budget is part of
+    /// how its operations actually behave, and a contract that dropped it described a service that
+    /// would wait forever - so a client generated from it, or a service regenerated from it,
+    /// disagreed with the one that published it.
+    /// </para>
+    /// <para>
+    /// The scalar form where the status and the retry-after are the defaults, which is almost every
+    /// declaration and reads better than an object with one member. The object form only where
+    /// there is something else to say.
+    /// </para>
+    /// <para>
+    /// An extension because OpenAPI has no field for this. The specification describes the
+    /// exchange; how long a server may take over it is a property of the server, and only its own
+    /// vocabulary can carry it.
+    /// </para>
+    /// </remarks>
+    private static void WriteTimeout(StringBuilder builder, RequestHandlerModel handler) {
+        if (handler.DeclaredTimeout is not { } timeout) {
+            return;
+        }
+
+        builder.Append(",\"x-hardened-timeout\":");
+
+        if (timeout.Status == 504 && timeout.RetryAfterSeconds == 0) {
+            builder.Append(timeout.Milliseconds);
+
+            return;
+        }
+
+        builder.Append("{\"milliseconds\":").Append(timeout.Milliseconds)
+            .Append(",\"status\":").Append(timeout.Status);
+
+        if (timeout.RetryAfterSeconds > 0) {
+            builder.Append(",\"retryAfterSeconds\":").Append(timeout.RetryAfterSeconds);
+        }
 
         builder.Append('}');
     }

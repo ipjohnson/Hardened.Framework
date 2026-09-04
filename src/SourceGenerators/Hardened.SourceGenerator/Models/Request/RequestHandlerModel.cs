@@ -55,6 +55,7 @@ public class RequestHandlerModel {
             ResponseSchema = ResponseSchema,
             ResponseSchemas = ResponseSchemas,
             DeclaredResponsesAreComplete = DeclaredResponsesAreComplete,
+            DeclaredTimeout = DeclaredTimeout,
             RequestSchema = RequestSchema,
             Tag = Tag,
             TagDescription = TagDescription,
@@ -152,6 +153,16 @@ public class RequestHandlerModel {
     /// type, so the document has to write that one as well.
     /// </remarks>
     public bool DeclaredResponsesAreComplete { get; set; } = true;
+
+    /// <summary>
+    /// The deadline this operation declares, for <c>x-hardened-timeout</c> on the document, or null.
+    /// </summary>
+    /// <remarks>
+    /// Published so the exported document round-trips: a service generated back out of it is
+    /// bounded the way the one that wrote it was. Without this a code-first application's budget
+    /// vanished the moment its contract left the repository.
+    /// </remarks>
+    public (int Milliseconds, int Status, int RetryAfterSeconds)? DeclaredTimeout { get; set; }
 
     public IReadOnlyList<ResponseSchemaModel> ResponseSchemas { get; set; } =
         Array.Empty<ResponseSchemaModel>();

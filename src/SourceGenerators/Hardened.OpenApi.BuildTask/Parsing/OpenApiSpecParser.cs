@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
@@ -2246,6 +2247,15 @@ internal static class OpenApiSpecParser {
                 opModel.RawBytesResponse = true;
             }
 
+            // x-hardened-timeout is how a description bounds an operation. Not something OpenAPI
+            // can say on its own: the specification describes the exchange, and how long a server
+            // may take over it is a property of the server that only its own vocabulary can carry.
+            if (operation.Extensions != null &&
+                operation.Extensions.TryGetValue("x-hardened-timeout", out var timeoutExt) &&
+                timeoutExt is JsonNodeExtension { Node: { } timeoutNode }) {
+                opModel.Timeout = ParseTimeout(timeoutNode, opModel.OperationId);
+            }
+
             if (!operationsByTag.TryGetValue(tag, out var list)) {
                 list = new List<OperationModel>();
                 operationsByTag[tag] = list;
@@ -2253,6 +2263,86 @@ internal static class OpenApiSpecParser {
 
             list.Add(opModel);
         }
+    }
+
+    /// <summary>
+    /// The deadline an <c>x-hardened-timeout</c> declares, in either of the two shapes it takes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A number is the budget on its own - <c>x-hardened-timeout: 2000</c> - which is what almost
+    /// every declaration wants and reads better than an object with one member. An object carries
+    /// the status and the <c>Retry-After</c> beside it for an operation that sheds load rather than
+    /// waiting on something.
+    /// </para>
+    /// <para>
+    /// A budget that cannot mean anything is refused here rather than carried into the generated
+    /// code, because a zero would refuse every request the moment the service was deployed and the
+    /// description is the one place that can say so before anything is generated at all.
+    /// </para>
+    /// </remarks>
+    private static TimeoutModel? ParseTimeout(JsonNode node, string operationId) {
+        if (node is JsonObject declared) {
+            return Bounded(
+                Member(declared, "milliseconds") ?? 0,
+                Member(declared, "status") ?? 504,
+                Member(declared, "retryAfterSeconds") ?? 0,
+                operationId);
+        }
+
+        return Number(node) is { } milliseconds
+            ? Bounded(milliseconds, 504, 0, operationId)
+            : null;
+    }
+
+    private static int? Member(JsonObject declared, string name) =>
+        declared.TryGetPropertyValue(name, out var member) && member != null
+            ? Number(member)
+            : null;
+
+    /// <summary>
+    /// A scalar as a whole number, however the reader typed it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Read off the node's own JSON rather than through <c>TryGetValue&lt;int&gt;</c>, which is
+    /// strict about the CLR type behind the value: a YAML scalar arrives as a
+    /// <c>JsonValuePrimitive</c> of whatever the reader chose, and asking it for an <c>int</c>
+    /// returns false for the same 2000 that <c>GetValueKind()</c> calls a Number. So the scalar
+    /// form parsed to nothing while the object form worked, which is the wrong way round: the
+    /// scalar is the form nearly every declaration uses.
+    /// </para>
+    /// <para>
+    /// A quoted number counts, because YAML scalars are untyped until something reads them and
+    /// <c>x-hardened-timeout: "2000"</c> means what it says.
+    /// </para>
+    /// </remarks>
+    private static int? Number(JsonNode node) {
+        if (node is not JsonValue value) {
+            return null;
+        }
+
+        var written = value.ToJsonString().Trim('"');
+
+        return int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
+    }
+
+    private static TimeoutModel Bounded(
+        int milliseconds, int status, int retryAfterSeconds, string operationId) {
+        if (milliseconds <= 0) {
+            throw new InvalidOperationException(
+                $"'{operationId}' declares an x-hardened-timeout of {milliseconds} milliseconds. " +
+                "A budget has to be greater than zero; an operation that should not be bounded " +
+                "declares no timeout instead.");
+        }
+
+        return new TimeoutModel {
+            Milliseconds = milliseconds,
+            Status = status,
+            RetryAfterSeconds = retryAfterSeconds
+        };
     }
 
     /// <summary>

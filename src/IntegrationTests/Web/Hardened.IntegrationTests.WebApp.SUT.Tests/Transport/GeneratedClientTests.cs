@@ -122,6 +122,13 @@ public class GeneratedClientTests {
     }
 
     /// <summary>Three parameters of the generated type with three credentials: three instances, three answers.</summary>
+    /// <remarks>
+    /// The 403 arrives as the generated <c>ErrorModel</c> rather than as Kiota's base exception,
+    /// which is what publishing a declared filter's status buys: the document now says an
+    /// authorization attribute can answer 403 with that envelope, so the generator has a case for
+    /// it. The 401 is still bare here because this operation carries no security requirement for
+    /// the document to hang one on.
+    /// </remarks>
     [HardenedTest]
     public async Task ThreeGeneratedClientsCarryThreeCredentials(
         [Grants("pets:read")] WebAppClient reader, [Anonymous] WebAppClient nobody, [Grants("pets:write")] WebAppClient writer) {
@@ -129,12 +136,28 @@ public class GeneratedClientTests {
 
         var pets = await reader.Authorization.Pets.GetAsync(cancellationToken: token);
         var refused = await Assert.ThrowsAsync<ApiException>(() => nobody.Authorization.Pets.GetAsync(cancellationToken: token));
-        var forbidden = await Assert.ThrowsAsync<ApiException>(() => writer.Authorization.Pets.GetAsync(cancellationToken: token));
+        var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(
+            () => writer.Authorization.Pets.GetAsync(cancellationToken: token));
 
         Assert.NotNull(pets);
         Assert.Equal(401, refused.ResponseStatusCode);
         Assert.Equal(403, forbidden.ResponseStatusCode);
         Assert.NotSame(reader, nobody);
+    }
+
+    /// <summary>
+    /// The refusal a guard answers is a typed case in the generated client, with the envelope the
+    /// pipeline actually sends. Before a declared filter contributed its status to the document,
+    /// this was Kiota's base exception carrying a number and nothing else.
+    /// </summary>
+    [HardenedTest]
+    [Grants("pets:write")]
+    public async Task ADeclaredRefusalIsATypedErrorInTheGeneratedClient(WebAppClient client) {
+        var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
+            client.Authorization.Pets.GetAsync(cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(403, forbidden.ResponseStatusCode);
+        Assert.Equal("This request is not permitted.", forbidden.Message);
     }
 
     /// <summary>

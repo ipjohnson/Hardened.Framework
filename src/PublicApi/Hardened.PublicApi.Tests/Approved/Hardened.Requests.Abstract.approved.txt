@@ -189,6 +189,7 @@ namespace Hardened.Requests.Abstract.Authorization
     {
         Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
     }
+    [Hardened.Requests.Abstract.Responses.AnswersStatus(403, typeof(Hardened.Requests.Abstract.Errors.ErrorModel), Description="The caller does not hold what this operation requires.")]
     public interface IAuthorizeAttribute
     {
         Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
@@ -784,6 +785,15 @@ namespace Hardened.Requests.Abstract.Responses
         public string? Location { get; init; }
         public int Status { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Interface, AllowMultiple=true, Inherited=true)]
+    public sealed class AnswersStatusAttribute : System.Attribute
+    {
+        public AnswersStatusAttribute(int status, System.Type body) { }
+        public System.Type Body { get; }
+        public string? Description { get; set; }
+        public int Status { get; }
+        public string? StatusFrom { get; set; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(502)]
     public sealed class BadGateway : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadGateway>

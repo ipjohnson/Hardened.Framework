@@ -1,5 +1,7 @@
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Requests.Abstract.Responses;
 
 namespace Hardened.Requests.Runtime.RateLimiting;
 
@@ -37,6 +39,8 @@ public enum RateLimitScope {
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
+[AnswersStatus(429, typeof(ErrorModel),
+    Description = "The caller has spent this operation's allowance. Retry-After says when it returns.")]
 public class RateLimitAttribute : Attribute, IRequestFilterProvider {
 
     /// <summary>Requests allowed per <see cref="WindowSeconds"/>.</summary>

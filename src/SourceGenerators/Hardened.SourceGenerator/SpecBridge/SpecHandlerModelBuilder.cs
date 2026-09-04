@@ -154,6 +154,28 @@ internal static class SpecHandlerModelBuilder {
                 ""));
         }
 
+        // The deadline the description declared, as the same attribute a code-first handler would
+        // carry. Metadata rather than a constructor argument on ExecutionRequestHandlerInfo,
+        // because that reads `timeout ?? TimeoutFrom(Metadata)` - so a budget in the model and a
+        // [Timeout] on the implementation resolve against each other by the runtime's own
+        // nearest-wins rule instead of the model silently winning.
+        if (operation.Timeout is { } timeout) {
+            var written = $"Milliseconds = {timeout.Milliseconds}";
+
+            if (timeout.Status != 504) {
+                written += $", Status = {timeout.Status}";
+            }
+
+            if (timeout.RetryAfterSeconds > 0) {
+                written += $", RetryAfterSeconds = {timeout.RetryAfterSeconds}";
+            }
+
+            filters.Add(new AttributeModel(
+                TypeDefinition.Get("Hardened.Requests.Runtime.Filters", "TimeoutAttribute"),
+                "",
+                written));
+        }
+
         // Wire in x-filters as typed attribute instances
         foreach (var filterInstance in operation.FilterInstances) {
             if (filterTypeLookup.TryGetValue(filterInstance.FilterTypeName, out var filterType)) {
@@ -177,6 +199,14 @@ internal static class SpecHandlerModelBuilder {
             responseInfo,
             filters) {
             ParametersInterface = parametersInterface,
+
+            // Republished, so a description that declared a deadline still declares one after a
+            // round trip through this generator. Without it a model's budget survived into the
+            // running service and vanished from the document that service serves, which is the
+            // half of the contract anyone else reads.
+            DeclaredTimeout = operation.Timeout is { } declared
+                ? (declared.Milliseconds, declared.Status, declared.RetryAfterSeconds)
+                : null,
 
             // The payload shapes, from the model. JsonSchemaWriter cannot produce these here - it
             // walks a type symbol, and these types are written by the build task rather than

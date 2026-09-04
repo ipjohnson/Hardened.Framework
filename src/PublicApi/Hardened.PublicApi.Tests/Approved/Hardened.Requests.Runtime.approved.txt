@@ -515,6 +515,7 @@ namespace Hardened.Requests.Runtime.Filters
         public System.Threading.Tasks.ValueTask<bool> WriteHeartbeat(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
     }
+    [Hardened.Requests.Abstract.Responses.AnswersStatus(504, typeof(Hardened.Requests.Abstract.Errors.ErrorModel), Description="The operation did not finish inside its budget.", StatusFrom="Status")]
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
     public sealed class TimeoutAttribute : System.Attribute, Hardened.Requests.Abstract.Timeouts.IDeclaresTimeout
     {
@@ -727,6 +728,8 @@ namespace Hardened.Requests.Runtime.RateLimiting
         public System.Threading.Tasks.ValueTask<Hardened.Requests.Runtime.RateLimiting.RateLimitDecision> Acquire(string partition, Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy, System.Threading.CancellationToken cancellationToken) { }
         public void Dispose() { }
     }
+    [Hardened.Requests.Abstract.Responses.AnswersStatus(429, typeof(Hardened.Requests.Abstract.Errors.ErrorModel), Description="The caller has spent this operation\'s allowance. Retry-After says when it returns" +
+        ".")]
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=true)]
     public class RateLimitAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {

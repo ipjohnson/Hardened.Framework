@@ -13,6 +13,46 @@ client hangs up and not on any duration. Bounding execution is the whole of what
 buys: without one, a handler wedged on a dependency holds its request slot indefinitely as far as
 this framework is concerned.
 
+## Declaring it in a description
+
+Both front ends carry a deadline, and a service generated from a description is bounded the way its
+author wrote it rather than only where somebody remembered an attribute.
+
+```yaml
+paths:
+  /rates:
+    get:
+      operationId: readRates
+      x-hardened-timeout: 2000          # or { milliseconds, status, retryAfterSeconds }
+```
+
+```smithy
+use hardened.api#timeout
+
+@http(method: "GET", uri: "/rates")
+@timeout(milliseconds: 2000)
+operation ReadRates { }
+```
+
+Neither language has a field for this, and that is not an oversight in either: a specification
+describes the exchange, and how long a server may take over it is a property of the server. So both
+spellings are Hardened's own vocabulary. The Smithy trait is defined in `hardened.smithy`, which the
+targets add to a project's model, so a model can write `@timeout` without wiring a file it did not
+author.
+
+A declared budget reaches the generated handler as the same `[Timeout]` a code-first handler carries,
+in its metadata. It is therefore a rung of the cascade rather than a separate mechanism: a
+`[Timeout]` written on the generated implementation's method or class overrides what the description
+said, by the same nearest-wins rule as everything else.
+
+It round-trips. A code-first application's exported document carries `x-hardened-timeout` for every
+operation the cascade bounds, in the scalar form where the status and retry-after are the defaults
+and as an object where they are not, so a service or client regenerated from that contract is
+bounded the way the one that published it was.
+
+The entry point's default is the one rung the document does not carry, deliberately: a host-wide
+knob is a deployment property rather than part of the contract an operation publishes.
+
 ## Where a deadline comes from
 
 Four places, nearest to the handler first. Nothing is combined: unlike a requirement, two budgets do
@@ -107,6 +147,11 @@ An operation shedding load rather than waiting on a dependency says so:
 `RetryAfterSeconds` is only honest alongside 503. A deadline out at a dependency knows nothing about
 when that dependency recovers, so the default sends no header.
 
+A bounded operation publishes its status on the document, so a generated client has a case for the
+refusal it will actually be sent rather than a bare transport exception. That is the same mechanism
+`[AuthorizeGrants]` and `[RateLimit]` now publish their 403 and 429 through - see
+`docs/openapi-document.md`.
+
 The status is written by `ExceptionToModelConverter`, not by the filter. `IOFilter` sits at
 `FilterOrder.Serialization`, which is *inside* the filter's span, so by the time the filter regains
 control the response has already been serialized from whatever the handler raised. The converter
@@ -162,10 +207,6 @@ gives up on the same flag for the same reason. A streaming handler should bound 
 **Lambda has no disconnect.** The deadline itself works there, because the linked source fires on its
 own timer whatever it links from. What does not work is a client hanging up: all three execution
 contexts in Hardened.Amz seed the token with `CancellationToken.None`.
-
-**No IDL carries it yet.** A declared deadline publishes no 504 on the OpenAPI document and cannot be
-written in a Smithy model. Both are reachable now that the budget is a property of the operation
-rather than a filter attached to it, and neither is built.
 
 ## Swapping the token yourself
 

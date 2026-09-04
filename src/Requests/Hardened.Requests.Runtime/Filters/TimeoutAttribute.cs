@@ -1,3 +1,5 @@
+using Hardened.Requests.Abstract.Errors;
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Abstract.Timeouts;
 
 namespace Hardened.Requests.Runtime.Filters;
@@ -43,6 +45,8 @@ namespace Hardened.Requests.Runtime.Filters;
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Assembly,
     AllowMultiple = false)]
+[AnswersStatus(TimeoutPolicy.DefaultStatus, typeof(ErrorModel), StatusFrom = nameof(Status),
+    Description = "The operation did not finish inside its budget.")]
 public sealed class TimeoutAttribute : Attribute, IDeclaresTimeout {
 
     /// <summary>How long the operation may take before its token is cancelled.</summary>
