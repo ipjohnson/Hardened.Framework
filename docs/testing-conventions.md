@@ -39,6 +39,12 @@ substitute for `AssertNoErrors`.
 | Conformance | Does every implementation of this interface behave alike? | `Hardened.Requests.Testing` |
 | Integration | Does the real pipeline, end to end, produce the right result? | `IntegrationTests/**` |
 
+The Web integration suite also drives a client Kiota generated from the application's exported
+document, in `GeneratedClientTests`, with the fixture that generates it in
+`Hardened.IntegrationTests.WebApp.SUT.Client`. A test that needs a generated client copies that
+shape: the client as a parameter, a factory in `TestClients.cs`, refusals asserted in the client's
+own exception types, and `LastResponse` for what the client swallowed.
+
 Prefer the cheapest kind that can actually fail for the reason you care about. A routing bug is a
 unit test; "the handler receives what the request carried" is an integration test, because that
 answer depends on binding, filters and serialisation agreeing with each other.

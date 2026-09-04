@@ -207,7 +207,8 @@ can read what the build understood or what you wrote. Hardened generates the doc
 generates the client. `<HardenedOpenApiOutput>` writes the served document to a file during the
 build, for every contract style and without running the application, and the `hardened-web`
 template scaffolds a Kiota C# client from it with a test that drives the client through the
-in-process pipeline. The same file feeds every other generator and language. See
+in-process pipeline. The framework's own integration suite does the same over its widest
+application. The same file feeds every other generator and language. See
 [the OpenAPI document](https://ipjohnson.github.io/Hardened.Docs/guide/openapi-document) and
 [clients](https://ipjohnson.github.io/Hardened.Docs/guide/clients).
 
@@ -371,8 +372,46 @@ public class TodoTests {
 }
 ```
 
-See [testing](https://ipjohnson.github.io/Hardened.Docs/guide/testing) and
-[testing web apps](https://ipjohnson.github.io/Hardened.Docs/guide/testing-web).
+A generated client is a parameter too. The harness builds it over an `HttpClient` whose handler is
+the pipeline, so the client's calls, its models and its typed exceptions all run against the real
+application with no socket. A factory in the test project says how to construct it, once, and
+`LastResponse` keeps what the client swallowed:
+
+```csharp
+public sealed class TodosClientFactory : ITestClientFactory<TodosClient> {
+    public TodosClient Create(HttpClient http) =>
+        new(new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: http) {
+            BaseUrl = "http://harness"
+        });
+}
+
+public class TodosClientTests {
+    [HardenedTest]
+    public async Task CreateTodo_AnswersCreated(TodosClient client) {
+        var todo = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" });
+
+        Assert.Equal(201, LastResponse.Status);
+        Assert.Equal($"/todos/{todo!.Id}", LastResponse.Headers["Location"]);
+    }
+
+    [HardenedTest]
+    public async Task UnknownTodo_IsATypedNotFound(TodosClient client) {
+        var missing = await Assert.ThrowsAsync<ClientModels.NotFound>(() => client.Todos[9999].GetAsync());
+
+        Assert.Equal(404, missing.ResponseStatusCode);
+    }
+}
+```
+
+Credentials are attributes — `[Grants("todos:write")]`, `[Subject("pia")]`, `[Anonymous]` — on a
+parameter, a method, a class or the assembly, and they reach the client as headers. `[Mock]`
+composes with a client: the mock sits in the graph the handler resolves from. `GeneratedClientTests`
+under `src/IntegrationTests/Web` is the framework's own example, over the application with the
+widest route surface it has.
+
+See [testing](https://ipjohnson.github.io/Hardened.Docs/guide/testing),
+[testing web apps](https://ipjohnson.github.io/Hardened.Docs/guide/testing-web) and
+[clients](https://ipjohnson.github.io/Hardened.Docs/guide/clients).
 
 ## Packages
 
