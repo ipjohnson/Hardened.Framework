@@ -22,6 +22,17 @@ public class TestWebResponse {
 
     public Stream Body => _executionResponse.Body;
 
+    /// <summary>
+    /// What the pipeline recorded when it refused or failed the request, or null.
+    /// </summary>
+    /// <remarks>
+    /// A failure ahead of serialization, a handler that threw and a handler the container could not
+    /// build all reach the client as the error envelope, whose 500 body says nothing about the
+    /// cause on purpose. This is the cause, for a test asserting which failure it was and what it
+    /// named.
+    /// </remarks>
+    public Exception? Failure => _executionResponse.ExceptionValue;
+
     public IWebAssertThat Assert => _assertThat ??= new WebAssertThat(this);
 
     /// <summary>

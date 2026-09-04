@@ -61,6 +61,26 @@ public class WebExecutionHandlerServiceTests {
         fixture.Context.Received(1).HandlerInfo = fixture.HandlerInfo;
     }
 
+    /// <summary>
+    /// H-13 from the 0.19.0-rc1000 trial. A routing table constructs a handler and composes its
+    /// chain on the first request the route matches, so a wiring fault found there escaped this
+    /// service and reached the host as a 500 with no body. It is recorded for the finalizer to
+    /// write as the error envelope instead, and nothing else answers the request.
+    /// </summary>
+    [Fact]
+    public async Task AHandlerThatCannotBeBuiltIsRecordedRatherThanThrown() {
+        var fixture = new Fixture();
+        var fault = new InvalidOperationException("no IClock is registered");
+
+        fixture.RouteThrows("/orders", fault);
+
+        await fixture.Service().Execute(fixture.Chain);
+
+        Assert.Same(fault, fixture.Context.Response.ExceptionValue);
+        await fixture.NotFound.DidNotReceive().Handle(Arg.Any<IExecutionChain>());
+        await fixture.Chain.DidNotReceive().Next();
+    }
+
     /// <summary>The match is logged as a mapped request, which is what ties a log line to a route.</summary>
     [Fact]
     public async Task AMatchedRouteIsLoggedAsMapped() {
@@ -703,6 +723,17 @@ public class WebExecutionHandlerServiceTests {
             _providers.Add(provider);
 
             return handlerChain;
+        }
+
+        /// <summary>A provider whose routing table fails while building the handler for a path.</summary>
+        public void RouteThrows(string path, Exception fault) {
+            Context.Request.Path.Returns(path);
+
+            var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
+
+            provider.GetExecutionRequestHandler(Context).Returns(_ => throw fault);
+
+            _providers.Add(provider);
         }
 
         /// <summary>A provider identified by the invoke method name its handler reports.</summary>

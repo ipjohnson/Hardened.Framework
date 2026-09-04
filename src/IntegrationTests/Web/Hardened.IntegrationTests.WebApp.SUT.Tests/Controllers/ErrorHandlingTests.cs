@@ -66,6 +66,23 @@ public class ErrorHandlingTests {
     }
 
     /// <summary>
+    /// H-13 from the 0.19.0-rc1000 trial. The handler's constructor asks for a service nothing
+    /// registers, which answered a 500 with no body at all: the handler is constructed at
+    /// <c>FilterOrder.HandlerCreation</c>, ahead of the filter that writes a response, and the
+    /// container's exception unwound past it.
+    /// </summary>
+    [HardenedTest]
+    public async Task AHandlerThatCannotBeConstructedAnswersTheErrorEnvelope(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/errors/unsatisfiable");
+
+        Assert.Equal(500, response.StatusCode);
+
+        var error = response.Deserialize<ErrorModel>();
+
+        Assert.Equal("ServerError", error.Type);
+    }
+
+    /// <summary>
     /// The response body carries a serialized ErrorModel, not just a status code.
     /// </summary>
     [HardenedTest]

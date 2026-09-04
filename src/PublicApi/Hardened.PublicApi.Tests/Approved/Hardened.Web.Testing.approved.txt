@@ -103,10 +103,11 @@ namespace Hardened.Web.Testing
         public TestWebResponse(Hardened.Requests.Abstract.Execution.IExecutionResponse executionResponse) { }
         public Hardened.Web.Testing.IWebAssertThat Assert { get; }
         public System.IO.Stream Body { get; }
+        public System.Exception? Failure { get; }
         public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
         public int StatusCode { get; }
         public T Deserialize<T>() { }
-        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(Hardened.Web.Testing.TestWebResponse.<DeserializeAsyncEnumerable>d__11<T>))]
+        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(Hardened.Web.Testing.TestWebResponse.<DeserializeAsyncEnumerable>d__13<T>))]
         public System.Collections.Generic.IAsyncEnumerable<T> DeserializeAsyncEnumerable<T>() { }
         public System.Threading.Tasks.Task<string> ReadTextAsync() { }
     }

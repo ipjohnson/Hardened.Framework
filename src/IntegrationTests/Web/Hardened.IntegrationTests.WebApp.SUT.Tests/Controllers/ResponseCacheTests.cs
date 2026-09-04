@@ -186,16 +186,20 @@ public class ResponseCacheTests {
     /// rather than picking one of the two readings of silence.
     /// </summary>
     /// <remarks>
-    /// Raised as the handler's filter chain is built, which is the first request its route matches -
-    /// so it reaches a test as the exception and a running host as a logged 500. That is where the
-    /// other two failures a declaration can express are raised, and for the same reason: it names
-    /// the handler and is asked once rather than per request.
+    /// Raised as the handler's filter chain is built, which is the first request its route matches,
+    /// so it is recorded on that request and answered as the error envelope, and reaches the log as
+    /// a failure naming the handler. That is where the other two failures a declaration can express
+    /// are raised, and for the same reason: it names the handler and is asked once rather than per
+    /// request.
     /// </remarks>
     [HardenedTest]
     public async Task AGuardedHandlerThatStatesNoScopeFails(ITestWebApp testWebApp) {
-        var failure = await Assert.ThrowsAsync<CacheScopeUndeclaredException>(
-            () => testWebApp.Get(
-                "/response-cache/unstated-scope", Caller("pets:read", "subscriber-one")));
+        var response = await testWebApp.Get(
+            "/response-cache/unstated-scope", Caller("pets:read", "subscriber-one"));
+
+        Assert.Equal(500, response.StatusCode);
+
+        var failure = Assert.IsType<CacheScopeUndeclaredException>(response.Failure);
 
         Assert.Equal("GET /response-cache/unstated-scope", failure.Handler);
         Assert.Contains("CacheScope.PerCaller", failure.Message);

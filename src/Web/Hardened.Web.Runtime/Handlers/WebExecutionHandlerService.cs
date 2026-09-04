@@ -54,14 +54,36 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
         // every provider rather than answered by the first, because a later one may well have this
         // path under this verb - and a 405 from the first that recognised the path would shadow it.
         string? allow = null;
+        RequestHandlerInfo? match;
 
-        var match = Match(context, context.Request.Path, ref allow);
+        try {
+            match = Match(context, context.Request.Path, ref allow);
+        }
+        catch (Exception exception) {
+            return Recorded(context, exception);
+        }
 
         if (match != null) {
             return Dispatch(context, match);
         }
 
         return ResolvedFromSecondarySources(chain, context, allow);
+    }
+
+    /// <summary>
+    /// A failure building the handler, answered as the error envelope.
+    /// </summary>
+    /// <remarks>
+    /// A routing table constructs a handler and composes its chain on the first request the route
+    /// matches, so a handler class whose own dependencies are missing, or a filter provider that
+    /// refuses to compose, fails here rather than at startup. There is no chain to continue on, so
+    /// the failure is recorded for <c>ResponseFinalizerFilter</c> to write, which is the answer a
+    /// fault inside the chain gets, instead of unwinding to the host as a 500 with no body.
+    /// </remarks>
+    private static Task Recorded(IExecutionContext context, Exception exception) {
+        context.Response.ExceptionValue = exception;
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -98,7 +120,14 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
 
         _requestLogger.RequestMapped(context);
 
-        var handlerChain = match.Handler.GetExecutionChain(context);
+        IExecutionChain handlerChain;
+
+        try {
+            handlerChain = match.Handler.GetExecutionChain(context);
+        }
+        catch (Exception exception) {
+            return Recorded(context, exception);
+        }
 
         // A HEAD reaches the GET handler - the routing table sends it there - and must run it in
         // full to produce the same headers, so the body is dropped on the way out rather than never
@@ -167,8 +196,16 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
         // path as written answers; folding in another path's verbs would tell a client it may call
         // something at a URL where it may not.
         string? ignored = null;
+        RequestHandlerInfo? match;
 
-        var match = Match(context, alternative, ref ignored);
+        try {
+            match = Match(context, alternative, ref ignored);
+        }
+        catch (Exception exception) {
+            await Recorded(context, exception);
+
+            return true;
+        }
 
         if (match == null) {
             return false;

@@ -58,6 +58,9 @@
     },
     {
       "name": "Streaming"
+    },
+    {
+      "name": "Unsatisfiable"
     }
   ],
   "paths": {
@@ -1779,6 +1782,26 @@
         ],
         "operationId": "server",
         "summary": "Anything else is a server error.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/unsatisfiable": {
+      "get": {
+        "tags": [
+          "Unsatisfiable"
+        ],
+        "operationId": "get",
         "responses": {
           "200": {
             "description": "OK",

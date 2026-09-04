@@ -433,6 +433,12 @@ namespace Hardened.Requests.Runtime.Filters
     {
         public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGlobalFilter(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider provider, System.Func<Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo, bool>? when = null) { }
     }
+    public class HandlerCreationException : System.InvalidOperationException
+    {
+        public HandlerCreationException(string handler, System.Type handlerType, System.Exception inner) { }
+        public string Handler { get; }
+        public System.Type HandlerType { get; }
+    }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class InstanceFilterProvider : Hardened.Requests.Abstract.RequestFilter.IInstanceFilterProvider
     {
