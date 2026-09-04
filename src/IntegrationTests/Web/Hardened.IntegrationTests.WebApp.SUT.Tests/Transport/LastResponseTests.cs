@@ -1,4 +1,5 @@
 using System.Net;
+using System.IO.Compression;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +24,11 @@ public class LastResponseTests {
         Assert.Equal((int)response.StatusCode, LastResponse.Status);
     }
 
+    /// <summary>
+    /// The harness asks for gzip on every request, so the pipeline answers it, and the body kept
+    /// here is the one it wrote: the content coding is on the header and in the bytes, and undoing
+    /// it is the reader's, as it is for a client.
+    /// </summary>
     [HardenedTest]
     [Grants("pets:read")]
     public async Task AfterAHarnessCallItReportsTheSame(ITestWebApp app) {
@@ -31,7 +37,12 @@ public class LastResponseTests {
         Assert.Equal(200, LastResponse.Status);
         Assert.Equal(response.StatusCode, LastResponse.Status);
         Assert.StartsWith("application/json", LastResponse.ContentType);
-        Assert.Contains("pets", Encoding.UTF8.GetString(LastResponse.Body));
+        Assert.Equal("gzip", LastResponse.Headers["Content-Encoding"]);
+
+        using var decoded = new GZipStream(new MemoryStream(LastResponse.Body), CompressionMode.Decompress);
+        using var reader = new StreamReader(decoded, Encoding.UTF8);
+
+        Assert.Contains("pets", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
     [HardenedTest]

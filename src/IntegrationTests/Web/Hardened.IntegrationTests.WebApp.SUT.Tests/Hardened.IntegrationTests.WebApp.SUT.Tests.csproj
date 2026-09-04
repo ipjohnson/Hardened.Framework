@@ -19,6 +19,9 @@
     <ItemGroup>
       <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
       <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT\Hardened.IntegrationTests.WebApp.SUT.csproj" />
+      <!-- The Kiota client generated from the exported document, driven through the pipeline in
+           Transport/GeneratedClientTests. -->
+      <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT.Client\Hardened.IntegrationTests.WebApp.SUT.Client.csproj" />
     </ItemGroup>
 
     <!--

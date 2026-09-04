@@ -21,6 +21,9 @@
       "name": "CollectionRoot"
     },
     {
+      "name": "Compression"
+    },
+    {
       "name": "EnumVocabulary"
     },
     {
@@ -940,6 +943,196 @@
             "description": "OK",
             "content": {
               "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compression/binary": {
+      "get": {
+        "tags": [
+          "Compression"
+        ],
+        "operationId": "binary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compression/brotli": {
+      "get": {
+        "tags": [
+          "Compression"
+        ],
+        "operationId": "brotli",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Reading"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compression/echo": {
+      "post": {
+        "tags": [
+          "Compression"
+        ],
+        "operationId": "echo",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reading"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reading"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compression/never": {
+      "get": {
+        "tags": [
+          "Compression"
+        ],
+        "operationId": "never",
+        "summary": "How an operation opts out of the application-wide default.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Reading"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compression/readings": {
+      "get": {
+        "tags": [
+          "Compression"
+        ],
+        "operationId": "readings",
+        "summary": "Nothing declared, so the application-wide default applies.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Reading"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compression/sized/{count}": {
+      "get": {
+        "tags": [
+          "Compression"
+        ],
+        "operationId": "sized",
+        "summary": "Compressed only when the list is longer than three.",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Reading"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compression/text": {
+      "get": {
+        "tags": [
+          "Compression"
+        ],
+        "operationId": "text",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
                 "schema": {
                   "type": "string"
                 }
@@ -2466,6 +2659,22 @@
               "next-day",
               "two-day"
             ]
+          }
+        }
+      },
+      "Reading": {
+        "type": "object",
+        "required": [
+          "sensor",
+          "value"
+        ],
+        "properties": {
+          "sensor": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

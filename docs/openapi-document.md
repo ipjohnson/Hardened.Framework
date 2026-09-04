@@ -124,6 +124,10 @@ byte for byte:
 `GeneratedDocumentTests` (OpenAPI), `SmithyServedDocumentTests` (Smithy),
 `OpenApiDocumentTests` and `OpenApiDocumentEmissionTests` (code-first), and
 `SpecFirstDocumentTests` drives YAML through the whole pipeline and strict-parses the result.
+The Web suite goes one step further: `Hardened.IntegrationTests.WebApp.SUT.Client` generates a Kiota
+client from that exported file at build time, and `GeneratedClientTests` drive it through the
+pipeline, so the document is held to what a generator makes of it and not only to what the server
+serves.
 Strict parsing is part of the assertion: `System.Text.Json` refuses raw control characters, so a
 multi-line description that stopped being escaped fails these suites rather than the reference
 page.

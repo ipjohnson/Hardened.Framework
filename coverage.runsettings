@@ -47,6 +47,9 @@
                             <Exclude>
                                 <ModulePath>.*\.Tests\.dll$</ModulePath>
                                 <ModulePath>.*\.SUT\.dll$</ModulePath>
+                                <!-- The Kiota client generated over the Web integration
+                                     application: Kiota's code, compiled by a test fixture. -->
+                                <ModulePath>.*\.SUT\.Client\.dll$</ModulePath>
                             </Exclude>
                         </ModulePaths>
 
