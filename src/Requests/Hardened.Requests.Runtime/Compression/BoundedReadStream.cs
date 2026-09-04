@@ -38,8 +38,11 @@ internal sealed class BoundedReadStream : Stream {
     public override int Read(byte[] buffer, int offset, int count) =>
         Count(_inner.Read(buffer, offset, count));
 
-    public override int Read(Span<byte> buffer) => Count(_inner.Read(buffer));
-
+    /// <summary>
+    /// The array overload as well as the memory one, because the base class runs the array
+    /// overload on the thread pool over the synchronous <c>Read</c> rather than forwarding it.
+    /// <c>ReadByte</c> and the span overload go through <c>Read</c> already and are left to it.
+    /// </summary>
     public override async Task<int> ReadAsync(
         byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
         Count(await _inner.ReadAsync(buffer.AsMemory(offset, count), cancellationToken));
@@ -47,16 +50,6 @@ internal sealed class BoundedReadStream : Stream {
     public override async ValueTask<int> ReadAsync(
         Memory<byte> buffer, CancellationToken cancellationToken = default) =>
         Count(await _inner.ReadAsync(buffer, cancellationToken));
-
-    public override int ReadByte() {
-        var value = _inner.ReadByte();
-
-        if (value >= 0) {
-            Count(1);
-        }
-
-        return value;
-    }
 
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 

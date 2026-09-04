@@ -84,6 +84,31 @@ public class CompressionConfigurationTests {
     }
 
     [Fact]
+    public void APatternWithoutASlashMatchesNothing() {
+        var configuration = new CompressionConfiguration { MediaTypes = ["json"] };
+
+        Assert.False(configuration.Compresses("application/json"));
+    }
+
+    /// <summary>
+    /// The interface is the read-only view the filters see; the class is what an amender edits.
+    /// Both name the same lists.
+    /// </summary>
+    [Fact]
+    public void TheInterfaceReadsTheSameListsTheClassEdits() {
+        var configuration = new CompressionConfiguration();
+        ICompressionConfiguration view = configuration;
+
+        configuration.MediaTypes.Add("application/wasm");
+        configuration.ExcludedMediaTypes.Add("text/csv");
+        configuration.Encodings.Remove("br");
+
+        Assert.Contains("application/wasm", view.MediaTypes);
+        Assert.Contains("text/csv", view.ExcludedMediaTypes);
+        Assert.Equal(["gzip"], view.Encodings);
+    }
+
+    [Fact]
     public void TheDefaultsAreGzipThenBrotliAtTheFastestLevel() {
         Assert.Equal(["gzip", "br"], Defaults.Encodings);
         Assert.Equal(System.IO.Compression.CompressionLevel.Fastest, Defaults.Level);

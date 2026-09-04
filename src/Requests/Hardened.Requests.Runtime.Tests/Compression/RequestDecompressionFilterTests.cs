@@ -270,6 +270,65 @@ public class RequestDecompressionFilterTests {
         Assert.Equal(plain, gzipped);
     }
 
+    /// <summary>
+    /// API Gateway delivers header names lowercased.
+    /// </summary>
+    [Fact]
+    public async Task TheCodingHeaderIsReadWhateverItsCase() {
+        var context = Pipeline.Context(method: "POST", body: GZipped(Json));
+
+        context.Request.Headers["content-encoding"] = KnownEncoding.GZip;
+
+        var (body, headers) = await ReadInside(context);
+
+        Assert.Equal(Json, body);
+        Assert.False(headers.ContainsKey("content-encoding"));
+    }
+
+    [Fact]
+    public async Task ABlankValueBesideTheCodingIsIgnored() {
+        var (body, _) = await ReadInside(Context(GZipped(Json), new StringValues(["", " ", KnownEncoding.GZip])));
+
+        Assert.Equal(Json, body);
+    }
+
+    /// <summary>
+    /// What the bind sees in place of the transport's body: a stream that reads, counts, and does
+    /// nothing else. Every reader the framework has goes through one of these members.
+    /// </summary>
+    [Fact]
+    public async Task TheDecodedBodyReadsAndCountsAndDoesNothingElse() {
+        var context = Context(GZipped(Json), KnownEncoding.GZip);
+
+        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(async chain => {
+            var body = chain.Context.Request.Body;
+
+            Assert.True(body.CanRead);
+            Assert.False(body.CanSeek);
+            Assert.False(body.CanWrite);
+
+            var first = body.ReadByte();
+            var buffer = new byte[4];
+            var read = body.Read(buffer, 0, 2);
+            read += body.Read(buffer.AsSpan(2, 2));
+            read += await body.ReadAsync(buffer, 0, 0, TestContext.Current.CancellationToken);
+
+            body.Flush();
+            await body.FlushAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal('{', (char)first);
+            Assert.Equal(4, read);
+            Assert.Equal(5, body.Position);
+            Assert.Equal(Json.Substring(1, 4), Encoding.UTF8.GetString(buffer));
+
+            Assert.Throws<NotSupportedException>(() => body.Length);
+            Assert.Throws<NotSupportedException>(() => body.Position = 0);
+            Assert.Throws<NotSupportedException>(() => body.Seek(0, SeekOrigin.Begin));
+            Assert.Throws<NotSupportedException>(() => body.SetLength(0));
+            Assert.Throws<NotSupportedException>(() => body.Write(buffer, 0, 1));
+        })).Next();
+    }
+
     private static async Task<string?> KeyInside(IExecutionContext context) {
         string? key = null;
 

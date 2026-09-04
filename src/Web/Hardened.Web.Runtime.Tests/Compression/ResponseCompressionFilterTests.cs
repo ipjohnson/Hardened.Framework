@@ -163,6 +163,16 @@ public class ResponseCompressionFilterTests {
     }
 
     [Fact]
+    public async Task GzipIsChosenWhenFavouredAheadOfAConfiguredBrotli() {
+        var context = Context(Browser);
+        var configuration = new CompressionConfiguration { Encodings = [KnownEncoding.Br, KnownEncoding.GZip] };
+
+        await Run(context, Writes(Json), Filter(favor: CompressionType.GZip, configuration: configuration));
+
+        Assert.Equal("gzip", Encoding_(context));
+    }
+
+    [Fact]
     public async Task AFavouredCodingTheClientDoesNotAcceptFallsBackToTheOrder() {
         var context = Context("gzip");
 
@@ -463,6 +473,44 @@ public class ResponseCompressionFilterTests {
         }, Filter());
 
         Assert.Equal(Encoding.UTF8.GetByteCount(Json), position);
+    }
+
+    /// <summary>
+    /// The synchronous members, which a view engine or a raw writer may use. They reach the same
+    /// encoder as the asynchronous ones, and the wrapper is write-only.
+    /// </summary>
+    [Fact]
+    public async Task TheSynchronousWritesReachTheSameEncoder() {
+        var context = Context();
+        var bytes = Encoding.UTF8.GetBytes(Json);
+
+        await Run(context, chain => {
+            var response = chain.Context.Response;
+            var body = response.Body;
+
+            response.ContentType = "application/json";
+
+            Assert.True(body.CanWrite);
+            Assert.False(body.CanRead);
+            Assert.False(body.CanSeek);
+
+            body.WriteByte(bytes[0]);
+            body.Write(bytes, 1, 3);
+            body.Write(bytes.AsSpan(4));
+            body.Flush();
+
+            Assert.Equal(bytes.Length, body.Length);
+
+            Assert.Throws<NotSupportedException>(() => body.Position = 0);
+            Assert.Throws<NotSupportedException>(() => body.Read(new byte[1], 0, 1));
+            Assert.Throws<NotSupportedException>(() => body.Seek(0, SeekOrigin.Begin));
+            Assert.Throws<NotSupportedException>(() => body.SetLength(0));
+
+            return Task.CompletedTask;
+        }, Filter());
+
+        Assert.Equal("gzip", Encoding_(context));
+        Assert.Equal(Json, Decode(Transport(context), KnownEncoding.GZip));
     }
 
     [Fact]

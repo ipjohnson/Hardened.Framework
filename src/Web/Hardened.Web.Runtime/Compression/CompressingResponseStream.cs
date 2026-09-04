@@ -51,12 +51,6 @@ internal sealed class CompressingResponseStream : Stream {
         _configuration = configuration;
     }
 
-    /// <summary>The coding negotiated at filter entry, whether or not it ends up applied.</summary>
-    public string Coding => _coding;
-
-    /// <summary>Whether the first write opened an encoder. False until then.</summary>
-    public bool IsCompressing => _encoder != null;
-
     public override bool CanRead => false;
 
     public override bool CanSeek => false;

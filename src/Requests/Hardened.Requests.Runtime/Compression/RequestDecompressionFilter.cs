@@ -81,8 +81,8 @@ public sealed class RequestDecompressionFilter : IExecutionFilter {
 
         // Removed so nothing downstream decodes a second time, and Content-Length with it, because
         // it measured the bytes on the wire and no longer describes the body anything will read.
-        request.Headers.Remove(KnownHeaders.ContentEncoding);
-        request.Headers.Remove(KnownHeaders.ContentLength);
+        Remove(request.Headers, KnownHeaders.ContentEncoding);
+        Remove(request.Headers, KnownHeaders.ContentLength);
 
         try {
             await chain.Next();
@@ -142,6 +142,24 @@ public sealed class RequestDecompressionFilter : IExecutionFilter {
         // Racy by construction and harmless: two requests may both resolve the same singleton.
         return _configuration ??= context.RootServiceProvider
             .GetRequiredService<IOptions<ICompressionConfiguration>>().Value;
+    }
+
+    /// <summary>
+    /// Removes a header under whatever casing it arrived in, for the reason <see cref="Read"/>
+    /// looks it up that way.
+    /// </summary>
+    private static void Remove(IDictionary<string, StringValues> headers, string name) {
+        if (headers.Remove(name)) {
+            return;
+        }
+
+        foreach (var header in headers) {
+            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase)) {
+                headers.Remove(header.Key);
+
+                return;
+            }
+        }
     }
 
     private static StringValues Read(IDictionary<string, StringValues> headers, string name) {
