@@ -229,6 +229,10 @@ An error, with no `NoWarn`. Removing one declaration is the whole fix.
 | `HOAG010` | A handler was skipped because a parameter type did not resolve. Other handlers are unaffected. |
 | `HOAG020` | An operation declares a markup content type but names no view to render it. |
 | `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. The ones with an entry have a section above. |
+| `HRDOA001` | `<HardenedOpenApiVersion>` is not 3.0.0, 3.1.0 or 3.2.0. |
+| `HRDOA002` | Warning. A streamed response under a document version with no `itemSchema`; the operation is described without a schema. |
+| `HRDOA003` | Warning. `[Enable<OpenApiDocumentPublishing>]` sits on a module declaring no routes, so the document is empty. |
+| `HRDOA018`, `019`, `028`–`030` | The document export, reported under the code-first prefix. The numbers mean the same under `HOAT` and `HSMT`; see below. |
 
 ## Description build tasks (HOAT, HSMT)
 
@@ -256,6 +260,7 @@ the other.
 | `020`–`024` | The shared model-diagnostics pass. See below. |
 | `026` | Warning. `$(HardenedResponseModel)` is `Standard`, the throws mode's name before 0.19.0. The mode selected is unchanged; write `Throws`. Reported once per project. |
 | `027` | The description references something it does not declare. Part of the model-diagnostics pass; see below. |
+| `018`, `019`, `028`–`030` | The document export, which the three generator packages share. See below. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 
@@ -266,6 +271,47 @@ the other.
 | `HSMT012` | The CLI refused the model. One error per finding, at the file, line and column the CLI named; a report that does not parse is passed through whole. |
 | `HSMT013` | Warning. What the CLI said without failing, with the same per-finding attribution. |
 | `HSMT014` | The CLI exited cleanly but wrote no AST. Unlike `HSMT012`, the fix is not in a `.smithy` file. |
+
+### The document export (018, 019, 028–030)
+
+`<HardenedOpenApiOutput>` writes the OpenAPI document an assembly serves to a file after the
+compile, read out of the compiled assembly by the `Hardened.OpenApiDocument.BuildTask` task that all
+three generator packages carry. The task reports under the prefix of the front end that wrote the
+document - `HRDOA` for code-first, `HOAT` for OpenAPI-first, `HSMT` for Smithy - and a number means
+the same thing under each. `018` and `019` are the next free numbers in the shared range; `028`
+onward follows the model-diagnostics pass, since `025` is retired and stays so.
+
+| Number | Meaning |
+|---|---|
+| `018` | The property is set and the assembly carries no served document, or carries one the export cannot read. Code-first, the module that declares the routes lacks `[Enable<OpenApiDocumentPublishing>]`; add it, or remove the property. Spec-first, the generator did not run over the model, which `004` and `005` describe. A getter the export cannot read names the entry point and what was wrong with the body; that is a compiler lowering the export does not know, and the message names the fallback. |
+| `019` | The project declares more than one served document - two modules enabling publishing in one compilation - and one output path cannot express both. Keep one, or move the other to a project of its own. |
+| `028` | The output path's extension names no format. Use `.json` for indented JSON, or `.yaml` or `.yml` for YAML. |
+| `029` | `<HardenedOpenApiOutputVersion>` is not `3.0.0` or `3.1.0`. Remove it to write the version the application serves. |
+| `030` | Warning. The file was lowered to a version with no `itemSchema`, and the named operation streams its response; the file describes it with its media type and no schema. Remove `<HardenedOpenApiOutputVersion>` to export the 3.2 document the application serves. Once per operation. |
+
+```
+<HardenedOpenApiOutput> is set to 'openapi/Todos.json', but Todos.dll carries no served OpenAPI
+document. The document is written only for a module that enables publishing, and the export reads
+that one copy. Add [Enable<OpenApiDocumentPublishing>] to the module that declares the routes, or
+remove the property.
+```
+
+The export writes what the server serves - the normalised document, never the source contract -
+and what it writes does not change the served document: a `.yaml` file at 3.0.0 leaves
+`/openapi.json` the compact 3.2 JSON it always was. Lowering to 3.0.0 also rewrites the two
+spellings a 3.0 reader refuses, a numeric `exclusiveMinimum` and a `type` array with `"null"`,
+the way the generator itself writes them under a 3.0 banner.
+
+### The template's own codes (HTPL)
+
+The `hardened-web` template's project files carry three checks of their own, in the shape of
+`HSMT010` and `HSMT011`.
+
+| Id | Meaning |
+|---|---|
+| `HTPL001` | `--host aws-lambda` with `--response-model union`: the union model needs net11.0 and the Lambda managed runtime is net8.0. Regenerate with `--response-model response`. |
+| `HTPL002` | The Kiota tool could not be restored, so the client cannot be generated. The pin is in `.config/dotnet-tools.json`; a fresh machine needs network for the first restore. |
+| `HTPL003` | The Kiota tool and `Microsoft.Kiota.Bundle` disagree. The tool version in `.config/dotnet-tools.json` and `KiotaBundleVersion` in `Directory.Packages.props` move together; the message names both versions and both files. |
 
 ### The model-diagnostics pass (020–024)
 

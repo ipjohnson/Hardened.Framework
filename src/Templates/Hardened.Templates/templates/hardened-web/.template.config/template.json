@@ -155,6 +155,26 @@
     "lambdaUnionConflict": {
       "type": "computed",
       "value": "(host == 'aws-lambda' && responseModel == 'union')"
+    },
+    "client": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "kiota",
+      "description": "The generated client. A choice rather than a switch so another generator can be a value later without renaming the option.",
+      "choices": [
+        {
+          "choice": "kiota",
+          "description": "A Kiota C# client in src/Hardened1.Client, generated during the build from the document the library writes, and a test that drives it through the pipeline. The default."
+        },
+        {
+          "choice": "none",
+          "description": "No client project, no tool manifest, no export of the document."
+        }
+      ]
+    },
+    "kiotaClient": {
+      "type": "computed",
+      "value": "(client == 'kiota')"
     }
   },
   "sources": [
@@ -225,6 +245,16 @@
           "condition": "(!unionMode)",
           "exclude": [
             "global.union.json"
+          ]
+        },
+        {
+          "comment": "Everything the client brings, as one unit: the project, the tool manifest that pins Kiota, the factory that builds the client for a test, and the tests that drive it. The export property in the library csproj and the client project's lines in both solution files sit behind the same symbol in their own files.",
+          "condition": "(!kiotaClient)",
+          "exclude": [
+            "src/Hardened1.Client/**",
+            ".config/**",
+            "tests/Hardened1.Tests/TestClients.cs",
+            "tests/Hardened1.Tests/Hardened1ClientTests.cs"
           ]
         }
       ]

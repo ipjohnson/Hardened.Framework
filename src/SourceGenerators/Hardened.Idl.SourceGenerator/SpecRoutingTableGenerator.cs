@@ -228,7 +228,7 @@ internal static class SpecRoutingTableGenerator {
                 "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
                 "serviceProvider, global::" +
                 appModel.EntryPointType.Namespace + "." + appModel.EntryPointType.Name + "." +
-                OpenApiDocumentSource.DocumentPropertyName + ", " +
+                OpenApiDocumentSource.DocumentMemberPath + ", " +
                 Quote(registration.PublishUrl) + "))"));
 
             if (registration.UiUrl.Length == 0) {

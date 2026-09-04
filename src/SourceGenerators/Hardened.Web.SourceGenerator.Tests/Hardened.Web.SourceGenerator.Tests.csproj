@@ -106,6 +106,19 @@
       too, so naming it here is ambiguous again - and GeneratedFileHeaderTests already covers this
       assembly's copy through the generator, which is the better test anyway.
     -->
+    <!--
+        The document the web integration application's build exported, for the reverse round trip
+        that feeds a file rather than an in-memory literal back through the specification-first
+        parser. The reference orders the build so the file exists; nothing binds against the
+        application.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\IntegrationTests\Web\Hardened.IntegrationTests.WebApp.SUT\Hardened.IntegrationTests.WebApp.SUT.csproj"
+                          ReferenceOutputAssembly="false"/>
+        <None Include="..\..\IntegrationTests\Web\Hardened.IntegrationTests.WebApp.SUT\openapi\Application.json"
+              Link="Exported\Application.json" CopyToOutputDirectory="PreserveNewest" Visible="false"/>
+    </ItemGroup>
+
     <ItemGroup>
         <Compile Include="../Hardened.SourceGenerator.Tests/SpecBridge/*.cs"
                  Link="SpecBridge/%(Filename)%(Extension)"/>

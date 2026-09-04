@@ -22,6 +22,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Web.Testing.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>

@@ -1,17 +1,8 @@
-﻿using System.Text.Json;
-using Hardened.Requests.Abstract.Execution;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Hardened.Requests.Abstract.Headers;
-using Hardened.Requests.Abstract.Logging;
-using Hardened.Requests.Abstract.Metrics;
-using Hardened.Requests.Abstract.Middleware;
-using Hardened.Requests.Abstract.QueryString;
-using Hardened.Requests.Runtime.Headers;
-using Hardened.Requests.Runtime.QueryString;
-using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Json;
-using Hardened.Shared.Runtime.Metrics;
 using Hardened.Shared.Testing.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,11 +13,28 @@ namespace Hardened.Web.Testing;
 public class TestWebApp : TestContext, ITestWebApp {
     private readonly IApplicationRoot _applicationRoot;
     private readonly TestCancellationToken _testCancellationToken;
+    private readonly TestCredential? _credential;
+    private readonly Assembly? _testAssembly;
 
     public TestWebApp(IApplicationRoot applicationRoot, ILogger logger)
+        : this(applicationRoot, logger, null, null) {
+    }
+
+    /// <param name="credential">
+    /// The credential the test's attributes resolved to, sent on every request whose configure
+    /// callback set neither test header, and on every client this instance hands out.
+    /// </param>
+    /// <param name="testAssembly">
+    /// Where <see cref="CreateClient{TClient}"/> looks for an <see cref="ITestClientFactory{TClient}"/>.
+    /// The calling assembly when null.
+    /// </param>
+    public TestWebApp(
+        IApplicationRoot applicationRoot, ILogger logger, TestCredential? credential, Assembly? testAssembly)
         : base(applicationRoot.Provider.GetRequiredService<TestCancellationToken>().Token, logger) {
         _applicationRoot = applicationRoot;
         _testCancellationToken = _applicationRoot.Provider.GetService<TestCancellationToken>()!;
+        _credential = credential;
+        _testAssembly = testAssembly;
     }
 
     public IServiceProvider RootServiceProvider => _applicationRoot.Provider;
@@ -56,66 +64,59 @@ public class TestWebApp : TestContext, ITestWebApp {
         return ExecuteHttpMethod(method, path, webRequest, value);
     }
 
+    public HttpClient CreateHttpClient(TestCredential? credential = null) =>
+        TestClientBuilder.CreateHttpClient(_applicationRoot.Provider, credential ?? _credential);
+
+    /// <remarks>
+    /// The factory is looked for in the test assembly the harness was built for, and for an
+    /// instance built by hand in the assembly that is calling - which is the test assembly too,
+    /// and stays so because the method is never inlined into its caller.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public TClient CreateClient<TClient>(TestCredential? credential = null) where TClient : class =>
+        (TClient)TestClientBuilder.Build(
+            typeof(TClient),
+            CreateHttpClient(credential),
+            _testAssembly ?? Assembly.GetCallingAssembly());
+
     private async Task<TestWebResponse> ExecuteHttpMethod(string httpMethod, string path,
         Action<TestWebRequest>? webRequest, object? bodyValue = null) {
         _testCancellationToken.Token.ThrowIfCancellationRequested();
 
-        var startTimestamp = MachineTimestamp.Now;
+        // Case-insensitive, as a transport's are: a test that sets content-type and a pipeline
+        // that reads Content-Type are talking about one header.
+        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        var middlewareService = _applicationRoot.Provider.GetRequiredService<IMiddlewareService>();
-        var requestLogger = _applicationRoot.Provider.GetRequiredService<IRequestLogger>();
-        var metricLoggerProvider = _applicationRoot.Provider.GetRequiredService<IMetricLoggerProvider>();
+        var testWebRequest = new TestWebRequest { Headers = headers };
 
-        var responseBody = new MemoryStream();
-        var scope = _applicationRoot.Provider.CreateScope();
+        webRequest?.Invoke(testWebRequest);
 
-        var context = CreateContext(
-            httpMethod, path, webRequest, responseBody, scope,
-            metricLoggerProvider.CreateLogger("test-session"));
+        testWebRequest.Token ??= _testCancellationToken.Token;
 
         // A default rather than an override. It used to be assigned unconditionally, after the
         // caller's own configuration had run, so a test setting this header had it silently
         // replaced - which made the uncompressed path of any handler that honours it untestable.
-        if (!context.Request.Headers.ContainsKey(KnownHeaders.AcceptEncoding)) {
-            context.Request.Headers[KnownHeaders.AcceptEncoding] = KnownEncoding.GZip;
+        if (!headers.ContainsKey(KnownHeaders.AcceptEncoding)) {
+            headers[KnownHeaders.AcceptEncoding] = KnownEncoding.GZip;
         }
 
-        if (bodyValue != null && string.IsNullOrEmpty(context.Request.ContentType)) {
-            context.Request.Headers[KnownHeaders.ContentType] = KnownContentType.Js;
+        var hasBody = testWebRequest.Body != null || bodyValue != null;
+
+        if (hasBody && !headers.ContainsKey(KnownHeaders.ContentType)) {
+            headers[KnownHeaders.ContentType] = KnownContentType.Js;
         }
 
-        context.Request.Body = SetupBodyStream(bodyValue);
+        var body = testWebRequest.Body != null
+            ? new MemoryStream(testWebRequest.Body)
+            : SetupBodyStream(bodyValue);
 
-        var chain = middlewareService.GetExecutionChain(context);
+        var request = PipelineRequest.CreateRequest(httpMethod, path, headers, body, _credential);
+        var responseBody = new MemoryStream();
 
-        requestLogger.RequestBegin(context);
+        var response = await PipelineRequest.Run(
+            _applicationRoot.Provider, request, responseBody, testWebRequest.Token.Value);
 
-        try {
-            await chain.Next();
-        }
-        catch (Exception e) {
-            Console.WriteLine(e);
-            throw;
-        }
-        finally {
-            // In a finally because these ran as straight-line statements after the chain, so a
-            // request that threw closed out nothing: no duration, no end, and the scope leaked.
-            context.RequestMetrics.Record(
-                RequestMetrics.TotalRequestDuration, startTimestamp.GetElapsedMilliseconds());
-
-            requestLogger.RequestEnd(context);
-
-            // The logger is per request and nothing else owns it. Disposal is how a provider learns
-            // the request finished, so a harness assertion about what a request emitted has nothing
-            // to read without it.
-            context.RequestMetrics.Dispose();
-
-            scope.Dispose();
-        }
-
-        responseBody.Position = 0;
-
-        return new TestWebResponse(context.Response);
+        return new TestWebResponse(response);
     }
 
     private Stream SetupBodyStream(object? bodyValue) {
@@ -154,87 +155,4 @@ public class TestWebApp : TestContext, ITestWebApp {
 
         return memoryStream;
     }
-
-    private IExecutionContext CreateContext(
-        string httpMethod,
-        string path,
-        Action<TestWebRequest>? webRequest,
-        MemoryStream responseBody,
-        IServiceScope serviceScope,
-        IMetricLogger metricLogger) {
-        var header = new Dictionary<string, StringValues>();
-
-        var testWebRequest = new TestWebRequest { Headers = header };
-
-        webRequest?.Invoke(testWebRequest);
-
-        testWebRequest.Token ??= _testCancellationToken.Token;
-
-        var pathMinusQuery = path;
-        var questionMark = path.IndexOf('?');
-        if (questionMark > -1) {
-            pathMinusQuery = path.Substring(0, questionMark);
-        }
-
-        // Decoded, because a transport hands one over decoded. Passing it through undecoded made
-        // /events/%20 reach the handler as the literal three characters and match nothing, while
-        // the same request over a socket decoded to whitespace and reached the validator - which
-        // is the divergence a harness exists not to have. See RequestPathDecoder for the rule and
-        // where it was measured.
-        pathMinusQuery = RequestPathDecoder.Decode(pathMinusQuery);
-
-        // Read from the headers the caller set rather than passed as "", which is what it used to
-        // be. TestExecutionRequest takes Accept as a constructor argument instead of parsing it, so
-        // hardcoding it here meant a test could set the header and the pipeline would never see it -
-        // silently, since an empty Accept is a legitimate request. Content negotiation was
-        // untestable through this host, which is how a serializer that ignored Accept entirely
-        // passed every integration test it had.
-        header.TryGetValue(KnownHeaders.Accept, out var accept);
-
-        // The Cookie header, as the cookie collection - which is what a real transport hands over.
-        // Without this a test can set the header and the pipeline sees no cookies at all, so a
-        // cookie-bound parameter is untestable through this host: the same shape of gap that let a
-        // serializer ignoring Accept pass every integration test it had.
-        var cookies = new List<string>();
-
-        if (header.TryGetValue(KnownHeaders.Cookie, out var cookieHeader)) {
-            foreach (var pair in cookieHeader.ToString().Split(';')) {
-                var trimmed = pair.Trim();
-
-                if (trimmed.Length > 0) {
-                    cookies.Add(trimmed);
-                }
-            }
-        }
-
-        var request =
-            new TestExecutionRequest(
-                httpMethod, pathMinusQuery, accept.ToString(), ParseQueryStringFromPath(path)) {
-                Headers = header,
-                Cookies = cookies
-            };
-        var responseHeaders = new Dictionary<string, StringValues>();
-        var response = new TestExecutionResponse(responseBody) { Headers = responseHeaders };
-
-        return new TestExecutionContext(
-            _applicationRoot.Provider,
-            serviceScope.ServiceProvider,
-            serviceScope.ServiceProvider.GetRequiredService<IKnownServices>(),
-            request,
-            response,
-            testWebRequest.Token.Value,
-            metricLogger);
-    }
-
-    /// <summary>
-    /// The same parser the Kestrel host uses - see <see cref="QueryStringParser"/>.
-    /// </summary>
-    /// <remarks>
-    /// This used to be its own implementation, and a worse one: it split on every <c>'='</c> and
-    /// stored the raw substring, so it decoded nothing and dropped any pair whose value contained an
-    /// <c>'='</c>. The harness's whole value is that it drives the real pipeline, and a request that
-    /// answers 400 here and 200 on Kestrel is worse than no harness for that case.
-    /// </remarks>
-    private static IQueryStringCollection ParseQueryStringFromPath(string path) =>
-        QueryStringParser.ParseFromPath(path);
 }

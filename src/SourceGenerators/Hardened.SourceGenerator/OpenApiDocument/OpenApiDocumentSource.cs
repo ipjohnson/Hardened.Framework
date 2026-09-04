@@ -32,6 +32,19 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// nothing at run time.
 /// </para>
 /// <para>
+/// <b>Under a fixed name, because a build task reads it back.</b> The literal is the one copy of
+/// the document the assembly carries, and <c>&lt;HardenedOpenApiOutput&gt;</c> writes it to a file
+/// after the compile by opening the assembly with a metadata reader rather than by loading it or
+/// by scraping generated source. The reader finds the getter by name: a static class named
+/// <see cref="DocumentTypeName"/> nested in the entry point, with one static getter named
+/// <see cref="DocumentPropertyName"/> whose body is the literal and nothing else. Both front ends
+/// come through this method, so a code-first and a normalised spec-first document have the same
+/// shape in the assembly. Nested in the entry point rather than declared at a fixed full name so
+/// two entry points in one compilation each carry their own, and the task can say so rather than
+/// the compiler reporting a duplicate type. <c>WriteOpenApiDocument</c> in
+/// <c>Hardened.OpenApiDocument.BuildTask</c> is the other half; change one name and change both.
+/// </para>
+/// <para>
 /// <b>Determinism.</b> Incremental generation and reproducible builds both require identical output
 /// for identical input, and a compressor that stamped a timestamp would break both.
 /// <c>GZipStream</c> writes MTIME as zero, which is what makes this safe;
@@ -51,7 +64,14 @@ internal static class OpenApiDocumentSource {
 
         var document = OpenApiDocumentGenerator.Write(appModel, handlers, basePath, version, identity);
 
-        var property = entryPoint.AddProperty(ReadOnlySpanOfByte, DocumentPropertyName);
+        var container = entryPoint.AddClass(DocumentTypeName);
+
+        container.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
+        container.Comment =
+            "The OpenAPI document this application serves, as the build wrote it. " +
+            "<HardenedOpenApiOutput> reads it from the compiled assembly under this name.";
+
+        var property = container.AddProperty(ReadOnlySpanOfByte, DocumentPropertyName);
 
         property.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         property.Set = null;
@@ -70,8 +90,23 @@ internal static class OpenApiDocumentSource {
         return outputContext.Output();
     }
 
-    /// <summary>What the routing generator registers, and what the extraction script looks for.</summary>
-    public const string DocumentPropertyName = "OpenApiDocumentGZip";
+    /// <summary>
+    /// The static class nested in the entry point that holds the literal. The build task that
+    /// exports the document looks for a nested type of this name.
+    /// </summary>
+    public const string DocumentTypeName = "OpenApiDocument";
+
+    /// <summary>
+    /// The getter on <see cref="DocumentTypeName"/>. What the routing generator registers, and what
+    /// the build task decodes.
+    /// </summary>
+    public const string DocumentPropertyName = "GZip";
+
+    /// <summary>
+    /// How the routing table names the literal from the entry point's own scope:
+    /// <c>OpenApiDocument.GZip</c>.
+    /// </summary>
+    public const string DocumentMemberPath = DocumentTypeName + "." + DocumentPropertyName;
 
     private static ITypeDefinition ReadOnlySpanOfByte =>
         new GenericTypeDefinition(

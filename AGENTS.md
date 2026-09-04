@@ -72,10 +72,18 @@ some of its output and none of the rest, and Roslyn reports that as a warning.
 dotnet build -v:d 2>&1 | grep -o '/analyzer:[^ ]*' | sort -u
 ```
 
-**A build task in this repository is built by the same build that consumes it.** The OpenAPI and
-Smithy targets run their tasks through `TaskHostFactory` for that reason. If you opt into
-`HardenedOpenApiInProcessTask=true` or `HardenedSmithyInProcessTask=true`, the assembly stays
-locked and a stale one runs — build with `-nr:false`.
+**A build task in this repository is built by the same build that consumes it.** The OpenAPI,
+Smithy and document-export targets run their tasks through `TaskHostFactory` for that reason. If
+you opt into `HardenedOpenApiInProcessTask=true`, `HardenedSmithyInProcessTask=true` or
+`HardenedOpenApiDocumentInProcessTask=true`, the assembly stays locked and a stale one runs — build
+with `-nr:false`.
+
+**The three integration applications export their served document to a tracked file.**
+`<HardenedOpenApiOutput>` on each SUT writes `openapi/<EntryPoint>.json` after every compile, and
+each suite's `ExportedDocumentTests` compares it with `/openapi.json`. A route change therefore
+shows up as a diff in that file; commit it with the change. The export task reads the served
+literal out of the compiled assembly under `{EntryPoint}.OpenApiDocument.GZip`, a name the
+generators and `Hardened.OpenApiDocument.BuildTask` both depend on.
 
 **Generated sources under `obj/**/generated/` are not cleaned by a rename.** A generator that
 changes name leaves its old directory behind, and Rider compiles both. Debug and Release have
@@ -134,6 +142,13 @@ solution alone ships a release missing that package.
 
 `0.8.0-rc1000` was a bad release — three unusable packages, superseded by `0.9.0-rc1000`. Never
 recommend it.
+
+**The Kiota pins in the `hardened-web` template follow Kiota's line, not this repository's.** The
+tool in `templates/hardened-web/.config/dotnet-tools.json` and `KiotaBundleVersion` in its
+`Directory.Packages.props` are bumped together, by a deliberate commit, to one Kiota release;
+`kiota info --language CSharp --json` says which bundle a tool expects. `scripts/verify-templates.sh`
+checks the pair before it scaffolds anything and is the gate, as it is for everything else in the
+template.
 
 Dry-run a release before tagging: pack at the real version into a local folder feed and restore a
 generated project against it, with `NUGET_PACKAGES` redirected so the global cache is not poisoned.

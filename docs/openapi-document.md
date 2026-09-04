@@ -105,6 +105,8 @@ Code-first, a `decimal` property publishes `number` / `decimal`, so it reads bac
 | `<HardenedSmithyModel>` / `<HardenedSmithyAst>` | csproj item | the Smithy contract, same metadata |
 | `$(HardenedResponseModel)` | csproj property | `Response` / `Throws` / `Union` for a described project; absent means `Throws`, and the pre-0.19.0 value `Standard` still reads as `Throws` under a 026 warning |
 | `[ResponseModel(...)]` | entry point | the same choice, code-first |
+| `$(HardenedOpenApiOutput)` | csproj property | writes the served document to a file after every compile, for every front end: indented JSON for `.json`, YAML for `.yaml` or `.yml`. What it writes is what the server serves - the normalised document, never the source contract - read out of the compiled assembly rather than out of a running application. A client is generated from this file |
+| `$(HardenedOpenApiOutputVersion)` | csproj property | `3.0.0` or `3.1.0`: lowers the written file for a reader that refuses the 3.2 banner, dropping `itemSchema` and naming each streaming operation that lost it (030). The served document is untouched |
 | `[OpenApiInfo(title, version, description)]` | entry point | the document's `info`, code-first |
 | `[Server(url, description)]` | entry point | a `servers` entry |
 | `[Throws<T>(status)]` | handler | a thrown status, into the document |
@@ -116,7 +118,9 @@ Code-first, a `decimal` property publishes `number` / `decimal`, so it reads bac
 
 ## What holds it true
 
-The integration suites fetch the served document and assert it against the contract:
+The integration suites fetch the served document and assert it against the contract, and each
+one's `ExportedDocumentTests` holds the file `$(HardenedOpenApiOutput)` wrote to the served document
+byte for byte:
 `GeneratedDocumentTests` (OpenAPI), `SmithyServedDocumentTests` (Smithy),
 `OpenApiDocumentTests` and `OpenApiDocumentEmissionTests` (code-first), and
 `SpecFirstDocumentTests` drives YAML through the whole pipeline and strict-parses the result.

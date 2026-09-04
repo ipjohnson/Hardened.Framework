@@ -282,4 +282,23 @@
                Code="HOAT003"
                Text="OpenAPI specs are declared with &lt;HardenedOpenApiSpec Include=&quot;%(AdditionalFiles.Identity)&quot; /&gt; rather than &lt;AdditionalFiles&gt;. The generator no longer reads yaml directly - a build task parses it first."/>
     </Target>
+
+    <!--
+        <HardenedOpenApiOutput> and <HardenedOpenApiOutputVersion>: the served document written to a
+        file after the compile, reported under this front end's prefix. Shared with the other two
+        generator packages, each of which carries and imports the same file.
+    -->
+    <PropertyGroup>
+        <HardenedOpenApiDocumentDiagnosticPrefix Condition="'$(HardenedOpenApiDocumentDiagnosticPrefix)' == ''">HOAT</HardenedOpenApiDocumentDiagnosticPrefix>
+    </PropertyGroup>
+
+    <!-- Beside this file in the package. In this repository, where a fixture imports this file
+         from the source tree, the shared file is in the export task's own project. -->
+    <PropertyGroup>
+        <_HardenedOpenApiDocumentTargets>$(MSBuildThisFileDirectory)Hardened.OpenApiDocument.targets</_HardenedOpenApiDocumentTargets>
+        <_HardenedOpenApiDocumentTargets Condition="!Exists('$(_HardenedOpenApiDocumentTargets)')">$(MSBuildThisFileDirectory)../../Hardened.OpenApiDocument.BuildTask/Package/Hardened.OpenApiDocument.targets</_HardenedOpenApiDocumentTargets>
+    </PropertyGroup>
+
+    <Import Project="$(_HardenedOpenApiDocumentTargets)"
+            Condition="'$(HardenedOpenApiDocumentTargetsImported)' != 'true'"/>
 </Project>

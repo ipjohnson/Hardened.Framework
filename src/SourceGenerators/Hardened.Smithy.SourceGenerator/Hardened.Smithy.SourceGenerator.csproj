@@ -63,6 +63,33 @@
             <PackagePath>build/</PackagePath>
             <PackageCopyToOutput>true</PackageCopyToOutput>
         </Content>
+
+        <!-- The document export's targets, imported by this package's own; see the web generator's
+             csproj for why all three packages carry it. -->
+        <Content Include="..\Hardened.OpenApiDocument.BuildTask\Package\Hardened.OpenApiDocument.targets">
+            <Link>Package\Hardened.OpenApiDocument.targets</Link>
+            <Pack>true</Pack>
+            <PackagePath>build/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <!--
+        The export task, beside this package's own task in tasks/. Only the files the sibling task
+        does not already ship, because NuGet refuses a second copy of a file at one path and the two
+        tasks share most of their .NET Framework dependencies.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.OpenApiDocument.BuildTask\Hardened.OpenApiDocument.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all"
+                          SetTargetFramework="TargetFramework=net8.0"/>
+        <_HardenedOwnTaskFile Include="..\Hardened.Smithy.BuildTask\bin\$(Configuration)\net472\**\*.dll"/>
+        <None Include="..\Hardened.OpenApiDocument.BuildTask\bin\$(Configuration)\net472\**\*.dll"
+              Exclude="@(_HardenedOwnTaskFile->'..\Hardened.OpenApiDocument.BuildTask\bin\$(Configuration)\net472\%(Filename)%(Extension)')"
+              Pack="true" PackagePath="tasks/net472" Visible="false"/>
+        <None Include="..\Hardened.OpenApiDocument.BuildTask\bin\$(Configuration)\net8.0\Hardened.OpenApiDocument.BuildTask.dll"
+              Pack="true" PackagePath="tasks/net8.0" Visible="false"/>
     </ItemGroup>
 
     <!--

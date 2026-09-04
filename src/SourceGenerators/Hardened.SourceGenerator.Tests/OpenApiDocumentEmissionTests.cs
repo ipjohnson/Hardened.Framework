@@ -136,7 +136,8 @@ public class OpenApiDocumentEmissionTests {
 
     [Fact]
     public void TheDocumentIsEmittedWithTheMarker() {
-        Assert.Contains("OpenApiDocumentGZip", Generate(Enable));
+        Assert.Contains("OpenApiDocument", Generate(Enable));
+        Assert.Contains("GZip", Generate(Enable));
     }
 
     /// <summary>
@@ -261,7 +262,7 @@ public class OpenApiDocumentEmissionTests {
             .SourceContaining("Routing");
 
         Assert.Contains("OpenApiDocumentProvider", routing);
-        Assert.Contains("Application.OpenApiDocumentGZip", routing);
+        Assert.Contains("Application.OpenApiDocument.GZip", routing);
         Assert.Contains("\"/openapi.json\"", routing);
     }
 

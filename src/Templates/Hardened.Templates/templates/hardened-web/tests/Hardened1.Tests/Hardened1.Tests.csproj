@@ -23,6 +23,10 @@
     <!-- The library, not the host. ITestWebApp drives the real pipeline without one, so a test
          suite that named the host would be coupled to a deployment target for no reason. -->
     <ProjectReference Include="..\..\src\Hardened1\Hardened1.csproj" />
+<!--#if (kiotaClient) -->
+    <!-- The generated client, driven through the pipeline in Hardened1ClientTests. -->
+    <ProjectReference Include="..\..\src\Hardened1.Client\Hardened1.Client.csproj" />
+<!--#endif -->
   </ItemGroup>
 
 </Project>

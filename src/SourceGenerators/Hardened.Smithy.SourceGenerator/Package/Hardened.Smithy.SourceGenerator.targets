@@ -378,4 +378,23 @@
                Code="HSMT003"
                Text="@(HardenedSmithyAst) is a Smithy IDL file, and that item takes a JSON AST. Declare it as &lt;HardenedSmithyModel Include=&quot;...&quot; /&gt; to have the build run the Smithy CLI for you, or convert it yourself and point HardenedSmithyAst at the .json."/>
     </Target>
+
+    <!--
+        <HardenedOpenApiOutput> and <HardenedOpenApiOutputVersion>: the served document written to a
+        file after the compile, reported under this front end's prefix. Shared with the other two
+        generator packages, each of which carries and imports the same file.
+    -->
+    <PropertyGroup>
+        <HardenedOpenApiDocumentDiagnosticPrefix Condition="'$(HardenedOpenApiDocumentDiagnosticPrefix)' == ''">HSMT</HardenedOpenApiDocumentDiagnosticPrefix>
+    </PropertyGroup>
+
+    <!-- Beside this file in the package. In this repository, where a fixture imports this file
+         from the source tree, the shared file is in the export task's own project. -->
+    <PropertyGroup>
+        <_HardenedOpenApiDocumentTargets>$(MSBuildThisFileDirectory)Hardened.OpenApiDocument.targets</_HardenedOpenApiDocumentTargets>
+        <_HardenedOpenApiDocumentTargets Condition="!Exists('$(_HardenedOpenApiDocumentTargets)')">$(MSBuildThisFileDirectory)../../Hardened.OpenApiDocument.BuildTask/Package/Hardened.OpenApiDocument.targets</_HardenedOpenApiDocumentTargets>
+    </PropertyGroup>
+
+    <Import Project="$(_HardenedOpenApiDocumentTargets)"
+            Condition="'$(HardenedOpenApiDocumentTargetsImported)' != 'true'"/>
 </Project>

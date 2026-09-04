@@ -203,9 +203,13 @@ Needs the Smithy CLI on `PATH`; the build names the version it expects if yours 
 The application serves its OpenAPI document at `/openapi.json` and a reference page at `/docs`.
 Code-first, the document is generated from the routing table. Contract-first, it is generated from
 your contract, and an OpenAPI project can serve the source file itself at a second URL, so a client
-can read what the build understood or what you wrote. Hardened does not generate clients. The
-document is the deliverable, and Kiota or NSwag pointed at it does the rest. See
-[the OpenAPI document](https://ipjohnson.github.io/Hardened.Docs/guide/openapi-document).
+can read what the build understood or what you wrote. Hardened generates the document; Kiota
+generates the client. `<HardenedOpenApiOutput>` writes the served document to a file during the
+build, for every contract style and without running the application, and the `hardened-web`
+template scaffolds a Kiota C# client from it with a test that drives the client through the
+in-process pipeline. The same file feeds every other generator and language. See
+[the OpenAPI document](https://ipjohnson.github.io/Hardened.Docs/guide/openapi-document) and
+[clients](https://ipjohnson.github.io/Hardened.Docs/guide/clients).
 
 ## Three return models
 

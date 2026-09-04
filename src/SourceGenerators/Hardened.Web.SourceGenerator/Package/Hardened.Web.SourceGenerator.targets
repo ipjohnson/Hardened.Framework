@@ -26,4 +26,23 @@
         -->
         <CompilerVisibleProperty Include="HardenedOpenApiVersion"/>
     </ItemGroup>
+
+    <!--
+        <HardenedOpenApiOutput> and <HardenedOpenApiOutputVersion>: the served document written to a
+        file after the compile. Not compiler-visible - the generator never reads them - and shared
+        with the two described front ends, which import the same file under their own prefix.
+    -->
+    <PropertyGroup>
+        <HardenedOpenApiDocumentDiagnosticPrefix Condition="'$(HardenedOpenApiDocumentDiagnosticPrefix)' == ''">HRDOA</HardenedOpenApiDocumentDiagnosticPrefix>
+    </PropertyGroup>
+
+    <!-- Beside this file in the package. In this repository, where a fixture imports this file
+         from the source tree, the shared file is in the export task's own project. -->
+    <PropertyGroup>
+        <_HardenedOpenApiDocumentTargets>$(MSBuildThisFileDirectory)Hardened.OpenApiDocument.targets</_HardenedOpenApiDocumentTargets>
+        <_HardenedOpenApiDocumentTargets Condition="!Exists('$(_HardenedOpenApiDocumentTargets)')">$(MSBuildThisFileDirectory)../../Hardened.OpenApiDocument.BuildTask/Package/Hardened.OpenApiDocument.targets</_HardenedOpenApiDocumentTargets>
+    </PropertyGroup>
+
+    <Import Project="$(_HardenedOpenApiDocumentTargets)"
+            Condition="'$(HardenedOpenApiDocumentTargetsImported)' != 'true'"/>
 </Project>
