@@ -270,6 +270,34 @@ public Task<CreatePetOutput> CreatePet(CreatePetInput body) =>
     Task.FromResult(new CreatePetOutput(created, "/pets/" + created.Id));
 ```
 
+## Bounding an operation
+
+Smithy models the exchange and says nothing about how long a server may take over it, because that
+is a property of the server rather than of the contract. `@timeout` is Hardened's own trait for
+saying it in the model anyway:
+
+```smithy
+use hardened.api#timeout
+
+@http(method: "GET", uri: "/pets/{petId}")
+@readonly
+@timeout(milliseconds: 2000)
+operation GetPet { }
+```
+
+| Member | |
+|---|---|
+| `milliseconds` | required, and greater than zero |
+| `status` | what the caller is told, 504 unless stated |
+| `retryAfterSeconds` | for a `status` of 503, which is the only one it is honest with |
+
+The trait is defined in `hardened.smithy`, which the build adds to your model, so nothing needs
+wiring beyond the `use`.
+
+A budget stated here is the operation's own, and the nearest declaration wins: a
+[`[Timeout]`](/guide/request-timeouts) on the generated implementation's method or class overrides
+it, and it overrides the assembly's and the application's default.
+
 ## Shapes
 
 | Smithy | C# |

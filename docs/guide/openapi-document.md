@@ -218,6 +218,33 @@ public record CreateTodo(
     [property: Range(Min = 1, Max = 5)] int Priority);
 ```
 
+## What a guard on the operation publishes
+
+A filter that can refuse a request answers a status the handler's return type says nothing about,
+so an operation guarded by one publishes that status too:
+
+| Declaration | Publishes |
+|---|---|
+| [`[AuthorizeGrants]`](/guide/authorization), and any other authorization attribute | `403` |
+| [`[RateLimit]`](/guide/rate-limiting) | `429` |
+| [`[Timeout]`](/guide/request-timeouts) | `504`, or the `Status` it declares |
+
+All three answer the framework's error envelope, so a [generated client](/guide/clients) gets a
+typed case for the refusal it will actually be sent rather than a bare transport exception.
+
+Declarations on the method, its class and the assembly are all read, nearest first. A `401` is
+published separately for any operation carrying a security requirement, with the
+`WWW-Authenticate` challenge beside it.
+
+An application's own authorization attribute publishes the `403` without doing anything, because
+the declaration lives on `IAuthorizeAttribute` rather than on any particular attribute. A filter
+vocabulary of your own publishes its status by carrying `[AnswersStatus(status, typeof(body))]`.
+
+A [bounded operation](/guide/request-timeouts) also publishes `x-hardened-timeout`, the budget in
+milliseconds, so the contract round-trips: a service regenerated from it is bounded the way the one
+that published it was. The scalar form carries the budget alone; an object carries `status` and
+`retryAfterSeconds` beside it where those are not the defaults.
+
 ## Next
 
 - [Clients](/guide/clients) — generating a client from the exported document

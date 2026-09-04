@@ -90,6 +90,7 @@ export default defineConfig({
             { text: 'Authentication', link: '/guide/authentication' },
             { text: 'Authorization', link: '/guide/authorization' },
             { text: 'Rate limiting', link: '/guide/rate-limiting' },
+            { text: 'Request timeouts', link: '/guide/request-timeouts' },
             { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
             { text: 'Generating from OpenAPI', link: '/guide/openapi' },
             { text: 'Generating from Smithy', link: '/guide/smithy' },

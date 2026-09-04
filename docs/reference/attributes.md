@@ -60,6 +60,7 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | Attribute | Target | Purpose |
 |---|---|---|
 | `[Retry]` | Class, method | Re-runs the handler after a failure. `Attempts` (3), `SleepTime` (500 ms), `TotalBudget` (10 s), `AllowNonIdempotent`. Declines client errors, and non-idempotent verbs unless told otherwise |
+| `[Timeout]` | Class, method, assembly | [Bounds how long the operation may take](/guide/request-timeouts). `Milliseconds` (30 s), `Status` (504), `RetryAfterSeconds`. The nearest declaration wins, and nothing is bounded until one is written |
 
 `Hardened.Requests.Runtime.Caching`
 
@@ -140,9 +141,12 @@ handler from the module instead:
 |---|---|---|
 | `[Enable<HardenedCompression>]` | Class | [Compresses](/guide/compression) every response the media-type rule admits, for every client that accepts it |
 | `[Enable<ConditionalGet>]` | Class | Answers a [conditional GET](/guide/conditional-requests) at every GET handler |
+| `[Enable<RequestTimeouts>]` | Class | [Bounds](/guide/request-timeouts) every operation that declares no budget of its own, at 30 seconds |
+| `[RequestTimeouts(ms)]` | Class | The same, with the number written. `[Enable<T>]` takes no arguments, so this is where one goes |
 
 Each stands down for a handler carrying its own `[Compress]` or `[ConditionalGet]`, so explicit beats
-convention.
+convention. A budget resolves the same way, over four levels: the operation, its class, the
+handler's assembly, then the entry point.
 
 The verb attributes also declare `SuccessStatus`, the status a successful response answers with
 and the document publishes; unset means 200. The `NullReturnStatus`, `ValidationErrorStatus` and

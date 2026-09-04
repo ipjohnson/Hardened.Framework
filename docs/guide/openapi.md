@@ -229,7 +229,7 @@ anywhere. Which of them mean anything depends on **when** they are read.
 
 | | Read at | On a `[Handler]` method |
 |---|---|---|
-| `[Retry]`, `[RateLimit]`, `[CacheResponse<T>]`, `[Compress]`, `[ConditionalGet]`, your own `IRequestFilterProvider` | run time, off the handler's metadata | **Honoured.** This is where a per-operation filter goes in a spec-first project |
+| `[Retry]`, `[RateLimit]`, `[CacheResponse<T>]`, `[Compress]`, `[ConditionalGet]`, `[Timeout]`, your own `IRequestFilterProvider` | run time, off the handler's metadata | **Honoured.** This is where a per-operation filter goes in a spec-first project |
 | `[AuthorizeGrants]`, `[Authorize<TAuth>]`, `[AllowAnonymous]`, an `IAuthorizationConvention` | run time, into the handler's `Requirement` | **Honoured**, and can only narrow what the contract admits |
 | `[Throws<T>]`, `[Tag]`, `[Server]` | build time, into the document | **Inert.** The build task writes the document from the contract before the compiler runs, so it never sees them |
 
@@ -264,6 +264,25 @@ the document root declares the types, each with a `namespace` and its `propertie
 
 Reach for `x-filters` when the description is the artefact several implementations share. Reach for
 an attribute on the method when the filter belongs to this implementation.
+
+A deadline has a field of its own rather than going through `x-filters`:
+
+```yaml
+paths:
+  /rates:
+    get:
+      operationId: readRates
+      x-hardened-timeout: 2000
+```
+
+The scalar is the budget in milliseconds. An object carries `status` and `retryAfterSeconds` beside
+it for an operation shedding load rather than waiting on a dependency. OpenAPI has no field for
+this, and that is not an oversight: the specification describes the exchange, and how long a server
+may take over it is a property of the server.
+
+It reaches the handler as the same [`[Timeout]`](/guide/request-timeouts) a code-first handler
+carries, so the nearest declaration still wins — a `[Timeout]` on the implementation's method
+overrides what the description said.
 
 ## Declaring the whole response set
 

@@ -55,7 +55,7 @@ filters return without reaching the handler.
 | `HandlerInstance` / `HandlerInfo` | The handler being invoked, and its metadata |
 | `RequestMetrics` | An `IMetricLogger` scoped to this request |
 | `StartTime` | A `MachineTimestamp` taken when the request began |
-| `CancellationToken` | Where the platform supplies one |
+| `CancellationToken` | Where the platform supplies one. Replaced for the span of a [request timeout](/guide/request-timeouts), and put back |
 
 The response carries a *value*, not bytes. `Response.ResponseValue` is what the handler returned;
 serialisation is a filter later in the chain, so a filter that wants to change the payload changes
@@ -78,7 +78,7 @@ Filters are sorted by an integer. Lower runs earlier, which is to say further fr
 | `GrantAuthorization` | `4000` | [Deciding from grants](/guide/authorization) alone |
 | `Conditional` | `5000` | Answering a [conditional GET](/guide/conditional-requests) with a 304 |
 | `ResponseCache` | `6000` | Serving a [stored response](/guide/response-caching) instead of running the handler |
-| `BeforeSerialization` | `6500` | `Before + Serialization`, where `[CacheControl]` sits |
+| `BeforeSerialization` | `6500` | `Before + Serialization`, where `[CacheControl]` and the [request timeout](/guide/request-timeouts) sit |
 | `Serialization` | `7000` | Binding the request, and serializing the response |
 | `Validation` | `8000` | Checking the constraints, over the parameters just bound |
 | `Authorization` | `9000` | Deciding from the resource as well as the caller |
