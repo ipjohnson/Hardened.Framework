@@ -33,7 +33,8 @@ public sealed class ValidateAttribute<TValidated> : Attribute, IRequestFilterPro
 
         yield return new RequestFilterInfo(
             context => filter ??= new ValidationFilter<TValidated>(Resolve(context)),
-            FilterOrder.Validation);
+            FilterOrder.Validation,
+            nameof(ValidationFilter<TValidated>));
     }
 
     /// <summary>

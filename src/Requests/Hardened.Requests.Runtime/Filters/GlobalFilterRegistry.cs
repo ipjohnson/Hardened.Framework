@@ -1,6 +1,7 @@
 ﻿using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Requests.Runtime.Execution;
 
 namespace Hardened.Requests.Runtime.Filters;
 
@@ -13,7 +14,9 @@ public class GlobalFilterRegistry : IGlobalFilterRegistry {
     }
 
     public void RegisterFilter(IExecutionFilter filter, int order = FilterOrder.DefaultValue) {
-        var filterInfo = new RequestFilterInfo(_ => filter, order);
+        // Named for the instance, since it is to hand. The closure below would otherwise name the
+        // registry, which registered nothing on its own account.
+        var filterInfo = new RequestFilterInfo(_ => filter, order, FilterNames.Of(filter));
 
         RegisterFilter(_ => filterInfo);
     }

@@ -754,7 +754,9 @@ namespace Hardened.Requests.Abstract.RequestFilter
     public class RequestFilterInfo
     {
         public RequestFilterInfo(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> filterFunc, int? order = default) { }
+        public RequestFilterInfo(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> filterFunc, int? order, string name) { }
         public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Execution.IExecutionFilter> FilterFunc { get; }
+        public string? Name { get; }
         public int? Order { get; }
     }
 }

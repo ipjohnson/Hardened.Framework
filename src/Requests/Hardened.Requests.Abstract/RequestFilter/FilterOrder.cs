@@ -29,6 +29,12 @@ namespace Hardened.Requests.Abstract.RequestFilter;
 /// line refuses by recording the failure and continuing, so the serialization filter can write the
 /// response; behind it, an ordinary short circuit is what stops the handler.
 /// </para>
+/// <para>
+/// <b>What a handler's chain was composed into is written once, as it is built</b>, when the
+/// <c>Hardened.Requests.Pipeline</c> log category is enabled at Debug: each filter and its order,
+/// in the order they run. A position that reads right and lands wrong shows there rather than in
+/// a stack trace, and an application that has not enabled it pays nothing per request.
+/// </para>
 /// </remarks>
 public static class FilterOrder {
 

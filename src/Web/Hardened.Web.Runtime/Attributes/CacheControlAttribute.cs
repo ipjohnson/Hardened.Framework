@@ -36,6 +36,6 @@ public class CacheControlAttribute : Attribute, IRequestFilterProvider {
 
         var filter = new CacheControlFilter(headerValue);
 
-        yield return new RequestFilterInfo(_ => filter, FilterOrder.BeforeSerialization);
+        yield return new RequestFilterInfo(_ => filter, FilterOrder.BeforeSerialization, nameof(CacheControlFilter));
     }
 }

@@ -46,7 +46,8 @@ public sealed class ValidationFilterProvider<TValidated> : IRequestFilterProvide
 
         yield return new RequestFilterInfo(
             context => filter ??= new ValidationFilter<TValidated>(Resolve(context)),
-            FilterOrder.Validation);
+            FilterOrder.Validation,
+            nameof(ValidationFilter<TValidated>));
     }
 
     /// <summary>
