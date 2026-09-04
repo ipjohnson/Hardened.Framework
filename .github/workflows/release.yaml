@@ -195,12 +195,26 @@ jobs:
           # packages, so a consumer referencing both fails with CS0111/CS8646.
           EXEMPT="Hardened.DependencyModules.SourceGenerator"
 
+          # Two kinds of path are not this repository's packages and must not be searched for
+          # here.
+          #
+          # A project under templates/ is scaffolded into somebody else's repository, where they
+          # may well pack it - Hardened1.Client is packable because a consumer's client project
+          # should be. It is content, not a package this repository ships, and treating it as one
+          # failed the 0.20.0-rc1000 release at this step.
+          #
+          # obj/ is build output. The template staging step copies templates/ into
+          # obj/staged-templates/, so every template project appears twice on a machine that has
+          # built, and the second copy exists or not depending on what ran before this.
           MISSING=""
           while IFS= read -r project; do
             name=$(basename "$project" .csproj)
             case " $EXEMPT " in *" $name "*) continue ;; esac
             grep -qF "$project" .github/workflows/release.yaml || MISSING="$MISSING $name"
-          done < <(grep -rl "<IsPackable>[Tt]rue</IsPackable>" --include='*.csproj' src | sort)
+          done < <(grep -rl "<IsPackable>[Tt]rue</IsPackable>" --include='*.csproj' src \
+                     | grep -v '/obj/' \
+                     | grep -v '/Hardened.Templates/templates/' \
+                     | sort)
 
           if [ -n "$MISSING" ]; then
             echo "::error::These projects are packable but absent from the pack list:$MISSING"
