@@ -58,8 +58,9 @@ public static class Pipeline {
         string method = "GET",
         string path = "/",
         byte[]? body = null,
-        Action<ServiceCollection>? configureServices = null) {
-        return Build(method, path, "application/json", body, configureServices, cancellationToken, null);
+        Action<ServiceCollection>? configureServices = null,
+        IMetricLogger? metrics = null) {
+        return Build(method, path, "application/json", body, configureServices, cancellationToken, metrics);
     }
 
     private static IExecutionContext Build(

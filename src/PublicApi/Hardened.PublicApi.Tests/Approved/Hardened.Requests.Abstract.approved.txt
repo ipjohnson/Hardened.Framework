@@ -412,8 +412,10 @@ namespace Hardened.Requests.Abstract.Execution
         System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         int? SuccessStatus { get; }
+        Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Timeout { get; }
         int? ValidationErrorStatus { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? RequirementFrom(System.Collections.Generic.IReadOnlyList<object> metadata);
+        Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? TimeoutFrom(System.Collections.Generic.IReadOnlyList<object> metadata);
     }
     public interface IExecutionRequestParameter
     {
@@ -1706,6 +1708,27 @@ namespace Hardened.Requests.Abstract.Templates
     {
         public TemplateContentTypeAttribute(string contentType) { }
         public string ContentType { get; }
+    }
+}
+namespace Hardened.Requests.Abstract.Timeouts
+{
+    public interface IDeclaresTimeout
+    {
+        Hardened.Requests.Abstract.Timeouts.TimeoutPolicy Timeout { get; }
+    }
+    public interface IRequestTimeoutConvention
+    {
+        Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Apply(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo);
+    }
+    public sealed class TimeoutPolicy : System.IEquatable<Hardened.Requests.Abstract.Timeouts.TimeoutPolicy>
+    {
+        public const int DefaultMilliseconds = 30000;
+        public const int DefaultStatus = 504;
+        public TimeoutPolicy(int Milliseconds, int Status = 504, int RetryAfterSeconds = 0) { }
+        public int Milliseconds { get; init; }
+        public int RetryAfterSeconds { get; init; }
+        public int Status { get; init; }
+        public static Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Tighter(Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? left, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? right) { }
     }
 }
 namespace Hardened.Requests.Abstract.Utilities

@@ -341,7 +341,7 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public class ExecutionRequestHandlerInfo : Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo
     {
-        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null, string? bodyParameterName = null, int? validationErrorStatus = default) { }
+        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null, string? bodyParameterName = null, int? validationErrorStatus = default, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout = null) { }
         public string? BodyParameterName { get; }
         public System.Type HandlerType { get; }
         public string InvokeMethod { get; }
@@ -353,12 +353,14 @@ namespace Hardened.Requests.Runtime.Execution
         public System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         public int? SuccessStatus { get; }
+        public Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Timeout { get; }
         public int? ValidationErrorStatus { get; }
         public Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo WithPath(string? path) { }
     }
     public static class ExecutionRequestHandlerInfoExtensions
     {
         public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithRequirement(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Abstract.Authorization.Requirement? requirement) { }
+        public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithTimeout(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout) { }
     }
     public class ExecutionRequestParameter : Hardened.Requests.Abstract.Execution.IExecutionRequestParameter
     {
@@ -464,6 +466,24 @@ namespace Hardened.Requests.Runtime.Filters
         public System.Threading.Tasks.ValueTask<bool> WriteHeartbeat(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
     }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class RequestTimeouts : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public RequestTimeouts() { }
+        public RequestTimeouts(int milliseconds) { }
+        public int Milliseconds { get; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class RequestTimeoutsAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public RequestTimeoutsAttribute(int milliseconds) { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
     public class RetryAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {
@@ -494,6 +514,20 @@ namespace Hardened.Requests.Runtime.Filters
         public System.Threading.Tasks.ValueTask WriteCompletion(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask<bool> WriteHeartbeat(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
+    public sealed class TimeoutAttribute : System.Attribute, Hardened.Requests.Abstract.Timeouts.IDeclaresTimeout
+    {
+        public TimeoutAttribute() { }
+        public int Milliseconds { get; set; }
+        public int RetryAfterSeconds { get; set; }
+        public int Status { get; set; }
+        public Hardened.Requests.Abstract.Timeouts.TimeoutPolicy Timeout { get; }
+    }
+    public class TimeoutFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public TimeoutFilter(int milliseconds) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }
 namespace Hardened.Requests.Runtime.Forms

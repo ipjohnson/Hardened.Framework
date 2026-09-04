@@ -60,6 +60,12 @@
       "name": "Streaming"
     },
     {
+      "name": "Timeout"
+    },
+    {
+      "name": "ClassTimeout"
+    },
+    {
       "name": "Unsatisfiable"
     }
   ],
@@ -3114,6 +3120,211 @@
           "Home"
         ],
         "operationId": "testValue",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeout/budget": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "timeoutBudget",
+        "summary": "What the cascade actually resolved for this operation, read back off the handler.",
+        "description": "The point of making the budget first-class: the filter that enforces it and everything else that reads the handler see one value. A handler can therefore report its own deadline, which is how a rung nothing on the handler declares - its assembly, the entry point's default, a convention - is assertable at all without waiting for it to fire.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeout/calls/{handler}": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "calls",
+        "summary": "How many times a handler has run, so an attempt count is assertable.",
+        "parameters": [
+          {
+            "name": "handler",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeout/classed/budget": {
+      "get": {
+        "tags": [
+          "ClassTimeout"
+        ],
+        "operationId": "classTimeoutBudget",
+        "summary": "Inherits its class, which beat the assembly.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeout/classed/slower": {
+      "get": {
+        "tags": [
+          "ClassTimeout"
+        ],
+        "operationId": "slower",
+        "summary": "Loosens its class, which only the nearest declaration may do.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeout/fast": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "fast",
+        "summary": "The same handler with room to finish, so the deadline is not what decides its answer.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeout/retried": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "retried",
+        "summary": "One budget across every attempt rather than one per attempt, which is what putting the filter ahead of FilterOrder.Retry buys.",
+        "description": "Five attempts at 40ms of backoff each cannot fit in 150ms, so the budget is what stops this rather than the attempt count. A per-attempt deadline would let all five run.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeout/shed": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "shed",
+        "summary": "An operation shedding load rather than waiting on a dependency, which is the one case that knows its own window.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeout/slow": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "slow",
+        "summary": "Waits for something that never comes, on the token the deadline replaced. 504.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeout/unbounded": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "unbounded",
+        "summary": "Declares nothing of its own, so the cascade falls through to this assembly's [assembly: Timeout].",
         "responses": {
           "200": {
             "description": "OK",
