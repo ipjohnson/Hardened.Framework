@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.OpenApiDocument.BuildTask\Hardened.OpenApiDocument.BuildTask.csproj"
+                          SetTargetFramework="TargetFramework=net8.0"/>
+
+        <!--
+            The three integration applications, one per front end, as the fixtures the task is
+            proven against: assemblies built by the pinned SDK, carrying the document each one
+            serves. Referenced for their build output alone; nothing here calls into them.
+        -->
+        <ProjectReference Include="..\..\IntegrationTests\Web\Hardened.IntegrationTests.WebApp.SUT\Hardened.IntegrationTests.WebApp.SUT.csproj"/>
+        <ProjectReference Include="..\..\IntegrationTests\OpenApi\Hardened.IntegrationTests.OpenApi.SUT\Hardened.IntegrationTests.OpenApi.SUT.csproj"/>
+        <ProjectReference Include="..\..\IntegrationTests\Smithy\Hardened.IntegrationTests.Smithy.SUT\Hardened.IntegrationTests.Smithy.SUT.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Build.Framework" Version="17.8.43"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.43"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="3.2.2"/>
+
+        <!--
+            The reader the specification-first build task parses with, so a YAML export can be
+            checked against something other than the writer that produced it - the same terms
+            OpenApiRoundTripTests reads the emitted document on.
+        -->
+        <PackageReference Include="Microsoft.OpenApi" Version="3.10.0"/>
+        <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.10.0"/>
+    </ItemGroup>
+
+</Project>

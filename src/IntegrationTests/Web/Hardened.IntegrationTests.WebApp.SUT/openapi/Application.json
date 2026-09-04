@@ -1,0 +1,2577 @@
+{
+  "openapi": "3.2.0",
+  "info": {
+    "title": "Application",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "Authorization"
+    },
+    {
+      "name": "Binding"
+    },
+    {
+      "name": "CacheControl"
+    },
+    {
+      "name": "CachedEverywhere"
+    },
+    {
+      "name": "CollectionRoot"
+    },
+    {
+      "name": "EnumVocabulary"
+    },
+    {
+      "name": "Error"
+    },
+    {
+      "name": "Form"
+    },
+    {
+      "name": "Home"
+    },
+    {
+      "name": "HttpMethod"
+    },
+    {
+      "name": "IntMath"
+    },
+    {
+      "name": "Registration"
+    },
+    {
+      "name": "ResponseCache"
+    },
+    {
+      "name": "ResponseCookie"
+    },
+    {
+      "name": "Streaming"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "Home"
+        ],
+        "operationId": "helloWorld",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authorization/derived": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "operationId": "derived",
+        "summary": "An attribute of the application's own, deriving from [AuthorizeGrants].",
+        "description": "The hand-authored form. It reaches the pipeline the same way the framework's own attributes do - recognised by the interface it inherits rather than by its name - and it is the case a name-matching build diagnostic used to warn about while the runtime guarded it correctly.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authorization/open": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "operationId": "open",
+        "summary": "Explicitly public.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authorization/pets": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "operationId": "pets",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authorization/pets-manage": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "operationId": "manage",
+        "summary": "Both grants, which is what one requirement object in a specification means.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authorization/stacked": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "operationId": "stacked",
+        "summary": "Two attributes, which conjoin - so this needs everything both of them named.",
+        "description": "Stacking narrows and never widens. Exercised end to end because the rule is only worth anything if it survives the whole path: the generator putting both attributes in metadata, the handler info conjoining them, and the filter refusing a caller holding one.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/authorization/unguarded": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "operationId": "unguarded",
+        "summary": "No attribute at all, which is public while nothing has opted in.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/body/{label}": {
+      "post": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "bodyWithPath",
+        "summary": "Body plus a path token, to confirm the two sources coexist.",
+        "parameters": [
+          {
+            "name": "label",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/cookie": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromCookie",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "cookie",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/cookie-named": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromNamedCookie",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "cookie",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/files/{path}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "catchAllToken",
+        "summary": "A catch-all token, which binds the same way a constrained one does - by the name the token declares rather than by the text between the braces.",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/header": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromHeader",
+        "parameters": [
+          {
+            "name": "X-Tenant",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/mixed/{id}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "mixed",
+        "summary": "Path token, query string, header and an injected service in a single handler - the case most likely to break if binding order or index tracking regresses.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Tenant",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/pair/{first}/{second}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromMultiplePathTokens",
+        "parameters": [
+          {
+            "name": "first",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "second",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/path-code/{code}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "customConstrainedToken",
+        "summary": "A constraint this application declares itself, compiled to a direct call.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The path did not name a resource: a token failed its route constraint."
+          }
+        }
+      }
+    },
+    "/binding/path-constrained/{count}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "constrainedPathToken",
+        "summary": "The same shape with the constraint written into the route. /path-typed/abc reaches the handler above and answers 400 - the route matched and the binder failed. Here it is a 404, which is the truthful answer: there is no resource at that URL.",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The path did not name a resource: a token failed its route constraint."
+          }
+        }
+      }
+    },
+    "/binding/path-typed/{count}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "typedPathToken",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/path/{first}/{second}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "overlappingPathTokens",
+        "summary": "Deliberately overlaps /path/{id} above: same prefix, a path token in the same position, but a different token name. The route tree stores the token name on the node rather than the route, so both routes share whichever name was registered first and this one cannot bind. See OverlappingRouteTokenNamesTests.",
+        "parameters": [
+          {
+            "name": "first",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "second",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/path/{id}": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromPath",
+        "summary": "Echoes a path token back.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The token to echo, taken from the path.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "bindingFromQuery",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-named": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "fromNamedQuery",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-typed": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "typedQuery",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cache-all/one": {
+      "get": {
+        "tags": [
+          "CachedEverywhere"
+        ],
+        "operationId": "one",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cache-all/two": {
+      "get": {
+        "tags": [
+          "CachedEverywhere"
+        ],
+        "operationId": "two",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cache/default": {
+      "get": {
+        "tags": [
+          "CacheControl"
+        ],
+        "operationId": "default",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cache/long": {
+      "get": {
+        "tags": [
+          "CacheControl"
+        ],
+        "operationId": "long",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cache/none": {
+      "get": {
+        "tags": [
+          "CacheControl"
+        ],
+        "operationId": "none",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cache/private": {
+      "get": {
+        "tags": [
+          "CacheControl"
+        ],
+        "operationId": "private",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cache/unset": {
+      "get": {
+        "tags": [
+          "CacheControl"
+        ],
+        "operationId": "unset",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collection": {
+      "get": {
+        "tags": [
+          "CollectionRoot"
+        ],
+        "operationId": "list",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "CollectionRoot"
+        ],
+        "operationId": "create",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collection/{id}": {
+      "get": {
+        "tags": [
+          "CollectionRoot"
+        ],
+        "operationId": "item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cookies/set": {
+      "get": {
+        "tags": [
+          "ResponseCookie"
+        ],
+        "operationId": "setCookie",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cookies/set-with-options": {
+      "get": {
+        "tags": [
+          "ResponseCookie"
+        ],
+        "operationId": "setCookieWithOptions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/enum-vocabulary/by-priority": {
+      "get": {
+        "tags": [
+          "EnumVocabulary"
+        ],
+        "operationId": "enumVocabularyFromQuery",
+        "summary": "The route that never reaches a JSON converter. ?priority=inProgress has to bind to the same value the body carries under that name.",
+        "parameters": [
+          {
+            "name": "priority",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "inProgress",
+                "onHold"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/enum-vocabulary/by-shipping": {
+      "get": {
+        "tags": [
+          "EnumVocabulary"
+        ],
+        "operationId": "declaredNamingFromQuery",
+        "parameters": [
+          {
+            "name": "shipping",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "next-day",
+                "two-day"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/enum-vocabulary/order": {
+      "get": {
+        "tags": [
+          "EnumVocabulary"
+        ],
+        "operationId": "declaredNaming",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/enum-vocabulary/ticket": {
+      "get": {
+        "tags": [
+          "EnumVocabulary"
+        ],
+        "operationId": "defaultNaming",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ticket"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "EnumVocabulary"
+        ],
+        "operationId": "readDefaultNaming",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Ticket"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "inProgress",
+                    "onHold"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/bad-encoding": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "badEncoding",
+        "summary": "Unsupported Content-Encoding is raised by the deserializers and is a client error.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/bad-request": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "badRequest",
+        "summary": "An exception deriving from BadRequestException is a client error.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/badge-missing": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "badgeMissing",
+        "summary": "Named so that the old substring classification would have called it a client error. It derives from Exception, so it must be a 500.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/declared-body": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "declaredBody",
+        "summary": "The same, carrying the body a specification declared for it.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/declared-status": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "declaredStatus",
+        "summary": "A status the pipeline could not produce at all before StatusCodeException: every exception was either a 400 or a 500.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/derived-client-error": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "derivedClientError",
+        "summary": "A consumer-defined client error, identified by its base type.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/format": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "format",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/raw-declared-status": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "rawDeclaredStatus",
+        "summary": "A committed content type plus a thrown declared status. The commitment happens before the handler runs, so it is on the response when the error is serialized - and the raw writer takes only strings, bytes and streams, never an error model.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/raw-server-error": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "rawServerError",
+        "summary": "The same commitment against an unclassified fault.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/server": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "server",
+        "summary": "Anything else is a server error.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/form/optional": {
+      "post": {
+        "tags": [
+          "Form"
+        ],
+        "operationId": "optional",
+        "summary": "An absent field with a default, and an optional one without.",
+        "description": "The same conversion path every other string-valued source uses, so a missing form field behaves like a missing query parameter rather than throwing.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/form/quantity": {
+      "post": {
+        "tags": [
+          "Form"
+        ],
+        "operationId": "quantity",
+        "summary": "A field converted to something that is not a string.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/form/renamed": {
+      "post": {
+        "tags": [
+          "Form"
+        ],
+        "operationId": "renamed",
+        "summary": "A renamed field, so the parameter and the wire name can differ.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/form/sign-in": {
+      "post": {
+        "tags": [
+          "Form"
+        ],
+        "operationId": "signIn",
+        "summary": "Two fields, the ordinary case.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hello": {
+      "post": {
+        "tags": [
+          "Home"
+        ],
+        "operationId": "helloWorldAsync",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/int/add": {
+      "post": {
+        "tags": [
+          "IntMath"
+        ],
+        "operationId": "add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/int/subtract": {
+      "post": {
+        "tags": [
+          "IntMath"
+        ],
+        "operationId": "subtract",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/int/subtract-test": {
+      "post": {
+        "tags": [
+          "IntMath"
+        ],
+        "operationId": "subtractTest",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/int/subtract-test1": {
+      "post": {
+        "tags": [
+          "IntMath"
+        ],
+        "operationId": "subtractTest1",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/int/subtract-test2": {
+      "post": {
+        "tags": [
+          "IntMath"
+        ],
+        "operationId": "subtractTest2",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registration": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "operationId": "register",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registration/anonymous": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "operationId": "unconstrained",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registration/declared-422": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "operationId": "registerDeclaring422",
+        "summary": "The same model on an operation that says what a validation refusal answers.",
+        "description": "[Throws&lt;RequestValidationError&gt;(422)] puts the 422 in the published document, and the same declaration is what the runtime reads: one vocabulary carrying both, rather than an assertion on a verb attribute that the document would have to be told about separately. A specification-first operation declaring 422 has answered it since 0.18; this is how a hand-written one says the same thing.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registration/declared-422/by-hand": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "operationId": "throwValidation",
+        "summary": "A handler validating by hand on an operation that declares 422, so the thrown route to a refusal answers what the filter's route does.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registration/for/{tenant}": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "operationId": "registerForTenant",
+        "summary": "The same model reached with a path token beside it, so both sources coexist.",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/response-cache/catalog": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "catalog",
+        "parameters": [
+          {
+            "name": "culture",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/response-cache/composed": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "composed",
+        "summary": "Two strategies on one handler, which needs AllowMultiple and is what [OutputCache] cannot express at all.",
+        "parameters": [
+          {
+            "name": "culture",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/response-cache/granted": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "granted",
+        "summary": "Guarded by grants alone, which settle before serialization and so ahead of the cache, and the case the resource-scoped rule must not also refuse.",
+        "description": "This comment used to say \"safe to cache behind\" and stopped there, which is how the authorization bypass shipped. Settling ahead of the cache is not by itself what makes it safe: a refusal ahead of serialization is recorded and travels on, so the cache has to read it. AWarmCacheStillRefusesTheGrantlessCaller is the test that says so.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/response-cache/owned-by-subject": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "ownedBySubject",
+        "summary": "The shape three trial arms found one caller's data in: an authenticated read whose ownership check is the handler's own code, cached.",
+        "description": "Nothing on the handler distinguishes this from . A description can say \"the caller must be authenticated\" and cannot say \"and the row must be theirs\", so the check is here, answering 404 rather than 403 so the row's existence is not disclosed - and that is invisible to anything reading the requirement. CacheScope.PerCaller is the author saying what the metadata cannot.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/response-cache/owned/{ownerId}": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "owned",
+        "summary": "Guarded by a requirement that reads the request, which runs after the cache would have answered. The framework declines to install the filter rather than serving one caller's answer to another.",
+        "parameters": [
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/response-cache/publish": {
+      "post": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "publish",
+        "summary": "What an application does where it changes what a cached read reads.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/response-cache/tagged": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "tagged",
+        "summary": "A read whose entry outlives anything worth waiting for, invalidated by name when the thing it read changes.",
+        "description": "The pair is the whole feature. Without an application's only way to reach its own entries was to expire them, so a published change appeared within the cache lifetime and never sooner.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/response-cache/uncached": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "uncached",
+        "summary": "A handler that declares nothing, so nothing about it changes.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/response-cache/unstated-scope": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "unstatedScope",
+        "summary": "The same read with nothing said about who may be served it, so the first request to it fails naming the handler rather than serving one caller's answer to another.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/cancellable": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "cancellable",
+        "summary": "The signature the C# compiler expects on a cancellable async iterator.",
+        "description": "Two things had to be true for this to bind, and neither was: CancellationToken is a struct, so it fell past every branch to Body and the pipeline tried to deserialize a request body into it; and [EnumeratorCancellation] was unrecognised, so it was emitted as a custom binder and threw \"does not implement ICustomBindingAttribute\" before that.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-ndjson": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/empty": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "empty",
+        "summary": "Produces nothing, so the trailing write is the entire body.",
+        "description": "The filter writes a newline after the loop whether or not anything was produced, because Lambda Function URLs do not close a zero-byte body promptly and a reader waiting on one hangs. That behaviour has never had a test through the real pipeline.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-ndjson": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/events": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "events",
+        "summary": "Server-sent events, framed rather than newline-delimited.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/events-empty": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "eventsEmpty",
+        "summary": "An event stream that produces nothing.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/events-with-ids": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "eventsWithIds",
+        "summary": "Events carrying the fields the protocol lets you send beside the payload.",
+        "description": "The id is the one that matters: a browser EventSource reconnects on its own and sends the last one back as Last-Event-ID, so a stream that sets ids can resume.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/models": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "models",
+        "summary": "A model per line, which is the case that used to throw.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-ndjson": {
+                "itemSchema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streaming/strings": {
+      "get": {
+        "tags": [
+          "Streaming"
+        ],
+        "operationId": "strings",
+        "summary": "The shape that already worked, so it keeps being checked.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-ndjson": {
+                "itemSchema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test": {
+      "get": {
+        "tags": [
+          "Home"
+        ],
+        "operationId": "testValue",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verbs/created": {
+      "post": {
+        "tags": [
+          "HttpMethod"
+        ],
+        "operationId": "createItem",
+        "summary": "A hand-written handler declaring the status it answers with.",
+        "description": "The other half of what a described operation states with a responses: key. Both reach ResponseInformationModel.DefaultStatusCode, so this and the specification-first route exercise one runtime behaviour rather than two. SuccessStatus was removed from these attributes on 2026-08-11 because nothing read it; this is what reading it looks like.",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verbs/emptied": {
+      "delete": {
+        "tags": [
+          "HttpMethod"
+        ],
+        "operationId": "emptyItem",
+        "summary": "A declared 204, which also means the body is not written.",
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verbs/item": {
+      "delete": {
+        "tags": [
+          "HttpMethod"
+        ],
+        "operationId": "deleteByQuery",
+        "summary": "Confirms DELETE reaches the other binding sources, not just the path.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verbs/item/{id}": {
+      "delete": {
+        "tags": [
+          "HttpMethod"
+        ],
+        "operationId": "deleteItem",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "HttpMethod"
+        ],
+        "operationId": "getItem",
+        "summary": "Same path as , different verb. The route tree has to keep the two apart rather than matching on path alone.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "HttpMethod"
+        ],
+        "operationId": "patchItem",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddressModel": {
+        "type": "object",
+        "description": "A second level, so a failure has a path to report rather than a field.",
+        "required": [
+          "city"
+        ],
+        "properties": {
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 2,
+            "maxLength": 2
+          }
+        }
+      },
+      "MathAddModel": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "Measurement": {
+        "type": "object",
+        "required": [
+          "sensor",
+          "reading",
+          "settled"
+        ],
+        "properties": {
+          "sensor": {
+            "type": "string"
+          },
+          "reading": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "settled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "required": [
+          "code",
+          "shipping"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "AB12",
+              "CD34"
+            ]
+          },
+          "shipping": {
+            "type": "string",
+            "enum": [
+              "next-day",
+              "two-day"
+            ]
+          }
+        }
+      },
+      "RegistrationModel": {
+        "type": "object",
+        "description": "A body model with constraints on it and nothing else - no attribute pointing at a validator, no registration call, no [Validate] on the handler that takes it.",
+        "required": [
+          "age"
+        ],
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The name the registration is filed under."
+          },
+          "age": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 18,
+            "maximum": 120
+          },
+          "address": {
+            "$ref": "#/components/schemas/AddressModel"
+          }
+        }
+      },
+      "RequestValidationError": {
+        "type": "object",
+        "description": "How a request that failed validation is answered.",
+        "required": [
+          "type",
+          "message",
+          "errors"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "field",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RequestValidationFieldError": {
+        "type": "object",
+        "required": [
+          "field",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Ticket": {
+        "type": "object",
+        "required": [
+          "title",
+          "priority"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "inProgress",
+              "onHold"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

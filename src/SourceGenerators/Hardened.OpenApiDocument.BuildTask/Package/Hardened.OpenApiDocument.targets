@@ -1,0 +1,79 @@
+<Project>
+    <!--
+        The document export: <HardenedOpenApiOutput> writes the OpenAPI document an assembly serves
+        to a file after the compile, in the format the extension names (.json indented, .yaml or
+        .yml as YAML), and <HardenedOpenApiOutputVersion> lowers that file to 3.0.0 or 3.1.0 for a
+        reader that refuses the 3.2 banner. Neither property is compiler-visible: the generators
+        never read them. The served document does not change whatever these say.
+
+        Shipped in build/ by all three generator packages and imported from each package's own
+        targets, so code-first, OpenAPI-first and Smithy projects answer the same property with the
+        same target. Guarded on the property below so a project referencing two of the packages
+        imports it once.
+    -->
+    <PropertyGroup>
+        <HardenedOpenApiDocumentTargetsImported>true</HardenedOpenApiDocumentTargetsImported>
+
+        <_HardenedOpenApiDocumentTasksDir Condition="'$(MSBuildRuntimeType)' == 'Core'">$(MSBuildThisFileDirectory)../tasks/net8.0/</_HardenedOpenApiDocumentTasksDir>
+        <_HardenedOpenApiDocumentTasksDir Condition="'$(MSBuildRuntimeType)' != 'Core'">$(MSBuildThisFileDirectory)../tasks/net472/</_HardenedOpenApiDocumentTasksDir>
+        <HardenedOpenApiDocumentTaskAssembly Condition="'$(HardenedOpenApiDocumentTaskAssembly)' == ''">$(_HardenedOpenApiDocumentTasksDir)Hardened.OpenApiDocument.BuildTask.dll</HardenedOpenApiDocumentTaskAssembly>
+
+        <!-- The .NET task host, as the OpenAPI targets select it: MSBuild 18.0 and later on .NET
+             Framework runs a task in a .NET process. -->
+        <HardenedOpenApiDocumentNetTaskAssembly Condition="'$(HardenedOpenApiDocumentNetTaskAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/net8.0/Hardened.OpenApiDocument.BuildTask.dll</HardenedOpenApiDocumentNetTaskAssembly>
+        <_HardenedOpenApiDocumentUseNetTaskHost>false</_HardenedOpenApiDocumentUseNetTaskHost>
+        <_HardenedOpenApiDocumentUseNetTaskHost
+            Condition="'$(MSBuildRuntimeType)' != 'Core' And '$(MSBuildVersion)' != '' And $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">true</_HardenedOpenApiDocumentUseNetTaskHost>
+
+        <!-- The prefix the task reports under. Each package's targets sets it before importing
+             this file; a project importing none of them is code-first. -->
+        <HardenedOpenApiDocumentDiagnosticPrefix Condition="'$(HardenedOpenApiDocumentDiagnosticPrefix)' == ''">HRDOA</HardenedOpenApiDocumentDiagnosticPrefix>
+    </PropertyGroup>
+
+    <!--
+        Out of process, for the reason the OpenAPI and Smithy tasks are: a task assembly loads into
+        MSBuild itself, and on .NET Framework that is the default AppDomain where assembly identity
+        is global and the only redirects are MSBuild's own. This task reads metadata through
+        System.Reflection.Metadata, which the host has already loaded at a version of its choosing.
+        A task host is a fresh process, and this task runs once per compile, so the launch is not
+        measurable. It also lets this repository's own integration tests build the task assembly
+        they are about to run.
+    -->
+    <UsingTask TaskName="Hardened.OpenApiDocument.BuildTask.WriteOpenApiDocument"
+               Condition="'$(_HardenedOpenApiDocumentUseNetTaskHost)' == 'true'"
+               Runtime="NET"
+               AssemblyFile="$(HardenedOpenApiDocumentNetTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.OpenApiDocument.BuildTask.WriteOpenApiDocument"
+               Condition="'$(_HardenedOpenApiDocumentUseNetTaskHost)' != 'true' And '$(HardenedOpenApiDocumentInProcessTask)' != 'true'"
+               TaskFactory="TaskHostFactory"
+               AssemblyFile="$(HardenedOpenApiDocumentTaskAssembly)"/>
+
+    <!-- In process, by opt-in, and expect the assembly to stay locked afterwards. -->
+    <UsingTask TaskName="Hardened.OpenApiDocument.BuildTask.WriteOpenApiDocument"
+               Condition="'$(_HardenedOpenApiDocumentUseNetTaskHost)' != 'true' And '$(HardenedOpenApiDocumentInProcessTask)' == 'true'"
+               AssemblyFile="$(HardenedOpenApiDocumentTaskAssembly)"/>
+
+    <!--
+        After CoreCompile, over the assembly it just wrote. Inputs and Outputs so an unchanged
+        assembly skips the task; the task itself compares content and leaves an identical file
+        alone, so a multi-targeted project writing the same document twice does not churn a tracked
+        file. Not under a design-time build, which must not write into the project directory.
+
+        A relative path is relative to the project directory, which is what MSBuild reads
+        Outputs as and what the task is told to resolve against, since a task host's working
+        directory is not the project's.
+    -->
+    <Target Name="HardenedWriteOpenApiDocument"
+            AfterTargets="CoreCompile"
+            Condition="'$(HardenedOpenApiOutput)' != '' And '$(DesignTimeBuild)' != 'true'"
+            Inputs="@(IntermediateAssembly)"
+            Outputs="$(HardenedOpenApiOutput)">
+
+        <WriteOpenApiDocument Assembly="@(IntermediateAssembly->'%(FullPath)')"
+                              Output="$(HardenedOpenApiOutput)"
+                              ProjectDirectory="$(MSBuildProjectDirectory)"
+                              Version="$(HardenedOpenApiOutputVersion)"
+                              DiagnosticPrefix="$(HardenedOpenApiDocumentDiagnosticPrefix)"/>
+    </Target>
+</Project>

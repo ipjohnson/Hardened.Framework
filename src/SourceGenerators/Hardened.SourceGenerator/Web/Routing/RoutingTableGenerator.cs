@@ -433,7 +433,7 @@ public static class RoutingTableGenerator {
                     // registry is asked for this handler's guard - and that needs the container.
                     "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
                     "serviceProvider, " +
-                    classDefinition.Name + "." + OpenApiDocumentSource.DocumentPropertyName +
+                    classDefinition.Name + "." + OpenApiDocumentSource.DocumentMemberPath +
                     ", \"" + path.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\")")));
     }
 

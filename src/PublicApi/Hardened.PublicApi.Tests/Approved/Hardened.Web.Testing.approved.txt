@@ -1,8 +1,28 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Web.Testing.Tests")]
 namespace Hardened.Web.Testing
 {
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter)]
+    public sealed class AnonymousAttribute : Hardened.Web.Testing.TestCredentialAttribute
+    {
+        public AnonymousAttribute() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter)]
+    public sealed class GrantsAttribute : Hardened.Web.Testing.TestCredentialAttribute
+    {
+        public GrantsAttribute(params string[] grants) { }
+        public System.Collections.Generic.IReadOnlyList<string> Grants { get; }
+    }
+    public interface ITestClientFactory<out TClient>
+        where out TClient :  class
+    {
+        TClient Create(System.Net.Http.HttpClient http);
+    }
     public interface ITestWebApp : Hardened.Shared.Testing.ITestContext
     {
         System.IServiceProvider RootServiceProvider { get; }
+        TClient CreateClient<TClient>(Hardened.Web.Testing.TestCredential? credential = null)
+            where TClient :  class;
+        System.Net.Http.HttpClient CreateHttpClient(Hardened.Web.Testing.TestCredential? credential = null);
         System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Delete(string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null);
         System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Get(string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null);
         System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Patch(object value, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null);
@@ -18,10 +38,50 @@ namespace Hardened.Web.Testing
         void Ok();
         void Unauthorized();
     }
+    public static class LastResponse
+    {
+        public static byte[] Body { get; }
+        public static string? ContentType { get; }
+        public static System.Collections.Generic.IReadOnlyDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public static bool IsAvailable { get; }
+        public static int Status { get; }
+    }
+    public sealed class PipelineHttpMessageHandler : System.Net.Http.HttpMessageHandler
+    {
+        public PipelineHttpMessageHandler(System.IServiceProvider rootServiceProvider) { }
+        public PipelineHttpMessageHandler(System.IServiceProvider rootServiceProvider, Hardened.Web.Testing.TestCredential? credential) { }
+        protected override System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> SendAsync(System.Net.Http.HttpRequestMessage request, System.Threading.CancellationToken cancellationToken) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter)]
+    public sealed class SubjectAttribute : Hardened.Web.Testing.TestCredentialAttribute
+    {
+        public SubjectAttribute(string subject) { }
+        public string Subject { get; }
+    }
+    public sealed class TestCredential : System.IEquatable<Hardened.Web.Testing.TestCredential>
+    {
+        public static readonly Hardened.Web.Testing.TestCredential Anonymous;
+        public TestCredential(System.Collections.Generic.IReadOnlyList<string>? Grants, string? Subject = null) { }
+        public System.Collections.Generic.IReadOnlyList<string>? Grants { get; init; }
+        public bool IsAnonymous { get; }
+        public string? Subject { get; init; }
+        public void ApplyTo(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public void ApplyTo(System.Net.Http.HttpClient client) { }
+        public static Hardened.Web.Testing.TestCredential Resolve(System.Collections.Generic.IEnumerable<System.Attribute> widestFirst) { }
+        public static Hardened.Web.Testing.TestCredential Resolve(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, System.Reflection.ParameterInfo? parameter = null) { }
+    }
+    public abstract class TestCredentialAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestParameterValueProvider
+    {
+        protected TestCredentialAttribute() { }
+    }
     public class TestWebApp : Hardened.Shared.Testing.Impl.TestContext, Hardened.Shared.Testing.ITestContext, Hardened.Web.Testing.ITestWebApp
     {
         public TestWebApp(Hardened.Shared.Runtime.Application.IApplicationRoot applicationRoot, Microsoft.Extensions.Logging.ILogger logger) { }
+        public TestWebApp(Hardened.Shared.Runtime.Application.IApplicationRoot applicationRoot, Microsoft.Extensions.Logging.ILogger logger, Hardened.Web.Testing.TestCredential? credential, System.Reflection.Assembly? testAssembly) { }
         public System.IServiceProvider RootServiceProvider { get; }
+        public TClient CreateClient<TClient>(Hardened.Web.Testing.TestCredential? credential = null)
+            where TClient :  class { }
+        public System.Net.Http.HttpClient CreateHttpClient(Hardened.Web.Testing.TestCredential? credential = null) { }
         public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Delete(string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null) { }
         public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Get(string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null) { }
         public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> Patch(object value, string path, System.Action<Hardened.Web.Testing.TestWebRequest>? webRequest = null) { }
@@ -32,8 +92,11 @@ namespace Hardened.Web.Testing
     public class TestWebRequest
     {
         public TestWebRequest() { }
+        public byte[]? Body { get; set; }
         public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; set; }
         public System.Threading.CancellationToken? Token { get; set; }
+        public Hardened.Web.Testing.TestWebRequest RawBody(byte[] bytes, string contentType) { }
+        public Hardened.Web.Testing.TestWebRequest RawBody(string text, string contentType = "application/json") { }
     }
     public class TestWebResponse
     {

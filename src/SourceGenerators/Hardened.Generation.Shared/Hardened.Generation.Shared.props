@@ -48,6 +48,15 @@
 
         <HardenedGenerationSerializer Condition="'$(HardenedGenerationScope)' == 'Full'"
                                       Include="$(HardenedGenerationSharedDir)SpecModelSerializer.cs"/>
+
+        <!--
+            The document format module: the JSON tree, its two emitters and the version lowering
+            the export writes a file through. Opt-in rather than part of a scope, because only the
+            export task reads a document back; the generators write the compact literal and never
+            re-read it, and the source package ships nothing that would call it.
+        -->
+        <HardenedGenerationDocument Condition="'$(HardenedGenerationDocumentFormat)' == 'true'"
+                                    Include="$(HardenedGenerationSharedDir)Document/*.cs"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -56,6 +65,9 @@
         </Compile>
         <Compile Include="@(HardenedGenerationModel)">
             <Link>Generation/Models/%(RecursiveDir)%(FileName)%(Extension)</Link>
+        </Compile>
+        <Compile Include="@(HardenedGenerationDocument)">
+            <Link>Generation/Document/%(FileName)%(Extension)</Link>
         </Compile>
     </ItemGroup>
 

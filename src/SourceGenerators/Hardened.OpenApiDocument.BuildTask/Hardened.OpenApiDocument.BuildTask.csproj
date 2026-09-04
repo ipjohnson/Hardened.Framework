@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!--
+            Two TFMs for the same reason the OpenAPI and Smithy tasks have them: MSBuild runs on
+            .NET Framework under Visual Studio and on .NET everywhere else, and the targets file
+            picks between them on $(MSBuildRuntimeType).
+        -->
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!--
+            Packed by the three generator packages into tasks/, beside whatever task they already
+            carry; this project ships nothing itself. Not packable, so release.yaml's pack-list
+            check does not ask for a row.
+        -->
+        <IsPackable>false</IsPackable>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+        <ExcludeAssets>runtime</ExcludeAssets>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.OpenApiDocument.BuildTask.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- See Hardened.OpenApi.BuildTask for why these are pinned and why runtime is excluded. -->
+        <PackageReference Include="Microsoft.Build.Framework" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <!--
+        The metadata reader, which is how the task reads the served document out of the compiled
+        assembly without loading it. In the box on net8.0. On .NET Framework it is the version the
+        MSBuild that ships with the .NET 8 SDK carries, 8.0.0, so the task binds to the host's own
+        copy where the host has one and to the copy packed beside it where it does not - Visual
+        Studio's MSBuild.exe redirects System.Reflection.Metadata to whatever it ships, and a
+        version above the redirect range resolves from the task's directory.
+    -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <PackageReference Include="System.Reflection.Metadata" Version="8.0.0"/>
+        <!-- See Hardened.OpenApi.BuildTask: unifies System.Memory upward to the contract MSBuild's
+             reference assemblies are on, which is what keeps the net472 leg free of MSB3277. -->
+        <PackageReference Include="System.Memory" Version="4.6.0"/>
+    </ItemGroup>
+
+    <!--
+        The document format module, compiled in from Hardened.Generation.Shared rather than
+        referenced: the module has no dependencies by design, and this is the one consumer that
+        reads a document back. HardenedGenerationScope is Minimal because nothing here needs the
+        generation model, only GZipLiteral's inverse.
+    -->
+    <PropertyGroup>
+        <HardenedGenerationScope>Minimal</HardenedGenerationScope>
+        <HardenedGenerationDocumentFormat>true</HardenedGenerationDocumentFormat>
+    </PropertyGroup>
+
+    <Import Project="../Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
+
+</Project>

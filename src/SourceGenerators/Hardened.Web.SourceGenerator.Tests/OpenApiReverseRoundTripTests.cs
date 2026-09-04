@@ -114,6 +114,48 @@ public class OpenApiReverseRoundTripTests {
     }
 
     /// <summary>
+    /// The file the web integration application's build exported, parsed exactly as a hand-written
+    /// specification is.
+    /// </summary>
+    /// <remarks>
+    /// The other tests here feed the parser the literal the generator emitted in memory. This feeds
+    /// it the file <c>&lt;HardenedOpenApiOutput&gt;</c> wrote from the compiled assembly - the thing a
+    /// client is generated from - so the export, the indentation and the read-back are all in the
+    /// path, and a client's input is proven to reconstruct the application it was exported from.
+    /// </remarks>
+    private static ServiceSpecModel ReparsedExport() {
+        var path = Path.Combine(AppContext.BaseDirectory, "Exported", "Application.json");
+
+        var model = OpenApiSpecParser.Parse(File.ReadAllText(path), "Application.json", CancellationToken.None);
+
+        Assert.True(model != null, "The build task's reader rejected the exported file.");
+
+        return model!;
+    }
+
+    /// <summary>
+    /// Every controller in the web integration application comes back as a service from the
+    /// exported file, and its streaming operations survive the round trip with the routes.
+    /// </summary>
+    [Fact]
+    public void TheExportedFileReconstructsTheWebApplication() {
+        var model = ReparsedExport();
+
+        var interfaces = model.Services
+            .Select(service => NamingHelper.ToInterfaceName(service.Tag))
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var expected in new[] { "IAuthorizationService", "IBindingService", "IStreamingService", "IRegistrationService", "IFormService" }) {
+            Assert.Contains(expected, interfaces);
+        }
+
+        var streaming = Assert.Single(model.Services, service => service.Tag == "Streaming");
+
+        Assert.Contains(streaming.Operations, operation => operation.Path == "/streaming/events");
+        Assert.Contains(streaming.Operations, operation => operation.Path == "/streaming/models");
+    }
+
+    /// <summary>
     /// One service per controller, named after it. Before tags were emitted this produced a single
     /// service tagged <c>Default</c> holding every operation in the application.
     /// </summary>

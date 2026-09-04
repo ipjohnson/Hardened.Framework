@@ -38,6 +38,34 @@
             <PackagePath>build/</PackagePath>
             <PackageCopyToOutput>true</PackageCopyToOutput>
         </Content>
+
+        <!--
+            The document export, shared with the two described front ends: the targets file the
+            package's own targets import, and the task it runs. Packed here as the other two pack it,
+            so <HardenedOpenApiOutput> means the same thing whichever generator a project uses.
+        -->
+        <Content Include="..\Hardened.OpenApiDocument.BuildTask\Package\Hardened.OpenApiDocument.targets">
+            <Link>Package\Hardened.OpenApiDocument.targets</Link>
+            <Pack>true</Pack>
+            <PackagePath>build/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <!--
+        The export task, built before anything can consume it and packed into tasks/ below. Nothing
+        here binds against it: it runs in MSBuild after the compile, the generator runs in Roslyn.
+        Two flavours, selected by the targets file on $(MSBuildRuntimeType).
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.OpenApiDocument.BuildTask\Hardened.OpenApiDocument.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all"
+                          SetTargetFramework="TargetFramework=net8.0"/>
+        <None Include="..\Hardened.OpenApiDocument.BuildTask\bin\$(Configuration)\net472\**\*.dll"
+              Pack="true" PackagePath="tasks/net472" Visible="false"/>
+        <None Include="..\Hardened.OpenApiDocument.BuildTask\bin\$(Configuration)\net8.0\**\*.dll"
+              Pack="true" PackagePath="tasks/net8.0" Visible="false"/>
     </ItemGroup>
 
     <PropertyGroup>

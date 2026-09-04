@@ -84,6 +84,28 @@
         are evaluated in document order - so an import above @(HardenedSmithyAst) reads it as empty
         and contributes nothing.
     -->
+
+    <!--
+        The document export, in-repo. <HardenedOpenApiOutput> writes the document this application
+        serves to a tracked file after every compile, which is what the export tests compare against
+        /openapi.json and what a client generator reads. The package does this through
+        build/*.targets; here the task assembly is the one this build produces, selected on
+        $(MSBuildRuntimeType) as the package's targets select it, and the ProjectReference only
+        orders the build.
+    -->
+    <PropertyGroup>
+        <HardenedOpenApiOutput>openapi/SmithyTestApp.json</HardenedOpenApiOutput>
+        <_HardenedOpenApiDocumentTaskTfm Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_HardenedOpenApiDocumentTaskTfm>
+        <_HardenedOpenApiDocumentTaskTfm Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_HardenedOpenApiDocumentTaskTfm>
+        <HardenedOpenApiDocumentTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApiDocument.BuildTask\bin\$(Configuration)\$(_HardenedOpenApiDocumentTaskTfm)\Hardened.OpenApiDocument.BuildTask.dll</HardenedOpenApiDocumentTaskAssembly>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.OpenApiDocument.BuildTask\Hardened.OpenApiDocument.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          SetTargetFramework="TargetFramework=$(_HardenedOpenApiDocumentTaskTfm)"/>
+    </ItemGroup>
+
     <Import Project="..\..\..\SourceGenerators\Hardened.Smithy.SourceGenerator\Package\Hardened.Smithy.SourceGenerator.targets"/>
 
 </Project>

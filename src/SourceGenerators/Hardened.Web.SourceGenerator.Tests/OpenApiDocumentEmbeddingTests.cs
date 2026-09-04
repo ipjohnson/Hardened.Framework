@@ -114,7 +114,7 @@ public class OpenApiDocumentEmbeddingTests {
         var routing = Run(GeneratedOpenApiDocument.EnableAttribute).SourceContaining("Routing");
 
         Assert.Contains("OpenApiDocumentProvider", routing);
-        Assert.Contains("TestApplication.OpenApiDocumentGZip", routing);
+        Assert.Contains("TestApplication.OpenApiDocument.GZip", routing);
         Assert.Contains("\"/openapi.json\"", routing);
     }
 

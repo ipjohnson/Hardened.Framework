@@ -27,4 +27,16 @@
         <Compile Include="..\..\Conformance\Shared\*.cs" Link="Conformance\%(FileName)%(Extension)"/>
     </ItemGroup>
 
+    <!--
+        The document the application's build exported, beside the tests that compare it with the
+        one the application serves. Copied at build time, which is after the application built and
+        wrote it; the indented-JSON writer is linked in so the comparison is against the same
+        indentation the export task applied rather than against a second writer's idea of it.
+    -->
+    <ItemGroup>
+        <Content Include="..\Hardened.IntegrationTests.Smithy.SUT\openapi\SmithyTestApp.json" Link="openapi\SmithyTestApp.json" CopyToOutputDirectory="PreserveNewest" Visible="false"/>
+        <Compile Include="..\..\..\SourceGenerators\Hardened.Generation.Shared\Document\JsonTree.cs" Link="Document\JsonTree.cs"/>
+        <Compile Include="..\..\..\SourceGenerators\Hardened.Generation.Shared\Document\JsonTreeWriter.cs" Link="Document\JsonTreeWriter.cs"/>
+    </ItemGroup>
+
 </Project>

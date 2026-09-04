@@ -196,21 +196,33 @@ jobs:
       #
       # The integration SUT is the subject because it is the one application here carrying the
       # whole route surface: constrained tokens, catch-alls, every verb, validated bodies.
+      #
+      # Read from the export rather than scraped out of generated source. The SUT's own build
+      # already wrote openapi/Application.json through <HardenedOpenApiOutput>, at the version the
+      # application serves; this asks the same target for a second file at 3.1.0, which is the
+      # newest banner Spectral's oas ruleset validates - a 3.2.0 document fails its
+      # `oas3-schema` version pattern outright. Lowering here rather than in the SUT keeps the
+      # tracked file byte-identical to the served document, which the SUT's tests assert.
+      #
+      # One target on one project, with the properties as global properties: nothing else is
+      # built, so the property cannot reach a referenced project and fail it for carrying no
+      # document. HRDOA030 names each streaming operation that loses its item schema on the way
+      # down. A SUT that lost [Enable<OpenApiDocumentPublishing>] fails the build step above at
+      # HRDOA018, before this runs.
       - name: Lint the generated OpenAPI document
         run: |
           set -o pipefail
 
-          generated=$(find src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/obj/Release \
-            -name 'Application.OpenApiDocument.cs' | head -1)
+          dotnet msbuild src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Hardened.IntegrationTests.WebApp.SUT.csproj \
+            -t:HardenedWriteOpenApiDocument \
+            -p:Configuration=Release \
+            -p:HardenedOpenApiOutput="$PWD/openapi-lint.json" \
+            -p:HardenedOpenApiOutputVersion=3.1.0 \
+            -nologo -v:m
 
-          if [ -z "$generated" ]; then
-            echo "::error::No generated OpenAPI document found. Either EmitCompilerGeneratedFiles is off on the integration SUT, or its entry point lost [Enable<OpenApiDocumentPublishing>] - without which no document is emitted."
-            exit 1
-          fi
+          test -s openapi-lint.json
 
-          python3 scripts/extract-openapi.py "$generated" openapi.json
-
-          npx --yes @stoplight/spectral-cli lint openapi.json \
+          npx --yes @stoplight/spectral-cli lint openapi-lint.json \
             --ruleset .spectral.yaml \
             --fail-severity=error
 
