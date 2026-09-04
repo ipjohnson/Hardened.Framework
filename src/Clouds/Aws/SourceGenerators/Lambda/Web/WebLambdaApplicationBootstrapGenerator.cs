@@ -1,18 +1,22 @@
-﻿using Hardened.SourceGenerator.Shared;
+using System.Collections.Immutable;
+using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.Amz.Web.Lambda.SourceGenerator;
 
 public static class WebLambdaApplicationBootstrapGenerator {
     public static void Setup(IncrementalGeneratorInitializationContext initializationContext,
-        IncrementalValuesProvider<EntryPointSelector.Model> incrementalValuesProvider) {
+        IncrementalValuesProvider<(EntryPointSelector.Model EntryPoint, ImmutableArray<string> StreamingHandlers)> incrementalValuesProvider) {
         initializationContext.RegisterSourceOutput(
             incrementalValuesProvider,
-            SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(ModelWriter)
+            SourceGeneratorWrapper.Wrap<(EntryPointSelector.Model EntryPoint, ImmutableArray<string> StreamingHandlers)>(ModelWriter)
         );
     }
 
-    private static void ModelWriter(SourceProductionContext arg1, EntryPointSelector.Model entryPoint) {
+    private static void ModelWriter(SourceProductionContext arg1,
+        (EntryPointSelector.Model EntryPoint, ImmutableArray<string> StreamingHandlers) model) {
+        var entryPoint = model.EntryPoint;
+
         if (SelectsRestApiIntegration(entryPoint)) {
             arg1.ReportDiagnostic(
                 Diagnostic.Create(
@@ -23,7 +27,7 @@ public static class WebLambdaApplicationBootstrapGenerator {
             return;
         }
 
-        var applicationFile = ApplicationFileWriter.WriteFile(entryPoint);
+        var applicationFile = ApplicationFileWriter.WriteFile(entryPoint, model.StreamingHandlers);
 
         arg1.AddSource(entryPoint.EntryPointType.Name + ".App", applicationFile);
     }

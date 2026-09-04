@@ -1,12 +1,13 @@
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using DependencyModules.Runtime.Helpers;
 using Hardened.Amz.SourceGeneration.Testing;
 using Hardened.Amz.Web.Lambda.Runtime;
 using Hardened.Amz.Web.Lambda.Runtime.Impl;
-using Hardened.Amz.Web.Lambda.Streaming.Impl;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.CodeAnalysis;
 using Xunit;
@@ -26,8 +27,9 @@ public static class WebGeneratorHarness {
     public static readonly Type[] Anchors = [
         typeof(IApiGatewayEventProcessor),         // Hardened.Amz.Web.Lambda.Runtime
         typeof(LambdaWebApplicationAttribute),     // Hardened.Amz.Web.Lambda.Runtime (attributes)
-        typeof(ILambdaInvokeEngine),               // Hardened.Amz.Web.Lambda.Streaming
+        typeof(LambdaBootstrapBuilder),            // Amazon.Lambda.RuntimeSupport, for the emitted Main
         typeof(IWebExecutionHandlerService),       // Hardened.Web.Runtime
+        typeof(ServerSentEventsAttribute),         // Hardened.Web.Runtime (attributes)
         typeof(IMiddlewareService),                // Hardened.Requests.Abstract
         typeof(HardenedModuleAttribute),           // Hardened.Shared.Runtime
         typeof(DependencyRegistry<>),              // DependencyModules.Runtime
@@ -121,17 +123,6 @@ public static class WebGeneratorHarness {
         IIncrementalGenerator generator, string source, params string[] additionalSources) =>
         Run([generator], source, additionalSources);
 
-    /// <summary>
-    /// Runs both web generators over the same compilation, the way a consumer's build does. Their
-    /// selectors are written as each other's negation, so an entry point matching both would get two
-    /// applications.
-    /// </summary>
-    public static GeneratorResult RunBoth(string source, params string[] additionalSources) =>
-        Run(
-            [new WebLambdaSourceGenerator(), new StreamingWebLambdaSourceGenerator()],
-            source,
-            additionalSources);
-
     /// <inheritdoc cref="Run(IIncrementalGenerator,string,string[])"/>
     public static GeneratorResult Run(
         IReadOnlyList<IIncrementalGenerator> generators, string source, params string[] additionalSources) {
@@ -143,32 +134,6 @@ public static class WebGeneratorHarness {
 
         return GeneratorTestHarness.Run(sources, generators, Anchors);
     }
-
-    /// <summary>
-    /// The attribute the streaming web selector matches, plus the one it stopped matching, declared
-    /// in the test's own namespace.
-    ///
-    /// <para>
-    /// <c>StreamingLambdaWebModuleAttribute</c> is what DependencyModules emits from the
-    /// <c>[DependencyModule]</c> class the streaming runtime ships, and is the live selector. The
-    /// selector matches <em>simple names in syntax</em> and never resolves a symbol, so a local
-    /// declaration stands in for it — and a consumer's own attribute of that name selects the
-    /// streaming generator just as effectively.
-    /// </para>
-    /// <para>
-    /// <c>StreamingLambdaWebApplicationAttribute</c> is kept only so the test asserting it is no
-    /// longer selected has something that compiles. The real type is
-    /// <c>[Obsolete(error: true)]</c> as of 2026-08-27; it registered no services, so an
-    /// application selected by it threw on construction.
-    /// </para>
-    /// </summary>
-    public const string StreamingAttributes = """
-        namespace TestApp;
-
-        public class StreamingLambdaWebApplicationAttribute : System.Attribute { }
-
-        public class StreamingLambdaWebModuleAttribute : System.Attribute { }
-        """;
 
     /// <summary>
     /// Asserts the generator did not report the diagnostic <c>SourceGeneratorWrapper</c> raises when

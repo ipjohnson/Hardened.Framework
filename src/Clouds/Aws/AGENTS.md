@@ -10,11 +10,11 @@ The solution is `Hardened.Amz.sln` at the repository root.
 
 | Path | Contents |
 |---|---|
-| `src/Lambda/Function` | Direct invocation, the batch filter base, response streaming |
-| `src/Lambda/Web` | API Gateway, response streaming, the local harness |
+| `src/Lambda/Function` | Direct invocation and the batch filter base |
+| `src/Lambda/Web` | API Gateway and function URLs, the local harness |
 | `src/Lambda/DynamoDbStream` | Stream records, `[NewImage]`, `[OldImage]` |
 | `src/Lambda/Sqs` | SQS batches and partial batch responses |
-| `src/Lambda/Shared` | Structured logging, embedded metrics, stage and region types |
+| `src/Lambda/Shared` | Structured logging, embedded metrics, stage and region types, the response mode and the response stream both hosts share |
 | `src/Clients/DynamoDb` | `IDynamoDbClientProvider` and DynamoDB Local |
 | `src/Hardened.Amz.Cdk` | CDK constructs and the deploy command |
 | `src/SourceGenerators` | The Lambda function and web generators |
@@ -62,7 +62,7 @@ it is released.
 ## Versions
 
 Amz releases on the **same version line as the Framework**, from a `v*` tag. The current line is
-`0.17.0-rc1000`. Bumping means editing `src/Directory.Packages.props` and waiting for the Framework
+`0.19.0-rc1000`. Bumping means editing `src/Directory.Packages.props` and waiting for the Framework
 packages to reach nuget.org first — `scripts/check-framework-dependencies.py` fails the release
 otherwise.
 
@@ -104,6 +104,17 @@ selecting REST API format 1.0 is a build error, `HRDAWS001`.
 
 **No SQS client package exists.** The SQS runtime consumes a queue; writing to one means a direct
 `AWSSDK.SQS` dependency.
+
+**The response mode has to match the front door.** `HARDENED_LAMBDA_RESPONSE_MODE=stream` needs a
+function URL in `RESPONSE_STREAM` invoke mode and nothing else; `buffered` needs anything else. The
+function cannot detect which it is behind, so the CDK writes both from one request and refuses
+stream mode behind an HTTP API. There is no streaming host any more: both hosts run on
+`Amazon.Lambda.RuntimeSupport` and open the stream at the first body byte through
+`IResponseStreamFactory`, which is the seam tests and the harness substitute.
+
+**`Amazon.Lambda.Core` and `Amazon.Lambda.RuntimeSupport` move together.** The factory the stream
+opens through lives in Core and is wired by RuntimeSupport; a mismatch throws
+"LambdaResponseStreamFactory is not initialized" on the first streamed write.
 
 **Check `main` is synced before branching.** An unpushed local commit gets absorbed into your pull
 request's squash merge.

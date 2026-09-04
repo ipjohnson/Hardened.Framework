@@ -12,6 +12,12 @@
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.Core" />
         <!--
+          The bootstrap every Hardened Lambda application runs on. Referenced here rather than in
+          each host so it reaches a consumer's project transitively: the generated Main calls
+          LambdaBootstrapBuilder, and the consumer never names the package.
+        -->
+        <PackageReference Include="Amazon.Lambda.RuntimeSupport" />
+        <!--
           Declared rather than inherited. This used to arrive transitively through
           Hardened.Requests.Runtime; the generator is now opt-in, so a project using
           [SingletonService] asks for it.
@@ -32,6 +38,7 @@
         <PackageReference Include="Microsoft.Extensions.Logging" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Primitives" />
+        <PackageReference Include="System.IO.Pipelines" />
         <PackageReference Include="System.Text.Json" />
     </ItemGroup>
 

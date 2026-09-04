@@ -29,9 +29,9 @@
     </ItemGroup>
 
     <!--
-      The generated application resolves IWebExecutionHandlerService, which lives in
-      Hardened.Web.Runtime. Neither Amz web runtime references it — an API Gateway application gets
-      it from the consumer's own Hardened.Web.Runtime reference — so the tests anchor on it directly.
+      The generated application resolves IWebExecutionHandlerService and the streaming-handler scan
+      matches ServerSentEventsAttribute, both in Hardened.Web.Runtime, so the tests anchor on it
+      directly.
     -->
     <ItemGroup>
         <PackageReference Include="Hardened.Web.Runtime" />
@@ -53,7 +53,6 @@
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\..\Lambda\Web\Hardened.Amz.Web.Lambda.Runtime\Hardened.Amz.Web.Lambda.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Lambda\Web\Hardened.Amz.Web.Lambda.Streaming\Hardened.Amz.Web.Lambda.Streaming.csproj"/>
     </ItemGroup>
 
 </Project>

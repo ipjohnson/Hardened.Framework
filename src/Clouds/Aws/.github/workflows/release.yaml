@@ -137,7 +137,7 @@ jobs:
       # Hardened.Amz.SourceGeneration.Testing is deliberately absent: it is the in-repo copy of
       # Hardened.SourceGeneration.Testing, which the framework publishes, and shipping both
       # would put two packages with the same purpose on the feed. It is marked IsPackable=False
-      # and produces no package, which is why the count below is 17 rather than 18.
+      # and produces no package, which is why the count below is 15 rather than 16.
       - name: Pack
         run: |
           for project in \
@@ -149,12 +149,10 @@ jobs:
             src/Lambda/DynamoDbStream/Hardened.Amz.Function.DDB.Runtime/Hardened.Amz.Function.DDB.Runtime.csproj \
             src/Lambda/DynamoDbStream/Hardened.Amz.Function.DDB.Testing/Hardened.Amz.Function.DDB.Testing.csproj \
             src/Lambda/Function/Hardened.Amz.Function.Lambda.Runtime/Hardened.Amz.Function.Lambda.Runtime.csproj \
-            src/Lambda/Function/Hardened.Amz.Function.Lambda.Streaming/Hardened.Amz.Function.Lambda.Streaming.csproj \
             src/Lambda/Function/Hardened.Amz.Function.Lambda.Testing/Hardened.Amz.Function.Lambda.Testing.csproj \
             src/Lambda/Sqs/Hardened.Amz.Function.Sqs.Runtime/Hardened.Amz.Function.Sqs.Runtime.csproj \
             src/Lambda/Sqs/Hardened.Amz.Function.Sqs.Testing/Hardened.Amz.Function.Sqs.Testing.csproj \
             src/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj \
-            src/Lambda/Web/Hardened.Amz.Web.Lambda.Streaming/Hardened.Amz.Web.Lambda.Streaming.csproj \
             src/Lambda/Web/Hardened.Amz.Web.Lambda.Harness/Hardened.Amz.Web.Lambda.Harness.csproj \
             src/SourceGenerators/Lambda/Function/Hardened.Amz.Function.Lambda.SourceGenerator.csproj \
             src/SourceGenerators/Lambda/Web/Hardened.Amz.Web.Lambda.SourceGenerator.csproj; do
@@ -168,7 +166,7 @@ jobs:
       # consumer failed to restore it.
       - name: Verify every expected package was produced
         run: |
-          EXPECTED=17
+          EXPECTED=15
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

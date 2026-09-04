@@ -12,7 +12,7 @@ namespace Hardened.Amz.Function.Lambda.SourceGenerator.Tests;
 ///
 /// <para>
 /// Both are public, shipped classes of this assembly, and neither is reachable from
-/// <see cref="LambdaFunctionSourceGenerator"/> or <see cref="StreamingFunctionLambdaSourceGenerator"/>
+/// <see cref="LambdaFunctionSourceGenerator"/>
 /// — nothing in either repository registers them. They are covered here through a driving generator
 /// of the same shape the framework's <c>FunctionIncrementalGenerator</c> uses, because what they
 /// emit lands in a consumer's build the moment anything does register them.

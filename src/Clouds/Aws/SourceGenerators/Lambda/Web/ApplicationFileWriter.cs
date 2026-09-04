@@ -1,4 +1,4 @@
-﻿using CSharpAuthor;
+using CSharpAuthor;
 using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.Amz.Web.Lambda.SourceGenerator;
@@ -16,9 +16,9 @@ namespace Hardened.Amz.Web.Lambda.SourceGenerator;
 /// </para>
 /// </summary>
 public static class ApplicationFileWriter {
-    public static string WriteFile(EntryPointSelector.Model entryPoint) {
+    public static string WriteFile(EntryPointSelector.Model entryPoint, IReadOnlyList<string> streamingHandlers) {
         var applicationFile = new CSharpFileDefinition(entryPoint.EntryPointType.Namespace);
-        var lambdaFileWriter = new LambdaWebApplicationFileWriter();
+        var lambdaFileWriter = new LambdaWebApplicationFileWriter(streamingHandlers);
 
         lambdaFileWriter.CreateApplicationClass(entryPoint, applicationFile);
 

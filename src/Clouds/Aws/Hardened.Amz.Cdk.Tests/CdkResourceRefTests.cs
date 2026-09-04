@@ -45,18 +45,19 @@ public class CdkResourceRefTests {
 
     /// <summary>
     /// The well-known references are what a stack definition writes in its <c>Produces</c> and
-    /// another writes in its <c>Consumes</c>, so they have to name three distinct resources rather
-    /// than three references that happen to compare equal.
+    /// another writes in its <c>Consumes</c>, so they have to name four distinct resources rather
+    /// than four references that happen to compare equal.
     /// </summary>
     [Fact]
-    public void TheWellKnownResourcesAreThreeDistinctReferences() {
+    public void TheWellKnownResourcesAreFourDistinctReferences() {
         var known = new ICdkResourceRef[] {
             KnownCdkResources.LambdaFunction,
             KnownCdkResources.LambdaFunctionAlias,
             KnownCdkResources.HttpApi,
+            KnownCdkResources.LambdaFunctionUrl,
         };
 
-        Assert.Equal(3, known.Distinct().Count());
+        Assert.Equal(4, known.Distinct().Count());
     }
 
     [Fact]
@@ -64,6 +65,7 @@ public class CdkResourceRefTests {
         Assert.Equal(typeof(Function), ((ICdkResourceRef)KnownCdkResources.LambdaFunction).TypeOfResource);
         Assert.Equal(typeof(Alias), ((ICdkResourceRef)KnownCdkResources.LambdaFunctionAlias).TypeOfResource);
         Assert.Equal(typeof(HttpApi), ((ICdkResourceRef)KnownCdkResources.HttpApi).TypeOfResource);
+        Assert.Equal(typeof(FunctionUrl), ((ICdkResourceRef)KnownCdkResources.LambdaFunctionUrl).TypeOfResource);
     }
 
     /// <summary>

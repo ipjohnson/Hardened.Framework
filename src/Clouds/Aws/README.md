@@ -60,21 +60,23 @@ covers the project shape, handler and test setup for each transport.
 
 | You are handling | Module | Runtime package |
 |---|---|---|
-| [HTTP behind API Gateway](https://ipjohnson.github.io/Hardened.Docs/aws/lambda-web) | `[LambdaWebModule]` | `Hardened.Amz.Web.Lambda.Runtime` |
+| [HTTP behind API Gateway or a function URL](https://ipjohnson.github.io/Hardened.Docs/aws/lambda-web) | `[LambdaWebModule]` | `Hardened.Amz.Web.Lambda.Runtime` |
 | [Direct invocation](https://ipjohnson.github.io/Hardened.Docs/aws/lambda-function) | `[LambdaFunctionModule]` | `Hardened.Amz.Function.Lambda.Runtime` |
 | [SQS batches](https://ipjohnson.github.io/Hardened.Docs/aws/sqs) | `[LambdaFunctionModule]` + `[SqsLambda]` | `Hardened.Amz.Function.Sqs.Runtime` |
 | [DynamoDB Streams](https://ipjohnson.github.io/Hardened.Docs/aws/ddb-streams) | `[LambdaFunctionModule]` + `[DynamoStreamLambda]` | `Hardened.Amz.Function.DDB.Runtime` |
-| Streaming web responses | `[StreamingLambdaWebModule]` | `Hardened.Amz.Web.Lambda.Streaming` |
-| Streaming function responses | `[StreamingLambdaFunctionModule]` | `Hardened.Amz.Function.Lambda.Streaming` |
 
 SQS and DynamoDB Streams take a second attribute because they are event sources layered on the
 direct-invoke path. The SQS runtime deserialises each message body into your handler's parameter
 type and reports partial batch failures, so a throwing handler fails one message rather than the
 batch.
 
-The streaming modules drive the Lambda Runtime API directly and start writing the response as it is
-produced. The function must be deployed with the `RESPONSE_STREAM` invoke mode, which
-`Hardened.Amz.Cdk` does not configure for you today.
+Every application runs on `Amazon.Lambda.RuntimeSupport`'s bootstrap through a generated `Main`.
+Response streaming is a deployment setting rather than a separate host: with
+`HARDENED_LAMBDA_RESPONSE_MODE=stream` behind a function URL in `RESPONSE_STREAM` invoke mode,
+every response opens a stream at its first body byte, and a handler returning
+`IAsyncEnumerable<T>` writes one chunk per item. `Hardened.Amz.Cdk` sets the variable and the
+invoke mode together; see
+[Response mode](https://github.com/ipjohnson/Hardened.Amz/blob/main/docs/application-types.md#response-mode).
 
 ## Testing without AWS
 
@@ -85,7 +87,8 @@ and no mocked SDK types:
 - `TestSqsApp` (`Hardened.Amz.Function.Sqs.Testing`) delivers batches and asserts partial failures.
 - `Hardened.Amz.Function.DDB.Testing` feeds stream records.
 - `[LocalDynamoDb]` (`Hardened.Amz.DynamoDbClient.Testing`) runs DynamoDB in Testcontainers.
-- `Hardened.Amz.Web.Lambda.Harness` puts the API Gateway pipeline behind a local HTTP listener.
+- `Hardened.Amz.Web.Lambda.Harness` puts the API Gateway pipeline behind a local HTTP listener,
+  streaming when the application is deployed in stream mode.
 
 See [testing AWS handlers](https://ipjohnson.github.io/Hardened.Docs/aws/testing) and
 [testing conventions](https://github.com/ipjohnson/Hardened.Amz/blob/main/docs/testing-conventions.md).

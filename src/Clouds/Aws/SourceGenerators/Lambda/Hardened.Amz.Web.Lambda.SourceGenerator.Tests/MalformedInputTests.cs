@@ -96,12 +96,12 @@ public class MalformedInputTests {
     }
 
     /// <summary>
-    /// An empty compilation. The generators register a syntax provider that never fires, which has to
+    /// An empty compilation. The generator registers syntax providers that never fire, which has to
     /// be a no-op rather than a crash in the pipeline setup.
     /// </summary>
     [Fact]
-    public void AnEmptyCompilationProducesNothingFromEitherWebGenerator() {
-        var result = WebGeneratorHarness.RunBoth("namespace TestApp;");
+    public void AnEmptyCompilationProducesNothing() {
+        var result = WebGeneratorHarness.Run(new WebLambdaSourceGenerator(), "namespace TestApp;");
 
         result.AssertNoErrors();
         WebGeneratorHarness.AssertDidNotCrash(result);

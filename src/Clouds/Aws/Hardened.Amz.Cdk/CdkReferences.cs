@@ -19,4 +19,6 @@ public static class KnownCdkResources {
     public static CdkResourceRef<Alias> LambdaFunctionAlias = new ();
     
     public static CdkResourceRef<HttpApi> HttpApi = new ();
+
+    public static CdkResourceRef<FunctionUrl> LambdaFunctionUrl = new ();
 }

@@ -21,7 +21,6 @@ public interface IApiGatewayEventProcessor {
 
 [SingletonService(Using = RegistrationType.Try)]
 public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
-    private static readonly MemoryStream _emptyStream = new(Array.Empty<byte>());
     private readonly IServiceProvider _serviceProvider;
     private readonly IMiddlewareService _middlewareService;
     private readonly IMemoryStreamPool _memoryStreamPool;
@@ -105,7 +104,7 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
             return response;
         }
         catch (Exception exception) {
-            // The host-level failure signal, as on Kestrel and both streaming engines.
+            // The host-level failure signal, as on Kestrel and in stream mode.
             // ControllerErrorHelper already reports a handler that threw and stops it escaping, so
             // what reaches here is a filter outside that handling, or the response encoding above -
             // the cases nothing else was reporting.
@@ -130,45 +129,8 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
     }
 
     private void CopyHeadersAndCookies(IExecutionContext executionContext, APIGatewayHttpApiV2ProxyResponse response) {
-        var headers = new Dictionary<string, string>();
-
-        if (executionContext.Response.Headers.Count > 0) {
-            foreach (var kvp in executionContext.Response.Headers) {
-                // ToString() rather than the implicit StringValues conversion, which is nullable
-                // (CS8601) and would put a JSON null in the response's header map. Multi-valued
-                // headers join on "," either way. Matches IHeaderCollection.ToStringDictionary.
-                headers[kvp.Key] = kvp.Value.ToString();
-            }
-        }
-
-        response.Headers = headers;
-
-        var cookies = executionContext.Response.Cookies.Cookies;
-
-        if (cookies.Count > 0) {
-            using var stringBuilderReservation = _stringBuilderPool.Get();
-            var stringBuilder = stringBuilderReservation.Item;
-            var cookieArray = new string[cookies.Count];
-            var i = 0;
-            foreach (var cookiePair in cookies) {
-                stringBuilder.Append(cookiePair.Key);
-                stringBuilder.Append('=');
-                // Item1 — the value. Appending the Tuple itself, which is what this did until
-                // 2026-08-11, resolves to StringBuilder.Append(object) and emits the tuple's
-                // ToString(), so every Set-Cookie read
-                // "name=(value, CookieSetOptions { Expires = , ... })".
-                stringBuilder.Append(cookiePair.Value.Item1);
-                cookiePair.Value.Item2.AppendSettings(stringBuilder);
-                cookieArray[i] = stringBuilder.ToString();
-                i++;
-                stringBuilder.Clear();
-            }
-
-            response.Cookies = cookieArray;
-        }
-        else {
-            response.Cookies = Array.Empty<string>();
-        }
+        response.Headers = ApiGatewayEventMapping.Headers(executionContext.Response.Headers);
+        response.Cookies = ApiGatewayEventMapping.Cookies(executionContext.Response.Cookies, _stringBuilderPool);
     }
 
     private IExecutionContext CreateExecutionContext(IServiceScope scope,
@@ -179,24 +141,9 @@ public partial class ApiGatewayEventProcessor : IApiGatewayEventProcessor {
             _serviceProvider,
             scope.ServiceProvider,
             _knownServices,
-            new ApiGatewayV2ExecutionRequest(request) { Body = CreateBodyFromRequest(request, memoryStream) },
+            new ApiGatewayV2ExecutionRequest(request) { Body = ApiGatewayEventMapping.RequestBody(request, memoryStream) },
             new ApiGatewayV2ExecutionResponse(response),
             _metricLoggerProvider.CreateLogger("HardenedRequests"),
             starTime);
-    }
-
-    private Stream CreateBodyFromRequest(APIGatewayHttpApiV2ProxyRequest request, MemoryStream memoryStream) {
-        if (string.IsNullOrEmpty(request.Body)) {
-            return _emptyStream;
-        }
-
-        byte[] bytes = request.IsBase64Encoded
-            ? Convert.FromBase64String(request.Body)
-            : Encoding.UTF8.GetBytes(request.Body);
-
-        memoryStream.Write(bytes, 0, bytes.Length);
-        memoryStream.Position = 0;
-
-        return memoryStream;
     }
 }

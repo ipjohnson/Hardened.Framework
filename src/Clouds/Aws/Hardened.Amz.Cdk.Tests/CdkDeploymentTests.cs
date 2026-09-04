@@ -19,6 +19,12 @@ namespace Hardened.Amz.Cdk.Tests;
 /// was handed — are only observable in what CDK produced.
 /// </para>
 /// </summary>
+/// <remarks>
+/// In one collection with every other class that synthesises. jsii unpacks its runtime and the
+/// CDK's asset tarballs into a shared temporary directory on first use, and two classes starting
+/// it at once collide on those files.
+/// </remarks>
+[Collection(CdkSynthesis.Name)]
 public class CdkDeploymentTests : IDisposable {
 
     private readonly List<string> _outputDirectories = [];

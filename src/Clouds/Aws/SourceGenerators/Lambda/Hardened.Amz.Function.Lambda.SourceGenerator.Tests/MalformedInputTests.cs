@@ -197,12 +197,12 @@ public class MalformedInputTests {
     }
 
     /// <summary>
-    /// An empty compilation. The generators register a syntax provider that never fires, which has to
+    /// An empty compilation. The generator registers a syntax provider that never fires, which has to
     /// be a no-op rather than a crash in the pipeline setup.
     /// </summary>
     [Fact]
-    public void AnEmptyCompilationProducesNothingFromEitherFunctionGenerator() {
-        var result = FunctionGeneratorHarness.RunBoth("namespace TestApp;");
+    public void AnEmptyCompilationProducesNothing() {
+        var result = FunctionGeneratorHarness.Run(new LambdaFunctionSourceGenerator(), "namespace TestApp;");
 
         result.AssertNoErrors();
         FunctionGeneratorHarness.AssertDidNotCrash(result);

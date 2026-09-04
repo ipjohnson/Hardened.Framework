@@ -44,7 +44,6 @@
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\..\Lambda\Function\Hardened.Amz.Function.Lambda.Runtime\Hardened.Amz.Function.Lambda.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Lambda\Function\Hardened.Amz.Function.Lambda.Streaming\Hardened.Amz.Function.Lambda.Streaming.csproj"/>
     </ItemGroup>
 
 </Project>

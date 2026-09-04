@@ -1,7 +1,7 @@
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using DependencyModules.Runtime.Helpers;
 using Hardened.Amz.Function.Lambda.Runtime.Impl;
-using Hardened.Amz.Function.Lambda.Streaming.Impl;
 using Hardened.Amz.SourceGeneration.Testing;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Execution;
@@ -24,7 +24,7 @@ public static class FunctionGeneratorHarness {
     /// </summary>
     public static readonly Type[] Anchors = [
         typeof(ILambdaHandlerPackage),      // Hardened.Amz.Function.Lambda.Runtime
-        typeof(IFunctionInvokeEngine),      // Hardened.Amz.Function.Lambda.Streaming
+        typeof(LambdaBootstrapBuilder),     // Amazon.Lambda.RuntimeSupport, for the emitted Main
         typeof(IExecutionRequestHandler),   // Hardened.Requests.Abstract
         typeof(HardenedFunctionAttribute),  // Hardened.Requests.Abstract (attributes)
         typeof(HardenedModuleAttribute),    // Hardened.Shared.Runtime
@@ -117,17 +117,6 @@ public static class FunctionGeneratorHarness {
         IIncrementalGenerator generator, string source, params string[] additionalSources) =>
         Run([generator], source, additionalSources);
 
-    /// <summary>
-    /// Runs both function generators over the same compilation, the way a consumer's build does.
-    /// They share <see cref="LambdaEntryIncrementalGenerator"/>, so an entry point matching both
-    /// selectors would have one output overwrite the other.
-    /// </summary>
-    public static GeneratorResult RunBoth(string source, params string[] additionalSources) =>
-        Run(
-            [new LambdaFunctionSourceGenerator(), new StreamingFunctionLambdaSourceGenerator()],
-            source,
-            additionalSources);
-
     /// <inheritdoc cref="Run(IIncrementalGenerator,string,string[])"/>
     public static GeneratorResult Run(
         IReadOnlyList<IIncrementalGenerator> generators, string source, params string[] additionalSources) {
@@ -139,31 +128,6 @@ public static class FunctionGeneratorHarness {
 
         return GeneratorTestHarness.Run(sources, generators, Anchors);
     }
-
-    /// <summary>
-    /// The attribute the streaming generator selects on, plus the three names it stopped selecting
-    /// on. Normally emitted by DependencyModules from the <c>[DependencyModule]</c> class the
-    /// streaming runtime ships — that generator does not run here, so they are declared by hand.
-    ///
-    /// <para>
-    /// <c>StreamingLambdaFunctionModuleAttribute</c> is the live one. The other three are kept so
-    /// that the tests asserting they are <em>not</em> selected have something that compiles:
-    /// <c>StreamingLambdaFunction</c> is what the module attribute was called before 2026-08-27,
-    /// and <c>StreamingLambdaFunctionApplication</c> and <c>LambdaFunctionApplication</c> never
-    /// existed outside this string and the selector's predicate.
-    /// </para>
-    /// </summary>
-    public const string StreamingAttributes = """
-        namespace TestApp;
-
-        public class StreamingLambdaFunctionModuleAttribute : System.Attribute { }
-
-        public class StreamingLambdaFunctionAttribute : System.Attribute { }
-
-        public class StreamingLambdaFunctionApplicationAttribute : System.Attribute { }
-
-        public class LambdaFunctionApplicationAttribute : System.Attribute { }
-        """;
 
     /// <summary>
     /// Asserts the generator did not report the diagnostic <c>SourceGeneratorWrapper</c> raises when

@@ -1,6 +1,9 @@
-﻿using Amazon.Lambda.APIGatewayEvents;
+using Amazon.Lambda.APIGatewayEvents;
+using Hardened.Amz.Shared.Lambda.Runtime.Streaming;
 using Hardened.Amz.Shared.Lambda.Testing;
 using Hardened.Amz.Web.Lambda.Runtime.Impl;
+using Hardened.Shared.Runtime.Application;
+using Microsoft.Extensions.Options;
 
 namespace Hardened.Amz.Web.Lambda.Harness;
 
@@ -8,18 +11,49 @@ public interface IRequestToLambdaService {
     Task HandleRequest(HttpContext context, Func<Task> next);
 }
 
+/// <summary>
+/// An HTTP request in, an API Gateway event out, and the application's response back onto the
+/// HTTP response - as the payload when the application is buffered, as a stream when it is
+/// deployed in stream mode.
+/// </summary>
+/// <remarks>
+/// The mode is the application's own <see cref="ILambdaResponseModeConfiguration"/>, read from its
+/// container, so the harness serves what the deployment would. A handler that is not a Hardened
+/// application - a hand-written <see cref="IApiGatewayV2Handler"/> - is buffered.
+/// </remarks>
 public class RequestToLambdaService<T> : IRequestToLambdaService where T : IApiGatewayV2Handler, new() {
     private readonly IApiGatewayV2Handler _handler;
+    private readonly IStreamingEventProcessor? _streaming;
 
     public RequestToLambdaService() {
         _handler = new T();
+        _streaming = StreamingProcessor(_handler);
+    }
+
+    private static IStreamingEventProcessor? StreamingProcessor(IApiGatewayV2Handler handler) {
+        if (handler is not IApplicationRoot application) {
+            return null;
+        }
+
+        var services = application.Provider;
+        var mode = services.GetRequiredService<IOptions<ILambdaResponseModeConfiguration>>().Value.Mode;
+
+        return mode == LambdaResponseMode.Stream
+            ? services.GetRequiredService<IStreamingEventProcessor>()
+            : null;
     }
 
     public async Task HandleRequest(HttpContext context, Func<Task> next) {
         var request = await ConvertHttpContextToRequest(context);
+        var lambdaContext = TestLambdaContext.FromName(typeof(T).Name);
 
-        var response =
-            await _handler.Invoke(request, TestLambdaContext.FromName(typeof(T).Name));
+        if (_streaming != null) {
+            await _streaming.Process(request, lambdaContext, new HttpResponseStreamFactory(context));
+
+            return;
+        }
+
+        var response = await _handler.Invoke(request, lambdaContext);
 
         await SendResponse(context, response);
     }

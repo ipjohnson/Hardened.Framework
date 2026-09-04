@@ -10,7 +10,8 @@ using Microsoft.Extensions.Logging;
 namespace Hardened.Amz.Web.Lambda.Runtime.DependencyInjection;
 
 /// <summary>
-/// The buffered API Gateway host, applied to an application as <c>[LambdaWebModule]</c>.
+/// The API Gateway host, applied to an application as <c>[LambdaWebModule]</c>. Buffered by
+/// default; see <c>LambdaResponseMode</c> for how a deployment turns on streaming.
 ///
 /// <para>
 /// <c>[HardenedWebModule]</c> is what brings the web pipeline —
@@ -27,7 +28,6 @@ namespace Hardened.Amz.Web.Lambda.Runtime.DependencyInjection;
 /// request was served, so a deployed function failed its first invocation with no route to the
 /// cause. <c>LambdaFunctionModule</c> has always carried <c>[HardenedRequestModule]</c> for the
 /// same reason; this is the web half of that pairing, absent until 2026-08-15.
-/// <c>StreamingLambdaWebModule</c> imports this module, so it was affected too.
 /// </para>
 /// <para>
 /// The message quoted above is what the container used to produce. Since 2026-08-27 the generated

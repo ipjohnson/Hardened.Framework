@@ -20,7 +20,7 @@ namespace LambdaWebTest.Tests;
 public class RoutingStatusTests {
     private static readonly Application _application = new();
 
-    private static APIGatewayHttpApiV2ProxyRequest Request(string path, string method = "GET") =>
+    internal static APIGatewayHttpApiV2ProxyRequest Request(string path, string method = "GET") =>
         new() {
             RawPath = path,
             RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext {

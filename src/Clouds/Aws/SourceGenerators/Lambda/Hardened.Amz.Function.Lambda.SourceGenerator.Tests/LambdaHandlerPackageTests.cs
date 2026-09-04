@@ -124,13 +124,13 @@ public class LambdaHandlerPackageTests {
     }
 
     /// <summary>
-    /// The handler package is emitted for a plain function application and for a streaming one,
-    /// because both generators register the same writer. The two selectors are exclusive, so exactly
-    /// one of them runs for any given entry point and the file is emitted once.
+    /// The handler package is emitted once per entry point. Until 2026-09-04 two generators
+    /// registered the same writer behind exclusive selectors; there is one generator now, and this
+    /// pins that the file is still emitted exactly once.
     /// </summary>
     [Fact]
-    public void TheHandlerPackageIsEmittedOnceEvenWhenBothFunctionGeneratorsRun() {
-        var result = FunctionGeneratorHarness.RunBoth(FunctionGeneratorHarness.Application());
+    public void TheHandlerPackageIsEmittedOnce() {
+        var result = FunctionGeneratorHarness.Run(new LambdaFunctionSourceGenerator(), FunctionGeneratorHarness.Application());
 
         result.AssertNoErrors();
         FunctionGeneratorHarness.AssertDidNotCrash(result);

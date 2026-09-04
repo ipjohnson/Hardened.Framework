@@ -84,9 +84,16 @@
     <ItemGroup Label="AWS">
         <PackageVersion Include="Amazon.CDK.Lib" Version="2.263.0" />
         <PackageVersion Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.0" />
-        <PackageVersion Include="Amazon.Lambda.Core" Version="2.2.0" />
+        <!--
+          Core 3.3.0 and RuntimeSupport 2.2.0 are the pair that ships response streaming through
+          LambdaResponseStreamFactory. They move together: the factory in Core is wired by the
+          bootstrap in RuntimeSupport, and a mismatch throws "LambdaResponseStreamFactory is not
+          initialized" on the first streamed write.
+        -->
+        <PackageVersion Include="Amazon.Lambda.Core" Version="3.3.0" />
         <PackageVersion Include="Amazon.Lambda.DynamoDBEvents" Version="3.1.1" />
         <PackageVersion Include="Amazon.Lambda.Logging.AspNetCore" Version="3.1.0" />
+        <PackageVersion Include="Amazon.Lambda.RuntimeSupport" Version="2.2.0" />
         <PackageVersion Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.3" />
         <PackageVersion Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
         <!--
