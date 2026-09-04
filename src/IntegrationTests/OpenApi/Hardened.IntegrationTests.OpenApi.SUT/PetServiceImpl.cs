@@ -29,6 +29,16 @@ public class PetServiceImpl : IPetService {
     /// value failed to convert.
     /// </summary>
     public Task<List<Pet>> ListPets(int? limit, List<string>? tags) {
+        // The shared 429 the description declares with a Retry-After, thrown from an operation that
+        // returns a plain list. The header used to widen this signature and ListPetNames into
+        // response sets, because an error's declared headers counted towards "this operation needs
+        // a set" - so a header on one components.responses entry changed the return type of every
+        // operation that referenced it. Throws mode reaches the error by throwing, and the
+        // generated exception carries the header itself.
+        if (tags is not null && tags.Contains("throttled")) {
+            throw new Problem { Title = "Slow down." }.AsException("30");
+        }
+
         var pets = Pets.AsEnumerable();
 
         if (tags is { Count: > 0 }) {
@@ -51,6 +61,7 @@ public class PetServiceImpl : IPetService {
     /// </remarks>
     public Task<List<string>> ListPetNames() =>
         Task.FromResult(Pets.Select(pet => pet.Name).ToList());
+
 
     /// <summary>
     /// The 201 the description declares, and the <c>Location</c> it declares beside it.

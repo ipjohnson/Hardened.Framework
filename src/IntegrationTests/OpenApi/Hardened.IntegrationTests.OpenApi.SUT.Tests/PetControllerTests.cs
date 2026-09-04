@@ -25,6 +25,39 @@ public class PetControllerTests {
         Assert.NotEmpty(pets);
     }
 
+    #region a declared error header
+
+    /// <summary>
+    /// A 429 declared once in <c>components.responses</c> with a <c>Retry-After</c> and referenced
+    /// by two operations. Both still return their plain types: an error's headers used to count
+    /// towards "this operation needs a response set", so a header added to one shared entry changed
+    /// the signature of every operation that named it.
+    /// </summary>
+    /// <remarks>
+    /// The signatures are asserted by this project compiling at all - <c>PetServiceImpl</c>
+    /// implements the generated interface, and a widened one would not match.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ListPets_WhenThrottled_AnswersTheDeclaredStatus(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets?tags=throttled");
+
+        Assert.Equal(429, response.StatusCode);
+    }
+
+    /// <summary>
+    /// And the header the description declares is on it. Throws mode reaches the error by
+    /// throwing, so the generated exception is what has to carry it - which is what the widening
+    /// was standing in for, at the cost of every signature that mentioned the error.
+    /// </summary>
+    [HardenedTest]
+    public async Task ListPets_WhenThrottled_SendsTheDeclaredHeader(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets?tags=throttled");
+
+        Assert.Equal("30", response.Headers["Retry-After"].ToString());
+    }
+
+    #endregion
+
     #region the described array parameter
 
     /// <summary>

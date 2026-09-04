@@ -43,6 +43,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Pet'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
     post:
       tags:
         - Pet
@@ -340,6 +342,10 @@ paths:
                 type: array
                 items:
                   type: string
+        # The second reference, so the shared entry is shared. Both operations kept their plain
+        # return types; before, both were widened into a response set by this line.
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /pets/plain:
     get:
       tags:
@@ -402,6 +408,20 @@ paths:
                 items:
                   $ref: '#/components/schemas/Store'
 components:
+  # A response several operations reference, carrying a header. The shape the 0.19 trial reported:
+  # adding the Retry-After here changed the return type of every operation that named it, because
+  # an error's headers counted towards "this operation needs a response set".
+  responses:
+    TooManyRequests:
+      description: The caller is being throttled.
+      headers:
+        Retry-After:
+          description: How many seconds to wait before trying again.
+          schema: { type: string }
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
   securitySchemes:
     # Carries scopes, so its entries become grants.
     petstoreOAuth:

@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Text;
 using CSharpAuthor;
 using Hardened.Generation.Models;
 using Hardened.Idl;
@@ -113,8 +114,20 @@ internal static class ErrorFactoryEmitter {
 
         parameter.This = true;
 
+        var arguments = new StringBuilder("body");
+
+        // A header the error declares is a value only the thrower knows, so it travels the same way
+        // the body does rather than being invented here.
+        foreach (var header in error.Headers) {
+            var name = NamingHelper.ToParameterName(header.ParameterName);
+
+            method.AddParameter(TypeDefinition.Get(typeof(string)), name);
+
+            arguments.Append(", ").Append(name);
+        }
+
         method.LambdaSyntax = true;
-        method.AddCode("new(body);");
+        method.AddCode($"new({arguments});");
 
         method.Comment = DocComment.Format(
             $"The declared {error.StatusCode} carrying this body, as the exception that produces " +

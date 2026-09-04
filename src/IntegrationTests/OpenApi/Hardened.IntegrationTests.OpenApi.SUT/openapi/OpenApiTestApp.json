@@ -181,6 +181,24 @@
               }
             }
           },
+          "429": {
+            "description": "The caller is being throttled.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before trying again.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -251,6 +269,24 @@
         "responses": {
           "200": {
             "description": "Just the names"
+          },
+          "429": {
+            "description": "The caller is being throttled.",
+            "headers": {
+              "Retry-After": {
+                "description": "How many seconds to wait before trying again.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         }
       }

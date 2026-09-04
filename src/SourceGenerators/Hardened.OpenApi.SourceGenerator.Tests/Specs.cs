@@ -1,4 +1,4 @@
-namespace Hardened.OpenApi.SourceGenerator.Tests;
+﻿namespace Hardened.OpenApi.SourceGenerator.Tests;
 
 /// <summary>
 /// OpenAPI documents the generator tests are driven with.
@@ -721,6 +721,20 @@ internal static class Specs {
         info: { title: Pets, version: "1.0" }
         paths:
           /pets:
+            get:
+              tags: [Pet]
+              operationId: listPets
+              responses:
+                '200':
+                  description: Every pet
+                  content:
+                    application/json:
+                      schema:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Pet'
+                '429':
+                  $ref: '#/components/responses/TooManyRequests'
             post:
               tags: [Pet]
               operationId: createPet
@@ -759,6 +773,16 @@ internal static class Specs {
                       schema:
                         $ref: '#/components/schemas/ApiError'
         components:
+          responses:
+            TooManyRequests:
+              description: Too many requests
+              headers:
+                Retry-After:
+                  schema: { type: string }
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/ApiError'
           schemas:
             Pet:
               type: object

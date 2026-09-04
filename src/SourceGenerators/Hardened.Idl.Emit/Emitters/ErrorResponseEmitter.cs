@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using CSharpAuthor;
 using Hardened.Generation.Models;
@@ -106,6 +106,71 @@ internal static class ErrorResponseEmitter {
             property.Get.AddCode($"({cast})Value!;");
         }
 
+        EmitHeaders(definition, constructor, error);
+
         return definition;
+    }
+
+    /// <summary>
+    /// The headers the declared error carries, as constructor parameters and an
+    /// <c>ApplyHeaders</c> override.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The same division the union case type makes, and for the same reason: a description says a
+    /// 429 carries a <c>Retry-After</c> and cannot say how long, so the type carries the
+    /// declaration and whoever throws it carries the value.
+    /// </para>
+    /// <para>
+    /// Without this the header was published in the document and never sent. An error's headers
+    /// used to widen the operation into a response set purely so a case type existed to hang them
+    /// on, which changed the signature of every operation that referenced a shared
+    /// <c>components.responses</c> entry. The exception is where they belong: throws mode reaches
+    /// an error by throwing, and <c>ExceptionToModelConverter</c> calls <c>ApplyHeaders</c> on any
+    /// <c>IStatusCodeException</c> on its way out.
+    /// </para>
+    /// </remarks>
+    private static void EmitHeaders(
+        ClassDefinition definition, ConstructorDefinition constructor, ErrorResponseModel error) {
+        if (error.Headers.Count == 0) {
+            return;
+        }
+
+        foreach (var header in error.Headers) {
+            // ParameterName is already the property's spelling, so the constructor's has to be
+            // written down from it - taking it verbatim emits `RetryAfter = RetryAfter`, which
+            // assigns the parameter to itself and leaves the property null.
+            var parameter = constructor.AddParameter(
+                TypeDefinition.Get(typeof(string)), NamingHelper.ToParameterName(header.ParameterName));
+
+            var property = definition.AddProperty(
+                TypeDefinition.Get(typeof(string)), header.ParameterName);
+
+            property.Modifiers |= ComponentModifier.Public;
+            property.Set = null;
+
+            constructor.Assign(parameter).To("this." + property.Name);
+
+            property.Comment = DocComment.Format(header.Description)
+                ?? $"The value of the {header.Name} header this response declares.";
+        }
+
+        var method = definition.AddMethod("ApplyHeaders");
+
+        method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
+        method.SetReturnType(typeof(void));
+        method.AddParameter(
+            new GenericTypeDefinition(
+                typeof(IDictionary<,>),
+                new ITypeDefinition[] {
+                    TypeDefinition.Get(typeof(string)),
+                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues")
+                }),
+            "headers");
+
+        foreach (var header in error.Headers) {
+            method.AddIndentedStatement(
+                "headers[\"" + header.Name + "\"] = " + header.ParameterName);
+        }
     }
 }
