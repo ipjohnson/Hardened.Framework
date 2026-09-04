@@ -84,11 +84,19 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// <c>Set-Cookie</c> is here because it belongs to the caller rather than to the
     /// representation. Replaying one hands a second caller the first one's session.
     /// </para>
+    /// <para>
+    /// <c>Content-Encoding</c> because the entry holds identity bytes. The compression filter sits
+    /// outside this one and wraps the body the buffer is copied into, so it writes the header
+    /// while the buffer is being written out - which is before the headers are snapshotted here.
+    /// Storing it would label a plain entry as gzip for every hit to a client that accepts
+    /// nothing; the wrapper writes it again on a hit where it applies.
+    /// </para>
     /// </remarks>
     private static readonly FrozenSet<string> NotStored = new[] {
         KnownHeaders.SetCookie,
         KnownHeaders.TransferEncoding,
         KnownHeaders.ContentLength,
+        KnownHeaders.ContentEncoding,
         KnownHeaders.Connection,
         KnownHeaders.KeepAlive,
         KnownHeaders.TE,
@@ -392,7 +400,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// <para>
     /// The buffer is what makes the bytes available at all. They are written to a stream the
     /// transport owns, and on Kestrel that stream cannot be read back; swapping it is the same
-    /// thing a compressing response does to the same stream.
+    /// thing the compression filter does to the same stream, one stage further out - so the
+    /// buffer holds identity bytes and both a miss and a hit are encoded as they leave.
     /// </para>
     /// <para>
     /// <b>The real body is written in a <c>finally</c>.</b> A handler that threw still produces a

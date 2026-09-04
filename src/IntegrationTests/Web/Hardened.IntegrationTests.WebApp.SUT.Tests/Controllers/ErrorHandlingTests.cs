@@ -34,11 +34,16 @@ public class ErrorHandlingTests {
         response.Assert.BadRequest();
     }
 
+    /// <summary>
+    /// A 415 with the codings the server accepts, as RFC 9110 specifies. This was a 400 while the
+    /// JSON deserializers did the decoding; the request decompression filter changed both.
+    /// </summary>
     [HardenedTest]
-    public async Task UnsupportedContentEncodingBecomes400(ITestWebApp testWebApp) {
+    public async Task UnsupportedContentEncodingBecomes415NamingWhatIsAccepted(ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/errors/bad-encoding");
 
-        response.Assert.BadRequest();
+        Assert.Equal(415, response.StatusCode);
+        Assert.Equal("gzip, br", response.Headers["Accept-Encoding"].ToString());
     }
 
     [HardenedTest]

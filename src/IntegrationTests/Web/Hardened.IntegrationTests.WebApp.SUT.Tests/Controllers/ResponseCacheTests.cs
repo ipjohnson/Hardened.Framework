@@ -79,7 +79,8 @@ public class ResponseCacheTests {
         var response = await testWebApp.Get(
             "/response-cache/composed?culture=en-GB", Language("en-GB"));
 
-        Assert.Equal("Accept-Language", response.Headers[KnownHeaders.Vary]);
+        // Merged with the Accept-Encoding the compression filter adds, rather than assigned.
+        Assert.Contains("Accept-Language", response.Headers[KnownHeaders.Vary].ToString());
     }
 
     /// <summary>

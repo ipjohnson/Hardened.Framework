@@ -3,7 +3,9 @@ using System.Text.Json;
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.Authorization;
+using Hardened.Requests.Runtime.Compression;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Links;
 using Hardened.Shared.Runtime.Application;
@@ -28,7 +30,8 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
                 new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(null),
                 new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null),
                 new NewConfigurationValueProvider<ILinkConfiguration, LinkConfiguration>(null),
-                new NewConfigurationValueProvider<IAuthorizationConfiguration, AuthorizationConfiguration>(null)
+                new NewConfigurationValueProvider<IAuthorizationConfiguration, AuthorizationConfiguration>(null),
+                new NewConfigurationValueProvider<ICompressionConfiguration, CompressionConfiguration>(null)
             }));
         services.AddSingleton(
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
@@ -46,6 +49,10 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
                 .GetConfiguration<IAuthorizationConfiguration>()));
 
+        services.AddSingleton(
+            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
+                .GetConfiguration<ICompressionConfiguration>()));
+
         // The caller, as a service a handler can take. Scoped rather than resolved from the
         // context, because the container has no per-request instance of the context to build one
         // from. Two registrations rather than one: the middleware fills the holder and everything
@@ -61,6 +68,13 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         // twice, and this one installs a filter provider.
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IStartupService, AuthorizationStartupService>());
+
+        // Always on, as request decompression was when the JSON deserializers did it. A request
+        // carrying no Content-Encoding costs one header lookup. TryAddEnumerable so a second load
+        // of this module does not install a second copy; the registry takes every registered
+        // provider through its constructor.
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRequestFilterProvider, RequestDecompressionProvider>());
 
         // Same footing: one resolve at startup, and no middleware at all unless something
         // registered an IPrincipalSource. Constructed over this collection rather than resolved

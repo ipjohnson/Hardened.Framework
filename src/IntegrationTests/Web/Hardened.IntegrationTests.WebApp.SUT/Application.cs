@@ -1,12 +1,14 @@
 ﻿using Hardened.IntegrationTests.Web.SUT;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Runtime.Compression;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.AspNetCore.Runtime;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Requests.Caching.Memory;
+using Hardened.Web.Runtime.Compression;
 using Hardened.Web.Runtime.OpenApi;
 
 namespace Hardened.IntegrationTests.WebApp.SUT;
@@ -29,6 +31,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT;
 [HardenedModule]
 [WebLibrary(Test = "test")]
 [Enable<OpenApiDocumentPublishing>]
+[Enable<HardenedCompression>]
 [HardenedOpenApiUi(Title = "Integration Tests")]
 [HardenedOpenApiUi(Path = "/docs/internal", Title = "Internal", DocumentPath = "/internal.json")]
 [HardenedMemoryResponseCache]
@@ -40,6 +43,10 @@ public partial class Application : IServiceCollectionConfiguration {
         // authentication source uses - this fixture carried its own copy of both until they
         // shipped.
         services.AddSingleton<IPrincipalSource, TestGrantsPrincipalSource>();
+
+        // Small enough for a test to exceed with a body it can build in a line. Only a compressed
+        // body is measured against it.
+        services.ConfigureCompression(compression => compression.MaxDecompressedRequestBytes = 4096);
     }
 
     public static WebApplicationBuilder CreateBuilder(string[] args) {

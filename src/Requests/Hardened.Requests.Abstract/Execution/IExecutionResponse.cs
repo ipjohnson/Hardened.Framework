@@ -39,8 +39,6 @@ public interface IExecutionResponse {
 
     int? Status { get; set; }
 
-    bool ShouldCompress { get; set; }
-
     Stream Body { get; set; }
 
     IDictionary<string, StringValues> Headers { get; }

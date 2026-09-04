@@ -60,8 +60,9 @@ public class CorsFilter : IExecutionFilter {
 
         // Set whether or not the origin turns out to be allowed. The response was decided by
         // looking at Origin either way, and a cache that stored the refusal without this would
-        // replay it to an origin that is allowed.
-        context.Response.Headers[KnownHeaders.Vary] = KnownHeaders.Origin;
+        // replay it to an origin that is allowed. Merged, because the compression filter and
+        // VaryByHeader write the same header and whichever assigned last used to win.
+        VaryHeader.Add(context.Response.Headers, KnownHeaders.Origin);
 
         var allowed = _config.IsOriginAllowed(origin);
 

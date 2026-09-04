@@ -227,7 +227,6 @@ public class AspNetExecutionResponse : IExecutionResponse {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,
-            ShouldCompress = ShouldCompress,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize,
         };
@@ -268,8 +267,6 @@ public class AspNetExecutionResponse : IExecutionResponse {
             _httpResponse.StatusCode = value ?? 200;
         }
     }
-
-    public bool ShouldCompress { get; set; }
 
     public Stream Body {
         get => _httpResponse.Body;

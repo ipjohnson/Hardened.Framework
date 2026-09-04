@@ -87,21 +87,15 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
                 context.Response.ContentType = _framing.ContentType;
                 context.Response.ShouldSerialize = false;
 
-                // Off for the whole stream, not per item. The buffered serializers open a
-                // GZipStream per SerializeResponse call, so leaving this on would put a separate
-                // gzip member on the wire for every item - legal concatenated gzip that no
-                // streaming reader unpacks incrementally, which is the opposite of what a caller
-                // reading a stream wants. Compressing a stream properly means one compressor
-                // around the whole body, which is a different change.
-                context.Response.ShouldCompress = false;
-
                 await foreach (var item in asyncEnumerable.WithCancellation(context.CancellationToken)) {
                     context.Response.ResponseValue = item;
 
                     await _framing.WriteItem(context, _serializeResponse);
 
                     // Per item, which is the whole point of streaming: a caller reads the first
-                    // result while the handler is still producing the rest.
+                    // result while the handler is still producing the rest. Through a compressing
+                    // body this is a sync flush on the encoder, so a compressed stream is one
+                    // member delivered item by item rather than one member per item.
                     await context.Response.Body.FlushAsync(context.CancellationToken);
                 }
 

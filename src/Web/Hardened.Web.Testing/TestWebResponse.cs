@@ -24,15 +24,30 @@ public class TestWebResponse {
 
     public IWebAssertThat Assert => _assertThat ??= new WebAssertThat(this);
 
+    /// <summary>
+    /// The items of an NDJSON body, decoded first when the response says it is compressed - the
+    /// same as <see cref="Deserialize{T}"/>, and for the same reason: a test asserting on the
+    /// items should not have to know whether the handler was compressed.
+    /// </summary>
     public async IAsyncEnumerable<T> DeserializeAsyncEnumerable<T>() {
         Body.Position = 0;
-        using var reader = new StreamReader(Body, leaveOpen: true);
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
-        while (await reader.ReadLineAsync() is { } line) {
-            if (string.IsNullOrWhiteSpace(line)) continue;
-            yield return JsonSerializer.Deserialize<T>(line, options) ??
-                         throw new Exception("Could not deserialize NDJSON line");
+        var decoded = Decode();
+
+        try {
+            using var reader = new StreamReader(decoded, leaveOpen: true);
+            var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+            while (await reader.ReadLineAsync() is { } line) {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                yield return JsonSerializer.Deserialize<T>(line, options) ??
+                             throw new Exception("Could not deserialize NDJSON line");
+            }
+        }
+        finally {
+            if (!ReferenceEquals(decoded, Body)) {
+                decoded.Dispose();
+            }
         }
     }
 

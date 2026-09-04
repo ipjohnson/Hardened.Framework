@@ -55,7 +55,6 @@ public class ResolverPrecedenceTests {
         request.Accept.Returns("application/json");
         response.Body.Returns(body);
         response.ResponseValue.Returns(value);
-        response.ShouldCompress.Returns(false);
         context.Request.Returns(request);
         context.Response.Returns(response);
 

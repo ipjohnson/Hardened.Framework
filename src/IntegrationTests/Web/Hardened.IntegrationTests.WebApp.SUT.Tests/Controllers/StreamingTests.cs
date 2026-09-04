@@ -246,10 +246,8 @@ public class StreamingTests {
 
         response.Assert.Ok();
 
-        response.Body.Position = 0;
-
-        using var reader = new StreamReader(response.Body, leaveOpen: true);
-
-        Assert.Equal("\n", await reader.ReadToEndAsync());
+        // Through the decoded accessor: the application compresses NDJSON, and a terminator is a
+        // body like any other.
+        Assert.Equal("\n", await response.ReadTextAsync());
     }
 }

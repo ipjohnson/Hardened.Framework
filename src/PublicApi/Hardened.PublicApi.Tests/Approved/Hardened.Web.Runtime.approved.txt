@@ -145,6 +145,47 @@ namespace Hardened.Web.Runtime.Caching
         public static Hardened.Requests.Abstract.Caching.ICacheKeyProvider Create(string[] values) { }
     }
 }
+namespace Hardened.Web.Runtime.Compression
+{
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public class CompressAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+    {
+        public CompressAttribute() { }
+        public Hardened.Requests.Abstract.Compression.CompressionType Favor { get; set; }
+        public virtual System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+        public static bool Declares(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+        protected static Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo Filter(Hardened.Web.Runtime.Compression.ResponseCompressionFilter filter) { }
+    }
+    public sealed class CompressAttribute<TPredicate> : Hardened.Web.Runtime.Compression.CompressAttribute
+        where TPredicate : Hardened.Requests.Abstract.Compression.ICompressionPredicate
+    {
+        public CompressAttribute(params object[] args) { }
+        public object[] Args { get; }
+        public override System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class HardenedCompression : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public HardenedCompression() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class HardenedCompressionAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public HardenedCompressionAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public sealed class ResponseCompressionFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public ResponseCompressionFilter(Hardened.Requests.Abstract.Compression.ICompressionPredicate? predicate = null, Hardened.Requests.Abstract.Compression.CompressionType favor = 0, Hardened.Requests.Runtime.Compression.ICompressionConfiguration? configuration = null) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+        public static string? Negotiate(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> requestHeaders, Hardened.Requests.Runtime.Compression.ICompressionConfiguration configuration, Hardened.Requests.Abstract.Compression.CompressionType favor) { }
+    }
+}
 namespace Hardened.Web.Runtime.Configuration
 {
     public interface IWebRoutingConfiguration

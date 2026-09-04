@@ -145,6 +145,43 @@ namespace Hardened.Requests.Runtime.Caching
         public string Handler { get; }
     }
 }
+namespace Hardened.Requests.Runtime.Compression
+{
+    public class CompressionConfiguration : Hardened.Requests.Runtime.Compression.ICompressionConfiguration
+    {
+        public const long DefaultMaxDecompressedRequestBytes = 30000000;
+        public CompressionConfiguration() { }
+        public System.Collections.Generic.List<string> Encodings { get; set; }
+        public System.Collections.Generic.List<string> ExcludedMediaTypes { get; set; }
+        public System.IO.Compression.CompressionLevel Level { get; set; }
+        public long MaxDecompressedRequestBytes { get; set; }
+        public System.Collections.Generic.List<string> MediaTypes { get; set; }
+        public bool Compresses(string? contentType) { }
+    }
+    public static class CompressionServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureCompression(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Hardened.Requests.Runtime.Compression.CompressionConfiguration> configure) { }
+    }
+    public class DecompressedBodyTooLargeException : Hardened.Requests.Abstract.Errors.StatusCodeException
+    {
+        public DecompressedBodyTooLargeException(long limit) { }
+        public long Limit { get; }
+    }
+    public interface ICompressionConfiguration
+    {
+        System.Collections.Generic.IReadOnlyList<string> Encodings { get; }
+        System.Collections.Generic.IReadOnlyList<string> ExcludedMediaTypes { get; }
+        System.IO.Compression.CompressionLevel Level { get; }
+        long MaxDecompressedRequestBytes { get; }
+        System.Collections.Generic.IReadOnlyList<string> MediaTypes { get; }
+        bool Compresses(string? contentType);
+    }
+    public sealed class RequestDecompressionFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public RequestDecompressionFilter(Hardened.Requests.Runtime.Compression.ICompressionConfiguration? configuration = null) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+}
 namespace Hardened.Requests.Runtime.Configuration
 {
     public interface IJsonSerializerConfiguration
@@ -209,9 +246,11 @@ namespace Hardened.Requests.Runtime.Diagnostics
 }
 namespace Hardened.Requests.Runtime.Errors
 {
-    public class BadContentEncodingException : Hardened.Requests.Runtime.Errors.BadRequestException
+    public class BadContentEncodingException : Hardened.Requests.Abstract.Errors.StatusCodeException
     {
+        public const string SupportedEncodings = "gzip, br";
         public BadContentEncodingException(string contentEncoding) { }
+        public override void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
     public class BadRequestException : System.Exception
     {
