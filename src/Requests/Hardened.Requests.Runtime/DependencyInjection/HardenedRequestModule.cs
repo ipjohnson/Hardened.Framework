@@ -13,6 +13,7 @@ using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Runtime.DependencyInjection;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Serializer;
+using Hardened.Requests.Runtime.Streaming;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -31,7 +32,8 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
                 new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null),
                 new NewConfigurationValueProvider<ILinkConfiguration, LinkConfiguration>(null),
                 new NewConfigurationValueProvider<IAuthorizationConfiguration, AuthorizationConfiguration>(null),
-                new NewConfigurationValueProvider<ICompressionConfiguration, CompressionConfiguration>(null)
+                new NewConfigurationValueProvider<ICompressionConfiguration, CompressionConfiguration>(null),
+                new NewConfigurationValueProvider<IStreamingConfiguration, StreamingConfiguration>(null)
             }));
         services.AddSingleton(
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
@@ -52,6 +54,10 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         services.AddSingleton(
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
                 .GetConfiguration<ICompressionConfiguration>()));
+
+        services.AddSingleton(
+            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
+                .GetConfiguration<IStreamingConfiguration>()));
 
         // The caller, as a service a handler can take. Scoped rather than resolved from the
         // context, because the container has no per-request instance of the context to build one

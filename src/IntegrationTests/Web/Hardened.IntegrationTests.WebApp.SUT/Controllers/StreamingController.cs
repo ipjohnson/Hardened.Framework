@@ -1,5 +1,9 @@
 using System.Runtime.CompilerServices;
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Authorization;
+using Hardened.Requests.Runtime.Filters;
 using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
@@ -129,4 +133,161 @@ public class StreamingController {
 
         yield break;
     }
+
+    #region reconnect, refusal, failure, retry and heartbeat
+
+    private static readonly Measurement[] Readings = [
+        new("north", 12, false),
+        new("south", 41, true),
+        new("east", -3, false),
+        new("west", 7, true)
+    ];
+
+    /// <summary>
+    /// The reconnect contract in one handler: resume after the event the client last saw, and end
+    /// the subscription with a 204 once there is nothing more to say.
+    /// </summary>
+    /// <remarks>
+    /// An <c>EventSource</c> sends <c>Last-Event-ID</c> on its own. This reads it, replays from the
+    /// event after it, and answers the reconnect that arrives holding the last id with a 204 - the
+    /// one status that makes the client stop. The 204 is decided inside the iterator, which is the
+    /// natural place to write it and the case the filter has to get right: the status is set after
+    /// the handler call returned, at the first <c>MoveNextAsync</c>.
+    /// </remarks>
+    [Get("/events-resume")]
+    [ServerSentEvents]
+    public async IAsyncEnumerable<SseItem<Measurement>> EventsResume(
+        [FromHeader(KnownHeaders.LastEventId)] string? lastEventId,
+        IExecutionContext context) {
+        var after = int.TryParse(lastEventId, out var id) ? id : 0;
+
+        if (after >= Readings.Length) {
+            context.Response.Status = 204;
+
+            yield break;
+        }
+
+        for (var i = after; i < Readings.Length; i++) {
+            yield return new SseItem<Measurement>(Readings[i], Id: (i + 1).ToString());
+
+            await Task.Yield();
+        }
+    }
+
+    /// <summary>A guarded event stream, for what a refusal on one looks like on the wire.</summary>
+    [Get("/events-guarded")]
+    [ServerSentEvents]
+    [AuthorizeGrants("events:read")]
+    public async IAsyncEnumerable<Measurement> EventsGuarded() {
+        yield return Readings[0];
+
+        await Task.Yield();
+    }
+
+    /// <summary>The newline-delimited twin of <see cref="EventsGuarded"/>.</summary>
+    [Get("/models-guarded")]
+    [AuthorizeGrants("events:read")]
+    public async IAsyncEnumerable<Measurement> ModelsGuarded() {
+        yield return Readings[0];
+
+        await Task.Yield();
+    }
+
+    /// <summary>
+    /// Fails before its first event. The iterator has begun and nothing has reached the wire, so
+    /// the failure is an error document rather than an empty stream.
+    /// </summary>
+    [Get("/events-fail-before-first")]
+    [ServerSentEvents]
+    public async IAsyncEnumerable<Measurement> EventsFailBeforeFirst() {
+        await Task.Yield();
+
+        if (ThrowNothingToStream()) {
+            yield return Readings[0];
+        }
+    }
+
+    /// <summary>Fails after its first event, which is already with the client.</summary>
+    [Get("/events-fail-after-first")]
+    [ServerSentEvents]
+    public async IAsyncEnumerable<Measurement> EventsFailAfterFirst() {
+        yield return Readings[0];
+
+        await Task.Yield();
+
+        if (ThrowNothingToStream()) {
+            yield return Readings[1];
+        }
+    }
+
+    /// <summary>
+    /// How many times <see cref="EventsRetryAfterFirst"/> has been enumerated, across the process.
+    /// </summary>
+    /// <remarks>
+    /// Static because the test cannot read the body: the failure escapes the harness the way an
+    /// aborted connection escapes a host. What it can read is whether the enumeration ran once or
+    /// was run again, which is the whole question.
+    /// </remarks>
+    public static int RetryAfterFirstEnumerations;
+
+    /// <summary>
+    /// Under <c>[Retry]</c>, yields one event and fails. The retry filter wraps the call that
+    /// produced the sequence, not the enumeration, so the failure is not retried and the event is
+    /// not duplicated.
+    /// </summary>
+    [Get("/events-retry-after-first")]
+    [ServerSentEvents]
+    [Retry(Attempts = 3, SleepTime = 0)]
+    public async IAsyncEnumerable<Measurement> EventsRetryAfterFirst() {
+        Interlocked.Increment(ref RetryAfterFirstEnumerations);
+
+        yield return Readings[0];
+
+        await Task.Yield();
+
+        if (ThrowNothingToStream()) {
+            yield return Readings[1];
+        }
+    }
+
+    private int _retryCalls;
+
+    /// <summary>
+    /// Under <c>[Retry]</c>, throws on the first call and returns the sequence on the second. The
+    /// call is what a retry covers, so the events arrive.
+    /// </summary>
+    /// <remarks>
+    /// Not an iterator, on purpose: an iterator's body runs at enumeration, outside the retry
+    /// fork. The controller is transient, so the count is per request, and both attempts share
+    /// the instance - which is the documented cost of where <c>FilterOrder.Retry</c> sits.
+    /// </remarks>
+    [Get("/events-retry-call")]
+    [ServerSentEvents]
+    [Retry(Attempts = 3, SleepTime = 0)]
+    public IAsyncEnumerable<Measurement> EventsRetryCall() {
+        if (++_retryCalls == 1) {
+            throw new InvalidOperationException("first call fails");
+        }
+
+        return Events();
+    }
+
+    /// <summary>
+    /// Two events with a silence between them longer than the heartbeat interval a test sets.
+    /// </summary>
+    [Get("/events-slow")]
+    [ServerSentEvents]
+    public async IAsyncEnumerable<Measurement> EventsSlow(
+        [EnumeratorCancellation] CancellationToken cancellationToken) {
+        yield return Readings[0];
+
+        await Task.Delay(100, cancellationToken);
+
+        yield return Readings[1];
+    }
+
+    private static bool ThrowNothingToStream() =>
+        throw new InvalidOperationException("nothing to stream");
+
+    #endregion
 }

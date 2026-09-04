@@ -32,6 +32,15 @@ namespace Hardened.Requests.Runtime.Filters;
 /// budget to be told what the first attempt already knew. Non-idempotent verbs are declined for a
 /// blunter reason - a retried <c>POST</c> is a second write.
 /// </para>
+/// <para>
+/// <b>A started response is not retried.</b> Every host answers
+/// <see cref="IExecutionResponse.ResponseStarted"/>, and once it is true the bytes are with the
+/// client: a fork onto that body would write a second answer after the first, and nothing can take
+/// the first back. A handler returning <c>IAsyncEnumerable&lt;T&gt;</c> never trips this from
+/// inside an attempt - it returns a lazy sequence, and the enumeration happens in the filter at
+/// <c>FilterOrder.Serialization</c>, outside every attempt - so the guard is for a handler or a
+/// filter that writes to the body itself and then fails.
+/// </para>
 /// </remarks>
 public class RetryFilter : IExecutionFilter {
     private readonly int _attempts;
@@ -128,7 +137,10 @@ public class RetryFilter : IExecutionFilter {
                 return;
             }
 
+            // A response with bytes on the wire is treated like an exhausted budget: the failure
+            // is still the failure, and only the remedy is gone.
             if (attempt >= _attempts ||
+                response.ResponseStarted ||
                 !_shouldRetry(failure) ||
                 context.CancellationToken.IsCancellationRequested ||
                 Exhausted(start)) {

@@ -220,6 +220,24 @@ meant: a class-level `[Compress]` for the default rule over every operation, or 
 
 An error, with no `NoWarn`. Removing one declaration is the whole fix.
 
+## Streaming
+
+### HRDW004 — `[ServerSentEvents]` on a handler that does not stream
+
+A handler carries `[ServerSentEvents]` and returns something other than `IAsyncEnumerable<T>`.
+
+```
+'FeedController.Latest' carries [ServerSentEvents] but does not return IAsyncEnumerable<T>, so
+there is no stream to frame and the response is buffered and serialized as JSON. Return
+IAsyncEnumerable<T> to stream it as text/event-stream, or remove the attribute.
+```
+
+The attribute names a framing for a stream. On a handler with no stream the generator emits an
+ordinary buffered handler and ignores the framing, so the response would be JSON and the document
+would describe it as JSON, while the author believed they had written an event stream.
+
+An error, with no `NoWarn`. Either return `IAsyncEnumerable<T>` or remove the attribute.
+
 ## Other diagnostics
 
 | Id | Meaning |

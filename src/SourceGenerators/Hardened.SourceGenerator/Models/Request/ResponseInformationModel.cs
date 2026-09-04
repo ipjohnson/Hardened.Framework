@@ -153,6 +153,17 @@ public record ResponseInformationModel {
     public string? ThrowsDiagnostic { get; set; }
 
     /// <summary>
+    /// The framing named on a handler that has no stream to frame, or null where the two agree.
+    /// </summary>
+    /// <remarks>
+    /// Carried rather than reported where it is found, for the reason <see cref="UnionDiagnostic"/>
+    /// is, and reported from the routing generator as <c>HRDW004</c>. The emitter branches on the
+    /// return type first and ignores the framing on such a handler, so without the report the
+    /// author would get a buffered JSON response and a document that says so.
+    /// </remarks>
+    public string? StreamFramingDiagnostic { get; set; }
+
+    /// <summary>
     /// How a streamed response is framed on the wire, or null for newline-delimited JSON.
     /// </summary>
     /// <remarks>
@@ -180,6 +191,7 @@ public record ResponseInformationModel {
     public override string ToString() {
         return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
                $":{DefaultStatusCode}:{NullResponseBodyExpression}:{ProducedContentTypes}" +
-               $":{UnionCases}:{UnionDiagnostic}:{ThrowsDiagnostic}:{ValidationErrorStatus}";
+               $":{UnionCases}:{UnionDiagnostic}:{ThrowsDiagnostic}:{ValidationErrorStatus}" +
+               $":{StreamFramingDiagnostic}";
     }
 }

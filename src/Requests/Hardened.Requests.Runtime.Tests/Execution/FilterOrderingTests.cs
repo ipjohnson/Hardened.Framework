@@ -318,17 +318,19 @@ public class FilterOrderingTests {
     }
 
     /// <summary>
-    /// <c>[Retry]</c> orders itself at <c>FilterOrder.HandlerCreation - 10</c> so that it wraps
-    /// controller creation as well as the handler call. A retry that reused one controller
-    /// instance across attempts would replay whatever state the failed attempt left behind.
+    /// <c>[Retry]</c> orders itself at <c>FilterOrder.Retry</c>: behind serialization, so the
+    /// failure the invoke filter records is still on the response when the retry filter looks and
+    /// the response is serialized once rather than once per attempt; and ahead of the handler, so
+    /// an attempt is the handler call. Controller creation is outside it, which is the documented
+    /// cost of the position - every attempt shares the instance.
     /// </summary>
     [Fact]
-    public async Task RetryIsOrderedAheadOfControllerCreation() {
+    public async Task RetryIsOrderedBehindSerializationAndAheadOfTheHandler() {
         var log = new List<string>();
 
         var result = await Run(log, _ => { }, new RecordingRetryProvider(log));
 
-        Assert.Equal(new[] { "retry", Instance, Io, Invoke }, result);
+        Assert.Equal(new[] { Instance, Io, "retry", Invoke }, result);
     }
 
     /// <summary>
@@ -344,7 +346,7 @@ public class FilterOrderingTests {
 
         public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
             yield return new RequestFilterInfo(
-                _ => new Pipeline.Recording(_log, "retry"), FilterOrder.HandlerCreation - 10);
+                _ => new Pipeline.Recording(_log, "retry"), FilterOrder.Retry);
         }
     }
 }

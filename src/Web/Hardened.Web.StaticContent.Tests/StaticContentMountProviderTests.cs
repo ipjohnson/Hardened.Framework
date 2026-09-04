@@ -10,6 +10,7 @@ using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
+using Hardened.Requests.Runtime.Streaming;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
 using Hardened.Web.Runtime.DependencyInjection;
@@ -92,10 +93,12 @@ public class StaticContentMountProviderTests : IDisposable {
             _ => new ItemPool<SHA256>(SHA256.Create, _ => { }, hash => hash.Dispose()));
 
         // Never reached - every response here sets ShouldSerialize false - but IOFilterProvider
-        // takes it to construct.
+        // takes them to construct.
         services.TryAddSingleton(Substitute.For<IContextSerializationService>());
         services.TryAddSingleton(
             Options.Create<IResponseHeaderConfiguration>(new ResponseHeaderConfiguration()));
+        services.TryAddSingleton(
+            Options.Create<IStreamingConfiguration>(new StreamingConfiguration()));
 
         var configuration = Substitute.For<IStaticContentConfiguration>();
 

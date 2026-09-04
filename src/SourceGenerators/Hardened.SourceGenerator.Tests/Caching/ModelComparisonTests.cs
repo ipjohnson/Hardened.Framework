@@ -191,7 +191,8 @@ public class ModelComparisonTests {
     /// them twice - once each way - as a side effect of removing and re-adding the template
     /// annotation. A model that reports the same text for two different responses is the thing that
     /// makes such a failure unreadable. Streaming framing is the third, and adding it here is what
-    /// this test is for.
+    /// this test is for. The framing finding is the fourth: a handler whose attribute is removed or
+    /// whose return type changes has to change this string, or the diagnostic outlives the code.
     /// </remarks>
     [Fact]
     public void AResponseModelDescribesAllOfItsResponseAnnotations() {
@@ -206,7 +207,8 @@ public class ModelComparisonTests {
             ProducedContentTypes = "text/plain,text/csv",
             UnionCases = "global::App.Todo|201|01;global::App.NotFound|404|01",
             ThrowsDiagnostic = "OutOfStock",
-            ValidationErrorStatus = 422
+            ValidationErrorStatus = 422,
+            StreamFramingDiagnostic = "sse"
         };
 
         // Every field, because this string is what the incremental caches compare to decide
@@ -214,7 +216,7 @@ public class ModelComparisonTests {
         Assert.Equal(
             "True:System.Fortunes:text/csv:sse:System.String:201:" +
             "Models.DefaultErrorBodies.NotFoundProblem:text/plain,text/csv:" +
-            "global::App.Todo|201|01;global::App.NotFound|404|01::OutOfStock:422",
+            "global::App.Todo|201|01;global::App.NotFound|404|01::OutOfStock:422:sse",
             model.ToString());
     }
 

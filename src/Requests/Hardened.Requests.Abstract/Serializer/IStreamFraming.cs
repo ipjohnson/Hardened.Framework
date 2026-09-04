@@ -53,4 +53,25 @@ public interface IStreamFraming {
     /// put at least one byte on the wire.
     /// </remarks>
     ValueTask WriteCompletion(IExecutionContext context);
+
+    /// <summary>
+    /// Writes something a client discards, to keep a quiet connection open, and says whether it
+    /// did.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Called by the filter when the handler has produced nothing for the configured interval. An
+    /// intermediary that cuts an idle response - CloudFront after 30 seconds between packets, a
+    /// default nginx after 60, Azure's load balancer after 230 - sees bytes instead, and the client
+    /// is spared a reconnect, a replay from <c>Last-Event-ID</c> and, on Lambda, a second
+    /// invocation.
+    /// </para>
+    /// <para>
+    /// <c>false</c> means the format has no way to say nothing: newline-delimited JSON has no
+    /// comment syntax. The filter stops asking after the first <c>false</c>. The default answers
+    /// that, so a framing written before this member existed keeps compiling and keeps its
+    /// behaviour.
+    /// </para>
+    /// </remarks>
+    ValueTask<bool> WriteHeartbeat(IExecutionContext context) => new(false);
 }

@@ -37,9 +37,21 @@ public class SseFraming : IStreamFraming {
     /// <remarks>
     /// What an empty stream ends with. The protocol has no way to say "nothing happened", and a
     /// zero-byte body is the case Lambda Function URLs do not close promptly - so an empty stream
-    /// sends one line every client discards rather than nothing at all.
+    /// sends one line every client discards rather than nothing at all. A heartbeat counts: once
+    /// any byte is on the wire the hang cannot occur, so a stream that heartbeated and then ended
+    /// writes no second comment.
     /// </remarks>
     private static readonly byte[] EmptyStreamComment = ":\n\n"u8.ToArray();
+
+    /// <summary>
+    /// The heartbeat, which is also a comment line and also discarded.
+    /// </summary>
+    /// <remarks>
+    /// Not the bare <c>:</c> that ends an empty stream. A test asserting that a stream carries no
+    /// trailing comment looks for that exact sequence, and a heartbeat landing in a slow run would
+    /// fail it for the wrong reason. The text is for whoever reads the raw stream.
+    /// </remarks>
+    private static readonly byte[] Heartbeat = ": keep-alive\n\n"u8.ToArray();
 
     public string ContentType => KnownContentType.EventStream;
 
@@ -66,13 +78,20 @@ public class SseFraming : IStreamFraming {
     }
 
     public ValueTask WriteCompletion(IExecutionContext context) {
-        // Only when nothing was written. Every event already ends with a blank line, so a stream
-        // that produced anything is complete, and adding to it would dispatch an empty event.
+        // Only when nothing was written, a heartbeat included. Every event already ends with a
+        // blank line, so a stream that produced anything is complete, and adding to it would
+        // dispatch an empty event.
         if (context.Response.Body.Position == 0) {
             context.Response.Body.Write(EmptyStreamComment, 0, EmptyStreamComment.Length);
         }
 
         return default;
+    }
+
+    public ValueTask<bool> WriteHeartbeat(IExecutionContext context) {
+        context.Response.Body.Write(Heartbeat, 0, Heartbeat.Length);
+
+        return new ValueTask<bool>(true);
     }
 
     /// <summary>

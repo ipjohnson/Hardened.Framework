@@ -86,10 +86,16 @@ public static class RoutingTableGenerator {
         // shipped contract rather than in the generated code, which is exactly why nothing else
         // would ever surface it.
         foreach (var handler in routable) {
+            var name = handler.ControllerType.Name + "." + handler.HandlerMethod;
+
             ResponseModelDiagnostics.ReportCaseSetFindings(
-                context,
-                handler.ControllerType.Name + "." + handler.HandlerMethod,
-                handler.ResponseInformation.UnionDiagnostic);
+                context, name, handler.ResponseInformation.UnionDiagnostic);
+
+            // A framing on a handler with nothing to frame compiles and runs too, as a buffered
+            // JSON response, which is why the attribute's promise of a build error is kept here
+            // rather than left to be found in an environment.
+            StreamFramingDiagnostics.Report(
+                context, name, handler.ResponseInformation.StreamFramingDiagnostic);
         }
 
         // A scheme-shape attribute somewhere nothing reads it is a silent no-op - the build was
