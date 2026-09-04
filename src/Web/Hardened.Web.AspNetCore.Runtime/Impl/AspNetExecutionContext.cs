@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Authorization;
+﻿using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Diagnostics;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -195,9 +195,15 @@ public class AspNetExecutionRequest : IExecutionRequest {
 
     public IDictionary<string, StringValues> Headers => _headersOverride ?? _httpRequest.Headers;
 
+    /// <summary>
+    /// ASP.NET Core has already parsed and decoded the query, repeats included, so this only
+    /// changes the shape. It used to flatten each value with <c>ToString()</c>, which joined a
+    /// repeated key into one comma-separated string and left the collection unable to say there
+    /// had been more than one.
+    /// </summary>
     public IQueryStringCollection QueryString =>
         _queryStringOverride ?? (_queryString ??= new SimpleQueryStringCollection(
-            _httpRequest.Query.ToDictionary(q => q.Key, q => q.Value.ToString())));
+            _httpRequest.Query.ToDictionary(q => q.Key, q => q.Value)));
 
     public IPathTokenCollection PathTokens {
         get => _pathTokens ?? PathTokenCollection.Empty;

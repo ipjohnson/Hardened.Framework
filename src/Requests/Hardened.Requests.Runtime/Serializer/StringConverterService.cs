@@ -1,7 +1,8 @@
-using System.Globalization;
+﻿using System.Globalization;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Validation;
+using Microsoft.Extensions.Primitives;
 using ValidationModules;
 using Exception = System.Exception;
 
@@ -66,6 +67,55 @@ public class StringConverterService : IStringConverterService {
         }
 
         return Parse<T>(value, valueName);
+    }
+
+    public List<TItem> ParseRequiredMany<TItem>(StringValues values, string valueName) {
+        var items = Items<TItem>(values, valueName);
+
+        if (items.Count == 0) {
+            throw Failure(valueName, ValidationCodes.Required, $"{valueName} is required.");
+        }
+
+        return items;
+    }
+
+    public List<TItem>? ParseOptionalMany<TItem>(StringValues values, string valueName) {
+        if (values.Count == 0) {
+            return null;
+        }
+
+        return Items<TItem>(values, valueName);
+    }
+
+    /// <summary>
+    /// Every item the request carried under one name, converted.
+    /// </summary>
+    /// <remarks>
+    /// A repeated key contributes one entry to <paramref name="values"/> and a comma inside an entry
+    /// separates two more, so <c>?ids=1&amp;ids=2,3</c> is three items. An empty entry is dropped
+    /// rather than converted: <c>?ids=1&amp;ids=&amp;ids=3</c> is two items, not a list with a hole in
+    /// it, and a lone <c>?ids=</c> is the empty list rather than a malformed one.
+    /// </remarks>
+    private List<TItem> Items<TItem>(StringValues values, string valueName) {
+        var items = new List<TItem>(values.Count);
+
+        foreach (var value in values) {
+            if (string.IsNullOrEmpty(value)) {
+                continue;
+            }
+
+            foreach (var item in value!.Split(',')) {
+                var trimmed = item.Trim();
+
+                if (trimmed.Length == 0) {
+                    continue;
+                }
+
+                items.Add(Parse<TItem>(trimmed, valueName));
+            }
+        }
+
+        return items;
     }
 
     private T Parse<T>(string value, string valueName) {

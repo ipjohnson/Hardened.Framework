@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CSharpAuthor;
@@ -1094,8 +1094,7 @@ public static class OpenApiDocumentGenerator {
             // in hand and spliced in here, so a bound the validator enforces is a bound the
             // document states - the same statement written twice, as it is for a property.
             return SchemaConstraintWriter.Merge(
-                EnumSchema(parameter.ParameterType, enums) ?? ScalarSchema(parameter.ParameterType),
-                parameter.SchemaFacets);
+                CodeFirstSchema(parameter.ParameterType, enums), parameter.SchemaFacets);
         }
 
         var builder = new StringBuilder();
@@ -1244,6 +1243,26 @@ public static class OpenApiDocumentGenerator {
             default:
                 return "\"" + JsonSchemaWriter.Escape(value) + "\"";
         }
+    }
+
+    /// <summary>
+    /// The schema for a code-first parameter, read off its C# type.
+    /// </summary>
+    /// <remarks>
+    /// A collection is an array here for the same reason it binds as one: the binder fills it from
+    /// every value the request carried, so a document calling it a string describes a parameter the
+    /// application does not have.
+    /// </remarks>
+    private static string CodeFirstSchema(
+        ITypeDefinition type, IReadOnlyDictionary<string, EnumVocabulary> enums) {
+        var itemType = CollectionParameter.ItemType(type);
+
+        if (itemType == null) {
+            return EnumSchema(type, enums) ?? ScalarSchema(type);
+        }
+
+        return "{\"type\":\"array\",\"items\":" +
+               (EnumSchema(itemType, enums) ?? ScalarSchema(itemType)) + "}";
     }
 
     private static string ScalarSchema(ITypeDefinition type) {

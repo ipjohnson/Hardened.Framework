@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 
@@ -255,6 +255,67 @@ public class OpenApiDocumentTests {
 
         Assert.Equal("string", response.GetProperty("type").GetString());
     }
+
+    #region a collection parameter
+
+    private static async Task<JsonElement> ParameterSchema(
+        ITestWebApp testWebApp, string path, string name) {
+        using var document = await Fetch(testWebApp);
+
+        var parameter = document.RootElement
+            .GetProperty("paths").GetProperty(path).GetProperty("get").GetProperty("parameters")
+            .EnumerateArray().Single(p => p.GetProperty("name").GetString() == name);
+
+        return parameter.GetProperty("schema").Clone();
+    }
+
+    /// <summary>
+    /// A code-first collection parameter is an array in the document. The schema is read off the C#
+    /// type, whose fall-through is <c>string</c>, so a <c>List</c> published as a string - the
+    /// binder filling it from every value the request carried while the document described one.
+    /// </summary>
+    [HardenedTest]
+    public async Task ACollectionQueryParameterIsAnArray(ITestWebApp testWebApp) {
+        var schema = await ParameterSchema(testWebApp, "/binding/query-list", "symbols");
+
+        Assert.Equal("array", schema.GetProperty("type").GetString());
+        Assert.Equal("string", schema.GetProperty("items").GetProperty("type").GetString());
+    }
+
+    /// <summary>The item type is the one the handler declared, not a default.</summary>
+    [HardenedTest]
+    public async Task ACollectionParametersItemsCarryTheirOwnType(ITestWebApp testWebApp) {
+        var schema = await ParameterSchema(testWebApp, "/binding/query-list-typed", "ids");
+
+        Assert.Equal("array", schema.GetProperty("type").GetString());
+        Assert.Equal("integer", schema.GetProperty("items").GetProperty("type").GetString());
+        Assert.Equal("int32", schema.GetProperty("items").GetProperty("format").GetString());
+    }
+
+    [HardenedTest]
+    public async Task AnArrayParameterIsAnArray(ITestWebApp testWebApp) {
+        var schema = await ParameterSchema(testWebApp, "/binding/query-array", "tags");
+
+        Assert.Equal("array", schema.GetProperty("type").GetString());
+        Assert.Equal("string", schema.GetProperty("items").GetProperty("type").GetString());
+    }
+
+    [HardenedTest]
+    public async Task ACollectionHeaderParameterIsAnArray(ITestWebApp testWebApp) {
+        var schema = await ParameterSchema(testWebApp, "/binding/header-list", "X-Tag");
+
+        Assert.Equal("array", schema.GetProperty("type").GetString());
+    }
+
+    /// <summary>And a scalar parameter is still a scalar.</summary>
+    [HardenedTest]
+    public async Task AScalarQueryParameterIsNotAnArray(ITestWebApp testWebApp) {
+        var schema = await ParameterSchema(testWebApp, "/binding/query-typed", "page");
+
+        Assert.Equal("integer", schema.GetProperty("type").GetString());
+    }
+
+    #endregion
 
     #region the declared validation status
 

@@ -1,4 +1,5 @@
-using Hardened.Requests.Abstract.QueryString;
+﻿using Hardened.Requests.Abstract.QueryString;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Runtime.QueryString;
 
@@ -25,9 +26,16 @@ public static class QueryStringParser {
     /// Parses a query string, with or without its leading <c>?</c>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Split on the <em>first</em> <c>'='</c> rather than on all of them: a value is allowed to
     /// contain one, and base64 routinely does. A pair with no <c>'='</c> at all is a flag, and binds
     /// as an empty value rather than being discarded.
+    /// </para>
+    /// <para>
+    /// A repeated key keeps every value. It used to overwrite, so <c>?symbols=EUR&amp;symbols=GBP</c>
+    /// arrived as <c>GBP</c> alone - and that is OpenAPI's default array style, so the loss happened
+    /// before binding could see there was a list to bind.
+    /// </para>
     /// </remarks>
     public static IQueryStringCollection Parse(string? rawQueryString) {
         if (string.IsNullOrEmpty(rawQueryString) || rawQueryString == "?") {
@@ -35,7 +43,7 @@ public static class QueryStringParser {
         }
 
         var trimmed = rawQueryString![0] == '?' ? rawQueryString.Substring(1) : rawQueryString;
-        var values = new Dictionary<string, string>();
+        var values = new Dictionary<string, StringValues>();
 
         foreach (var pair in trimmed.Split('&')) {
             if (pair.Length == 0) {
@@ -45,15 +53,20 @@ public static class QueryStringParser {
             var separator = pair.IndexOf('=');
 
             if (separator > -1) {
-                values[Decode(pair.Substring(0, separator))] =
-                    Decode(pair.Substring(separator + 1));
+                Add(values, Decode(pair.Substring(0, separator)), Decode(pair.Substring(separator + 1)));
             }
             else {
-                values[Decode(pair)] = "";
+                Add(values, Decode(pair), "");
             }
         }
 
         return values.Count == 0 ? EmptyQueryStringCollection.Instance : new SimpleQueryStringCollection(values);
+    }
+
+    private static void Add(Dictionary<string, StringValues> values, string key, string value) {
+        values[key] = values.TryGetValue(key, out var existing)
+            ? StringValues.Concat(existing, value)
+            : new StringValues(value);
     }
 
     /// <summary>

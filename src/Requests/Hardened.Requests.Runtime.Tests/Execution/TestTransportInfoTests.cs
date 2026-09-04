@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Execution;
+﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
@@ -16,7 +16,7 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 public class TestTransportInfoTests {
 
     private static TestExecutionRequest Request() =>
-        new("GET", "/", null, new SimpleQueryStringCollection(null));
+        new("GET", "/", null, new SimpleQueryStringCollection((IDictionary<string, string>?)null));
 
 
     [Fact]

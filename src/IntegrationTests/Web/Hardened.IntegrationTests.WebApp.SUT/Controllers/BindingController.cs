@@ -1,4 +1,4 @@
-using Hardened.IntegrationTests.WebApp.SUT.Models;
+﻿using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Web.Runtime.Attributes;
 
@@ -73,6 +73,42 @@ public class BindingController {
 
     [Get("/query-typed")]
     public int TypedQuery([FromQueryString] int page) => page + 1;
+
+    #region collections
+
+    /// <summary>
+    /// A list query parameter, which is how OpenAPI's default array style arrives:
+    /// <c>?symbols=EUR&amp;symbols=GBP</c>. The joined form, <c>?symbols=EUR,GBP</c>, is the same
+    /// parameter written with <c>explode: false</c> and binds to the same list.
+    /// </summary>
+    [Get("/query-list")]
+    public string QueryList([FromQueryString] List<string>? symbols) =>
+        symbols == null ? "none" : string.Join("|", symbols);
+
+    /// <summary>Each item converted, not just the list assembled.</summary>
+    [Get("/query-list-typed")]
+    public int QueryListTyped([FromQueryString] List<int>? ids) =>
+        ids == null ? -1 : ids.Sum();
+
+    /// <summary>An array rather than a list, which the binder copies into.</summary>
+    [Get("/query-array")]
+    public string QueryArray([FromQueryString] string[]? tags) =>
+        tags == null ? "none" : string.Join("|", tags);
+
+    /// <summary>Absent is a 422 here rather than an empty list.</summary>
+    [Get("/query-list-required")]
+    public string QueryListRequired([FromQueryString] List<string> symbols) =>
+        string.Join("|", symbols);
+
+    /// <summary>
+    /// A repeated header, which RFC 9110 says a recipient may join with commas - so both spellings
+    /// have to read the same way.
+    /// </summary>
+    [Get("/header-list")]
+    public string HeaderList([FromHeader("X-Tag")] List<string>? tags) =>
+        tags == null ? "none" : string.Join("|", tags);
+
+    #endregion
 
     [Get("/cookie")]
     public string FromCookie([FromCookie] string session) => session;

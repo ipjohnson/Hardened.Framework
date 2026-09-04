@@ -1648,7 +1648,9 @@ namespace Hardened.Requests.Abstract.Serializer
     public interface IStringConverterService
     {
         T? ParseOptional<T>(string value, string valueName);
+        System.Collections.Generic.List<TItem>? ParseOptionalMany<TItem>(Microsoft.Extensions.Primitives.StringValues values, string valueName);
         T ParseRequired<T>(string value, string valueName);
+        System.Collections.Generic.List<TItem> ParseRequiredMany<TItem>(Microsoft.Extensions.Primitives.StringValues values, string valueName);
         T ParseWithDefault<T>(string value, string valueName, T defaultValue);
     }
     public static class MediaType

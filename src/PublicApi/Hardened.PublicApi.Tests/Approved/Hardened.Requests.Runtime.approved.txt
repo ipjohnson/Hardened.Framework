@@ -663,6 +663,7 @@ namespace Hardened.Requests.Runtime.QueryString
     }
     public class SimpleQueryStringCollection : Hardened.Requests.Abstract.QueryString.IQueryStringCollection
     {
+        public SimpleQueryStringCollection(System.Collections.Generic.Dictionary<string, Microsoft.Extensions.Primitives.StringValues>? queryParameters) { }
         public SimpleQueryStringCollection(System.Collections.Generic.IDictionary<string, string>? queryParameters) { }
         public int Count { get; }
         public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
@@ -825,7 +826,9 @@ namespace Hardened.Requests.Runtime.Serializer
         public StringConverterService(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IStringConverter> converters) { }
         protected virtual T InternalParseRequired<T>(string value) { }
         public T? ParseOptional<T>(string value, string valueName) { }
+        public System.Collections.Generic.List<TItem>? ParseOptionalMany<TItem>(Microsoft.Extensions.Primitives.StringValues values, string valueName) { }
         public T ParseRequired<T>(string value, string valueName) { }
+        public System.Collections.Generic.List<TItem> ParseRequiredMany<TItem>(Microsoft.Extensions.Primitives.StringValues values, string valueName) { }
         public T ParseWithDefault<T>(string value, string valueName, T defaultValue) { }
         protected virtual T StandardConverter<T>(string value) { }
     }

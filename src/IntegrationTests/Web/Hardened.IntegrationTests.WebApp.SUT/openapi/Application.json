@@ -373,6 +373,50 @@
         }
       }
     },
+    "/binding/header-list": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "headerList",
+        "summary": "A repeated header, which RFC 9110 says a recipient may join with commas - so both spellings have to read the same way.",
+        "parameters": [
+          {
+            "name": "X-Tag",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/binding/mixed/{id}": {
       "get": {
         "tags": [
@@ -674,6 +718,174 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-array": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "queryArray",
+        "summary": "An array rather than a list, which the binder copies into.",
+        "parameters": [
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-list": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "queryList",
+        "summary": "A list query parameter, which is how OpenAPI's default array style arrives: ?symbols=EUR&amp;symbols=GBP. The joined form, ?symbols=EUR,GBP, is the same parameter written with explode: false and binds to the same list.",
+        "parameters": [
+          {
+            "name": "symbols",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-list-required": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "queryListRequired",
+        "summary": "Absent is a 422 here rather than an empty list.",
+        "parameters": [
+          {
+            "name": "symbols",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding/query-list-typed": {
+      "get": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "queryListTyped",
+        "summary": "Each item converted, not just the list assembled.",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
                 }
               }
             }

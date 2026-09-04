@@ -1,8 +1,9 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.Requests.Runtime.Serializer;
+using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
 
@@ -129,6 +130,112 @@ public class StringConverterServiceTests {
         var result = _service.ParseOptional<int>("42", "testValue");
         Assert.Equal(42, result);
     }
+
+    #region collections
+
+    /// <summary>
+    /// One entry per repeat, which is how OpenAPI's default array style and a repeated header line
+    /// both arrive.
+    /// </summary>
+    [Fact]
+    public void ParseOptionalMany_ReadsOneItemPerValue() {
+        Assert.Equal(
+            ["EUR", "GBP"],
+            _service.ParseOptionalMany<string>(new StringValues(["EUR", "GBP"]), "symbols"));
+    }
+
+    /// <summary>
+    /// And the joined spelling, which is <c>explode: false</c> and what RFC 9110 lets a recipient
+    /// make of repeated header lines. Nothing in the model says which one a contract asked for, so
+    /// both are read.
+    /// </summary>
+    [Fact]
+    public void ParseOptionalMany_SplitsAJoinedValue() {
+        Assert.Equal(
+            ["EUR", "GBP"], _service.ParseOptionalMany<string>("EUR,GBP", "symbols"));
+    }
+
+    [Fact]
+    public void ParseOptionalMany_TrimsAroundTheSeparator() {
+        Assert.Equal(
+            ["EUR", "GBP"], _service.ParseOptionalMany<string>("EUR, GBP", "symbols"));
+    }
+
+    [Fact]
+    public void ParseOptionalMany_CombinesBothSpellings() {
+        Assert.Equal(
+            [1, 2, 3], _service.ParseOptionalMany<int>(new StringValues(["1", "2,3"]), "ids"));
+    }
+
+    [Fact]
+    public void ParseOptionalMany_ConvertsEachItem() {
+        Assert.Equal([1, 2], _service.ParseOptionalMany<int>("1,2", "ids"));
+    }
+
+    /// <summary>
+    /// Absent is null rather than an empty list, so a handler can tell "sent nothing" from "sent an
+    /// empty list" - the distinction ParseOptional draws for every other type.
+    /// </summary>
+    [Fact]
+    public void ParseOptionalMany_ReturnsNull_WhenNothingWasSent() {
+        Assert.Null(_service.ParseOptionalMany<string>(StringValues.Empty, "symbols"));
+    }
+
+    /// <summary>
+    /// A hole is not an item. <c>?ids=1&amp;ids=&amp;ids=3</c> is two ids, and a lone <c>?ids=</c>
+    /// is the empty list rather than a list containing one unparseable thing.
+    /// </summary>
+    [Fact]
+    public void ParseOptionalMany_DropsEmptyEntries() {
+        Assert.Equal([1, 3], _service.ParseOptionalMany<int>(new StringValues(["1", "", "3"]), "ids"));
+    }
+
+    [Fact]
+    public void ParseOptionalMany_ReturnsTheEmptyList_ForAnEmptyValue() {
+        Assert.Empty(_service.ParseOptionalMany<int>(new StringValues(""), "ids")!);
+    }
+
+    /// <summary>An item that will not convert fails the request, as a scalar one does.</summary>
+    [Fact]
+    public void ParseOptionalMany_Throws_ForAMalformedItem() {
+        var exception = Assert.Throws<ValidationException>(
+            () => _service.ParseOptionalMany<int>("1,abc", "ids"));
+
+        Assert.Equal("invalid", Assert.Single(exception.ValidationResult.Errors).Code);
+    }
+
+    /// <summary>Named by the parameter, not by the item, so the error points at what the caller sent.</summary>
+    [Fact]
+    public void AMalformedItemIsReportedAgainstTheParameter() {
+        var exception = Assert.Throws<ValidationException>(
+            () => _service.ParseOptionalMany<int>("1,abc", "ids"));
+
+        Assert.Equal("ids", Assert.Single(exception.ValidationResult.Errors).Field);
+    }
+
+    [Fact]
+    public void ParseRequiredMany_ReadsTheItems() {
+        Assert.Equal(["EUR", "GBP"], _service.ParseRequiredMany<string>("EUR,GBP", "symbols"));
+    }
+
+    [Fact]
+    public void ParseRequiredMany_Throws_WhenNothingWasSent() {
+        var exception = Assert.Throws<ValidationException>(
+            () => _service.ParseRequiredMany<string>(StringValues.Empty, "symbols"));
+
+        Assert.Equal("required", Assert.Single(exception.ValidationResult.Errors).Code);
+    }
+
+    /// <summary>
+    /// A parameter that arrived with nothing in it is as absent as one that did not arrive.
+    /// </summary>
+    [Fact]
+    public void ParseRequiredMany_Throws_WhenEveryEntryIsEmpty() {
+        Assert.Throws<ValidationException>(
+            () => _service.ParseRequiredMany<string>(new StringValues(["", ""]), "symbols"));
+    }
+
+    #endregion
 
     [Fact]
     public void CustomStringConverter_IsUsedWhenRegistered() {

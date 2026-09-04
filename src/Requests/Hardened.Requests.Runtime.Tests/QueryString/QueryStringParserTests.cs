@@ -1,4 +1,4 @@
-using Hardened.Requests.Runtime.QueryString;
+﻿using Hardened.Requests.Runtime.QueryString;
 using Xunit;
 
 namespace Hardened.Requests.Runtime.Tests.QueryString;
@@ -105,6 +105,43 @@ public class QueryStringParserTests {
     public void ParseFromPath_IsEmptyWithoutAQuery(string? path) {
         Assert.Equal(0, QueryStringParser.ParseFromPath(path).Count);
     }
+
+    #region a repeated key
+
+    /// <summary>
+    /// A repeated key used to overwrite, so the array style OpenAPI defaults to arrived as its last
+    /// value alone - and the loss happened here, before binding could see there was a list.
+    /// </summary>
+    [Fact]
+    public void ARepeatedKeyKeepsEveryValue() {
+        Assert.Equal(["EUR", "GBP"], QueryStringParser.Parse("symbols=EUR&symbols=GBP").Get("symbols"));
+    }
+
+    /// <summary>In the order they were sent, which is the order the handler receives them.</summary>
+    [Fact]
+    public void ARepeatedKeyKeepsItsOrder() {
+        Assert.Equal(["3", "1", "2"], QueryStringParser.Parse("id=3&id=1&id=2").Get("id"));
+    }
+
+    /// <summary>One key however often it repeats, so Count stays the number of names.</summary>
+    [Fact]
+    public void ARepeatedKeyIsCountedOnce() {
+        Assert.Equal(1, QueryStringParser.Parse("symbols=EUR&symbols=GBP").Count);
+    }
+
+    [Fact]
+    public void ARepeatedKeyKeepsAnEmptyValue() {
+        Assert.Equal(["EUR", ""], QueryStringParser.Parse("symbols=EUR&symbols=").Get("symbols"));
+    }
+
+    [Fact]
+    public void EachRepeatIsDecodedOnItsOwn() {
+        Assert.Equal(
+            ["a b", "c+d"],
+            QueryStringParser.Parse("q=a+b&q=c%2Bd").Get("q"));
+    }
+
+    #endregion
 
     /// <summary>
     /// The divergence itself: both hosts now answer the same for the same request target.

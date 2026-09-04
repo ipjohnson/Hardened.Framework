@@ -1,4 +1,4 @@
-namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
+﻿namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 public class PetControllerTests {
     [HardenedTest]
@@ -24,6 +24,71 @@ public class PetControllerTests {
         Assert.NotNull(pets);
         Assert.NotEmpty(pets);
     }
+
+    #region the described array parameter
+
+    /// <summary>
+    /// <c>tags</c> is <c>type: array</c> in the description, so the generator types it as a
+    /// <c>List</c>. Nothing could fill one: the query parser overwrote a repeated key, and the
+    /// binder handed whatever survived to a scalar <c>Parse</c> that threw for a list.
+    /// </summary>
+    [HardenedTest]
+    public async Task ListPets_WithARepeatedArrayParameter_FiltersByEveryValue(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets?tags=dog&tags=cat");
+
+        response.Assert.Ok();
+
+        var pets = response.Deserialize<List<Pet>>();
+
+        Assert.NotNull(pets);
+        Assert.Equal("Luna", Assert.Single(pets).Name);
+    }
+
+    /// <summary>The same parameter written as <c>explode: false</c>.</summary>
+    [HardenedTest]
+    public async Task ListPets_WithACommaJoinedArrayParameter_FiltersByEveryValue(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets?tags=dog,cat");
+
+        response.Assert.Ok();
+
+        var pets = response.Deserialize<List<Pet>>();
+
+        Assert.NotNull(pets);
+        Assert.Equal("Luna", Assert.Single(pets).Name);
+    }
+
+    [HardenedTest]
+    public async Task ListPets_WithNoArrayParameter_FiltersNothing(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets");
+
+        response.Assert.Ok();
+
+        Assert.Equal(2, response.Deserialize<List<Pet>>()!.Count);
+    }
+
+    /// <summary>Both parameters on one operation, neither disturbing the other's binding.</summary>
+    [HardenedTest]
+    public async Task ListPets_WithBothParameters_BindsBoth(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets?tags=dog&tags=cat&limit=1");
+
+        response.Assert.Ok();
+
+        Assert.Equal("Luna", Assert.Single(response.Deserialize<List<Pet>>()!).Name);
+    }
+
+    /// <summary>
+    /// And the constraint on the scalar one still fires beside the array one. The array parameter
+    /// is compiled into the same validator, so a change to it could have taken the other's bounds
+    /// with it.
+    /// </summary>
+    [HardenedTest]
+    public async Task ListPets_WithAnArrayParameterAndAnOutOfRangeLimit_IsRefused(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets?tags=dog&limit=500");
+
+        response.Assert.BadRequest();
+    }
+
+    #endregion
 
     [HardenedTest]
     public async Task CreatePet_WithBody_ReturnsPet(ITestWebApp testWebApp) {

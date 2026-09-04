@@ -1,4 +1,4 @@
-using Hardened.IntegrationTests.OpenApi.SUT.Models;
+﻿using Hardened.IntegrationTests.OpenApi.SUT.Models;
 using Hardened.IntegrationTests.OpenApi.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Responses;
@@ -22,12 +22,24 @@ public class PetServiceImpl : IPetService {
         new Pet("2", "Luna", "dog")
     ];
 
-    public Task<List<Pet>> ListPets(int? limit) {
-        if (limit.HasValue) {
-            return Task.FromResult(Pets.Take(limit.Value).ToList());
+    /// <summary>
+    /// <paramref name="tags"/> is the described array parameter, which the generator types as a
+    /// <c>List</c> and the binder could not fill: every string-valued source went through one
+    /// scalar <c>Parse</c> call, so a repeated key was overwritten before binding and a comma-joined
+    /// value failed to convert.
+    /// </summary>
+    public Task<List<Pet>> ListPets(int? limit, List<string>? tags) {
+        var pets = Pets.AsEnumerable();
+
+        if (tags is { Count: > 0 }) {
+            pets = pets.Where(pet => pet.Tag != null && tags.Contains(pet.Tag));
         }
 
-        return Task.FromResult(Pets.ToList());
+        if (limit.HasValue) {
+            pets = pets.Take(limit.Value);
+        }
+
+        return Task.FromResult(pets.ToList());
     }
 
     /// <summary>
