@@ -320,6 +320,7 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public static class ExecutionHelper
     {
+        public const string FilterChainLogCategory = "Hardened.Requests.Pipeline";
         public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncEnumerableFilterEmptyParameters<TController, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeNoParameters<TController> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing = null) { }
         public static Hardened.Requests.Runtime.Execution.ExecutionHandlerSetup AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequestFunc, Hardened.Requests.Runtime.Execution.ExecutionHelper.InvokeWithParameters<TController, TParameter> invokeMethod, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider> filterProviders, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing = null)
             where TController :  class { }

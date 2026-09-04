@@ -60,7 +60,7 @@ public class CompressAttribute : Attribute, IRequestFilterProvider {
     /// take. The configuration is read from the application's services on the first request.
     /// </summary>
     protected static RequestFilterInfo Filter(ResponseCompressionFilter filter) =>
-        new(_ => filter, FilterOrder.Before + FilterOrder.ResponseCache);
+        new(_ => filter, FilterOrder.Before + FilterOrder.ResponseCache, nameof(ResponseCompressionFilter));
 }
 
 /// <summary>

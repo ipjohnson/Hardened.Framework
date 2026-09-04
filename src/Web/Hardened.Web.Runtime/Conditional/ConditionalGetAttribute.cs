@@ -45,7 +45,7 @@ public sealed class ConditionalGetAttribute : Attribute, IRequestFilterProvider 
             yield break;
         }
 
-        yield return new RequestFilterInfo(_ => _filter, FilterOrder.Conditional);
+        yield return new RequestFilterInfo(_ => _filter, FilterOrder.Conditional, nameof(ConditionalGetFilter));
     }
 
     /// <summary>

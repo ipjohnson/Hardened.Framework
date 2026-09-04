@@ -322,6 +322,10 @@ handler's return *value*, so a filter that changes the payload changes the value
 bytes. The ordering, the context and the shipped positions are in
 [the execution pipeline](https://ipjohnson.github.io/Hardened.Docs/guide/execution-pipeline).
 
+To see what a handler's chain was composed into, enable `Debug` for the `Hardened.Requests.Pipeline`
+log category. It writes one line per handler as the chain is built, naming each filter and its
+order in the order they run, and costs nothing per request whether it is on or off.
+
 ## What else the build writes
 
 The same generate-don't-reflect treatment runs through the rest of the framework:

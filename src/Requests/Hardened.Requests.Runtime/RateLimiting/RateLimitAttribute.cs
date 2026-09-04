@@ -68,6 +68,6 @@ public class RateLimitAttribute : Attribute, IRequestFilterProvider {
         var beforeSerialization = order < FilterOrder.Serialization;
 
         yield return new RequestFilterInfo(
-            _ => new RateLimitFilter(policy, beforeSerialization), order);
+            _ => new RateLimitFilter(policy, beforeSerialization), order, nameof(RateLimitFilter));
     }
 }

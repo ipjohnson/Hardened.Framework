@@ -145,7 +145,7 @@ public sealed class CacheResponseAttribute<TProvider> :
 
         var filter = ResponseCacheFilter.Compose(handlerInfo, declarations);
 
-        yield return new RequestFilterInfo(_ => filter, FilterOrder.ResponseCache);
+        yield return new RequestFilterInfo(_ => filter, FilterOrder.ResponseCache, nameof(ResponseCacheFilter));
     }
 
     /// <summary>

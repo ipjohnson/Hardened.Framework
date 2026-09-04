@@ -16,6 +16,7 @@ internal sealed class RequestDecompressionProvider : IRequestFilterProvider {
     private readonly RequestDecompressionFilter _filter = new();
 
     public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
-        yield return new RequestFilterInfo(_ => _filter, FilterOrder.Before + FilterOrder.ResponseCache);
+        yield return new RequestFilterInfo(
+            _ => _filter, FilterOrder.Before + FilterOrder.ResponseCache, nameof(RequestDecompressionFilter));
     }
 }

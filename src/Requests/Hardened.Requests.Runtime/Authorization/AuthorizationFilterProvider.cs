@@ -65,7 +65,7 @@ public class AuthorizationFilterProvider {
         var filter = new AuthorizationFilter(
             requirement, beforeSerialization: order < FilterOrder.Serialization);
 
-        return new RequestFilterInfo(_ => filter, order);
+        return new RequestFilterInfo(_ => filter, order, nameof(AuthorizationFilter));
     }
 
     private static bool IsAnonymous(IReadOnlyList<object> metadata) {

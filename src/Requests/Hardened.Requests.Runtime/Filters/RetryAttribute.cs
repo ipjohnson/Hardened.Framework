@@ -67,6 +67,7 @@ public class RetryAttribute : Attribute, IRequestFilterProvider {
     public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
         yield return new RequestFilterInfo(
             _ => new RetryFilter(Attempts, SleepTime, TotalBudget, AllowNonIdempotent),
-            FilterOrder.Retry);
+            FilterOrder.Retry,
+            nameof(RetryFilter));
     }
 }
