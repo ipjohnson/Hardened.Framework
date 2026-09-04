@@ -39,6 +39,16 @@ records what happened when they met the code.
   its `build/` and imports it from its own targets under a guard, so a project referencing two of
   them imports it once. In this repository, where the fixtures import the generator targets from
   the source tree, a fallback path finds the shared file in the task's project.
+- The Web integration application carries a generated client, in
+  `Hardened.IntegrationTests.WebApp.SUT.Client`: the template's client project with the names
+  changed, generating from the tracked `openapi/Application.json` on every build, and
+  `GeneratedClientTests` in the SUT's test project drive it through the pipeline - bodies, path and
+  query parameters, a declared 201 and 204 read from `LastResponse`, the typed
+  `RequestValidationError` for a declared 422 and for the default 400, a bare `ApiException` for
+  an undeclared 401, credentials as attributes, and a mock reached through the generated client.
+  The order kept generators out of Hardened *packages*; a test fixture is not one, and without it
+  the only proof that a Hardened document generates a working client lived in the templates job.
+  The cost is a second Kiota pin pair, which `scripts/verify-templates.sh` holds to the template's.
 - The Web integration application exports at the served version, 3.2.0, so its
   `ExportedDocumentTests` compares byte for byte. The order had the SUT set
   `HardenedOpenApiOutputVersion=3.1.0` for the lint, which would have broken that comparison; CI

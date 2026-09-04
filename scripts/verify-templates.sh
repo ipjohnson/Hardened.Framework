@@ -154,6 +154,17 @@ if [ "$KIOTA_EXPECTS" != "$KIOTA_BUNDLE" ]; then
 fi
 echo "   kiota $KIOTA_TOOL and Microsoft.Kiota.Bundle $KIOTA_BUNDLE agree"
 
+# The repository carries the same pair once more, for the client generated over the Web
+# integration application, and a release moves all four together: a template pinned to one Kiota
+# and an integration suite proving another is two claims about what a Hardened document generates.
+REPO_TOOL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["tools"]["microsoft.openapi.kiota"]["version"])' "$REPO/.config/dotnet-tools.json")
+REPO_BUNDLE=$(sed -n 's/.*<KiotaBundleVersion>\(.*\)<\/KiotaBundleVersion>.*/\1/p' "$REPO/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Client/Hardened.IntegrationTests.WebApp.SUT.Client.csproj")
+if [ "$REPO_TOOL" != "$KIOTA_TOOL" ] || [ "$REPO_BUNDLE" != "$KIOTA_BUNDLE" ]; then
+    echo "   FAILED: the template pins kiota $KIOTA_TOOL / bundle $KIOTA_BUNDLE; the repository's .config/dotnet-tools.json and Hardened.IntegrationTests.WebApp.SUT.Client.csproj pin $REPO_TOOL / $REPO_BUNDLE"
+    exit 1
+fi
+echo "   the integration client pins the same pair"
+
 # UseLocalValidationModules=false so a sibling checkout cannot leak a version that was never
 # published into the packed dependency graph.
 pack framework "$REPO/src/Hardened.Framework.sln" \

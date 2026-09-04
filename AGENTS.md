@@ -143,12 +143,21 @@ solution alone ships a release missing that package.
 `0.8.0-rc1000` was a bad release — three unusable packages, superseded by `0.9.0-rc1000`. Never
 recommend it.
 
-**The Kiota pins in the `hardened-web` template follow Kiota's line, not this repository's.** The
-tool in `templates/hardened-web/.config/dotnet-tools.json` and `KiotaBundleVersion` in its
-`Directory.Packages.props` are bumped together, by a deliberate commit, to one Kiota release;
-`kiota info --language CSharp --json` says which bundle a tool expects. `scripts/verify-templates.sh`
-checks the pair before it scaffolds anything and is the gate, as it is for everything else in the
-template.
+**The Kiota pins follow Kiota's line, not this repository's, and there are two pairs of them.** The
+`hardened-web` template pins the tool in `templates/hardened-web/.config/dotnet-tools.json` and the
+bundle as `KiotaBundleVersion` in its `Directory.Packages.props`; the repository pins the same pair
+for the client it generates over the Web integration application, in `.config/dotnet-tools.json` at
+the root and in `Hardened.IntegrationTests.WebApp.SUT.Client.csproj`. All four are bumped together,
+by a deliberate commit, to one Kiota release; `kiota info --language CSharp --json` says which
+bundle a tool expects. `scripts/verify-templates.sh` checks both pairs before it scaffolds anything
+and is the gate, as it is for everything else in the template; the two client projects check their
+own pair at build (HTPL003).
+
+**`Hardened.IntegrationTests.WebApp.SUT.Client` is the template's client project with the names
+changed, on purpose.** It generates a Kiota client from the tracked `openapi/Application.json` into
+`obj/` on every build, and `GeneratedClientTests` in the SUT's test project drive it through the
+pipeline. Nothing generated is committed. When the template's `src/Hardened1.Client` project
+changes, change this one the same way.
 
 Dry-run a release before tagging: pack at the real version into a local folder feed and restore a
 generated project against it, with `NUGET_PACKAGES` redirected so the global cache is not poisoned.
