@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -69,10 +69,32 @@ public static class HandlerValidationGenerator {
                 }
             });
 
+        // Collected, because the missing package reference is a single thing to fix and an
+        // assembly with forty constrained handlers would otherwise report it forty times.
+        initializationContext.RegisterSourceOutput(
+            resolved
+                .Where(static result => result.ConstrainedWithoutValidation is not null)
+                .Select(static (result, _) => result.ConstrainedWithoutValidation!)
+                .Collect(),
+            static (production, constrained) => {
+                if (constrained.IsEmpty) {
+                    return;
+                }
+
+                production.ReportDiagnostic(
+                    Diagnostic.Create(
+                        HandlerValidationDiagnostics.NoValidationGenerator(),
+                        Location.None,
+                        constrained.OrderBy(static name => name, StringComparer.Ordinal).First()));
+            });
+
         return resolved
             .Select(static (result, _) => result.Handler)
             .WithComparer(new RequestHandlerModelComparer());
     }
+
+    private static string Name(RequestHandlerModel handler) =>
+        handler.ControllerType.Name + "." + handler.HandlerMethod;
 
     /// <summary>
     /// Everything that has to be read off the syntax node, before the build properties that decide
@@ -106,15 +128,24 @@ public static class HandlerValidationGenerator {
         bool validationAvailable,
         CancellationToken cancellationToken) {
 
-        // Nothing emits validators for this compilation, so there is nothing to attach to and
-        // nothing to report - a project that never opted into validation behaves as it did.
-        if (!validationAvailable) {
-            return new Resolved(candidate.Handler, null, ImmutableArray<Diagnostic>.Empty);
-        }
-
         var built = HandlerValidationFrontEnd.Build(
             candidate.Handler, candidate.Parameters, candidate.Compilation, options,
             cancellationToken);
+
+        // Nothing emits validators for this compilation, so there is nothing to attach to. A
+        // handler that declares constraints anyway is worth saying so about: the same Build decides
+        // both, so the diagnostic and the attachment cannot disagree about what counts as a
+        // constraint.
+        //
+        // Its diagnostics are dropped here. They are about how a constraint is written, and the
+        // answer to all of them is that nothing is compiling any of them - which HRDV006 says once.
+        if (!validationAvailable) {
+            return new Resolved(
+                candidate.Handler,
+                null,
+                ImmutableArray<Diagnostic>.Empty,
+                built.Model is null ? null : Name(candidate.Handler));
+        }
 
         if (built.Model is null) {
             return new Resolved(candidate.Handler, null, built.Diagnostics);
@@ -167,10 +198,16 @@ public static class HandlerValidationGenerator {
         ImmutableArray<IParameterSymbol?> Parameters,
         Compilation Compilation);
 
+    /// <param name="ConstrainedWithoutValidation">
+    /// The handler's name when it declares constraints and nothing in this compilation compiles
+    /// them, and null otherwise. Carried rather than reported on the spot because the missing
+    /// reference is one mistake however many handlers it silences.
+    /// </param>
     public sealed record Resolved(
         RequestHandlerModel Handler,
         ValidatedTypeModel? Validator,
-        ImmutableArray<Diagnostic> Diagnostics);
+        ImmutableArray<Diagnostic> Diagnostics,
+        string? ConstrainedWithoutValidation = null);
 
     /// <summary>
     /// Value equality for the resolved model, so an edit elsewhere in the file does not re-run
@@ -197,6 +234,7 @@ public static class HandlerValidationGenerator {
 
             return Handlers.Equals(x.Handler, y.Handler) &&
                 Equals(x.Validator, y.Validator) &&
+                x.ConstrainedWithoutValidation == y.ConstrainedWithoutValidation &&
                 x.Diagnostics.Select(Describe).SequenceEqual(y.Diagnostics.Select(Describe));
         }
 
@@ -205,6 +243,7 @@ public static class HandlerValidationGenerator {
                 var hashCode = Handlers.GetHashCode(obj.Handler);
 
                 hashCode = (hashCode * 397) ^ (obj.Validator?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (obj.ConstrainedWithoutValidation?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ obj.Diagnostics.Length;
 
                 return hashCode;

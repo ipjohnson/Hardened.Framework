@@ -178,6 +178,34 @@ ValidationModules front end that reads one off a property, so a constraint that 
 parameter's type is reported under that front end's own `VM` id, exactly as it would be on a
 property. The id is not reused.
 
+### HRDV006 — constraints are declared and nothing compiles them
+
+A handler declares constraints, on a parameter or on a model it binds, and no validation generator
+is compiling this assembly.
+
+```
+'OrderController.Create' declares constraints and nothing in this project compiles them into a
+validator, so none of them is enforced. Reference Hardened.Validation.SourceGenerator as an
+analyzer, or remove the constraint attributes if this assembly is not meant to enforce them.
+```
+
+The constraint attributes come from a package the application already references. Compiling them
+into a validator is a second package, an analyzer, and referencing the first without the second
+enforces nothing. Code-first is the silent form: the constraints simply never run. Specification-
+first is the loud one, where the filter is attached against a validator nobody emitted and every
+constrained operation answers a 500.
+
+One report per assembly, naming the first handler alphabetically. The missing reference is a single
+thing to fix, and forty constrained handlers would otherwise say the same sentence forty times.
+
+A warning rather than an error: the constraints still describe the contract, the published document
+still carries them, and an assembly that declares models for someone else to validate is a real
+arrangement. `<NoWarn>HRDV006</NoWarn>` if that is what you are doing.
+
+The question is answered by the same front end that would have compiled the constraints, rather
+than by a scan for attribute names, so what the diagnostic counts as a constraint and what the
+generator would have compiled cannot disagree.
+
 ### HRDV005 — a condition on a parameter constraint names a model member
 
 `When` and `Unless` on a constraint name a bool property or method of the model the constraint
