@@ -58,16 +58,23 @@ variables on purpose: `dotnet run` applies a profile's variables over the ones a
 from a terminal browse to the page yourself.
 #endif
 
+#if (kiotaClient)
+## The four projects
+#else
 ## The three projects
+#endif
 
 | | |
 |---|---|
 | `src/Hardened1` | Everything the application does — routes, services, models. Knows nothing about where it runs. |
 | `src/Hardened1.Host` | Which runtime hosts it, and `Program.cs`. The only host-specific project. |
+#if (kiotaClient)
+| `src/Hardened1.Client` | The generated client. No hand-written code; Kiota writes it from the document the library's build wrote. |
+#endif
 | `tests/Hardened1.Tests` | Tests, against the library rather than the host. |
 
 That split is the point rather than a convention. Swapping the host — Kestrel, ASP.NET Core, and
-Lambda in the Hardened.Amz packages — changes only the middle project. The other two are identical
+Lambda in the Hardened.Amz packages — changes only the host project. The others are identical
 whichever one you pick, which is why the tests target the library: a test suite that named the host
 would be tied to a deployment target for no reason.
 
@@ -192,6 +199,42 @@ route. Note the argument order on a body: `app.Post(value, path)`.
 Every declared status has a test, not only the happy one - a response set exercised only at 200 is
 indistinguishable from having none.
 
+#if (kiotaClient)
+## Clients
+
+The document is the deliverable. `src/Hardened1/openapi/Hardened1.json` is the OpenAPI document
+this service serves, written by the library's build from what the server implements, and
+`src/Hardened1.Client` is a C# client Kiota generates from it during the build. The three commands a
+consumer needs:
+
+```bash
+dotnet build                                          # writes the document, generates and compiles the client
+dotnet test                                           # drives the client through the pipeline, no socket
+dotnet pack src/Hardened1.Client -p:PackageVersion=1.0.0   # a package whose only dependency is Microsoft.Kiota.Bundle
+```
+
+The client is generated into `obj/` and never committed; the document is committed, so a route
+change shows in review as a document change. In CI, build and then check the file is current:
+
+```bash
+dotnet build
+git diff --exit-code src/Hardened1/openapi
+```
+
+Two pins move together: the Kiota tool in `.config/dotnet-tools.json` and `KiotaBundleVersion` in
+`Directory.Packages.props`. They belong to Kiota's release line, not Hardened's; bump both to one
+Kiota release in one commit, and the build says `HTPL003` naming both files if they disagree.
+
+`tests/Hardened1.Tests/Hardened1ClientTests.cs` takes the client as a test parameter, built by the
+three-line factory in `TestClients.cs` over the same in-process pipeline `ITestWebApp` drives.
+Refusals are asserted with `Assert.ThrowsAsync` in the client's own vocabulary, and the status and
+headers the client does not surface are read from `LastResponse`.
+
+Other generators, other languages, and Kiota's multi-language workspace are on the site's
+[Clients](https://ipjohnson.github.io/Hardened.Docs/guide/clients) page; every one of them reads the
+same file.
+
+#endif
 ## Reading the generated code
 
 The fastest way to understand any of this is to read what the build wrote. It is ordinary C#, and

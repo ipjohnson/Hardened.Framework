@@ -7,12 +7,17 @@
 # The packed nupkg is installed rather than the template folder, deliberately. A template tested
 # from source proves nothing about packaging, which is where the 0.8.0-rc1000 quickstart broke.
 #
-# Usage: scripts/verify-templates.sh [host:contract ...]
+# Usage: scripts/verify-templates.sh [host:contract[:model[:client]] ...]
 #        default: the template default (response) on three host/contract rows, throws and union
-#        on both spec directions, and kestrel:smithy rows when the pinned CLI is present
+#        on both spec directions, kestrel:smithy rows when the pinned CLI is present, and one
+#        row with --client none to prove the opt-out
 #
 # smithy is skipped unless the Smithy CLI is on PATH at the pinned version - a build without it
 # fails by design (HSMT011), and that is the toolchain's problem rather than the template's.
+#
+# The Kiota client is not skipped when Kiota is absent: the generated project restores the tool
+# from NuGet inside its own build, so a machine that can restore packages can generate the
+# client, and the client rows are the default rows.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -47,9 +52,12 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
     # nobody runs is a row nobody notices is broken: the first union generation failed on an XML
     # comment containing a double hyphen, which every other combination was immune to only because
     # that comment sat behind #if (unionMode).
+    # The client is the default, so every row above exercises it; the last row is the opt-out,
+    # spelled with the model it keeps so the fourth field reads as the fourth option.
     COMBOS=(kestrel:code aspnet:code kestrel:openapi
             kestrel:code:throws kestrel:openapi:throws
-            kestrel:code:union kestrel:openapi:union)
+            kestrel:code:union kestrel:openapi:union
+            kestrel:code:response:none)
 
     if command -v smithy >/dev/null 2>&1 && [ "$(smithy --version 2>/dev/null)" = "$SMITHY_PIN" ]; then
         # The throws model too, not only the default. Smithy's half of the property had never run:
@@ -125,6 +133,27 @@ if ! dotnet build "$REPO/src/Hardened.Framework.sln" -c Release \
     exit 1
 fi
 
+# The two Kiota pins the template carries have to agree before anything is scaffolded: the tool
+# in .config/dotnet-tools.json generates the client, the bundle in Directory.Packages.props is
+# what the generated code compiles against, and `kiota info` says which bundle a tool expects.
+# The client project checks the same thing at build (HTPL003); checking here fails a release before
+# a user's first build does.
+say "checking the Kiota pins"
+TEMPLATE="$REPO/src/Templates/Hardened.Templates/templates/hardened-web"
+KIOTA_TOOL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["tools"]["microsoft.openapi.kiota"]["version"])' "$TEMPLATE/.config/dotnet-tools.json")
+KIOTA_BUNDLE=$(sed -n 's/.*<KiotaBundleVersion>\(.*\)<\/KiotaBundleVersion>.*/\1/p' "$TEMPLATE/Directory.Packages.props")
+KIOTA_PROBE="$WORK/kiota-pins"
+mkdir -p "$KIOTA_PROBE/.config"
+cp "$TEMPLATE/.config/dotnet-tools.json" "$KIOTA_PROBE/.config/"
+( cd "$KIOTA_PROBE" && dotnet tool restore >/dev/null )
+KIOTA_EXPECTS=$( cd "$KIOTA_PROBE" && KIOTA_OFFLINE_ENABLED=true KIOTA_TUTORIAL_ENABLED=false dotnet kiota info --language CSharp --json \
+    | python3 -c 'import json,sys; t=sys.stdin.read(); d=json.loads(t[t.index("{"):]); print(next(x["version"] for x in d["dependencies"] if x["name"]=="Microsoft.Kiota.Bundle"))' )
+if [ "$KIOTA_EXPECTS" != "$KIOTA_BUNDLE" ]; then
+    echo "   FAILED: kiota $KIOTA_TOOL (.config/dotnet-tools.json) expects Microsoft.Kiota.Bundle $KIOTA_EXPECTS, and KiotaBundleVersion (Directory.Packages.props) is $KIOTA_BUNDLE"
+    exit 1
+fi
+echo "   kiota $KIOTA_TOOL and Microsoft.Kiota.Bundle $KIOTA_BUNDLE agree"
+
 # UseLocalValidationModules=false so a sibling checkout cannot leak a version that was never
 # published into the packed dependency graph.
 pack framework "$REPO/src/Hardened.Framework.sln" \
@@ -150,29 +179,34 @@ for COMBO in "${COMBOS[@]}"; do
     REST="${COMBO#*:}"
     CONTRACT="${REST%%:*}"
 
-    # host:contract, or host:contract:model. A bare combo scaffolds with no --response-model at
-    # all, for the same reason --HardenedVersion is not passed below: the default is what a real
-    # user gets, so the default is what needs testing - and since 0.19.0 the default is response.
-    # Naming a model exercises the flag.
+    # host:contract, host:contract:model, or host:contract:model:client. A bare combo scaffolds
+    # with no --response-model and no --client at all, for the same reason --HardenedVersion is
+    # not passed below: the default is what a real user gets, so the default is what needs
+    # testing - and since 0.19.0 the default model is response, since 0.20.0 the default client
+    # is kiota. Naming either exercises the flag.
+    CLIENT=default
     if [ "$REST" = "$CONTRACT" ]; then
         MODEL=default
     else
         MODEL="${REST#*:}"
+        if [ "$MODEL" != "${MODEL%%:*}" ]; then
+            CLIENT="${MODEL#*:}"
+            MODEL="${MODEL%%:*}"
+        fi
     fi
 
-    say "host: $HOST   contract: $CONTRACT   response model: $MODEL"
+    say "host: $HOST   contract: $CONTRACT   response model: $MODEL   client: $CLIENT"
     OUT="$WORK/$HOST-$CONTRACT-$MODEL"
+    [ "$CLIENT" != "default" ] && OUT="$OUT-$CLIENT"
 
     # --HardenedVersion is deliberately NOT passed. The template stamps the version it was
     # packed with as the default, and that default is what a real user gets - so it is what
     # needs testing. Passing it here would test the flag and leave the default unexercised.
-    if [ "$MODEL" = "default" ]; then
-        dotnet new hardened-web -n Sample -o "$OUT" --host "$HOST" --contract "$CONTRACT" \
-            --skip-restore
-    else
-        dotnet new hardened-web -n Sample -o "$OUT" --host "$HOST" --contract "$CONTRACT" \
-            --response-model "$MODEL" --skip-restore
-    fi
+    ARGS=(--host "$HOST" --contract "$CONTRACT" --skip-restore)
+    [ "$MODEL" != "default" ] && ARGS+=(--response-model "$MODEL")
+    [ "$CLIENT" != "default" ] && ARGS+=(--client "$CLIENT")
+
+    dotnet new hardened-web -n Sample -o "$OUT" "${ARGS[@]}"
 
     check_generated "$OUT"
 
@@ -182,6 +216,34 @@ for COMBO in "${COMBOS[@]}"; do
 
     ( cd "$OUT" && dotnet build -v q --nologo )
     ( cd "$OUT" && dotnet test --no-build -v q --nologo )
+
+    # The client rows: the document the library's build wrote is what the client generated from,
+    # and it is the file a consumer commits - so it has to exist, and it has to be the served
+    # document. The opt-out row: no property, no file, no client project.
+    if [ "$CLIENT" = "none" ]; then
+        if [ -d "$OUT/src/Sample.Client" ] || [ -e "$OUT/src/Sample/openapi" ] || [ -d "$OUT/.config" ] || \
+           [ -e "$OUT/tests/Sample.Tests/TestClients.cs" ] || [ -e "$OUT/tests/Sample.Tests/SampleClientTests.cs" ]; then
+            echo "   FAILED: --client none left client files behind"
+            FAILED=1
+        fi
+        if grep -q "HardenedOpenApiOutput\|Kiota\|Sample.Client" "$OUT/src/Sample/Sample.csproj" "$OUT/Sample.sln" "$OUT/Directory.Packages.props" "$OUT/tests/Sample.Tests/Sample.Tests.csproj"; then
+            echo "   FAILED: --client none left the client in a project or solution file"
+            FAILED=1
+        fi
+    else
+        if [ ! -s "$OUT/src/Sample/openapi/Sample.json" ]; then
+            echo "   FAILED: the build did not write src/Sample/openapi/Sample.json"
+            FAILED=1
+        fi
+        if [ -z "$(find "$OUT/src/Sample.Client/obj" -name 'kiota-lock.json' 2>/dev/null)" ]; then
+            echo "   FAILED: Kiota did not generate the client"
+            FAILED=1
+        fi
+        if [ -n "$(find "$OUT/src/Sample.Client" -maxdepth 1 -name '*.cs')" ]; then
+            echo "   FAILED: generated code landed beside the client csproj rather than under obj/"
+            FAILED=1
+        fi
+    fi
 
     # dotnet run launches the built binary as a child, so killing the wrapper leaves the
     # application holding the port. Everything below matches on the generated output directory,
@@ -444,7 +506,9 @@ A="$WORK/kestrel-code-default"; B="$WORK/aspnet-code-default"
 if [ -d "$A" ] && [ -d "$B" ]; then
     # Source only. bin/ and obj/ carry absolute paths and compiler output, which differ for
     # reasons that have nothing to do with the host.
-    for PART in src/Sample tests/Sample.Tests; do
+    # The client too: it is generated from the library's document and references nothing from
+    # the host, so it has no reason to differ.
+    for PART in src/Sample src/Sample.Client tests/Sample.Tests; do
         if diff -r -x bin -x obj "$A/$PART" "$B/$PART" >/dev/null 2>&1; then
             echo "   identical across hosts: $PART"
         else
@@ -465,7 +529,9 @@ if [ -d "$WORK/kestrel-code-throws" ]; then
     OUT_ALIAS="$WORK/alias-standard"
     dotnet new hardened-web -n Sample -o "$OUT_ALIAS" --host kestrel --contract code \
         --response-model standard --skip-restore
-    if diff -r -x bin -x obj -x nuget.config \
+    # openapi/ too: the throws row was built and its build wrote the document; this one was only
+    # scaffolded, and the claim is about what the template writes.
+    if diff -r -x bin -x obj -x nuget.config -x openapi \
         "$WORK/kestrel-code-throws/src" "$OUT_ALIAS/src" >/dev/null 2>&1; then
         echo "   --response-model standard scaffolds the throws project"
     else

@@ -1,0 +1,142 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The generated client. There is no hand-written code in this project: Kiota writes it from
+    src/Hardened1/openapi/Hardened1.json - the document the library's build wrote from what the
+    server implements - into obj/, on every build that needs it, and this project compiles that
+    output. Nothing generated is committed; the document is.
+
+    Ten lines of MSBuild rather than a Hardened package around Kiota, so the generator is yours to
+    swap: another one is a different package reference, a different tool pin and a different
+    command in the target below. Scaffolding with the client option set to none leaves this project out.
+  -->
+  <PropertyGroup>
+    <!--
+      net8.0 whatever the rest of the solution targets. Nothing here references the library, so a
+      union-model library on net11.0 needs no negotiation with this project, and the package this
+      produces can be consumed by anything on the 8.0 line.
+    -->
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Hardened1.Client</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!--
+      Packable, so a service can hand other teams Hardened1.Client.nupkg: `dotnet pack
+      src/Hardened1.Client -p:PackageVersion=1.2.0`. Its only dependency is the Kiota bundle, which
+      is what makes it worth shipping. Nothing here pushes it anywhere.
+    -->
+    <IsPackable>true</IsPackable>
+    <PackageId>Hardened1.Client</PackageId>
+    <Description>The Kiota-generated client for Hardened1, built from the document the service serves.</Description>
+
+    <!-- The class is named in the safe-identifier form the module class uses, so a dotted project
+         name - Acme.Sample - gives AcmeSampleClient rather than an identifier with a dot in it. -->
+    <KiotaSpec>../Hardened1/openapi/Hardened1.json</KiotaSpec>
+
+    <!--
+      Under obj/, and spelled with BaseIntermediateOutputPath rather than IntermediateOutputPath:
+      the latter is set by the SDK's targets, which are imported after this file, so it is still
+      empty here and the client would land beside the csproj. Output in the project folder is
+      also the wrong place for another reason - the SDK's **/*.cs glob is evaluated before any
+      target runs, so files a target writes into the folder are missed on the first build and
+      compiled twice on the second. IncludeClient below adds them inside a target instead.
+    -->
+    <KiotaOutput>$(BaseIntermediateOutputPath)kiota/</KiotaOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Version from Directory.Packages.props, where it is pinned beside the tool's. -->
+    <PackageReference Include="Microsoft.Kiota.Bundle" />
+
+    <!--
+      Ordering only: the library writes the document this project reads, so it has to build first.
+      ReferenceOutputAssembly="false" keeps the server, and the host with it, out of the client, and
+      SkipGetTargetFrameworkProperties lets a library on another framework be built first without
+      being negotiated with.
+    -->
+    <ProjectReference Include="../Hardened1/Hardened1.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" />
+  </ItemGroup>
+
+  <!--
+    The tool is restored inside the build, which is what lets a fresh clone build with no
+    instruction beyond `dotnet build`. It is idempotent and fast once the package is cached; the
+    first restore on a machine needs network, and .config/dotnet-tools.json holds the pin.
+  -->
+  <Target Name="RestoreKiota" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="dotnet tool restore"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          StandardOutputImportance="low"
+          ContinueOnError="true"
+          EnvironmentVariables="DOTNET_NOLOGO=1">
+      <Output TaskParameter="ExitCode" PropertyName="_KiotaRestoreExitCode" />
+    </Exec>
+
+    <Error Condition="'$(_KiotaRestoreExitCode)' != '0'"
+           Code="HTPL002"
+           Text="The Kiota tool could not be restored, so the client cannot be generated. The pin is microsoft.openapi.kiota in .config/dotnet-tools.json; a fresh machine needs network for the first restore, and `dotnet tool restore` in the solution folder shows what NuGet said." />
+  </Target>
+
+  <!--
+    The two pins have to agree. The generated code and the runtime packages come from matching
+    Kiota releases, and `kiota info` reports the bundle version the tool expects, so a bump of one
+    without the other is caught here rather than as a compile error inside generated code.
+    Both pin files are inputs of the generate target below, so changing either one runs this again.
+  -->
+  <Target Name="CheckKiotaPins" DependsOnTargets="RestoreKiota" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="dotnet kiota info --language CSharp --json"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="low"
+          EnvironmentVariables="KIOTA_OFFLINE_ENABLED=true;KIOTA_TUTORIAL_ENABLED=false;DOTNET_NOLOGO=1">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_KiotaInfo" />
+    </Exec>
+
+    <PropertyGroup>
+      <_KiotaExpectedBundle>$([System.Text.RegularExpressions.Regex]::Replace('$(_KiotaInfo)', '(?s)^.*?"Microsoft\.Kiota\.Bundle"[^0-9]*?([0-9][0-9A-Za-z.\-]*).*$', '$1'))</_KiotaExpectedBundle>
+    </PropertyGroup>
+
+    <Error Condition="'$(_KiotaExpectedBundle)' != '$(KiotaBundleVersion)'"
+           Code="HTPL003"
+           Text="The Kiota tool and the Kiota bundle disagree: microsoft.openapi.kiota in .config/dotnet-tools.json expects Microsoft.Kiota.Bundle $(_KiotaExpectedBundle), and KiotaBundleVersion in Directory.Packages.props is $(KiotaBundleVersion). The two move together; set both to one Kiota release." />
+  </Target>
+
+  <!--
+    kiota-lock.json is Kiota's own record of the generation and doubles as the up-to-date stamp:
+    an unchanged document skips this, a changed one - or a changed pin - runs it. The output is
+    cleaned first because it is nobody's but Kiota's; backward-compatible members are excluded
+    because a new client has nothing to be compatible with; and the log level is warning so a
+    code-first document with no server entry, which Kiota mentions, does not fail a warning-free
+    build.
+  -->
+  <Target Name="GenerateClient"
+          DependsOnTargets="RestoreKiota;CheckKiotaPins"
+          BeforeTargets="CoreCompile"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="$(KiotaSpec);$(MSBuildProjectDirectory)/../../.config/dotnet-tools.json;$(MSBuildProjectDirectory)/../../Directory.Packages.props"
+          Outputs="$(KiotaOutput)kiota-lock.json">
+    <!-- Kiota's own warning lines are shown, not counted: a code-first document with no server
+         entry draws one on every generation, and a warning-free build is what CI holds this to. -->
+    <Exec Command="dotnet kiota generate --language CSharp --openapi &quot;$(KiotaSpec)&quot; --class-name TemplateModuleNameClient --namespace-name $(RootNamespace) --output &quot;$(KiotaOutput)&quot; --clean-output --exclude-backward-compatible --log-level warning"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"
+          EnvironmentVariables="KIOTA_OFFLINE_ENABLED=true;KIOTA_TUTORIAL_ENABLED=false;DOTNET_NOLOGO=1" />
+  </Target>
+
+  <!--
+    Added inside a target, after generation, for the glob reason above. Runs after GenerateClient
+    whether or not that target had anything to do, so an up-to-date client is still compiled.
+  -->
+  <Target Name="IncludeClient" AfterTargets="GenerateClient" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Compile Include="$(KiotaOutput)**/*.cs" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CleanClient" AfterTargets="CoreClean">
+    <RemoveDir Directories="$(KiotaOutput)" />
+  </Target>
+
+</Project>

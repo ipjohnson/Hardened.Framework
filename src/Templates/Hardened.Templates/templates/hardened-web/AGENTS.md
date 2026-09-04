@@ -48,6 +48,12 @@ Change the thing it was generated from.
 #if (declaredMode)
 | `HRDRM003` / `HRDRM004` | A response case is `object`, or two cases at different statuses are assignable to one another |
 #endif
+#if (kiotaClient)
+| `src/Hardened1.Client` shows no source files | Never built. The client is generated into `obj/kiota/` by the first real build; a design-time build does not run Kiota. |
+| `HTPL002`, or `RestoreKiota` fails on a fresh machine | `dotnet tool restore` needs network the first time. The pin is `microsoft.openapi.kiota` in `.config/dotnet-tools.json`. |
+| `HTPL003` | The Kiota tool and `KiotaBundleVersion` in `Directory.Packages.props` disagree. Bump both to one Kiota release. |
+| A route exists on the server and the client has no method for it | `src/Hardened1/openapi/Hardened1.json` is stale. Rebuild the library; the client regenerates from the new document. |
+#endif
 
 #if (specFirst)
 ## Routes are not in the C#
@@ -171,6 +177,20 @@ conversions and the compiler rejects the use site — which is why `NotFound` ap
 different response sets is fine and appearing twice in one is not.
 #endif
 
+#if (kiotaClient)
+## The client is generated, not written
+
+`src/Hardened1.Client` has no source of its own. Its csproj restores the pinned Kiota tool and runs
+it over `src/Hardened1/openapi/Hardened1.json`, which the library's build writes from the compiled
+assembly after every compile. **Never edit anything under `src/Hardened1.Client/obj/`, and never
+commit it.** The document is committed and the client is not; CI checks the document with
+`git diff --exit-code src/Hardened1/openapi`.
+
+The framework knows nothing about Kiota. The one Kiota-specific line outside the client project is
+`TestClients.cs`, which says how a test builds the client from an `HttpClient`; the harness does the
+rest, credentials included.
+
+#endif
 ## The one structural rule
 
 **The implementation library must stay host-independent.** Nothing in `src/Hardened1` may reference

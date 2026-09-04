@@ -17,6 +17,16 @@
     -->
     <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
     <HardenedAmzVersion>0.*-*</HardenedAmzVersion>
+<!--#if (kiotaClient) -->
+    <!--
+      The Kiota runtime the generated client compiles against. Pinned beside the tool that
+      generates it - microsoft.openapi.kiota in .config/dotnet-tools.json - and the two move
+      together: the generated code and the runtime come from matching Kiota releases, and the
+      client project fails with HTPL003 naming both when they disagree. They follow Kiota's
+      release line rather than Hardened's, which is why neither is $(HardenedVersion).
+    -->
+    <KiotaBundleVersion>2.0.0</KiotaBundleVersion>
+<!--#endif -->
   </PropertyGroup>
 
   <ItemGroup Label="Hardened">
@@ -40,6 +50,12 @@
 <!--#endif -->
     <PackageVersion Include="Hardened.Web.Testing" Version="$(HardenedVersion)" />
   </ItemGroup>
+<!--#if (kiotaClient) -->
+
+  <ItemGroup Label="Client">
+    <PackageVersion Include="Microsoft.Kiota.Bundle" Version="$(KiotaBundleVersion)" />
+  </ItemGroup>
+<!--#endif -->
 
   <ItemGroup Label="AWS Lambda">
     <!--

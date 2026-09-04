@@ -50,6 +50,19 @@
   </PropertyGroup>
 <!--#endif -->
 
+<!--#if (kiotaClient) -->
+  <!--
+    The OpenAPI document this library serves, written to a file after every compile - read out of
+    the compiled assembly by the generator package's export task, so it is the document the server
+    implements rather than a re-derivation of it. src/Hardened1.Client generates from it. It is
+    committed: a route change shows in review as a document change, and CI checks the file is
+    current (see the README's Clients section). The first build writes it; nothing else does.
+  -->
+  <PropertyGroup>
+    <HardenedOpenApiOutput>openapi/Hardened1.json</HardenedOpenApiOutput>
+  </PropertyGroup>
+<!--#endif -->
+
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Runtime" />
     <PackageReference Include="Hardened.Web.Runtime" />
