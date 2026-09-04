@@ -75,8 +75,26 @@ Every bounded attribute takes named `Min` and `Max` arguments, so a single bound
 `[Required]` marks a member the caller must send; on a non-nullable value type it is unnecessary,
 because absence is unrepresentable there.
 
-Constraints on query, header and path parameters are a contract-first feature today. A
-code-first handler validates bound scalars by type only; `HRDV001` names the ways out.
+The same attributes go on a handler's own parameters, for a value bound from the query string, a
+header, the path or a cookie:
+
+```csharp
+[Get("/rates/{count:int}")]
+public int Page([Range(Min = 1, Max = 100)] int count) => count;
+
+[Get("/precision")]
+public int Precision([FromQueryString] [Range(Min = 2, Max = 8)] int precision) => precision;
+
+[Get("/region")]
+public string Region([FromHeader("X-Region")] [StringLength(2, 2)] string region) => region;
+```
+
+A failure is reported under the name the caller sent, `precision` or `X-Region`, in the same
+envelope a body failure uses. A route constraint and a value constraint answer different
+questions: `/rates/abc` matches no route and is a 404, `/rates/0` reaches the handler's filter
+and is a 400. The one thing a parameter's constraint cannot carry is a `When` or `Unless`, which
+names a member of the model the constraint sits on; a parameter sits on no model, and `HRDV005`
+says so at build time.
 
 ## The 400 envelope
 
