@@ -338,11 +338,22 @@ public abstract class BaseRequestModelGenerator {
 
             if (parameterInformation == null) {
                 parameterInformation = GetParameterInfo(
-                    generatorSyntaxContext, 
+                    generatorSyntaxContext,
                     methodDeclaration,
-                    requestHandlerNameModel, 
+                    requestHandlerNameModel,
                     parameter,
                     i);
+            }
+
+            // What the parameter's own constraints say for the document, read here because this
+            // is where its symbol is. The validator that enforces them is HandlerValidationFrontEnd's,
+            // which reads the same attributes through ValidationModules; this reads only the ones
+            // the document can say, so the two are the same statement written twice, as they are
+            // for a property.
+            if (PublishesFacets(parameterInformation.BindingType) &&
+                generatorSyntaxContext.SemanticModel.GetDeclaredSymbol(parameter) is { } symbol) {
+                parameterInformation.SchemaFacets = SchemaConstraintWriter.FacetsOf(symbol);
+                parameterInformation.RequiredByConstraint = SchemaConstraintWriter.IsRequired(symbol);
             }
 
             parameters.Add(parameterInformation);
@@ -350,6 +361,17 @@ public abstract class BaseRequestModelGenerator {
 
         return parameters;
     }
+
+    /// <summary>
+    /// Whether the document describes this parameter with a schema of its own, which is where a
+    /// facet can be written. A body has a schema the document builds from its type, and a service
+    /// or the context is not the caller's to constrain.
+    /// </summary>
+    private static bool PublishesFacets(ParameterBindType bindingType) =>
+        bindingType is ParameterBindType.Path
+            or ParameterBindType.QueryString
+            or ParameterBindType.Header
+            or ParameterBindType.Cookie;
 
     protected virtual RequestParameterInformation? DefaultGetParameterFromAttribute(
         AttributeSyntax attribute, 

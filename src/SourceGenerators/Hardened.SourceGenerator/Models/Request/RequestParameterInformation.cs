@@ -66,6 +66,26 @@ public class RequestParameterInformation {
     internal ParameterModel? SpecParameter { get; set; }
 
     /// <summary>
+    /// The JSON Schema facets the constraints written on this parameter imply, as the inside of
+    /// an object, or null when it declares none the document can say.
+    /// </summary>
+    /// <remarks>
+    /// Read where the parameter's symbol is, in the syntax transform, and spliced into the schema
+    /// where the schema is written, at the output stage - the same journey
+    /// <see cref="Description"/> makes. Set for a hand-written handler only, and carried through
+    /// the description the web generator writes for it, since the shared builder rebuilds every
+    /// parameter from that description. A parameter that came from a contract states its facets
+    /// in <see cref="SpecParameter"/>'s typed members instead, which the writer prefers.
+    /// </remarks>
+    public string? SchemaFacets { get; set; }
+
+    /// <summary>
+    /// Whether <c>[Required]</c> is written on the parameter, so a nullable parameter the caller
+    /// must still send is published as required.
+    /// </summary>
+    public bool RequiredByConstraint { get; set; }
+
+    /// <summary>
     /// Whether every public constructor of <see cref="ParameterType"/> takes an interface.
     /// </summary>
     /// <remarks>
@@ -103,7 +123,9 @@ public class RequestParameterInformation {
             CustomAttribute,
             ConstructorRequiresServices) {
             Description = Description,
-            SpecParameter = SpecParameter
+            SpecParameter = SpecParameter,
+            SchemaFacets = SchemaFacets,
+            RequiredByConstraint = RequiredByConstraint
         };
 
     public override bool Equals(object obj) {
@@ -148,6 +170,11 @@ public class RequestParameterInformation {
         }
 
         if (!Equals(SpecParameter, requestParameterInformation.SpecParameter)) {
+            return false;
+        }
+
+        if (SchemaFacets != requestParameterInformation.SchemaFacets ||
+            RequiredByConstraint != requestParameterInformation.RequiredByConstraint) {
             return false;
         }
 

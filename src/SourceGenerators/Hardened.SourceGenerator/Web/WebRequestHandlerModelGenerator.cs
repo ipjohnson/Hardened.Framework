@@ -376,7 +376,12 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
                         Name = Wire(p),
                         MemberNameOverride = p.Name,
                         In = Location(p.BindingType),
-                        IsRequired = p.Required
+                        IsRequired = p.Required,
+                        // What the parameter's own constraints say for the document, read off
+                        // its symbol before this description was written and carried through
+                        // it, since the builder below rebuilds every parameter from here.
+                        SchemaFacets = p.SchemaFacets,
+                        RequiredByConstraint = p.RequiredByConstraint
                     }).ToList()
                 }
             }

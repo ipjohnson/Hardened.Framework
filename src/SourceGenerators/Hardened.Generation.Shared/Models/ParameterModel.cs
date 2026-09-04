@@ -87,6 +87,28 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     public int? MaxItems { get; set; }
     public List<string>? EnumValues { get; set; }
 
+    /// <summary>
+    /// The facets a compilation read off a hand-written handler's parameter, as the inside of a
+    /// schema object, or null. A described parameter states its facets in the typed members above
+    /// and never sets this.
+    /// </summary>
+    /// <remarks>
+    /// A transport field, like <see cref="MemberNameOverride"/>: the code-first web generator
+    /// describes its handlers through this model on their way to the shared builder, and the
+    /// document writer derives such a parameter's schema from its C# type rather than from
+    /// <see cref="Type"/>, which is empty here - so the facets arrive already spelled, from the
+    /// same reader that spells them for a body model's properties, and are spliced in beside the
+    /// derived schema.
+    /// </remarks>
+    public string? SchemaFacets { get; set; }
+
+    /// <summary>
+    /// Whether <c>[Required]</c> is written on a hand-written handler's parameter. Kept apart from
+    /// <see cref="IsRequired"/>, which the binder reads: the constraint is the validator's to
+    /// enforce and the document's to state, not a reason for the binder to refuse the request.
+    /// </summary>
+    public bool RequiredByConstraint { get; set; }
+
     public bool HasValidationConstraints =>
         IsRequired || MinLength.HasValue || MaxLength.HasValue ||
         Minimum.HasValue || Maximum.HasValue ||
@@ -117,6 +139,7 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
                ExclusiveMinimum == other.ExclusiveMinimum && ExclusiveMaximum == other.ExclusiveMaximum &&
                Pattern == other.Pattern && RouteConstraint == other.RouteConstraint &&
                MinItems == other.MinItems && MaxItems == other.MaxItems &&
+               SchemaFacets == other.SchemaFacets && RequiredByConstraint == other.RequiredByConstraint &&
                SameEnumValues(other);
     }
 

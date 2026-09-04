@@ -42,34 +42,50 @@ internal static class SchemaConstraintWriter {
     private const string ConstraintsNamespace = "ValidationModules.Constraints";
 
     /// <summary>
-    /// <paramref name="schema"/> with the facets <paramref name="property"/>'s constraints imply.
+    /// <paramref name="schema"/> with the facets <paramref name="member"/>'s constraints imply.
     /// </summary>
     /// <remarks>
-    /// A property whose schema <em>is</em> a <c>$ref</c> is returned untouched. OpenAPI 3.0
-    /// ignores every sibling of a <c>$ref</c>, so facets written beside one would be silently
-    /// dropped by any reader - which is worse than not writing them, because the document would
-    /// claim a constraint it does not communicate. Only the top level: this used to search the
-    /// whole string, so an array of referenced objects - whose <c>items</c> nests a
-    /// <c>$ref</c> - lost every facet it had, <c>[ItemCount]</c>'s bounds included, and the
-    /// bounds belong on the array where no reference sits.
+    /// <see cref="FacetsOf"/> and <see cref="Merge"/> in one step, for a property whose symbol and
+    /// schema are in hand together. A code-first parameter's are not: its symbol lives in the
+    /// syntax transform and its schema is built at the output stage, so the model carries the
+    /// facets between the two.
     /// </remarks>
-    public static string Apply(string schema, IPropertySymbol property) {
-        if (schema.Length < 2 ||
-            schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal)) {
-            return schema;
-        }
+    public static string Apply(string schema, ISymbol member) => Merge(schema, FacetsOf(member));
 
-        var facets = new List<string>();
+    /// <summary>
+    /// The facets <paramref name="member"/>'s constraints imply, as the inside of a JSON object,
+    /// or null when it declares none the document can say.
+    /// </summary>
+    public static string? FacetsOf(ISymbol member) {
+        List<string>? facets = null;
 
-        foreach (var attribute in property.GetAttributes()) {
+        foreach (var attribute in member.GetAttributes()) {
             if (attribute.AttributeClass?.ContainingNamespace?.ToDisplayString() != ConstraintsNamespace) {
                 continue;
             }
 
-            Facets(attribute, facets);
+            Facets(attribute, facets ??= new List<string>());
         }
 
-        if (facets.Count == 0) {
+        return facets is { Count: > 0 } ? string.Join(",", facets) : null;
+    }
+
+    /// <summary>
+    /// <paramref name="schema"/> with <paramref name="facets"/> spliced in.
+    /// </summary>
+    /// <remarks>
+    /// A schema that <em>is</em> a <c>$ref</c> is returned untouched. OpenAPI 3.0 ignores every
+    /// sibling of a <c>$ref</c>, so facets written beside one would be silently dropped by any
+    /// reader - which is worse than not writing them, because the document would claim a
+    /// constraint it does not communicate. Only the top level: this used to search the whole
+    /// string, so an array of referenced objects - whose <c>items</c> nests a <c>$ref</c> - lost
+    /// every facet it had, <c>[ItemCount]</c>'s bounds included, and the bounds belong on the array
+    /// where no reference sits.
+    /// </remarks>
+    public static string Merge(string schema, string? facets) {
+        if (facets == null ||
+            schema.Length < 2 ||
+            schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal)) {
             return schema;
         }
 
@@ -77,16 +93,16 @@ internal static class SchemaConstraintWriter {
         var body = schema.Substring(1, schema.Length - 2);
         var separator = body.Length > 0 ? "," : "";
 
-        return "{" + body + separator + string.Join(",", facets) + "}";
+        return "{" + body + separator + facets + "}";
     }
 
-    /// <summary>Whether the property is required because a constraint says so.</summary>
+    /// <summary>Whether the member is required because a constraint says so.</summary>
     /// <remarks>
-    /// Separate from <see cref="Apply"/> because <c>required</c> is a list on the enclosing object
-    /// rather than a facet on the property, which is where a schema says it.
+    /// Separate from <see cref="Apply"/> because <c>required</c> is a list on the enclosing object,
+    /// or a field on a parameter, rather than a facet on the schema, which is where a schema says it.
     /// </remarks>
-    public static bool IsRequired(IPropertySymbol property) =>
-        property.GetAttributes().Any(attribute =>
+    public static bool IsRequired(ISymbol member) =>
+        member.GetAttributes().Any(attribute =>
             attribute.AttributeClass?.Name == "RequiredAttribute" &&
             attribute.AttributeClass.ContainingNamespace?.ToDisplayString() == ConstraintsNamespace);
 

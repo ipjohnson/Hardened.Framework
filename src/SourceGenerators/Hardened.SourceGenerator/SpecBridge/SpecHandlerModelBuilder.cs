@@ -292,6 +292,11 @@ internal static class SpecHandlerModelBuilder {
                 // bounds and the enum vocabulary are facts only the document wants, and carrying
                 // the model beats re-deriving them from the C# type, which can only guess.
                 SpecParameter = param,
+                // And what a hand-written handler's parameter constrains, which its description
+                // carried through here from the compilation because it has no typed slot on the
+                // way in: the writer splices it beside the schema it derives from the C# type.
+                SchemaFacets = param.SchemaFacets,
+                RequiredByConstraint = param.RequiredByConstraint
             });
         }
 

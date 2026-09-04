@@ -32,32 +32,43 @@ namespace Hardened.SourceGenerator.Validation;
 /// MSBuild task runs before compilation and writes its interfaces as ordinary source.
 /// </para>
 /// <para>
-/// So the validator for <c>Parameters</c> is emitted here, where the type is known - and it does
-/// nothing itself except descend into the parameters that carry structure, calling the validators
-/// the validation generator emitted for their types. Those are named by convention rather than
-/// observed, which is safe only because naming one that does not exist fails to compile.
+/// So the validator for <c>Parameters</c> is emitted here, where the type is known, and it does two
+/// things. It descends into the parameters that carry structure, calling the validators the
+/// validation generator emitted for their types - named by convention rather than observed, which
+/// is safe only because naming one that does not exist fails to compile. And it checks the
+/// constraints written on the parameters themselves: <c>[Range]</c> on a query value,
+/// <c>[StringLength]</c> on a header, <c>[Required]</c> on a path token. Those are read and
+/// resolved by ValidationModules' own front end, through the two entry points it exposes for any
+/// member symbol, so a parameter is held to exactly the policy a property is - both vocabularies,
+/// the pattern forms, the type-fit diagnostics - and nothing about a constraint is decided here.
 /// </para>
 /// </remarks>
 public static class HandlerValidationFrontEnd {
 
     /// <summary>
-    /// The model for this handler's parameters validator, or null when nothing about the handler
-    /// asks for one.
+    /// What <see cref="Build"/> produces: the model, or null when nothing about the handler asks
+    /// for one, and whatever was reported reading the parameters' own constraints.
+    /// </summary>
+    public sealed record Built(ValidatedTypeModel? Model, ImmutableArray<Diagnostic> Diagnostics);
+
+    /// <summary>
+    /// The model for this handler's parameters validator, with the diagnostics its constraints
+    /// raised.
     /// </summary>
     /// <param name="handler">The handler, whose parameter list this walks.</param>
-    /// <param name="parameterTypes">
-    /// The declared type of each parameter, positionally aligned with the handler's parameter list.
-    /// Passed in rather than resolved here because the decision below depends on build properties,
-    /// which are not reachable from inside a syntax transform - so the symbols have to survive one
+    /// <param name="parameters">
+    /// The symbol of each parameter, positionally aligned with the handler's parameter list. Passed
+    /// in rather than resolved here because the decision below depends on build properties, which
+    /// are not reachable from inside a syntax transform - so the symbols have to survive one
     /// pipeline stage to meet them.
     /// </param>
     /// <param name="compilation">
     /// The compilation the parameter symbols came from - the front end walks inherited members and
     /// answers accessibility questions against it, so it must be the same snapshot.
     /// </param>
-    public static ValidatedTypeModel? Build(
+    public static Built Build(
         RequestHandlerModel handler,
-        ImmutableArray<ITypeSymbol?> parameterTypes,
+        ImmutableArray<IParameterSymbol?> parameters,
         Compilation compilation,
         ValidationGeneratorOptions options,
         CancellationToken cancellationToken) {
@@ -66,9 +77,15 @@ public static class HandlerValidationFrontEnd {
         // Emitting a second validator here would validate the same values twice and report every
         // failure twice with it.
         if (handler.ParametersInterface != null) {
-            return null;
+            return new Built(null, ImmutableArray<Diagnostic>.Empty);
         }
 
+        // One front end for the handler, and kept: what it reports about a constraint written on a
+        // parameter is reported nowhere else. HasValidator's is thrown away for the opposite reason.
+        var frontEnd = new AttributeFrontEnd(
+            compilation, options.CompileDataAnnotations, options.FieldNamer, options.ResolvedPatternPolicy);
+
+        var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
         var properties = ImmutableArray.CreateBuilder<ValidatedPropertyModel>();
 
         for (var i = 0; i < handler.RequestParameterInformationList.Count; i++) {
@@ -76,29 +93,33 @@ public static class HandlerValidationFrontEnd {
 
             var parameter = handler.RequestParameterInformationList[i];
 
-            if (!CarriesRequestData(parameter.BindingType) || i >= parameterTypes.Length) {
+            if (!CarriesRequestData(parameter.BindingType) || i >= parameters.Length) {
                 continue;
             }
 
-            if (parameterTypes[i] is not { } type) {
+            if (parameters[i] is not { } symbol) {
                 continue;
             }
 
-            if (BuildProperty(type, parameter, compilation, options) is { } property) {
+            if (BuildProperty(symbol, parameter, compilation, options, frontEnd, diagnostics) is { } property) {
                 properties.Add(property);
             }
         }
 
+        diagnostics.AddRange(frontEnd.Diagnostics);
+
         if (properties.Count == 0) {
-            return null;
+            return new Built(null, diagnostics.ToImmutable());
         }
 
-        return new ValidatedTypeModel(
-            handler.InvokeHandlerType.Namespace,
-            "Parameters",
-            $"global::{handler.InvokeHandlerType.Namespace}.{handler.InvokeHandlerType.Name}.Parameters",
-            ValidatorNameFor(handler),
-            new EquatableArray<ValidatedPropertyModel>(properties.ToImmutable()));
+        return new Built(
+            new ValidatedTypeModel(
+                handler.InvokeHandlerType.Namespace,
+                "Parameters",
+                $"global::{handler.InvokeHandlerType.Namespace}.{handler.InvokeHandlerType.Name}.Parameters",
+                ValidatorNameFor(handler),
+                new EquatableArray<ValidatedPropertyModel>(properties.ToImmutable())),
+            diagnostics.ToImmutable());
     }
 
     /// <summary>
@@ -119,36 +140,40 @@ public static class HandlerValidationFrontEnd {
         bindingType is ParameterBindType.Body
             or ParameterBindType.Path
             or ParameterBindType.QueryString
-            or ParameterBindType.Header;
+            or ParameterBindType.Header
+            or ParameterBindType.Cookie
+            or ParameterBindType.Form
+            or ParameterBindType.CustomAttribute;
 
     /// <summary>
-    /// The declared type of every parameter, aligned with the handler's parameter list.
+    /// The symbol of every parameter, aligned with the handler's parameter list.
     /// </summary>
-    public static ImmutableArray<ITypeSymbol?> ParameterTypesOf(
+    public static ImmutableArray<IParameterSymbol?> ParameterSymbolsOf(
         GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
 
-        var types = ImmutableArray.CreateBuilder<ITypeSymbol?>(
+        var symbols = ImmutableArray.CreateBuilder<IParameterSymbol?>(
             methodDeclaration.ParameterList.Parameters.Count);
 
         foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
-            types.Add(context.SemanticModel.GetDeclaredSymbol(parameter)?.Type);
+            symbols.Add(context.SemanticModel.GetDeclaredSymbol(parameter));
         }
 
-        return types.ToImmutable();
+        return symbols.ToImmutable();
     }
 
     /// <summary>
-    /// One parameter, described as a property of the <c>Parameters</c> class it becomes.
+    /// One parameter, described as a property of the <c>Parameters</c> class it becomes: whether
+    /// its type has a validator of its own to descend into, and what it constrains itself.
     /// </summary>
-    /// <remarks>
-    /// Only structure is read here - whether the parameter's type has a validator of its own.
-    /// Constraints written directly on the parameter are reported by
-    /// <see cref="HandlerValidationDiagnostics"/> rather than compiled; see the note there.
-    /// </remarks>
     private static ValidatedPropertyModel? BuildProperty(
-        ITypeSymbol type, RequestParameterInformation parameter, Compilation compilation,
-        ValidationGeneratorOptions options) {
+        IParameterSymbol symbol,
+        RequestParameterInformation parameter,
+        Compilation compilation,
+        ValidationGeneratorOptions options,
+        AttributeFrontEnd frontEnd,
+        ImmutableArray<Diagnostic>.Builder diagnostics) {
 
+        var type = symbol.Type;
         var shape = PropertyShape.Scalar;
         string? elementTypeName = null;
         string? elementValidatorName = null;
@@ -167,7 +192,12 @@ public static class HandlerValidationFrontEnd {
         } else if (dictionary is null && elementType is null && HasValidator(type, compilation, options)) {
             shape = PropertyShape.Object;
             elementValidatorName = QualifiedValidator((INamedTypeSymbol)type);
-        } else {
+        }
+
+        var descends = shape != PropertyShape.Scalar;
+        var constraints = Constraints(symbol, type, elementType, frontEnd, diagnostics);
+
+        if (!descends && constraints.Count == 0) {
             return null;
         }
 
@@ -183,8 +213,63 @@ public static class HandlerValidationFrontEnd {
             TypeFacts.IsNullableValueType(type),
             elementType is not null && TypeFacts.IsIndexable(type),
             TypeFacts.CountAccessor(type),
-            true,
-            EquatableArray<ConstraintModel>.Empty);
+            descends,
+            new EquatableArray<ConstraintModel>(constraints.ToImmutableArray()),
+            DisplayName: constraints.Count > 0 ? symbol.Name : null);
+    }
+
+    /// <summary>
+    /// The constraints written on the parameter itself, read and resolved by ValidationModules.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>ReadConstraintsFor</c> and <c>ValidateAndResolve</c> are the same two calls the front
+    /// end's own <c>Build</c> makes for a property, typed on the member symbol rather than on a
+    /// property, so the reading is not reimplemented here and cannot drift from it.
+    /// </para>
+    /// <para>
+    /// A <c>When</c> or <c>Unless</c> names a member of the model the constraint sits on, and a
+    /// handler parameter sits on no model - the front end would look for the member on a type it
+    /// was never given. Refused here, before the reader, as the one thing about a parameter's
+    /// constraint this generator decides itself.
+    /// </para>
+    /// </remarks>
+    private static List<ConstraintModel> Constraints(
+        IParameterSymbol symbol,
+        ITypeSymbol type,
+        ITypeSymbol? elementType,
+        AttributeFrontEnd frontEnd,
+        ImmutableArray<Diagnostic>.Builder diagnostics) {
+
+        foreach (var attribute in symbol.GetAttributes()) {
+            if (!ConstraintAttributeFacts.IsConstraint(attribute)) {
+                continue;
+            }
+
+            foreach (var argument in attribute.NamedArguments) {
+                if (argument.Key is not ("When" or "Unless")) {
+                    continue;
+                }
+
+                diagnostics.Add(Diagnostic.Create(
+                    HandlerValidationDiagnostics.ConditionOnParameterConstraint,
+                    symbol.Locations.FirstOrDefault(),
+                    argument.Key,
+                    attribute.AttributeClass!.Name,
+                    symbol.Name));
+
+                return new List<ConstraintModel>();
+            }
+        }
+
+        var constraints = frontEnd.ReadConstraintsFor(symbol, type);
+
+        if (constraints.Count > 0) {
+            frontEnd.ValidateAndResolve(
+                symbol, type, constraints, type.SpecialType == SpecialType.System_String, elementType);
+        }
+
+        return constraints;
     }
 
     /// <summary>

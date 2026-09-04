@@ -16,8 +16,8 @@ namespace Hardened.SourceGenerator.Validation;
 
 /// <summary>
 /// Attaches validation to hand-written handlers: the validator for the generated
-/// <c>Parameters</c> class, the filter that runs it, and warnings for constraints written where
-/// this generator does not read them.
+/// <c>Parameters</c> class, the filter that runs it, and whatever ValidationModules reports about
+/// the constraints written on the parameters themselves.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -79,9 +79,9 @@ public static class HandlerValidationGenerator {
     /// what to do with it are known.
     /// </summary>
     /// <remarks>
-    /// The parameter types cross into the next stage as symbols, which is what lets the decision
-    /// there depend on build properties. Nothing else does: the diagnostics are settled here,
-    /// because whether a constraint sits on a parameter is not a question any property changes.
+    /// The parameter symbols cross into the next stage as symbols, which is what lets the decision
+    /// there depend on build properties - and what lets the constraints written on them be read
+    /// there, by a front end configured from those properties.
     /// </remarks>
     private static Candidate Analyze(
         BaseRequestModelGenerator modelGenerator,
@@ -93,12 +93,11 @@ public static class HandlerValidationGenerator {
 
         // The compilation rides with the symbols it produced rather than arriving through a
         // Combine, so the front end asks its accessibility questions of the same snapshot the
-        // parameter types came from.
+        // parameter symbols came from.
         return new Candidate(
             handler,
-            HandlerValidationFrontEnd.ParameterTypesOf(context, methodDeclaration),
-            context.SemanticModel.Compilation,
-            UncompiledConstraints(context, methodDeclaration));
+            HandlerValidationFrontEnd.ParameterSymbolsOf(context, methodDeclaration),
+            context.SemanticModel.Compilation);
     }
 
     private static Resolved Resolve(
@@ -108,20 +107,20 @@ public static class HandlerValidationGenerator {
         CancellationToken cancellationToken) {
 
         // Nothing emits validators for this compilation, so there is nothing to attach to and
-        // nothing to warn about - a project that never opted into validation behaves as it did.
+        // nothing to report - a project that never opted into validation behaves as it did.
         if (!validationAvailable) {
             return new Resolved(candidate.Handler, null, ImmutableArray<Diagnostic>.Empty);
         }
 
-        var validator = HandlerValidationFrontEnd.Build(
-            candidate.Handler, candidate.ParameterTypes, candidate.Compilation, options,
+        var built = HandlerValidationFrontEnd.Build(
+            candidate.Handler, candidate.Parameters, candidate.Compilation, options,
             cancellationToken);
 
-        if (validator is null) {
-            return new Resolved(candidate.Handler, null, candidate.Diagnostics);
+        if (built.Model is null) {
+            return new Resolved(candidate.Handler, null, built.Diagnostics);
         }
 
-        return new Resolved(WithFilter(candidate.Handler, validator), validator, candidate.Diagnostics);
+        return new Resolved(WithFilter(candidate.Handler, built.Model), built.Model, built.Diagnostics);
     }
 
     /// <summary>
@@ -163,40 +162,10 @@ public static class HandlerValidationGenerator {
         return withFilter;
     }
 
-    /// <summary>
-    /// Warnings for constraints written where this generator does not read them.
-    /// </summary>
-    private static ImmutableArray<Diagnostic> UncompiledConstraints(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
-
-        var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
-
-        foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
-            if (context.SemanticModel.GetDeclaredSymbol(parameter) is not { } symbol) {
-                continue;
-            }
-
-            foreach (var attribute in symbol.GetAttributes()) {
-                if (!ConstraintAttributeFacts.IsConstraint(attribute)) {
-                    continue;
-                }
-
-                diagnostics.Add(Diagnostic.Create(
-                    HandlerValidationDiagnostics.ConstraintOnParameter,
-                    parameter.GetLocation(),
-                    attribute.AttributeClass!.Name,
-                    symbol.Name));
-            }
-        }
-
-        return diagnostics.ToImmutable();
-    }
-
     private sealed record Candidate(
         RequestHandlerModel Handler,
-        ImmutableArray<ITypeSymbol?> ParameterTypes,
-        Compilation Compilation,
-        ImmutableArray<Diagnostic> Diagnostics);
+        ImmutableArray<IParameterSymbol?> Parameters,
+        Compilation Compilation);
 
     public sealed record Resolved(
         RequestHandlerModel Handler,
