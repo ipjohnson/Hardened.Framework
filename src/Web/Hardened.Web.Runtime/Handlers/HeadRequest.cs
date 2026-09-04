@@ -46,7 +46,11 @@ internal static class HeadRequest {
 
             // Nothing reached the real stream, so the response cannot have started - but a filter
             // may have started it deliberately, and rewriting headers after that throws on Kestrel.
-            if (!context.Response.ResponseStarted) {
+            //
+            // A 304 reports no length either. The count is of bytes the conditional filter
+            // discarded, not of the body a 200 would have carried, and RFC 9110 §8.6 lets a 304
+            // carry Content-Length only when it is that one.
+            if (!context.Response.ResponseStarted && context.Response.Status != 304) {
                 context.Response.Headers[ContentLengthHeader] =
                     discard.BytesWritten.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }

@@ -46,10 +46,9 @@ public sealed class StaticContentEntry {
         // Truncated to the second, because the header has no more precision than that. Comparing a
         // sub-second file time against a value that was rounded on the way out makes every
         // conditional request look like a miss, forever, by up to 999 milliseconds.
-        LastModified = lastModified?.ToUniversalTime()
-            .AddTicks(-(lastModified.Value.UtcTicks % TimeSpan.TicksPerSecond));
+        LastModified = lastModified.HasValue ? HttpDate.Truncate(lastModified.Value) : null;
 
-        LastModifiedHeader = LastModified?.ToString("R", CultureInfo.InvariantCulture);
+        LastModifiedHeader = LastModified.HasValue ? HttpDate.Format(LastModified.Value) : null;
     }
 
     public string ContentType { get; }

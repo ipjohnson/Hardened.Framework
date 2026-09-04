@@ -508,9 +508,16 @@ namespace Hardened.Requests.Abstract.Headers
     }
     public static class EntityTagHeader
     {
+        public static string ForContent(System.ReadOnlySpan<byte> content) { }
         public static string Format(string opaque) { }
         public static string Format(string opaque, string variant) { }
         public static bool Matches(Microsoft.Extensions.Primitives.StringValues ifNoneMatch, string etag) { }
+    }
+    public static class HttpDate
+    {
+        public static string Format(System.DateTimeOffset when) { }
+        public static System.DateTimeOffset Truncate(System.DateTimeOffset when) { }
+        public static bool TryParse(Microsoft.Extensions.Primitives.StringValues value, out System.DateTimeOffset parsed) { }
     }
     public interface ICookieSetCollection
     {
@@ -598,6 +605,10 @@ namespace Hardened.Requests.Abstract.Headers
             public const string AccessControlRequestHeaders = "Access-Control-Request-Headers";
             public const string AccessControlRequestMethod = "Access-Control-Request-Method";
         }
+    }
+    public static class Precondition
+    {
+        public static bool NotModified(Microsoft.Extensions.Primitives.StringValues ifNoneMatch, Microsoft.Extensions.Primitives.StringValues ifModifiedSince, string? etag, System.DateTimeOffset? lastModified) { }
     }
     public static class RangeHeader
     {

@@ -587,6 +587,99 @@ public class ResponseCacheFilterTests {
         Assert.Empty(store.Writes);
     }
 
+    /// <summary>
+    /// What makes an entry revalidatable. The tag goes out with the miss, so a client has it to
+    /// send back, and into the entry, so a hit carries the same one.
+    /// </summary>
+    [Fact]
+    public async Task AMissIsTaggedWithAValidatorOverTheBytesItStored() {
+        var store = new CacheTestSupport.RecordingStore();
+        var context = Context(store);
+
+        await Pipeline.Chain(context, Filter(), Writing("catalog")).Next();
+
+        var tag = context.Response.Headers[KnownHeaders.ETag].ToString();
+
+        Assert.Matches("^\"[A-Za-z0-9+/=]+\"$", tag);
+
+        var second = Context(store);
+
+        await Pipeline.Chain(second, Filter()).Next();
+
+        Assert.Equal(tag, second.Response.Headers[KnownHeaders.ETag].ToString());
+    }
+
+    /// <summary>
+    /// A tag names the bytes. The same body under two keys is one representation, and two bodies
+    /// under one handler are two.
+    /// </summary>
+    [Fact]
+    public async Task TheTagFollowsTheBytes() {
+        var store = new CacheTestSupport.RecordingStore();
+
+        var catalog = new ResponseCacheFilter([new CacheTestSupport.FixedKey()], "GET /catalog", 60);
+        var basket = new ResponseCacheFilter([new CacheTestSupport.FixedKey()], "GET /basket", 60);
+        var other = new ResponseCacheFilter([new CacheTestSupport.FixedKey()], "GET /other", 60);
+
+        var first = Context(store);
+        var same = Context(store);
+        var different = Context(store);
+
+        await Pipeline.Chain(first, catalog, Writing("catalog")).Next();
+        await Pipeline.Chain(same, basket, Writing("catalog")).Next();
+        await Pipeline.Chain(different, other, Writing("basket")).Next();
+
+        Assert.Equal(
+            first.Response.Headers[KnownHeaders.ETag].ToString(),
+            same.Response.Headers[KnownHeaders.ETag].ToString());
+        Assert.NotEqual(
+            first.Response.Headers[KnownHeaders.ETag].ToString(),
+            different.Response.Headers[KnownHeaders.ETag].ToString());
+    }
+
+    /// <summary>
+    /// A handler's own validator knows more than a hash does - its version changes when the
+    /// resource does, not when the serializer does - so it is kept, on the miss and in the entry.
+    /// </summary>
+    [Fact]
+    public async Task AHandlerThatSetsItsOwnTagKeepsIt() {
+        var store = new CacheTestSupport.RecordingStore();
+        var first = Context(store);
+
+        await Pipeline.Chain(first, Filter(), new Pipeline.Inline(async chain => {
+            chain.Context.Response.Headers[KnownHeaders.ETag] = new StringValues("\"v7\"");
+
+            await Write(chain.Context, "catalog");
+        })).Next();
+
+        var second = Context(store);
+
+        await Pipeline.Chain(second, Filter()).Next();
+
+        Assert.Equal("\"v7\"", first.Response.Headers[KnownHeaders.ETag]);
+        Assert.Equal("\"v7\"", second.Response.Headers[KnownHeaders.ETag]);
+    }
+
+    /// <summary>
+    /// A response that is not stored is not a representation anyone will revalidate, so it gets no
+    /// tag either.
+    /// </summary>
+    [Theory]
+    [InlineData(404)]
+    [InlineData(500)]
+    public async Task AResponseThatIsNotStoredIsNotTagged(int status) {
+        var store = new CacheTestSupport.RecordingStore();
+        var context = Context(store);
+
+        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(async chain => {
+            chain.Context.Response.Status = status;
+
+            await Write(chain.Context, "gone");
+        })).Next();
+
+        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.ETag));
+    }
+
     private static ResponseCacheFilter PerCaller() =>
         new([new CacheTestSupport.FixedKey()], "GET /catalog", 60, CacheScope.PerCaller);
 

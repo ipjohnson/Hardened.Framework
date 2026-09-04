@@ -188,6 +188,99 @@ which has no atomic operation to do it with. A store that cannot do it atomicall
 it: entries dropped one at a time is a worse guarantee than all at once, and both are better than a
 publish nobody can see.
 
+## Revalidating
+
+```csharp
+[Get("/rates/{symbol}")]
+[CacheResponse<VaryByRoute>(Duration = 3600, Tags = ["rates"])]
+[ConditionalGet]
+public Rate Read(string symbol) => _rates.Latest(symbol);
+```
+
+```
+GET /rates/EUR
+HTTP/1.1 200 OK
+ETag: "OybX3FuqNfSKoSm+h1FJqQ=="
+
+GET /rates/EUR
+If-None-Match: "OybX3FuqNfSKoSm+h1FJqQ=="
+HTTP/1.1 304 Not Modified
+ETag: "OybX3FuqNfSKoSm+h1FJqQ=="
+```
+
+`[ConditionalGet]` answers a GET or HEAD whose caller already holds the response with a 304 and
+no body. It goes on an operation or on a class, or on every GET handler in the application as
+`[Enable<ConditionalGet>]`, which stands down for a handler that declares its own. Nothing
+installs it otherwise. A service whose responses are small and change on every read gets nothing
+from a 304, and pays nothing for it.
+
+Every entry the store is handed carries an entity-tag, a SHA-256 of the bytes stored, computed as
+the response is captured when the handler wrote none. It goes out with the miss and is replayed
+with the hit, and it is what the filter compares against: a hit is answered 304 without running
+the handler and without the stored body. The filter sits outside the cache, which is the ordering
+`FilterOrder.Conditional` was reserved for, and outside compression, so a 304 carries no coding
+for a body it does not have. The tag is strong, because a hit writes the stored bytes byte for
+byte; the compression filter weakens it as it encodes, so a client that accepts gzip holds
+`W/"..."`, and `If-None-Match` compares weakly either way.
+
+### What it costs
+
+The filter decides on the first write. A response that already carries an `ETag` by then - the
+cache tagged the entry, a handler wrote one - is decided there and then, a 304 or the bytes
+straight through to the transport. A response carrying none is held back and tagged over the
+bytes as sent once they are all there: a buffer and a hash per response. That is the cost of
+declaring this on a handler that neither caches nor writes a validator, and it buys bandwidth
+only. The handler ran, and a 304 from a hash of its output saved the transfer and the client's
+parse, not the work. It is worth having for a large or frequently polled response, and for a
+shared cache in front of the service, which revalidates when its copy expires and keeps it on a
+304. It is not worth having for a small response that changes on every read, which is why it is
+declared rather than assumed.
+
+The tag covers the bytes as sent. Behind the compression filter a gzip client and an identity
+client hold different tags for one resource, as they do for a compressed static file, and each
+is revalidated against its own.
+
+Do not declare it on a handler returning `IAsyncEnumerable<T>`, for the reason given for the
+cache below: holding a stream back is buffering it.
+
+### A handler's own validator
+
+A handler that knows its resource's version writes it, and is passed straight through rather
+than held back:
+
+```csharp
+[Get("/documents/{id}")]
+[ConditionalGet]
+public Document Read(string id, IExecutionContext context) {
+    var document = _documents.Find(id);
+
+    context.Response.Headers[KnownHeaders.ETag] = "\"" + document.Version + "\"";
+    context.Response.Headers[KnownHeaders.LastModified] = HttpDate.Format(document.UpdatedAt);
+
+    return document;
+}
+```
+
+`If-None-Match` is evaluated when it is present and `If-Modified-Since` only when it is not,
+including when the tag does not match. That is RFC 9110 §13.2.1's order, implemented once in
+`Precondition` and shared with static content. A handler's own tag is kept when the response is
+also cached: a version that changes when the resource does says more than a hash of the
+serializer's output.
+
+This costs the body, not the handler. A handler that wrote its own validator ran in order to
+write it. Skipping the work needs the validator before the handler runs, which is not built.
+
+### What a 304 carries
+
+The status, and the headers RFC 9110 §15.4.5 says a 304 repeats when a 200 would have sent them:
+`ETag`, `Last-Modified`, `Cache-Control`, `Vary` and whatever else the handler and the filters
+wrote. `Content-Type`, `Content-Length` and `Content-Encoding` are removed, because they describe
+content the response does not have, and a HEAD answered 304 reports no length for the same reason.
+
+A 304 stands in for a 200 and nothing else. A 404 or a 500 is sent as it is, and so is a refusal:
+authorization and rate limiting record theirs ahead of this stage and the filter reads what they
+recorded, so a caller who may not read the resource is not told that it has not changed.
+
 ## What is not cached
 
 **A handler whose authorization reads the request.** The filter runs at
@@ -220,8 +313,9 @@ older build cannot leak one either:
 | Anything the response already carried on the way in | Belongs to this request. Whatever wrote it sits ahead of this stage and runs on a hit as well, so its own value is already there — and storing one froze the first caller's `X-Correlation-Id`, and the first request's `RateLimit-Remaining`, onto everyone else for the whole duration. A header the chain *changed* is kept, because a miss would have changed it the same way. |
 
 What is left is what the handler and the filters inside the cache produced, which is what carries
-`Cache-Control` and `ETag` onto a hit. `Vary` reaches a hit because `VaryByHeader` writes it while
-composing the key, on every request.
+`Cache-Control` and `ETag` onto a hit - the handler's own tag, or the one the capture computed
+when it wrote none (see [Revalidating](#revalidating)). `Vary` reaches a hit because
+`VaryByHeader` writes it while composing the key, on every request.
 
 ## What it stores
 
@@ -283,8 +377,11 @@ decides when the memory is freed, not what a request is answered with.
   constant. ASP.NET Core has the same shape and the same limit.
 - **Stampede protection.** ASP.NET Core locks per resource so a cold key is computed once. Here,
   *n* concurrent misses run the handler *n* times and the last one wins.
-- **Conditional GET.** `EntityTagHeader` can format and weakly compare validators and nothing reads
-  `If-None-Match` back for a handler, so a client that revalidates still gets a full body.
+- **Skipping the handler on a validator it knows.** A 304 from a handler's own `ETag` costs the
+  body, not the handler: the handler ran to write the tag. Answering before it runs needs the
+  current validator from somewhere else. Only a cache hit skips the handler today.
+- **`If-Match` and `If-Unmodified-Since`.** They guard a write against a lost update and answer
+  412, which needs the current validator before the handler runs for the same reason.
   `KnownHeaders.IfMatch` remains a constant with no implementation.
 
 ## One thing to avoid

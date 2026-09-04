@@ -24,6 +24,9 @@
       "name": "Compression"
     },
     {
+      "name": "Conditional"
+    },
+    {
       "name": "EnumVocabulary"
     },
     {
@@ -1133,6 +1136,57 @@
             "description": "OK",
             "content": {
               "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conditional/document": {
+      "get": {
+        "tags": [
+          "Conditional"
+        ],
+        "operationId": "read",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conditional/generated": {
+      "get": {
+        "tags": [
+          "Conditional"
+        ],
+        "operationId": "generated",
+        "summary": "A body that is the same for the same query, so the tag the filter computes over it is stable per value and a different value is a different representation.",
+        "parameters": [
+          {
+            "name": "culture",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
                 "schema": {
                   "type": "string"
                 }
@@ -2601,6 +2655,23 @@
             ],
             "minLength": 2,
             "maxLength": 2
+          }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "required": [
+          "version",
+          "served"
+        ],
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "served": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Advances only when the handler runs, so a 304 that ran it is visible."
           }
         }
       },

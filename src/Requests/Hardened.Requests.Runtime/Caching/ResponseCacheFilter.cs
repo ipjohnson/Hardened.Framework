@@ -423,8 +423,18 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
 
         response.Body = buffer;
 
+        var storable = false;
+
         try {
             await chain.Next();
+
+            storable = IsStorable(response);
+
+            // Tagged before the copy, which is the write that starts the response on every host,
+            // so the tag goes out with the miss as well as into the entry.
+            if (storable) {
+                Tag(response, buffer);
+            }
         }
         finally {
             response.Body = transportBody;
@@ -434,7 +444,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             await buffer.CopyToAsync(transportBody, context.CancellationToken);
         }
 
-        if (!IsStorable(response)) {
+        if (!storable) {
             return;
         }
 
@@ -459,6 +469,39 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// </remarks>
     private static bool IsStorable(IExecutionResponse response) =>
         response.ExceptionValue == null && (response.Status ?? 200) == 200;
+
+    /// <summary>
+    /// Puts an entity-tag on a response that has none, computed from the bytes about to be stored.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// What makes a stored entry revalidatable. A handler declaring <c>[ConditionalGet]</c> as
+    /// well as this has the filter at <c>FilterOrder.Conditional</c> - outside this one, so it
+    /// sees a hit as well as a miss - answer a client holding the tag with a 304 and no body, and
+    /// because the tag is already on the response by the time that filter sees the first byte,
+    /// it passes the bytes straight through rather than holding them back to compute one.
+    /// </para>
+    /// <para>
+    /// Computed here whether or not that filter is declared. The bytes are already in memory and
+    /// a miss is the rare path, so it costs one hash where the handler and the serializer have
+    /// just run; computing it on the way out instead would hash the same stored bytes on every
+    /// hit. A strong tag, because the entry's bytes are what a hit writes, byte for byte; the
+    /// compression filter weakens it as it encodes, which is right, since the encoded bytes are
+    /// a different sequence.
+    /// </para>
+    /// <para>
+    /// A handler that wrote its own tag knows more than a hash does - its version changes when the
+    /// resource does, not when the serializer does - so an existing header is kept.
+    /// </para>
+    /// </remarks>
+    private static void Tag(IExecutionResponse response, MemoryStream buffer) {
+        if (response.Headers.ContainsKey(KnownHeaders.ETag)) {
+            return;
+        }
+
+        response.Headers[KnownHeaders.ETag] =
+            EntityTagHeader.ForContent(buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
+    }
 
     /// <summary>
     /// Headers this response already carried before the chain inside the cache was entered.

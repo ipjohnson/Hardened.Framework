@@ -5,6 +5,7 @@ using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Caching;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Caching;
+using Hardened.Web.Runtime.Conditional;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 
@@ -35,6 +36,7 @@ public class ResponseCacheController {
 
     [Get("/catalog")]
     [CacheResponse<VaryByQuery>("culture", Duration = 60)]
+    [ConditionalGet]
     public string Catalog([FromQueryString] string culture) => culture + "-" + _counter.Next("catalog");
 
     /// <summary>A handler that declares nothing, so nothing about it changes.</summary>
@@ -73,6 +75,7 @@ public class ResponseCacheController {
     [Get("/granted")]
     [AuthorizeGrants("pets:read")]
     [CacheResponse<VaryByRoute>(Duration = 60, Scope = CacheScope.AllCallers)]
+    [ConditionalGet]
     public string Granted() => _counter.Next("granted").ToString();
 
     /// <summary>

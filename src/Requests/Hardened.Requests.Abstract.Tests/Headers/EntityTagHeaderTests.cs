@@ -42,6 +42,37 @@ public class EntityTagHeaderTests {
         Assert.NotEqual(gzip, brotli);
     }
 
+    /// <summary>
+    /// The one shape a computed tag has. SHA-256 of nothing is a known value, which pins the
+    /// digest as well as the formatting.
+    /// </summary>
+    [Fact]
+    public void AComputedTagIsTheQuotedBase64Sha256OfTheBytes() {
+        Assert.Equal(
+            "\"47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=\"",
+            EntityTagHeader.ForContent(ReadOnlySpan<byte>.Empty));
+    }
+
+    /// <summary>
+    /// The same bytes carry the same tag whichever filter computed it, and different bytes never
+    /// share one.
+    /// </summary>
+    [Fact]
+    public void AComputedTagFollowsTheBytes() {
+        var catalog = "catalog"u8.ToArray();
+
+        Assert.Equal(EntityTagHeader.ForContent(catalog), EntityTagHeader.ForContent(catalog));
+        Assert.NotEqual(EntityTagHeader.ForContent(catalog), EntityTagHeader.ForContent("basket"u8.ToArray()));
+    }
+
+    [Fact]
+    public void AComputedTagIsStrongAndMatchesItself() {
+        var tag = EntityTagHeader.ForContent("catalog"u8.ToArray());
+
+        Assert.StartsWith("\"", tag);
+        Assert.True(EntityTagHeader.Matches(new StringValues(tag), tag));
+    }
+
     #endregion
 
     #region matching

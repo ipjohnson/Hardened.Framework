@@ -5,7 +5,7 @@ namespace Hardened.Shared.Runtime.Attributes;
 ///
 /// <code>
 /// [HardenedModule]
-/// [Enable&lt;HardenedRazorTemplate&gt;]
+/// [Enable&lt;HardenedRazorTemplates&gt;]
 /// public partial class Application { }
 /// </code>
 ///
@@ -15,8 +15,8 @@ namespace Hardened.Shared.Runtime.Attributes;
 /// </para>
 ///
 /// <para>
-/// <b>It replaces detection.</b> To write <c>[Enable&lt;HardenedRazorTemplate&gt;]</c> you have to
-/// be able to name <c>HardenedRazorTemplate</c>, so the package is referenced or your own code does
+/// <b>It replaces detection.</b> To write <c>[Enable&lt;HardenedRazorTemplates&gt;]</c> you have to
+/// be able to name <c>HardenedRazorTemplates</c>, so the package is referenced or your own code does
 /// not compile. There is nothing left for a generator to probe for: no
 /// <c>GetTypeByMetadataName</c>, no <c>CompilationProvider</c> gate, and no incrementality concern
 /// from having one. Same principle as <c>[Template&lt;T&gt;]</c> - name the type and let the
