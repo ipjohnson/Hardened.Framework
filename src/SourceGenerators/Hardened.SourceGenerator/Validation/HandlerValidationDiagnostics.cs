@@ -5,33 +5,29 @@ namespace Hardened.SourceGenerator.Validation;
 public static class HandlerValidationDiagnostics {
 
     /// <summary>
-    /// A constraint attribute written directly on a handler's parameter.
+    /// A <c>When</c> or <c>Unless</c> on a constraint written on a handler's parameter.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Why this is a warning and not a feature.</b> Reading a constraint off a parameter needs
-    /// the same work reading one off a property needs, and ValidationModules already does all of
-    /// it: the two attribute vocabularies, the pattern reference form, the AOT pattern policy, and
-    /// the diagnostics for a constraint that does not fit its member's type. All of that is reached
-    /// through a front-end typed on <c>IPropertySymbol</c>, and its pattern handling is private. A
-    /// parameter is not a property, so compiling these here would mean a second implementation of a
-    /// policy that ValidationModules owns - which is exactly the arrangement the OpenAPI path was
-    /// rebuilt to avoid.
+    /// The two name a member of the model the constraint sits on - a bool property or method the
+    /// generated validator calls before checking - and a handler parameter sits on no model. The
+    /// front end that reads the constraint would look the member up on a type it was never given,
+    /// so the one decision about a parameter's constraint this generator makes itself is to refuse
+    /// this shape before the reader sees it.
     /// </para>
     /// <para>
-    /// Warning rather than silence because the alternative is the failure this whole design
-    /// refuses: a constraint that was declared, was never compiled, and never says so. Put the
-    /// constraint on the model the parameter binds to and it is compiled today.
+    /// An error, because a condition that is ignored is a constraint that runs when its author said
+    /// it should not. <c>HRDV001</c>, which warned that a constraint on a parameter was not compiled
+    /// at all, is retired: it is compiled now.
     /// </para>
     /// </remarks>
-    public static readonly DiagnosticDescriptor ConstraintOnParameter = new(
-        "HRDV001",
-        "Constraint on a handler parameter is not compiled",
-        "'{0}' on parameter '{1}' is not compiled into a validator. Constraints are read from the " +
-        "types parameters bind to, not from the parameters themselves - move it onto a property of " +
-        "a model type, or declare the operation in an OpenAPI specification, where the build task " +
-        "compiles parameter constraints.",
+    public static readonly DiagnosticDescriptor ConditionOnParameterConstraint = new(
+        "HRDV005",
+        "A condition on a parameter constraint names a model member",
+        "'{0}' on [{1}] for parameter '{2}' names a member of the model the constraint sits on, and " +
+        "a handler parameter sits on no model. Remove the condition, or move the constraint onto a " +
+        "property of a model type where the member it names is declared.",
         "Hardened.Validation",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 }

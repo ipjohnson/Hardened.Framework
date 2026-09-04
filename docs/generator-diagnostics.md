@@ -169,6 +169,31 @@ second one rather than anywhere in the code.
 
 ## Validation
 
+### HRDV001 — retired
+
+It warned that a constraint attribute written on a handler's parameter was not compiled into a
+validator. A constraint on a query, header, path, cookie, form or body parameter of a hand-written
+handler is compiled into the handler's parameters validator now, read and resolved by the same
+ValidationModules front end that reads one off a property, so a constraint that does not fit the
+parameter's type is reported under that front end's own `VM` id, exactly as it would be on a
+property. The id is not reused.
+
+### HRDV005 — a condition on a parameter constraint names a model member
+
+`When` and `Unless` on a constraint name a bool property or method of the model the constraint
+sits on, which the generated validator calls before checking. A handler parameter sits on no
+model, so there is nothing for the name to resolve against.
+
+```
+'When' on [StringLength] for parameter 'id' names a member of the model the constraint sits
+on, and a handler parameter sits on no model. Remove the condition, or move the constraint onto
+a property of a model type where the member it names is declared.
+```
+
+An error, because a condition that is ignored is a constraint that runs when its author said it
+should not. The other constraints on the same parameter are not compiled either while it stands;
+the message is the whole fix.
+
 ### HRDV004 — nested constraints are never reached
 
 A generated validator descends into a member only where `[ValidateNested]` says to, so omitting it

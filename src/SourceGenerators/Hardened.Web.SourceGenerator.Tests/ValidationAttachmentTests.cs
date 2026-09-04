@@ -160,12 +160,13 @@ public class ValidationAttachmentTests {
     }
 
     /// <summary>
-    /// A constraint on the parameter itself is not compiled, and says so. The alternative is the
-    /// failure this design refuses everywhere else - a constraint that was declared, never
-    /// evaluated, and never mentioned.
+    /// A constraint on the parameter itself is compiled into the parameters validator and the
+    /// handler carries the filter that runs it. This was HRDV001, a warning that the constraint was
+    /// not compiled at all; the front end that reads a property's constraints reads a parameter's
+    /// through the same two entry points, so there is nothing left to warn about.
     /// </summary>
     [Fact]
-    public void AConstraintOnAParameterIsReported() {
+    public void AConstraintOnAPathParameterIsCompiledIntoTheParametersValidator() {
         var result = Generate("""
             using ValidationModules.Constraints;
             using Hardened.Web.Runtime.Attributes;
@@ -176,9 +177,108 @@ public class ValidationAttachmentTests {
                 [Get("/items/{id}")]
                 public string ItemById([StringLength(3, 3)] string id) => id;
             }
+            """).AssertNoErrors();
+
+        Assert.DoesNotContain(result.GeneratorDiagnostics, diagnostic => diagnostic.Id == "HRDV001");
+        Assert.Contains("ValidationFilterProvider<global::", Handler(result, "ItemController_ItemById"));
+
+        var validator = result.SourceContaining("ParametersValidator");
+
+        Assert.Contains("\"id\"", validator);
+    }
+
+    /// <summary>
+    /// A query or header parameter is pathed under the name the caller sent, not the C# name, the
+    /// way a binding failure already is.
+    /// </summary>
+    [Fact]
+    public void AConstraintOnAQueryOrHeaderParameterIsPathedByItsBindingName() {
+        var result = Generate("""
+            using ValidationModules.Constraints;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            public class RateController {
+                [Get("/rates")]
+                public string Read(
+                    [FromQueryString("p")] [Range(Min = 2, Max = 8)] int precision,
+                    [FromHeader("X-Region")] [StringLength(2, 2)] string region) => region;
+            }
+            """).AssertNoErrors();
+
+        var validator = result.SourceContaining("ParametersValidator");
+
+        Assert.Contains("\"p\"", validator);
+        Assert.Contains("\"X-Region\"", validator);
+        Assert.DoesNotContain("\"precision\"", validator);
+    }
+
+    /// <summary>
+    /// A constraint on the parameter and a constrained body on the same handler compile into one
+    /// validator: the parameter is checked where it is, and the body is descended into.
+    /// </summary>
+    [Fact]
+    public void AParameterConstraintAndAConstrainedBodyCompileTogether() {
+        var result = Generate(ConstrainedModel + """
+            public class OrderController {
+                [Post("/orders/{id}")]
+                public string Replace([StringLength(3, 3)] string id, Order order) => id;
+            }
+            """).AssertNoErrors();
+
+        var validator = result.SourceContaining("ParametersValidator");
+
+        Assert.Contains("\"id\"", validator);
+        Assert.Contains("new global::TestApp.OrderValidator()", validator);
+    }
+
+    /// <summary>
+    /// A constraint that does not fit the parameter's type is ValidationModules' diagnostic, under
+    /// its own id, exactly as it would be on a property - because it is the same front end saying
+    /// so.
+    /// </summary>
+    [Fact]
+    public void AConstraintThatDoesNotFitTheParameterTypeIsReportedByValidationModules() {
+        var result = Generate("""
+            using ValidationModules.Constraints;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            public class ItemController {
+                [Get("/items/{id}")]
+                public string ItemById([Range(Min = 1, Max = 5)] string id) => id;
+            }
             """);
 
-        Assert.Contains(result.GeneratorDiagnostics, diagnostic => diagnostic.Id == "HRDV001");
+        Assert.Contains(result.GeneratorDiagnostics, diagnostic =>
+            diagnostic.Id.StartsWith("VM") && diagnostic.GetMessage().Contains("id"));
+    }
+
+    /// <summary>
+    /// The one shape refused here rather than read: a condition names a member of the model the
+    /// constraint sits on, and a parameter sits on no model.
+    /// </summary>
+    [Fact]
+    public void AConditionOnAParameterConstraintIsAnError() {
+        var result = Generate("""
+            using ValidationModules.Constraints;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            public class ItemController {
+                [Get("/items/{id}")]
+                public string ItemById([StringLength(3, 3, When = "IsStrict")] string id) => id;
+            }
+            """);
+
+        var diagnostic = Assert.Single(result.GeneratorDiagnostics, d => d.Id == "HRDV005");
+
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("'When'", diagnostic.GetMessage());
+        Assert.Contains("'id'", diagnostic.GetMessage());
     }
 
     /// <summary>

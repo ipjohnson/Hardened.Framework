@@ -27,6 +27,9 @@
       "name": "Conditional"
     },
     {
+      "name": "Constraints"
+    },
+    {
       "name": "EnumVocabulary"
     },
     {
@@ -1196,6 +1199,184 @@
         }
       }
     },
+    "/constraints/page/{count}": {
+      "get": {
+        "tags": [
+          "Constraints"
+        ],
+        "operationId": "page",
+        "summary": "A bound behind a route constraint. The route decides whether the URL exists, so /page/abc is a 404; the constraint decides whether the value is acceptable, so /page/0 is a 400.",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The path did not name a resource: a token failed its route constraint."
+          }
+        }
+      }
+    },
+    "/constraints/precision": {
+      "get": {
+        "tags": [
+          "Constraints"
+        ],
+        "operationId": "precision",
+        "summary": "A bound on a query value, pathed under the query key.",
+        "parameters": [
+          {
+            "name": "precision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 2,
+              "maximum": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/constraints/region": {
+      "get": {
+        "tags": [
+          "Constraints"
+        ],
+        "operationId": "region",
+        "summary": "A length on a header, pathed under the header's own name.",
+        "parameters": [
+          {
+            "name": "X-Region",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 2
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/constraints/tagged": {
+      "get": {
+        "tags": [
+          "Constraints"
+        ],
+        "operationId": "constraintsTagged",
+        "summary": "A value the caller must send, on a type that can be absent, with a shape it must take.",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cookies/set": {
       "get": {
         "tags": [
@@ -2232,7 +2413,7 @@
         "tags": [
           "ResponseCache"
         ],
-        "operationId": "tagged",
+        "operationId": "responseCacheTagged",
         "summary": "A read whose entry outlives anything worth waiting for, invalidated by name when the thing it read changes.",
         "description": "The pair is the whole feature. Without an application's only way to reach its own entries was to expire them, so a published change appeared within the cache lifetime and never sooner.",
         "responses": {

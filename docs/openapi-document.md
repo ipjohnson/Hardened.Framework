@@ -132,9 +132,14 @@ Strict parsing is part of the assertion: `System.Text.Json` refuses raw control 
 multi-line description that stopped being escaped fails these suites rather than the reference
 page.
 
-Known gaps, stated rather than implied: code-first cannot express a
-constraint on a query, header or path parameter (`HRDV001` names the ways out), and
-`@timestampFormat` is read for nullability and otherwise inert. Nullable scalar parameters used
+A constraint on a code-first query, header, path or cookie parameter is published as the facet it
+declares, as a model property's is: `[Range(Min = 2, Max = 8)]` on the parameter is `minimum` and
+`maximum` on its schema, and `[Required]` on a parameter that could be absent is `required: true`.
+Only the `ValidationModules.Constraints` vocabulary reaches the document, which is the rule for
+properties too.
+
+Known gaps, stated rather than implied: `@timestampFormat` is read for nullability and otherwise
+inert. Nullable scalar parameters used
 to be listed here too, blamed on a type argument lost in the syntax transform. The diagnosis was
 wrong: the argument survived, the definition arrived named with the C# keyword, and the schema
 switch matched only CLR names. `ScalarSchema` accepts both spellings now.

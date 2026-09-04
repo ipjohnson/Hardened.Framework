@@ -404,8 +404,10 @@ public static class OpenApiDocumentGenerator {
             // A parameter carrying a default is one the caller may omit - the binder answers
             // with the default rather than a 400 - so publishing it required documents a demand
             // the service does not make. Path parameters stay required whatever they carry,
-            // because OpenAPI requires it of them and a path segment cannot be absent.
-            var required = parameter.Required &&
+            // because OpenAPI requires it of them and a path segment cannot be absent. A
+            // [Required] on a parameter that could be absent is the same demand the validator
+            // makes, and is published as one.
+            var required = (parameter.Required || parameter.RequiredByConstraint) &&
                            (parameter.DefaultValue == null ||
                             parameter.BindingType == ParameterBindType.Path);
 
@@ -1088,7 +1090,12 @@ public static class OpenApiDocumentGenerator {
         if (spec == null || (string.IsNullOrEmpty(spec.Type) &&
                              spec.EnumValues is not { Count: > 0 } &&
                              !spec.IsArray)) {
-            return EnumSchema(parameter.ParameterType, enums) ?? ScalarSchema(parameter.ParameterType);
+            // A hand-written handler's constraints, read off the parameter where its symbol was
+            // in hand and spliced in here, so a bound the validator enforces is a bound the
+            // document states - the same statement written twice, as it is for a property.
+            return SchemaConstraintWriter.Merge(
+                EnumSchema(parameter.ParameterType, enums) ?? ScalarSchema(parameter.ParameterType),
+                parameter.SchemaFacets);
         }
 
         var builder = new StringBuilder();
