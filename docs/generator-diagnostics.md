@@ -263,6 +263,32 @@ would describe it as JSON, while the author believed they had written an event s
 
 An error, with no `NoWarn`. Either return `IAsyncEnumerable<T>` or remove the attribute.
 
+## Caching
+
+### HRDW005 — response caching is declared and no store is registered
+
+A handler carries `[CacheResponse]` and the application applies no module that registers an
+`IResponseCacheStore`.
+
+```
+'CatalogController.Catalog' declares [CacheResponse] and this application registers no response
+cache store, so every request to it answers an error. Add the Hardened.Requests.Caching.Memory
+package and [HardenedMemoryResponseCache] to the module, or register an IResponseCacheStore
+yourself and suppress HRDW005.
+```
+
+The attribute alone does nothing. The store ships in its own package, and an application declaring
+one without the other builds clean and answers `ResponseCacheStoreMissingException` on every cached
+route. Every arm of the 0.19 trial made this mistake and found out from a request.
+
+One report per assembly however many handlers declare caching, naming each of them: the missing
+store is a single mistake, and a report each would say the same thing several times.
+
+A **warning**, unlike the two above. The check reads the entry point's module attributes, which is
+where `[HardenedMemoryResponseCache]` goes; a store registered by hand inside `ConfigureServices` is
+a legitimate arrangement and invisible to it. `<NoWarn>HRDW005</NoWarn>` if that is what you are
+doing.
+
 ## Other diagnostics
 
 | Id | Meaning |

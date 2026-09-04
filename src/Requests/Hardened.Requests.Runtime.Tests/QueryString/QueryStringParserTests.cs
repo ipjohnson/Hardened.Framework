@@ -1,4 +1,5 @@
 ﻿using Hardened.Requests.Runtime.QueryString;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Requests.Runtime.Tests.QueryString;
@@ -106,6 +107,13 @@ public class QueryStringParserTests {
         Assert.Equal(0, QueryStringParser.ParseFromPath(path).Count);
     }
 
+    /// <summary>
+    /// The values, as an array xUnit will compare. <c>StringValues</c> indexes as <c>string?</c>,
+    /// which its array overload refuses under the nullable annotations CI builds with.
+    /// </summary>
+    private static string[] Values(StringValues values) =>
+        values.Select(value => value ?? "").ToArray();
+
     #region a repeated key
 
     /// <summary>
@@ -114,13 +122,17 @@ public class QueryStringParserTests {
     /// </summary>
     [Fact]
     public void ARepeatedKeyKeepsEveryValue() {
-        Assert.Equal(["EUR", "GBP"], QueryStringParser.Parse("symbols=EUR&symbols=GBP").Get("symbols"));
+        Assert.Equal(
+            ["EUR", "GBP"],
+            Values(QueryStringParser.Parse("symbols=EUR&symbols=GBP").Get("symbols")));
     }
 
     /// <summary>In the order they were sent, which is the order the handler receives them.</summary>
     [Fact]
     public void ARepeatedKeyKeepsItsOrder() {
-        Assert.Equal(["3", "1", "2"], QueryStringParser.Parse("id=3&id=1&id=2").Get("id"));
+        Assert.Equal(
+            ["3", "1", "2"],
+            Values(QueryStringParser.Parse("id=3&id=1&id=2").Get("id")));
     }
 
     /// <summary>One key however often it repeats, so Count stays the number of names.</summary>
@@ -131,14 +143,16 @@ public class QueryStringParserTests {
 
     [Fact]
     public void ARepeatedKeyKeepsAnEmptyValue() {
-        Assert.Equal(["EUR", ""], QueryStringParser.Parse("symbols=EUR&symbols=").Get("symbols"));
+        Assert.Equal(
+            ["EUR", ""],
+            Values(QueryStringParser.Parse("symbols=EUR&symbols=").Get("symbols")));
     }
 
     [Fact]
     public void EachRepeatIsDecodedOnItsOwn() {
         Assert.Equal(
             ["a b", "c+d"],
-            QueryStringParser.Parse("q=a+b&q=c%2Bd").Get("q"));
+            Values(QueryStringParser.Parse("q=a+b&q=c%2Bd").Get("q")));
     }
 
     #endregion

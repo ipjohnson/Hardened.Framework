@@ -98,6 +98,11 @@ public static class RoutingTableGenerator {
                 context, name, handler.ResponseInformation.StreamFramingDiagnostic);
         }
 
+        // Per application, because the store is: [CacheResponse] on a handler and the module
+        // attribute that registers a store are written in different files, and only this
+        // production holds both.
+        ResponseCacheStoreDiagnostics.Report(context, models.Left, routable);
+
         // A scheme-shape attribute somewhere nothing reads it is a silent no-op - the build was
         // green, nothing published, and the author had no way to learn the working spelling.
         SecuritySchemeDiagnostics.ReportMisplacedSchemes(
