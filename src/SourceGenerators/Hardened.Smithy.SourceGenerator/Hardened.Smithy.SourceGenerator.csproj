@@ -58,6 +58,16 @@
         package and is silent until a consumer finds no generated types.
     -->
     <ItemGroup>
+        <!--
+            The trait definitions the targets add to a consumer's model. Packed into build/ beside
+            the targets that name it, because $(MSBuildThisFileDirectory) is how they find it.
+        -->
+        <Content Include="Package\hardened.smithy">
+            <Pack>true</Pack>
+            <PackagePath>build/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+
         <Content Include="Package\Hardened.Smithy.SourceGenerator.*">
             <Pack>true</Pack>
             <PackagePath>build/</PackagePath>

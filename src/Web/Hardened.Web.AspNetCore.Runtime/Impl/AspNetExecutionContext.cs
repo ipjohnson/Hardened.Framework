@@ -21,6 +21,18 @@ namespace Hardened.Web.AspNetCore.Runtime.Impl;
 public class AspNetExecutionContext : IExecutionContext {
     private HttpContext _httpContext;
 
+    /// <summary>
+    /// What <see cref="CancellationToken"/> returns once something has assigned one, and null
+    /// until then.
+    /// </summary>
+    /// <remarks>
+    /// A plain backing field captured at construction would quietly change behaviour here: ASP.NET
+    /// middleware may replace <c>IHttpRequestLifetimeFeature</c> mid-request, which is why this is
+    /// read through on every get rather than captured once. Falling through until something assigns
+    /// keeps that exactly as it was, up to the moment a filter states a deadline.
+    /// </remarks>
+    private CancellationToken? _cancellationToken;
+
     public AspNetExecutionContext(HttpContext httpContext, IMetricLogger logger) {
         _httpContext = httpContext;
         KnownServices = httpContext.RequestServices.GetRequiredService<IKnownServices>();
@@ -36,13 +48,17 @@ public class AspNetExecutionContext : IExecutionContext {
         IExecutionRequest request,
         IExecutionResponse response,
         IMetricLogger metricLogger,
-        MachineTimestamp startTime) {
+        MachineTimestamp startTime,
+        CancellationToken? cancellationToken) {
         _httpContext = httpContext;
         KnownServices = knownServices;
         Request = request;
         Response = response;
         RequestMetrics = metricLogger;
         StartTime = startTime;
+        // The nullable rather than the value, so a clone taken outside a deadline still reads
+        // through to the feature instead of pinning whatever it returned at that moment.
+        _cancellationToken = cancellationToken;
     }
 
     public IExecutionContext Clone(
@@ -56,7 +72,8 @@ public class AspNetExecutionContext : IExecutionContext {
             request ?? Request,
             response ?? Response,
             metricLogger ?? RequestMetrics,
-            StartTime) {
+            StartTime,
+            _cancellationToken) {
             HandlerInstance = HandlerInstance,
             HandlerInfo = HandlerInfo,
             // The reference, not a copy: a fork is the same caller.
@@ -99,7 +116,13 @@ public class AspNetExecutionContext : IExecutionContext {
     public DefaultOutputFunc? DefaultOutput { get; set; }
     public IMetricLogger RequestMetrics { get; }
     public MachineTimestamp StartTime { get; }
-    public CancellationToken CancellationToken => _httpContext.RequestAborted;
+    public CancellationToken CancellationToken {
+        get => _cancellationToken ?? _httpContext.RequestAborted;
+        set => _cancellationToken = value;
+    }
+
+    /// <inheritdoc />
+    public void ReplaceCancellationToken(CancellationToken token) => CancellationToken = token;
 }
 
 public class AspNetExecutionRequest : IExecutionRequest {

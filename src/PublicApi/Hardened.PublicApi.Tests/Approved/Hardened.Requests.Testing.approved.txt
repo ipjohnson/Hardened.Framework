@@ -141,7 +141,7 @@ namespace Hardened.Requests.Testing
     {
         public TestExecutionContext(System.IServiceProvider rootServiceProvider, System.IServiceProvider requestServices, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Requests.Abstract.Execution.IExecutionResponse response, System.Threading.CancellationToken cancellationToken, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null) { }
         public Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
-        public System.Threading.CancellationToken CancellationToken { get; }
+        public System.Threading.CancellationToken CancellationToken { get; set; }
         public string CorrelationId { get; init; }
         public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
@@ -154,6 +154,7 @@ namespace Hardened.Requests.Testing
         public System.IServiceProvider RootServiceProvider { get; }
         public Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request, Hardened.Requests.Abstract.Execution.IExecutionResponse? response, System.IServiceProvider? serviceProvider, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger) { }
+        public void ReplaceCancellationToken(System.Threading.CancellationToken token) { }
     }
     public class TestExecutionRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
     {

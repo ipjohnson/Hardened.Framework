@@ -1,5 +1,6 @@
 ﻿using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Timeouts;
 
 namespace Hardened.Requests.Runtime.Execution;
 
@@ -16,7 +17,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         object? nullResponseBody = null,
         IReadOnlyList<string>? producedContentTypes = null,
         string? bodyParameterName = null,
-        int? validationErrorStatus = null) {
+        int? validationErrorStatus = null,
+        TimeoutPolicy? timeout = null) {
         Path = path;
         Method = method;
         HandlerType = handlerType;
@@ -29,6 +31,7 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         ProducedContentTypes = producedContentTypes ?? Array.Empty<string>();
         BodyParameterName = bodyParameterName;
         ValidationErrorStatus = validationErrorStatus;
+        Timeout = timeout ?? IExecutionRequestHandlerInfo.TimeoutFrom(Metadata);
     }
 
     /// <summary>
@@ -54,7 +57,10 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
     /// </para>
     /// </remarks>
     internal ExecutionRequestHandlerInfo(
-        IExecutionRequestHandlerInfo source, string? path, Requirement? requirement)
+        IExecutionRequestHandlerInfo source,
+        string? path,
+        Requirement? requirement,
+        TimeoutPolicy? timeout = null)
         : this(
             path ?? source.Path,
             source.Method,
@@ -67,7 +73,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
             source.NullResponseBody,
             source.ProducedContentTypes,
             source.BodyParameterName,
-            source.ValidationErrorStatus) { }
+            source.ValidationErrorStatus,
+            timeout ?? source.Timeout) { }
 
     public string Path { get; }
 
@@ -103,6 +110,15 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
     /// <inheritdoc />
     public int? ValidationErrorStatus { get; }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Computed once here rather than per read, as <see cref="Requirement"/> is. What the primary
+    /// constructor derives is the operation and its class; the assembly and entry-point rungs and
+    /// any convention are folded in by <c>ExecutionHelper</c>, which amends the resolved value on
+    /// before anything downstream reads it.
+    /// </remarks>
+    public TimeoutPolicy? Timeout { get; }
+
     /// <summary>
     /// The same handler, addressed at <paramref name="path"/>.
     /// </summary>
@@ -131,7 +147,7 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
     public ExecutionRequestHandlerInfo WithPath(string? path) =>
         string.IsNullOrEmpty(path) || string.Equals(path, Path, StringComparison.Ordinal)
             ? this
-            : new ExecutionRequestHandlerInfo(this, path, requirement: null);
+            : new ExecutionRequestHandlerInfo(this, path, requirement: null, timeout: null);
 }
 
 /// <summary>
@@ -160,4 +176,24 @@ public static class ExecutionRequestHandlerInfoExtensions {
         requirement is null || ReferenceEquals(requirement, handlerInfo.Requirement)
             ? handlerInfo
             : new ExecutionRequestHandlerInfo(handlerInfo, path: null, requirement);
+
+    /// <summary>
+    /// The same handler, bounded by <paramref name="timeout"/>.
+    /// </summary>
+    /// <remarks>
+    /// How the rungs a handler cannot answer alone - its assembly, the entry point's default, a
+    /// convention - reach everything that reads the handler. Without it the filter would enforce
+    /// one budget while <see cref="IExecutionRequestHandlerInfo.Timeout"/> reported another, which
+    /// is the second, effective view the first-class property exists to prevent.
+    ///
+    /// <para>
+    /// Returns the handler unchanged where the resolved policy is the one it already carried, so a
+    /// handler no rung beyond its own metadata spoke about costs nothing.
+    /// </para>
+    /// </remarks>
+    public static IExecutionRequestHandlerInfo WithTimeout(
+        this IExecutionRequestHandlerInfo handlerInfo, TimeoutPolicy? timeout) =>
+        timeout is null || Equals(timeout, handlerInfo.Timeout)
+            ? handlerInfo
+            : new ExecutionRequestHandlerInfo(handlerInfo, path: null, requirement: null, timeout);
 }

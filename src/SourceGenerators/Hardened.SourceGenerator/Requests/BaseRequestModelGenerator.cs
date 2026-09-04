@@ -30,6 +30,8 @@ public abstract class BaseRequestModelGenerator {
         var thrown = ThrownResponseSelector.Read(
             context, methodDeclaration, response, cancellationToken);
 
+        var refusals = FilterResponseSelector.Read(context, methodDeclaration, cancellationToken);
+
         var model = Compose(
             nameModel,
             controllerType,
@@ -41,18 +43,27 @@ public abstract class BaseRequestModelGenerator {
             OpenApiDocument.JsonSchemaWriter.Write(
                 SchemaSubject(context, methodDeclaration, response),
                 context.SemanticModel.Compilation.Assembly),
-            // Both kinds of declaration in one list: what a Response or union return type says,
-            // and what [Throws<T>] says. The document writer groups by status and does not care
-            // which produced an entry.
-            DeclaredResponses(context, response).Concat(thrown).ToList(),
-            // Complete unless the only declarations came from [Throws], which names failures and
-            // leaves the success to the return type.
-            response.UnionCases != null || thrown.Count == 0,
+            // Every kind of declaration in one list: what a Response or union return type says,
+            // what [Throws<T>] says, and what a guard on the operation can answer instead of the
+            // handler. The document writer groups by status and does not care which produced an
+            // entry. Filter-declared responses go last, so a status the handler declared itself
+            // keeps the shape the handler gave it.
+            DeclaredResponses(context, response)
+                .Concat(thrown)
+                .Concat(refusals)
+                .ToList(),
+            // Complete unless a declaration named only failures and left the success to the return
+            // type. [Throws<T>] is one such, and a guard that can refuse the operation is another:
+            // both add a status the handler can be answered with instead of running, and neither
+            // says anything about what it answers when it does run.
+            response.UnionCases != null || (thrown.Count == 0 && refusals.Count == 0),
             BodySchema(context, methodDeclaration, parameters));
 
         // After Compose, because it is a fact about the handler rather than an input to
         // assembling it: what the attributes declare for the published document.
         SecurityDeclarationSelector.Apply(context, methodDeclaration, model, cancellationToken);
+
+        model.DeclaredTimeout = DeclaredTimeoutSelector.Read(context, methodDeclaration);
 
         model.ParameterEnums = ParameterEnums(context, methodDeclaration);
 

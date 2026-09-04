@@ -127,7 +127,18 @@
         therefore sees the generated types before anything has run, which is the same reason every
         other output here is declared at the top level.
     -->
+    <!--
+        Hardened's own trait definitions, added to whatever the project declared so a model can write
+        @timeout without the consumer wiring a file they did not author. All @(HardenedSmithyModel)
+        items form one model in one CLI invocation, so this is the same mechanism a project uses to
+        split its own model across files.
+
+        Only when the project has a model of its own: a project building from a committed AST
+        resolves no CLI at all, and adding a source here would make it need one.
+    -->
     <ItemGroup Condition="'@(HardenedSmithyModel)' != ''">
+        <HardenedSmithyModel Include="$(MSBuildThisFileDirectory)hardened.smithy"/>
+
         <HardenedSmithyAst Include="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).json"/>
     </ItemGroup>
 

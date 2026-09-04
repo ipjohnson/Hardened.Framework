@@ -189,4 +189,5 @@ function runtimes do not reference it.
 - `docs/described-authorization.md` — what a contract's `security` becomes
 - `docs/validation-usage.md` — constraints, custom validators, the error response
 - `docs/response-caching.md` — `[CacheResponse<T>]`, the store package, who a stored answer is for, invalidating by tag, revalidating with a 304
+- `docs/request-timeouts.md` — `[Timeout]`, the four rungs it resolves through, `x-hardened-timeout` and the Smithy `@timeout` trait, tighten-only conventions, why the token is put back
 - Full user documentation: <https://ipjohnson.github.io/Hardened.Docs>

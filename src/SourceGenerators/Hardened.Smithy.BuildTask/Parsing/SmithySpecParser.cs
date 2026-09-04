@@ -426,6 +426,27 @@ internal static class SmithySpecParser {
         model.Description = Text(operation, SmithyTraits.Documentation);
         model.IsDeprecated = SmithyAst.HasTrait(operation, SmithyTraits.Deprecated);
 
+        // The deadline, into the same model field the OpenAPI front end fills. Both descriptions
+        // then reach the pipeline through one path, and a budget written in a Smithy model resolves
+        // against a [Timeout] on the implementation by the runtime's own nearest-wins rule.
+        if (SmithyAst.TryGetTrait(operation, SmithyTraits.Timeout, out var timeout)) {
+            var milliseconds = Int(timeout, "milliseconds") ?? 0;
+
+            if (milliseconds <= 0) {
+                context.Diagnostics.Add(
+                    $"operation '{name}' declares an @timeout of {milliseconds} milliseconds. " +
+                    "A budget has to be greater than zero; an operation that should not be " +
+                    "bounded declares no timeout instead.");
+            }
+            else {
+                model.Timeout = new TimeoutModel {
+                    Milliseconds = milliseconds,
+                    Status = Int(timeout, "status") ?? 504,
+                    RetryAfterSeconds = Int(timeout, "retryAfterSeconds") ?? 0
+                };
+            }
+        }
+
         // Authentication only, because that is all the language carries. An operation may opt out of
         // an authenticated service; it cannot opt in to one that declares no scheme, because there
         // would be nothing to authenticate against.

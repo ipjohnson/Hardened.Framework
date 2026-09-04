@@ -180,6 +180,17 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// </remarks>
     public bool RawBytesResponse { get; set; }
 
+    /// <summary>
+    /// How long this operation may take, or null where the description declares no deadline.
+    /// </summary>
+    /// <remarks>
+    /// Reaches the handler as a <c>TimeoutAttribute</c> in its metadata rather than as a filter,
+    /// because that is the rung the runtime's cascade reads: a budget in a model and one on a
+    /// method then resolve against each other by the same nearest-wins rule instead of both
+    /// installing a deadline.
+    /// </remarks>
+    public TimeoutModel? Timeout { get; set; }
+
     // x-filters: typed filter attribute instances applied to this operation
     public List<FilterInstanceModel> FilterInstances { get; set; } = new();
 
@@ -271,7 +282,8 @@ internal class OperationModel : IEquatable<OperationModel> {
                AuthorizationBranches.SequenceEqual(other.AuthorizationBranches) &&
                SecurityRequirements.SequenceEqual(other.SecurityRequirements) &&
                RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&
-               RequestBodyRequired.SequenceEqual(other.RequestBodyRequired);
+               RequestBodyRequired.SequenceEqual(other.RequestBodyRequired) &&
+               Equals(Timeout, other.Timeout);
     }
 
     public override bool Equals(object? obj) => Equals(obj as OperationModel);

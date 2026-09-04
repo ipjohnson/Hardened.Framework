@@ -23,4 +23,17 @@ public class HandlerCallCounter {
             return count;
         }
     }
+
+    /// <summary>
+    /// How many times it has run so far, without counting the asking as a run.
+    /// </summary>
+    /// <remarks>
+    /// For a handler whose answer cannot carry the number - one that always throws, so that what a
+    /// retry or a deadline did to it is only visible from outside.
+    /// </remarks>
+    public int Count(string handler) {
+        lock (_calls) {
+            return _calls.GetValueOrDefault(handler);
+        }
+    }
 }

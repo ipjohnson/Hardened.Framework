@@ -1,4 +1,5 @@
 ﻿using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Abstract.Timeouts;
 
 namespace Hardened.Requests.Abstract.Execution;
 
@@ -163,5 +164,62 @@ public interface IExecutionRequestHandlerInfo {
         }
 
         return requirements == null ? null : Authorization.Requirement.AllOf([..requirements]);
+    }
+
+    /// <summary>
+    /// How long this handler may take and what its caller is told when it does not finish, or null
+    /// if nothing bounds it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// First-class data for the same reason <see cref="Requirement"/> is. An attribute on the
+    /// operation is one source of it; the class, the handler's assembly, the entry point's default
+    /// and an <c>IRequestTimeoutConvention</c> are others, and a handler registered by hand can
+    /// state one without inventing an attribute to carry it. One budget, whatever contributed to
+    /// it - so the filter that enforces it and the converter that turns its expiry into a status
+    /// read the same answer rather than each re-deriving one from <see cref="Metadata"/>.
+    /// </para>
+    /// <para>
+    /// <b>Most specific wins, and nothing is combined.</b> Unlike a requirement, two budgets do not
+    /// compose into a third: the operation's beats its class's, which beats its assembly's, which
+    /// beats the entry point's. A convention is the exception and folds in with
+    /// <c>TimeoutPolicy.Tighter</c>, because it can only tighten.
+    /// </para>
+    /// <para>
+    /// The default reads the operation and its class out of <see cref="Metadata"/>, so an
+    /// implementation that carries attributes and nothing else is already correct for the two rungs
+    /// a handler can answer alone. <c>ExecutionRequestHandlerInfo</c> computes it once instead, and
+    /// <c>ExecutionHelper</c> amends the fully resolved value on as the chain is built.
+    /// </para>
+    /// </remarks>
+    TimeoutPolicy? Timeout => TimeoutFrom(Metadata);
+
+    /// <summary>
+    /// The first deadline declared in <paramref name="metadata"/>, or null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// First rather than tightest, because the order is the precedence. The generator emits an
+    /// operation's own attributes ahead of its class's, so first-match is
+    /// operation-beats-class - which is what lets a method loosen what its controller declared,
+    /// something a tightest-wins rule could not express.
+    /// </para>
+    /// <para>
+    /// That ordering is therefore load-bearing rather than incidental.
+    /// <c>HandlerMetadataOrderTests</c> pins it.
+    /// </para>
+    /// <para>
+    /// Shared with implementations that precompute, so both spellings mean the same thing rather
+    /// than agreeing by inspection.
+    /// </para>
+    /// </remarks>
+    static TimeoutPolicy? TimeoutFrom(IReadOnlyList<object> metadata) {
+        foreach (var item in metadata) {
+            if (item is IDeclaresTimeout declares) {
+                return declares.Timeout;
+            }
+        }
+
+        return null;
     }
 }

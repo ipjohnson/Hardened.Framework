@@ -60,6 +60,12 @@
       "name": "Streaming"
     },
     {
+      "name": "Timeout"
+    },
+    {
+      "name": "ClassTimeout"
+    },
+    {
       "name": "Unsatisfiable"
     }
   ],
@@ -80,8 +86,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/authorization/derived": {
@@ -102,8 +119,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/authorization/open": {
@@ -123,8 +161,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/authorization/pets": {
@@ -143,8 +192,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/authorization/pets-manage": {
@@ -164,8 +234,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/authorization/stacked": {
@@ -186,8 +277,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/authorization/unguarded": {
@@ -207,8 +319,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/body/{label}": {
@@ -248,8 +371,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/cookie": {
@@ -278,8 +412,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/cookie-named": {
@@ -308,8 +453,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/files/{path}": {
@@ -339,8 +495,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/header": {
@@ -369,8 +536,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/header-list": {
@@ -404,6 +582,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -414,7 +602,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/keyword-query": {
@@ -444,8 +633,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/keyword/{base}/{class}": {
@@ -484,8 +684,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/mixed/{id}": {
@@ -531,8 +742,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/pair/{first}/{second}": {
@@ -569,8 +791,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/path-code/{code}": {
@@ -601,10 +834,21 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "404": {
             "description": "The path did not name a resource: a token failed its route constraint."
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/path-constrained/{count}": {
@@ -637,6 +881,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -650,7 +904,8 @@
           "404": {
             "description": "The path did not name a resource: a token failed its route constraint."
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/path-typed/{count}": {
@@ -682,6 +937,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -692,7 +957,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/path/{first}/{second}": {
@@ -730,8 +996,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/path/{id}": {
@@ -762,8 +1039,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/query": {
@@ -792,8 +1080,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/query-array": {
@@ -826,8 +1125,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/query-list": {
@@ -861,6 +1171,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -871,7 +1191,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/query-list-required": {
@@ -905,6 +1226,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -915,7 +1246,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/query-list-typed": {
@@ -951,6 +1283,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -961,7 +1303,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/query-named": {
@@ -990,8 +1333,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/binding/query-typed": {
@@ -1023,6 +1377,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -1033,7 +1397,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/cache-all/one": {
@@ -1052,8 +1417,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/cache-all/two": {
@@ -1072,8 +1448,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/cache/default": {
@@ -1092,8 +1479,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/cache/long": {
@@ -1112,8 +1510,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/cache/none": {
@@ -1132,8 +1541,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/cache/private": {
@@ -1152,8 +1572,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/cache/unset": {
@@ -1172,8 +1603,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/collection": {
@@ -1192,8 +1634,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       },
       "post": {
         "tags": [
@@ -1210,8 +1663,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/collection/{id}": {
@@ -1240,8 +1704,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/compression/binary": {
@@ -1264,8 +1739,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/compression/brotli": {
@@ -1287,8 +1773,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/compression/echo": {
@@ -1317,8 +1814,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/compression/never": {
@@ -1341,8 +1849,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/compression/readings": {
@@ -1365,8 +1884,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/compression/sized/{count}": {
@@ -1401,6 +1931,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -1411,7 +1951,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/compression/text": {
@@ -1430,8 +1971,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/conditional/document": {
@@ -1450,8 +2002,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/conditional/generated": {
@@ -1481,8 +2044,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/constraints/page/{count}": {
@@ -1517,6 +2091,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -1530,7 +2114,8 @@
           "404": {
             "description": "The path did not name a resource: a token failed its route constraint."
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/constraints/precision": {
@@ -1565,6 +2150,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -1575,7 +2170,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/constraints/region": {
@@ -1608,6 +2204,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -1618,7 +2224,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/constraints/tagged": {
@@ -1650,6 +2257,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -1660,7 +2277,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/cookies/set": {
@@ -1679,8 +2297,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/cookies/set-with-options": {
@@ -1699,8 +2328,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/enum-vocabulary/by-priority": {
@@ -1736,6 +2376,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -1746,7 +2396,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/enum-vocabulary/by-shipping": {
@@ -1780,6 +2431,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -1790,7 +2451,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/enum-vocabulary/order": {
@@ -1809,8 +2471,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/enum-vocabulary/ticket": {
@@ -1829,8 +2502,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       },
       "post": {
         "tags": [
@@ -1862,8 +2546,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/bad-encoding": {
@@ -1883,8 +2578,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/bad-request": {
@@ -1904,8 +2610,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/badge-missing": {
@@ -1925,8 +2642,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/declared-body": {
@@ -1946,8 +2674,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/declared-status": {
@@ -1967,8 +2706,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/derived-client-error": {
@@ -1988,8 +2738,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/format": {
@@ -2008,8 +2769,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/raw-declared-status": {
@@ -2029,8 +2801,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/raw-server-error": {
@@ -2054,8 +2837,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/server": {
@@ -2075,8 +2869,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/errors/unsatisfiable": {
@@ -2095,8 +2900,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/form/optional": {
@@ -2117,8 +2933,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/form/quantity": {
@@ -2140,6 +2967,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -2150,7 +2987,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/form/renamed": {
@@ -2170,8 +3008,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/form/sign-in": {
@@ -2191,8 +3040,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/hello": {
@@ -2204,8 +3064,19 @@
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/int/add": {
@@ -2235,8 +3106,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/int/subtract": {
@@ -2266,8 +3148,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/int/subtract-test": {
@@ -2297,8 +3190,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/int/subtract-test1": {
@@ -2328,8 +3232,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/int/subtract-test2": {
@@ -2359,8 +3274,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/registration": {
@@ -2390,6 +3316,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -2400,7 +3336,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/registration/anonymous": {
@@ -2429,8 +3366,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/registration/declared-422": {
@@ -2471,8 +3419,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/registration/declared-422/by-hand": {
@@ -2502,8 +3461,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/registration/for/{tenant}": {
@@ -2544,6 +3514,16 @@
               }
             }
           },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -2554,7 +3534,8 @@
               }
             }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/response-cache/catalog": {
@@ -2583,8 +3564,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/response-cache/composed": {
@@ -2614,8 +3606,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/response-cache/granted": {
@@ -2636,8 +3639,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/response-cache/owned-by-subject": {
@@ -2658,8 +3682,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/response-cache/owned/{ownerId}": {
@@ -2689,8 +3734,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/response-cache/publish": {
@@ -2710,8 +3776,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/response-cache/tagged": {
@@ -2732,8 +3809,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/response-cache/uncached": {
@@ -2753,8 +3841,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/response-cache/unstated-scope": {
@@ -2774,8 +3873,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/cancellable": {
@@ -2796,8 +3916,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/empty": {
@@ -2818,8 +3949,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events": {
@@ -2839,8 +3981,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events-empty": {
@@ -2860,8 +4013,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events-fail-after-first": {
@@ -2881,8 +4045,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events-fail-before-first": {
@@ -2902,8 +4077,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events-guarded": {
@@ -2923,8 +4109,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events-resume": {
@@ -2955,8 +4162,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events-retry-after-first": {
@@ -2976,8 +4194,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events-retry-call": {
@@ -2998,8 +4227,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events-slow": {
@@ -3019,8 +4259,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/events-with-ids": {
@@ -3041,8 +4292,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/models": {
@@ -3062,8 +4324,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/models-guarded": {
@@ -3083,8 +4356,29 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/streaming/strings": {
@@ -3104,8 +4398,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/test": {
@@ -3124,8 +4429,327 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/timeout/budget": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "timeoutBudget",
+        "summary": "What the cascade actually resolved for this operation, read back off the handler.",
+        "description": "The point of making the budget first-class: the filter that enforces it and everything else that reads the handler see one value. A handler can therefore report its own deadline, which is how a rung nothing on the handler declares - its assembly, the entry point's default, a convention - is assertable at all without waiting for it to fire.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/timeout/calls/{handler}": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "calls",
+        "summary": "How many times a handler has run, so an attempt count is assertable.",
+        "parameters": [
+          {
+            "name": "handler",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/timeout/classed/budget": {
+      "get": {
+        "tags": [
+          "ClassTimeout"
+        ],
+        "operationId": "classTimeoutBudget",
+        "summary": "Inherits its class, which beat the assembly.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 20000
+      }
+    },
+    "/timeout/classed/slower": {
+      "get": {
+        "tags": [
+          "ClassTimeout"
+        ],
+        "operationId": "slower",
+        "summary": "Loosens its class, which only the nearest declaration may do.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 40000
+      }
+    },
+    "/timeout/fast": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "fast",
+        "summary": "The same handler with room to finish, so the deadline is not what decides its answer.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 60000
+      }
+    },
+    "/timeout/retried": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "retried",
+        "summary": "One budget across every attempt rather than one per attempt, which is what putting the filter ahead of FilterOrder.Retry buys.",
+        "description": "Five attempts at 40ms of backoff each cannot fit in 150ms, so the budget is what stops this rather than the attempt count. A per-attempt deadline would let all five run.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 150
+      }
+    },
+    "/timeout/shed": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "shed",
+        "summary": "An operation shedding load rather than waiting on a dependency, which is the one case that knows its own window.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": {
+          "milliseconds": 100,
+          "status": 503,
+          "retryAfterSeconds": 30
         }
+      }
+    },
+    "/timeout/slow": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "slow",
+        "summary": "Waits for something that never comes, on the token the deadline replaced. 504.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 100
+      }
+    },
+    "/timeout/unbounded": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "unbounded",
+        "summary": "Declares nothing of its own, so the cascade falls through to this assembly's [assembly: Timeout].",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/verbs/created": {
@@ -3146,8 +4770,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/verbs/emptied": {
@@ -3167,8 +4802,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/verbs/item": {
@@ -3198,8 +4844,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     },
     "/verbs/item/{id}": {
@@ -3228,8 +4885,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       },
       "get": {
         "tags": [
@@ -3257,8 +4925,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       },
       "patch": {
         "tags": [
@@ -3295,8 +4974,19 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-hardened-timeout": 300000
       }
     }
   },
@@ -3339,6 +5029,25 @@
             "type": "integer",
             "format": "int32",
             "description": "Advances only when the handler runs, so a 304 that ran it is visible."
+          }
+        }
+      },
+      "ErrorModel": {
+        "type": "object",
+        "required": [
+          "type",
+          "message",
+          "details"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string"
           }
         }
       },

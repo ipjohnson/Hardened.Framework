@@ -2,6 +2,8 @@
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.Validation;
 
 namespace Hardened.Requests.Runtime.Errors;
@@ -73,6 +75,45 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
             return (
                 context.HandlerInfo?.ValidationErrorStatus ?? 400,
                 BodyReadError(jsonException, BodyField(context)));
+        }
+
+        // A cancellation on a handler something bounded, which is what a deadline expiring looks
+        // like from here.
+        //
+        // Gated on a resolved policy rather than answered for every OperationCanceledException,
+        // because a handler nothing bounds has no deadline to have missed: whatever cancelled it
+        // was the host or the handler's own code, and calling that a gateway timeout would be the
+        // framework describing something it did not do. ASP.NET Core draws the line in the same
+        // place - its RequestTimeoutOptions.DefaultPolicy is null until an application sets one,
+        // and its middleware answers only for endpoints a policy covers. An unbounded handler's
+        // cancellation therefore falls through to the server fault below, exactly as it did before
+        // timeouts existed.
+        //
+        // The status comes from here rather than from TimeoutFilter because the filter cannot
+        // write it. IOFilter sits at FilterOrder.Serialization, which is inside the filter's span:
+        // by the time the timeout filter regains control, ExceptionResponseSerializer has already
+        // assigned a status, logged the failure and written the body. One place decides a status,
+        // and this is it.
+        //
+        // Read off the handler rather than scanned out of its metadata. The cascade has already
+        // resolved which of the operation, its class, its assembly, the entry point's default and
+        // any convention applies, so this is the same budget the filter enforced - including for
+        // the rungs that are on no attribute the handler carries.
+        //
+        // A caller who hung up on a bounded handler cancels the same linked token and arrives here
+        // identically, so a disconnect reads as the deadline's status too. Nobody receives that
+        // response either way, and TimeoutFilter counts the distinction as a metric, where it is
+        // free.
+        if (exp is OperationCanceledException && context.HandlerInfo?.Timeout is { } declared) {
+            if (declared is { RetryAfterSeconds: > 0 }) {
+                context.Response.Headers[KnownHeaders.RetryAfter] =
+                    RetryAfter.HeaderValue(TimeSpan.FromSeconds(declared.RetryAfterSeconds));
+            }
+
+            return (declared.Status, new ErrorModel {
+                Type = declared.Status == 503 ? "ServiceUnavailable" : "GatewayTimeout",
+                Message = "The server did not finish this request in time."
+            });
         }
 
         // Client errors are identified by type, not by the shape of the type's name.

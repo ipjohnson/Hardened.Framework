@@ -1,6 +1,8 @@
 $version: "2"
 namespace com.example.petstore
 
+use hardened.api#timeout
+
 @title("Pet Store")
 // The scheme is declared on the service, so every operation requires a caller to authenticate
 // unless it opts out. The three below opt out with @auth([]) and stay public; GetSecuredPet does
@@ -29,6 +31,10 @@ operation GetSecuredPet {
 @http(method: "GET", uri: "/pets/{petId}", code: 200)
 @auth([])
 @readonly
+// Hardened's own trait, which the targets add the definition of. Smithy models the exchange and
+// says nothing about how long a server may take over it, so this is the vocabulary for saying it
+// in the model rather than only on the generated implementation.
+@timeout(milliseconds: 2000)
 operation GetPet {
     input := {
         @httpLabel

@@ -1,8 +1,10 @@
 using System.Text.Json;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Execution;
+using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Validation;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
@@ -523,6 +525,143 @@ public class ExceptionToModelConverterTests {
             Context(validationErrorStatus: 422), new InvalidOperationException("disk on fire"));
 
         Assert.Equal(500, status);
+    }
+
+    #endregion
+
+    #region Timeouts
+
+    /// <summary>
+    /// A context whose handler carries <paramref name="metadata"/>, which is where the converter
+    /// reads a declared deadline's status from.
+    /// </summary>
+    private static IExecutionContext ContextFor(params object[] metadata) {
+        var response = Substitute.For<IExecutionResponse>();
+        response.Headers.Returns(new Dictionary<string, StringValues>());
+
+        var context = Substitute.For<IExecutionContext>();
+        context.Response.Returns(response);
+        context.HandlerInfo.Returns(new ExecutionRequestHandlerInfo(
+            "/rates", "GET", typeof(ExceptionToModelConverterTests), "Read", metadata: metadata));
+
+        return context;
+    }
+
+    /// <summary>
+    /// The status the timeout feature produces. It comes from here rather than from
+    /// <c>TimeoutFilter</c> because serialization happens inside the filter's span - by the time
+    /// the filter regains control the response is already written. Without this rule the whole
+    /// feature answers 500 and is invisible.
+    /// </summary>
+    [Fact]
+    public void ACancelledRequestOnABoundedHandlerIs504() {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            ContextFor(new TimeoutAttribute()), new OperationCanceledException());
+
+        Assert.Equal(504, status);
+        Assert.Equal("GatewayTimeout", Assert.IsType<ErrorModel>(model).Type);
+    }
+
+    /// <summary>
+    /// A handler nothing bounds has no deadline to have missed, so whatever cancelled it is not
+    /// this framework's timeout and is not described as one. ASP.NET Core draws the line in the
+    /// same place: its <c>DefaultPolicy</c> is null until an application sets one, and its
+    /// middleware answers only for endpoints a policy covers.
+    /// </summary>
+    [Fact]
+    public void ACancelledRequestOnAnUnboundedHandlerIsStillAServerFault() {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(), new OperationCanceledException());
+
+        Assert.Equal(500, status);
+        Assert.Equal("ServerError", Assert.IsType<ErrorModel>(model).Type);
+    }
+
+    /// <summary>
+    /// What <c>Task.Delay</c> and every <c>HttpClient</c> call actually throw. A rule matching
+    /// only <c>OperationCanceledException</c> by exact type would miss every real timeout.
+    /// </summary>
+    [Fact]
+    public void ATaskCancelledOnTheDeadlineIs504() {
+        var (status, _) = Converter.ConvertExceptionToModel(
+            ContextFor(new TimeoutAttribute()), new TaskCanceledException());
+
+        Assert.Equal(504, status);
+    }
+
+    /// <summary>
+    /// A client that hangs up cancels the same linked token and arrives as the same exception, so
+    /// it reads as 504 too. Nobody receives it either way, and 504 describes a disconnect less
+    /// wrongly than 500 does.
+    /// </summary>
+    [Fact]
+    public void ADisconnectOnABoundedHandlerReadsTheSameAsADeadline() {
+        using var disconnected = new CancellationTokenSource();
+        disconnected.Cancel();
+
+        var (status, _) = Converter.ConvertExceptionToModel(
+            ContextFor(new TimeoutAttribute()),
+            new OperationCanceledException(disconnected.Token));
+
+        Assert.Equal(504, status);
+    }
+
+    /// <summary>
+    /// An operation shedding load rather than waiting on something says so, and only that spelling
+    /// can: the application-wide default has no handler metadata to be read from and always
+    /// answers 504.
+    /// </summary>
+    [Fact]
+    public void ADeclaredStatusIsWhatTheCallerSees() {
+        var context = ContextFor(new TimeoutAttribute { Status = 503, RetryAfterSeconds = 30 });
+
+        var (status, model) = Converter.ConvertExceptionToModel(context, new TaskCanceledException());
+
+        Assert.Equal(503, status);
+        Assert.Equal("ServiceUnavailable", Assert.IsType<ErrorModel>(model).Type);
+        Assert.Equal("30", context.Response.Headers[KnownHeaders.RetryAfter]);
+    }
+
+    /// <summary>
+    /// A deadline out at a dependency knows nothing about when that dependency recovers, so the
+    /// default sends no number.
+    /// </summary>
+    [Fact]
+    public void A504SendsNoRetryAfter() {
+        var context = ContextFor(new TimeoutAttribute());
+
+        Converter.ConvertExceptionToModel(context, new TaskCanceledException());
+
+        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.RetryAfter));
+    }
+
+    /// <summary>
+    /// Nearest wins, and the metadata order is the precedence: an operation's own declaration is
+    /// emitted ahead of its class's, so the method's status is the one a caller sees even where the
+    /// class asked for something else.
+    /// </summary>
+    [Fact]
+    public void TheNearestDeclarationIsTheOneThatDecidesTheStatus() {
+        var context = ContextFor(
+            new TimeoutAttribute { Milliseconds = 2000 },                  // the method
+            new TimeoutAttribute { Milliseconds = 500, Status = 503 });    // its class
+
+        var (status, _) = Converter.ConvertExceptionToModel(context, new TaskCanceledException());
+
+        Assert.Equal(504, status);
+    }
+
+    /// <summary>
+    /// Nothing about the timeout reaches the caller beyond the fact of it, which is the same rule
+    /// the anonymous 500 follows.
+    /// </summary>
+    [Fact]
+    public void TheTimeoutBodyCarriesNothingAboutTheRequest() {
+        var (_, model) = Converter.ConvertExceptionToModel(
+            ContextFor(new TimeoutAttribute()),
+            new OperationCanceledException("upstream rates.example.com never answered"));
+
+        Assert.DoesNotContain("rates.example.com", Assert.IsType<ErrorModel>(model).Message);
     }
 
     #endregion

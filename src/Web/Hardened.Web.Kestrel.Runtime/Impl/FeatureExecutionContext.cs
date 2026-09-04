@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Authorization;
+﻿using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Diagnostics;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Diagnostics;
@@ -123,7 +123,10 @@ public sealed class FeatureExecutionContext : IExecutionContext {
 
     public MachineTimestamp StartTime { get; }
 
-    public CancellationToken CancellationToken { get; }
+    public CancellationToken CancellationToken { get; set; }
+
+    /// <inheritdoc />
+    public void ReplaceCancellationToken(CancellationToken token) => CancellationToken = token;
 
     /// <summary>
     /// Flushes and completes the response. Required by Kestrel — see

@@ -138,6 +138,39 @@ declares, as a model property's is: `[Range(Min = 2, Max = 8)]` on the parameter
 Only the `ValidationModules.Constraints` vocabulary reaches the document, which is the rule for
 properties too.
 
+## What a guard on the operation publishes
+
+A filter that can refuse a request answers a status the handler's return type says nothing about,
+so an operation guarded by one used to publish a document that was true about its success and
+silent about its refusal. A generated client then had no case for the answer it would actually be
+sent: `[AuthorizeGrants]` published no 403 and `[RateLimit]` no 429.
+
+The declaration carries the status and the document generator reads it, without knowing what any
+particular filter does:
+
+```csharp
+[AnswersStatus(429, typeof(ErrorModel))]
+public class RateLimitAttribute : Attribute, IRequestFilterProvider { }
+```
+
+It goes on the attribute's type, on a base type, or on an interface the type implements. The
+interface is what makes it reach declarations this framework never sees: `IAuthorizeAttribute`
+carries the 403, so an application's own authorization attribute publishes it without doing
+anything, and a filter vocabulary a package invented is published the same way.
+
+`StatusFrom` names a property whose written value replaces the declared status, for a declaration
+whose status is the author's to choose: `[Timeout]` publishes 504 and `[Timeout(Status = 503)]`
+publishes 503 instead of beside it.
+
+Three levels are read, nearest first: the method, its class, then the assembly. The nearest
+declaration of a kind decides, so an operation answering 503 does not also publish the 504 its
+assembly would have contributed. Like `[Throws<T>]` these name only failures, so the success still
+comes from the return type.
+
+The 401 is not published this way. It already had a writer keyed on the more accurate signal -
+whether the operation carries a security requirement at all - and that one writes the
+`WWW-Authenticate` challenge beside it.
+
 Known gaps, stated rather than implied: `@timestampFormat` is read for nullability and otherwise
 inert. Nullable scalar parameters used
 to be listed here too, blamed on a type argument lost in the syntax transform. The diagnosis was
