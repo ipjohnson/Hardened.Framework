@@ -5,7 +5,9 @@ binding, the handler, serialisation — without a socket, a port or a running ho
 
 ## Setup
 
-Two assembly attributes: the test harness, and the application under test.
+Two assembly attributes: the test harness, and the application under test. The test project
+references `Hardened.Shared.Testing` and one runner package beside it, `Hardened.Shared.Testing.xUnit`
+or `Hardened.Shared.Testing.NUnit`, which is where `[HardenedTest]` comes from.
 
 ```csharp
 // Bootstrap.cs
@@ -283,9 +285,68 @@ filter all run. A `[Retry]` attribute retries. A validation failure returns the 
 handler that throws produces the error response the application would produce in production.
 
 What is *not* exercised is the host: Kestrel, ASP.NET Core middleware registered outside Hardened,
-and TLS. A test that needs those needs a real host, and every suite should budget for one smoke
-test against a real socket — the two response-cache defects the 0.19 trial found were visible only
-there.
+and TLS. A test that needs those puts a host on the test.
+
+## On a real host
+
+The attribute an application names its host with names a test's host too. `[KestrelRuntime]` on
+a test runs it on Kestrel, on a loopback port the kernel picks; `[AspNetCoreRuntime]` runs it
+inside the real ASP.NET Core pipeline on Kestrel, built the way `Program.cs` builds it. Either is
+valid on a method, a class or the assembly, the narrowest wins, and `[PipelineHost]` on a method
+opts one test back to the pipeline. The test project says once which package answers for which,
+beside `[assembly: KiotaTesting]`:
+
+```csharp
+[assembly: KestrelTesting]       // Hardened.Web.Kestrel.Testing
+[assembly: AspNetCoreTesting]    // Hardened.Web.AspNetCore.Testing, or AspNetCoreTesting(typeof(MyComposition))
+```
+
+Each host lives in its own package because hosting brings the ASP.NET Core shared framework with
+it and a suite on the pipeline should not carry that.
+
+```csharp
+[KestrelRuntime]
+public class SocketSmokeTests {
+
+    [HardenedTest]
+    public async Task ACompressedAnswerArrivesEncoded(ITestWebApp app) {
+        var response = await app.Get("/compression/readings");
+
+        response.Assert.Ok();
+        Assert.Equal("gzip", response.Headers["Content-Encoding"].ToString());
+    }
+
+    [HardenedTest]
+    public async Task CreateTodo_AnswersCreatedOverTheSocket(TodosClient client, [Mock] ITodoStore store) {
+        store.Add(Arg.Any<NewTodo>()).Returns(new Todo { Id = 7, Title = "ship it" });
+
+        var created = await client.Todos.PostAsync(new NewTodo { Title = "ship it" })
+            .Returns<Created<Todo>>();
+
+        Assert.Equal("/todos/7", created.Location);
+    }
+}
+```
+
+The server runs over the test's own container, so nothing a test holds changes shape. `ITestWebApp`
+sends to the socket, the `HttpClient` the harness hands out and every typed client parameter send
+to the socket, `Returns<T>()` reads the same answer, `LastResponse` is what came back over the wire,
+and a `[Mock]` behind a route is the same substitute the pipeline test sees, because the server
+resolves handlers from the same container. Credentials are two headers, so they travel.
+
+What changes is what the wire changes:
+
+| | Pipeline | `[KestrelRuntime]` | `[AspNetCoreRuntime]` |
+|---|---|---|---|
+| `TestWebResponse.Headers` | what the pipeline wrote | what Kestrel sent | what Kestrel sent |
+| `TestWebResponse.Failure` | the handler's exception | null | null |
+| An unmatched path | 404 | 404 | what `Program.cs` put behind `UseHardened()`, then ASP.NET's 404 |
+| Cost per test | none | one Kestrel bind | one `WebApplication` build and bind |
+
+Every socket test binds and stops a server of its own, which is why the attribute goes on the
+smoke class rather than on the assembly. `[assembly: AspNetCoreTesting(typeof(MyComposition))]`
+names an `IAspNetCoreTestComposition` that arranges the middleware the way `Program.cs` does; the
+default is `app.UseHardened()` alone. Both hosts work under xUnit and NUnit alike.
 
 ## Next
 
