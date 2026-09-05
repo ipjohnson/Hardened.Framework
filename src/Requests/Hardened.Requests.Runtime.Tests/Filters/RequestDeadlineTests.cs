@@ -90,7 +90,7 @@ public class RequestDeadlineTests {
         Assert.Null(observed);
 
         // Both readings say the same thing, and neither is a token that looks live.
-        Assert.False(Accessor.CancellationToken.CanBeCanceled);
+        Assert.Null(Accessor.CancellationToken);
 
         // The budget still applies; only the reading of it was declined.
         Assert.True(bounded.CanBeCanceled);
@@ -99,7 +99,7 @@ public class RequestDeadlineTests {
     [Fact]
     public void AHandlerNoBudgetAppliesToReadsNothing() {
         Assert.Null(Accessor.Deadline);
-        Assert.Equal(CancellationToken.None, Accessor.CancellationToken);
+        Assert.Null(Accessor.CancellationToken);
     }
 
     /// <summary>
@@ -113,7 +113,7 @@ public class RequestDeadlineTests {
 
         var context = Pipeline.Cancellable(transport.Token);
 
-        CancellationToken published = default;
+        CancellationToken? published = null;
         CancellationToken installed = default;
 
         await Pipeline.Chain(
@@ -141,7 +141,7 @@ public class RequestDeadlineTests {
         var chain = Pipeline.Chain(
             context,
             new TimeoutFilter(ShortBudget),
-            new Pipeline.Inline(_ => Task.Delay(Timeout.Infinite, Accessor.CancellationToken)));
+            new Pipeline.Inline(_ => Task.Delay(Timeout.Infinite, Accessor.CancellationToken!.Value)));
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => chain.Next());
     }
@@ -157,7 +157,7 @@ public class RequestDeadlineTests {
         await Pipeline.Chain(context, new TimeoutFilter(LongBudget)).Next();
 
         Assert.Null(Accessor.Deadline);
-        Assert.Equal(CancellationToken.None, Accessor.CancellationToken);
+        Assert.Null(Accessor.CancellationToken);
     }
 
     /// <summary>

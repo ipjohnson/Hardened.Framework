@@ -32,8 +32,7 @@ internal sealed class RequestDeadline : IRequestDeadline {
     public MachineTimestamp? Deadline => Current.Value?.Deadline;
 
     /// <inheritdoc />
-    public CancellationToken CancellationToken =>
-        Current.Value?.CancellationToken ?? CancellationToken.None;
+    public CancellationToken? CancellationToken => Current.Value?.CancellationToken;
 
     /// <summary>
     /// Publishes a budget until the scope is disposed, or nothing when <paramref name="deadline"/>

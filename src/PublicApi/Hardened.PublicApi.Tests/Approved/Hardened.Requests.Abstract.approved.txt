@@ -1848,7 +1848,7 @@ namespace Hardened.Requests.Abstract.Timeouts
     }
     public interface IRequestDeadline
     {
-        System.Threading.CancellationToken CancellationToken { get; }
+        System.Threading.CancellationToken? CancellationToken { get; }
         Hardened.Shared.Runtime.Diagnostics.MachineTimestamp? Deadline { get; }
     }
     public interface IRequestTimeoutConvention

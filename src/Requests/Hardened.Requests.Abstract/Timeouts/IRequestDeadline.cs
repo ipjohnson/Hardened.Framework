@@ -6,12 +6,12 @@ namespace Hardened.Requests.Abstract.Timeouts;
 /// When the request being handled runs out of time.
 ///
 /// <code>
-/// public Task&lt;Quote&gt; Quote(Job job) {
+/// public Task&lt;Quote&gt; Quote(Job job, CancellationToken cancellationToken) {
 ///     if (_deadline.Deadline is { } at &amp;&amp; at.GetRemainingMilliseconds() &lt; 250) {
 ///         return Task.FromResult(Quote.Estimated(job));
 ///     }
 ///
-///     return _pricing.Quote(job, _deadline.CancellationToken);
+///     return _pricing.Quote(job, _deadline.CancellationToken ?? cancellationToken);
 /// }
 /// </code>
 /// </summary>
@@ -31,17 +31,18 @@ namespace Hardened.Requests.Abstract.Timeouts;
 /// </para>
 /// <para>
 /// <b>Nothing bounds every request.</b> Only <c>TimeoutFilter</c> publishes, so a handler no budget
-/// applies to reads <see cref="Deadline"/> null and <see cref="CancellationToken"/>
-/// <see cref="System.Threading.CancellationToken.None"/>, which is also what a handler reads
-/// outside a request entirely. The two say the same thing and are never one without the other.
+/// applies to reads null from both, which is also what a handler reads outside a request entirely.
+/// Both are nullable rather than one of them carrying a sentinel: they record the same publication
+/// and are never one without the other, so one pattern reads both and neither absence has to be
+/// recognised as a special value.
 /// </para>
 /// <para>
 /// <b>This is not the way to get the request's token.</b> A handler that wants cancellation whether
 /// or not a budget was declared - a client hanging up cancels either way - takes a
 /// <see cref="System.Threading.CancellationToken"/> parameter, which a code-first handler writes on
 /// its own signature and a described one gets from
-/// <c>$(HardenedBindCancellationToken)</c>. The token here is the budget's, and it is
-/// <see cref="System.Threading.CancellationToken.None"/> when there is no budget.
+/// <c>$(HardenedBindCancellationToken)</c>. The token here is the budget's, and it is null when
+/// there is no budget, which is why the example above falls back to the bound one.
 /// </para>
 /// <para>
 /// Monotonic, from <see cref="MachineTimestamp"/>, so a deadline is not moved by a clock
@@ -56,8 +57,7 @@ public interface IRequestDeadline {
     MachineTimestamp? Deadline { get; }
 
     /// <summary>
-    /// The token that fires at <see cref="Deadline"/>, or
-    /// <see cref="System.Threading.CancellationToken.None"/> when nothing bounds this request.
+    /// The token that fires at <see cref="Deadline"/>, or null when nothing bounds this request.
     /// </summary>
     /// <remarks>
     /// The same token the budget's own filter installed, so passing it to an upstream call is what
@@ -65,5 +65,5 @@ public interface IRequestDeadline {
     /// find, because a handler that has just decided it has time to start something needs the token
     /// to start it with.
     /// </remarks>
-    CancellationToken CancellationToken { get; }
+    CancellationToken? CancellationToken { get; }
 }
