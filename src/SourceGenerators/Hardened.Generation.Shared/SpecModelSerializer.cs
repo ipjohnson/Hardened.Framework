@@ -566,6 +566,12 @@ internal static class SpecModelSerializer {
         record.Add("RequestBodyRef", operation.RequestBodyRef);
         record.Add("RequestBodyType", operation.RequestBodyType);
         record.Add("ResponseContentType", operation.ResponseContentType);
+
+        // The item of a streamed response. Every field an operation carries has to cross this
+        // file or the generator never sees it: this one did not, so the build task emitted an
+        // interface returning IAsyncEnumerable<T> and the generator described the handler that
+        // implements it as an ordinary awaited body.
+        record.Add("ItemSchemaRef", operation.ItemSchemaRef);
         record.Add("RawBytesResponse", operation.RawBytesResponse);
 
         // Three flat members rather than a nested record, because the format is flat and a
@@ -676,6 +682,7 @@ internal static class SpecModelSerializer {
         RequestBodyRef = record.String("RequestBodyRef"),
         RequestBodyType = record.String("RequestBodyType"),
         ResponseContentType = record.String("ResponseContentType"),
+        ItemSchemaRef = record.String("ItemSchemaRef"),
         RawBytesResponse = record.Bool("RawBytesResponse"),
         ResponseRef = record.String("ResponseRef"),
         ResponseType = record.String("ResponseType"),

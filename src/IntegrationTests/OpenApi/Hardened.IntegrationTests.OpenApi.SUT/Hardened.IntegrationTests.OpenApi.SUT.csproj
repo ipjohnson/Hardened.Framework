@@ -68,6 +68,12 @@
             <SourceUrl>/openapi.yaml</SourceUrl>
             <UiUrl>/docs</UiUrl>
         </HardenedOpenApiSpec>
+
+        <!--
+            The streamed operation, on its own 3.2 contract; the file says why. No URLs: the
+            application serves one document for every contract it composes, from the item above.
+        -->
+        <HardenedOpenApiSpec Include="Specs\events.yaml" />
     </ItemGroup>
 
     <!--

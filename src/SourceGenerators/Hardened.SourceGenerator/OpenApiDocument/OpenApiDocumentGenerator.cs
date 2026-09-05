@@ -478,12 +478,12 @@ public static class OpenApiDocumentGenerator {
             WriteSingleResponse(builder, handler, components, version, successStatus);
         }
         else if (returnTypeDeclaredThem) {
-            WriteDeclaredResponses(builder, handler, components);
+            WriteDeclaredResponses(builder, handler, components, version);
         }
         else {
             WriteSingleResponse(builder, handler, components, version, successStatus);
             builder.Append(',');
-            WriteDeclaredResponses(builder, handler, components);
+            WriteDeclaredResponses(builder, handler, components, version);
         }
 
         WriteValidationResponse(builder, handler, components);
@@ -576,7 +576,12 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static void WriteDeclaredResponses(
-        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components) {
+        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components,
+        OpenApiVersion version) {
+        var streamedStatus = handler.ResponseInformation.IsAsyncEnumerable
+            ? handler.ResponseInformation.DefaultStatusCode ?? 200
+            : (int?)null;
+
         var byStatus = handler.ResponseSchemas
             .GroupBy(response => response.Status)
             .OrderBy(group => group.Key);
@@ -602,7 +607,13 @@ public static class OpenApiDocumentGenerator {
 
             var bodies = group.Where(response => response.Schema != null).ToList();
 
-            if (bodies.Count > 0) {
+            // A described operation's streamed success sits in the declared set for its
+            // description and headers, and carries no schema of its own: the item is on
+            // ResponseSchema, and the streamed path writes it the way it does code-first.
+            if (group.Key == streamedStatus) {
+                WriteStreamedResponse(builder, handler, components, version);
+            }
+            else if (bodies.Count > 0) {
                 builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(contentType))
                     .Append("\":{\"schema\":");
 

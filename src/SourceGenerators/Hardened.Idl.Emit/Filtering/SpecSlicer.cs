@@ -143,6 +143,11 @@ internal static class SpecSlicer {
                 Reach(operation.ResponseRef);
                 Reach(operation.ResponseArrayItemsRef);
 
+                // The item of a streamed response, the only reference such an operation holds to
+                // its payload: without it the schema was pruned while the service interface
+                // still named it. ModelRefs.All carries the same handle for the passes that use it.
+                Reach(operation.ItemSchemaRef);
+
                 // Every declared success, not only the primary one the flat fields above name. A
                 // schema reachable solely through a second 2xx - the 202's body on a poll endpoint -
                 // is otherwise pruned as unreferenced, and the case type that carries it names a
@@ -265,6 +270,7 @@ internal static class SpecSlicer {
                 Check(operation.RequestBodyRef, from);
                 Check(operation.ResponseRef, from);
                 Check(operation.ResponseArrayItemsRef, from);
+                Check(operation.ItemSchemaRef, from);
 
                 foreach (var success in operation.SuccessResponses) {
                     Check(success.Ref, from);

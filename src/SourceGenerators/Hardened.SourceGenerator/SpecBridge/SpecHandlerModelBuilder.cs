@@ -215,6 +215,11 @@ internal static class SpecHandlerModelBuilder {
             RequestSchema = SpecSchemaWriter.ForRef(operation.RequestBodyRef, schemas),
             ResponseSchemas = BuildResponseSchemas(operation, schemas),
 
+            // One item of a streamed response, which the document writer publishes as itemSchema
+            // and as the array of it under schema, beside the description and headers the
+            // success declares in ResponseSchemas. Null for every operation that streams nothing.
+            ResponseSchema = SpecSchemaWriter.ForRef(operation.ItemSchemaRef, schemas),
+
             // What the operation says about itself. Carried here rather than left to each caller,
             // because a handler model that has lost its summary cannot be told from one whose
             // operation never had a summary - and the document written from it is silently poorer.
@@ -375,6 +380,36 @@ internal static class SpecHandlerModelBuilder {
         OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace,
         SpecResponseModel responseModel) {
         ITypeDefinition? returnType = null;
+
+        // A stream, ahead of everything else, exactly as ServiceInterfaceEmitter.GetReturnType
+        // decides it: itemSchema means the body is many of the item one after another, so the
+        // interface says IAsyncEnumerable<T> and this has to describe the handler that fills it the
+        // way a code-first IAsyncEnumerable<T> handler is described. IsAsync stays false because
+        // the enumerable is handed to the pipeline rather than awaited - the invoke method awaited
+        // it before, which is CS9353 in generated code - and there is no response set, because a
+        // stream's refusals are thrown before the first item, as they are code-first.
+        if (operation.ItemSchemaRef != null) {
+            var itemType = TypeDefinition.Get(
+                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ItemSchemaRef)));
+
+            return new ResponseInformationModel {
+                IsAsync = false,
+                IsAsyncEnumerable = true,
+                AsyncEnumerableItemType = itemType,
+                ReturnType = new GenericTypeDefinition(
+                    TypeDefinitionEnum.InterfaceDefinition,
+                    "System.Collections.Generic",
+                    "IAsyncEnumerable",
+                    new[] { itemType }),
+                StreamFraming = StreamFramingFor(operation.ResponseContentType),
+                DeclaredContentType = operation.ResponseContentType,
+                RendersAModel = true,
+                ProducedContentTypes = operation.ProducedContentTypes.Count > 0
+                    ? string.Join(",", operation.ProducedContentTypes)
+                    : null,
+                ValidationErrorStatus = DeclaredValidationStatus(operation)
+            };
+        }
 
         // The declared set, ahead of everything below, exactly as ServiceInterfaceEmitter.GetReturnType
         // decides it - because that emitter writes the signature this dispatch has to fill.
@@ -845,6 +880,21 @@ internal static class SpecHandlerModelBuilder {
     /// generated client with no branch for the 404 the contract promised. The response's own
     /// description wins over the status's standard wording.
     /// </remarks>
+    /// <summary>
+    /// The framing a described stream is sent with, from the media type the contract declares.
+    /// </summary>
+    /// <remarks>
+    /// The runtime frames a stream two ways, and a code-first handler names one with
+    /// <c>[ServerSentEvents]</c> or takes newline-delimited JSON by naming nothing. A contract names
+    /// the media type instead, so this is the same choice read from the other end:
+    /// <c>text/event-stream</c> is the event framing, and anything else is one JSON document per
+    /// line, which is what the document then declares.
+    /// </remarks>
+    private static string? StreamFramingFor(string? contentType) =>
+        string.Equals(contentType, "text/event-stream", StringComparison.OrdinalIgnoreCase)
+            ? StreamFramingNames.ServerSentEvents
+            : null;
+
     private static IReadOnlyList<ResponseSchemaModel> BuildResponseSchemas(
         OperationModel operation, IReadOnlyList<SchemaModel> schemas) {
         var result = new List<ResponseSchemaModel>();

@@ -23,6 +23,9 @@
     },
     {
       "name": "Store"
+    },
+    {
+      "name": "PetHistory"
     }
   ],
   "paths": {
@@ -586,6 +589,53 @@
         }
       }
     },
+    "/pets/{petId}/events": {
+      "get": {
+        "tags": [
+          "PetHistory"
+        ],
+        "operationId": "petEvents",
+        "summary": "The pet's history, one event at a time.",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The pet's history, one event at a time.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PetEvent"
+                  }
+                },
+                "itemSchema": {
+                  "$ref": "#/components/schemas/PetEvent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/pets/{petId}/label": {
       "get": {
         "tags": [
@@ -972,6 +1022,21 @@
         "required": [
           "id",
           "name"
+        ]
+      },
+      "PetEvent": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "petId",
+          "kind"
         ]
       },
       "PetSize": {

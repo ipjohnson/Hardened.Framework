@@ -322,6 +322,9 @@ public class SpecModelSerializerTests {
             RequestBodyRef = "#/components/schemas/CreatePetRequest",
             RequestBodyType = "object",
             ResponseContentType = "text/plain",
+            // The one field that was not here, and so the one the file silently dropped: a
+            // streamed operation's item, which the generator needs to describe the handler.
+            ItemSchemaRef = "#/components/schemas/PetEvent",
             ResponseRef = "#/components/schemas/Pet",
             ResponseType = "object",
             ResponseFormat = "json",
