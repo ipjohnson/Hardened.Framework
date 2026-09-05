@@ -13,6 +13,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(403)]
 public sealed record Forbidden(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The Forbidden with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly Forbidden Default = new("This request is not permitted.");
+
     public string Type => ProblemTypes.Forbidden;
 
     public string Title => "Forbidden";

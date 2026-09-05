@@ -19,6 +19,12 @@ namespace Hardened.Requests.Abstract.Responses;
 public sealed record UnsupportedMediaType(string? Detail = null)
     : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The UnsupportedMediaType with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly UnsupportedMediaType Default = new("The request's media type is not supported.");
+
     public string Type => ProblemTypes.UnsupportedMediaType;
 
     public string Title => "Unsupported Media Type";

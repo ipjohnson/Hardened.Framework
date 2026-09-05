@@ -24,6 +24,12 @@ namespace Hardened.Requests.Abstract.Responses;
 public sealed record ServiceUnavailable(TimeSpan? After = null, string? Detail = null)
     : IHttpStatusResponse, IProvidesResponseHeaders, IDeclaresStatus {
 
+    /// <summary>
+    /// The ServiceUnavailable with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly ServiceUnavailable Default = new(Detail: "The service is temporarily unavailable.");
+
     public string Type => ProblemTypes.ServiceUnavailable;
 
     public string Title => "Service Unavailable";

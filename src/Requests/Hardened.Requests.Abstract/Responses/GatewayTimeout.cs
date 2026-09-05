@@ -18,6 +18,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(504)]
 public sealed record GatewayTimeout(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The GatewayTimeout with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly GatewayTimeout Default = new("An upstream service did not answer in time.");
+
     public string Type => ProblemTypes.GatewayTimeout;
 
     public string Title => "Gateway Timeout";

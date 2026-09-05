@@ -18,6 +18,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(502)]
 public sealed record BadGateway(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The BadGateway with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly BadGateway Default = new("An upstream service answered badly.");
+
     public string Type => ProblemTypes.BadGateway;
 
     public string Title => "Bad Gateway";

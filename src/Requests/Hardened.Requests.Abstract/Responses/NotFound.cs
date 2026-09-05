@@ -22,6 +22,12 @@ namespace Hardened.Requests.Abstract.Responses;
 public sealed record NotFound(string Resource, string? Detail = null)
     : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The NotFound with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly NotFound Default = new("resource", "The requested resource does not exist.");
+
     public string Type => ProblemTypes.NotFound;
 
     public string Title => "Not Found";

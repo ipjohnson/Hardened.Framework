@@ -11,6 +11,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(409)]
 public sealed record Conflict(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The Conflict with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly Conflict Default = new("The request conflicts with the current state.");
+
     public string Type => ProblemTypes.Conflict;
 
     public string Title => "Conflict";

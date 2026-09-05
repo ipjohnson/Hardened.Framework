@@ -17,6 +17,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(501)]
 public sealed record NotImplemented(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The NotImplemented with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly NotImplemented Default = new("This operation is not implemented.");
+
     public string Type => ProblemTypes.NotImplemented;
 
     public string Title => "Not Implemented";

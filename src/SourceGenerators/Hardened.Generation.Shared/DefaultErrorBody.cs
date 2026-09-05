@@ -93,7 +93,21 @@ internal static class DefaultErrorBody {
     /// member cannot be filled without inventing a value.
     /// </summary>
     public static IReadOnlyList<string>? Arguments(
-        IReadOnlyList<SchemaModel> schemas, string schemaName, int statusCode) {
+        IReadOnlyList<SchemaModel> schemas, string schemaName, int statusCode) =>
+        Arguments(schemas, schemaName, statusCode, BodySource.ForStatus(statusCode));
+
+    /// <summary>
+    /// The same arguments with <c>type</c>, <c>title</c>, <c>status</c> and <c>detail</c> read off a
+    /// shipped record - the body <c>return new NotFound("todo", "...")</c> converts into - rather
+    /// than derived from the status alone.
+    /// </summary>
+    /// <param name="record">The expression that holds the record, in the generated code.</param>
+    public static IReadOnlyList<string>? ArgumentsFromRecord(
+        IReadOnlyList<SchemaModel> schemas, string schemaName, int statusCode, string record) =>
+        Arguments(schemas, schemaName, statusCode, BodySource.ForRecord(statusCode, record));
+
+    private static IReadOnlyList<string>? Arguments(
+        IReadOnlyList<SchemaModel> schemas, string schemaName, int statusCode, BodySource source) {
         var schema = Find(schemas, schemaName);
 
         if (schema == null || schema.Kind != SchemaKind.Object) {
@@ -105,7 +119,7 @@ internal static class DefaultErrorBody {
 
         foreach (var property in SchemaShape.Constructor(schema)) {
             var csType = TypeMapper.MapPropertyToCSharpType(property);
-            var value = Value(property, csType, statusCode, isProblem, schema.IsErrorShape);
+            var value = Value(property, csType, source, isProblem, schema.IsErrorShape);
 
             if (value != null) {
                 arguments.Add(value);
@@ -135,7 +149,7 @@ internal static class DefaultErrorBody {
     }
 
     private static string? Value(
-        PropertyModel property, string csType, int statusCode, bool isProblem, bool isErrorShape) {
+        PropertyModel property, string csType, BodySource source, bool isProblem, bool isErrorShape) {
         // The document's own default first. It is the one source here that is not an inference.
         var declared = DefaultLiteral.Format(property.Default, csType);
 
@@ -150,7 +164,7 @@ internal static class DefaultErrorBody {
         // because { message: string } is an ordinary shape and an ordinary payload's message is
         // not this.
         if (isErrorShape && property.Name == "message" && csType == "string") {
-            return "\"" + ReasonPhrase(statusCode) + "\"";
+            return source.Message;
         }
 
         if (!isProblem) {
@@ -159,13 +173,77 @@ internal static class DefaultErrorBody {
 
         switch (property.Name) {
             case "type" when csType == "string":
-                return "\"about:blank\"";
+                return source.Type;
             case "title" when csType == "string":
-                return "\"" + ReasonPhrase(statusCode) + "\"";
+                return source.Title;
             case "status" when csType == "int" || csType == "long":
-                return statusCode.ToString(CultureInfo.InvariantCulture);
+                return source.Status;
+            case "detail" when csType == "string" || csType == "string?":
+                return source.Detail;
             default:
                 return null;
+        }
+    }
+
+    /// <summary>
+    /// Where the members a problem body can be filled from come from: the status alone, for the
+    /// body a null return writes, or a shipped record, for the body a returned record converts
+    /// into.
+    /// </summary>
+    /// <remarks>
+    /// The status source writes <c>type</c> as the framework's problem type for the status - the
+    /// URI a code-first handler's record sends - and <c>about:blank</c> only where the framework
+    /// declares none, so a null return and a returned <c>NotFound</c> answer with one <c>type</c>.
+    /// The record source reads the four members off the record, and fills a Smithy <c>message</c>
+    /// with the detail, or the title where no detail was given, which is the same act as the reason
+    /// phrase going into it.
+    /// </remarks>
+    private readonly struct BodySource {
+        private BodySource(string type, string title, string status, string? detail, string message) {
+            Type = type;
+            Title = title;
+            Status = status;
+            Detail = detail;
+            Message = message;
+        }
+
+        public string Type { get; }
+
+        public string Title { get; }
+
+        public string Status { get; }
+
+        public string? Detail { get; }
+
+        public string Message { get; }
+
+        public static BodySource ForStatus(int statusCode) {
+            var phrase = "\"" + ReasonPhrase(statusCode) + "\"";
+            var problemType = ShippedResponses.ProblemType(statusCode);
+
+            return new BodySource(
+                problemType == null
+                    ? "\"about:blank\""
+                    : "global::" + ShippedResponses.Namespace + ".ProblemTypes." + problemType,
+                phrase,
+                statusCode.ToString(CultureInfo.InvariantCulture),
+                detail: null,
+                phrase);
+        }
+
+        public static BodySource ForRecord(int statusCode, string record) {
+            // MethodNotAllowed and NotAcceptable carry a status and nothing else a problem body
+            // reads, so their bodies are the status's rather than the record's.
+            if (!ShippedResponses.HasProblemMembers(statusCode)) {
+                var fromStatus = ForStatus(statusCode);
+
+                return new BodySource(
+                    fromStatus.Type, fromStatus.Title, record + ".Status", detail: null, fromStatus.Message);
+            }
+
+            return new BodySource(
+                record + ".Type", record + ".Title", record + ".Status", record + ".Detail",
+                "(" + record + ".Detail ?? " + record + ".Title)");
         }
     }
 
@@ -178,7 +256,7 @@ internal static class DefaultErrorBody {
     /// beside it often enough for this to be worth loosening, and the cost of a false positive is a
     /// status code written into a member that never meant one.
     /// </remarks>
-    private static bool IsProblemDetails(SchemaModel schema) {
+    public static bool IsProblemDetails(SchemaModel schema) {
         var hasTitle = false;
         var hasStatus = false;
 

@@ -19,6 +19,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(408)]
 public sealed record RequestTimeout(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The RequestTimeout with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly RequestTimeout Default = new("The request took too long.");
+
     public string Type => ProblemTypes.RequestTimeout;
 
     public string Title => "Request Timeout";

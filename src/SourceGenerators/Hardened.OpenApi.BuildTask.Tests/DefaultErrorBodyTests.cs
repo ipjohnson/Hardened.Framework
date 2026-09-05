@@ -131,7 +131,55 @@ public class DefaultErrorBodyTests {
         };
 
         Assert.Equal(
-            ["\"about:blank\"", "\"Not Found\"", "404", "default"],
+            ["global::Hardened.Requests.Abstract.Responses.ProblemTypes.NotFound", "\"Not Found\"", "404", "default"],
             DefaultErrorBody.Arguments(schemas, "Problem", 404));
+    }
+
+    /// <summary>
+    /// The <c>type</c> is the framework's own problem type for the status, which is what a
+    /// code-first handler's record sends, so a null return and a returned record answer alike.
+    /// Only a status the framework declares no kind for falls back to <c>about:blank</c>.
+    /// </summary>
+    [Fact]
+    public void AStatusWithNoProblemKindWritesAboutBlank() {
+        var schemas = new[] {
+            Schema("Problem", isErrorShape: false,
+                String("type", required: false),
+                new PropertyModel { Name = "status", Type = "integer", IsRequired = false },
+                String("title", required: false))
+        };
+
+        Assert.Equal(
+            ["\"about:blank\"", "405", "\"Method Not Allowed\""],
+            DefaultErrorBody.Arguments(schemas, "Problem", 405));
+    }
+
+    /// <summary>
+    /// The same members read off a record instead - the body a returned <c>NotFound</c> converts
+    /// into - so the detail is the handler's and the rest is what the record already knows.
+    /// </summary>
+    [Fact]
+    public void AProblemIsFilledFromARecord() {
+        var schemas = new[] {
+            Schema("Problem", isErrorShape: false,
+                String("type", required: false),
+                String("title", required: false),
+                new PropertyModel { Name = "status", Type = "integer", IsRequired = false },
+                String("detail", required: false))
+        };
+
+        Assert.Equal(
+            ["value.Type", "value.Title", "value.Status", "value.Detail"],
+            DefaultErrorBody.ArgumentsFromRecord(schemas, "Problem", 404, "value"));
+    }
+
+    /// <summary>A Smithy message is the detail, or the title where the record carries none.</summary>
+    [Fact]
+    public void AnErrorShapesMessageIsFilledFromTheRecordsDetail() {
+        var schemas = new[] { Schema("TodoNotFound", isErrorShape: true, String("message", required: true)) };
+
+        Assert.Equal(
+            ["(value.Detail ?? value.Title)"],
+            DefaultErrorBody.ArgumentsFromRecord(schemas, "TodoNotFound", 404, "value"));
     }
 }

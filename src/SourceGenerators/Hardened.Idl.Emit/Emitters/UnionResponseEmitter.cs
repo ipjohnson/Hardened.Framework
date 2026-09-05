@@ -56,7 +56,8 @@ internal static class UnionResponseEmitter {
     /// </remarks>
     public static IReadOnlyList<ClassDefinition> Emit(
         IConstructContainer container, ServiceModel service, string modelsNamespace,
-        bool asLanguageUnion = false, SpecResponseModel responseModel = SpecResponseModel.Response) {
+        bool asLanguageUnion = false, SpecResponseModel responseModel = SpecResponseModel.Response,
+        IReadOnlyList<SchemaModel>? schemas = null, string? specFileName = null) {
         var emitted = new List<ClassDefinition>();
 
         foreach (var operation in service.Operations) {
@@ -101,11 +102,24 @@ internal static class UnionResponseEmitter {
                 branches.Add(TypeDefinition.Get(modelsNamespace, name));
             }
 
+            var conversions = new List<ProblemConversion.Plan>();
+
             foreach (var error in operation.ErrorResponses) {
                 branches.Add(ErrorBranchType(error, modelsNamespace));
+
+                // The shorthand from the bare record, where the build can fill the body: the
+                // schemas say which bodies are problem shaped, and the file name says where the
+                // method that fills one lives. A caller passing neither gets the set without it.
+                if (schemas != null && specFileName != null &&
+                    ProblemConversion.For(error, schemas) is { } plan) {
+                    conversions.Add(plan);
+                }
             }
 
-            emitted.Add(EmitContainer(container, operation, branches, asLanguageUnion));
+            emitted.Add(EmitContainer(
+                container, operation, branches, asLanguageUnion, conversions,
+                specFileName == null ? null : ProblemConversion.HolderName(specFileName),
+                modelsNamespace));
         }
 
         return emitted;
@@ -397,7 +411,9 @@ internal static class UnionResponseEmitter {
     /// </remarks>
     private static ClassDefinition EmitContainer(
         IConstructContainer container, OperationModel operation,
-        IReadOnlyList<ITypeDefinition> branchTypes, bool asLanguageUnion) {
+        IReadOnlyList<ITypeDefinition> branchTypes, bool asLanguageUnion,
+        IReadOnlyList<ProblemConversion.Plan> conversions, string? problemsHolder,
+        string modelsNamespace) {
         var name = ResponseSetPlan.ContainerName(operation);
 
         var branches = new List<string>();
@@ -427,6 +443,9 @@ internal static class UnionResponseEmitter {
                 type.AddUnionCase(branchType);
             }
 
+            // No conversion from the bare record here: a union declaration is written without a
+            // body, so it has nowhere to carry one. The holder the conversion would call is still
+            // emitted, and a union-mode handler calls it directly.
             return type;
         }
 
@@ -456,6 +475,8 @@ internal static class UnionResponseEmitter {
                 });
         }
 
+        EmitConversions(type, name, conversions, problemsHolder, modelsNamespace);
+
         var toString = type.AddMethod("ToString");
 
         toString.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
@@ -463,6 +484,35 @@ internal static class UnionResponseEmitter {
         toString.AddIndentedStatement("return Value?.ToString() ?? \"\"");
 
         return type;
+    }
+
+    /// <summary>
+    /// The shorthand: the bare shipped record converts into the case that carries the contract's
+    /// body, with the body filled from the record.
+    /// </summary>
+    /// <remarks>
+    /// One more conversion per case that can be filled, so a status the operation does not declare
+    /// is still a compile error - there is no operator for it to land on. The record is spelled as
+    /// the branches spell a shipped type, without <c>global::</c>, so the set reads as one list of
+    /// conversions.
+    /// </remarks>
+    private static void EmitConversions(
+        ClassDefinition type, string name, IReadOnlyList<ProblemConversion.Plan> conversions,
+        string? problemsHolder, string modelsNamespace) {
+        if (problemsHolder == null) {
+            return;
+        }
+
+        foreach (var conversion in conversions) {
+            var record = ShippedResponses.Namespace + "." + conversion.BareRecord;
+
+            type.AddComponent(
+                new CodeOutputComponent(
+                    $"public static implicit operator {name}({record} value) => " +
+                    $"new(global::{modelsNamespace}.{problemsHolder}.{conversion.MethodName}(value));") {
+                    Indented = true
+                });
+        }
     }
 
     /// <summary>

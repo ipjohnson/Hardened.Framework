@@ -89,7 +89,8 @@ internal static class SpecFileEmitter {
                     UnionResponseEmitter.Emit(
                         models, service, modelsNamespace,
                         asLanguageUnion: responseModel == SpecResponseModel.Union,
-                        responseModel: responseModel));
+                        responseModel: responseModel,
+                        schemas: model.Schemas, specFileName: model.FileName));
             }
 
             // The types a declared error needs, once each for the whole document rather than once
@@ -129,6 +130,17 @@ internal static class SpecFileEmitter {
             // the contract the implementation implements.
             DefaultErrorBodyEmitter.Emit(
                 models, model.Schemas, NullResponseBodies(model), modelsNamespace);
+
+            // The cases a bare shipped record converts into, one method per record and body the
+            // file's response sets need. Beside the null-return bodies, which fill the same members
+            // from the status alone.
+            var problems = ProblemConversionEmitter.Emit(
+                models, model.Schemas, ProblemConversions(model, responseModel), modelsNamespace,
+                model.FileName);
+
+            if (problems != null) {
+                Coverage.Apply(problems, excludeFromCoverage);
+            }
         }
 
         Coverage.Apply(
@@ -237,6 +249,31 @@ internal static class SpecFileEmitter {
     /// verbs can produce an error body this way. Restricted to statuses the operation itself
     /// declares - a document that never mentions 404 for an operation is not given one here.
     /// </remarks>
+    /// <summary>
+    /// Every conversion the file's response sets offer, once each: an error two operations share
+    /// converts through one method.
+    /// </summary>
+    private static IReadOnlyList<ProblemConversion.Plan> ProblemConversions(
+        ServiceSpecModel model, SpecResponseModel responseModel) {
+        var plans = new Dictionary<string, ProblemConversion.Plan>(System.StringComparer.Ordinal);
+
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                if (!ResponseSetPlan.RequiresResponseSet(operation, responseModel)) {
+                    continue;
+                }
+
+                foreach (var error in operation.ErrorResponses) {
+                    if (ProblemConversion.For(error, model.Schemas) is { } plan) {
+                        plans[plan.Key] = plan;
+                    }
+                }
+            }
+        }
+
+        return new List<ProblemConversion.Plan>(plans.Values);
+    }
+
     private static IReadOnlyCollection<(string SchemaName, int StatusCode)> NullResponseBodies(
         ServiceSpecModel model) {
         var wanted = new HashSet<(string, int)>();

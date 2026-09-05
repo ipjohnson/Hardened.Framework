@@ -803,6 +803,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(502)]
     public sealed class BadGateway : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadGateway>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.BadGateway Default;
         public BadGateway(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -824,6 +825,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(400)]
     public sealed class BadRequest : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadRequest>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.BadRequest Default;
         public BadRequest(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -845,6 +847,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(409)]
     public sealed class Conflict : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Conflict>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.Conflict Default;
         public Conflict(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -866,6 +869,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(413)]
     public sealed class ContentTooLarge : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.ContentTooLarge>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.ContentTooLarge Default;
         public ContentTooLarge(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -898,6 +902,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(403)]
     public sealed class Forbidden : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Forbidden>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.Forbidden Default;
         public Forbidden(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -919,6 +924,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(504)]
     public sealed class GatewayTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.GatewayTimeout>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.GatewayTimeout Default;
         public GatewayTimeout(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -940,6 +946,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(410)]
     public sealed class Gone : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Gone>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.Gone Default;
         public Gone(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -1156,6 +1163,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(500)]
     public sealed class InternalServerError : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.InternalServerError>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.InternalServerError Default;
         public InternalServerError(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -1217,6 +1225,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(404)]
     public sealed class NotFound : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotFound>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.NotFound Default;
         public NotFound(string Resource, string? Detail = null) { }
         public string? Detail { get; init; }
         public string Resource { get; init; }
@@ -1239,6 +1248,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(501)]
     public sealed class NotImplemented : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotImplemented>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.NotImplemented Default;
         public NotImplemented(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -1283,6 +1293,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(402)]
     public sealed class PaymentRequired : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PaymentRequired>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.PaymentRequired Default;
         public PaymentRequired(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -1304,6 +1315,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(412)]
     public sealed class PreconditionFailed : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionFailed>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.PreconditionFailed Default;
         public PreconditionFailed(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -1325,6 +1337,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(428)]
     public sealed class PreconditionRequired : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionRequired>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.PreconditionRequired Default;
         public PreconditionRequired(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -1394,6 +1407,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(408)]
     public sealed class RequestTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.RequestTimeout>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.RequestTimeout Default;
         public RequestTimeout(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -1570,6 +1584,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(503)]
     public sealed class ServiceUnavailable : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.ServiceUnavailable>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.ServiceUnavailable Default;
         public ServiceUnavailable(System.TimeSpan? After = default, string? Detail = null) { }
         public System.TimeSpan? After { get; init; }
         public string? Detail { get; init; }
@@ -1619,6 +1634,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(401)]
     public sealed class Unauthorized : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Unauthorized>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.Unauthorized Default;
         public Unauthorized(string? Detail = null, Hardened.Requests.Abstract.Authorization.AuthorizationChallenge? Challenge = null) { }
         public Hardened.Requests.Abstract.Authorization.AuthorizationChallenge? Challenge { get; init; }
         public string? Detail { get; init; }
@@ -1644,6 +1660,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(422)]
     public sealed class UnprocessableContent : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.UnprocessableContent>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.UnprocessableContent Default;
         public UnprocessableContent(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
@@ -1665,6 +1682,7 @@ namespace Hardened.Requests.Abstract.Responses
     [Hardened.Requests.Abstract.Responses.HttpStatus(415)]
     public sealed class UnsupportedMediaType : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.UnsupportedMediaType>
     {
+        public static readonly Hardened.Requests.Abstract.Responses.UnsupportedMediaType Default;
         public UnsupportedMediaType(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
