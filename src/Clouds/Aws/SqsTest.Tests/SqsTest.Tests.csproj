@@ -9,6 +9,8 @@
 
     <ItemGroup>
       <PackageReference Include="Hardened.Shared.Testing" />
+      <!-- The runner behind [HardenedTest]. Split out of Hardened.Shared.Testing in 0.21.0-rc1000. -->
+      <PackageReference Include="Hardened.Shared.Testing.xUnit" />
       <PackageReference Include="Microsoft.NET.Test.Sdk" />
       <PackageReference Include="xunit.v3" />
       <PackageReference Include="xunit.runner.visualstudio">

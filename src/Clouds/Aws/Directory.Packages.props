@@ -42,15 +42,16 @@
       rather than silent.
     -->
     <ItemGroup Label="Hardened.Framework">
-        <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.20.0-rc1000" />
-        <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.20.0-rc1000" />
-        <PackageVersion Include="Hardened.Requests.Abstract" Version="0.20.0-rc1000" />
-        <PackageVersion Include="Hardened.Requests.Runtime" Version="0.20.0-rc1000" />
-        <PackageVersion Include="Hardened.Shared.Runtime" Version="0.20.0-rc1000" />
-        <PackageVersion Include="Hardened.Shared.Testing" Version="0.20.0-rc1000" />
-        <PackageVersion Include="Hardened.SourceGenerator" Version="0.20.0-rc1000" />
-        <PackageVersion Include="Hardened.Web.Runtime" Version="0.20.0-rc1000" />
-        <PackageVersion Include="Hardened.Web.SourceGenerator" Version="0.20.0-rc1000" />
+        <PackageVersion Include="Hardened.Function.SourceGenerator" Version="0.21.0-rc1000" />
+        <PackageVersion Include="Hardened.Library.SourceGenerator" Version="0.21.0-rc1000" />
+        <PackageVersion Include="Hardened.Requests.Abstract" Version="0.21.0-rc1000" />
+        <PackageVersion Include="Hardened.Requests.Runtime" Version="0.21.0-rc1000" />
+        <PackageVersion Include="Hardened.Shared.Runtime" Version="0.21.0-rc1000" />
+        <PackageVersion Include="Hardened.Shared.Testing" Version="0.21.0-rc1000" />
+        <PackageVersion Include="Hardened.Shared.Testing.xUnit" Version="0.21.0-rc1000" />
+        <PackageVersion Include="Hardened.SourceGenerator" Version="0.21.0-rc1000" />
+        <PackageVersion Include="Hardened.Web.Runtime" Version="0.21.0-rc1000" />
+        <PackageVersion Include="Hardened.Web.SourceGenerator" Version="0.21.0-rc1000" />
     </ItemGroup>
 
     <ItemGroup Label="DependencyModules and code generation">
@@ -73,9 +74,9 @@
           bridge, which the two generator projects opt into.
         -->
         <PackageVersion Include="CSharpAuthor" Version="2.0.0-preview1005" />
-        <PackageVersion Include="DependencyModules.Runtime" Version="1.3.0" />
-        <PackageVersion Include="DependencyModules.SourceGenerator" Version="1.3.0" />
-        <PackageVersion Include="DependencyModules.Testing" Version="1.3.0" />
+        <PackageVersion Include="DependencyModules.Runtime" Version="1.3.1" />
+        <PackageVersion Include="DependencyModules.SourceGenerator" Version="1.3.1" />
+        <PackageVersion Include="DependencyModules.Testing" Version="1.3.1" />
         <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
         <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
         <PackageVersion Include="ValidationModules.SourceGenerator.Impl" Version="1.0.0" />

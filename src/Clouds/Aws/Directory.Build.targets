@@ -47,6 +47,7 @@
         <HardenedLocalLibrary Include="Hardened.Requests.Testing" Path="src\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
         <HardenedLocalLibrary Include="Hardened.Shared.Runtime" Path="src\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <HardenedLocalLibrary Include="Hardened.Shared.Testing" Path="src\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
+        <HardenedLocalLibrary Include="Hardened.Shared.Testing.xUnit" Path="src\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
         <HardenedLocalLibrary Include="Hardened.Web.Runtime" Path="src\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
 
         <HardenedLocalAnalyzer Include="Hardened.Library.SourceGenerator" Path="src\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"/>
