@@ -9,6 +9,99 @@ const repos = {
   docs: 'https://github.com/ipjohnson/Hardened.Docs',
 };
 
+// One sidebar for the guide and the AWS pages, so AWS is the section after Testing rather than a
+// separate tree.
+const guide = [
+  {
+    text: 'Start here',
+    items: [
+      { text: 'Getting started', link: '/guide/getting-started' },
+      { text: 'Project templates', link: '/guide/project-templates' },
+      { text: 'Modules', link: '/guide/modules' },
+      { text: 'Registering services', link: '/guide/services' },
+    ],
+  },
+  {
+    text: 'Application',
+    items: [
+      { text: 'Configuration', link: '/guide/configuration' },
+      { text: 'Environments', link: '/guide/environments' },
+    ],
+  },
+  {
+    text: 'Handlers',
+    items: [
+      { text: 'Routing', link: '/guide/routing' },
+      { text: 'Parameter binding', link: '/guide/parameter-binding' },
+      { text: 'Declared responses', link: '/guide/responses' },
+      { text: 'Validation', link: '/guide/validation' },
+      { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
+    ],
+  },
+  {
+    text: 'Contracts',
+    items: [
+      { text: 'Generating from OpenAPI', link: '/guide/openapi' },
+      { text: 'Generating from Smithy', link: '/guide/smithy' },
+      { text: 'The OpenAPI document', link: '/guide/openapi-document' },
+      { text: 'Generated clients', link: '/guide/clients' },
+    ],
+  },
+  {
+    text: 'Security',
+    items: [
+      { text: 'Authentication', link: '/guide/authentication' },
+      { text: 'Authorization', link: '/guide/authorization' },
+    ],
+  },
+  {
+    text: 'Serialization',
+    items: [
+      { text: 'Content negotiation', link: '/guide/content-negotiation' },
+      { text: 'JSON serialization', link: '/guide/json' },
+      { text: 'Streaming responses', link: '/guide/streaming' },
+      { text: 'Views', link: '/guide/templates' },
+    ],
+  },
+  {
+    text: 'Performance and limits',
+    items: [
+      { text: 'Response caching', link: '/guide/response-caching' },
+      { text: 'Conditional requests', link: '/guide/conditional-requests' },
+      { text: 'Compression', link: '/guide/compression' },
+      { text: 'Rate limiting', link: '/guide/rate-limiting' },
+      { text: 'Request timeouts', link: '/guide/request-timeouts' },
+    ],
+  },
+  {
+    text: 'Testing',
+    items: [
+      { text: 'Writing a test', link: '/guide/testing' },
+      { text: 'Sending requests', link: '/guide/testing-web' },
+      { text: 'Substituting services', link: '/guide/testing-mocks' },
+      { text: 'Credentials', link: '/guide/testing-credentials' },
+      { text: 'Typed clients', link: '/guide/testing-clients' },
+      { text: 'Asserting a response', link: '/guide/testing-responses' },
+      { text: 'Test hosts', link: '/guide/testing-hosts' },
+      { text: 'Steps and retries', link: '/guide/testing-steps' },
+      { text: 'Writing a test attribute', link: '/guide/testing-attributes' },
+    ],
+  },
+  {
+    text: 'AWS',
+    items: [
+      { text: 'Overview', link: '/aws/' },
+      { text: 'API Gateway', link: '/aws/lambda-web' },
+      { text: 'Lambda functions', link: '/aws/lambda-function' },
+      { text: 'SQS', link: '/aws/sqs' },
+      { text: 'DynamoDB Streams', link: '/aws/ddb-streams' },
+      { text: 'DynamoDB client', link: '/aws/dynamodb' },
+      { text: 'CDK', link: '/aws/cdk' },
+      { text: 'Testing AWS handlers', link: '/aws/testing' },
+    ],
+  },
+];
+
 export default defineConfig({
   title: 'Hardened',
   description:
@@ -64,79 +157,8 @@ export default defineConfig({
     ],
 
     sidebar: {
-      '/guide/': [
-        {
-          text: 'Getting started',
-          items: [
-            { text: 'Getting started', link: '/guide/getting-started' },
-            { text: 'Project templates', link: '/guide/project-templates' },
-            { text: 'Modules', link: '/guide/modules' },
-            { text: 'Registering services', link: '/guide/services' },
-          ],
-        },
-        {
-          text: 'Applications',
-          items: [
-            { text: 'Configuration', link: '/guide/configuration' },
-            { text: 'Environments', link: '/guide/environments' },
-          ],
-        },
-        {
-          text: 'Handling requests',
-          items: [
-            { text: 'Routing', link: '/guide/routing' },
-            { text: 'Parameter binding', link: '/guide/parameter-binding' },
-            { text: 'Validation', link: '/guide/validation' },
-            { text: 'Authentication', link: '/guide/authentication' },
-            { text: 'Authorization', link: '/guide/authorization' },
-            { text: 'Rate limiting', link: '/guide/rate-limiting' },
-            { text: 'Request timeouts', link: '/guide/request-timeouts' },
-            { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
-            { text: 'Generating from OpenAPI', link: '/guide/openapi' },
-            { text: 'Generating from Smithy', link: '/guide/smithy' },
-            { text: 'The OpenAPI document', link: '/guide/openapi-document' },
-            { text: 'Clients', link: '/guide/clients' },
-            { text: 'Declared responses', link: '/guide/responses' },
-            { text: 'Content negotiation', link: '/guide/content-negotiation' },
-            { text: 'JSON serialization', link: '/guide/json' },
-            { text: 'Streaming responses', link: '/guide/streaming' },
-            { text: 'Response caching', link: '/guide/response-caching' },
-            { text: 'Conditional requests', link: '/guide/conditional-requests' },
-            { text: 'Compression', link: '/guide/compression' },
-            { text: 'Views', link: '/guide/templates' },
-          ],
-        },
-        {
-          text: 'Testing',
-          items: [
-            { text: 'Writing a test', link: '/guide/testing' },
-            { text: 'Testing web handlers', link: '/guide/testing-web' },
-          ],
-        },
-      ],
-      '/aws/': [
-        {
-          text: 'AWS',
-          items: [
-            { text: 'Overview', link: '/aws/' },
-            { text: 'Lambda functions', link: '/aws/lambda-function' },
-            { text: 'API Gateway', link: '/aws/lambda-web' },
-            { text: 'DynamoDB Streams', link: '/aws/ddb-streams' },
-            { text: 'SQS', link: '/aws/sqs' },
-          ],
-        },
-        {
-          text: 'Clients and infrastructure',
-          items: [
-            { text: 'DynamoDB client', link: '/aws/dynamodb' },
-            { text: 'CDK', link: '/aws/cdk' },
-          ],
-        },
-        {
-          text: 'Testing',
-          items: [{ text: 'Testing AWS handlers', link: '/aws/testing' }],
-        },
-      ],
+      '/guide/': guide,
+      '/aws/': guide,
       '/reference/': [
         {
           text: 'Reference',

@@ -1,13 +1,33 @@
-# Testing web handlers
+# Sending requests
 
-`ITestWebApp` sends a request through the application's real pipeline — routing, filters, parameter
-binding, the handler, serialisation — without a socket, a port or a running host.
+`ITestWebApp` sends a request through the application's pipeline and hands back the response.
+Routing, filters, binding, the handler and serialization all run. No socket is opened and no host
+is started.
+
+```csharp
+public class TodoTests {
+
+    [HardenedTest]
+    public async Task GetTodo_ReturnsTheTodo(ITestWebApp app) {
+        var response = await app.Get("/todos/1");
+
+        response.Assert.Ok();
+        Assert.Equal("Read the generated code", response.Deserialize<Todo>().Title);
+    }
+
+    [HardenedTest]
+    public async Task CreateTodo_AnswersCreated(ITestWebApp app) {
+        var response = await app.Post(new NewTodo("Write a test"), "/todos");
+
+        Assert.Equal(201, response.StatusCode);
+        Assert.Equal("/todos/3", response.Headers["Location"].ToString());
+    }
+}
+```
 
 ## Setup
 
-Two assembly attributes: the test harness, and the application under test. The test project
-references `Hardened.Shared.Testing` and one runner package beside it, `Hardened.Shared.Testing.xUnit`
-or `Hardened.Shared.Testing.NUnit`, which is where `[HardenedTest]` comes from.
+`[WebTesting]` installs the harness. It goes beside the entry point attribute:
 
 ```csharp
 // Bootstrap.cs
@@ -15,10 +35,12 @@ using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 
 [assembly: WebTesting]
-[assembly: HardenedTestEntryPoint(typeof(Application))]
+[assembly: HardenedTestEntryPoint(typeof(TodosLibrary))]
 ```
 
-A `Usings.cs` with the common imports keeps the test files themselves short:
+The test project references `Hardened.Web.Testing` beside the packages every test project has;
+see [Setting up a project](/guide/testing#setting-up-a-project). A `Usings.cs` keeps the test
+files short:
 
 ```csharp
 global using Hardened.Shared.Testing.Attributes;
@@ -26,22 +48,7 @@ global using Hardened.Web.Testing;
 global using Xunit;
 ```
 
-## Sending a request
-
-Take `ITestWebApp` as a parameter:
-
-```csharp
-public class HomeControllerTests {
-    [HardenedTest]
-    public async Task GetReturnsTheValue(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/test");
-
-        response.Assert.Ok();
-
-        Assert.Equal("somevalue", response.Deserialize<string>());
-    }
-}
-```
+## Requests
 
 | Method | Signature |
 |---|---|
@@ -52,53 +59,29 @@ public class HomeControllerTests {
 | `Delete` | `Delete(path, configure?)` |
 | `Request` | `Request(method, value, path, configure?)` |
 
-The body value is serialised for you, so a POST takes the model:
-
-```csharp
-[HardenedTest]
-public async Task AddsTheValues(ITestWebApp testWebApp) {
-    var model = new MathAddModel { Values = new List<int> { 10, 20, 30 } };
-
-    var response = await testWebApp.Post(model, "/int/add");
-
-    response.Assert.Ok();
-    Assert.Equal(60, response.Deserialize<int>());
-}
-```
-
-Note the argument order: the value comes first, the path second.
-
-## Headers and query strings
+The value comes first and the path second. The value is serialized as JSON. A `string` or a
+`byte[]` goes on the wire as it is.
 
 Query strings go in the path. Headers go through the configure callback:
 
 ```csharp
-[HardenedTest]
-public async Task BindsEverySource(ITestWebApp testWebApp) {
-    var response = await testWebApp.Get(
-        "/binding/mixed/id-9?filter=active",
-        request => request.Headers["X-Tenant"] = "acme");
-
-    response.Assert.Ok();
-    Assert.Equal("id-9|active|acme|3", response.Deserialize<string>());
-}
+var response = await app.Get(
+    "/binding/mixed/id-9?filter=active",
+    request => request.Headers["X-Tenant"] = "acme");
 ```
 
-`TestWebRequest` also carries a `Token`, for asserting that a handler honours cancellation, and a
-raw body for a payload the serialiser would never produce:
+`RawBody` sends bytes the serializer would never produce, for a test of what a malformed payload
+answers:
 
 ```csharp
-[HardenedTest]
-public async Task ARawBodyOnTheRequestAnswersTheValidationStatus(ITestWebApp app) {
-    var response = await app.Post(new object(), "/registration", request => request.RawBody("{\"name\":"));
+var response = await app.Post(new object(), "/registration", request => request.RawBody("{\"name\":"));
 
-    response.Assert.BadRequest();
-    Assert.Equal("ValidationError", response.Deserialize<RequestValidationError>().Type);
-}
+response.Assert.BadRequest();
+Assert.Equal("ValidationError", response.Deserialize<RequestValidationError>().Type);
 ```
 
-A `string` or a `byte[]` passed as the value goes on the wire as itself too, so
-`app.Request("POST", "{\"name\":", "/registration")` is the same request.
+`request.Token` carries a `CancellationToken` into the request, for asserting that a handler
+observes cancellation.
 
 ## The response
 
@@ -107,282 +90,73 @@ public class TestWebResponse {
     public int StatusCode { get; }
     public IDictionary<string, StringValues> Headers { get; }
     public Stream Body { get; }
+    public Exception? Failure { get; }
     public IWebAssertThat Assert { get; }
 
     public T Deserialize<T>();
+    public Task<string> ReadTextAsync();
     public IAsyncEnumerable<T> DeserializeAsyncEnumerable<T>();
 }
 ```
 
-`Deserialize<T>` transparently decompresses gzip and Brotli bodies. The test client sends
-`Accept-Encoding: gzip`, so a test asserting on the deserialised value never has to know which it
-got.
+The harness sends `Accept-Encoding: gzip` on every request, so a handler that compresses answers
+compressed. `Deserialize<T>`, `ReadTextAsync` and `DeserializeAsyncEnumerable<T>` undo gzip and
+Brotli before reading. `Body` is the bytes as answered.
 
-`DeserializeAsyncEnumerable<T>` reads NDJSON, one object per line, for streaming handlers.
+`ReadTextAsync` is for a body that is not JSON: a YAML document, a rendered page.
+`DeserializeAsyncEnumerable<T>` reads NDJSON one item at a time, for a
+[streaming handler](/guide/streaming).
+
+`Failure` is the exception the pipeline recorded when it refused or failed the request. A handler
+that threw answers the error envelope, whose 500 body says nothing about the cause. `Failure` is
+the cause. It is null on a [socket host](/guide/testing-hosts), where only the envelope crosses
+the wire.
 
 ### Status assertions
 
 ```csharp
 response.Assert.Ok();           // any 2xx
-response.Assert.NotFound();     // 404
 response.Assert.BadRequest();   // 400
 response.Assert.Unauthorized(); // 401
 response.Assert.Forbidden();    // 403
+response.Assert.NotFound();     // 404
 ```
 
-Anything else is an `Assert.Equal` against `response.StatusCode`.
+Anything else is an `Assert.Equal` against `StatusCode`.
 
-## Mocking a service behind a route
+## A mock behind a route
 
-`[Mock]` composes with `ITestWebApp`. The mock is registered before the application's own graph is
-built, so the handler on the other end of the route gets it:
+`[Mock]` composes with `ITestWebApp`. The handler resolves from the container the mock was
+registered in:
 
 ```csharp
 using NSubstitute;
 
-public class MathControllerTests {
-    [HardenedTest]
-    public async Task UsesTheMockedService(
-        ITestWebApp testWebApp,
-        [Mock] IMathService<int> mockService) {
-
-        mockService.Add(Arg.Any<int[]>()).Returns(100);
-
-        var model = new MathAddModel { Values = new List<int> { 10, 20, 30 } };
-
-        var response = await testWebApp.Post(model, "/int/add");
-
-        response.Assert.Ok();
-        Assert.Equal(100, response.Deserialize<int>());
-    }
-}
-```
-
-## An HttpClient over the pipeline
-
-A client library — generated or hand-written — is an `HttpClient` consumer, and the harness has no
-port. `ITestWebApp.CreateHttpClient()` returns an `HttpClient` whose handler runs the same pipeline
-`Get` runs: the request's method, path, headers, cookies and body bytes become an execution context,
-the chain runs, and the response comes back with its status, headers, `Set-Cookie` and body.
-
-```csharp
 [HardenedTest]
-public async Task MalformedJsonThroughAnHttpClientAnswersTheValidationStatus(ITestWebApp app) {
-    using var client = app.CreateHttpClient();
-    using var content = new StringContent("{\"name\":", System.Text.Encoding.UTF8, "application/json");
-    using var response = await client.PostAsync("/registration", content, TestContext.Current.CancellationToken);
+public async Task UsesTheMockedService(ITestWebApp app, [Mock] IMathService<int> math) {
+    math.Add(Arg.Any<int[]>()).Returns(100);
 
-    Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    var response = await app.Post(new MathAddModel { Values = [10, 20, 30] }, "/int/add");
+
+    response.Assert.Ok();
+    Assert.Equal(100, response.Deserialize<int>());
 }
 ```
 
-Its `BaseAddress` is `http://harness/`, which the handler ignores and a client that builds relative
-URLs resolves against. The path is decoded the way Kestrel decodes one - `%20` is a space, `%2F`
-stays as written - and the same table is measured over a real socket in the Kestrel host's own
-tests. The handler is `PipelineHttpMessageHandler`, public and constructible from the root
-`IServiceProvider` for a test with nothing else in hand, and it is held to the same request,
-response and telemetry conformance suites every other transport is.
+[Substituting services](/guide/testing-mocks) has the rest.
 
-## Typed clients as parameters
+## What runs
 
-A test declares a client type as a parameter and gets one built over that `HttpClient`:
+The request enters through `IMiddlewareService`, the seam `app.UseHardened()` uses, so every
+registered filter, the generated binding code and the serialization filter all run. A `[Retry]`
+retries. A validation failure answers its status. A handler that throws produces the error
+response production would.
 
-```csharp
-[HardenedTest]
-public async Task GetTodo_ThroughTheGeneratedClient(TodosClient client) {
-    var todo = await client.Todos[1].GetAsync();
-
-    Assert.Equal("Read the generated code", todo!.Title);
-}
-```
-
-How the client is constructed is the only generator-shaped question, and it is answered by three
-routes, tried in order:
-
-1. A public `ITestClientFactory<T>` in the test assembly, found once per assembly, with one method
-   from `HttpClient` to `T` — for that one client.
-2. A route a generator's testing package registers when the assembly names it —
-   `[assembly: KiotaTesting]` from `Hardened.Kiota.Testing`, `[assembly: RefitTesting]` from
-   `Hardened.Refit.Testing` — which answers for every client of that generator's shape, so nothing
-   is written per client. A solution with both declares both.
-3. By convention, a type with a single public constructor taking exactly one `HttpClient`, which is
-   what NSwag's output and most hand-written clients look like.
-
-The factory wins over the route, so a client that has to be built some other way — a real
-authentication provider under test, a middleware handler of its own — gets a factory and the route
-keeps building the rest. A factory is what the Kiota route does for every client it recognises,
-written by hand:
-
-```csharp
-public sealed class SignedTodosClientFactory : ITestClientFactory<TodosClient> {
-    public TodosClient Create(HttpClient http) =>
-        new(new HttpClientRequestAdapter(new SigningAuthenticationProvider(), httpClient: http) {
-            BaseUrl = "http://harness"
-        });
-}
-```
-
-A parameter type with none of the three fails the test naming all three. `app.CreateClient<T>()` is
-the same construction for a client built inside the test, with a credential of the test's choosing.
-`[Mock]` composes with all of it: the mock is in the same graph the handler resolves from, so a
-client reaching the handler sees it. The framework's
-[`GeneratedClientTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/GeneratedClientTests.cs) is the worked example: a Kiota client over its widest integration
-application, through every door this page describes.
-
-## Asserting a call as a response type
-
-With a testing package's route in place, a call is asserted by naming the response type the
-contract declares — the status, the body type and the headers that status carries, in one word:
-
-```csharp
-var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
-    .Returns<Created<ClientModels.Todo>>();
-
-Assert.Equal($"/todos/{created.Value.Id}", created.Location);
-
-await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.Problem>>();
-await client.Todos[2].DeleteAsync().Returns<NoContent>();
-```
-
-`Returns<T>()` is an extension on the call's `Task`, in `Hardened.Web.Testing`. It awaits the call
-and hands what came back to the routes the assembly named, and the route that recognises the
-answer reads it — the Kiota route a thrown model or a recorded response, the Refit route an
-envelope — so the call site is one expression for both generators and a solution with both
-declares both attributes. It checks the status against the type's own, builds the type from what
-the client received — the body it returned or the model it threw, and the headers — and fails
-naming both statuses when the answer was something else. `ReturnsStatus<T>()` checks the status
-alone. [Clients](/guide/clients#the-test) has the two packages in full, and what each one reads.
-
-## Credentials
-
-Who a request is sent as is an attribute, valid on a parameter, a method, a class or the assembly,
-and the narrower wins:
-
-| Attribute | Sends |
-|---|---|
-| `[Grants("todos:read", "todos:write")]` | `X-Test-Grants` with the grants |
-| `[Subject("pia")]` | `X-Test-Subject`, for a test where one caller's data reaching another is the point |
-| `[Anonymous]` | nothing, cancelling whatever a wider level declared |
-
-| Level | Beats |
-|---|---|
-| parameter | method, class, assembly |
-| method | class, assembly |
-| class | assembly |
-
-The headers are the ones `TestGrantsPrincipalSource` reads, which `[WebTesting]` registers beside
-the application's own sources; it answers only a request carrying them, so an application's own
-authentication is untouched in a test with no attributes. They apply to the `HttpClient` the harness
-hands out, to every client built over it, and to `app.Get` and friends when the configure callback
-set neither header. Two parameters of one client type with different attributes are two clients:
-
-```csharp
-[HardenedTest]
-public async Task TwoParametersCarryTwoCredentials(
-    ProbeClient reader, [Anonymous] ProbeClient nobody, [Grants("pets:write")] ProbeClient writer) {
-    using var read = await reader.Pets(TestContext.Current.CancellationToken);
-    using var refused = await nobody.Pets(TestContext.Current.CancellationToken);
-    using var forbidden = await writer.Pets(TestContext.Current.CancellationToken);
-
-    Assert.Equal(HttpStatusCode.OK, read.StatusCode);
-    Assert.Equal(HttpStatusCode.Unauthorized, refused.StatusCode);
-    Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
-}
-```
-
-## The last response
-
-`Returns<T>()` is the first choice for a call through a client, and `Assert.ThrowsAsync` against
-whatever the client library throws is the other. What no client library surfaces is the response it
-did not throw on: the 201 and its `Location`, a 204, an `ETag`. The transport keeps the most recent
-response the pipeline answered inside the current test and exposes it as a static, whether it went
-out through a client or through `app.Get`, for a test written without a response type:
-
-```csharp
-[HardenedTest]
-public async Task CreateTodo_AnswersCreated(TodosClient client) {
-    var todo = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" });
-
-    Assert.Equal(201, LastResponse.Status);
-    Assert.Equal($"/todos/{todo!.Id}", LastResponse.Headers["Location"]);
-}
-```
-
-`LastResponse` carries `Status`, `Headers`, `ContentType` and `Body` as bytes. It is keyed on xUnit's
-`TestContext.Current`, so parallel tests read their own answers, and reading it before anything was
-answered fails naming the test.
-
-## What this exercises
-
-The request goes through `IMiddlewareService` — the same entry point `app.UseHardened()` uses — so
-the execution chain, every registered filter, the generated binding code and the serialisation
-filter all run. A `[Retry]` attribute retries. A validation failure returns the configured status. A
-handler that throws produces the error response the application would produce in production.
-
-What is *not* exercised is the host: Kestrel, ASP.NET Core middleware registered outside Hardened,
-and TLS. A test that needs those puts a host on the test.
-
-## On a real host
-
-The attribute an application names its host with names a test's host too. `[KestrelRuntime]` on
-a test runs it on Kestrel, on a loopback port the kernel picks; `[AspNetCoreRuntime]` runs it
-inside the real ASP.NET Core pipeline on Kestrel, built the way `Program.cs` builds it. Either is
-valid on a method, a class or the assembly, the narrowest wins, and `[PipelineHost]` on a method
-opts one test back to the pipeline. The test project says once which package answers for which,
-beside `[assembly: KiotaTesting]`:
-
-```csharp
-[assembly: KestrelTesting]       // Hardened.Web.Kestrel.Testing
-[assembly: AspNetCoreTesting]    // Hardened.Web.AspNetCore.Testing, or AspNetCoreTesting(typeof(MyComposition))
-```
-
-Each host lives in its own package because hosting brings the ASP.NET Core shared framework with
-it and a suite on the pipeline should not carry that.
-
-```csharp
-[KestrelRuntime]
-public class SocketSmokeTests {
-
-    [HardenedTest]
-    public async Task ACompressedAnswerArrivesEncoded(ITestWebApp app) {
-        var response = await app.Get("/compression/readings");
-
-        response.Assert.Ok();
-        Assert.Equal("gzip", response.Headers["Content-Encoding"].ToString());
-    }
-
-    [HardenedTest]
-    public async Task CreateTodo_AnswersCreatedOverTheSocket(TodosClient client, [Mock] ITodoStore store) {
-        store.Add(Arg.Any<NewTodo>()).Returns(new Todo { Id = 7, Title = "ship it" });
-
-        var created = await client.Todos.PostAsync(new NewTodo { Title = "ship it" })
-            .Returns<Created<Todo>>();
-
-        Assert.Equal("/todos/7", created.Location);
-    }
-}
-```
-
-The server runs over the test's own container, so nothing a test holds changes shape. `ITestWebApp`
-sends to the socket, the `HttpClient` the harness hands out and every typed client parameter send
-to the socket, `Returns<T>()` reads the same answer, `LastResponse` is what came back over the wire,
-and a `[Mock]` behind a route is the same substitute the pipeline test sees, because the server
-resolves handlers from the same container. Credentials are two headers, so they travel.
-
-What changes is what the wire changes:
-
-| | Pipeline | `[KestrelRuntime]` | `[AspNetCoreRuntime]` |
-|---|---|---|---|
-| `TestWebResponse.Headers` | what the pipeline wrote | what Kestrel sent | what Kestrel sent |
-| `TestWebResponse.Failure` | the handler's exception | null | null |
-| An unmatched path | 404 | 404 | what `Program.cs` put behind `UseHardened()`, then ASP.NET's 404 |
-| Cost per test | none | one Kestrel bind | one `WebApplication` build and bind |
-
-Every socket test binds and stops a server of its own, which is why the attribute goes on the
-smoke class rather than on the assembly. `[assembly: AspNetCoreTesting(typeof(MyComposition))]`
-names an `IAspNetCoreTestComposition` that arranges the middleware the way `Program.cs` does; the
-default is `app.UseHardened()` alone. Both hosts work under xUnit and NUnit alike.
+The host does not run: Kestrel, ASP.NET Core middleware registered outside Hardened, and TLS. A
+test that needs those puts a host on the test; see [Test hosts](/guide/testing-hosts).
 
 ## Next
 
-- [Clients](/guide/clients) — the generated client the scaffold drives through this transport
+- [Typed clients](/guide/testing-clients): the same pipeline behind a generated client
+- [Credentials](/guide/testing-credentials): who `app.Get` sends as
+- [Asserting a response](/guide/testing-responses): `LastResponse` and `Failure` in full

@@ -185,7 +185,7 @@ DependencyModules module has its registrations applied too. A view is named on a
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[HardenedTest]` | Method | An xUnit fact that boots the application and injects the parameters |
+| `[HardenedTest]` | Method | Boots the application and injects the parameters. From `Hardened.Shared.Testing.xUnit` or `Hardened.Shared.Testing.NUnit` |
 | `[HardenedTestEntryPoint(type)]` | Assembly, class, method | Names the application module under test |
 | `[Mock]` | Parameter | Substitutes an NSubstitute mock and hands it to the test |
 | `[EnvironmentName(name)]` | Assembly, class, method | The environment name for the test. Defaults to `test` |
@@ -199,6 +199,21 @@ DependencyModules module has its registrations applied too. A view is named on a
 | `[Grants(params string[])]` | Parameter, method, class, assembly | The grants a request is sent with, as `X-Test-Grants`. The narrowest wins |
 | `[Subject(name)]` | Parameter, method, class, assembly | Which caller, as `X-Test-Subject` |
 | `[Anonymous]` | Parameter, method, class, assembly | No credential, cancelling whatever a wider level declared |
+| `[PipelineHost]` | Assembly, class, method | Runs the test on the in-process pipeline where a wider level named a [host](/guide/testing-hosts) |
+
+`Hardened.Web.Kestrel.Testing` and `Hardened.Web.AspNetCore.Testing`
+
+| Attribute | Target | Purpose |
+|---|---|---|
+| `[KestrelTesting]` | Assembly | Runs a test carrying `[KestrelRuntime]` on Kestrel, on a loopback port. See [Test hosts](/guide/testing-hosts) |
+| `[AspNetCoreTesting(composition?)]` | Assembly | Runs a test carrying `[AspNetCoreRuntime]` inside a real `WebApplication`. The composition names an `IAspNetCoreTestComposition` that arranges the middleware |
+
+`Hardened.Kiota.Testing` and `Hardened.Refit.Testing`
+
+| Attribute | Target | Purpose |
+|---|---|---|
+| `[KiotaTesting]` | Assembly | Makes every Kiota client a test parameter built over the pipeline. See [Typed clients](/guide/testing-clients) |
+| `[RefitTesting]` | Assembly | The same for a Refit interface |
 
 ## AWS
 

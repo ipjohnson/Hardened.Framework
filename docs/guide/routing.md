@@ -395,4 +395,4 @@ services.Configure<LinkConfiguration>(config => {
 
 - [Parameter binding](/guide/parameter-binding) — where each argument comes from
 - [The execution pipeline](/guide/execution-pipeline) — filters around the handler
-- [Testing web handlers](/guide/testing-web) — driving these routes from a test
+- [Sending requests](/guide/testing-web) — driving these routes from a test

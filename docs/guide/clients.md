@@ -1,4 +1,4 @@
-# Clients
+# Generated clients
 
 Hardened generates the document; Kiota generates the client. The framework writes the OpenAPI
 document a service serves to a file during the build, for every contract style and without running
@@ -103,119 +103,33 @@ dotnet build
 git diff --exit-code src/Todos/openapi
 ```
 
-## The test
+## Testing it
 
-A client is worth having only if it is exercised, and the scaffold exercises it against the real
-service without a socket. A test declares the client as a parameter and the harness builds one over
-an `HttpClient` whose handler runs the same pipeline the application runs, already carrying the
-test's credential. [Testing web handlers](/guide/testing-web#an-httpclient-over-the-pipeline) has
-the harness in full; this is the client-shaped part of it.
-
-The generated client has one constructor, and it takes an `IRequestAdapter`. The framework does not
-know that type and should not; the `Hardened.Kiota.Testing` package does, and one attribute in the
-test project is the whole of the wiring:
+The scaffold's test project drives the client through the in-process pipeline. The client is a
+test parameter, `[assembly: KiotaTesting]` builds it, and `Returns<T>()` asserts a call by naming
+the response type the contract declares:
 
 ```csharp
-// tests/Todos.Tests/Bootstrap.cs
-[assembly: KiotaTesting]
-```
+[HardenedTest]
+public async Task CreateTodo_AnswersCreatedWithALocation(TodosClient client) {
+    var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+        .Returns<Created<ClientModels.Todo>>();
 
-After it, every Kiota client in the solution is a test parameter, built over the in-process pipeline
-with the test's credential on it — no socket, no port, the same chain `ITestWebApp` drives — and
-nothing is written per client. And `Returns<T>()`, from `Hardened.Web.Testing`, asserts a call by
-naming the response type the contract declares, reading the answer through the route that built
-the client:
-
-```csharp
-// tests/Todos.Tests/TodoTests.cs
-public class TodoTests {
-
-    [HardenedTest]
-    public async Task GetTodo_ReturnsTheTodo(TodosClient client) {
-        var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
-
-        Assert.Equal("Read the generated code", todo.Value.Title);
-    }
-
-    /// <summary>
-    /// 201 and a Location header, both declared in the response set. The client returns the todo
-    /// alone; the status it did not throw on and the header that came with it are read from what
-    /// the client received, and Created carries all three.
-    /// </summary>
-    [HardenedTest]
-    public async Task CreateTodo_AnswersCreatedWithALocation(TodosClient client) {
-        var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
-            .Returns<Created<ClientModels.Todo>>();
-
-        Assert.Equal("ship it", created.Value.Title);
-        Assert.Equal($"/todos/{created.Value.Id}", created.Location);
-    }
-
-    /// <summary>
-    /// The 404 is in the signature, so it is in the document, so Kiota generated a typed exception
-    /// for it - named after the case, NotFound, and carrying the body the server answered.
-    /// </summary>
-    [HardenedTest]
-    public async Task GetTodo_UnknownId_IsATypedNotFound(TodosClient client) {
-        var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.NotFound>>();
-
-        Assert.Contains("9999", missing.Body.Detail);
-    }
-
-    [HardenedTest]
-    public async Task RemoveTodo_AnswersNoContent(TodosClient client) {
-        await client.Todos[2].DeleteAsync().Returns<NoContent>();
-    }
+    Assert.Equal("ship it", created.Value.Title);
+    Assert.Equal($"/todos/{created.Value.Id}", created.Location);
 }
 ```
 
-`Created<T>`, `NotFound<T>`, `NoContent` and the rest are `Hardened.Requests.Abstract.Responses`,
-the same types a handler returns: a test and the handler it exercises read the same word for the
-same answer. `Returns<T>()` checks the status against the type's own, hands back an instance of it
-built from what the client received — the body it returned or the model it threw, and the headers
-that status carries — and fails naming both statuses in the contract's words when the answer was
-something else:
+[Typed clients](/guide/testing-clients) covers how the client is built for a test, and
+[Asserting a response](/guide/testing-responses) covers `Returns<T>()`, `ReturnsStatus<T>()` and
+`LastResponse`. The framework's own
+[`GeneratedClientTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/GeneratedClientTests.cs)
+drives a client over a much wider surface, and is the reference when the scaffold's tests are not
+enough.
 
-```
-Expected 404 (NotFound<NotFound>), the call was answered 200 carrying a Todo.
-```
-
-`ReturnsStatus<T>()` asserts the status alone: for a refusal the document declares no body for,
-where Kiota throws its bare `ApiException`, and for the response types that state something the
-wire does not carry back — `NotFound` naming the resource, `Conflict` its detail. `Assert.ThrowsAsync`
-in the client's own exception types and `LastResponse` both still work; they are for what a response
-type cannot say.
-
-`ClientModels` is an alias for `Todos.Client.Models` in the scaffold's `Usings.cs`: the generated
-models are named after the schemas, and the schemas are named after the application's own types,
-so a bare `NewTodo` in a test is the application's record — and `ClientModels.NotFound` is the
-document's body for the 404, distinct from the framework's `NotFound` that names the status.
-
-A client that has to be built some other way — a real authentication provider under test, a
-middleware handler of its own — declares an `ITestClientFactory<T>` in the test project, one method
-from `HttpClient` to the client, and the factory wins over the package's route for that one client.
-[Testing web handlers](/guide/testing-web#typed-clients-as-parameters) has the three routes.
-Credentials are attributes — `[Grants("todos:write")]` on a parameter, a method, a class or the
-assembly — and travel as headers on the `HttpClient`, so a Kiota client, a Refit interface and a
-hand-written class all authenticate the same way with no code of their own.
-
-The framework's own integration suite has the same shape over a much wider surface.
-[`GeneratedClientTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/GeneratedClientTests.cs) drives a client Kiota generated from that application's exported
-document, and is the reference when the scaffold's tests are not enough: path and query
-parameters, a body in and a value out, one path under four verbs, an enum arriving as the generated
-member, the typed `RequestValidationError` for a declared 422 and for the default 400, a bare
-`ApiException` carrying 401 for a refusal the document does not declare, three credentials on three
-parameters of the client type, and a `[Mock]` behind a route reached through the client.
-[`KiotaReturnsTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/KiotaReturnsTests.cs) asserts the same answers as response types — a 201 with its `Location`, a
-204, a 422 and a 403 as the typed models, a 401 by status alone — and
-[`RefitReturnsTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/RefitReturnsTests.cs) asserts them again through a Refit interface over the same routes, which is
-the claim that one vocabulary covers both generators.
-
-Under `--response-model throws` the scaffold's test is different, and the difference is the
-response-model argument in a consumer's hands: throws mode documents only the 200, so the generated
-client has no 404 branch, and the same request that answers a typed `NotFound` under the response
-model is a bare `ApiException` there — asserted as `ReturnsStatus<NotFound>()`, because there is no
-body type to name. The scaffolded test says so in its comment.
+Under `--response-model throws` the document describes only the 200, so the generated client has
+no 404 branch. The same request that answers a typed `NotFound` under the response model is a bare
+`ApiException` there, asserted as `ReturnsStatus<NotFound>()`.
 
 ## Against a real service
 
@@ -260,7 +174,7 @@ has no `servers` entry, so Kiota warns on every generation and this is the line 
 ### Authenticate it
 
 The test harness sends credentials as headers through
-[attributes](/guide/testing-web#credentials). A real consumer hands the adapter an authentication
+[attributes](/guide/testing-credentials). A real consumer hands the adapter an authentication
 provider instead:
 
 ```csharp
@@ -455,6 +369,7 @@ writes it, and the workspace reads it.
 
 ## Next
 
-- [Testing web handlers](/guide/testing-web) — the transport underneath the client tests, the credential attributes and `LastResponse`
-- [The OpenAPI document](/guide/openapi-document) — what the exported file contains and how to shape it
-- [Project templates](/guide/project-templates) — `--client` scaffolds all of this; `none` leaves it out
+- [Typed clients](/guide/testing-clients): the client as a test parameter, and the transport underneath it
+- [Asserting a response](/guide/testing-responses): `Returns<T>()`, `ReturnsStatus<T>()` and `LastResponse`
+- [The OpenAPI document](/guide/openapi-document): what the exported file contains and how to shape it
+- [Project templates](/guide/project-templates): `--client` scaffolds all of this; `none` leaves it out
