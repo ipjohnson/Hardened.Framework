@@ -141,7 +141,8 @@ declares one type argument for it, because that argument is what the error text 
 
 A client is the same parameter on a socket host. `[KestrelHost]` on a test, a class or the
 assembly runs the application on Kestrel over the test's own container, on a loopback port the
-kernel picks, and every `HttpClient` the harness hands out sends there: a route builds its client
+kernel picks, and `[AspNetCoreHost]` runs it inside the real ASP.NET Core pipeline the same way;
+every `HttpClient` the harness hands out sends there: a route builds its client
 over the host's handler and reads `TestClientContext.BaseAddress`, which is the bound address
 rather than `http://harness/`, so a Kiota client's `BaseUrl` and a Refit interface's relative paths
 resolve against the socket without a change in either package. `Returns<T>()` reads the same
@@ -161,6 +162,7 @@ NUnit project beside it runs them again on the other runner.
 | `src/Clients/Hardened.Refit.Testing` | `RefitTestingAttribute`, `RefitClientRoute` as route and reader, `RefitAnswers` |
 | `src/Web/Hardened.Web.Testing/Hosts` | the host seam: `ITestHost`, `TestHostAttribute`, `PipelineHost`, `SocketHost` |
 | `src/Web/Hardened.Web.Kestrel.Testing` | `KestrelHostAttribute` and the Kestrel host over `KestrelServerRunner` |
+| `src/Web/Hardened.Web.AspNetCore.Testing` | `AspNetCoreHostAttribute`, the host over `WebApplication`, and `IAspNetCoreTestComposition` |
 | `src/Requests/Hardened.Requests.Abstract/Responses/ResponseExpectation.cs` | `Match`, `MatchStatus`, the body and header readers every `FromResponse` uses |
 | `Hardened.IntegrationTests.WebApp.SUT.Tests/Transport` | `KiotaReturnsTests` and `RefitReturnsTests`, the same statuses through both generators |
 

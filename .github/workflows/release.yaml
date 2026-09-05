@@ -245,6 +245,7 @@ jobs:
             src/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj \
             src/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj \
             src/Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj \
+            src/Web/Hardened.Web.AspNetCore.Testing/Hardened.Web.AspNetCore.Testing.csproj \
             src/Web/Hardened.Web.Kestrel.Runtime/Hardened.Web.Kestrel.Runtime.csproj \
             src/Web/Hardened.Web.Kestrel.Testing/Hardened.Web.Kestrel.Testing.csproj \
             src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
@@ -291,7 +292,8 @@ jobs:
           # 27 after the runner split: Hardened.Shared.Testing.xUnit and
           # Hardened.Shared.Testing.NUnit, with Hardened.Shared.Testing left runner-neutral.
           # 28 after Hardened.Web.Kestrel.Testing, the [KestrelHost] test host.
-          EXPECTED=28
+          # 29 after Hardened.Web.AspNetCore.Testing, the [AspNetCoreHost] test host.
+          EXPECTED=29
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

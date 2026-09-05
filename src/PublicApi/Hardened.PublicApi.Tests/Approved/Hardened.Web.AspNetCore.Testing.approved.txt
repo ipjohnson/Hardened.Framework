@@ -1,0 +1,33 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Web.AspNetCore.Testing.Tests")]
+namespace Hardened.Web.AspNetCore.Testing
+{
+    public sealed class AspNetCoreHostAttribute : Hardened.Web.Testing.TestHostAttribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider, DependencyModules.Testing.Attributes.Interfaces.IServiceProviderBuilderAttribute
+    {
+        public AspNetCoreHostAttribute() { }
+        public AspNetCoreHostAttribute(System.Type composition) { }
+        public System.Type Composition { get; }
+        public System.IServiceProvider BuildServiceProvider(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+        public override Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public sealed class AspNetCoreTestHost : Hardened.Web.Testing.SocketHost
+    {
+        public Microsoft.AspNetCore.Builder.WebApplication Application { get; }
+        public Hardened.Web.AspNetCore.Testing.IAspNetCoreTestComposition Composition { get; }
+        public string EnvironmentName { get; }
+        public override bool IsTerminal { get; }
+        protected override System.Threading.Tasks.Task<System.Uri> Listen(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken) { }
+        protected override System.Threading.Tasks.Task StopAsync(System.Threading.CancellationToken bounded) { }
+    }
+    public sealed class DefaultAspNetCoreTestComposition : Hardened.Web.AspNetCore.Testing.IAspNetCoreTestComposition
+    {
+        public DefaultAspNetCoreTestComposition() { }
+        public void Configure(Microsoft.AspNetCore.Builder.WebApplication app) { }
+        public void Configure(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+    }
+    public interface IAspNetCoreTestComposition
+    {
+        void Configure(Microsoft.AspNetCore.Builder.WebApplication app);
+        void Configure(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder);
+    }
+}
