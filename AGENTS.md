@@ -158,6 +158,12 @@ own pair at build (HTPL003).
 client registers the serializers itself. A consumer on a newer 2.x bundle unifies upward; a bump
 of the pins to a new major has to move that reference with them.
 
+**The Refit pair moves by hand.** `--client refit` pins the Refitter tool in the template's
+`.config/dotnet-tools.refit.json` and `Refit` in its `Directory.Packages.props`, and
+`Hardened.Refit.Testing` references `Refit` at that version too. Refitter does not report the Refit
+version it writes for, so there is no HTPL003 for this pair; bump the three together and let the
+refit rows of `scripts/verify-templates.sh` say whether the generated interface still compiles.
+
 **`Hardened.IntegrationTests.WebApp.SUT.Client` is the template's client project with the names
 changed, on purpose.** It generates a Kiota client from the tracked `openapi/Application.json` into
 `obj/` on every build, and `GeneratedClientTests` in the SUT's test project drive it through the

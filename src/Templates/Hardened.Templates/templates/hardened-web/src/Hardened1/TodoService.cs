@@ -34,9 +34,11 @@ public class TodoService : ITodosService {
     // failure. The signatures either produces are identical, so isolating the body here keeps every
     // call site below the same in both.
 #if (openapi)
-    private static Problem NotFoundBody(string detail) => new() { Detail = detail };
+    private static Problem NotFoundBody(string detail) =>
+        new() { Type = "about:blank", Title = "Not Found", Status = 404, Detail = detail };
 
-    private static Problem ConflictBody(string detail) => new() { Detail = detail };
+    private static Problem ConflictBody(string detail) =>
+        new() { Type = "about:blank", Title = "Conflict", Status = 409, Detail = detail };
 #endif
 #if (smithy)
     private static TodoNotFound NotFoundBody(string message) => new(message);

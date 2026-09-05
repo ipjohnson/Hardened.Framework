@@ -167,6 +167,10 @@
           "description": "A Kiota C# client in src/Hardened1.Client, generated during the build from the document the library writes, and a test that drives it through the pipeline. The default."
         },
         {
+          "choice": "refit",
+          "description": "A Refit interface in src/Hardened1.Client, generated during the build by Refitter from the document the library writes, and a test that drives it through the pipeline."
+        },
+        {
           "choice": "none",
           "description": "No client project, no tool manifest, no export of the document."
         }
@@ -175,6 +179,14 @@
     "kiotaClient": {
       "type": "computed",
       "value": "(client == 'kiota')"
+    },
+    "refitClient": {
+      "type": "computed",
+      "value": "(client == 'refit')"
+    },
+    "hasClient": {
+      "type": "computed",
+      "value": "(client != 'none')"
     }
   },
   "sources": [
@@ -248,13 +260,40 @@
           ]
         },
         {
-          "comment": "Everything the client brings, as one unit: the project, the tool manifest that pins Kiota, and the tests that drive it. The export property in the library csproj, the testing package and its assembly attribute in the test project, and the client project's lines in both solution files sit behind the same symbol in their own files.",
-          "condition": "(!kiotaClient)",
+          "comment": "Everything a client brings, as one unit: the project, the tool manifest that pins the generator, and the tests that drive it. The export property in the library csproj, the testing package and its assembly attribute in the test project, and the client project's lines in both solution files sit behind the same symbol in their own files.",
+          "condition": "(!hasClient)",
           "exclude": [
             "src/Hardened1.Client/**",
             ".config/**",
+            "tests/Hardened1.Tests/Hardened1ClientTests.cs",
+            "tests/Hardened1.Tests/Hardened1ClientTests.refit.cs"
+          ]
+        },
+        {
+          "comment": "Each generator has its own tool manifest, client project and client tests, and the Refit set reaches the output under the names the Kiota set has - the same rename the Lambda solution and the union global.json use.",
+          "condition": "(!kiotaClient)",
+          "exclude": [
+            ".config/dotnet-tools.json",
+            "src/Hardened1.Client/Hardened1.Client.csproj",
             "tests/Hardened1.Tests/Hardened1ClientTests.cs"
           ]
+        },
+        {
+          "condition": "(!refitClient)",
+          "exclude": [
+            ".config/dotnet-tools.refit.json",
+            "src/Hardened1.Client/.refitter",
+            "src/Hardened1.Client/Hardened1.Client.refit.csproj",
+            "tests/Hardened1.Tests/Hardened1ClientTests.refit.cs"
+          ]
+        },
+        {
+          "condition": "(refitClient)",
+          "rename": {
+            "dotnet-tools.refit.json": "dotnet-tools.json",
+            "Hardened1.Client.refit.csproj": "Hardened1.Client.csproj",
+            "Hardened1ClientTests.refit.cs": "Hardened1ClientTests.cs"
+          }
         }
       ]
     }

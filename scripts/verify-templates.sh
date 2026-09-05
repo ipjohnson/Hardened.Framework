@@ -9,15 +9,15 @@
 #
 # Usage: scripts/verify-templates.sh [host:contract[:model[:client]] ...]
 #        default: the template default (response) on three host/contract rows, throws and union
-#        on both spec directions, kestrel:smithy rows when the pinned CLI is present, and one
-#        row with --client none to prove the opt-out
+#        on both spec directions, kestrel:smithy rows when the pinned CLI is present, three rows
+#        with --client refit, and one row with --client none to prove the opt-out
 #
 # smithy is skipped unless the Smithy CLI is on PATH at the pinned version - a build without it
 # fails by design (HSMT011), and that is the toolchain's problem rather than the template's.
 #
 # The Kiota client is not skipped when Kiota is absent: the generated project restores the tool
 # from NuGet inside its own build, so a machine that can restore packages can generate the
-# client, and the client rows are the default rows.
+# client, and the client rows are the default rows. The Refitter client restores the same way.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -52,11 +52,14 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
     # nobody runs is a row nobody notices is broken: the first union generation failed on an XML
     # comment containing a double hyphen, which every other combination was immune to only because
     # that comment sat behind #if (unionMode).
-    # The client is the default, so every row above exercises it; the last row is the opt-out,
-    # spelled with the model it keeps so the fourth field reads as the fourth option.
+    # The Kiota client is the default, so every row above exercises it. The refit rows cover the
+    # other generator on both contract directions and on the throws model, whose client tests are
+    # the ones that differ; the last row is the opt-out, spelled with the model it keeps so the
+    # fourth field reads as the fourth option.
     COMBOS=(kestrel:code aspnet:code kestrel:openapi
             kestrel:code:throws kestrel:openapi:throws
             kestrel:code:union kestrel:openapi:union
+            kestrel:code:response:refit kestrel:code:throws:refit kestrel:openapi:response:refit
             kestrel:code:response:none)
 
     if command -v smithy >/dev/null 2>&1 && [ "$(smithy --version 2>/dev/null)" = "$SMITHY_PIN" ]; then
@@ -237,7 +240,7 @@ for COMBO in "${COMBOS[@]}"; do
             echo "   FAILED: --client none left client files behind"
             FAILED=1
         fi
-        if grep -q "HardenedOpenApiOutput\|Kiota\|Sample.Client" "$OUT/src/Sample/Sample.csproj" "$OUT/Sample.sln" "$OUT/Directory.Packages.props" "$OUT/tests/Sample.Tests/Sample.Tests.csproj"; then
+        if grep -q "HardenedOpenApiOutput\|Kiota\|Refit\|Sample.Client" "$OUT/src/Sample/Sample.csproj" "$OUT/Sample.sln" "$OUT/Directory.Packages.props" "$OUT/tests/Sample.Tests/Sample.Tests.csproj"; then
             echo "   FAILED: --client none left the client in a project or solution file"
             FAILED=1
         fi
@@ -246,9 +249,33 @@ for COMBO in "${COMBOS[@]}"; do
             echo "   FAILED: the build did not write src/Sample/openapi/Sample.json"
             FAILED=1
         fi
-        if [ -z "$(find "$OUT/src/Sample.Client/obj" -name 'kiota-lock.json' 2>/dev/null)" ]; then
-            echo "   FAILED: Kiota did not generate the client"
-            FAILED=1
+        # Each generator's output, and none of the other's: the two sets of files reach the output
+        # under one set of names, so a rename that stopped applying would leave both generators'
+        # files behind and build only by accident. Matched on the identifiers a stray file would
+        # carry - package and tool ids, the assembly attribute - because the comments in either
+        # set are free to name the other generator.
+        if [ "$CLIENT" = "refit" ]; then
+            if [ -z "$(find "$OUT/src/Sample.Client/obj" -path '*/refitter/*' -name '*.cs' 2>/dev/null)" ]; then
+                echo "   FAILED: Refitter did not generate the client"
+                FAILED=1
+            fi
+            if [ -n "$(find "$OUT/src/Sample.Client/obj" -name 'kiota-lock.json' 2>/dev/null)" ] || \
+               grep -q "Microsoft.Kiota\|Hardened.Kiota\|microsoft.openapi.kiota\|KiotaTesting" \
+                   "$OUT/Directory.Packages.props" "$OUT/.config/dotnet-tools.json" "$OUT/tests/Sample.Tests/Bootstrap.cs"; then
+                echo "   FAILED: --client refit left Kiota behind"
+                FAILED=1
+            fi
+        else
+            if [ -z "$(find "$OUT/src/Sample.Client/obj" -name 'kiota-lock.json' 2>/dev/null)" ]; then
+                echo "   FAILED: Kiota did not generate the client"
+                FAILED=1
+            fi
+            if [ -e "$OUT/src/Sample.Client/.refitter" ] || \
+               grep -q "\"Refit\"\|Hardened.Refit\|\"refitter\"\|RefitTesting" \
+                   "$OUT/Directory.Packages.props" "$OUT/.config/dotnet-tools.json" "$OUT/tests/Sample.Tests/Bootstrap.cs"; then
+                echo "   FAILED: --client kiota left Refit behind"
+                FAILED=1
+            fi
         fi
         if [ -n "$(find "$OUT/src/Sample.Client" -maxdepth 1 -name '*.cs')" ]; then
             echo "   FAILED: generated code landed beside the client csproj rather than under obj/"

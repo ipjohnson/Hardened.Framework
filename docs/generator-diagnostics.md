@@ -436,6 +436,7 @@ The `hardened-web` template's project files carry three checks of their own, in 
 | `HTPL001` | `--host aws-lambda` with `--response-model union`: the union model needs net11.0 and the Lambda managed runtime is net8.0. Regenerate with `--response-model response`. |
 | `HTPL002` | The Kiota tool could not be restored, so the client cannot be generated. The pin is in `.config/dotnet-tools.json`; a fresh machine needs network for the first restore. |
 | `HTPL003` | The Kiota tool and `Microsoft.Kiota.Bundle` disagree. The tool version in `.config/dotnet-tools.json` and `KiotaBundleVersion` in `Directory.Packages.props` move together; the message names both versions and both files. |
+| `HTPL004` | The Refitter tool could not be restored, so the client cannot be generated (`--client refit`). The pin is in `.config/dotnet-tools.json`; a fresh machine needs network for the first restore. There is no counterpart to `HTPL003` for the Refit pair, because Refitter does not report the Refit version it writes for. |
 
 ### The model-diagnostics pass (020–027)
 

@@ -148,6 +148,10 @@ declares one type argument for it, because that argument is what the error text 
 | `src/Requests/Hardened.Requests.Abstract/Responses/ResponseExpectation.cs` | `Match`, `MatchStatus`, the body and header readers every `FromResponse` uses |
 | `Hardened.IntegrationTests.WebApp.SUT.Tests/Transport` | `KiotaReturnsTests` and `RefitReturnsTests`, the same statuses through both generators |
 
-The `hardened-web` template scaffolds the Kiota half: `[assembly: KiotaTesting]` in the test
-project's `Bootstrap.cs`, `Hardened.Kiota.Testing` in its csproj, and `Hardened1ClientTests.cs`
-written with `Returns`.
+The `hardened-web` template scaffolds either half. `--client kiota`, the default, puts
+`[assembly: KiotaTesting]` in the test project's `Bootstrap.cs` and `Hardened.Kiota.Testing` in
+its csproj; `--client refit` puts `[assembly: RefitTesting]` and `Hardened.Refit.Testing` there,
+with a client project that runs Refitter over the exported document under the settings in its
+`.refitter` file - every operation returning `IApiResponse<T>`, the models in `<Name>.Client.Models`.
+Both write `Hardened1ClientTests.cs` with `Returns`; the Refit one names operations by their
+operationId, which is why it differs between the code-first and specification-first contracts.
