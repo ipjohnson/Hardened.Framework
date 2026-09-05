@@ -25,11 +25,11 @@
     <PackageReference Include="Hardened.Web.AspNetCore.Testing" />
 <!--#endif -->
 <!--#if (kiotaClient) -->
-    <!-- Builds the generated client for a test parameter; see Bootstrap.cs and Hardened1ClientTests.cs. -->
+    <!-- Builds the generated client for a test parameter; see Bootstrap.cs and TodoTests.cs. -->
     <PackageReference Include="Hardened.Kiota.Testing" />
 <!--#endif -->
 <!--#if (refitClient) -->
-    <!-- Builds the generated client for a test parameter; see Bootstrap.cs and Hardened1ClientTests.cs. -->
+    <!-- Builds the generated client for a test parameter; see Bootstrap.cs and TodoTests.cs. -->
     <PackageReference Include="Hardened.Refit.Testing" />
 <!--#endif -->
     <PackageReference Include="xunit.v3" />
@@ -42,7 +42,7 @@
          suite that named the host would be coupled to a deployment target for no reason. -->
     <ProjectReference Include="..\..\src\Hardened1\Hardened1.csproj" />
 <!--#if (hasClient) -->
-    <!-- The generated client, driven through the pipeline in Hardened1ClientTests. -->
+    <!-- The generated client, which TodoTests drives through the pipeline. -->
     <ProjectReference Include="..\..\src\Hardened1.Client\Hardened1.Client.csproj" />
 <!--#endif -->
   </ItemGroup>

@@ -234,9 +234,22 @@ for COMBO in "${COMBOS[@]}"; do
     # The client rows: the document the library's build wrote is what the client generated from,
     # and it is the file a consumer commits - so it has to exist, and it has to be the served
     # document. The opt-out row: no property, no file, no client project.
+    # The handler tests reach the output as one file under one name whichever client was chosen:
+    # the pipeline variant for --client none, the client variant otherwise - the same rename the
+    # Refit client project uses. A rename that stopped applying would leave the file under its
+    # template name, or leave no TodoTests.cs at all, and the build is green either way.
+    if [ ! -s "$OUT/tests/Sample.Tests/TodoTests.cs" ]; then
+        echo "   FAILED: tests/Sample.Tests/TodoTests.cs did not reach the output"
+        FAILED=1
+    fi
+    if [ -n "$(find "$OUT/tests/Sample.Tests" -name 'TodoTests.*.cs')" ]; then
+        echo "   FAILED: a TodoTests variant reached the output under its template name"
+        FAILED=1
+    fi
     if [ "$CLIENT" = "none" ]; then
         if [ -d "$OUT/src/Sample.Client" ] || [ -e "$OUT/src/Sample/openapi" ] || [ -d "$OUT/.config" ] || \
-           [ -e "$OUT/tests/Sample.Tests/SampleClientTests.cs" ] || grep -q "KiotaTesting" "$OUT/tests/Sample.Tests/Bootstrap.cs"; then
+           grep -q "Returns<\|SampleClient" "$OUT/tests/Sample.Tests/TodoTests.cs" || \
+           grep -q "KiotaTesting" "$OUT/tests/Sample.Tests/Bootstrap.cs"; then
             echo "   FAILED: --client none left client files behind"
             FAILED=1
         fi
@@ -247,6 +260,10 @@ for COMBO in "${COMBOS[@]}"; do
     else
         if [ ! -s "$OUT/src/Sample/openapi/Sample.json" ]; then
             echo "   FAILED: the build did not write src/Sample/openapi/Sample.json"
+            FAILED=1
+        fi
+        if ! grep -q "Returns<" "$OUT/tests/Sample.Tests/TodoTests.cs"; then
+            echo "   FAILED: the handler tests do not drive the generated client"
             FAILED=1
         fi
         # Each generator's output, and none of the other's: the two sets of files reach the output

@@ -121,12 +121,10 @@ is `HRDR009`, and one on a `GET` is `HRDR010`.
 throw new NotFound("todo", $"No todo has id {id}.").AsException();
 ```
 
-The thrown value is an ordinary response record, so for the bare problem types the body a client
-sees is the same one the declared modes return. The generic ones - `NotFound<T>` and friends - are
-unwrapped only by the declared modes' dispatch: thrown, the wrapper itself is serialized, with the
-payload nested under a `body` member. Throw `StatusCodeException` with the payload as its value to
-send a typed body from this mode. What also differs is that nothing in the signature says the
-route can answer it.
+The thrown value is an ordinary response record, so the body a client sees is the same one the
+declared modes return: a bare `NotFound` sends itself, and `NotFound<T>` and the other generic
+ones send the payload they carry, thrown or returned alike. What differs is that nothing in the
+signature says the route can answer it.
 
 #if (codeFirst)
 A single success status is nameable here: `SuccessStatus` on the verb attribute carries it, and it
@@ -287,9 +285,18 @@ written. `SYSLIB1034` says so where the compiler can see it.
 #endif
 
 **`[HardenedTest]` boots the real application.** Test method parameters are resolved from the
-application's own container, and `ITestWebApp` drives the real pipeline — routing, filters,
+application's own container, and every request goes through the real pipeline — routing, filters,
 binding, serialisation — without a socket or a port. Mark a parameter `[Mock]` to substitute a
-service. Note the argument order: `app.Post(value, path)` takes the body first.
+service.
+#if (hasClient)
+`tests/Hardened1.Tests/TodoTests.cs` drives every operation through the generated client and
+asserts with `Returns<T>()`; it reaches for `ITestWebApp` only for a request the typed client
+cannot make, such as a malformed path value. Note the argument order there: `app.Post(value, path)`
+takes the body first.
+#else
+`ITestWebApp` sends the requests. Note the argument order: `app.Post(value, path)` takes the body
+first.
+#endif
 
 ## Commands
 

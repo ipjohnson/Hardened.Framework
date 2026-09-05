@@ -174,5 +174,6 @@ The `hardened-web` template scaffolds either half. `--client kiota`, the default
 its csproj; `--client refit` puts `[assembly: RefitTesting]` and `Hardened.Refit.Testing` there,
 with a client project that runs Refitter over the exported document under the settings in its
 `.refitter` file - every operation returning `IApiResponse<T>`, the models in `<Name>.Client.Models`.
-Both write `Hardened1ClientTests.cs` with `Returns`; the Refit one names operations by their
-operationId, which is why it differs between the code-first and specification-first contracts.
+Both write the handler tests, `TodoTests.cs`, over the client with `Returns`; the Refit one names
+operations by their operationId, which is why it differs between the code-first and
+specification-first contracts. `--client none` scaffolds the same tests over `ITestWebApp`.

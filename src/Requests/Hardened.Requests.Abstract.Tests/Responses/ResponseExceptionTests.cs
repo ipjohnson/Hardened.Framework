@@ -36,6 +36,21 @@ public class ResponseExceptionTests {
     }
 
     /// <summary>
+    /// A record that carries a body hands that body over, not itself. Returned, the generated
+    /// dispatch sends a <c>NotFound&lt;T&gt;</c>'s payload; thrown, it used to send the wrapper with
+    /// the payload nested under <c>body</c>, so the same answer had two shapes. The template's
+    /// specification-first throws mode was the case: its 404 declared a Problem and shipped a
+    /// wrapper around one.
+    /// </summary>
+    [Fact]
+    public void Value_IsTheCarriedBodyForAResponseThatCarriesOne() {
+        var problem = new { Detail = "No todo with id 7." };
+
+        Assert.Same(problem, new ResponseException(new NotFound<object>(problem)).Value);
+        Assert.Same(problem, new ResponseException(new Created<object>(problem, "/todos/7")).Value);
+    }
+
+    /// <summary>
     /// A 204 or a 202 must not carry <c>{}</c>. The converter falls back to its own error model when
     /// Value is null, so a bodyless response has to be null here rather than merely empty.
     /// </summary>

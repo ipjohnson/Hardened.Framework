@@ -192,8 +192,39 @@ all of them - because all of them are in the signature.
 ## Testing
 
 `[HardenedTest]` boots the real application — the module graph, configuration and startup services —
-and injects what the test asks for. `ITestWebApp` drives the real pipeline without a socket or a
-port, so a test exercises routing, filters, binding and serialisation rather than calling a method:
+and injects what the test asks for. There is no socket, port or running host: every request a test
+sends goes through the in-process pipeline, so it exercises routing, filters, binding and
+serialisation rather than calling a method.
+
+#if (hasClient)
+The generated client is a test parameter, and a call through it is asserted with `Returns<T>()`,
+naming the response type the contract declares - the status, the body type and the headers that
+status carries, in one word. `tests/Hardened1.Tests/TodoTests.cs` drives every operation that way:
+
+```csharp
+[HardenedTest]
+#if (kiotaClient)
+public async Task GetTodo_ReturnsTheTodo(TemplateModuleNameClient client) {
+    var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
+#else
+public async Task GetTodo_ReturnsTheTodo(ITemplateModuleNameClient client) {
+#if (codeFirst)
+    var todo = await client.ById(1).Returns<Ok<ClientModels.Todo>>();
+#else
+    var todo = await client.GetTodo(1).Returns<Ok<ClientModels.Todo>>();
+#endif
+#endif
+
+    Assert.Equal("Read the generated code", todo.Value.Title);
+}
+```
+
+A refusal reads the same way: `Returns<NotFound<...>>()` hands back the body the server answered,
+typed as the model the document declares for it, and `ReturnsStatus<T>()` asserts a status the
+document declares no body for. `ITestWebApp` sends a raw request through the same pipeline, for
+what a typed client cannot send - `(await app.Get("/todos/not-a-number")).Assert.BadRequest()`.
+#else
+`ITestWebApp` drives the pipeline:
 
 ```csharp
 [HardenedTest]
@@ -201,6 +232,7 @@ public async Task GetTodo_UnknownId_IsNotFound(ITestWebApp app) {
     (await app.Get("/todos/9999")).Assert.NotFound();
 }
 ```
+#endif
 
 Mark a parameter `[Mock]` and that service is substituted for the whole graph, including behind a
 route. Note the argument order on a body: `app.Post(value, path)`.
@@ -246,7 +278,7 @@ Two pins move together: the Kiota tool in `.config/dotnet-tools.json` and `Kiota
 `Directory.Packages.props`. They belong to Kiota's release line, not Hardened's; bump both to one
 Kiota release in one commit, and the build says `HTPL003` naming both files if they disagree.
 
-`tests/Hardened1.Tests/Hardened1ClientTests.cs` takes the client as a test parameter. The
+`tests/Hardened1.Tests/TodoTests.cs` takes the client as a test parameter. The
 `Hardened.Kiota.Testing` package builds it over the same in-process pipeline `ITestWebApp` drives -
 `[assembly: KiotaTesting]` in `Bootstrap.cs` is the whole of the wiring - and each call is asserted
 with `Returns<T>()`, naming the response type the contract declares:
@@ -274,7 +306,7 @@ pair in one commit and let the build say if they disagree. What Refitter writes 
 envelope that carries a status and its headers back beside the body, and the models live in
 `Hardened1.Client.Models`.
 
-`tests/Hardened1.Tests/Hardened1ClientTests.cs` takes the interface as a test parameter. The
+`tests/Hardened1.Tests/TodoTests.cs` takes the interface as a test parameter. The
 `Hardened.Refit.Testing` package builds it over the same in-process pipeline `ITestWebApp` drives -
 `[assembly: RefitTesting]` in `Bootstrap.cs` is the whole of the wiring - and each call is asserted
 with `Returns<T>()`, naming the response type the contract declares:

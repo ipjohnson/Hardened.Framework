@@ -262,13 +262,22 @@
           ]
         },
         {
-          "comment": "Everything a client brings, as one unit: the project, the tool manifest that pins the generator, and the tests that drive it. The export property in the library csproj, the testing package and its assembly attribute in the test project, and the client project's lines in both solution files sit behind the same symbol in their own files.",
+          "comment": "Everything a client brings, as one unit: the project, the tool manifest that pins the generator, and the tests that drive it. The export property in the library csproj, the testing package and its assembly attribute in the test project, and the client project's lines in both solution files sit behind the same symbol in their own files. The handler tests have a variant per client and one that drives the pipeline directly, and exactly one reaches the output as TodoTests.cs - here the pipeline one, by the same rename the Lambda solution and the union global.json use.",
           "condition": "(!hasClient)",
           "exclude": [
             "src/Hardened1.Client/**",
             ".config/**",
-            "tests/Hardened1.Tests/Hardened1ClientTests.cs",
-            "tests/Hardened1.Tests/Hardened1ClientTests.refit.cs"
+            "tests/Hardened1.Tests/TodoTests.cs",
+            "tests/Hardened1.Tests/TodoTests.refit.cs"
+          ],
+          "rename": {
+            "TodoTests.pipeline.cs": "TodoTests.cs"
+          }
+        },
+        {
+          "condition": "(hasClient)",
+          "exclude": [
+            "tests/Hardened1.Tests/TodoTests.pipeline.cs"
           ]
         },
         {
@@ -277,7 +286,7 @@
           "exclude": [
             ".config/dotnet-tools.json",
             "src/Hardened1.Client/Hardened1.Client.csproj",
-            "tests/Hardened1.Tests/Hardened1ClientTests.cs"
+            "tests/Hardened1.Tests/TodoTests.cs"
           ]
         },
         {
@@ -286,7 +295,7 @@
             ".config/dotnet-tools.refit.json",
             "src/Hardened1.Client/.refitter",
             "src/Hardened1.Client/Hardened1.Client.refit.csproj",
-            "tests/Hardened1.Tests/Hardened1ClientTests.refit.cs"
+            "tests/Hardened1.Tests/TodoTests.refit.cs"
           ]
         },
         {
@@ -294,7 +303,7 @@
           "rename": {
             "dotnet-tools.refit.json": "dotnet-tools.json",
             "Hardened1.Client.refit.csproj": "Hardened1.Client.csproj",
-            "Hardened1ClientTests.refit.cs": "Hardened1ClientTests.cs"
+            "TodoTests.refit.cs": "TodoTests.cs"
           }
         }
       ]
