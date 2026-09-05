@@ -114,7 +114,8 @@ internal static class SmithyTraits {
         "smithy.api#httpBearerAuth", "smithy.api#httpDigestAuth",
         Readonly, Idempotent, Input, Output, Private, Internal, Mixin,
         Trait,
-        Timeout
+        Timeout,
+        Streaming
     };
 
     /// <summary>

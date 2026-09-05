@@ -31,6 +31,12 @@ internal sealed class TaskHarness : IDisposable {
 
     public const string SmithyApp = "Hardened.IntegrationTests.Smithy.SUT";
 
+    /// <summary>
+    /// The one application that streams nothing. The other three each declare a streamed
+    /// response, so a test about the absence of one has to run over this.
+    /// </summary>
+    public const string LabelsApp = "Hardened.IntegrationTests.OpenApi.ResponseModel.SUT";
+
     public Result Run(string assembly, string output, string version = "", string prefix = "HRDOA") {
         var engine = new RecordingBuildEngine();
 

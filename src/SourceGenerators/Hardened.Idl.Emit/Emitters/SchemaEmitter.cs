@@ -25,11 +25,13 @@ internal static class SchemaEmitter {
     /// </summary>
     public static IOutputComponent? Emit(
         IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns,
-        IReadOnlyList<SchemaModel>? allSchemas = null) =>
+        IReadOnlyList<SchemaModel>? allSchemas = null, ICollection<string>? streamedItems = null) =>
         schema.Kind switch {
             SchemaKind.Object => EmitRecord(container, schema, modelsNamespace, patterns, allSchemas),
             SchemaKind.Enum => EmitEnumWithConverter(container, schema, modelsNamespace),
-            SchemaKind.OneOf => EmitOneOf(container, schema, modelsNamespace, allSchemas),
+            SchemaKind.OneOf => EmitOneOf(
+                container, schema, modelsNamespace, allSchemas,
+                streamedItems != null && streamedItems.Contains(NamingHelper.ToPascalCase(schema.Name))),
             _ => null,
         };
 
@@ -50,8 +52,8 @@ internal static class SchemaEmitter {
     /// </summary>
     private static IOutputComponent EmitOneOf(
         IConstructContainer container, SchemaModel schema, string modelsNamespace,
-        IReadOnlyList<SchemaModel>? allSchemas) {
-        var type = OneOfEmitter.Emit(container, schema, modelsNamespace);
+        IReadOnlyList<SchemaModel>? allSchemas, bool streamed) {
+        var type = OneOfEmitter.Emit(container, schema, modelsNamespace, streamed);
 
         OneOfConverterEmitter.Emit(
             container, schema, modelsNamespace,

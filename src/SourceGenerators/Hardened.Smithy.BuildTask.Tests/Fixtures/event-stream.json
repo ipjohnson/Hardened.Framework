@@ -1,0 +1,146 @@
+{
+    "smithy": "2.0",
+    "shapes": {
+        "com.example.events#Events": {
+            "type": "service",
+            "version": "2024-01-01",
+            "operations": [
+                {
+                    "target": "com.example.events#GetPet"
+                },
+                {
+                    "target": "com.example.events#PetEvents"
+                }
+            ]
+        },
+        "com.example.events#GetPet": {
+            "type": "operation",
+            "input": {
+                "target": "com.example.events#GetPetInput"
+            },
+            "output": {
+                "target": "com.example.events#Pet"
+            },
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/pets/{petId}",
+                    "code": 200
+                },
+                "smithy.api#readonly": {}
+            }
+        },
+        "com.example.events#GetPetInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#input": {}
+            }
+        },
+        "com.example.events#Pet": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "com.example.events#PetAdopted": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "com.example.events#PetEventStream": {
+            "type": "union",
+            "members": {
+                "adopted": {
+                    "target": "com.example.events#PetAdopted"
+                },
+                "weighed": {
+                    "target": "com.example.events#PetWeighed",
+                    "traits": {
+                        "smithy.api#jsonName": "weighed-in"
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#streaming": {}
+            }
+        },
+        "com.example.events#PetEvents": {
+            "type": "operation",
+            "input": {
+                "target": "com.example.events#PetEventsInput"
+            },
+            "output": {
+                "target": "com.example.events#PetEventsOutput"
+            },
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/pets/{petId}/events",
+                    "code": 200
+                },
+                "smithy.api#readonly": {}
+            }
+        },
+        "com.example.events#PetEventsInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#input": {}
+            }
+        },
+        "com.example.events#PetEventsOutput": {
+            "type": "structure",
+            "members": {
+                "events": {
+                    "target": "com.example.events#PetEventStream",
+                    "traits": {
+                        "smithy.api#httpPayload": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#output": {}
+            }
+        },
+        "com.example.events#PetWeighed": {
+            "type": "structure",
+            "members": {
+                "grams": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        }
+    }
+}

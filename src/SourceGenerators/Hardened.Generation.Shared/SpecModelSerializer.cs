@@ -350,6 +350,11 @@ internal static class SpecModelSerializer {
         record.Add("DictionaryValueType", schema.DictionaryValueType);
         record.Add("DictionaryValueRef", schema.DictionaryValueRef);
         record.Add("DictionaryValueFormat", schema.DictionaryValueFormat);
+
+        // A union's branches, which did not cross this file: the emitter writes the union on the
+        // task side and never missed them, but the document is written on the generator side, and
+        // a union it could not see was published as a bare object.
+        record.Add("OneOf", Encode(schema.OneOf));
         record.WriteTo(builder);
 
         for (var i = 0; i < schema.EnumValues.Count; i++) {
@@ -404,6 +409,9 @@ internal static class SpecModelSerializer {
             case nameof(SchemaKind.Array): return SchemaKind.Array;
             case nameof(SchemaKind.Primitive): return SchemaKind.Primitive;
             case nameof(SchemaKind.Dictionary): return SchemaKind.Dictionary;
+            // Read as an object before, which is what a union's branches not crossing the file
+            // looked like from this side: a kind with nothing to hold.
+            case nameof(SchemaKind.OneOf): return SchemaKind.OneOf;
             default: return SchemaKind.Object;
         }
     }
@@ -430,6 +438,7 @@ internal static class SpecModelSerializer {
         IsErrorShape = record.Bool("IsErrorShape"),
         EnumMemberNamesAreDeclared = record.Bool("EnumMemberNamesAreDeclared"),
         DiscriminatorPropertyName = record.String("DiscriminatorPropertyName"),
+        OneOf = Decode(record.Strings("OneOf")),
         BaseRef = record.String("BaseRef"),
         Type = record.String("Type"),
         Format = record.String("Format"),

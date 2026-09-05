@@ -251,6 +251,12 @@ public class SpecModelSerializerTests {
     /// </summary>
     private static ServiceSpecModel FullyPopulated() {
         var property = new PropertyModel {
+            // A named branch and a bare one, because the name is optional and rides on the same
+            // encoded string as the reference.
+            OneOf = {
+                new ChoiceBranchModel { Ref = "#/components/schemas/Tag", Name = "tag" },
+                new ChoiceBranchModel { Type = "string", Format = "uuid" },
+            },
             Name = "prop",
             Description = "What the property means.",
             Type = "string",
@@ -388,6 +394,16 @@ public class SpecModelSerializerTests {
                     Format = "custom",
                 },
                 new SchemaModel { Name = "PetStatus", Kind = SchemaKind.Enum, EnumValues = { "available", "sold" } },
+                // A union, whose branches did not cross the file at all before: every member is
+                // named, as a Smithy union names them.
+                new SchemaModel {
+                    Name = "PetEvent",
+                    Kind = SchemaKind.OneOf,
+                    OneOf = {
+                        new ChoiceBranchModel { Ref = "#/components/schemas/Adopted", Name = "adopted" },
+                        new ChoiceBranchModel { Type = "string", Name = "note" },
+                    },
+                },
             },
             Services = { new ServiceModel { Tag = "Pet", TagDescription = "Everything about pets.", Operations = { operation } } },
             FilterTypes = {

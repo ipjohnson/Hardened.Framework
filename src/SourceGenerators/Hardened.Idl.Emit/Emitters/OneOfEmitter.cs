@@ -65,7 +65,7 @@ internal static class OneOfEmitter {
         NamingHelper.ToPascalCase(schemaName) + "Converter";
 
     public static ClassDefinition Emit(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace) {
+        IConstructContainer container, SchemaModel schema, string modelsNamespace, bool streamed = false) {
         var name = NamingHelper.ToPascalCase(schema.Name);
         var branches = Branches(schema, modelsNamespace);
         var readable = Readable(branches);
@@ -84,7 +84,96 @@ internal static class OneOfEmitter {
         EmitConversions(type, name, branches);
         EmitToString(type);
 
+        if (streamed) {
+            EmitSseEvent(type, NamedBranches(schema, modelsNamespace));
+        }
+
         return type;
+    }
+
+    /// <summary>
+    /// A union that is the item of a streamed response is an event: the member it holds is the
+    /// payload, and the member's name is the <c>event:</c> field beside it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The SSE framing already reads <c>ISseEvent</c> off whatever a handler yields and writes the
+    /// event name beside the payload rather than inside it, so implementing the interface here is
+    /// the whole of the runtime side: the handler yields the union, the framing writes
+    /// <c>event: adopted</c> and then <c>data:</c> with the member's own JSON.
+    /// </para>
+    /// <para>
+    /// Explicit implementations, so the four members do not appear on the union's own surface -
+    /// <c>Value</c> is its surface, and a handler that reads <c>Data</c> off it would be reading
+    /// the same thing under a name that belongs to the framing.
+    /// </para>
+    /// </remarks>
+    private static void EmitSseEvent(ClassDefinition type, List<KeyValuePair<string, string?>> branches) {
+        type.AddBaseType(TypeDefinition.Get(SseEventNamespace, "ISseEvent"));
+
+        var sseEvent = "global::" + SseEventNamespace + ".ISseEvent";
+
+        type.AddComponent(
+            new CodeOutputComponent($"object? {sseEvent}.Data => Value;") { Indented = true });
+        type.AddComponent(
+            new CodeOutputComponent($"string? {sseEvent}.Id => null;") { Indented = true });
+        type.AddComponent(
+            new CodeOutputComponent($"int? {sseEvent}.Retry => null;") { Indented = true });
+
+        var arms = new List<string>();
+
+        foreach (var branch in branches) {
+            if (branch.Value != null) {
+                arms.Add($"{branch.Key} _ => \"{branch.Value}\"");
+            }
+        }
+
+        arms.Add("_ => null");
+
+        type.AddComponent(
+            new CodeOutputComponent(
+                $"string? {sseEvent}.Event => Value switch {{ {string.Join(", ", arms)} }};") {
+                Indented = true
+            });
+    }
+
+    private const string SseEventNamespace = "Hardened.Requests.Abstract.Serializer";
+
+    /// <summary>
+    /// The branch types with the names the description gave them, one entry per type.
+    /// </summary>
+    /// <remarks>
+    /// The same walk as <see cref="Branches"/>, keeping the name. Two members of one type cannot be
+    /// told apart by the value alone, and the wrapper already cannot hold them - the implicit
+    /// conversions would collide - so the first name a type was given is the one written.
+    /// </remarks>
+    public static List<KeyValuePair<string, string?>> NamedBranches(SchemaModel schema, string modelsNamespace) {
+        var branches = new List<KeyValuePair<string, string?>>();
+
+        foreach (var described in schema.OneOf) {
+            var branch = TypeMapper.QualifiedName(
+                modelsNamespace, ChoiceResolution.CSharpType(described), false);
+
+            if (branch.EndsWith("JsonElement", System.StringComparison.Ordinal)) {
+                continue;
+            }
+
+            var known = false;
+
+            foreach (var existing in branches) {
+                if (existing.Key == branch) {
+                    known = true;
+
+                    break;
+                }
+            }
+
+            if (!known) {
+                branches.Add(new KeyValuePair<string, string?>(branch, described.Name));
+            }
+        }
+
+        return branches;
     }
 
     /// <summary>

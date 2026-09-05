@@ -14,7 +14,7 @@ use hardened.api#timeout
 @httpBearerAuth
 service PetStore {
     version: "2024-01-01"
-    operations: [GetPet, ListPets, CreatePet, GetSecuredPet]
+    operations: [GetPet, ListPets, CreatePet, GetSecuredPet, PetEvents]
 }
 
 @documentation("Requires an authenticated caller.")
@@ -158,4 +158,48 @@ structure Throttled {
 
     @range(min: 0)
     retryAfterSeconds: Integer
+}
+
+/// One event in a pet's history: it was adopted.
+structure PetAdopted {
+    @required
+    petId: String
+
+    @required
+    by: String
+}
+
+/// One event in a pet's history: it was weighed.
+structure PetWeighed {
+    @required
+    petId: String
+
+    @required
+    grams: Integer
+}
+
+/// Smithy's own spelling for an event stream: a union under @streaming, one member per kind of
+/// event. The generated interface returns IAsyncEnumerable<PetEventStream>, the response is framed
+/// as server-sent events, and the member name is written as the event: field beside each item.
+@streaming
+union PetEventStream {
+    adopted: PetAdopted
+    weighed: PetWeighed
+}
+
+@documentation("The pet's history, one event at a time.")
+@http(method: "GET", uri: "/pets/{petId}/events", code: 200)
+@readonly
+@auth([])
+operation PetEvents {
+    input := {
+        @httpLabel
+        @required
+        petId: String
+    }
+    output := {
+        @required
+        @httpPayload
+        events: PetEventStream
+    }
 }
