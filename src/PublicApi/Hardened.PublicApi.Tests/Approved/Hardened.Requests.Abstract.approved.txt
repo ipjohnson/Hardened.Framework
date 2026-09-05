@@ -1431,6 +1431,11 @@ namespace Hardened.Requests.Abstract.Responses
     public static class ResponseExpectation
     {
         public static T Body<T>(object? body) { }
+        public static TExpected Match<TExpected>(int status, object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers)
+            where TExpected : Hardened.Requests.Abstract.Responses.IResponseExpectation<TExpected> { }
+        public static void MatchStatus<TStatus>(int status, object? body = null)
+            where TStatus : Hardened.Requests.Abstract.Responses.IDeclaresStatus { }
+        public static string Name(System.Type type) { }
         public static string? OptionalHeader(System.Collections.Generic.IReadOnlyDictionary<string, string> headers, string name) { }
         public static System.TimeSpan? OptionalRetryAfter(System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
         public static string RequiredHeader(System.Collections.Generic.IReadOnlyDictionary<string, string> headers, string name) { }

@@ -33,6 +33,8 @@
       approved surface, which AllShippedAssembliesAreCovered turns into a failing test.
     -->
     <ItemGroup>
+        <ProjectReference Include="..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj"/>
+        <ProjectReference Include="..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Caching.Memory\Hardened.Requests.Caching.Memory.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>

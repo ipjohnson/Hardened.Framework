@@ -6,6 +6,21 @@ namespace Hardened.Web.Testing
     {
         public AnonymousAttribute() { }
     }
+    public sealed class ClientAnswer : System.IEquatable<Hardened.Web.Testing.ClientAnswer>
+    {
+        public ClientAnswer(int Status, object? Body, System.Collections.Generic.IReadOnlyDictionary<string, string> Headers, string? Caveat = null) { }
+        public object? Body { get; init; }
+        public string? Caveat { get; init; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string> Headers { get; init; }
+        public int Status { get; init; }
+    }
+    public static class ClientAssertions
+    {
+        public static System.Threading.Tasks.Task<TExpected> Returns<TExpected>(this System.Threading.Tasks.Task call)
+            where TExpected : Hardened.Requests.Abstract.Responses.IResponseExpectation<TExpected> { }
+        public static System.Threading.Tasks.Task ReturnsStatus<TStatus>(this System.Threading.Tasks.Task call)
+            where TStatus : Hardened.Requests.Abstract.Responses.IDeclaresStatus { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter)]
     public sealed class GrantsAttribute : Hardened.Web.Testing.TestCredentialAttribute
     {
@@ -16,6 +31,16 @@ namespace Hardened.Web.Testing
         where out TClient :  class
     {
         TClient Create(System.Net.Http.HttpClient http);
+    }
+    public interface ITestClientReader
+    {
+        string Unreadable { get; }
+        System.Threading.Tasks.Task<Hardened.Web.Testing.ClientAnswer?> Read(object? result, System.Exception? thrown, System.Type? bodyType);
+    }
+    public interface ITestClientRoute
+    {
+        object Build(Hardened.Web.Testing.TestClientContext context, System.Type clientType);
+        bool CanBuild(System.Type clientType);
     }
     public interface ITestWebApp : Hardened.Shared.Testing.ITestContext
     {
@@ -57,6 +82,18 @@ namespace Hardened.Web.Testing
     {
         public SubjectAttribute(string subject) { }
         public string Subject { get; }
+    }
+    public sealed class TestClientContext
+    {
+        public System.Uri BaseAddress { get; }
+        public System.Net.Http.HttpClient Http { get; }
+        public System.Net.Http.HttpClient CreateHttpClient(params System.Net.Http.DelegatingHandler[] handlers) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly, AllowMultiple=true)]
+    public class TestClientRouteAttribute : System.Attribute
+    {
+        public TestClientRouteAttribute(System.Type routeType) { }
+        public System.Type RouteType { get; }
     }
     public sealed class TestCredential : System.IEquatable<Hardened.Web.Testing.TestCredential>
     {

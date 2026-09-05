@@ -110,7 +110,7 @@ public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestS
             if (TestClientBuilder.HasRoute(type, testAssembly)) {
                 serviceCollection.AddScoped(type, sp => TestClientBuilder.Build(
                     type,
-                    TestClientBuilder.CreateHttpClient(sp.GetRequiredService<IApplicationRoot>().Provider, credential),
+                    TestClientBuilder.CreateContext(sp.GetRequiredService<IApplicationRoot>().Provider, credential),
                     testAssembly));
 
                 continue;

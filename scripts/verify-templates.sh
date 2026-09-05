@@ -233,7 +233,7 @@ for COMBO in "${COMBOS[@]}"; do
     # document. The opt-out row: no property, no file, no client project.
     if [ "$CLIENT" = "none" ]; then
         if [ -d "$OUT/src/Sample.Client" ] || [ -e "$OUT/src/Sample/openapi" ] || [ -d "$OUT/.config" ] || \
-           [ -e "$OUT/tests/Sample.Tests/TestClients.cs" ] || [ -e "$OUT/tests/Sample.Tests/SampleClientTests.cs" ]; then
+           [ -e "$OUT/tests/Sample.Tests/SampleClientTests.cs" ] || grep -q "KiotaTesting" "$OUT/tests/Sample.Tests/Bootstrap.cs"; then
             echo "   FAILED: --client none left client files behind"
             FAILED=1
         fi

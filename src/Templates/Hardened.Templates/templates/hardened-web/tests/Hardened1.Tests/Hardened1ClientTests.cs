@@ -4,10 +4,11 @@ namespace Hardened1.Tests;
 /// The generated client, driven through the real pipeline with no socket.
 /// </summary>
 /// <remarks>
-/// The client is a test parameter; TestClients.cs says how it is built. Refusals are asserted with
-/// Assert.ThrowsAsync in the client's own vocabulary, and what the client does not surface - the
-/// status it did not throw on, the headers that came with it - is read from LastResponse, which
-/// the transport keeps for the current test.
+/// The client is a test parameter; [assembly: KiotaTesting] in Bootstrap.cs is what builds it. A
+/// call is asserted with Returns&lt;T&gt;(), naming the response type the contract declares -
+/// Created&lt;Todo&gt;, NotFound&lt;Problem&gt;, NoContent - which is the status, the body type
+/// and the headers that status carries in one word, for a success the client returns and a
+/// refusal it throws alike.
 /// </remarks>
 public class TemplateModuleNameClientTests {
 
@@ -28,44 +29,52 @@ public class TemplateModuleNameClientTests {
 #if (codeFirst && throwsMode)
     /// <summary>
     /// 200, not 201, and the point of the assertion is the mode: throws mode names one success type
-    /// per handler and has nowhere to put a status beside it. What the client does not surface, the
-    /// transport does.
+    /// per handler and has nowhere to put a status beside it.
     /// </summary>
     [HardenedTest]
     public async Task CreateTodo_AnswersTwoHundred(TemplateModuleNameClient client) {
-        var todo = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" });
+        var answer = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+            .Returns<Ok<ClientModels.Todo>>();
 
-        Assert.Equal("ship it", todo!.Title);
-        Assert.Equal(200, LastResponse.Status);
+        Assert.Equal("ship it", answer.Value.Title);
     }
 #else
+#if (smithy)
     /// <summary>
-    /// What the client does not surface, the transport does: the status it did not throw on and the
-    /// headers that came with it.
+    /// 201, as the operation declares. The Smithy contract puts no Location on it, so the status
+    /// is what is asserted.
     /// </summary>
     [HardenedTest]
     public async Task CreateTodo_AnswersCreated(TemplateModuleNameClient client) {
-        var todo = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" });
-
-        Assert.Equal("ship it", todo!.Title);
-        Assert.Equal(201, LastResponse.Status);
-#if (!smithy)
-        Assert.Equal($"/todos/{todo.Id}", LastResponse.Headers["Location"]);
-#endif
+        await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+            .ReturnsStatus<Created<ClientModels.Todo>>();
     }
+#else
+    /// <summary>
+    /// 201 and a Location header, both declared in the response set. The client returns the todo
+    /// alone; the status it did not throw on and the header that came with it are read from what
+    /// the client received, and Created carries all three.
+    /// </summary>
+    [HardenedTest]
+    public async Task CreateTodo_AnswersCreated(TemplateModuleNameClient client) {
+        var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+            .Returns<Created<ClientModels.Todo>>();
+
+        Assert.Equal("ship it", created.Value.Title);
+        Assert.Equal($"/todos/{created.Value.Id}", created.Location);
+    }
+#endif
 #endif
 
 #if (codeFirst && throwsMode)
     /// <summary>
     /// Throws mode documents only the 200, so the generated client has no 404 branch: the same
-    /// request that answers a typed Problem under the response model is a bare ApiException here.
-    /// The declared models close exactly that gap.
+    /// request that answers a typed NotFound under the response model is a bare ApiException here,
+    /// with no body type to name. The declared models close exactly that gap.
     /// </summary>
     [HardenedTest]
     public async Task UnknownTodo_IsAnUntypedFailure(TemplateModuleNameClient client) {
-        var failure = await Assert.ThrowsAsync<ApiException>(() => client.Todos[9999].GetAsync());
-
-        Assert.Equal(404, failure.ResponseStatusCode);
+        await client.Todos[9999].GetAsync().ReturnsStatus<NotFound>();
     }
 #endif
 #if (codeFirst && declaredMode)
@@ -75,10 +84,9 @@ public class TemplateModuleNameClientTests {
     /// </summary>
     [HardenedTest]
     public async Task UnknownTodo_IsATypedNotFound(TemplateModuleNameClient client) {
-        var missing = await Assert.ThrowsAsync<ClientModels.NotFound>(() => client.Todos[9999].GetAsync());
+        var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.NotFound>>();
 
-        Assert.Equal(404, missing.ResponseStatusCode);
-        Assert.Contains("9999", missing.Detail);
+        Assert.Contains("9999", missing.Body.Detail);
     }
 #endif
 #if (openapi)
@@ -88,13 +96,14 @@ public class TemplateModuleNameClientTests {
     /// </summary>
     [HardenedTest]
     public async Task UnknownTodo_IsATypedProblem(TemplateModuleNameClient client) {
-        var problem = await Assert.ThrowsAsync<ClientModels.Problem>(() => client.Todos[9999].GetAsync());
-
-        Assert.Equal(404, problem.ResponseStatusCode);
 #if (declaredMode)
+        var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.Problem>>();
+
         // The declared case carries the detail the service wrote. Throws mode answers this 404 by
         // returning null, which is the document's body with nothing in it to say why.
-        Assert.Contains("9999", problem.Detail);
+        Assert.Contains("9999", missing.Body.Detail);
+#else
+        await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.Problem>>();
 #endif
     }
 #endif
@@ -114,20 +123,20 @@ public class TemplateModuleNameClientTests {
 #endif
     [HardenedTest]
     public async Task UnknownTodo_IsATypedError(TemplateModuleNameClient client) {
-        var failure = await Assert.ThrowsAsync<ClientModels.TodoNotFound>(() => client.Todos[9999].GetAsync());
-
-        Assert.Equal(404, failure.ResponseStatusCode);
+        await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.TodoNotFound>>();
     }
 #endif
 
     [HardenedTest]
     public async Task RemoveTodo_ThroughTheGeneratedClient(TemplateModuleNameClient client) {
+#if (codeFirst && throwsMode)
+        // A void handler answers 200 with nothing, which no response type names: the transport
+        // keeps the status.
         await client.Todos[2].DeleteAsync();
 
-#if (codeFirst && throwsMode)
         Assert.Equal(200, LastResponse.Status);
 #else
-        Assert.Equal(204, LastResponse.Status);
+        await client.Todos[2].DeleteAsync().Returns<NoContent>();
 #endif
     }
 }

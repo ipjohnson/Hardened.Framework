@@ -1,4 +1,5 @@
 using Hardened.IntegrationTests.WebApp.SUT.Models;
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
@@ -47,4 +48,19 @@ public class HttpMethodController {
     /// <summary>A declared 204, which also means the body is not written.</summary>
     [Delete("/emptied", SuccessStatus = 204)]
     public string EmptyItem() => "this body is not written";
+
+    /// <summary>
+    /// A 201 that says where the thing now lives, as a case in a response set rather than a status
+    /// on the attribute: <see cref="Created{T}"/> carries the Location beside the body, so a client
+    /// can be held to having received both. The 400 is what makes it a set - code-first, the
+    /// return type alone decides, and a lone <c>Created&lt;T&gt;</c> is an ordinary body at 200.
+    /// </summary>
+    [Post("/located")]
+    public Response<Created<MathAddModel>, BadRequest> CreateLocated(MathAddModel model) {
+        if (model.Values is not { Count: > 0 }) {
+            return new BadRequest("Nothing to add.");
+        }
+
+        return new Created<MathAddModel>(model, $"/verbs/item/{model.Values.Count}");
+    }
 }

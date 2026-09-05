@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Assert through a Refit client in a Hardened test: [assembly: RefitTesting] builds every Refit interface over the pipeline for a test parameter, and reads what a call answered for Returns&lt;T&gt;().</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Refit.Testing</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!--
+             PrivateAssets="none" so Refit's analyzer reaches the test project too. Refit implements
+             an interface with a source generator that runs in the project declaring it, and
+             RestService.For finds that implementation by name - so a test project that took Refit
+             only through this package, with the analyzer withheld, would build and then fail on the
+             first call saying the generator did not run.
+        -->
+        <PackageReference Include="Refit" Version="8.0.0" PrivateAssets="none" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Refit.Testing.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
+    </ItemGroup>
+
+</Project>

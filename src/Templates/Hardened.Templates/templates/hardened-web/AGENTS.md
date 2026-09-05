@@ -186,9 +186,12 @@ assembly after every compile. **Never edit anything under `src/Hardened1.Client/
 commit it.** The document is committed and the client is not; CI checks the document with
 `git diff --exit-code src/Hardened1/openapi`.
 
-The framework knows nothing about Kiota. The one Kiota-specific line outside the client project is
-`TestClients.cs`, which says how a test builds the client from an `HttpClient`; the harness does the
-rest, credentials included.
+The framework knows nothing about Kiota. The test project reaches the client through
+`Hardened.Kiota.Testing`: `[assembly: KiotaTesting]` in `Bootstrap.cs` is what makes a Kiota client
+a test parameter, built over the pipeline with the test's credential on it, and `Returns<T>()` is
+how a call is asserted. A client that has to be built some other way - its own authentication
+provider, a middleware handler - gets an `ITestClientFactory<T>` in the test project, which wins
+over the package's route for that one client.
 
 #endif
 ## The one structural rule

@@ -1,0 +1,16 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Refit.Testing.Tests")]
+namespace Hardened.Refit.Testing
+{
+    public sealed class RefitClientRoute : Hardened.Web.Testing.ITestClientReader, Hardened.Web.Testing.ITestClientRoute
+    {
+        public RefitClientRoute() { }
+        public string Unreadable { get; }
+        public object Build(Hardened.Web.Testing.TestClientContext context, System.Type clientType) { }
+        public bool CanBuild(System.Type clientType) { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.ClientAnswer?> Read(object? result, System.Exception? thrown, System.Type? bodyType) { }
+    }
+    public sealed class RefitTestingAttribute : Hardened.Web.Testing.TestClientRouteAttribute
+    {
+        public RefitTestingAttribute() { }
+    }
+}

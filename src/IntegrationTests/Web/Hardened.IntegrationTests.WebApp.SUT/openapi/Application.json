@@ -4988,6 +4988,65 @@
         },
         "x-hardened-timeout": 300000
       }
+    },
+    "/verbs/located": {
+      "post": {
+        "tags": [
+          "HttpMethod"
+        ],
+        "operationId": "createLocated",
+        "summary": "A 201 that says where the thing now lives, as a case in a response set rather than a status on the attribute: carries the Location beside the body, so a client can be held to having received both. The 400 is what makes it a set - code-first, the return type alone decides, and a lone Created&lt;T&gt; is an ordinary body at 200.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MathAddModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
     }
   },
   "components": {
@@ -5012,6 +5071,32 @@
             ],
             "minLength": 2,
             "maxLength": 2
+          }
+        }
+      },
+      "BadRequest": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

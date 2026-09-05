@@ -15,8 +15,10 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// the document the application serves. So these tests hold the whole chain: the document the
 /// export writes is one a generator reads, the members it generates are the routes the application
 /// serves, and bodies, statuses and refusals round-trip through the transport. The client is a test
-/// parameter; <see cref="WebAppClientFactory"/> in TestClients.cs says how it is built. What the
-/// client does not surface - the status it did not throw on - is read from <see cref="LastResponse"/>.
+/// parameter, built by the route <c>[assembly: KiotaTesting]</c> names in Bootstrap.cs, with no
+/// factory in this project. What the client does not surface - the status it did not throw on - is
+/// read from <see cref="LastResponse"/> here; <see cref="KiotaReturnsTests"/> asserts the same
+/// answers as response types instead.
 /// </remarks>
 public class GeneratedClientTests {
 

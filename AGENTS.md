@@ -153,6 +153,11 @@ bundle a tool expects. `scripts/verify-templates.sh` checks both pairs before it
 and is the gate, as it is for everything else in the template; the two client projects check their
 own pair at build (HTPL003).
 
+`Hardened.Kiota.Testing` references the Kiota runtime - `Microsoft.Kiota.Abstractions` and
+`Microsoft.Kiota.Http.HttpClientLibrary` - at the bundle's version, not the bundle: a generated
+client registers the serializers itself. A consumer on a newer 2.x bundle unifies upward; a bump
+of the pins to a new major has to move that reference with them.
+
 **`Hardened.IntegrationTests.WebApp.SUT.Client` is the template's client project with the names
 changed, on purpose.** It generates a Kiota client from the tracked `openapi/Application.json` into
 `obj/` on every build, and `GeneratedClientTests` in the SUT's test project drive it through the
@@ -190,4 +195,5 @@ function runtimes do not reference it.
 - `docs/validation-usage.md` — constraints, custom validators, the error response
 - `docs/response-caching.md` — `[CacheResponse<T>]`, the store package, who a stored answer is for, invalidating by tag, revalidating with a 304
 - `docs/request-timeouts.md` — `[Timeout]`, the four rungs it resolves through, `x-hardened-timeout` and the Smithy `@timeout` trait, tighten-only conventions, why the token is put back
+- `docs/client-testing.md` — `Returns<T>()` in `Hardened.Web.Testing`, the route and reader seam it reads through, `[assembly: KiotaTesting]` and `[assembly: RefitTesting]`, why there is a package per generator
 - Full user documentation: <https://ipjohnson.github.io/Hardened.Docs>

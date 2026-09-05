@@ -54,6 +54,9 @@
 
   <ItemGroup Label="Client">
     <PackageVersion Include="Microsoft.Kiota.Bundle" Version="$(KiotaBundleVersion)" />
+    <!-- The test side of the client: builds it over the pipeline and asserts through it. A
+         Hardened package, so it moves with the framework rather than with Kiota. -->
+    <PackageVersion Include="Hardened.Kiota.Testing" Version="$(HardenedVersion)" />
   </ItemGroup>
 <!--#endif -->
 

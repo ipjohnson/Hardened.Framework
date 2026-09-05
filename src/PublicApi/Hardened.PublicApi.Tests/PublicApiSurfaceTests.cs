@@ -33,6 +33,8 @@ public class PublicApiSurfaceTests {
 
     /// <summary>Every shipped net8.0 assembly, by name.</summary>
     private static readonly string[] Shipped = [
+        "Hardened.Kiota.Testing",
+        "Hardened.Refit.Testing",
         "Hardened.Requests.Abstract",
         "Hardened.Requests.Caching.Memory",
         "Hardened.Requests.Runtime",
