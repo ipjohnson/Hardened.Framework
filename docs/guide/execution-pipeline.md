@@ -1,8 +1,35 @@
 # The execution pipeline
 
-Every request — an HTTP call, a Lambda invocation, an SQS message, a stream record — runs through
-the same pipeline. A pipeline is an ordered list of filters, and the handler you wrote is the last
-one.
+Every request runs through the same pipeline: an HTTP call, a Lambda invocation, an SQS message,
+a stream record. The pipeline is an ordered list of filters, and the handler you wrote is the last
+one. An attribute adds a filter to one handler:
+
+```csharp
+[Get("/rates/{symbol}")]
+[Retry(Attempts = 4)]
+public Rate Read(string symbol) => _upstream.Latest(symbol);
+```
+
+A filter of your own is a class that does its work around `chain.Next()`:
+
+```csharp
+public class TimingFilter : IExecutionFilter {
+    public async Task Execute(IExecutionChain chain) {
+        var start = MachineTimestamp.Now;
+
+        try {
+            await chain.Next();
+        }
+        finally {
+            chain.Context.RequestMetrics.Record(
+                RequestMetrics.TotalRequestDuration, start.GetElapsedMilliseconds());
+        }
+    }
+}
+```
+
+Not calling `Next()` short-circuits everything after it, which is how the authorization and
+caching filters answer without reaching the handler.
 
 ## The chain
 
@@ -21,27 +48,6 @@ public interface IExecutionChain {
 }
 ```
 
-A filter does its work around `chain.Next()`:
-
-```csharp
-public class TimingFilter : IExecutionFilter {
-    public async Task Execute(IExecutionChain chain) {
-        var start = MachineTimestamp.Now;
-
-        try {
-            await chain.Next();
-        }
-        finally {
-            chain.Context.RequestMetrics.Record(
-                RequestMetrics.TotalRequestDuration, start.GetElapsedMilliseconds());
-        }
-    }
-}
-```
-
-Not calling `Next()` short-circuits everything after it, which is how authorisation and caching
-filters return without reaching the handler.
-
 ## The context
 
 `IExecutionContext` is what the filters share:
@@ -57,17 +63,15 @@ filters return without reaching the handler.
 | `StartTime` | A `MachineTimestamp` taken when the request began |
 | `CancellationToken` | Where the platform supplies one. Replaced for the span of a [request timeout](/guide/request-timeouts), and put back |
 
-The response carries a *value*, not bytes. `Response.ResponseValue` is what the handler returned;
-serialisation is a filter later in the chain, so a filter that wants to change the payload changes
-the value.
-
-Which serializer writes it is decided per request from the client's `Accept` header — see
+The response carries a value, not bytes. `Response.ResponseValue` is what the handler returned.
+Serialization is a filter later in the chain, so a filter that wants to change the payload changes
+the value. Which serializer writes it is decided per request from the `Accept` header; see
 [Content negotiation](/guide/content-negotiation).
 
 ## Ordering
 
 Filters are sorted by an integer. Lower runs earlier, which is to say further from the handler.
-`FilterOrder` names the positions, and it is the only ordering vocabulary there is.
+`FilterOrder` names the positions:
 
 | Stage | Value | What sits there |
 |---|---|---|
@@ -86,19 +90,12 @@ Filters are sorted by an integer. Lower runs earlier, which is to say further fr
 | `DefaultValue` | `100000` | Where a filter that states no order lands |
 | `EndPointHandlers`, `EndPointInvoke` | `200000` | The handler. Terminal, so a filter ordered above it is never reached |
 
-Every value is a relationship rather than a literal. One anchor at `Serialization` and each stage a
-thousand from its neighbour.
-
-**The gaps are the feature.** The natural spelling of "just after authentication" is
-`FilterOrder.Authentication + 100`, and on a consecutive-integer scale that landed past
-serialization, validation and authorization. It compiled, it ran, and it meant close to the
-opposite of what was written.
-
-`Before` and `After` are half a gap, for the common case of sitting between two stages:
+Each stage is a thousand from its neighbour. `Before` and `After` are half a gap, for sitting
+between two stages:
 
 ```csharp
 FilterOrder.Before + FilterOrder.ResponseCache   // just outside the cache
-FilterOrder.After + FilterOrder.Authentication   // resolve the tenant from the token
+FilterOrder.After + FilterOrder.Authentication   // just inside authentication
 ```
 
 They do not compose. `Before + Before + Serialization` is a whole gap and lands exactly on
@@ -107,12 +104,12 @@ They do not compose. `Before + Before + Serialization` is a whole gap and lands 
 ### The line at serialization
 
 Everything ahead of `Serialization` can refuse a request before its body has been read, and those
-stages are in cheapest-refusal-first order. A filter on that side of the line **refuses by recording
-the failure on the response and calling `Next()` anyway**, so the serialization filter can write it.
+stages run in cheapest-refusal-first order. A filter on that side of the line refuses by recording
+the failure on the response and calling `Next()` anyway, so the serialization filter can write it.
 Behind the line, an ordinary short circuit is what stops the handler.
 
-Throwing from ahead of the line unwinds past the only thing that would have written a body, and the
-caller gets a bare 500.
+Throwing from ahead of the line unwinds past the only thing that would have written a body, and
+the caller gets a bare 500.
 
 ### Seeing what a chain composed into
 
@@ -126,10 +123,9 @@ Generic@8000, TenantProvider@10000, InvokeNoParametersFilter@200000
 ```
 
 Each filter and its order, in the order they run. That answers "did my filter land where I meant?",
-and it shows an attribute that never reached the metadata or a global filter that stood down.
-
-It is its own category so it can be turned on alone. A chain is composed once per handler, so an
-application that has not enabled it pays one `IsEnabled` check per handler and nothing per request.
+and it shows an attribute that never reached the metadata or a global filter that stood down. A
+chain is composed once per handler, so an application that has not enabled the category pays one
+`IsEnabled` check per handler and nothing per request.
 
 A filter is named by the registration, or failing that by the type that made it. Give
 `RequestFilterInfo` a name to control what appears:
@@ -159,36 +155,23 @@ public class RetryAttribute : Attribute, IRequestFilterProvider {
 }
 ```
 
-Applied like any other attribute:
-
-```csharp
-[Get("/rates/{symbol}")]
-[Retry(Attempts = 4)]
-public Rate Read(string symbol) => _upstream.Latest(symbol);
-```
-
-`RequestFilterInfo` takes a *factory*, not an instance, so a filter can depend on request-scoped
+`RequestFilterInfo` takes a factory, not an instance, so a filter can depend on request-scoped
 services. `GetFilters` receives the handler's metadata, so one attribute can behave differently
 depending on what it was applied to.
 
-::: tip Why retry sits behind serialization
-The filter at `Serialization` catches whatever the handler failed with, records it on the response
-and returns normally. A retry filter ordered *ahead* of it is therefore handed a request that looks
-like it succeeded, and stops after one attempt. Ordered behind it, the failure is still on the
-response when the retry filter looks, and the response is serialized once when the retry filter is
-done rather than once per attempt.
-
-It sits behind `Authorization` for a different reason. A refusal is not transient, and retrying one
-spends the whole budget re-deriving the same answer.
-
-The cost of the position is that the handler instance is created once, at `HandlerCreation`, and
-every attempt shares it. A handler that keeps mutable per-request state on itself is not one that
-can be retried.
-:::
-
 `[Retry]` declines client errors, and refuses a non-idempotent verb unless
-`AllowNonIdempotent = true`. `TotalBudget` bounds the whole thing at 10 seconds by default, because
-the caller is waiting for every attempt.
+`AllowNonIdempotent = true`. `TotalBudget` bounds the whole thing at 10 seconds by default,
+because the caller is waiting for every attempt.
+
+::: tip Retry runs behind serialization, and shares the handler instance
+The filter at `Serialization` catches whatever the handler failed with and records it on the
+response. A retry filter behind it sees that failure and runs the handler again, and the response
+is serialized once when the retry is done rather than once per attempt. It also sits behind
+`Authorization`, because a refusal is not transient.
+
+The handler instance is created once, at `HandlerCreation`, and every attempt shares it. A handler
+that keeps mutable per-request state on itself cannot be retried.
+:::
 
 ## Attaching a filter to everything
 
@@ -217,7 +200,7 @@ registry.RegisterFilter(handlerInfo =>
 
 ## Forking
 
-`chain.Fork(context)` copies the remainder of the chain so it can be run again — with a cloned
+`chain.Fork(context)` copies the remainder of the chain so it can be run again, with a cloned
 context, a cloned request, or a fresh response. Retry uses it to re-run the handler after a failure
 without re-running the filters that already succeeded, and the batch runtimes use it to run one
 chain per record.
@@ -227,7 +210,12 @@ optional replacements, so a fork can change one thing and keep the rest.
 
 ## Middleware
 
-Above the filters sits `IMiddlewareService`, which is where a host inserts the pipeline. This is
-what `app.UseHardened()` does under ASP.NET Core, and what the Lambda runtimes do when they start.
-It is also what
-[a test drives the real pipeline](/guide/testing-web) through.
+Above the filters sits `IMiddlewareService`, which is where a host inserts the pipeline. It is
+what `app.UseHardened()` does under ASP.NET Core, what the Lambda runtimes do when they start, and
+what [a test](/guide/testing-web) drives the real pipeline through.
+
+## Next
+
+- [Request timeouts](/guide/request-timeouts): a shipped filter and where it sits
+- [Rate limiting](/guide/rate-limiting): a filter that refuses ahead of the line
+- [Sending requests](/guide/testing-web): every filter runs in a test
