@@ -45,7 +45,7 @@ dotnet new hardened-web -n Greeter [options]
 | `-ho, --host` | `kestrel`, `aspnet`, `aws-lambda` | `kestrel` |
 | `-c, --contract` | `code`, `openapi`, `smithy` | `code` |
 | `-rm, --response-model` | `standard`, `response`, `union` | `standard` |
-| `-cl, --client` | `kiota`, `none` | `kiota` |
+| `-cl, --client` | `kiota`, `refit`, `none` | `kiota` |
 | `--openapi-ui` | `true`, `false` | `true` |
 | `--hardened-version` | any published version | the version the template shipped with |
 | `--skip-restore` | `true`, `false` | `false` |
@@ -59,20 +59,23 @@ creating a todo answers 200 under `standard` and 201 under the other two. See
 combined with `--host aws-lambda`, whose managed runtime is `net8.0` — the generated project refuses
 with `HTPL001` rather than failing at deploy time.
 
-`--client` adds a C# client Kiota generates during the build from the document the library writes,
-with a test that drives it through the in-process pipeline. `none` leaves out the client project,
-the tool manifest, the document export and the client tests. See [Clients](/guide/clients).
+`--client` adds a C# client generated during the build from the document the library writes, and
+the handler tests drive it through the in-process pipeline: a Kiota client under `kiota`, or a Refit
+interface Refitter writes under `refit`, whose every operation returns an `IApiResponse<T>`. Either
+way the tests assert through `Returns<T>()`, naming the response type the contract declares. `none`
+leaves out the client project, the tool manifest and the document export, and the same tests drive
+the pipeline through `ITestWebApp` instead. See [Clients](/guide/clients).
 
 ### What you get
 
 ```
 Greeter.sln
-.config/dotnet-tools.json       pins the Kiota tool
+.config/dotnet-tools.json       pins the client generator, Kiota or Refitter
 Directory.Packages.props        every version, in one place
 src/Greeter/                    the implementation. Knows nothing about where it runs
 src/Greeter/openapi/Greeter.json   the served document, written by the build and committed
 src/Greeter.Host/               which runtime hosts it, and Program.cs
-src/Greeter.Client/             the generated client. No hand-written code
+src/Greeter.Client/             the generated client. No hand-written code, or .refitter alone under refit
 tests/Greeter.Tests/            tests, against the library rather than the host
 ```
 

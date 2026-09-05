@@ -196,28 +196,62 @@ public async Task GetTodo_ThroughTheGeneratedClient(TodosClient client) {
 }
 ```
 
-How the client is constructed is the only generator-shaped question, and it is answered in two
-steps. By convention: a type with a single public constructor taking exactly one `HttpClient` is
-constructed with the harness's client, which is what NSwag's output and most hand-written clients
-look like. Otherwise by a factory: a public `ITestClientFactory<T>` in the test assembly, found once
-per assembly, with one method from `HttpClient` to `T`. Kiota needs the factory, because its
-constructor takes an `IRequestAdapter`; the template writes it:
+How the client is constructed is the only generator-shaped question, and it is answered by three
+routes, tried in order:
+
+1. A public `ITestClientFactory<T>` in the test assembly, found once per assembly, with one method
+   from `HttpClient` to `T` — for that one client.
+2. A route a generator's testing package registers when the assembly names it —
+   `[assembly: KiotaTesting]` from `Hardened.Kiota.Testing`, `[assembly: RefitTesting]` from
+   `Hardened.Refit.Testing` — which answers for every client of that generator's shape, so nothing
+   is written per client. A solution with both declares both.
+3. By convention, a type with a single public constructor taking exactly one `HttpClient`, which is
+   what NSwag's output and most hand-written clients look like.
+
+The factory wins over the route, so a client that has to be built some other way — a real
+authentication provider under test, a middleware handler of its own — gets a factory and the route
+keeps building the rest. A factory is what the Kiota route does for every client it recognises,
+written by hand:
 
 ```csharp
-public sealed class TodosClientFactory : ITestClientFactory<TodosClient> {
+public sealed class SignedTodosClientFactory : ITestClientFactory<TodosClient> {
     public TodosClient Create(HttpClient http) =>
-        new(new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: http) {
+        new(new HttpClientRequestAdapter(new SigningAuthenticationProvider(), httpClient: http) {
             BaseUrl = "http://harness"
         });
 }
 ```
 
-A parameter type with neither route fails the test naming both. `app.CreateClient<T>()` is the same
-construction for a client built inside the test, with a credential of the test's choosing.
+A parameter type with none of the three fails the test naming all three. `app.CreateClient<T>()` is
+the same construction for a client built inside the test, with a credential of the test's choosing.
 `[Mock]` composes with all of it: the mock is in the same graph the handler resolves from, so a
 client reaching the handler sees it. The framework's
 [`GeneratedClientTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/GeneratedClientTests.cs) is the worked example: a Kiota client over its widest integration
 application, through every door this page describes.
+
+## Asserting a call as a response type
+
+With a testing package's route in place, a call is asserted by naming the response type the
+contract declares — the status, the body type and the headers that status carries, in one word:
+
+```csharp
+var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+    .Returns<Created<ClientModels.Todo>>();
+
+Assert.Equal($"/todos/{created.Value.Id}", created.Location);
+
+await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.Problem>>();
+await client.Todos[2].DeleteAsync().Returns<NoContent>();
+```
+
+`Returns<T>()` is an extension on the call's `Task`, in `Hardened.Web.Testing`. It awaits the call
+and hands what came back to the routes the assembly named, and the route that recognises the
+answer reads it — the Kiota route a thrown model or a recorded response, the Refit route an
+envelope — so the call site is one expression for both generators and a solution with both
+declares both attributes. It checks the status against the type's own, builds the type from what
+the client received — the body it returned or the model it threw, and the headers — and fails
+naming both statuses when the answer was something else. `ReturnsStatus<T>()` checks the status
+alone. [Clients](/guide/clients#the-test) has the two packages in full, and what each one reads.
 
 ## Credentials
 
@@ -258,10 +292,11 @@ public async Task TwoParametersCarryTwoCredentials(
 
 ## The last response
 
-A refusal is asserted with `Assert.ThrowsAsync` against whatever the client library throws. What no
-client library surfaces is the response it did not throw on: the 201 and its `Location`, a 204, an
-`ETag`. The transport keeps the most recent response the pipeline answered inside the current test
-and exposes it as a static, whether it went out through a client or through `app.Get`:
+`Returns<T>()` is the first choice for a call through a client, and `Assert.ThrowsAsync` against
+whatever the client library throws is the other. What no client library surfaces is the response it
+did not throw on: the 201 and its `Location`, a 204, an `ETag`. The transport keeps the most recent
+response the pipeline answered inside the current test and exposes it as a static, whether it went
+out through a client or through `app.Get`, for a test written without a response type:
 
 ```csharp
 [HardenedTest]

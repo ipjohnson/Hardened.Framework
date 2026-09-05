@@ -112,47 +112,43 @@ test's credential. [Testing web handlers](/guide/testing-web#an-httpclient-over-
 the harness in full; this is the client-shaped part of it.
 
 The generated client has one constructor, and it takes an `IRequestAdapter`. The framework does not
-know that type and should not, so the test project says how to build the client from an
-`HttpClient`, once:
+know that type and should not; the `Hardened.Kiota.Testing` package does, and one attribute in the
+test project is the whole of the wiring:
 
 ```csharp
-// tests/Todos.Tests/TestClients.cs
-public sealed class TodosClientFactory : ITestClientFactory<TodosClient> {
-
-    // The base URL is required by Kiota and ignored by the handler; a code-first document with no
-    // [Server] leaves it unset otherwise. Credentials are already on the HttpClient.
-    public TodosClient Create(HttpClient http) =>
-        new(new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: http) {
-            BaseUrl = "http://harness"
-        });
-}
+// tests/Todos.Tests/Bootstrap.cs
+[assembly: KiotaTesting]
 ```
 
-With that in the test assembly, a test declares the client as a parameter and the harness builds
-it over the in-process pipeline: no socket, no port, the same chain `ITestWebApp` drives.
+After it, every Kiota client in the solution is a test parameter, built over the in-process pipeline
+with the test's credential on it — no socket, no port, the same chain `ITestWebApp` drives — and
+nothing is written per client. And `Returns<T>()`, from `Hardened.Web.Testing`, asserts a call by
+naming the response type the contract declares, reading the answer through the route that built
+the client:
 
 ```csharp
-// tests/Todos.Tests/TodosClientTests.cs
-public class TodosClientTests {
+// tests/Todos.Tests/TodoTests.cs
+public class TodoTests {
 
     [HardenedTest]
-    public async Task GetTodo_ThroughTheGeneratedClient(TodosClient client) {
-        var todo = await client.Todos[1].GetAsync();
+    public async Task GetTodo_ReturnsTheTodo(TodosClient client) {
+        var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
 
-        Assert.Equal("Read the generated code", todo!.Title);
+        Assert.Equal("Read the generated code", todo.Value.Title);
     }
 
     /// <summary>
-    /// What the client does not surface, the transport does: the status it did not throw on and the
-    /// headers that came with it.
+    /// 201 and a Location header, both declared in the response set. The client returns the todo
+    /// alone; the status it did not throw on and the header that came with it are read from what
+    /// the client received, and Created carries all three.
     /// </summary>
     [HardenedTest]
-    public async Task CreateTodo_AnswersCreated(TodosClient client) {
-        var todo = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" });
+    public async Task CreateTodo_AnswersCreatedWithALocation(TodosClient client) {
+        var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+            .Returns<Created<ClientModels.Todo>>();
 
-        Assert.Equal("ship it", todo!.Title);
-        Assert.Equal(201, LastResponse.Status);
-        Assert.Equal($"/todos/{todo.Id}", LastResponse.Headers["Location"]);
+        Assert.Equal("ship it", created.Value.Title);
+        Assert.Equal($"/todos/{created.Value.Id}", created.Location);
     }
 
     /// <summary>
@@ -160,42 +156,66 @@ public class TodosClientTests {
     /// for it - named after the case, NotFound, and carrying the body the server answered.
     /// </summary>
     [HardenedTest]
-    public async Task UnknownTodo_IsATypedNotFound(TodosClient client) {
-        var missing = await Assert.ThrowsAsync<ClientModels.NotFound>(() => client.Todos[9999].GetAsync());
+    public async Task GetTodo_UnknownId_IsATypedNotFound(TodosClient client) {
+        var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.NotFound>>();
 
-        Assert.Equal(404, missing.ResponseStatusCode);
-        Assert.Contains("9999", missing.Detail);
+        Assert.Contains("9999", missing.Body.Detail);
+    }
+
+    [HardenedTest]
+    public async Task RemoveTodo_AnswersNoContent(TodosClient client) {
+        await client.Todos[2].DeleteAsync().Returns<NoContent>();
     }
 }
 ```
 
+`Created<T>`, `NotFound<T>`, `NoContent` and the rest are `Hardened.Requests.Abstract.Responses`,
+the same types a handler returns: a test and the handler it exercises read the same word for the
+same answer. `Returns<T>()` checks the status against the type's own, hands back an instance of it
+built from what the client received — the body it returned or the model it threw, and the headers
+that status carries — and fails naming both statuses in the contract's words when the answer was
+something else:
+
+```
+Expected 404 (NotFound<NotFound>), the call was answered 200 carrying a Todo.
+```
+
+`ReturnsStatus<T>()` asserts the status alone: for a refusal the document declares no body for,
+where Kiota throws its bare `ApiException`, and for the response types that state something the
+wire does not carry back — `NotFound` naming the resource, `Conflict` its detail. `Assert.ThrowsAsync`
+in the client's own exception types and `LastResponse` both still work; they are for what a response
+type cannot say.
+
 `ClientModels` is an alias for `Todos.Client.Models` in the scaffold's `Usings.cs`: the generated
 models are named after the schemas, and the schemas are named after the application's own types,
-so a bare `NewTodo` in a test is the application's record.
+so a bare `NewTodo` in a test is the application's record — and `ClientModels.NotFound` is the
+document's body for the 404, distinct from the framework's `NotFound` that names the status.
 
-Refusals are asserted with `Assert.ThrowsAsync` in the client's own vocabulary, which is typed for
-every error body the document declares. `LastResponse` is the transport's record of what the
-pipeline answered last in the current test, for everything a client library swallows: a 201 and
-its `Location`, a 204, an `ETag`. Credentials are attributes — `[Grants("todos:write")]` on a
-parameter, a method, a class or the assembly — and travel as headers on the `HttpClient`, so a
-Kiota client, an NSwag client, a Refit interface and a hand-written class all authenticate the same
-way with no code of their own. [Testing web handlers](/guide/testing-web) has the rest of the
-harness.
+A client that has to be built some other way — a real authentication provider under test, a
+middleware handler of its own — declares an `ITestClientFactory<T>` in the test project, one method
+from `HttpClient` to the client, and the factory wins over the package's route for that one client.
+[Testing web handlers](/guide/testing-web#typed-clients-as-parameters) has the three routes.
+Credentials are attributes — `[Grants("todos:write")]` on a parameter, a method, a class or the
+assembly — and travel as headers on the `HttpClient`, so a Kiota client, a Refit interface and a
+hand-written class all authenticate the same way with no code of their own.
 
 The framework's own integration suite has the same shape over a much wider surface.
 [`GeneratedClientTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/GeneratedClientTests.cs) drives a client Kiota generated from that application's exported
-document, and is the reference when the scaffold's three tests are not enough: path and query
-parameters, a body in and a value out, one path under four verbs, a declared 201 and 204 read from
-`LastResponse`, an enum arriving as the generated member, the typed `RequestValidationError` for a
-declared 422 and for the default 400, a bare `ApiException` carrying 401 for a refusal the document
-does not declare, three credentials on three parameters of the client type, and a `[Mock]` behind
-a route reached through the client. The factory beside it, in `TestClients.cs`, is the one above
-with the names changed.
+document, and is the reference when the scaffold's tests are not enough: path and query
+parameters, a body in and a value out, one path under four verbs, an enum arriving as the generated
+member, the typed `RequestValidationError` for a declared 422 and for the default 400, a bare
+`ApiException` carrying 401 for a refusal the document does not declare, three credentials on three
+parameters of the client type, and a `[Mock]` behind a route reached through the client.
+[`KiotaReturnsTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/KiotaReturnsTests.cs) asserts the same answers as response types — a 201 with its `Location`, a
+204, a 422 and a 403 as the typed models, a 401 by status alone — and
+[`RefitReturnsTests`](https://github.com/ipjohnson/Hardened.Framework/blob/main/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Transport/RefitReturnsTests.cs) asserts them again through a Refit interface over the same routes, which is
+the claim that one vocabulary covers both generators.
 
 Under `--response-model throws` the scaffold's test is different, and the difference is the
 response-model argument in a consumer's hands: throws mode documents only the 200, so the generated
-client has no 404 branch, and the same request that throws a typed `NotFound` under the response
-model is a bare `ApiException` there. The scaffolded test says so in its comment.
+client has no 404 branch, and the same request that answers a typed `NotFound` under the response
+model is a bare `ApiException` there — asserted as `ReturnsStatus<NotFound>()`, because there is no
+body type to name. The scaffolded test says so in its comment.
 
 ## Against a real service
 
@@ -356,11 +376,12 @@ operation its own method and path.
 ## Other generators
 
 Generator-specific code is confined to two places by construction: the client project's build
-target and package references, and the factory in the test project where the constructor shape
-needs one. Everything in a Hardened package — the export, the handler, the credentials, the
-injection, the `HttpClient` convention — is the same for any of them. A client whose constructor
-takes exactly one `HttpClient` is built with no factory at all, which is what NSwag's output and
-most hand-written clients look like.
+target and package references, and the generator's testing package, which is where the constructor
+shape and the shape of an answer are known. Everything in `Hardened.Web.Testing` — the export, the
+handler, the credentials, the injection, the `HttpClient` convention — is the same for any of them.
+A client whose constructor takes exactly one `HttpClient` is built with no package and no factory
+at all, which is what NSwag's output and most hand-written clients look like; a generator with no
+testing package gets a three-line `ITestClientFactory<T>` in the test project instead.
 
 **NSwag.** NSwag's reader is 3.0-first, so set `HardenedOpenApiOutputVersion` to `3.0.0` on the
 library and point an `nswag.json` at the file:
@@ -383,9 +404,20 @@ The client project's generate target becomes `dotnet tool run nswag run nswag.js
 reference becomes `NSwag.MSBuild` or the tool manifest entry, and the test project needs no
 factory: the generated class takes an `HttpClient`.
 
-**Refitter.** `dotnet tool run refitter ../Todos/openapi/Todos.json --namespace Todos.Client
---output obj/refitter/TodosClient.cs` writes a Refit interface. Refit builds the implementation
-from an `HttpClient` at run time, so the factory is `RestService.For<ITodosClient>(http)`.
+**Refitter.** `--client refit` scaffolds it: the client project restores the Refitter tool and
+runs it over the exported document under the settings in its `.refitter` file, writing a Refit
+interface and its models into `obj/`, and Refit builds the implementation from an `HttpClient` at
+run time. `Hardened.Refit.Testing` is the test side: `[assembly: RefitTesting]` makes every Refit
+interface a test parameter, and the same `Returns<T>()` asserts a call through it. The setting that
+makes that whole is `returnIApiResponse` — Refitter's `--use-api-response` — which declares every
+operation `Task<IApiResponse<T>>`, the envelope that carries the status and the headers back beside
+the body, so nothing throws and a 201's `Location` is simply on the response. A method declared
+`Task<T>` throws for a refusal, which reads the same way, and returns the body alone for a success —
+and `Returns` refuses that success by name, because its status is gone. Refit has no error mapping,
+so an error body arrives as text and is read as the expectation's type argument, the `Problem` in
+`NotFound<Problem>`, through the client's own `RefitSettings`. The Refitter tool and the `Refit`
+package are pinned separately and bumped together by hand; Refitter does not report the version it
+writes for, so nothing checks the pair the way `HTPL003` checks Kiota's.
 
 **openapi-generator.** `openapi-generator-cli generate -g csharp -i src/Todos/openapi/Todos.json
 -o clients/csharp`. It needs a Java runtime, which the verify matrix cannot assume, and its

@@ -260,15 +260,27 @@ public async Task<GetTodoResponse> GetTodo(int id) {
 A 404 carrying a `Problem` is `NotFound<Problem>`, whatever operation declared it. Two operations
 declaring one 404 over one schema share the one type, where before they got two.
 
-The handler never builds that `Problem`. It returns the framework's bare `NotFound`, and the
-container converts it: the build writes an implicit conversion from the bare record for every
-declared error whose body is RFC 7807 shaped, filling `type`, `title` and `status` from what the
-record knows about its own status and `detail` from the handler. A Smithy `@error` shape converts
-the same way when the record can fill every member it requires: `message` takes the detail, and the
-7807 members fill when the shape declares `title` and `status`. The conversion exists only for the
-statuses the operation declares, so returning a `Conflict` from an operation that declares none is
-still a compile error. `NotFound.Default` is the same answer with a generic detail, shared, so a
-handler with nothing to add returns it and allocates nothing.
+**The bare record converts too.** The handler never builds that `Problem`: `new NotFound("todo",
+"...")` is the framework's own record, not the contract's, and the build writes the conversion.
+Where the declared body is RFC 7807 shaped, with `title` and `status` in 7807's types, the set gains
+an implicit conversion from the bare record that fills the contract's `Problem` from it — `type`,
+`title` and `status` from what the record knows about its own status, `detail` from what you
+passed — and hands back `NotFound<Problem>`. The same holds for `Conflict`, `Forbidden` and the
+rest, and for a Smithy `@error` shape when the record can fill every member it requires: `message`
+takes the detail, and the 7807 members fill when the shape declares `title` and `status`. What does
+not convert is anything the record cannot supply — a body with members that are neither 7807's nor
+defaulted, or an error declaring a header in the contract — and those keep the constructed form. A
+status the operation does not declare has no conversion to land on, so returning a `Conflict` from
+an operation that declares none is still a compile error.
+
+Under `Union` the operator is written in the body of the `union` declaration, so the same handler
+compiles against either container. The method the operator calls is generated once, as
+`{File}Problems.NotFoundProblem(record)` for an OpenAPI document and
+`{Project}Problems.NotFoundTodoNotFound(record)` for a Smithy model.
+
+Every bare record has a shared `Default` with a generic detail, for a handler with nothing to add:
+`return NotFound.Default;` allocates nothing, in either contract style, because the conversion
+hands back one cached case for it.
 
 A `return` hands back the case and the compiler applies the conversion. An implementation with
 nothing to await writes `Task.FromResult<GetTodoResponse>(...)` around each return instead.
