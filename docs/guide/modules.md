@@ -1,56 +1,7 @@
 # Modules
 
-A module is the unit Hardened composes applications out of. It is a `partial class` marked
-`[HardenedModule]`, and the generator writes the other half.
-
-```csharp
-using Hardened.Shared.Runtime.Attributes;
-
-[HardenedModule]
-public partial class Application { }
-```
-
-## What the generator emits
-
-**The module itself** gains `IDependencyModule` and a public `PopulateServiceCollection`:
-
-```csharp
-public partial class Application : IDependencyModule {
-    public void PopulateServiceCollection(IServiceCollection services) { /* … */ }
-}
-```
-
-That method is the seam into any host. ASP.NET Core calls it with `builder.Services`; a console
-application calls it with a collection it made itself; the test framework calls it for you.
-
-**A companion attribute class** named after the module, so one module can import another:
-
-```csharp
-public partial class ApplicationAttribute : Attribute, IDependencyModuleProvider { /* … */ }
-```
-
-Every runtime in the framework is spelled as an attribute for this reason.
-`[AspNetCoreRuntime]`, `[HardenedWebModule]` and `[DynamoDbModule]` are each the generated companion
-of a module class of that name, and yours works the same way.
-
-## Composing modules
-
-Attribute one module with another and its registrations come along:
-
-```csharp
-[HardenedModule]
-[HardenedWebModule]      // routing, static content, CORS
-[DynamoDbModule]         // IDynamoDbClientProvider
-public partial class Application { }
-```
-
-Order does not matter, and importing the same module twice is not a problem — modules deduplicate by
-equality.
-
-### Splitting an application into libraries
-
-A library is a module in another assembly. It carries its own handlers, services and route prefix,
-and the application picks it up with one attribute:
+A module is the unit an application is composed from. An application imports a library module
+with one attribute, and the library's handlers, services, configuration and routes come along.
 
 ```csharp
 // In the library assembly
@@ -65,23 +16,55 @@ public partial class BillingLibrary {
 ```csharp
 // In the application
 [HardenedModule]
-[AspNetCoreRuntime]
+[KestrelRuntime]
 [BillingLibrary(Tenant = "acme")]
+public partial class Application;
+```
+
+`[BillingLibrary]` is generated from the library's module class. `[KestrelRuntime]`,
+`[HardenedWebModule]` and `[DynamoDbModule]` are the same thing: each is the companion attribute
+of a module of that name.
+
+## Declaring a module
+
+```csharp
+using Hardened.Shared.Runtime.Attributes;
+
+[HardenedModule]
 public partial class Application { }
 ```
 
-Public settable properties on the module become properties on the generated attribute, which is how
-`Tenant` is set at the import site.
+`partial`, because the generator writes the other half:
 
-::: tip Routes come with the library
-`[BasePath]` on the library module prefixes every route in that assembly. The application does not
-list the library's routes.
-:::
+- `IDependencyModule` and a public `PopulateServiceCollection(IServiceCollection)`. That method is
+  the seam into any host. ASP.NET Core calls it with `builder.Services`, a console application
+  calls it with a collection it made itself, and the test framework calls it for you.
+- `ApplicationAttribute`, so another module can import this one. A public settable property on the
+  module becomes a property on the attribute, which is how `Tenant` was set above.
 
-## Programmatic registration
+## Composing modules
 
-A module that needs to compute something implements `IServiceCollectionConfiguration` and gets the
-collection directly:
+Attribute one module with another and its registrations come along:
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]      // routing, static content, CORS
+[DynamoDbModule]         // IDynamoDbClientProvider
+public partial class Application { }
+```
+
+Order does not matter. Importing the same module twice is harmless, because modules deduplicate
+by equality.
+
+A library module in another assembly carries its own handlers, services and route prefix.
+`[BasePath]` on it prefixes every route in that assembly, so the application lists none of the
+library's routes. See [Prefixing with BasePath](/guide/routing#prefixing-with-basepath).
+
+## Registering by hand
+
+Most registration is an attribute on the class; see
+[Registering services](/guide/services). A module that has to compute a registration implements
+`IServiceCollectionConfiguration` and gets the collection directly:
 
 ```csharp
 using DependencyModules.Runtime.Interfaces;
@@ -97,8 +80,7 @@ public partial class Application : IServiceCollectionConfiguration {
 }
 ```
 
-If the decision depends on the environment, implement
-`IEnvironmentServiceCollectionConfiguration` instead and the environment is handed to you:
+`IEnvironmentServiceCollectionConfiguration` is the same with the environment handed in:
 
 ```csharp
 public void ConfigureServices(IServiceCollection services, IModuleEnvironment environment) {
@@ -108,16 +90,13 @@ public void ConfigureServices(IServiceCollection services, IModuleEnvironment en
 }
 ```
 
-::: tip Conditional registration is usually an attribute
-`[IfEnvironment]`, `[IfNotEnvironment]`, `[IfEnvironmentValue]` and `[IfNotEnvironmentValue]` come
-from DependencyModules and are resolved during the build. Reach for the interface only when the
-condition is not expressible as one.
-:::
+For a condition on the environment name, prefer `[IfEnvironment]` and its siblings. They are
+decided during the build. See [Conditional registration](/guide/services#conditional-registration).
 
 ## Startup work
 
-Register an `IStartupService` and it runs once, after the provider is built and before the
-application serves anything:
+An `IStartupService` runs once, after the provider is built and before the application serves
+anything:
 
 ```csharp
 public interface IStartupService {
@@ -136,14 +115,14 @@ public class WarmCaches : IStartupService {
 }
 ```
 
-Every registered startup service is launched together and awaited as a group, so they must not
-depend on each other's ordering. Returning `false`, or throwing, fails startup.
+Every registered startup service is launched together and awaited as a group, so they cannot
+depend on each other's order. Returning `false` or throwing fails startup.
 
 ## Self-hosting entry points
 
 An ASP.NET Core application builds its own host, so the module only needs
-`PopulateServiceCollection`. A console application or a Lambda function has no host to build, so the
-generator writes one: constructors, a root service provider, and `IApplicationRoot`.
+`PopulateServiceCollection`. A console application or a Lambda function has no host to build, so
+the generator writes one: constructors, a root service provider, and `IApplicationRoot`.
 
 ```csharp
 var application = new Application(args);
@@ -155,7 +134,7 @@ await application.DisposeAsync();
 return result;
 ```
 
-For those entry points, three method names on the module are recognised and called if present:
+For those entry points, three method names on the module are called if present:
 
 | Method | Effect |
 |---|---|
@@ -174,17 +153,21 @@ public partial class Application {
 }
 ```
 
-::: warning These are matched by name, not by an interface
-A typo in `ConfigureLogging` is not a compile error — it is a method nobody calls. If a hook appears
-to do nothing, check the spelling against the table above, then check the generated entry point
-under `obj/` for whether it is mentioned.
+::: warning Matched by name, not by an interface
+A typo in `ConfigureLogging` is a method nobody calls, not a compile error. If a hook does
+nothing, check the spelling against the table, then check the generated entry point under `obj/`
+for whether it is mentioned.
 :::
 
-## The relationship to DependencyModules
+## DependencyModules
 
-Hardened's module system is
-[DependencyModules](https://ipjohnson.github.io/DependencyModules/) underneath.
-`[HardenedModule]` is a Hardened-flavoured `[DependencyModule]`, and the registration attributes —
-`[SingletonService]`, `[ScopedService]`, `[TransientService]` — come straight from that package,
-along with conventions, decorators, interception and environment-conditional registration.
-[Registering services](/guide/services) covers the parts you will reach for most.
+Hardened's module system is [DependencyModules](https://ipjohnson.github.io/DependencyModules/).
+`[HardenedModule]` is a Hardened-flavoured `[DependencyModule]`, and `[SingletonService]`,
+`[ScopedService]`, `[TransientService]`, conventions, decorators, interception and
+environment-conditional registration all come from that package.
+
+## Next
+
+- [Registering services](/guide/services): the lifetime attributes
+- [Configuration](/guide/configuration): the models a module carries
+- [Environments](/guide/environments): what `[IfEnvironment]` reads

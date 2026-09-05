@@ -1,58 +1,72 @@
 # Getting started
 
-Hardened ships as NuGet packages on nuget.org, split across two repositories. A web API needs the
-[core framework](https://github.com/ipjohnson/Hardened.Framework); a Lambda function adds
-[Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
+One command writes an API that builds, serves and tests. This page runs it, then assembles the
+same application by hand.
 
 ## The short way
 
 ```bash
 dotnet new install Hardened.Templates
-dotnet new hardened-web -n Greeter
-cd Greeter
-dotnet run --project src/Greeter.Host
+dotnet new hardened-web -n Todos
+cd Todos
+dotnet run --project src/Todos.Host
 ```
 
 ```console
-$ curl localhost:5080/greeting/world
-{"message":"Hello, world!"}
+$ curl localhost:5080/todos/1
+{"id":1,"title":"Read the generated code","done":true}
 ```
 
-That is a working API with tests, a reference page at `/docs`, and every package version pinned in
-one place. [Project templates](/guide/project-templates) covers the options — the host, the
-contract, Lambda, libraries.
+That is a working API with a reference page at `/docs`, a generated client, and tests that drive
+the client through the application's own pipeline:
 
-The rest of this page assembles the same thing by hand.
+```csharp
+[HardenedTest]
+public async Task CreateTodo_AnswersCreatedWithALocation(TodosClient client) {
+    var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+        .Returns<Created<ClientModels.Todo>>();
+
+    Assert.Equal("ship it", created.Value.Title);
+    Assert.Equal($"/todos/{created.Value.Id}", created.Location);
+}
+```
+
+`dotnet test` runs them. [Project templates](/guide/project-templates) covers the options: the
+host, the contract, the response model and the client.
 
 ::: warning Everything is prerelease
 `dotnet add package` needs `--prerelease` or it finds nothing. The templates pin explicit versions
 and are unaffected.
 :::
 
-## A web project by hand
+## What the build wrote
 
-Two kinds of package reference:
+Every project the template writes has `EmitCompilerGeneratedFiles` on. After a build,
+`src/Todos/obj/Debug/net8.0/generated/` holds one directory per generator: the routing table, a
+handler per route, the parameter binding and the module registration, as ordinary C#.
+
+## The same application by hand
+
+### Packages
+
+Two kinds of package reference, the runtime and the source generators:
 
 ```xml
 <ItemGroup>
-    <!-- Runtime -->
-    <PackageReference Include="Hardened.Shared.Runtime" Version="0.17.0-rc1000" />
-    <PackageReference Include="Hardened.Web.Runtime" Version="0.17.0-rc1000" />
-    <PackageReference Include="Hardened.Web.Kestrel.Runtime" Version="0.17.0-rc1000" />
+    <PackageReference Include="Hardened.Shared.Runtime" Version="0.20.0-rc1000" />
+    <PackageReference Include="Hardened.Web.Runtime" Version="0.20.0-rc1000" />
+    <PackageReference Include="Hardened.Web.Kestrel.Runtime" Version="0.20.0-rc1000" />
 
-    <!-- Source generators. Not optional. -->
-    <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.17.0-rc1000" />
-    <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.17.0-rc1000" />
+    <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.20.0-rc1000" />
+    <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.20.0-rc1000" />
 </ItemGroup>
 ```
 
 ::: danger The generators do not arrive with the runtime packages
 Analyzers do not flow through a package reference. Reference only the runtime packages and the
-project still compiles — into an application whose `Application` class has no
-`PopulateServiceCollection`, or one that builds cleanly and answers **404 to every route**.
-
-Nothing errors, and nothing says what is missing. [The templates](/guide/project-templates)
-reference the right generators for you.
+project still compiles, into an application whose `Application` class has no
+`PopulateServiceCollection`, or one that builds cleanly and answers 404 to every route. Nothing
+says what is missing. The templates reference the right generators.
 :::
 
 To read what the generators emit, turn on `EmitCompilerGeneratedFiles`:
@@ -63,35 +77,33 @@ To read what the generators emit, turn on `EmitCompilerGeneratedFiles`:
 </PropertyGroup>
 ```
 
-Generated files appear under `obj/<configuration>/<tfm>/generated/`, one directory per generator:
-the routing table, the request handlers, the parameter binding and the module registration, all as
-ordinary C#.
-
-## The smallest application
+### The application
 
 An application is a `partial class` marked `[HardenedModule]`, plus the runtime module that says
-where it runs. `[KestrelRuntime]` serves HTTP without the ASP.NET Core request pipeline:
+where it runs:
 
 ```csharp
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 
-namespace Greeter;
+namespace Todos;
 
 [HardenedModule]
 [KestrelRuntime]
 public partial class Application;
 ```
 
-`partial` is not optional — the generator writes the other half of the class, including
+`partial` is required. The generator writes the other half of the class, including
 `PopulateServiceCollection`.
 
-A handler is a plain class. No base type, no interface, no registration:
+### A handler
+
+A plain class. No base type, no interface, no registration:
 
 ```csharp
 using Hardened.Web.Runtime.Attributes;
 
-namespace Greeter;
+namespace Todos;
 
 public class GreetingController {
     [Get("/hello/{name}")]
@@ -99,20 +111,18 @@ public class GreetingController {
 }
 ```
 
-`Program.cs` builds the service collection, hands it to the module, and starts Kestrel:
+### Program.cs
 
 ```csharp
-using Greeter;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Web.Kestrel.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Todos;
 
 var services = new ServiceCollection();
 
-// A provider, not just AddLogging(). Without one the application serves in complete silence.
 services.AddLogging(logging => logging.AddSimpleConsole(options => options.SingleLine = true));
-
 services.AddHardenedEnvironment(args);
 
 new Application().PopulateServiceCollection(services);
@@ -123,31 +133,34 @@ await using var app = HardenedKestrelApplication.Create(
 await app.RunAsync();
 ```
 
-`AddHardenedEnvironment` registers the environment under both `IHardenedEnvironment` and
-`IModuleEnvironment`. Registering only the first leaves `[IfEnvironment]` answering against a
-different variable than the rest of the application — see [Environments](/guide/environments).
-
-`dotnet run`, then:
+Two of those lines matter more than they look. `AddLogging` needs a provider, or the application
+serves in silence. `AddHardenedEnvironment` registers the environment under both interfaces the
+framework reads; see [Registering one](/guide/environments#registering-one).
 
 ```console
+$ dotnet run
 $ curl localhost:5080/hello/world
 "Hello, world!"
 ```
 
 ## Hosting it somewhere else
 
-The runtime attribute is the only thing that changes. `[AspNetCoreRuntime]` from
-`Hardened.Web.AspNetCore.Runtime` puts the same handlers behind ASP.NET Core's pipeline;
-`[LambdaWebModule]` from Hardened.Amz puts them behind API Gateway.
+The runtime attribute is the only thing that changes:
 
-Handlers, filters, binding and the generated routing table do not change with the host, which is why
-the templates put the implementation in one project, the host in another, and point the tests at the
-implementation.
+| Attribute | Package | Runs |
+|---|---|---|
+| `[KestrelRuntime]` | `Hardened.Web.Kestrel.Runtime` | Kestrel, without the ASP.NET Core request pipeline |
+| `[AspNetCoreRuntime]` | `Hardened.Web.AspNetCore.Runtime` | Inside ASP.NET Core's pipeline, behind `app.UseHardened()` |
+| `[LambdaWebModule]` | `Hardened.Amz.Web.Lambda.Runtime` | Behind API Gateway. See [AWS](/aws/) |
+
+Handlers, filters, binding and the generated routing table do not change with the host. The
+templates put the implementation in one project and the host in another, and point the tests at
+the implementation.
 
 ## Next
 
-- [Project templates](/guide/project-templates) — the options, and what each one generates
-- [Modules](/guide/modules) — how `[HardenedModule]` composes, and the hooks it gives you
-- [Routing](/guide/routing) — the route attributes and their status codes
-- [Testing](/guide/testing) — booting this application inside a test
-- [AWS](/aws/) — running the same handlers on Lambda
+- [Project templates](/guide/project-templates): the options, and what each one writes
+- [Modules](/guide/modules): how `[HardenedModule]` composes
+- [Routing](/guide/routing): the route attributes and their status codes
+- [Writing a test](/guide/testing): booting this application inside a test
+- [AWS](/aws/): the same handlers on Lambda

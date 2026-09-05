@@ -1,10 +1,7 @@
 # Registering services
 
-Service registration is [DependencyModules](https://ipjohnson.github.io/DependencyModules/), which
-Hardened builds on. Registration is declared next to the class it belongs to, and the generator
-emits the `IServiceCollection` calls during the build.
-
-## Attributing a service
+A lifetime attribute on the class registers it. The generator emits the `IServiceCollection`
+calls during the build, and the module lists nothing.
 
 ```csharp
 using DependencyModules.Runtime.Attributes;
@@ -19,7 +16,18 @@ public class IntMathService : IMathService<int> {
 }
 ```
 
-Three lifetimes, matching the container's own:
+```csharp
+public class IntMathController {
+    [Post("/int/add")]
+    public int Add(IMathService<int> mathService, MathAddModel model) =>
+        mathService.Add(model.Values?.ToArray() ?? []);
+}
+```
+
+`mathService` comes from the request's service scope and `model` from the body. The generator
+decides which is which during the build; see [Parameter binding](/guide/parameter-binding).
+
+## Lifetimes
 
 | Attribute | Lifetime |
 |---|---|
@@ -27,7 +35,7 @@ Three lifetimes, matching the container's own:
 | `[ScopedService]` | One instance per request |
 | `[TransientService]` | A new instance each time it is resolved |
 
-With no arguments, the class registers as every interface it implements. `As` narrows that to one
+With no arguments, the class registers as every interface it implements. `As` narrows it to one
 service type:
 
 ```csharp
@@ -35,35 +43,19 @@ service type:
 public sealed class DynamoDbClientProvider : IDynamoDbClientProvider, IDisposable { }
 ```
 
+A service is registered by the module in whose assembly it is compiled. Which assemblies come
+along is what [importing a module](/guide/modules#composing-modules) decides.
+
 ## Injecting into handlers
 
-A handler's constructor is resolved from the container like any other class. A request handler can
-also take services as *method* parameters, which keeps a controller from accumulating constructor
-arguments only one method uses:
-
-```csharp
-public class IntMathController {
-    [Post("/int/add")]
-    public int Add(IMathService<int> mathService, MathAddModel model) {
-        return mathService.Add(model.Values?.ToArray() ?? Array.Empty<int>());
-    }
-}
-```
-
-`mathService` comes from the request's service scope; `model` is deserialised from the body. The
-generator decides which is which during the build — see
-[Parameter binding](/guide/parameter-binding). Mark a parameter `[FromServices]` to state the
-choice.
-
-## What the module has to say about it
-
-Nothing. A service marked with a lifetime attribute is registered by the module in whose assembly it
-is compiled. What the module *does* control is which assemblies come along, which is what
-[importing another module](/guide/modules#composing-modules) does.
+A handler's constructor is resolved from the container like any other class. A handler method can
+also take services as parameters, so a controller does not accumulate constructor arguments that
+one method uses. Mark a parameter `[FromServices]` to state the choice when the generator cannot
+infer it.
 
 ## Conditional registration
 
-Registration can depend on the environment without moving the decision to run time:
+A registration can depend on the environment without moving the decision to run time:
 
 ```csharp
 [SingletonService(As = typeof(IEmailSender))]
@@ -76,8 +68,8 @@ public class SmtpEmailSender : IEmailSender { }
 ```
 
 `[IfEnvironmentValue]` and `[IfNotEnvironmentValue]` test a named variable rather than the
-environment name. All four are evaluated against the same `IHardenedEnvironment` the rest of the
-application sees.
+environment name. All four read the same `IHardenedEnvironment` the rest of the application sees.
+See [Environments](/guide/environments).
 
 ## Decorators and interception
 
@@ -92,19 +84,24 @@ public class CachingOrderRepository : IOrderRepository {
 ```
 
 The [DependencyModules documentation](https://ipjohnson.github.io/DependencyModules/guide/decorators)
-covers ordering, generic decorators and generated interceptors in full.
+covers ordering, generic decorators and generated interceptors.
 
 ## Overriding a registration
 
-The last registration wins, which is what makes test substitution work. `[LocalDynamoDb]` registers
-its container-backed `IDynamoDbClientProvider` after the application's modules have run, and the
-container hands out the container-backed one.
+The last registration wins. That is how a test's [`[Mock]`](/guide/testing-mocks) replaces a
+service, and how [`[LocalDynamoDb]`](/aws/testing#dynamodb-local) puts a container-backed
+`IDynamoDbClientProvider` over the application's own.
 
-The same is available to any test through the `overrideDependencies` parameter on a self-hosting
-entry point's constructor:
+A self-hosting entry point takes the same override in its constructor:
 
 ```csharp
 var application = new Application(
     new EnvironmentImpl("test"),
     (environment, services) => services.AddSingleton<IClock>(new FixedClock(...)));
 ```
+
+## Next
+
+- [Modules](/guide/modules): which assemblies a module brings along
+- [Parameter binding](/guide/parameter-binding): how a handler parameter is told apart from the body
+- [Substituting services](/guide/testing-mocks): replacing a registration in a test

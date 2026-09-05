@@ -255,7 +255,7 @@ A trailing slash on a real segment is kept — `[Get("/items/")]` is `/orders/it
 "no segment of my own".
 
 Applied to the assembly, `[BasePath]` prefixes every route in that assembly, which is how a
-[library module](/guide/modules#splitting-an-application-into-libraries) owns its own URL space:
+[library module](/guide/modules#composing-modules) owns its own URL space:
 
 ```csharp
 [HardenedModule]

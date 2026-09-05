@@ -1,43 +1,43 @@
 # Environments
 
-`IHardenedEnvironment` is how an application asks where it is running and what it was started with.
-It is the input to configuration, to conditional registration, and to the default log level.
+`HARDENED_ENVIRONMENT` names where the application is running. Registrations, configuration
+amenders and the log level all read it.
+
+```
+HARDENED_ENVIRONMENT=production dotnet run
+```
 
 ```csharp
-public interface IHardenedEnvironment : IModuleEnvironment {
-    string Name { get; }
+[SingletonService(As = typeof(IEmailSender))]
+[IfEnvironment("development", "test")]
+public class ConsoleEmailSender : IEmailSender { }
 
-    IReadOnlyList<string> Arguments { get; }
-
-    T? Value<T>(string name, T? defaultValue = default);
-
-    T? CustomData<T>(string name, T? defaultValue = default);
-}
+[SingletonService(As = typeof(IEmailSender))]
+[IfNotEnvironment("development", "test")]
+public class SmtpEmailSender : IEmailSender { }
 ```
+
+Unset, the name is `development`. A test runs as `test` unless it
+[says otherwise](/guide/testing#environments-in-tests).
 
 ## Registering one
 
-A host registers an environment before handing the collection to the module:
+A host registers the environment before handing the collection to the module:
 
 ```csharp
-services.AddHardenedEnvironment(args);              // name from HARDENED_ENVIRONMENT
+services.AddHardenedEnvironment(args);                             // name from HARDENED_ENVIRONMENT
 services.AddHardenedEnvironment(new EnvironmentImpl("staging"));   // or an explicit one
 ```
 
-::: danger Register it with AddHardenedEnvironment, not AddSingleton
-The environment has to be reachable as **both** `IHardenedEnvironment` and `IModuleEnvironment`.
-`AddSingleton(environment)` and `AddTransient<IHardenedEnvironment>(...)` register the first only.
-
-The module system looks up `IModuleEnvironment` while deciding what to register. Finding none, it
-falls back to its own default, which reads `ASPNETCORE_ENVIRONMENT` and defaults to `Production`. So
-`[IfEnvironment]` answers `Production` while everything else in the application reads
-`HARDENED_ENVIRONMENT` and says `development`.
-
-It compiles, it starts, and the only symptom is an environment-gated service quietly not being
-there. `AddHardenedEnvironment` registers the one instance under both.
+::: danger Use AddHardenedEnvironment, not AddSingleton
+The environment has to be reachable as both `IHardenedEnvironment` and `IModuleEnvironment`.
+`AddSingleton(environment)` registers the first only. The module system then falls back to its
+own default, which reads `ASPNETCORE_ENVIRONMENT` and answers `Production`, so `[IfEnvironment]`
+sees `Production` while the rest of the application reads `HARDENED_ENVIRONMENT` and says
+`development`. Nothing fails. An environment-gated service is quietly missing.
 :::
 
-A self-hosting entry point — console or Lambda — gets a generated constructor that does it for you,
+A self-hosting entry point, console or Lambda, gets a generated constructor that does it for you,
 and another that takes one:
 
 ```csharp
@@ -55,18 +55,11 @@ new EnvironmentImpl(
     customData: new Dictionary<string, object> { ["tenant"] = tenant });
 ```
 
-## The environment name
+## The name
 
-With no name given, `EnvironmentImpl` reads `HARDENED_ENVIRONMENT`, and falls back to
-`"development"`:
-
-```
-HARDENED_ENVIRONMENT=production dotnet run
-```
-
-Two names carry framework behaviour: `development` and `test` both default the log level to `Debug`
-where every other name defaults to `Information`. Beyond that, names are yours. `Name` is compared
-case-insensitively by the helpers:
+Two names carry framework behaviour. `development` and `test` default the log level to `Debug`,
+and every other name defaults to `Information`. Beyond that, names are yours. The helpers compare
+them case-insensitively:
 
 ```csharp
 if (environment.Matches("production", "staging")) { /* … */ }
@@ -74,12 +67,23 @@ if (environment.Matches("production", "staging")) { /* … */ }
 if (environment.MatchesVariable("FEATURE_X", "on")) { /* … */ }
 ```
 
-::: tip The test environment is named for you
-`[HardenedTest]` builds an environment called `test` unless the test says otherwise with
-`[EnvironmentName("…")]`. See [Testing](/guide/testing#environments-in-tests).
-:::
+`[IfEnvironment]`, `[IfNotEnvironment]`, `[IfEnvironmentValue]` and `[IfNotEnvironmentValue]` are
+evaluated when the modules are applied, against this same environment. See
+[Conditional registration](/guide/services#conditional-registration).
 
 ## Reading values
+
+```csharp
+public interface IHardenedEnvironment : IModuleEnvironment {
+    string Name { get; }
+
+    IReadOnlyList<string> Arguments { get; }
+
+    T? Value<T>(string name, T? defaultValue = default);
+
+    T? CustomData<T>(string name, T? defaultValue = default);
+}
+```
 
 `Value<T>` looks in the dictionary the environment was constructed with, then in the process
 environment, and converts to `T`:
@@ -90,37 +94,20 @@ var timeout = environment.Value("TIMEOUT_SECONDS", 30);
 var debug   = environment.Value("VERBOSE", false);
 ```
 
-The explicit dictionary takes precedence over the process, which lets a test set a value without
-touching the machine it runs on.
+The dictionary wins over the process, which lets a test set a value without touching the machine
+it runs on.
 
-A variable an application depends on belongs in a
-[configuration model](/guide/configuration), where it is declared once and has a typed default.
-`Value` is for the places that have no model — inside a configuration model's own construction, or
-in a condition that runs before configuration exists.
+A variable the application depends on belongs in a [configuration model](/guide/configuration),
+declared once with a typed default. `Value` is for the places that have no model: inside a
+model's own construction, or in a condition that runs before configuration exists.
 
-### Custom data
-
-`CustomData<T>` carries objects rather than strings, and is not backed by the process environment.
-It is for values a host has in hand and cannot serialise into a variable — a resolved tenant, an
+`CustomData<T>` carries objects rather than strings and is not backed by the process environment.
+It is for values a host has in hand and cannot put in a variable, such as a resolved tenant or an
 already-constructed client:
 
 ```csharp
 var tenant = environment.CustomData<Tenant>("tenant");
 ```
-
-## Environments during registration
-
-`[IfEnvironment]` and friends are evaluated when modules are applied, against this same environment:
-
-```csharp
-[SingletonService(As = typeof(IEmailSender))]
-[IfEnvironment("development", "test")]
-public class ConsoleEmailSender : IEmailSender { }
-```
-
-`IHardenedEnvironment` implements DependencyModules' `IModuleEnvironment`, so the conditional
-registrations, the configuration models and the application code all see the same answer — provided
-`AddHardenedEnvironment` put the instance in the container under both service types.
 
 ## Log level
 
@@ -134,5 +121,11 @@ LOG_LEVEL=Warning
 ```
 
 `Microsoft` and `System` are filtered to `Warning` regardless. To take over entirely, declare
-`ConfigureLogging` on a self-hosting entry point — see
-[Modules](/guide/modules#self-hosting-entry-points).
+`ConfigureLogging` on a self-hosting entry point; see
+[Self-hosting entry points](/guide/modules#self-hosting-entry-points).
+
+## Next
+
+- [Configuration](/guide/configuration): typed models over the variables
+- [Registering services](/guide/services#conditional-registration): registrations gated on the name
+- [Environments in tests](/guide/testing#environments-in-tests): naming the environment a test runs as
