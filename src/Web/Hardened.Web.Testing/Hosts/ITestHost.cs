@@ -8,7 +8,7 @@ namespace Hardened.Web.Testing;
 /// <remarks>
 /// <para>
 /// The pipeline host is the default: the chain runs in the test's own call, with no socket.
-/// A socket host - <c>[KestrelHost]</c>, <c>[AspNetCoreHost]</c> - starts a real server over the
+/// A socket host - <c>[KestrelRuntime]</c>, <c>[AspNetCoreRuntime]</c> on the test - starts a real server over the
 /// test's own container on a loopback port the kernel picks, and everything the test holds
 /// follows it: <see cref="ITestWebApp"/> sends to the socket, the <see cref="HttpClient"/> the
 /// harness hands out and every typed client built over it send to the socket, and

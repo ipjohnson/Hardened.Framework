@@ -25,10 +25,11 @@ namespace Hardened.Web.Testing;
 /// asked for its own value and builds one with its own credential.
 /// </para>
 /// <para>
-/// The host the test's application runs on is the narrowest <see cref="TestHostAttribute"/> in
-/// scope, or the pipeline with none. It is registered through a factory so the container disposes
-/// it with itself, it decides whether an unmatched path is a 404 here, and it is what composes the
-/// chain and, on a socket host, begins listening.
+/// The host the test's application runs on is the narrowest declaration in scope: a runtime
+/// attribute a <see cref="TestHostProviderAttribute"/> answers for, or a
+/// <see cref="TestHostAttribute"/>; the pipeline with none. It is registered through a factory
+/// so the container disposes it with itself, it decides whether an unmatched path is a 404 here,
+/// and it is what composes the chain and, on a socket host, begins listening.
 /// </para>
 /// <para>
 /// <see cref="TestGrantsPrincipalSource"/> is registered beside whatever sources the application
@@ -41,11 +42,7 @@ namespace Hardened.Web.Testing;
 [AttributeUsage(AttributeTargets.Assembly)]
 public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestStartupAttribute {
     public void SetupServiceCollection(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
-        // Widest first, so the last is the narrowest: a method's host beats the class's beats the
-        // assembly's.
-        var hostAttribute = testMethod.Attributes.OfType<TestHostAttribute>().LastOrDefault()
-                            ?? new PipelineHostAttribute();
-        var host = hostAttribute.CreateHost(testMethod, serviceCollection);
+        var host = ResolveHost(testMethod, serviceCollection);
 
         // Through a factory and never as an instance: the container disposes only what it
         // created, and an instance handed to AddSingleton comes back from a constant call site
@@ -139,6 +136,33 @@ public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestS
                 serviceCollection.AddScoped(type, _ => throw new InvalidOperationException(message));
             }
         }
+    }
+
+    /// <summary>
+    /// The narrowest host in scope: the attributes arrive widest first, so they are read from the
+    /// end, and the first that is a <see cref="TestHostAttribute"/> or a runtime attribute one of
+    /// the assembly's <see cref="TestHostProviderAttribute"/>s answers for decides. A runtime
+    /// attribute no provider answers for is not a host; its module is loaded, as the runner
+    /// always did, and the pipeline serves.
+    /// </summary>
+    internal static ITestHost ResolveHost(ITestMethodContext testMethod, IServiceCollection services) {
+        var providers = testMethod.Attributes.OfType<TestHostProviderAttribute>().ToArray();
+
+        for (var index = testMethod.Attributes.Count - 1; index >= 0; index--) {
+            var attribute = testMethod.Attributes[index];
+
+            if (attribute is TestHostAttribute explicitHost) {
+                return explicitHost.CreateHost(testMethod, services);
+            }
+
+            foreach (var provider in providers) {
+                if (provider.RuntimeAttribute.IsInstanceOfType(attribute)) {
+                    return provider.CreateHost(testMethod, services);
+                }
+            }
+        }
+
+        return new PipelineHostAttribute().CreateHost(testMethod, services);
     }
 
     /// <summary>

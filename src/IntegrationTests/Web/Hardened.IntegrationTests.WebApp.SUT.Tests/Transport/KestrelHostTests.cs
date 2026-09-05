@@ -2,7 +2,7 @@ using System.Text.Json;
 using Hardened.IntegrationTests.WebApp.SUT.Client;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Responses;
-using Hardened.Web.Kestrel.Testing;
+using Hardened.Web.Kestrel.Runtime;
 using Microsoft.Kiota.Abstractions;
 using NSubstitute;
 using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
@@ -10,9 +10,9 @@ using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 
 /// <summary>
-/// The harness on a real socket: <c>[KestrelHost]</c> on the class runs the application on
-/// Kestrel over each test's own container, on a loopback port the kernel picks, and everything
-/// the test holds sends there.
+/// The harness on a real socket: <c>[KestrelRuntime]</c> on the class - the attribute an
+/// application names its host with - runs the application on Kestrel over each test's own
+/// container, on a loopback port the kernel picks, and everything the test holds sends there.
 /// </summary>
 /// <remarks>
 /// Each shape here is one the pipeline tests assert in-process: <c>ITestWebApp</c>, a mock behind
@@ -22,7 +22,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// takes away is the exception a handler threw, which <see cref="TestWebResponse.Failure"/>
 /// reports only in-process; the two tests at the end hold both halves.
 /// </remarks>
-[KestrelHost]
+[KestrelRuntime]
 public class KestrelHostTests {
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;

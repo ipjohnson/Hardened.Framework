@@ -2,6 +2,8 @@ using Hardened.IntegrationTests.WebApp.SUT;
 using Hardened.Kiota.Testing;
 using Hardened.Refit.Testing;
 using Hardened.Shared.Testing.Attributes;
+using Hardened.Web.AspNetCore.Testing;
+using Hardened.Web.Kestrel.Testing;
 using Hardened.Web.Testing;
 
 // The same four lines the xUnit project declares. Nothing here names a runner; [HardenedTest]
@@ -10,3 +12,5 @@ using Hardened.Web.Testing;
 [assembly: HardenedTestEntryPoint(typeof(Application))]
 [assembly: KiotaTesting]
 [assembly: RefitTesting]
+[assembly: KestrelTesting]
+[assembly: AspNetCoreTesting]

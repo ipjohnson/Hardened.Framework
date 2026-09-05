@@ -1,4 +1,3 @@
-using DependencyModules.Runtime.Interfaces;
 using DependencyModules.Testing.Attributes.Interfaces;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.AspNetCore.Runtime;
@@ -11,23 +10,34 @@ using Microsoft.Extensions.Logging;
 namespace Hardened.Web.AspNetCore.Testing;
 
 /// <summary>
-/// Runs the test's application inside the real ASP.NET Core pipeline, on Kestrel, on a loopback
-/// port the kernel picks.
+/// An <c>[AspNetCoreRuntime]</c> on a test runs it inside the real ASP.NET Core pipeline, on
+/// Kestrel, on a loopback port the kernel picks.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The real pipeline is <see cref="WebApplication"/>'s, and <see cref="WebApplication"/> builds
-/// its own container. So this attribute is also the runner's container builder: the runner hands
-/// it the fully populated collection, it copies every descriptor into a
-/// <see cref="WebApplicationBuilder"/>, builds, and returns the application's services as the
-/// test's provider. The server, the test's mocks and the test's parameters then resolve from one
-/// container, which is what keeps <c>[Mock]</c> true over this host.
+/// One line, once, anywhere in the test project:
+/// </para>
+/// <code>
+/// [assembly: AspNetCoreTesting]
+/// [assembly: AspNetCoreTesting(typeof(TheMiddlewareProgramHas))]
+/// </code>
+/// <para>
+/// After it, the attribute an application names its host with names a test's host too. The real
+/// pipeline is <see cref="WebApplication"/>'s, and <see cref="WebApplication"/> builds its own
+/// container, so this attribute is also the runner's container builder: the runner hands it the
+/// fully populated collection, it copies every descriptor into a <see cref="WebApplicationBuilder"/>,
+/// builds, and returns the application's services as the test's provider. The server, the test's
+/// mocks and the test's parameters then resolve from one container, which is what keeps
+/// <c>[Mock]</c> true over this host. For a test whose narrowest host is another, it builds the
+/// plain container the runner would have.
 /// </para>
 /// <para>
 /// Not terminal: an unmatched path falls through to whatever the composition put behind
 /// <c>UseHardened()</c> and then to ASP.NET's own 404, which is the behaviour this host exists to
-/// show. The ASP.NET environment name is the Hardened one in scope, <c>test</c> by default, so
-/// <c>[EnvironmentName("development")]</c> means one thing to <c>[IfEnvironment]</c> and to
+/// show. The composition is what <c>Program.cs</c> puts around Hardened, <c>app.UseHardened()</c>
+/// alone by default; it is named here, once for the project, because <c>Program.cs</c> is per
+/// project. The ASP.NET environment name is the Hardened one in scope, <c>test</c> by default,
+/// so <c>[EnvironmentName("development")]</c> means one thing to <c>[IfEnvironment]</c> and to
 /// <c>app.Environment.IsDevelopment()</c> in a composition.
 /// </para>
 /// <para>
@@ -35,18 +45,18 @@ namespace Hardened.Web.AspNetCore.Testing;
 /// with this one; the runner takes the narrowest.
 /// </para>
 /// </remarks>
-public sealed class AspNetCoreHostAttribute : TestHostAttribute, IDependencyModuleProvider, IServiceProviderBuilderAttribute {
+public sealed class AspNetCoreTestingAttribute : TestHostProviderAttribute, IServiceProviderBuilderAttribute {
     private readonly Type _composition;
 
     /// <summary>The default composition: <c>app.UseHardened()</c> alone.</summary>
-    public AspNetCoreHostAttribute() : this(typeof(DefaultAspNetCoreTestComposition)) {
+    public AspNetCoreTestingAttribute() : this(typeof(DefaultAspNetCoreTestComposition)) {
     }
 
     /// <param name="composition">
     /// A public <see cref="IAspNetCoreTestComposition"/> with a parameterless constructor, which
     /// arranges the pipeline the way <c>Program.cs</c> does.
     /// </param>
-    public AspNetCoreHostAttribute(Type composition) {
+    public AspNetCoreTestingAttribute(Type composition) {
         ArgumentNullException.ThrowIfNull(composition);
 
         _composition = composition;
@@ -54,7 +64,7 @@ public sealed class AspNetCoreHostAttribute : TestHostAttribute, IDependencyModu
 
     public Type Composition => _composition;
 
-    public IDependencyModule GetModule() => new AspNetCoreRuntime();
+    public override Type RuntimeAttribute => typeof(AspNetCoreRuntimeAttribute);
 
     /// <remarks>
     /// The host is also registered as itself, as an instance, so <see cref="BuildServiceProvider"/>
@@ -66,7 +76,7 @@ public sealed class AspNetCoreHostAttribute : TestHostAttribute, IDependencyModu
         if (!typeof(IAspNetCoreTestComposition).IsAssignableFrom(_composition) ||
             _composition.GetConstructor(Type.EmptyTypes) == null) {
             throw new InvalidOperationException(
-                $"{_composition.FullName} is named as the composition of [AspNetCoreHost], and it is not a " +
+                $"{_composition.FullName} is named as the composition of [assembly: AspNetCoreTesting], and it is not a " +
                 "public IAspNetCoreTestComposition with a parameterless constructor.");
         }
 
@@ -80,12 +90,10 @@ public sealed class AspNetCoreHostAttribute : TestHostAttribute, IDependencyModu
     }
 
     /// <remarks>
-    /// The runner asks the narrowest container builder in scope, and <c>[WebTesting]</c> creates
-    /// the narrowest host in scope, and the two need not agree: a method carrying
-    /// <c>[PipelineHost]</c> inside a class carrying this attribute has this attribute building
-    /// the container for a pipeline host. The host in the collection decides. This attribute's
-    /// own host means a <see cref="WebApplication"/>; any other host means the plain container
-    /// the runner would have built; no host at all means <c>[WebTesting]</c> is missing.
+    /// The host in the collection decides. This attribute's own host means a
+    /// <see cref="WebApplication"/>; any other host - a method carrying <c>[PipelineHost]</c>, a
+    /// class carrying <c>[KestrelRuntime]</c> - means the plain container the runner would have
+    /// built; no host at all means <c>[WebTesting]</c> is missing.
     /// </remarks>
     public IServiceProvider BuildServiceProvider(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
         var host = serviceCollection
@@ -95,8 +103,8 @@ public sealed class AspNetCoreHostAttribute : TestHostAttribute, IDependencyModu
         if (host == null) {
             if (!serviceCollection.Any(descriptor => descriptor.ServiceType == typeof(ITestHost))) {
                 throw new InvalidOperationException(
-                    "[AspNetCoreHost] builds the container for a test [WebTesting] registered a host in, and this " +
-                    "test has none: declare [assembly: WebTesting] beside the entry point attribute.");
+                    "[assembly: AspNetCoreTesting] builds the container for a test [WebTesting] registered a host in, and " +
+                    "this test has none: declare [assembly: WebTesting] beside the entry point attribute.");
             }
 
             return serviceCollection.BuildServiceProvider();
