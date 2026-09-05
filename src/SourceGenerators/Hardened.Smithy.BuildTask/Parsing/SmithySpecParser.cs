@@ -751,6 +751,21 @@ internal static class SmithySpecParser {
                 // serialized {} with no diagnostic at all.
                 Describe(context, target, out var type, out var format, out var reference, out var facts);
 
+                // A @streaming union is Smithy's event stream: the payload is many of the union's
+                // members, one after another, each named by the member it came in as. That is a
+                // streamed response whose item is the union, framed as server-sent events with the
+                // member name as the event field - the same thing OpenAPI 3.2 spells as itemSchema
+                // under text/event-stream, so it goes on the model the same way.
+                if (reference != null &&
+                    context.Ast.TryGetShape(target, out var streamedShape) &&
+                    SmithyAst.HasTrait(streamedShape, SmithyTraits.Streaming) &&
+                    SmithyAst.Kind(streamedShape) == "union") {
+                    model.ItemSchemaRef = reference;
+                    model.ResponseContentType = "text/event-stream";
+
+                    return headers;
+                }
+
                 if (reference != null) {
                     model.ResponseRef = reference;
                 } else if (facts.IsArray) {
@@ -1306,9 +1321,14 @@ internal static class SmithySpecParser {
 
                     Describe(context, target, out var type, out var format, out var reference, out _);
 
+                    // The member's wire name rides with the branch. A streamed union writes it as
+                    // the event: field beside each item, which is what tells a client which
+                    // member arrived; nothing else about a union reads it.
+                    var branchName = JsonName(member.Value) ?? member.Key;
+
                     schema.OneOf.Add(reference != null
-                        ? new ChoiceBranchModel { Ref = reference }
-                        : new ChoiceBranchModel { Type = type, Format = format });
+                        ? new ChoiceBranchModel { Ref = reference, Name = branchName }
+                        : new ChoiceBranchModel { Type = type, Format = format, Name = branchName });
                 }
 
                 break;

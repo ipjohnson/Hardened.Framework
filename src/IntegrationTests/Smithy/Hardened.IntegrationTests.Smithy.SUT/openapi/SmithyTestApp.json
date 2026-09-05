@@ -324,6 +324,53 @@
         },
         "x-hardened-timeout": 2000
       }
+    },
+    "/pets/{petId}/events": {
+      "get": {
+        "tags": [
+          "PetStore"
+        ],
+        "operationId": "PetEvents",
+        "description": "The pet's history, one event at a time.",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PetEventStream"
+                  }
+                },
+                "itemSchema": {
+                  "$ref": "#/components/schemas/PetEventStream"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -345,7 +392,15 @@
         ]
       },
       "Attribute": {
-        "type": "object"
+        "oneOf": [
+          {
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "type": "string"
+          }
+        ]
       },
       "CreatePetInput": {
         "type": "object",
@@ -526,6 +581,33 @@
           "name"
         ]
       },
+      "PetAdopted": {
+        "type": "object",
+        "description": "One event in a pet's history: it was adopted.",
+        "properties": {
+          "petId": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "petId",
+          "by"
+        ]
+      },
+      "PetEventStream": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PetAdopted"
+          },
+          {
+            "$ref": "#/components/schemas/PetWeighed"
+          }
+        ],
+        "description": "Smithy's own spelling for an event stream: a union under @streaming, one member per kind of\nevent. The generated interface returns IAsyncEnumerable<PetEventStream>, the response is framed\nas server-sent events, and the member name is written as the event: field beside each item."
+      },
       "PetKind": {
         "type": "string",
         "enum": [
@@ -543,6 +625,22 @@
         },
         "required": [
           "message"
+        ]
+      },
+      "PetWeighed": {
+        "type": "object",
+        "description": "One event in a pet's history: it was weighed.",
+        "properties": {
+          "petId": {
+            "type": "string"
+          },
+          "grams": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "petId",
+          "grams"
         ]
       },
       "RequestValidationError": {

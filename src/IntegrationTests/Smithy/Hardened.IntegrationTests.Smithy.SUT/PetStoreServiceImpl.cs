@@ -1,6 +1,7 @@
 using Hardened.IntegrationTests.Smithy.SUT.Models;
 using Hardened.IntegrationTests.Smithy.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Responses;
 
 namespace Hardened.IntegrationTests.Smithy.SUT;
 
@@ -81,4 +82,19 @@ public class PetStoreServiceImpl : IPetStoreService {
     /// </summary>
     public Task<GetSecuredPetOutput> GetSecuredPet() =>
         Task.FromResult(new GetSecuredPetOutput(Pets[0]));
+
+    /// <summary>
+    /// The one streamed operation: an event stream declared with a @streaming union. The refusal
+    /// is thrown before the first event, which is the only place a stream can refuse.
+    /// </summary>
+    public async IAsyncEnumerable<PetEventStream> PetEvents(string petId) {
+        if (petId == "missing") {
+            throw new NotFound("pet", $"No pet has id {petId}.").AsException();
+        }
+
+        await Task.Yield();
+
+        yield return new PetAdopted(petId, "pia");
+        yield return new PetWeighed(petId, 4200);
+    }
 }

@@ -227,12 +227,12 @@ public class WriteOpenApiDocumentTests : IDisposable {
     }
 
     /// <remarks>
-    /// Nothing about <em>lowering</em>, which is what this measures. The Smithy application also
-    /// repeats an operation key, and 031 says so on every export of it whatever the version.
+    /// The labels application, because it is the one with no streamed response: the web, OpenAPI
+    /// and Smithy applications each declare one now, and lowering any of them names it.
     /// </remarks>
     [Fact]
     public void LoweringAnApplicationWithNoStreamingWarnsNothing() {
-        var result = _harness.Run(TaskHarness.Fixture(TaskHarness.SmithyApp), "lowered.json", version: "3.0.0");
+        var result = _harness.Run(TaskHarness.Fixture(TaskHarness.LabelsApp), "lowered.json", version: "3.0.0");
 
         Assert.True(result.Succeeded, result.ErrorText);
         Assert.DoesNotContain(WriteOpenApiDocument.StreamLostItemSchemaCode, result.WarningText);

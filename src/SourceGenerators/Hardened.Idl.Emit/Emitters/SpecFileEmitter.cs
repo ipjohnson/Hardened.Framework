@@ -56,9 +56,21 @@ internal static class SpecFileEmitter {
         // it uses and the [GeneratedRegex] members are written from what was registered.
         var patterns = new PatternRegistry(rootNamespace + "." + ValidationNamespace, model.FileName);
 
+        // The schemas that are the item of a streamed response. A union among them is an event
+        // stream, and is emitted as an event as well as a union.
+        var streamedItems = new HashSet<string>(System.StringComparer.Ordinal);
+
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                if (operation.ItemSchemaRef != null) {
+                    streamedItems.Add(NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ItemSchemaRef)));
+                }
+            }
+        }
+
         foreach (var schema in model.Schemas) {
             Coverage.Apply(
-                SchemaEmitter.Emit(models, schema, modelsNamespace, patterns, model.Schemas),
+                SchemaEmitter.Emit(models, schema, modelsNamespace, patterns, model.Schemas, streamedItems),
                 excludeFromCoverage);
         }
 

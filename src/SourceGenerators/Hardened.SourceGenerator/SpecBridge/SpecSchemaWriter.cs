@@ -170,6 +170,29 @@ internal static class SpecSchemaWriter {
 
                 break;
 
+            case SchemaKind.OneOf:
+                // A union, as the choice it is. Published as a bare object before, because the
+                // branches never reached this side of the build; a streamed union's items are
+                // exactly one of these each, so the document has to say which.
+                builder.Append("{\"oneOf\":[");
+
+                for (var i = 0; i < schema.OneOf.Count; i++) {
+                    if (i > 0) {
+                        builder.Append(',');
+                    }
+
+                    var branch = schema.OneOf[i];
+
+                    builder.Append(
+                        Inline(branch.Ref, branch.Type, branch.Format, null, null, false, schemas, components, seen));
+                }
+
+                builder.Append(']');
+                Describe(builder, schema.Description);
+                builder.Append('}');
+
+                break;
+
             default:
                 builder.Append("{\"type\":\"object\"");
                 Describe(builder, schema.Description);
