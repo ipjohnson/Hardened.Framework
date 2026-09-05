@@ -27,6 +27,8 @@
       <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT.Client\Hardened.IntegrationTests.WebApp.SUT.Client.csproj" />
       <ProjectReference Include="..\..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj" />
       <ProjectReference Include="..\..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj" />
+          <!-- The Kestrel test host: [KestrelHost] on the socket smoke tests. -->
+      <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Testing\Hardened.Web.Kestrel.Testing.csproj" />
     </ItemGroup>
 
 </Project>

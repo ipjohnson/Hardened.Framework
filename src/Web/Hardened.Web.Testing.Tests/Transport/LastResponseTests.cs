@@ -13,7 +13,7 @@ public class LastResponseTests {
 
     [Fact]
     public async Task ARequestThroughTheHandlerMakesItAvailable() {
-        var host = new PipelineHost(context => {
+        var host = new SubstitutePipeline(context => {
             context.Response.Status = 204;
 
             return Task.CompletedTask;

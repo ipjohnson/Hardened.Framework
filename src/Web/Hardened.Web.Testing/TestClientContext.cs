@@ -17,25 +17,26 @@ namespace Hardened.Web.Testing;
 /// </remarks>
 public sealed class TestClientContext {
 
-    private readonly IServiceProvider _rootServiceProvider;
+    private readonly ITestHost _host;
     private readonly TestCredential? _credential;
 
-    internal TestClientContext(
-        IServiceProvider rootServiceProvider, TestCredential? credential, HttpClient http) {
-
-        _rootServiceProvider = rootServiceProvider;
+    internal TestClientContext(ITestHost host, TestCredential? credential, HttpClient http) {
+        _host = host;
         _credential = credential;
         Http = http;
     }
 
-    /// <summary>The harness's own client, running the pipeline with the test's credential on it.</summary>
+    /// <summary>The harness's own client, running the host with the test's credential on it.</summary>
     public HttpClient Http { get; }
 
-    /// <summary>The address a client resolves relative URLs against; the transport ignores it.</summary>
-    public Uri BaseAddress => TestClientBuilder.BaseAddress;
+    /// <summary>
+    /// The address a client resolves relative URLs against: one the pipeline ignores, or the one
+    /// a socket host bound.
+    /// </summary>
+    public Uri BaseAddress => _host.BaseAddress;
 
     /// <summary>
-    /// A client whose chain runs <paramref name="handlers"/> in order and then the pipeline.
+    /// A client whose chain runs <paramref name="handlers"/> in order and then the host.
     /// </summary>
     /// <remarks>
     /// A separate transport from <see cref="Http"/> rather than a shared one, because a handler
@@ -46,7 +47,7 @@ public sealed class TestClientContext {
     public HttpClient CreateHttpClient(params DelegatingHandler[] handlers) {
         ArgumentNullException.ThrowIfNull(handlers);
 
-        HttpMessageHandler chain = new PipelineHttpMessageHandler(_rootServiceProvider, _credential);
+        var chain = _host.CreateHandler(_credential);
 
         for (var index = handlers.Length - 1; index >= 0; index--) {
             handlers[index].InnerHandler = chain;

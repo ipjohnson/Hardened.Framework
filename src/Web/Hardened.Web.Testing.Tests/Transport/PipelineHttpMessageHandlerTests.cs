@@ -29,7 +29,7 @@ public class PipelineHttpMessageHandlerTests {
     [InlineData("/echo/path/a%2fb", "/echo/path/a%2fb")]
     [InlineData("/echo/path/a+b", "/echo/path/a+b")]
     public async Task AnEncodedPathReachesThePipelineTheWayKestrelDecodesIt(string sent, string expected) {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
 
         using var client = host.Client();
         using var response = await client.GetAsync(sent, TestContext.Current.CancellationToken);
@@ -42,7 +42,7 @@ public class PipelineHttpMessageHandlerTests {
     /// </summary>
     [Fact]
     public async Task TheHandlerIsConstructibleFromTheRootProviderAlone() {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
 
         using var client = new HttpClient(new PipelineHttpMessageHandler(host.Provider)) {
             BaseAddress = new Uri("http://harness/")
@@ -75,7 +75,7 @@ public class PipelineHttpMessageHandlerTests {
 
     [Fact]
     public async Task ARelativeUrlResolvesAgainstTheBaseAddressTheHandlerIgnores() {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
 
         using var client = host.Client();
         using var response = await client.GetAsync("things/42?page=2", TestContext.Current.CancellationToken);
@@ -88,7 +88,7 @@ public class PipelineHttpMessageHandlerTests {
 
     [Fact]
     public async Task TheBodyArrivesAsTheBytesTheClientSent() {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
         var malformed = "{\"values\": [1, 2,"u8.ToArray();
 
         using var client = host.Client();
@@ -110,7 +110,7 @@ public class PipelineHttpMessageHandlerTests {
 
     [Fact]
     public async Task EveryValueOfAHeaderArrives() {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
 
         using var client = host.Client();
         using var message = new HttpRequestMessage(HttpMethod.Get, "/");
@@ -126,7 +126,7 @@ public class PipelineHttpMessageHandlerTests {
 
     [Fact]
     public async Task TheResponseCarriesStatusHeadersCookiesContentTypeAndBody() {
-        var host = new PipelineHost(context => {
+        var host = new SubstitutePipeline(context => {
             context.Response.Status = 201;
             context.Response.ContentType = "text/plain";
             context.Response.Headers[KnownHeaders.Location] = "/things/7";
@@ -152,7 +152,7 @@ public class PipelineHttpMessageHandlerTests {
     /// </summary>
     [Fact]
     public async Task AContentLengthThePipelineWroteIsReplacedByTheBodys() {
-        var host = new PipelineHost(context => {
+        var host = new SubstitutePipeline(context => {
             context.Response.Headers[KnownHeaders.ContentLength] = "999";
 
             return context.Response.Body.WriteAsync("four"u8.ToArray()).AsTask();
@@ -173,7 +173,7 @@ public class PipelineHttpMessageHandlerTests {
     public async Task ACancelledTokenCancelsTheChain() {
         var reached = new TaskCompletionSource();
 
-        var host = new PipelineHost(async context => {
+        var host = new SubstitutePipeline(async context => {
             reached.SetResult();
 
             await Task.Delay(Timeout.Infinite, context.CancellationToken);
@@ -194,7 +194,7 @@ public class PipelineHttpMessageHandlerTests {
 
     [Fact]
     public async Task TheCredentialTravelsAsTheTwoTestHeaders() {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
 
         using var client = host.Client(new TestCredential(new[] { "todos:write", "todos:read" }, "pia"));
         using var response = await client.GetAsync("/", TestContext.Current.CancellationToken);
@@ -207,7 +207,7 @@ public class PipelineHttpMessageHandlerTests {
 
     [Fact]
     public async Task AHeaderTheCallerSetBeatsTheCredential() {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
 
         using var client = host.Client(new TestCredential(new[] { "todos:write" }));
         using var message = new HttpRequestMessage(HttpMethod.Get, "/");

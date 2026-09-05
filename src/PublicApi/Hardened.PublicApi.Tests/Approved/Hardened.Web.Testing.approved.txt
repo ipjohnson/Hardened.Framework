@@ -42,6 +42,14 @@ namespace Hardened.Web.Testing
         object Build(Hardened.Web.Testing.TestClientContext context, System.Type clientType);
         bool CanBuild(System.Type clientType);
     }
+    public interface ITestHost : System.IAsyncDisposable
+    {
+        System.Uri BaseAddress { get; }
+        bool IsTerminal { get; }
+        System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential);
+        System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task StartAsync(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken);
+    }
     public interface ITestWebApp : Hardened.Shared.Testing.ITestContext
     {
         System.IServiceProvider RootServiceProvider { get; }
@@ -71,11 +79,40 @@ namespace Hardened.Web.Testing
         public static bool IsAvailable { get; }
         public static int Status { get; }
     }
+    public sealed class PipelineHost : Hardened.Web.Testing.ITestHost, System.IAsyncDisposable
+    {
+        public PipelineHost(System.IServiceProvider provider) { }
+        public System.Uri BaseAddress { get; }
+        public bool IsTerminal { get; }
+        public System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential) { }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task StartAsync(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
+    public sealed class PipelineHostAttribute : Hardened.Web.Testing.TestHostAttribute
+    {
+        public PipelineHostAttribute() { }
+        public override Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
     public sealed class PipelineHttpMessageHandler : System.Net.Http.HttpMessageHandler
     {
         public PipelineHttpMessageHandler(System.IServiceProvider rootServiceProvider) { }
         public PipelineHttpMessageHandler(System.IServiceProvider rootServiceProvider, Hardened.Web.Testing.TestCredential? credential) { }
         protected override System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> SendAsync(System.Net.Http.HttpRequestMessage request, System.Threading.CancellationToken cancellationToken) { }
+    }
+    public abstract class SocketHost : Hardened.Web.Testing.ITestHost, System.IAsyncDisposable
+    {
+        protected SocketHost() { }
+        public System.Uri BaseAddress { get; }
+        public abstract bool IsTerminal { get; }
+        public static System.TimeSpan StopBound { get; set; }
+        public System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential) { }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+        protected abstract System.Threading.Tasks.Task<System.Uri> Listen(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken);
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task StartAsync(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken) { }
+        protected abstract System.Threading.Tasks.Task StopAsync(System.Threading.CancellationToken bounded);
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter)]
     public sealed class SubjectAttribute : Hardened.Web.Testing.TestCredentialAttribute
@@ -111,6 +148,21 @@ namespace Hardened.Web.Testing
     {
         protected TestCredentialAttribute() { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
+    public abstract class TestHostAttribute : System.Attribute
+    {
+        protected TestHostAttribute() { }
+        public abstract Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services);
+    }
+    public sealed class TestHostRequest : System.IEquatable<Hardened.Web.Testing.TestHostRequest>
+    {
+        public TestHostRequest(string Method, string PathAndQuery, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers, System.IO.Stream Body, Hardened.Web.Testing.TestCredential? Credential) { }
+        public System.IO.Stream Body { get; init; }
+        public Hardened.Web.Testing.TestCredential? Credential { get; init; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; init; }
+        public string Method { get; init; }
+        public string PathAndQuery { get; init; }
+    }
     public class TestWebApp : Hardened.Shared.Testing.Impl.TestContext, Hardened.Shared.Testing.ITestContext, Hardened.Web.Testing.ITestWebApp
     {
         public TestWebApp(Hardened.Shared.Runtime.Application.IApplicationRoot applicationRoot, Microsoft.Extensions.Logging.ILogger logger) { }
@@ -144,7 +196,7 @@ namespace Hardened.Web.Testing
         public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
         public int StatusCode { get; }
         public T Deserialize<T>() { }
-        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(Hardened.Web.Testing.TestWebResponse.<DeserializeAsyncEnumerable>d__13<T>))]
+        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(Hardened.Web.Testing.TestWebResponse.<DeserializeAsyncEnumerable>d__17<T>))]
         public System.Collections.Generic.IAsyncEnumerable<T> DeserializeAsyncEnumerable<T>() { }
         public System.Threading.Tasks.Task<string> ReadTextAsync() { }
     }

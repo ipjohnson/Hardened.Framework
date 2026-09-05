@@ -213,7 +213,7 @@ public class TestClientBuilderTests {
     /// </summary>
     [Fact]
     public async Task ARouteMayPutItsOwnHandlersInFrontOfThePipeline() {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
         var seen = new CountingHandler();
 
         var context = TestClientBuilder.CreateContext(host.Provider, null);
@@ -239,11 +239,11 @@ public class TestClientBuilderTests {
     }
 
     private static TestClientContext Context() =>
-        TestClientBuilder.CreateContext(new PipelineHost().Provider, null);
+        TestClientBuilder.CreateContext(new SubstitutePipeline().Provider, null);
 
     [Fact]
     public void TheHttpClientCarriesTheBaseAddressAndTheCredential() {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
 
         using var client = TestClientBuilder.CreateHttpClient(host.Provider, new TestCredential(new[] { "x" }, "pia"));
 
@@ -308,7 +308,7 @@ public class TestClientBuilderTests {
     }
 
     private static ServiceProvider ProviderFor(Case method) {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
         var services = new ServiceCollection();
 
         services.AddLogging();
@@ -379,7 +379,7 @@ public class TestClientBuilderTests {
     /// </summary>
     [Fact]
     public void TheProviderAndAConstructibleTypeAreLeftToTheContainer() {
-        var host = new PipelineHost();
+        var host = new SubstitutePipeline();
         var services = new ServiceCollection();
 
         services.AddLogging();

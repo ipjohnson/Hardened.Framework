@@ -11,8 +11,8 @@ namespace Hardened.Web.Testing.Tests.Transport;
 /// </summary>
 public class TestWebAppTests {
 
-    private static (PipelineHost Host, TestWebApp App) Build(Func<Requests.Abstract.Execution.IExecutionContext, Task>? handler = null) {
-        var host = new PipelineHost(handler);
+    private static (SubstitutePipeline Host, TestWebApp App) Build(Func<Requests.Abstract.Execution.IExecutionContext, Task>? handler = null) {
+        var host = new SubstitutePipeline(handler);
 
         return (host, new TestWebApp(new ServiceProviderApplicationRoot(host.Provider), NullLogger.Instance));
     }

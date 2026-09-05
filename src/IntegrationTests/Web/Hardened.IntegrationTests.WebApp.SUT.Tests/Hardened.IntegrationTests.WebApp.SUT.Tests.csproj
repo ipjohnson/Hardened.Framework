@@ -28,6 +28,8 @@
       <ProjectReference Include="..\..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj" />
           <!-- The runner: [HardenedTest] and the running-test seam, for xUnit. -->
       <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+          <!-- The Kestrel test host: [KestrelHost] on the socket smoke tests. -->
+      <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Testing\Hardened.Web.Kestrel.Testing.csproj" />
     </ItemGroup>
 
     <!--

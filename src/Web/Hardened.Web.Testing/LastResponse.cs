@@ -7,7 +7,8 @@ namespace Hardened.Web.Testing;
 
 /// <summary>
 /// The most recent response the pipeline answered inside the current test, whether it went out
-/// through an <see cref="HttpClient"/> or through <see cref="ITestWebApp"/>.
+/// through an <see cref="HttpClient"/> or through <see cref="ITestWebApp"/>, and on a socket host
+/// the most recent one the wire carried back.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -56,19 +57,25 @@ public static class LastResponse {
     public static bool IsAvailable => Key() is { } key && Responses.TryGetValue(key, out _);
 
     internal static void Record(IExecutionResponse response, byte[] body) {
-        if (Key() is not { } key) {
-            return;
-        }
-
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var header in response.Headers) {
             headers[header.Key] = header.Value;
         }
 
-        var recorded = new Recorded(response.Status ?? 200, headers, response.ContentType, body);
+        Record(response.Status ?? 200, headers, response.ContentType, body);
+    }
 
-        Responses.AddOrUpdate(key, recorded);
+    /// <summary>
+    /// What a socket host received, recorded in the client's chain: on a socket the pipeline runs
+    /// on the server's threads, where no test is in scope, so the wire is where the answer is read.
+    /// </summary>
+    internal static void Record(int status, IReadOnlyDictionary<string, StringValues> headers, string? contentType, byte[] body) {
+        if (Key() is not { } key) {
+            return;
+        }
+
+        Responses.AddOrUpdate(key, new Recorded(status, headers, contentType, body));
     }
 
     private static Recorded Current() {
