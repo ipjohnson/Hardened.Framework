@@ -20,11 +20,13 @@ namespace Hardened.Shared.Testing.Tests;
 /// that read it install it first, the way a test project that drives the harness directly does.
 /// </para>
 /// <para>
-/// The provider is process-wide, so the two tests that replace it put the xUnit one back in a
-/// <c>finally</c> and keep the window short; a container built in that window by another test
-/// gets no logger provider, which is not a failure of that test.
+/// The provider is process-wide, and two tests here replace it. They run in a collection that
+/// disables parallelization, which xUnit runs alone rather than beside the other classes: in CI
+/// another class's <c>Install()</c> landed inside the window one of them had opened, and the
+/// container it built for the no-runner case came out with a logger provider after all.
 /// </para>
 /// </remarks>
+[Collection(SeamCollection.Name)]
 public class CurrentTestTests {
 
     static CurrentTestTests() => XunitCurrentTestProvider.Install();
@@ -119,4 +121,10 @@ public class CurrentTestTests {
 
         public ILoggerProvider CreateLoggerProvider() => throw new NotSupportedException();
     }
+}
+
+/// <summary>Runs alone: nothing else in the assembly runs while a test in it holds the seam.</summary>
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class SeamCollection {
+    public const string Name = "the running-test seam";
 }
