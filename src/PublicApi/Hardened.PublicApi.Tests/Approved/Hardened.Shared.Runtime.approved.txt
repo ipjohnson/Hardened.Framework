@@ -224,14 +224,31 @@ namespace Hardened.Shared.Runtime.DependencyInjection
 }
 namespace Hardened.Shared.Runtime.Diagnostics
 {
-    public readonly struct MachineTimestamp
+    public readonly struct MachineTimestamp : System.IComparable<Hardened.Shared.Runtime.Diagnostics.MachineTimestamp>, System.IEquatable<Hardened.Shared.Runtime.Diagnostics.MachineTimestamp>
     {
         public static readonly double MillisecondsToTicksRatio;
         public static readonly double SecondsToTicksRatio;
+        public bool Future { get; }
+        public bool Past { get; }
+        public bool Present { get; }
         public static Hardened.Shared.Runtime.Diagnostics.MachineTimestamp Now { get; }
+        public Hardened.Shared.Runtime.Diagnostics.MachineTimestamp AddMs(double milliseconds) { }
+        public int CompareTo(Hardened.Shared.Runtime.Diagnostics.MachineTimestamp other) { }
+        public bool Equals(Hardened.Shared.Runtime.Diagnostics.MachineTimestamp other) { }
+        public override bool Equals(object? obj) { }
         public double GetElapsedMilliseconds() { }
         public System.TimeSpan GetElapsedTime() { }
+        public override int GetHashCode() { }
+        public double GetRemainingMilliseconds() { }
+        public double GetRemainingSeconds() { }
         public static Hardened.Shared.Runtime.Diagnostics.MachineTimestamp FromTicks(long ticks) { }
+        public static bool operator !=(Hardened.Shared.Runtime.Diagnostics.MachineTimestamp left, Hardened.Shared.Runtime.Diagnostics.MachineTimestamp right) { }
+        public static System.TimeSpan operator -(Hardened.Shared.Runtime.Diagnostics.MachineTimestamp left, Hardened.Shared.Runtime.Diagnostics.MachineTimestamp right) { }
+        public static bool operator <(Hardened.Shared.Runtime.Diagnostics.MachineTimestamp left, Hardened.Shared.Runtime.Diagnostics.MachineTimestamp right) { }
+        public static bool operator <=(Hardened.Shared.Runtime.Diagnostics.MachineTimestamp left, Hardened.Shared.Runtime.Diagnostics.MachineTimestamp right) { }
+        public static bool operator ==(Hardened.Shared.Runtime.Diagnostics.MachineTimestamp left, Hardened.Shared.Runtime.Diagnostics.MachineTimestamp right) { }
+        public static bool operator >(Hardened.Shared.Runtime.Diagnostics.MachineTimestamp left, Hardened.Shared.Runtime.Diagnostics.MachineTimestamp right) { }
+        public static bool operator >=(Hardened.Shared.Runtime.Diagnostics.MachineTimestamp left, Hardened.Shared.Runtime.Diagnostics.MachineTimestamp right) { }
     }
 }
 namespace Hardened.Shared.Runtime.Json
