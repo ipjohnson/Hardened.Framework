@@ -58,6 +58,12 @@ namespace Hardened.Web.Runtime.Attributes
         public string Title { get; }
         public string Version { get; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false, Inherited=false)]
+    public class OperationAttribute : System.Attribute
+    {
+        public OperationAttribute(string id) { }
+        public string Id { get; }
+    }
     public class PatchAttribute : System.Attribute
     {
         public PatchAttribute(string path = "") { }

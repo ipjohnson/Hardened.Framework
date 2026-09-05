@@ -401,6 +401,7 @@ error, with no `NoWarn`: there is no reading of zero that means anything else.
 | `HRDOA001` | `<HardenedOpenApiVersion>` is not 3.0.0, 3.1.0 or 3.2.0. |
 | `HRDOA002` | Warning. A streamed response under a document version with no `itemSchema`; the operation is described without a schema. |
 | `HRDOA003` | Warning. `[Enable<OpenApiDocumentPublishing>]` sits on a module declaring no routes, so the document is empty. |
+| `HRDOA004` | Two handlers declare the same `[Operation]` id. An operationId names one operation, so give each handler its own. |
 | `HRDOA018`, `019`, `028`–`030` | The document export, reported under the code-first prefix. The numbers mean the same under `HOAT` and `HSMT`; see below. |
 
 ## Description build tasks (HOAT, HSMT)

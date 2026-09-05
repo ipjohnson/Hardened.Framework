@@ -2,6 +2,9 @@ using DependencyModules.Runtime.Attributes;
 #if (specFirst)
 using Hardened1.Models;
 #endif
+#if (codeFirst)
+using ValidationModules.Constraints;
+#endif
 
 namespace Hardened1;
 
@@ -14,9 +17,10 @@ public record Todo(int Id, string Title, bool Done);
 /// </summary>
 /// <remarks>
 /// Separate from <see cref="Todo"/> because the server assigns the id, and a request model carrying
-/// one invites a client to choose it.
+/// one invites a client to choose it. The length constraint is enforced in front of the handler
+/// and published as the schema's minLength and maxLength, so the document and the code agree.
 /// </remarks>
-public record NewTodo(string Title);
+public record NewTodo([property: StringLength(1, 64)] string Title);
 
 #endif
 /// <summary>

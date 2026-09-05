@@ -32,22 +32,28 @@ public class TemplateModuleNameSocketTests {
     public async Task ListTodos_OverTheSocket(TemplateModuleNameClient client) {
         var todos = await client.Todos.GetAsync().Returns<Ok<List<ClientModels.Todo>>>();
 
+#if (xunit)
         Assert.Equal([1, 2], todos.Value.Select(todo => todo.Id!.Value));
         Assert.True(todos.Headers!.ContainsKey("Date"), "a header only a server writes");
+#else
+        Assert.That(todos.Value.Select(todo => todo.Id!.Value), Is.EqualTo(new[] { 1, 2 }));
+        Assert.That(todos.Headers!.ContainsKey("Date"), Is.True, "a header only a server writes");
+#endif
     }
 #endif
 #if (refitClient)
 
     [HardenedTest]
     public async Task ListTodos_OverTheSocket(ITemplateModuleNameClient client) {
-#if (codeFirst)
-        var todos = await client.All().Returns<Ok<ICollection<ClientModels.Todo>>>();
-#else
         var todos = await client.ListTodos().Returns<Ok<ICollection<ClientModels.Todo>>>();
-#endif
 
+#if (xunit)
         Assert.Equal([1, 2], todos.Value.Select(todo => todo.Id));
         Assert.True(todos.Headers!.ContainsKey("Date"), "a header only a server writes");
+#else
+        Assert.That(todos.Value.Select(todo => todo.Id), Is.EqualTo(new[] { 1, 2 }));
+        Assert.That(todos.Headers!.ContainsKey("Date"), Is.True, "a header only a server writes");
+#endif
     }
 #endif
 #if (!hasClient)

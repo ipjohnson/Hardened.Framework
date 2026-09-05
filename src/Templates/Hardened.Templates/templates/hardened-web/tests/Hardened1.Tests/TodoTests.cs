@@ -275,18 +275,17 @@ public class TodoTests {
     }
 #endif
 
-#if (specFirst)
     /// <summary>
-    /// The constraints in the contract are enforced before the handler runs.
+    /// The constraints on the request are enforced before the handler runs.
     /// </summary>
     /// <remarks>
-    /// Nothing in this project validates anything. maxLength on the title became a filter in front
-    /// of the generated handler, so a value too long never reaches the code - and the published
+    /// Nothing in this project validates anything by hand. The title's length limit became a filter
+    /// in front of the handler, so a value too long never reaches the code - and the published
     /// document declares the 400 it answers with, so the client has a typed branch for it that
     /// names the field.
     /// </remarks>
     [HardenedTest]
-    public async Task CreateTodo_TitleTheContractDisallows_IsBadRequest(TemplateModuleNameClient client) {
+    public async Task CreateTodo_TitleOverItsLimit_IsBadRequest(TemplateModuleNameClient client) {
         var refused = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = new string('x', 100) })
             .Returns<BadRequest<ClientModels.RequestValidationError>>();
 
@@ -304,16 +303,14 @@ public class TodoTests {
     /// document says so, which DocumentStatusTests holds it to.
     /// </summary>
     [HardenedTest]
-    public async Task GetTodo_IdBelowTheContractsMinimum_IsBadRequest(TemplateModuleNameClient client) {
+    public async Task GetTodo_IdBelowItsMinimum_IsBadRequest(TemplateModuleNameClient client) {
         await client.Todos[0].GetAsync().Returns<BadRequest<ClientModels.RequestValidationError>>();
     }
 
     [HardenedTest]
-    public async Task RemoveTodo_IdBelowTheContractsMinimum_IsBadRequest(TemplateModuleNameClient client) {
+    public async Task RemoveTodo_IdBelowItsMinimum_IsBadRequest(TemplateModuleNameClient client) {
         await client.Todos[0].DeleteAsync().Returns<BadRequest<ClientModels.RequestValidationError>>();
     }
-#endif
-#if (codeFirst)
     /// <summary>
     /// An id the parameter's type cannot carry is refused before the handler, with the same
     /// field-level envelope a failed validation answers - and the published document says so,
@@ -332,5 +329,4 @@ public class TodoTests {
     public async Task RemoveTodo_MalformedId_IsBadRequest(ITestWebApp app) {
         (await app.Delete("/todos/not-a-number")).Assert.BadRequest();
     }
-#endif
 }
