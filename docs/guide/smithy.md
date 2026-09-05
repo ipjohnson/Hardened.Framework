@@ -1,14 +1,94 @@
 # Generating from Smithy
 
-Point the build at a [Smithy](https://smithy.io) model and the generator writes the models, a
-service interface, the routes and the request validation — the same output an [OpenAPI
-document](/guide/openapi) produces, from the same generator. Smithy is the contract language; the
-C# you write against it is identical.
+Point the build at a [Smithy](https://smithy.io) model and it writes the models, a service
+interface, the routes and the request validation: the same output an
+[OpenAPI document](/guide/openapi) produces, from the same generator. Smithy is the contract
+language, and the C# you write against it is identical.
+
+```csharp
+public partial interface ITodosService {
+    /// <summary>GET /todos/{id} → 200</summary>
+    Task<Todo?> GetTodo(int id);
+
+    /// <summary>POST /todos → 201</summary>
+    Task<Todo> CreateTodo(NewTodo body);
+
+    /// <summary>DELETE /todos/{id} → 204</summary>
+    Task RemoveTodo(int id);
+}
+```
+
+```csharp
+using Hardened.Requests.Abstract.Attributes;
+using Todos.Models;
+using Todos.Services;
+
+[Handler]
+public class TodoService(ITodoStore store) : ITodosService {
+
+    public Task<Todo?> GetTodo(int id) => store.Find(id);
+
+    public async Task<Todo> CreateTodo(NewTodo body) {
+        if (await store.TitleExists(body.Title)) {
+            throw new TodoTitleTaken($"A todo titled '{body.Title}' already exists.").AsException();
+        }
+
+        return await store.Add(body.Title);
+    }
+
+    public async Task RemoveTodo(int id) {
+        if (!await store.Remove(id)) {
+            throw new TodoNotFound($"No todo has id {id}.").AsException();
+        }
+    }
+}
+```
+
+There are no route attributes and nothing to register.
 
 ## The model
 
+Reference the generator and declare the model:
+
+```xml
+<ItemGroup>
+    <PackageReference Include="Hardened.Smithy.SourceGenerator" PrivateAssets="all" />
+</ItemGroup>
+
+<ItemGroup>
+    <HardenedSmithyModel Include="contracts\todos.smithy">
+        <PublishUrl>/openapi.json</PublishUrl>
+        <UiUrl>/docs</UiUrl>
+    </HardenedSmithyModel>
+</ItemGroup>
+```
+
+The application module needs the web module and nothing else:
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+public partial class Application { }
+```
+
+::: warning The build runs the Smithy CLI
+`HardenedSmithyModel` compiles `.smithy` sources into a JSON AST, which needs the
+[Smithy CLI](https://smithy.io/2.0/guides/smithy-cli/index.html) on `PATH`. Two CLI versions can
+produce different ASTs and therefore different C#, so the version is pinned:
+
+```xml
+<HardenedSmithyCliVersion>1.73.0</HardenedSmithyCliVersion>
+```
+
+A mismatch fails with `HSMT011` naming both versions on a CI build, and warns on a local one. Set
+`<HardenedSmithyPinCliVersion>true</HardenedSmithyPinCliVersion>` to pin locally too. To build
+with no CLI at all, see [Committing the AST](#committing-the-ast).
+:::
+
+The interface above came from this model:
+
+::: details contracts/todos.smithy
 ```smithy
-// contracts/todos.smithy
 $version: "2"
 
 namespace com.example.todos
@@ -90,74 +170,20 @@ operation RemoveTodo {
     errors: [TodoNotFound]
 }
 ```
-
-Reference the generator and declare the model:
-
-```xml
-<ItemGroup>
-    <PackageReference Include="Hardened.Smithy.SourceGenerator" PrivateAssets="all" />
-</ItemGroup>
-
-<ItemGroup>
-    <HardenedSmithyModel Include="contracts\todos.smithy">
-        <PublishUrl>/openapi.json</PublishUrl>
-        <UiUrl>/docs</UiUrl>
-    </HardenedSmithyModel>
-</ItemGroup>
-```
-
-The application module needs the web module and nothing else:
-
-```csharp
-[HardenedModule]
-[HardenedWebModule]
-public partial class Application { }
-```
-
-::: warning The build runs the Smithy CLI
-`HardenedSmithyModel` compiles `.smithy` sources into a JSON AST, which needs the
-[Smithy CLI](https://smithy.io/2.0/guides/smithy-cli/index.html) on `PATH`. Two CLI versions can
-produce different ASTs and therefore different C#, so the version is pinned:
-
-```xml
-<HardenedSmithyCliVersion>1.73.0</HardenedSmithyCliVersion>
-```
-
-A mismatch fails with `HSMT011` naming both versions on a CI build, and warns on a local one. Set
-`<HardenedSmithyPinCliVersion>true</HardenedSmithyPinCliVersion>` to pin locally too. To build with
-no CLI at all, see [Committing the AST](#committing-the-ast).
 :::
 
-## The interface it produces
+## What the model decides
 
-One interface per service shape, in `<RootNamespace>.Services`, named for the service:
+Three things in the interface came from the model rather than from a choice:
 
-```csharp
-public partial interface ITodosService {
-    /// <summary>
-    /// GET /todos/{id} → 200
-    ///
-    /// One todo by id.
-    /// </summary>
-    Task<Todo?> GetTodo(int id);
+- `GetTodo` returns `Todo?` because the operation declares `TodoNotFound`. Returning `null`
+  answers 404 with that shape.
+- `RemoveTodo` returns bare `Task` because its `@http` code is 204 and it declares no output.
+- `id` is `int` rather than `string` because `@httpLabel` binds a member whose type the model
+  states.
 
-    /// <summary>
-    /// POST /todos → 201
-    ///
-    /// Creates a todo.
-    /// </summary>
-    Task<Todo> CreateTodo(NewTodo body);
-
-    /// <summary>
-    /// DELETE /todos/{id} → 204
-    ///
-    /// Removes a todo.
-    /// </summary>
-    Task RemoveTodo(int id);
-}
-```
-
-The models are positional records in `<RootNamespace>.Models`, carrying each shape's constraints as
+The interface is one per service shape, in `<RootNamespace>.Services`, named for the service. The
+models are positional records in `<RootNamespace>.Models`, carrying each shape's constraints as
 validation attributes:
 
 ```csharp
@@ -171,70 +197,19 @@ public partial record TodoNotFound([property: Required] string Message);
 public partial record TodoTitleTaken([property: Required] string Message);
 ```
 
-A Smithy error is a named shape, so each one also produces a type named for the shape. One type,
-however many operations bind it, rather than one per operation and status:
+A Smithy error is a named shape, so each one also produces an exception type named for the
+shape, shared by every operation that binds it:
 
 ```csharp
 public partial class TodoNotFoundException : StatusCodeException { }
 public partial class TodoTitleTakenException : StatusCodeException { }
 ```
 
-`GetTodo` and `RemoveTodo` both declare `TodoNotFound`, and they share the one exception. That is
-what every other Smithy code generator emits from the same model.
+You rarely name it. `AsException()` is generated on the error's body, so the throw is written
+once: `throw new TodoNotFound($"No todo has id {id}.").AsException()`.
 
-You rarely name it. `AsException()` is generated on the error's body, so the type is written once
-rather than beside the payload it carries:
-
-```csharp
-throw new TodoNotFound($"No todo has id {id}.").AsException();
-```
-
-Three things in that interface come from the model rather than from a choice:
-
-- `GetTodo` returns `Todo?` because the operation declares `TodoNotFound`. Returning `null` answers
-  404 with that shape.
-- `RemoveTodo` returns bare `Task` because its `@http` code is 204 and it declares no output.
-- `id` is `int` rather than `string` because `@httpLabel` binds a member whose type the model states.
-
-Alongside them the build emits a handler per operation, the routing table, and a validation filter
-that enforces `@required`, `@length`, `@range` and `@pattern` before your code runs.
-
-## The implementation
-
-Implement the interface and mark the class `[Handler]`:
-
-```csharp
-using Hardened.Requests.Abstract.Attributes;
-using Todos.Models;
-using Todos.Services;
-
-[Handler]
-public class TodoService : ITodosService {
-    private readonly ITodoStore _store;
-
-    public TodoService(ITodoStore store) {
-        _store = store;
-    }
-
-    public Task<Todo?> GetTodo(int id) => _store.Find(id);
-
-    public async Task<Todo> CreateTodo(NewTodo body) {
-        if (await _store.TitleExists(body.Title)) {
-            throw new TodoTitleTaken($"A todo titled '{body.Title}' already exists.").AsException();
-        }
-
-        return await _store.Add(body.Title);
-    }
-
-    public async Task RemoveTodo(int id) {
-        if (!await _store.Remove(id)) {
-            throw new TodoNotFound($"No todo has id {id}.").AsException();
-        }
-    }
-}
-```
-
-That is the whole wiring. There are no route attributes and nothing to register.
+The build also emits a handler per operation, the routing table, and a validation filter that
+enforces `@required`, `@length`, `@range` and `@pattern` before your code runs.
 
 ## HTTP bindings
 
@@ -264,39 +239,11 @@ operation CreatePet {
 
 ```csharp
 public async Task<CreatePetOutput> CreatePet(CreatePetInput body) {
-    var created = await _pets.Add(body);
+    var created = await pets.Add(body);
 
     return new CreatePetOutput(created, "/pets/" + created.Id);
 }
 ```
-
-## Bounding an operation
-
-Smithy models the exchange and says nothing about how long a server may take over it, because that
-is a property of the server rather than of the contract. `@timeout` is Hardened's own trait for
-saying it in the model anyway:
-
-```smithy
-use hardened.api#timeout
-
-@http(method: "GET", uri: "/pets/{petId}")
-@readonly
-@timeout(milliseconds: 2000)
-operation GetPet { }
-```
-
-| Member | |
-|---|---|
-| `milliseconds` | required, and greater than zero |
-| `status` | what the caller is told, 504 unless stated |
-| `retryAfterSeconds` | for a `status` of 503, which is the only one it is honest with |
-
-The trait is defined in `hardened.smithy`, which the build adds to your model, so nothing needs
-wiring beyond the `use`.
-
-A budget stated here is the operation's own, and the nearest declaration wins: a
-[`[Timeout]`](/guide/request-timeouts) on the generated implementation's method or class overrides
-it, and it overrides the assembly's and the application's default.
 
 ## Shapes
 
@@ -312,9 +259,33 @@ it, and it overrides the assembly's and the application's default.
 | `Blob` | `byte[]` |
 | `@jsonName("x")` | `[JsonPropertyName("x")]` on the property |
 
+## Bounding an operation
+
+`@timeout` is Hardened's own trait, defined in `hardened.smithy`, which the build adds to your
+model:
+
+```smithy
+use hardened.api#timeout
+
+@http(method: "GET", uri: "/pets/{petId}")
+@readonly
+@timeout(milliseconds: 2000)
+operation GetPet { }
+```
+
+| Member | |
+|---|---|
+| `milliseconds` | required, and greater than zero |
+| `status` | what the caller is told, 504 unless stated |
+| `retryAfterSeconds` | for a `status` of 503 |
+
+A budget stated here is the operation's own, and the nearest declaration wins: a
+[`[Timeout]`](/guide/request-timeouts) on the generated implementation's method or class
+overrides it, and it overrides the assembly's and the application's default.
+
 ## Authentication
 
-`@httpBearerAuth` on the service requires every operation to authenticate; `@auth([])` on an
+`@httpBearerAuth` on the service requires every operation to authenticate. `@auth([])` on an
 operation opts it back out:
 
 ```smithy
@@ -328,9 +299,9 @@ service PetStore {
 operation GetPet { ... }
 ```
 
-Smithy has no scopes, so a model can require an authenticated caller and never a particular grant.
-To require grants, put [`[AuthorizeGrants]`](/guide/authorization) on the implementation — a
-contract can narrow what is admitted and never widen it.
+Smithy has no scopes, so a model can require an authenticated caller and never a particular
+grant. To require grants, put [`[AuthorizeGrants]`](/guide/authorization) on the implementation.
+A contract can narrow what is admitted and never widen it.
 
 ## Declaring the whole response set
 
@@ -345,7 +316,7 @@ response container, which the compiler checks you handled:
 
 ```csharp
 public async Task<GetTodoResponse> GetTodo(int id) {
-    var todo = await _store.Find(id);
+    var todo = await store.Find(id);
 
     if (todo is null) {
         return new NotFound("todo", $"No todo has id {id}.");
@@ -355,10 +326,9 @@ public async Task<GetTodoResponse> GetTodo(int id) {
 }
 ```
 
-The error case is named for the shape as well, so `GetTodo` and `RemoveTodo` share
-`TodoNotFoundError` rather than getting one case each. The suffix is there because the payload
-record already holds the shape's own name. A success case is still named for the operation, since
-it carries the operation's own payload and has nothing to share.
+The error case is named for the shape, so `GetTodo` and `RemoveTodo` share `TodoNotFoundError`
+rather than getting one case each. A success case is still named for the operation, since it
+carries the operation's own payload.
 
 The handler returns the framework's bare `NotFound`, and the container converts it into
 `TodoNotFoundError` with the detail as the shape's `message`. The build writes that conversion for
@@ -371,7 +341,7 @@ shape declares `title` and `status`. A shape requiring anything else is construc
 
 ## Serving the document
 
-`PublishUrl` serves the **OpenAPI document generated from the model**, not the Smithy AST, so the
+`PublishUrl` serves the OpenAPI document generated from the model, not the Smithy AST, so the
 usual clients and the reference page at `UiUrl` can read it. `UiEnvironments` limits which
 [environments](/guide/environments) serve the page:
 
@@ -415,15 +385,15 @@ Everything downstream is identical, and a project can use both inputs together. 
 | `HardenedResponseModel` | `Throws`, `Response` or `Union` |
 | `ExcludeGeneratedCodeFromCoverage` | `[ExcludeFromCodeCoverage]` on generated types. Defaults to `true` |
 
-All `HardenedSmithyModel` items in a project form **one** model in one CLI invocation, since a Smithy
+All `HardenedSmithyModel` items in a project form one model in one CLI invocation, since a Smithy
 service is routinely written across several files. A project needing two independent services
 generates their ASTs separately and points `HardenedSmithyAst` at the results.
 
 ::: warning Import the targets below the item group
 An in-repo `<Import>` of `Hardened.Smithy.SourceGenerator.targets` has to come after the
-`HardenedSmithyAst`/`HardenedSmithyModel` item group, or no generated source reaches the
-compilation. The build reports `HSMT005` and names the fix. A `PackageReference` imports the targets
-for you and is unaffected.
+`HardenedSmithyAst` or `HardenedSmithyModel` item group, or no generated source reaches the
+compilation. The build reports `HSMT005` and names the fix. A `PackageReference` imports the
+targets for you and is unaffected.
 :::
 
 ## Starting from a template
@@ -437,22 +407,12 @@ That writes the model, the wiring, the implementation and tests. See
 
 ## Testing
 
-Generated routes are ordinary Hardened routes, so
-[the web test client](/guide/testing-web) drives them:
-
-```csharp
-[HardenedTest]
-public async Task GetsATodo(ITestWebApp testWebApp) {
-    var response = await testWebApp.Get("/todos/1");
-
-    response.Assert.Ok();
-
-    Assert.Equal(1, response.Deserialize<Todo>().Id);
-}
-```
+Generated routes are ordinary Hardened routes, so `ITestWebApp` and a generated client drive them
+through the same pipeline. See [Sending requests](/guide/testing-web) and
+[Typed clients](/guide/testing-clients).
 
 ## Next
 
-- [Generating from OpenAPI](/guide/openapi) — the same generated output from an OpenAPI document
-- [Declared responses](/guide/responses) — the three response models in full
-- [The OpenAPI document](/guide/openapi-document) — serving a document and a reference page
+- [Generating from OpenAPI](/guide/openapi): the same generated output from an OpenAPI document
+- [Declared responses](/guide/responses): the three response models in full
+- [The OpenAPI document](/guide/openapi-document): serving a document and a reference page

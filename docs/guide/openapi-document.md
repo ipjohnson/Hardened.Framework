@@ -1,35 +1,43 @@
 # The OpenAPI document
 
-Every Hardened web application can serve an OpenAPI document and a reference page from it. Where the
-document comes from follows from how the application was written:
-
-| | The document is | Served by |
-|---|---|---|
-| **Code-first** | generated from your handlers during the build | `[Enable<OpenApiDocumentPublishing>]` |
-| **IDL-first** | the contract you already wrote, embedded verbatim | `PublishUrl` on the spec item |
-
-Both end at the same two endpoints, and the reference page is the same module either way. Either
-way the build can also write the served document to a file, which is what a client is generated
-from; see [the export](#the-export) below.
-
-## Serving a generated document
-
-Code-first, the document is emitted from the routing table — the paths, the verbs, the bound
-parameters and the response schemas the generator already worked out. Enable it on the module:
+Every Hardened web application can serve an OpenAPI document and a reference page over it.
+Code-first, two attributes on the module do it:
 
 ```csharp
 [HardenedModule]
 [HardenedWebModule]
-[Enable<OpenApiDocumentPublishing>]
+[Enable<OpenApiDocumentPublishing>]            // serves /openapi.json
+[HardenedOpenApiUi(Title = "Contoso Orders")]  // renders /docs from it
 [KestrelRuntime]
 public partial class Application { }
 ```
 
-That serves the document at `/openapi.json`.
+```console
+$ curl localhost:5080/openapi.json
+{"openapi":"3.2.0","info":{...},"paths":{"/orders":{"get":{...}},"/orders/{id}":{...}}, ...}
+```
 
-The marker gates the emit, not just the route: without it no document is generated and none is
-carried in the assembly. A build that runs a contract lint over its own API has to enable publishing
-to have anything to lint.
+The document is generated from the routing table during the build: the paths, the verbs, the
+bound parameters and the response schemas. Contract-first, the document is the contract you
+wrote, embedded verbatim:
+
+| | The document is | Served by |
+|---|---|---|
+| **Code-first** | generated from your handlers during the build | `[Enable<OpenApiDocumentPublishing>]` |
+| **Contract-first** | the contract you wrote, embedded verbatim | `PublishUrl` on the spec item |
+
+Both end at the same two endpoints, and the reference page is the same module either way. The
+build can also write the served document to a file, which is what a
+[client](/guide/clients) is generated from; see [the export](#the-export).
+
+## Serving a generated document
+
+`[Enable<OpenApiDocumentPublishing>]` serves the document at `/openapi.json`. The marker gates the
+emit, not just the route: without it no document is generated and none is carried in the
+assembly.
+
+It goes on the module that declares the routes. A host module that declares none and carries the
+attribute serves an empty document, and `HRDOA003` says so.
 
 To serve it somewhere else, declare your own marker carrying the path and enable that instead:
 
@@ -44,17 +52,6 @@ public partial class Application { }
 ## Serving a reference page
 
 `[HardenedOpenApiUi]` renders a page against a published document:
-
-```csharp
-[HardenedModule]
-[HardenedWebModule]
-[Enable<OpenApiDocumentPublishing>]     // serves /openapi.json
-[HardenedOpenApiUi(Title = "Contoso Orders")]
-[KestrelRuntime]
-public partial class Application { }
-```
-
-Two attributes: the document is worth serving alone, and the page needs one to read.
 
 | Property | Default |
 |---|---|
@@ -74,11 +71,14 @@ same path collapse into one:
 public partial class Application { }
 ```
 
+The template serves the page in the `development` environment only; see
+[The reference page](/guide/project-templates#the-reference-page).
+
 ### Serving the script yourself
 
 The UI loads from a CDN under subresource integrity. An application behind a VPC, or with a
-`script-src` policy that will not name a CDN, points `ScriptUrl` at a copy it serves and states that
-there is no hash:
+`script-src` policy that will not name a CDN, points `ScriptUrl` at a copy it serves and states
+that there is no hash:
 
 ```csharp
 [HardenedOpenApiUi(ScriptUrl = "/assets/api-reference.js", ScriptIntegrity = "")]
@@ -95,8 +95,8 @@ configured, and is gate-able by convention everywhere else.
 
 ## Serving from a contract
 
-IDL-first — [OpenAPI](/guide/openapi) or [Smithy](/guide/smithy) — the document is a build input, so
-say where it publishes on the item that declares it:
+Contract-first, the document is a build input, so say where it publishes on the item that
+declares it:
 
 ```xml
 <ItemGroup>
@@ -107,24 +107,25 @@ say where it publishes on the item that declares it:
 </ItemGroup>
 ```
 
-Nothing is registered in code. The document is embedded verbatim and served at `PublishUrl` with the
-content type its file extension implies — a `.yaml` spec is served as `application/yaml`, not
-converted to JSON. The reference page at `UiUrl` reads the document that was published.
+Nothing is registered in code. The document is embedded verbatim and served at `PublishUrl` with
+the content type its file extension implies, so a `.yaml` spec is served as `application/yaml`.
+The reference page at `UiUrl` reads it.
 
-`UiEnvironments` limits which [environments](/guide/environments) serve the page. Empty means all of
-them:
+`UiEnvironments` limits which [environments](/guide/environments) serve the page. Empty means all
+of them:
 
 ```xml
 <UiEnvironments>Development;Staging</UiEnvironments>
 ```
 
-The same metadata works on `HardenedSmithyModel` and `HardenedSmithyAst`, where `PublishUrl` serves
-the OpenAPI document generated from the model. See [Generating from Smithy](/guide/smithy).
+The same metadata works on `HardenedSmithyModel` and `HardenedSmithyAst`, where `PublishUrl`
+serves the OpenAPI document generated from the model. See
+[Generating from Smithy](/guide/smithy).
 
 ## The export
 
-`<HardenedOpenApiOutput>` writes the document the application serves to a file after every compile,
-whichever front end wrote it:
+`<HardenedOpenApiOutput>` writes the document the application serves to a file after every
+compile, whichever front end wrote it:
 
 ```xml
 <PropertyGroup>
@@ -132,28 +133,24 @@ whichever front end wrote it:
 </PropertyGroup>
 ```
 
-It exports what the server serves — the normalised document generated from the model, never the
-source contract; `SourceUrl` exists for that — read out of the compiled assembly rather than a
-running application, so it works for a Lambda function or a library with no entry point. The
-format follows the extension: `.json` is indented JSON, `.yaml` or `.yml` is YAML, and anything
-else is a build error naming the three. The served document does not change whatever the file
-says.
+It exports what the server serves, read out of the compiled assembly rather than a running
+application, so it works for a Lambda function or a library with no entry point. The format
+follows the extension: `.json` is indented JSON, `.yaml` or `.yml` is YAML, and anything else is
+a build error naming the three. The served document does not change whatever the file says.
 
 | Property | Values | What it does |
 |---|---|---|
 | `HardenedOpenApiOutput` | a path relative to the project | writes the served document there after every compile. Absent means no file |
-| `HardenedOpenApiOutputVersion` | `3.0.0`, `3.1.0` | lowers the written file for a reader that refuses the 3.2 banner: the banner changes, `itemSchema` is dropped and each streaming operation that lost one is named (`030`), and at `3.0.0` the exclusive-bound and nullable spellings become the 3.0 forms. The served document is untouched |
+| `HardenedOpenApiOutputVersion` | `3.0.0`, `3.1.0` | lowers the written file for a reader that refuses the 3.2 banner. The banner changes, `itemSchema` is dropped and each streaming operation that lost one is named (`030`), and at `3.0.0` the exclusive-bound and nullable spellings become the 3.0 forms. The served document is untouched |
 
 Code-first, the property with no `[Enable<OpenApiDocumentPublishing>]` is `HRDOA018`, naming the
 attribute. Contract-first the same condition reports under `HOAT` or `HSMT`, and means the
-generator did not run. The file is what [a client](/guide/clients) is generated from.
+generator did not run.
 
 ## What the response model changes
 
-The same handler and the same 404, with a different contract:
-
-**Throws** — the signature names one success type and reaches its other statuses by throwing, so
-the generator has one status to write:
+The same handler and the same 404, with a different contract. In `Throws` mode the signature names
+one success type, so the generator has one status to write:
 
 ```csharp
 [Get("/todos/{id}")]
@@ -166,10 +163,9 @@ public Todo ById(ITodoStore store, int id) { /* throws NotFound */ }
 }
 ```
 
-The 404 a client receives on every miss is not in the document, so a generated client has no branch
-for it.
-
-**Response or Union** — the set is in the return type, so it is in the contract:
+The 404 a client receives on every miss is not in the document, so a generated client has no
+branch for it. `[Throws<NotFound>]` on the handler puts it there. In `Response` or `Union` mode
+the set is in the return type, so it is in the contract:
 
 ```csharp
 [Get("/todos/{id}")]
@@ -183,15 +179,14 @@ public Response<Todo, NotFound> ById(ITodoStore store, int id) { /* returns NotF
 }
 ```
 
-One entry per status, written in status order. Two cases at the same status become a `oneOf` —
-`Response<Todo, Archived>` where both are 200 means two shapes under one status.
+One entry per status, written in status order. Two cases at the same status become a `oneOf`.
 
 ::: tip Code-first success defaults to 200
 A code-first operation publishes 200 for its success unless the route attribute names another.
-`[Post("/todos", SuccessStatus = 201)]` publishes 201 and answers it. A response set case can also
-carry its own `[HttpStatus]`, which is how `Created<T>` publishes 201. IDL-first takes the success
-status from the contract. The attribute and the contract fill the same field, so the document and
-the wire cannot disagree. See [Routing](/guide/routing#return-values-and-status-codes).
+`[Post("/todos", SuccessStatus = 201)]` publishes 201 and answers it. A response set case can
+also carry its own `[HttpStatus]`, which is how `Created<T>` publishes 201. Contract-first takes
+the success status from the contract. The attribute and the contract fill the same field, so the
+document and the wire cannot disagree.
 :::
 
 ## What else reaches the document
@@ -201,22 +196,13 @@ the wire cannot disagree. See [Routing](/guide/routing#return-values-and-status-
 | [`[Tag(name)]`](/reference/attributes) | the tag an operation groups under. Defaults to the class name minus `Controller` |
 | [`[Server(url, description?)]`](/reference/attributes) | a base URL listed under `servers`. Repeatable, and valid on the assembly |
 
-A handler's XML documentation comment carries into the operation: `<summary>` becomes `summary` and
-`<remarks>` becomes `description`.
+A handler's XML documentation comment carries into the operation: `<summary>` becomes `summary`
+and `<remarks>` becomes `description`.
 
 A property annotated `[Range]`, `[StringLength]`, `[Pattern]`, `[ItemCount]`, `[MultipleOf]` or
 `[AllowedValues]` publishes `minimum`/`maximum`, `minLength`/`maxLength`, `pattern`,
 `minItems`/`maxItems`, `multipleOf` or `enum` alongside its type, so the constraint a client is
-validated against is the one the document advertises. The attributes live in the
-`ValidationModules.Constraints` namespace:
-
-```csharp
-using ValidationModules.Constraints;
-
-public record CreateTodo(
-    [property: StringLength(Min = 1, Max = 200)] string Title,
-    [property: Range(Min = 1, Max = 5)] int Priority);
-```
+validated against is the one the document advertises. See [Validation](/guide/validation).
 
 ## What a guard on the operation publishes
 
@@ -227,27 +213,19 @@ so an operation guarded by one publishes that status too:
 |---|---|
 | [`[AuthorizeGrants]`](/guide/authorization), and any other authorization attribute | `403` |
 | [`[RateLimit]`](/guide/rate-limiting) | `429` |
-| [`[Timeout]`](/guide/request-timeouts) | `504`, or the `Status` it declares |
+| [`[Timeout]`](/guide/request-timeouts) | `504`, or the `Status` it declares, and `x-hardened-timeout` with the budget |
 
 All three answer the framework's error envelope, so a [generated client](/guide/clients) gets a
-typed case for the refusal it will actually be sent rather than a bare transport exception.
+typed case for the refusal it will be sent. Declarations on the method, its class and the
+assembly are all read, nearest first. A `401` is published separately for any operation carrying
+a security requirement, with the `WWW-Authenticate` challenge beside it.
 
-Declarations on the method, its class and the assembly are all read, nearest first. A `401` is
-published separately for any operation carrying a security requirement, with the
-`WWW-Authenticate` challenge beside it.
-
-An application's own authorization attribute publishes the `403` without doing anything, because
-the declaration lives on `IAuthorizeAttribute` rather than on any particular attribute. A filter
-vocabulary of your own publishes its status by carrying `[AnswersStatus(status, typeof(body))]`.
-
-A [bounded operation](/guide/request-timeouts) also publishes `x-hardened-timeout`, the budget in
-milliseconds, so the contract round-trips: a service regenerated from it is bounded the way the one
-that published it was. The scalar form carries the budget alone; an object carries `status` and
-`retryAfterSeconds` beside it where those are not the defaults.
+An authorization attribute of your own publishes the `403` without doing anything, because the
+declaration lives on `IAuthorizeAttribute`. A filter vocabulary of your own publishes its status
+by carrying `[AnswersStatus(status, typeof(body))]`.
 
 ## Next
 
-- [Clients](/guide/clients) — generating a client from the exported document
-- [Declared responses](/guide/responses) — the three response models in full
-- [Generating from OpenAPI](/guide/openapi) — going the other direction, contract to code
-- [Generating from Smithy](/guide/smithy) — the same, from a Smithy model
+- [Generated clients](/guide/clients): generating a client from the exported document
+- [Declared responses](/guide/responses): the three response models in full
+- [Generating from OpenAPI](/guide/openapi): the other direction, contract to code

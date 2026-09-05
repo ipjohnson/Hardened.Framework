@@ -1,8 +1,44 @@
 # Generating from OpenAPI
 
-Point the build at an OpenAPI document and the generator writes the models, a service interface, the
-routes and the request validation. You implement the interface it wrote, so a document that gains an
-operation stops the build until the implementation catches up.
+Point the build at an OpenAPI document and it writes the models, a service interface, the routes
+and the request validation. You implement the interface. A document that gains an operation fails
+the build until the implementation has the method.
+
+```csharp
+public partial interface IPetService {
+    /// <summary>GET /pets → 200</summary>
+    Task<List<Pet>> ListPets(int? limit);
+
+    /// <summary>POST /pets → 201</summary>
+    Task<CreatePetResponse> CreatePet(CreatePetRequest body);
+
+    /// <summary>GET /pets/{petId} → 200</summary>
+    Task<Pet?> GetPet(string petId);
+}
+```
+
+```csharp
+using Hardened.Requests.Abstract.Attributes;
+
+[Handler]
+public class PetService(IPetStore store) : IPetService {
+
+    public Task<List<Pet>> ListPets(int? limit) => store.List(limit ?? 20);
+
+    public async Task<CreatePetResponse> CreatePet(CreatePetRequest body) {
+        var pet = await store.Add(body.Name, body.Tag);
+
+        return new CreatePetCreated(pet, "/pets/" + pet.Id);
+    }
+
+    public Task<Pet?> GetPet(string petId) => store.Find(petId);
+}
+```
+
+That is the whole wiring. There are no route attributes, because the verbs and paths came from
+the document, and there is nothing to register. The interface, the records, a handler per
+operation, the routing table and a validation filter for the schema's constraints are all written
+by the build.
 
 ## The document
 
@@ -14,13 +50,26 @@ Declare it as a `HardenedOpenApiSpec` item:
 </ItemGroup>
 ```
 
-A build task parses every declared document before the compiler runs, and the generators write C#
-from what it parsed. The file's name becomes the prefix on the generated file names, so one
-project can carry several. Declaring a document as `AdditionalFiles` is the old form and stops the
-build with `HOAT003`; the generator no longer reads yaml directly.
+A build task parses every declared document before the compiler runs, and the generators write
+C# from what it parsed. The file's name becomes the prefix on the generated file names, so one
+project can carry several. Declaring a document as `AdditionalFiles` is the old form and stops
+the build with `HOAT003`.
 
+The application module needs the web module and nothing else:
+
+```csharp
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
+
+[HardenedModule]
+[HardenedWebModule]
+public partial class Application { }
+```
+
+The interface above came from this document:
+
+::: details Specs/petstore.yaml
 ```yaml
-# Specs/petstore.yaml
 openapi: "3.0.0"
 info:
   title: Petstore
@@ -103,43 +152,23 @@ components:
         status: { type: integer, format: int32 }
         detail: { type: string }
 ```
+:::
 
-The application module needs the web module and nothing else:
+## What the document decides
 
-```csharp
-using Hardened.Shared.Runtime.Attributes;
-using Hardened.Web.Runtime.DependencyInjection;
+Three things in the interface came from the document rather than from a choice:
 
-[HardenedModule]
-[HardenedWebModule]
-public partial class Application { }
-```
+- `GetPet` returns `Pet?` because the operation declares a 404. Returning `null` answers it with
+  the `Problem` body the document describes.
+- `CreatePet` returns `CreatePetResponse`, a struct with one case,
+  `CreatePetCreated(Pet Body, string Location)`, because the 201 declares a `Location` header and
+  `Pet` has nowhere to put one.
+- `limit` is `int?` because the parameter is not required.
 
-## The interface it produces
-
-One interface per tag, in `<RootNamespace>.Services`, carrying the verb, path and success status in
-its XML comment:
-
-```csharp
-public partial interface IPetService {
-    /// <summary>GET /pets → 200</summary>
-    Task<List<Pet>> ListPets(int? limit);
-
-    /// <summary>
-    /// POST /pets → 201
-    ///
-    /// Add a pet to the store
-    /// </summary>
-    Task<CreatePetResponse> CreatePet(CreatePetRequest body);
-
-    /// <summary>GET /pets/{petId} → 200</summary>
-    /// <param name="petId">The pet's identifier, as assigned by the server.</param>
-    Task<Pet?> GetPet(string petId);
-}
-```
-
-The models are positional records in `<RootNamespace>.Models`, carrying each schema's constraints as
-validation attributes:
+The interface is one per tag, in `<RootNamespace>.Services`, carrying the verb, path and success
+status in its XML comment, and the operation's `summary` and `description` beneath. The models are
+positional records in `<RootNamespace>.Models`, carrying each schema's constraints as validation
+attributes:
 
 ```csharp
 public partial record Pet(
@@ -150,139 +179,32 @@ public partial record Pet(
 public partial record CreatePetRequest(
     [property: Required] [property: StringLength(Min = 1, Max = 100)] string Name,
     [property: StringLength(Max = 50)] string? Tag = default);
-
-public partial record Problem(
-    string? Type = default,
-    string? Title = default,
-    int? Status = default,
-    string? Detail = default);
 ```
-
-Three things in that interface come from the document rather than from a choice:
-
-- `GetPet` returns `Pet?` because the operation declares a 404. Returning `null` answers it with the
-  `Problem` body the document describes.
-- `CreatePet` returns `CreatePetResponse`, a struct with one case — `CreatePetCreated(Pet Body,
-  string Location)` — because the 201 declares a `Location` header, and `Pet` has nowhere to put one.
-- `limit` is `int?` because the parameter is not required.
 
 Both the interface and the records are `partial`, so a project adds members to either without
-editing generated files. Alongside them the build emits a handler per operation, the routing table,
-and a validation filter that checks the schema's constraints before your code runs. What the
-filter enforces and how a failure answers is [Validation](/guide/validation).
+editing generated files. What the validation filter enforces and how a failure answers is
+[Validation](/guide/validation).
 
-## The implementation
+## Refusing with a body
 
-Implement the interface and mark the class `[Handler]`:
-
-```csharp
-using Hardened.Requests.Abstract.Attributes;
-
-[Handler]
-public class PetService : IPetService {
-    private readonly IPetStore _store;
-
-    public PetService(IPetStore store) {
-        _store = store;
-    }
-
-    public Task<List<Pet>> ListPets(int? limit) =>
-        _store.List(limit ?? 20);
-
-    public async Task<CreatePetResponse> CreatePet(CreatePetRequest body) {
-        var pet = await _store.Add(body.Name, body.Tag);
-
-        return new CreatePetCreated(pet, "/pets/" + pet.Id);
-    }
-
-    public Task<Pet?> GetPet(string petId) =>
-        _store.Find(petId);
-}
-```
-
-That is the whole wiring. There are no route attributes — the verbs and paths came from the
-document — and nothing to register.
-
-To explain a refusal rather than answer it with the document's default body, throw the response the
+To explain a refusal rather than answer with the document's default body, throw the response the
 declared status binds to:
 
 ```csharp
 public async Task<Pet?> GetPet(string petId) {
-    if (await _store.IsArchived(petId)) {
+    if (await store.IsArchived(petId)) {
         throw new NotFound<Problem>(
             new Problem(Title: "Archived", Detail: $"Pet {petId} was archived.")).AsException();
     }
 
-    return await _store.Find(petId);
+    return await store.Find(petId);
 }
 ```
 
-An anonymous error, which is what a `$ref` to a shared `Problem` schema is, binds to the record the
-framework already ships for that status. The build generates nothing for it, and a code-first
-handler returns the same type. An error under a `components/responses` key keeps that name instead;
-see [When the build still generates a type](/guide/responses#when-the-build-still-generates-a-type).
-
-## What an attribute on the implementation does
-
-A `[Handler]` class implements a generated interface, and attributes go on its methods as they would
-anywhere. Which of them mean anything depends on **when** they are read.
-
-| | Read at | On a `[Handler]` method |
-|---|---|---|
-| `[Retry]`, `[RateLimit]`, `[CacheResponse<T>]`, `[Compress]`, `[ConditionalGet]`, `[Timeout]`, your own `IRequestFilterProvider` | run time, off the handler's metadata | **Honoured.** This is where a per-operation filter goes in a spec-first project |
-| `[AuthorizeGrants]`, `[Authorize<TAuth>]`, `[AllowAnonymous]`, an `IAuthorizationConvention` | run time, into the handler's `Requirement` | **Honoured**, and can only narrow what the contract admits |
-| `[Throws<T>]`, `[Tag]`, `[Server]` | build time, into the document | **Inert.** The build task writes the document from the contract before the compiler runs, so it never sees them |
-
-The rule is that anything shaping the *document* has to be in the description, and anything shaping
-the *pipeline* can be on the implementation.
-
-```csharp
-[Handler]
-public class PetService : IPetService {
-
-    [CacheResponse<VaryByRoute>(Duration = 60, Scope = CacheScope.AllCallers)]
-    [ConditionalGet]
-    public Task<Pet?> GetPet(string petId) => _store.Find(petId);
-}
-```
-
-A filter can also come from the description itself, with `x-filters` on the operation:
-
-```yaml
-paths:
-  /pets/{petId}:
-    get:
-      operationId: getPet
-      x-filters:
-        Audit:
-          Category: catalog
-```
-
-Each key names a filter attribute type and its object supplies property values. `x-filter-types` at
-the document root declares the types, each with a `namespace` and its `properties`, and
-`generate: false` for one that already exists in a referenced library rather than being emitted.
-
-Reach for `x-filters` when the description is the artefact several implementations share. Reach for
-an attribute on the method when the filter belongs to this implementation.
-
-A deadline has a field of its own rather than going through `x-filters`:
-
-```yaml
-paths:
-  /rates:
-    get:
-      operationId: readRates
-      x-hardened-timeout: 2000
-```
-
-The scalar is the budget in milliseconds. An object carries `status` and `retryAfterSeconds` beside
-it for an operation shedding load rather than waiting on a dependency. OpenAPI has no field for
-this, and that is not an oversight: the specification describes the exchange, and how long a server
-may take over it is a property of the server.
-
-It reaches the handler as the same [`[Timeout]`](/guide/request-timeouts) a code-first handler
-carries, so the nearest declaration still wins — a `[Timeout]` on the implementation's method
-overrides what the description said.
+An anonymous error, which is what a `$ref` to a shared `Problem` schema is, binds to the record
+the framework ships for that status. A code-first handler returns the same type. An error under a
+`components/responses` key keeps that name instead; see
+[When the build still generates a type](/guide/responses#when-the-build-still-generates-a-type).
 
 ## Declaring the whole response set
 
@@ -297,7 +219,7 @@ container, which the compiler checks you handled:
 
 ```csharp
 public async Task<GetPetResponse> GetPet(string petId) {
-    var pet = await _store.Find(petId);
+    var pet = await store.Find(petId);
 
     if (pet is null) {
         return new NotFound("pet", $"No pet has id {petId}.");
@@ -308,13 +230,74 @@ public async Task<GetPetResponse> GetPet(string petId) {
 ```
 
 The 404 is the framework's own `NotFound`. The container converts it into the `NotFound<Problem>`
-the document declares, filling the `Problem` from the record and its detail from the handler; the
-rule is under [declared responses](/guide/responses#specification-first).
+the document declares, filling the `Problem` from the record and its detail from the handler.
+[Declared responses](/guide/responses#specification-first) has the rule.
 
-`Throws`, `Response` or `Union`; absent means `Throws`. [Declared responses](/guide/responses)
-covers the three modes. Two rules hold in every mode: a non-200 success is honoured, so a `201` in
-the document is a 201 on the wire, and an operation declaring two 2xx statuses always gets a
-response container.
+`Throws`, `Response` or `Union`; absent means `Throws`. Two rules hold in every mode: a non-200
+success is honoured, so a `201` in the document is a 201 on the wire, and an operation declaring
+two 2xx statuses always gets a response container.
+
+## Attributes on the implementation
+
+A `[Handler]` class implements a generated interface, and attributes go on its methods as they
+would anywhere. Which of them mean anything depends on when they are read:
+
+| | Read at | On a `[Handler]` method |
+|---|---|---|
+| `[Retry]`, `[RateLimit]`, `[CacheResponse<T>]`, `[Compress]`, `[ConditionalGet]`, `[Timeout]`, your own `IRequestFilterProvider` | run time, off the handler's metadata | Honoured. This is where a per-operation filter goes in a spec-first project |
+| `[AuthorizeGrants]`, `[Authorize<TAuth>]`, `[AllowAnonymous]`, an `IAuthorizationConvention` | run time, into the handler's `Requirement` | Honoured, and can only narrow what the contract admits |
+| `[Throws<T>]`, `[Tag]`, `[Server]` | build time, into the document | Inert. The build task writes the document from the contract before the compiler runs, so it never sees them |
+
+Anything shaping the document has to be in the description. Anything shaping the pipeline can be
+on the implementation:
+
+```csharp
+[Handler]
+public class PetService : IPetService {
+
+    [CacheResponse<VaryByRoute>(Duration = 60, Scope = CacheScope.AllCallers)]
+    [ConditionalGet]
+    public Task<Pet?> GetPet(string petId) => store.Find(petId);
+}
+```
+
+### Filters from the description
+
+A filter can also come from the description itself, with `x-filters` on the operation:
+
+```yaml
+paths:
+  /pets/{petId}:
+    get:
+      operationId: getPet
+      x-filters:
+        Audit:
+          Category: catalog
+```
+
+Each key names a filter attribute type and its object supplies property values. `x-filter-types`
+at the document root declares the types, each with a `namespace` and its `properties`, and
+`generate: false` for one that already exists in a referenced library.
+
+Reach for `x-filters` when the description is the artefact several implementations share. Reach
+for an attribute on the method when the filter belongs to this implementation.
+
+### A deadline from the description
+
+A deadline has a field of its own:
+
+```yaml
+paths:
+  /rates:
+    get:
+      operationId: readRates
+      x-hardened-timeout: 2000
+```
+
+The scalar is the budget in milliseconds. An object carries `status` and `retryAfterSeconds`
+beside it for an operation shedding load. It reaches the handler as the same
+[`[Timeout]`](/guide/request-timeouts) a code-first handler carries, and the nearest declaration
+wins: a `[Timeout]` on the implementation's method overrides what the description said.
 
 ## Serving the document
 
@@ -333,7 +316,7 @@ The document is embedded verbatim and served at `PublishUrl` with the content ty
 implies. The reference page at `UiUrl` reads it. See
 [The OpenAPI document](/guide/openapi-document).
 
-## Choosing the namespace
+## Build properties
 
 Generated types default to the project's `RootNamespace`, suffixed with `.Models`, `.Services` and
 `.Generated`. Override the root:
@@ -345,13 +328,8 @@ Generated types default to the project's `RootNamespace`, suffixed with `.Models
 </PropertyGroup>
 ```
 
-Generated models and handlers carry `[ExcludeFromCodeCoverage]`. Turn that off with:
-
-```xml
-<PropertyGroup>
-    <ExcludeGeneratedCodeFromCoverage>false</ExcludeGeneratedCodeFromCoverage>
-</PropertyGroup>
-```
+Generated models and handlers carry `[ExcludeFromCodeCoverage]`. Turn that off with
+`<ExcludeGeneratedCodeFromCoverage>false</ExcludeGeneratedCodeFromCoverage>`.
 
 ## When nothing is generated
 
@@ -366,31 +344,18 @@ handed it and any parse errors:
 //   /src/Api/obj/Debug/net8.0/openapi/petstore.openapi-model.txt
 ```
 
-`Total AdditionalTexts: 0` means the build task's output never reached the compiler, which usually
-means the document is not declared as a `HardenedOpenApiSpec` item. A document still declared as
-`AdditionalFiles` stops the build with `HOAT003`, whose message names the item to use. Parse
-failures are raised as `HOAG002` warnings.
+`Total AdditionalTexts: 0` means the build task's output never reached the compiler, which
+usually means the document is not declared as a `HardenedOpenApiSpec` item. Parse failures are
+raised as `HOAG002` warnings.
 
 ## Testing
 
-Generated routes are ordinary Hardened routes, so
-[the web test client](/guide/testing-web) drives them:
-
-```csharp
-public class PetServiceTests {
-    [HardenedTest]
-    public async Task ListPetsReturnsPets(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/pets?limit=1");
-
-        response.Assert.Ok();
-
-        Assert.NotEmpty(response.Deserialize<List<Pet>>());
-    }
-}
-```
+Generated routes are ordinary Hardened routes, so `ITestWebApp` and a generated client drive them
+through the same pipeline. See [Sending requests](/guide/testing-web) and
+[Typed clients](/guide/testing-clients).
 
 ## Next
 
-- [Generating from Smithy](/guide/smithy) — the same generated output from a Smithy model
-- [The OpenAPI document](/guide/openapi-document) — serving a document and a reference page
-- [Declared responses](/guide/responses) — the three response models in full
+- [Generating from Smithy](/guide/smithy): the same generated output from a Smithy model
+- [The OpenAPI document](/guide/openapi-document): serving a document and a reference page
+- [Declared responses](/guide/responses): the three response models in full
