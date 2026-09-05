@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Assert through a Kiota-generated client in a Hardened test: [assembly: KiotaTesting] builds every Kiota client over the pipeline for a test parameter, and reads what a call answered for Returns&lt;T&gt;().</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Kiota.Testing</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!--
+             The two Kiota packages a client needs to be driven, and not Microsoft.Kiota.Bundle:
+             the bundle exists to bring the serializers, and a generated client registers those
+             itself in its own constructor. Adding it here would put a second copy of that
+             decision in every test project.
+        -->
+        <PackageReference Include="Microsoft.Kiota.Abstractions" Version="2.0.0" />
+        <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" Version="2.0.0" />
+        <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Kiota.Testing.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
+    </ItemGroup>
+
+</Project>

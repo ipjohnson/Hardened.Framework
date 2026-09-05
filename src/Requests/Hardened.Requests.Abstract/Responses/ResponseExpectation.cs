@@ -13,6 +13,51 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 public static class ResponseExpectation {
 
+    /// <summary>
+    /// The response type a call was expected to answer with, from what the client reported.
+    /// </summary>
+    /// <remarks>
+    /// The whole of what a <c>Returns&lt;T&gt;()</c> helper does, so the two client testing
+    /// libraries share it rather than each phrasing the same failure differently. Where they differ
+    /// is only in how they reach the three arguments: Kiota reports a refusal by throwing a model
+    /// carrying the status and the headers, Refit by returning an envelope holding all three.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Another status was answered, or the body was not the one the type declares.
+    /// </exception>
+    public static TExpected Match<TExpected>(
+        int status, object? body, IReadOnlyDictionary<string, string> headers)
+        where TExpected : IResponseExpectation<TExpected> {
+
+        if (status != TExpected.StatusCode) {
+            throw new InvalidOperationException(
+                $"Expected {TExpected.StatusCode} ({Name(typeof(TExpected))}), the call was answered " +
+                status + Carrying(body) + ".");
+        }
+
+        return TExpected.FromResponse(body, headers);
+    }
+
+    /// <summary>
+    /// The status a call was expected to answer with, and nothing about its body.
+    /// </summary>
+    /// <remarks>
+    /// For the response types that state something the wire does not carry back and so are not
+    /// expectations - <see cref="NotFound"/> naming the resource, <see cref="Conflict"/> its detail
+    /// line. Asserting the status against one of those still reads in the vocabulary of the
+    /// contract rather than as a number.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Another status was answered.</exception>
+    public static void MatchStatus<TStatus>(int status, object? body = null)
+        where TStatus : IDeclaresStatus {
+
+        if (status != TStatus.StatusCode) {
+            throw new InvalidOperationException(
+                $"Expected {TStatus.StatusCode} ({Name(typeof(TStatus))}), the call was answered " +
+                status + Carrying(body) + ".");
+        }
+    }
+
     /// <summary>The body, as the type the response declares it to be.</summary>
     /// <exception cref="InvalidOperationException">
     /// The response carried no body, or carried one of another type.
@@ -69,6 +114,24 @@ public static class ResponseExpectation {
     /// </exception>
     public static TimeSpan? OptionalRetryAfter(IReadOnlyDictionary<string, string> headers) =>
         OptionalHeader(headers, KnownHeaders.RetryAfter) is { } value ? Seconds(value) : null;
+
+    private static string Carrying(object? body) =>
+        body == null ? " with no body" : " carrying a " + Name(body.GetType());
+
+    /// <summary>
+    /// A type as it is written in source, because <c>NotFound`1</c> in a failure message is a
+    /// worse answer than the name the test author typed.
+    /// </summary>
+    /// <remarks>
+    /// Public because a client testing library writes messages of its own about the same types, and
+    /// one of them naming <c>NotFound&lt;Problem&gt;</c> while another names <c>NotFound`1</c>
+    /// would read as two different things.
+    /// </remarks>
+    public static string Name(Type type) =>
+        type.IsGenericType
+            ? type.Name[..type.Name.IndexOf('`')] +
+              "<" + string.Join(", ", type.GetGenericArguments().Select(Name)) + ">"
+            : type.Name;
 
     // Seconds only, which is what RetryAfter writes. The HTTP-date form is legal and is not read
     // back here, because turning one into a TimeSpan needs a clock and would make two runs of the

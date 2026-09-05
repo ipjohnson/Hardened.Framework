@@ -2,10 +2,14 @@ using System.Reflection;
 using DependencyModules.Testing.Attributes.Interfaces;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Impl;
+using Hardened.Web.Testing;
 using Hardened.Web.Testing.Tests.Conformance;
+using Hardened.Web.Testing.Tests.Transport;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
+
+[assembly: TestClientRoute(typeof(RoutedClientRoute))]
 
 namespace Hardened.Web.Testing.Tests.Transport;
 
@@ -46,7 +50,40 @@ public sealed class DefaultedClient {
     public DefaultedClient(string endpoint = "http://harness") { }
 }
 
-/// <summary>Neither route: a constructor over something no factory supplies.</summary>
+/// <summary>A whole shape of client, which is what a route answers for rather than one type.</summary>
+public class RoutedClient {
+    public RoutedClient(HttpClient http, string marker) {
+        Http = http;
+        Marker = marker;
+    }
+
+    public HttpClient Http { get; }
+
+    public string Marker { get; }
+}
+
+/// <summary>A second one, built by the same route with nothing written per client.</summary>
+public sealed class AnotherRoutedClient : RoutedClient {
+    public AnotherRoutedClient(HttpClient http, string marker) : base(http, marker) { }
+}
+
+public sealed class RoutedClientRoute : ITestClientRoute {
+    public bool CanBuild(Type clientType) => typeof(RoutedClient).IsAssignableFrom(clientType);
+
+    public object Build(TestClientContext context, Type clientType) =>
+        Activator.CreateInstance(clientType, context.Http, "routed")!;
+}
+
+/// <summary>A client an explicit factory claims, so the route never sees it.</summary>
+public sealed class ClaimedClient : RoutedClient {
+    public ClaimedClient(HttpClient http, string marker) : base(http, marker) { }
+}
+
+public sealed class ClaimedClientFactory : ITestClientFactory<ClaimedClient> {
+    public ClaimedClient Create(HttpClient http) => new(http, "factory");
+}
+
+/// <summary>None of the three: a constructor over something no factory supplies.</summary>
 public sealed class OrphanClient {
     public OrphanClient(string endpoint) {
         Endpoint = endpoint;
@@ -73,22 +110,22 @@ public class TestClientBuilderTests {
     public void ASingleHttpClientConstructorIsARoute() {
         Assert.True(TestClientBuilder.HasRoute(typeof(ConventionClient), TestAssembly));
 
-        using var http = new HttpClient();
+        var context = Context();
 
-        var client = (ConventionClient)TestClientBuilder.Build(typeof(ConventionClient), http, TestAssembly);
+        var client = (ConventionClient)TestClientBuilder.Build(typeof(ConventionClient), context, TestAssembly);
 
-        Assert.Same(http, client.Http);
+        Assert.Same(context.Http, client.Http);
     }
 
     [Fact]
     public void APublicFactoryInTheTestAssemblyIsARoute() {
         Assert.True(TestClientBuilder.HasRoute(typeof(AdaptedClient), TestAssembly));
 
-        using var http = new HttpClient();
+        var context = Context();
 
-        var client = (AdaptedClient)TestClientBuilder.Build(typeof(AdaptedClient), http, TestAssembly);
+        var client = (AdaptedClient)TestClientBuilder.Build(typeof(AdaptedClient), context, TestAssembly);
 
-        Assert.Same(http, client.Http);
+        Assert.Same(context.Http, client.Http);
     }
 
     [Fact]
@@ -96,19 +133,113 @@ public class TestClientBuilderTests {
         Assert.False(TestClientBuilder.HasRoute(typeof(AmbiguousClient), TestAssembly));
     }
 
+    /// <summary>
+    /// The route answers for a shape, so a second client of that shape costs nothing.
+    /// </summary>
     [Fact]
-    public void NeitherRouteFailsNamingBoth() {
+    public void ARouteTheAssemblyNamedIsARoute() {
+        Assert.True(TestClientBuilder.HasRoute(typeof(RoutedClient), TestAssembly));
+        Assert.True(TestClientBuilder.HasRoute(typeof(AnotherRoutedClient), TestAssembly));
+
+        var context = Context();
+
+        var client = (AnotherRoutedClient)TestClientBuilder.Build(
+            typeof(AnotherRoutedClient), context, TestAssembly);
+
+        Assert.Same(context.Http, client.Http);
+        Assert.Equal("routed", client.Marker);
+    }
+
+    /// <summary>
+    /// A test project that wants one client built its own way says so without giving up the route
+    /// for the rest.
+    /// </summary>
+    [Fact]
+    public void AFactoryWinsOverARouteThatWouldAlsoBuildIt() {
+        var context = Context();
+
+        var client = (ClaimedClient)TestClientBuilder.Build(typeof(ClaimedClient), context, TestAssembly);
+
+        Assert.Equal("factory", client.Marker);
+    }
+
+    /// <summary>
+    /// A mistyped declaration is a mistake about the assembly, and fails at discovery rather than
+    /// when a client happens to need the route.
+    /// </summary>
+    [Fact]
+    public void ADeclaredTypeThatIsNotARouteFailsAtDiscovery() {
+        var failure = Assert.Throws<InvalidOperationException>(() => TestClientBuilder.DiscoverRoutes(
+            [new TestClientRouteAttribute(typeof(ConventionClient))], "Some.Tests"));
+
+        Assert.Contains("Some.Tests names", failure.Message);
+        Assert.Contains("does not implement ITestClientRoute", failure.Message);
+    }
+
+    [Fact]
+    public void ARouteWithNoParameterlessConstructorFailsAtDiscovery() {
+        var failure = Assert.Throws<InvalidOperationException>(() => TestClientBuilder.DiscoverRoutes(
+            [new TestClientRouteAttribute(typeof(ConfiguredRoute))], "Some.Tests"));
+
+        Assert.Contains("no parameterless constructor", failure.Message);
+    }
+
+    private sealed class ConfiguredRoute(string marker) : ITestClientRoute {
+        public string Marker { get; } = marker;
+
+        public bool CanBuild(Type clientType) => false;
+
+        public object Build(TestClientContext context, Type clientType) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public void NoRouteFailsNamingAllThree() {
         Assert.False(TestClientBuilder.HasRoute(typeof(OrphanClient), TestAssembly));
 
-        using var http = new HttpClient();
+        var context = Context();
 
         var failure = Assert.Throws<InvalidOperationException>(
-            () => TestClientBuilder.Build(typeof(OrphanClient), http, TestAssembly));
+            () => TestClientBuilder.Build(typeof(OrphanClient), context, TestAssembly));
 
         Assert.Contains("ITestClientFactory<OrphanClient>", failure.Message);
         Assert.Contains("exactly one HttpClient", failure.Message);
+        Assert.Contains(nameof(RoutedClientRoute), failure.Message);
         Assert.Contains(TestAssembly.GetName().Name!, failure.Message);
     }
+
+    /// <summary>
+    /// A handler of the caller's own runs in front of the pipeline, which is what a client testing
+    /// package needs to see the responses its client swallows.
+    /// </summary>
+    [Fact]
+    public async Task ARouteMayPutItsOwnHandlersInFrontOfThePipeline() {
+        var host = new PipelineHost();
+        var seen = new CountingHandler();
+
+        var context = TestClientBuilder.CreateContext(host.Provider, null);
+
+        using var http = context.CreateHttpClient(seen);
+
+        Assert.Equal("http://harness/", http.BaseAddress!.ToString());
+
+        await http.GetAsync("/anything", Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, seen.Calls);
+    }
+
+    private sealed class CountingHandler : DelegatingHandler {
+        public int Calls;
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken) {
+            Calls++;
+
+            return base.SendAsync(request, cancellationToken);
+        }
+    }
+
+    private static TestClientContext Context() =>
+        TestClientBuilder.CreateContext(new PipelineHost().Provider, null);
 
     [Fact]
     public void TheHttpClientCarriesTheBaseAddressAndTheCredential() {

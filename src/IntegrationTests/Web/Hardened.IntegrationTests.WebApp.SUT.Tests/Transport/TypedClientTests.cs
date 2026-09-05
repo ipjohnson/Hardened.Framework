@@ -25,11 +25,16 @@ public class TypedClientTests {
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    /// <summary>
+    /// The factory, the two routes this assembly names and the constructor convention: a client
+    /// none of them can build fails naming all of them, so the message says what to add.
+    /// </summary>
     [HardenedTest]
-    public void AClientWithNeitherRouteFailsNamingBoth(ITestWebApp app) {
+    public void AClientWithNoRouteFailsNamingAllOfThem(ITestWebApp app) {
         var failure = Assert.Throws<InvalidOperationException>(() => app.CreateClient<OrphanClient>());
 
         Assert.Contains("ITestClientFactory<OrphanClient>", failure.Message);
+        Assert.Contains("KiotaClientRoute, RefitClientRoute", failure.Message);
         Assert.Contains("exactly one HttpClient", failure.Message);
     }
 

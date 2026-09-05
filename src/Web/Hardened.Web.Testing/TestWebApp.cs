@@ -76,7 +76,7 @@ public class TestWebApp : TestContext, ITestWebApp {
     public TClient CreateClient<TClient>(TestCredential? credential = null) where TClient : class =>
         (TClient)TestClientBuilder.Build(
             typeof(TClient),
-            CreateHttpClient(credential),
+            TestClientBuilder.CreateContext(_applicationRoot.Provider, credential ?? _credential),
             _testAssembly ?? Assembly.GetCallingAssembly());
 
     private async Task<TestWebResponse> ExecuteHttpMethod(string httpMethod, string path,

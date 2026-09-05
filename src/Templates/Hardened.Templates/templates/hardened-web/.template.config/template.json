@@ -248,12 +248,11 @@
           ]
         },
         {
-          "comment": "Everything the client brings, as one unit: the project, the tool manifest that pins Kiota, the factory that builds the client for a test, and the tests that drive it. The export property in the library csproj and the client project's lines in both solution files sit behind the same symbol in their own files.",
+          "comment": "Everything the client brings, as one unit: the project, the tool manifest that pins Kiota, and the tests that drive it. The export property in the library csproj, the testing package and its assembly attribute in the test project, and the client project's lines in both solution files sit behind the same symbol in their own files.",
           "condition": "(!kiotaClient)",
           "exclude": [
             "src/Hardened1.Client/**",
             ".config/**",
-            "tests/Hardened1.Tests/TestClients.cs",
             "tests/Hardened1.Tests/Hardened1ClientTests.cs"
           ]
         }

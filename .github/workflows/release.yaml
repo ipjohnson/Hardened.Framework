@@ -246,6 +246,8 @@ jobs:
             src/Web/Hardened.Web.Kestrel.Runtime/Hardened.Web.Kestrel.Runtime.csproj \
             src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
             src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
+            src/Clients/Hardened.Kiota.Testing/Hardened.Kiota.Testing.csproj \
+            src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj \
             src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj \
             src/Templates/Hardened.Templates/Hardened.Templates.csproj; do
             dotnet pack "$project" --configuration Release --no-build --output ./artifacts \
@@ -281,7 +283,9 @@ jobs:
           # release - which is the check working, and the fourth time this list has drifted.
           # 23 after Hardened.Requests.Caching.Memory, the response cache store, arrived with
           # response caching.
-          EXPECTED=23
+          # 25 after the two client testing packages, Hardened.Kiota.Testing and
+          # Hardened.Refit.Testing.
+          EXPECTED=25
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

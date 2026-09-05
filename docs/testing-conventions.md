@@ -40,10 +40,14 @@ substitute for `AssertNoErrors`.
 | Integration | Does the real pipeline, end to end, produce the right result? | `IntegrationTests/**` |
 
 The Web integration suite also drives a client Kiota generated from the application's exported
-document, in `GeneratedClientTests`, with the fixture that generates it in
-`Hardened.IntegrationTests.WebApp.SUT.Client`. A test that needs a generated client copies that
-shape: the client as a parameter, a factory in `TestClients.cs`, refusals asserted in the client's
-own exception types, and `LastResponse` for what the client swallowed.
+document, in `GeneratedClientTests` and `KiotaReturnsTests`, with the fixture that generates it in
+`Hardened.IntegrationTests.WebApp.SUT.Client`, and a Refit interface over the same routes in
+`RefitReturnsTests`. A test that needs a generated client copies that shape: `[assembly:
+KiotaTesting]` or `[assembly: RefitTesting]` in `Bootstrap.cs`, the client as a parameter, and
+`Returns<T>()` naming the response type the contract declares - `Created<Todo>`,
+`NotFound<Problem>`, `NoContent` - which is the status, the body type and the headers in one word.
+`Assert.ThrowsAsync` in the client's own exception types and `LastResponse` remain for what a
+response type cannot say. `docs/client-testing.md` has the two packages.
 
 Prefer the cheapest kind that can actually fail for the reason you care about. A routing bug is a
 unit test; "the handler receives what the request carried" is an integration test, because that
