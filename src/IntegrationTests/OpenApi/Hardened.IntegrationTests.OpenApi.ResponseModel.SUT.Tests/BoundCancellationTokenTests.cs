@@ -51,4 +51,18 @@ public class BoundCancellationTokenTests {
         Assert.NotNull(LabelServiceImpl.LastDeadlineRemainingMs);
         Assert.InRange(LabelServiceImpl.LastDeadlineRemainingMs!.Value, 0, 30_000);
     }
+
+    /// <summary>
+    /// The two routes into a described handler agree. The parameter is bound off the context by the
+    /// generated dispatch and the accessor is published by the filter, and both are meant to be the
+    /// token the budget cancels.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheAccessorCarriesTheSameTokenThatWasBound(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/labels/abc");
+
+        response.Assert.Ok();
+
+        Assert.True(LabelServiceImpl.AccessorTokenMatchedTheBoundOne);
+    }
 }

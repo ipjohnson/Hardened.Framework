@@ -25,11 +25,12 @@ namespace Hardened.Requests.Runtime.Filters;
 /// a thread runs to completion and the request answers late; nothing here can take a thread back.
 /// </para>
 /// <para>
-/// <b>It also publishes the deadline, for the handler that has to decide before it starts.</b>
+/// <b>It also publishes the budget, for the handler that has to decide before it starts.</b>
 /// The token says stop and says nothing about how long there was;
-/// <see cref="IRequestDeadline"/> answers the second question. Publishing it writes an
-/// <c>AsyncLocal</c>, which every continuation after it copies, so
-/// <c>[Timeout(Deadline = false)]</c> turns it off for a handler that will not read it.
+/// <see cref="IRequestDeadline"/> carries both readings, published together from here so they
+/// cannot describe different budgets. Publishing writes an <c>AsyncLocal</c>, which every
+/// continuation after it copies, so <c>[Timeout(Deadline = false)]</c> turns it off for a handler
+/// that will not read it.
 /// </para>
 /// <para>
 /// See <see cref="CancellationScope"/> for why the token is put back rather than left swapped, and
@@ -57,7 +58,7 @@ public class TimeoutFilter : IExecutionFilter {
 
         try {
             using (context.WithCancellation(deadline.Token))
-            using (RequestDeadline.Until(Published())) {
+            using (RequestDeadline.Until(Published(), deadline.Token)) {
                 await chain.Next();
             }
         }

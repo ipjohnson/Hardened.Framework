@@ -19,29 +19,41 @@ namespace Hardened.Requests.Runtime.Filters;
 /// nothing writes this unless a budget was declared, and why <c>[Timeout(Deadline = false)]</c>
 /// exists for a bounded handler that would rather not pay it.
 /// </para>
+/// <para>
+/// One <c>AsyncLocal</c> holding both readings rather than two. They describe one fact and are
+/// published together, and two cells could be read a continuation apart and disagree.
+/// </para>
 /// </remarks>
 internal sealed class RequestDeadline : IRequestDeadline {
 
-    private static readonly AsyncLocal<MachineTimestamp?> Current = new();
+    private static readonly AsyncLocal<Bound?> Current = new();
 
     /// <inheritdoc />
-    public MachineTimestamp? Deadline => Current.Value;
+    public MachineTimestamp? Deadline => Current.Value?.Deadline;
+
+    /// <inheritdoc />
+    public CancellationToken CancellationToken =>
+        Current.Value?.CancellationToken ?? CancellationToken.None;
 
     /// <summary>
-    /// Publishes <paramref name="deadline"/> until the scope is disposed, or nothing when it is
-    /// null.
+    /// Publishes a budget until the scope is disposed, or nothing when <paramref name="deadline"/>
+    /// is null.
     /// </summary>
-    internal static DeadlineScope Until(MachineTimestamp? deadline) => new(deadline);
+    internal static DeadlineScope Until(MachineTimestamp? deadline, CancellationToken token) =>
+        new(deadline, token);
 
-    /// <summary>The value the scope reads and restores. Not part of the contract.</summary>
-    internal static MachineTimestamp? Value {
+    /// <summary>The cell the scope reads and restores. Not part of the contract.</summary>
+    internal static Bound? Value {
         get => Current.Value;
         set => Current.Value = value;
     }
+
+    /// <summary>What a bounded request has: when it runs out, and the token that fires then.</summary>
+    internal sealed record Bound(MachineTimestamp Deadline, CancellationToken CancellationToken);
 }
 
 /// <summary>
-/// Publishes a deadline for a span of the pipeline, and puts the previous one back.
+/// Publishes a budget for a span of the pipeline, and puts the previous one back.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -51,16 +63,16 @@ internal sealed class RequestDeadline : IRequestDeadline {
 /// written the same way.
 /// </para>
 /// <para>
-/// A struct, so a bounded request allocates nothing for this. Constructing one with null writes
-/// nothing and disposing it restores nothing, which is how a handler that declined the deadline
-/// pays for none of it.
+/// A struct, so the scope itself allocates nothing. Constructing one with a null deadline writes
+/// nothing and disposing it restores nothing, which is how a handler that declined the budget pays
+/// for none of it.
 /// </para>
 /// </remarks>
 internal readonly struct DeadlineScope : IDisposable {
-    private readonly MachineTimestamp? _previous;
+    private readonly RequestDeadline.Bound? _previous;
     private readonly bool _published;
 
-    internal DeadlineScope(MachineTimestamp? deadline) {
+    internal DeadlineScope(MachineTimestamp? deadline, CancellationToken token) {
         if (deadline is not { } until) {
             _previous = null;
             _published = false;
@@ -70,7 +82,7 @@ internal readonly struct DeadlineScope : IDisposable {
 
         _previous = RequestDeadline.Value;
         _published = true;
-        RequestDeadline.Value = until;
+        RequestDeadline.Value = new RequestDeadline.Bound(until, token);
     }
 
     public void Dispose() {

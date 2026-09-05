@@ -49,6 +49,16 @@ public class LabelServiceImpl : ILabelService {
     public static double? LastDeadlineRemainingMs { get; private set; }
 
     /// <summary>
+    /// Whether the token the accessor carried is the one the bound parameter got.
+    /// </summary>
+    /// <remarks>
+    /// The two reach the handler by different routes - one bound onto the signature, one published
+    /// into an AsyncLocal - and both are meant to be the budget's. A handler that took one and
+    /// passed the other would bound nothing.
+    /// </remarks>
+    public static bool AccessorTokenMatchedTheBoundOne { get; private set; }
+
+    /// <summary>
     /// The 404 is the framework's own record. The build wrote the conversion into the case the
     /// contract declares, NotFound&lt;Problem&gt;, with the Problem's title and status filled from
     /// the record and the detail from here.
@@ -57,6 +67,7 @@ public class LabelServiceImpl : ILabelService {
     public Task<GetLabelResponse> GetLabel(string labelId, CancellationToken cancellationToken) {
         LastTokenCanBeCanceled = cancellationToken.CanBeCanceled;
         LastDeadlineRemainingMs = _deadline.Deadline?.GetRemainingMilliseconds();
+        AccessorTokenMatchedTheBoundOne = _deadline.CancellationToken == cancellationToken;
 
         if (labelId == "missing") {
             return Task.FromResult<GetLabelResponse>(new NotFound("label", "No such label"));

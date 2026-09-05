@@ -19,6 +19,9 @@ public class RequestDeadlineTests {
     /// <summary>Longer than any test here takes, so nothing expires on its own.</summary>
     private const int LongBudget = 60_000;
 
+    /// <summary>Short enough to expire during a test, but not so short it races.</summary>
+    private const int ShortBudget = 30;
+
     private static readonly IRequestDeadline Accessor = new RequestDeadline();
 
     [Fact]
@@ -86,6 +89,9 @@ public class RequestDeadlineTests {
 
         Assert.Null(observed);
 
+        // Both readings say the same thing, and neither is a token that looks live.
+        Assert.False(Accessor.CancellationToken.CanBeCanceled);
+
         // The budget still applies; only the reading of it was declined.
         Assert.True(bounded.CanBeCanceled);
     }
@@ -93,6 +99,51 @@ public class RequestDeadlineTests {
     [Fact]
     public void AHandlerNoBudgetAppliesToReadsNothing() {
         Assert.Null(Accessor.Deadline);
+        Assert.Equal(CancellationToken.None, Accessor.CancellationToken);
+    }
+
+    /// <summary>
+    /// The published token is the one enforcing the budget, not a copy of the transport's. Passing
+    /// it to an upstream call is what makes the deadline reach that call, so a token that merely
+    /// looks cancellable would be the wrong one.
+    /// </summary>
+    [Fact]
+    public async Task ThePublishedTokenIsTheOneTheBudgetCancels() {
+        using var transport = new CancellationTokenSource();
+
+        var context = Pipeline.Cancellable(transport.Token);
+
+        CancellationToken published = default;
+        CancellationToken installed = default;
+
+        await Pipeline.Chain(
+            context,
+            new TimeoutFilter(LongBudget),
+            new Pipeline.Inline(chain => {
+                published = Accessor.CancellationToken;
+                installed = chain.Context.CancellationToken;
+
+                return Task.CompletedTask;
+            })).Next();
+
+        Assert.Equal(installed, published);
+        Assert.NotEqual(transport.Token, published);
+    }
+
+    /// <summary>
+    /// The whole point of carrying the token: work started on it is abandoned when the budget runs
+    /// out, for a handler that reached it through the accessor rather than a parameter.
+    /// </summary>
+    [Fact]
+    public async Task WorkStartedOnThePublishedTokenIsCancelledByTheBudget() {
+        var context = Pipeline.Context();
+
+        var chain = Pipeline.Chain(
+            context,
+            new TimeoutFilter(ShortBudget),
+            new Pipeline.Inline(_ => Task.Delay(Timeout.Infinite, Accessor.CancellationToken)));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => chain.Next());
     }
 
     /// <summary>
@@ -106,6 +157,7 @@ public class RequestDeadlineTests {
         await Pipeline.Chain(context, new TimeoutFilter(LongBudget)).Next();
 
         Assert.Null(Accessor.Deadline);
+        Assert.Equal(CancellationToken.None, Accessor.CancellationToken);
     }
 
     /// <summary>
