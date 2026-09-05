@@ -31,6 +31,10 @@ public class HardenedTestEntryPointSetupTests {
         collection.AddSingleton(new StartupLog());
         beforeSetup?.Invoke(collection);
 
+        // Driven directly, so nothing has loaded the runner package for this test; the attribute
+        // registers the logger provider of whatever runner is installed.
+        XunitCurrentTestProvider.Install();
+
         new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule))
             .SetupServiceCollection(FakeTestMethodContext.For<T>(methodName), collection);
 

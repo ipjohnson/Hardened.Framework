@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -12,13 +12,6 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
-        <!--
-             The extensibility surface only. This is a shipped library that other people's test
-             projects reference, not a test project itself, and xunit.v3 pulls in
-             xunit.v3.core.mtp-v1, whose targets hard-error unless the project is an executable
-             test project. Microsoft.NET.Test.Sdk went with it for the same reason.
-        -->
-        <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <Description>Test support for Hardened applications: the [HardenedTest] attribute, [Mock] parameter injection and ITestContext.</Description>
+        <Description>Test support for Hardened applications: the entry point attribute that builds a test's container from the real module graph, [Mock] parameter injection, ITestContext, and the running-test seam a runner package fills. Reference Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit beside it for [HardenedTest].</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
@@ -14,22 +14,21 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
-        <!--
-             The extensibility surface only. This is a shipped library that other people's test
-             projects reference, not a test project itself, and xunit.v3 pulls in
-             xunit.v3.core.mtp-v1, whose targets hard-error unless the project is an executable
-             test project. Microsoft.NET.Test.Sdk went with it for the same reason.
-        -->
-        <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2" />
         <PackageReference Include="NSubstitute" Version="5.1.0" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"
-                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
-        <PackageReference Include="DependencyModules.xUnit" Version="$(DependencyModulesVersion)"
-                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
+        <!--
+             No runner here. The attributes talk to DependencyModules.Testing's interfaces, which
+             both of its runner integrations call the same way; the runner arrives with
+             Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit, which is what carries
+             [HardenedTest].
+        -->
+        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj"
+                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj')"/>
+        <PackageReference Include="DependencyModules.Testing" Version="$(DependencyModulesVersion)"
+                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj')"/>
     </ItemGroup>
 
 </Project>

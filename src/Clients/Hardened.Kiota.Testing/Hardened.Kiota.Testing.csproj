@@ -18,7 +18,6 @@
         -->
         <PackageReference Include="Microsoft.Kiota.Abstractions" Version="2.0.0" />
         <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" Version="2.0.0" />
-        <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2" />
     </ItemGroup>
 
     <ItemGroup>

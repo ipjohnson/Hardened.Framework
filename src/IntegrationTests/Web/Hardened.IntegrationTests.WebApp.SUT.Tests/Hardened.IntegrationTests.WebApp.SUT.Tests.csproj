@@ -26,6 +26,8 @@
            parameter, and Returns<T>() over it. Transport/KiotaReturnsTests and RefitReturnsTests. -->
       <ProjectReference Include="..\..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj" />
       <ProjectReference Include="..\..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj" />
+          <!-- The runner: [HardenedTest] and the running-test seam, for xUnit. -->
+      <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
     </ItemGroup>
 
     <!--

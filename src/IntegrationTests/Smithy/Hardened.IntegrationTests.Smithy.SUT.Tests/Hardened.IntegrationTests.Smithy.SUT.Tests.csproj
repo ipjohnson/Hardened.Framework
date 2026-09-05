@@ -19,6 +19,8 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
         <ProjectReference Include="..\Hardened.IntegrationTests.Smithy.SUT\Hardened.IntegrationTests.Smithy.SUT.csproj"/>
+          <!-- The runner: [HardenedTest] and the running-test seam, for xUnit. -->
+      <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
     </ItemGroup>
 
     <!-- The shared front-end conformance suite. Linked rather than referenced - see the remarks on

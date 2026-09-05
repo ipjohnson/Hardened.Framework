@@ -1,8 +1,7 @@
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using Hardened.Requests.Abstract.Responses;
-using Xunit;
-using Xunit.v3;
+using Hardened.Shared.Testing;
 
 namespace Hardened.Web.Testing;
 
@@ -126,13 +125,13 @@ public static class ClientAssertions {
 
     /// <summary>The readers the running test's assembly named, in the order it named them.</summary>
     private static IReadOnlyList<ITestClientReader> Readers(string expectation) {
-        if (TestContext.Current.TestClass is not IXunitTestClass { Class: var testClass }) {
+        if (CurrentTest.Assembly is not { } testAssembly) {
             throw new InvalidOperationException(
                 $"{expectation} reads the call through the routes the test assembly named, which " +
-                "needs a running xUnit test, and there is none.");
+                "needs a running test, and there is none.");
         }
 
-        return ReadersOf(testClass.Assembly, expectation);
+        return ReadersOf(testAssembly, expectation);
     }
 
     internal static IReadOnlyList<ITestClientReader> ReadersOf(Assembly testAssembly, string expectation) {

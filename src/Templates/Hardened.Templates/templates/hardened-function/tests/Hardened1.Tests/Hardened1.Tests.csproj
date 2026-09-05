@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Testing" />
+    <!-- The runner: [HardenedTest] for xUnit. Hardened.Shared.Testing.NUnit is the other one. -->
+    <PackageReference Include="Hardened.Shared.Testing.xUnit" />
     <PackageReference Include="Hardened.Amz.Function.Lambda.Testing" />
 <!--#if (sqs) -->
     <PackageReference Include="Hardened.Amz.Function.Sqs.Testing" />

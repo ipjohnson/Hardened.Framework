@@ -24,12 +24,6 @@ namespace Hardened.Shared.Testing.Attributes
         public string Value { get; }
         public string Variable { get; }
     }
-    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false)]
-    [Xunit.v3.XunitTestCaseDiscoverer(typeof(DependencyModules.xUnit.Impl.ModuleTestDiscoverer))]
-    public class HardenedTestAttribute : Xunit.FactAttribute
-    {
-        public HardenedTestAttribute() { }
-    }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method)]
     public class HardenedTestEntryPointAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider, DependencyModules.Runtime.Interfaces.IModuleEnvironmentProvider, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute, DependencyModules.Testing.Attributes.Interfaces.ITestStartupAttribute
     {
@@ -75,6 +69,20 @@ namespace Hardened.Shared.Testing.Attributes
 }
 namespace Hardened.Shared.Testing
 {
+    public static class CurrentTest
+    {
+        public static System.Reflection.Assembly? Assembly { get; }
+        public static string? DisplayName { get; }
+        public static object? Key { get; }
+        public static Hardened.Shared.Testing.ICurrentTestProvider? Provider { get; set; }
+    }
+    public interface ICurrentTestProvider
+    {
+        System.Reflection.Assembly? Assembly { get; }
+        string? DisplayName { get; }
+        object? Key { get; }
+        Microsoft.Extensions.Logging.ILoggerProvider CreateLoggerProvider();
+    }
     public interface IRetryEngine
     {
         int Delay { get; set; }
@@ -150,41 +158,6 @@ namespace Hardened.Shared.Testing.Impl
         public string Name { get; }
         public T? CustomData<T>(string name, T? defaultValue = default) { }
         public T? Value<T>(string name, T? defaultValue = default) { }
-    }
-}
-namespace Hardened.Shared.Testing.Logging
-{
-    public class XUnitLogger : Microsoft.Extensions.Logging.ILogger
-    {
-        public XUnitLogger(string loggerName) { }
-        public System.IDisposable? BeginScope<TState>(TState state)
-            where TState :  notnull { }
-        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) { }
-        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, System.Exception? exception, System.Func<TState, System.Exception?, string> formatter) { }
-        public class ExceptionRecord : System.IEquatable<Hardened.Shared.Testing.Logging.XUnitLogger.ExceptionRecord>
-        {
-            public ExceptionRecord(string Type, string Message, string StackTrace) { }
-            public string Message { get; init; }
-            public string StackTrace { get; init; }
-            public string Type { get; init; }
-        }
-        public class StructuredLogEntry<TState> : System.IEquatable<Hardened.Shared.Testing.Logging.XUnitLogger.StructuredLogEntry<TState>>
-        {
-            public StructuredLogEntry(System.DateTime Timestamp, string Logger, Microsoft.Extensions.Logging.LogLevel LogLevel, Microsoft.Extensions.Logging.EventId EventId, string Message, TState Data, Hardened.Shared.Testing.Logging.XUnitLogger.ExceptionRecord? Exception) { }
-            public TState Data { get; init; }
-            public Microsoft.Extensions.Logging.EventId EventId { get; init; }
-            public Hardened.Shared.Testing.Logging.XUnitLogger.ExceptionRecord? Exception { get; init; }
-            public Microsoft.Extensions.Logging.LogLevel LogLevel { get; init; }
-            public string Logger { get; init; }
-            public string Message { get; init; }
-            public System.DateTime Timestamp { get; init; }
-        }
-    }
-    public class XunitLoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider, System.IDisposable
-    {
-        public XunitLoggerProvider() { }
-        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) { }
-        public void Dispose() { }
     }
 }
 namespace Hardened.Shared.Testing.Utilties

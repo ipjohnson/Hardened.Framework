@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Xunit;
-using Xunit.Sdk;
+using Hardened.Shared.Testing;
 
 namespace Hardened.Kiota.Testing;
 
@@ -21,8 +20,8 @@ namespace Hardened.Kiota.Testing;
 /// what <c>LastResponse</c> reports and is a different claim.
 /// </para>
 /// <para>
-/// <b>The last response the client received in the current test.</b> Keyed on xUnit's
-/// <see cref="TestContext.Current"/> the way <c>LastResponse</c> is, so two tests running in
+/// <b>The last response the client received in the current test.</b> Keyed on
+/// <see cref="CurrentTest.Key"/> the way <c>LastResponse</c> is, so two tests running in
 /// parallel never see each other's. Within one test it is the most recent call, which is what
 /// <c>await client.Todos.PostAsync(…).Returns&lt;Created&lt;Todo&gt;&gt;()</c> is asking about -
 /// awaiting several calls at once and then asserting on one of them is not a shape this can
@@ -31,14 +30,14 @@ namespace Hardened.Kiota.Testing;
 /// </remarks>
 internal sealed class RecordingHandler : DelegatingHandler {
 
-    private static readonly ConditionalWeakTable<ITest, Received> Responses = new();
+    private static readonly ConditionalWeakTable<object, Received> Responses = new();
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken) {
 
         var response = await base.SendAsync(request, cancellationToken);
 
-        if (TestContext.Current.Test is { } test) {
+        if (CurrentTest.Key is { } test) {
             Responses.AddOrUpdate(test, Read(response));
         }
 
@@ -52,7 +51,7 @@ internal sealed class RecordingHandler : DelegatingHandler {
     public static bool TryCurrent([NotNullWhen(true)] out Received? received) {
         received = null;
 
-        return TestContext.Current.Test is { } test && Responses.TryGetValue(test, out received);
+        return CurrentTest.Key is { } test && Responses.TryGetValue(test, out received);
     }
 
     /// <summary>
