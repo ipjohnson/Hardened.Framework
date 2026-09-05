@@ -120,6 +120,55 @@ public class SpecSlicerTests {
     /// trace of <c>Dog</c> is its own <c>allOf</c> pointing back. Dropping it would compile and
     /// then fail to deserialize the response it was told to expect.
     /// </remarks>
+    /// <summary>
+    /// A schema a streamed operation reaches only through <c>itemSchema</c> is kept.
+    /// </summary>
+    /// <remarks>
+    /// The item is the only reference a streamed operation holds to its payload - the success
+    /// carries no schema of its own - and the walk did not include it, so the schema was pruned as
+    /// unreferenced while the generated service interface still named it: CS0234 in generated
+    /// code, from a contract that was right.
+    /// </remarks>
+    [Fact]
+    public void ASchemaReachedOnlyThroughAnItemSchemaIsKept() {
+        var model = OpenApiSpecParser.Parse(Streamed, "spec", CancellationToken.None)!;
+
+        var result = SpecSlicer.Apply(model, new SpecSlicer.Filter());
+
+        Assert.Equal(1, result.SchemasDropped);
+
+        var names = model.Schemas.ConvertAll(schema => schema.Name);
+
+        Assert.Contains("Reading", names);
+        Assert.DoesNotContain("Unreferenced", names);
+    }
+
+    private const string Streamed = """
+        openapi: "3.2.0"
+        info: { title: T, version: "1.0" }
+        paths:
+          /readings:
+            get:
+              tags: [Readings]
+              operationId: readings
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    text/event-stream:
+                      itemSchema: { $ref: '#/components/schemas/Reading' }
+        components:
+          schemas:
+            Reading:
+              type: object
+              properties:
+                value: { type: number }
+            Unreferenced:
+              type: object
+              properties:
+                nothing: { type: string }
+        """;
+
     [Fact]
     public void ASubtypeOfADiscriminatedBaseIsReachedThroughTheBase() {
         var model = OpenApiSpecParser.Parse(Polymorphic, "spec", CancellationToken.None)!;

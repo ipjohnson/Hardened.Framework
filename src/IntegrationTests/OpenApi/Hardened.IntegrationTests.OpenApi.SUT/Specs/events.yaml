@@ -1,0 +1,47 @@
+# A second contract in the same project, on the 3.2 banner: itemSchema is a 3.2 keyword, and the
+# reader surfaces it only under that banner. petstore.yaml stays at 3.0.0 because its nullable
+# spelling is the 3.0 one, and a banner change would silently change what that property means.
+#
+# No declared error response. The handler still refuses an unknown pet with a thrown NotFound
+# before the first event, as a code-first stream does; the refusal is not declared here because a
+# second contract declaring an error body emits a second DefaultErrorBodies holder into the one
+# Models namespace, which does not compile beside petstore's. A declared 404 beside a stream is
+# covered by StreamedOperationTests in Hardened.OpenApi.SourceGenerator.Tests.
+openapi: "3.2.0"
+info:
+  title: Pet history
+  version: "1.0.0"
+paths:
+  /pets/{petId}/events:
+    get:
+      tags:
+        - PetHistory
+      operationId: petEvents
+      summary: The pet's history, one event at a time.
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The pet's history, one event at a time.
+          content:
+            text/event-stream:
+              itemSchema:
+                $ref: '#/components/schemas/PetEvent'
+
+components:
+  schemas:
+    # Referenced from the itemSchema alone, which is what proves the slicer keeps it.
+    PetEvent:
+      type: object
+      required:
+        - petId
+        - kind
+      properties:
+        petId:
+          type: string
+        kind:
+          type: string

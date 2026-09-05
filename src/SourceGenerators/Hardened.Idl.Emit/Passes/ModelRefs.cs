@@ -128,6 +128,14 @@ internal static class ModelRefs {
                     operation.ResponseArrayItemsRef, primary + " items",
                     value => captured.ResponseArrayItemsRef = value);
 
+                // One item of a streamed response. It is the only reference a streamed operation
+                // holds to its payload - the success carries no schema of its own - and a walk
+                // without it pruned the item's schema as unreferenced while the service interface
+                // still named it: CS0234 in generated code, from a contract that was right.
+                yield return new Handle(
+                    operation.ItemSchemaRef, primary + " item",
+                    value => captured.ItemSchemaRef = value);
+
                 foreach (var error in operation.ErrorResponses) {
                     var errorCaptured = error;
 
