@@ -29,6 +29,8 @@
       <ProjectReference Include="..\..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj" />
           <!-- The Kestrel test host: [KestrelHost] on the socket smoke tests. -->
       <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Testing\Hardened.Web.Kestrel.Testing.csproj" />
+      <!-- The ASP.NET Core test host: [AspNetCoreHost] on the socket smoke tests. -->
+      <ProjectReference Include="..\..\..\Web\Hardened.Web.AspNetCore.Testing\Hardened.Web.AspNetCore.Testing.csproj" />
     </ItemGroup>
 
 </Project>
