@@ -165,18 +165,18 @@ namespace Hardened.Web.Runtime.Compression
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class HardenedCompression : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    public class ResponseCompression : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
-        public HardenedCompression() { }
+        public ResponseCompression() { }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
-    public class HardenedCompressionAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    public class ResponseCompressionAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
-        public HardenedCompressionAttribute() { }
+        public ResponseCompressionAttribute() { }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     public sealed class ResponseCompressionFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter

@@ -11,7 +11,7 @@ namespace Hardened.Web.Runtime.Compression;
 ///
 /// <code>
 /// [HardenedModule]
-/// [Enable&lt;HardenedCompression&gt;]
+/// [Enable&lt;ResponseCompression&gt;]
 /// [KestrelRuntime]
 /// public partial class Application { }
 /// </code>
@@ -36,7 +36,7 @@ namespace Hardened.Web.Runtime.Compression;
 /// </para>
 /// </summary>
 [DependencyModule]
-public partial class HardenedCompression : IServiceCollectionConfiguration {
+public partial class ResponseCompression : IServiceCollectionConfiguration {
 
     public void ConfigureServices(IServiceCollection services) {
         services.AddGlobalFilter(
@@ -47,7 +47,7 @@ public partial class HardenedCompression : IServiceCollectionConfiguration {
     /// <summary>
     /// Every install is the same install, so writing this twice registers one default.
     /// </summary>
-    public override bool Equals(object? obj) => obj is HardenedCompression;
+    public override bool Equals(object? obj) => obj is ResponseCompression;
 
-    public override int GetHashCode() => typeof(HardenedCompression).GetHashCode();
+    public override int GetHashCode() => typeof(ResponseCompression).GetHashCode();
 }

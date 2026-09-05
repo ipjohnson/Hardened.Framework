@@ -7,7 +7,7 @@ namespace Hardened.Templates.RazorBlade;
 ///
 /// <code>
 /// [HardenedModule]
-/// [Enable&lt;HardenedRazorTemplates&gt;]
+/// [Enable&lt;RazorTemplates&gt;]
 /// public partial class Application { }
 /// </code>
 ///
@@ -32,4 +32,4 @@ namespace Hardened.Templates.RazorBlade;
 /// </summary>
 [TemplateBase(typeof(HardenedHtmlTemplate<>))]
 [TemplateContentType("text/html; charset=utf-8")]
-public sealed class HardenedRazorTemplates { }
+public sealed class RazorTemplates { }

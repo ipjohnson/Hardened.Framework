@@ -92,7 +92,7 @@ public partial class RequestTimeouts : IServiceCollectionConfiguration {
     /// </summary>
     /// <remarks>
     /// By value rather than by type, which is where this differs from <c>ConditionalGet</c> and
-    /// <c>HardenedCompression</c>: every install of those is the same install, and every install of
+    /// <c>ResponseCompression</c>: every install of those is the same install, and every install of
     /// this carries a number.
     /// </remarks>
     public override bool Equals(object? obj) =>

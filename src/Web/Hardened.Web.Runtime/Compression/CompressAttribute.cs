@@ -21,7 +21,7 @@ namespace Hardened.Web.Runtime.Compression;
 /// </para>
 /// <para>
 /// An operation carrying this is left alone by the application-wide default that
-/// <c>[Enable&lt;HardenedCompression&gt;]</c> installs, so the declaration on the operation is the
+/// <c>[Enable&lt;ResponseCompression&gt;]</c> installs, so the declaration on the operation is the
 /// one that applies.
 /// </para>
 /// </summary>

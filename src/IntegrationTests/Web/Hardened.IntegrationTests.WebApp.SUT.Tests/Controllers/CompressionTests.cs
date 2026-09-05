@@ -7,7 +7,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
 /// Compression in both directions, through the real pipeline: the application-wide default that
-/// <c>[Enable&lt;HardenedCompression&gt;]</c> installs on this fixture, the per-operation
+/// <c>[Enable&lt;ResponseCompression&gt;]</c> installs on this fixture, the per-operation
 /// declarations on <see cref="CompressionController"/>, and the request-side filter every
 /// application gets.
 ///

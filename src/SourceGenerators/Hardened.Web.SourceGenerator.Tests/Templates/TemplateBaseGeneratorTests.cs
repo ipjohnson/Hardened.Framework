@@ -14,7 +14,7 @@ namespace Hardened.Web.SourceGenerator.Tests.Templates;
 /// <remarks>
 /// <para>
 /// The marker is resolved and read, never recognised by name. These tests declare their own
-/// markers and bases rather than using <c>HardenedRazorTemplate</c>, which is the assertion that
+/// markers and bases rather than using <c>RazorTemplates</c>, which is the assertion that
 /// matters: a package the generator has never heard of gets the same treatment, so a Fluid or
 /// Mustache engine needs no change here. A test using Hardened's own marker would pass equally
 /// well against a generator that switched on its name.

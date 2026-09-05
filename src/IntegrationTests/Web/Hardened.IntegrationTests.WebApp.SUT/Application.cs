@@ -31,7 +31,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT;
 [HardenedModule]
 [WebLibrary(Test = "test")]
 [Enable<OpenApiDocumentPublishing>]
-[Enable<HardenedCompression>]
+[Enable<ResponseCompression>]
 [HardenedOpenApiUi(Title = "Integration Tests")]
 [HardenedOpenApiUi(Path = "/docs/internal", Title = "Internal", DocumentPath = "/internal.json")]
 [HardenedMemoryResponseCache]

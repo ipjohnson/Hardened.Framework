@@ -12,7 +12,7 @@ namespace Hardened.SourceGenerator.Shared;
 /// This is what replaces feature detection. A generator used to ask the compilation whether a type
 /// was present - <c>GetTypeByMetadataName</c> against a marker, or a <c>CompilationProvider</c>
 /// gate - which costs incrementality and is wrong whenever the thing being probed for is itself
-/// generated. To write <c>[Enable&lt;HardenedRazorTemplate&gt;]</c> you must be able to name the
+/// generated. To write <c>[Enable&lt;RazorTemplates&gt;]</c> you must be able to name the
 /// marker, so the reference is a compile-time requirement rather than something to discover.
 /// </para>
 /// <para>

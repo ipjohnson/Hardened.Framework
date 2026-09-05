@@ -90,7 +90,7 @@ public class CompressAttributeTests {
     public void TheModuleDefaultStandsDownForAHandlerThatDeclaresItsOwn() {
         var services = new ServiceCollection();
 
-        new HardenedCompression().ConfigureServices(services);
+        new ResponseCompression().ConfigureServices(services);
 
         var provider = Assert.Single(services.BuildServiceProvider().GetServices<IRequestFilterProvider>());
 
@@ -101,7 +101,7 @@ public class CompressAttributeTests {
 
     [Fact]
     public void EveryInstallOfTheModuleIsTheSameInstall() {
-        Assert.Equal(new HardenedCompression(), new HardenedCompression());
-        Assert.Equal(new HardenedCompression().GetHashCode(), new HardenedCompression().GetHashCode());
+        Assert.Equal(new ResponseCompression(), new ResponseCompression());
+        Assert.Equal(new ResponseCompression().GetHashCode(), new ResponseCompression().GetHashCode());
     }
 }
