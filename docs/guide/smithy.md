@@ -216,23 +216,20 @@ public class TodoService : ITodosService {
         _store = store;
     }
 
-    public Task<Todo?> GetTodo(int id) =>
-        Task.FromResult(_store.Find(id));
+    public Task<Todo?> GetTodo(int id) => _store.Find(id);
 
-    public Task<Todo> CreateTodo(NewTodo body) {
-        if (_store.TitleExists(body.Title)) {
+    public async Task<Todo> CreateTodo(NewTodo body) {
+        if (await _store.TitleExists(body.Title)) {
             throw new TodoTitleTaken($"A todo titled '{body.Title}' already exists.").AsException();
         }
 
-        return Task.FromResult(_store.Add(body.Title));
+        return await _store.Add(body.Title);
     }
 
-    public Task RemoveTodo(int id) {
-        if (!_store.Remove(id)) {
+    public async Task RemoveTodo(int id) {
+        if (!await _store.Remove(id)) {
             throw new TodoNotFound($"No todo has id {id}.").AsException();
         }
-
-        return Task.CompletedTask;
     }
 }
 ```
@@ -266,8 +263,11 @@ operation CreatePet {
 ```
 
 ```csharp
-public Task<CreatePetOutput> CreatePet(CreatePetInput body) =>
-    Task.FromResult(new CreatePetOutput(created, "/pets/" + created.Id));
+public async Task<CreatePetOutput> CreatePet(CreatePetInput body) {
+    var created = await _pets.Add(body);
+
+    return new CreatePetOutput(created, "/pets/" + created.Id);
+}
 ```
 
 ## Bounding an operation
@@ -344,15 +344,14 @@ response container, which the compiler checks you handled:
 ```
 
 ```csharp
-public Task<GetTodoResponse> GetTodo(int id) {
-    var todo = _store.Find(id);
+public async Task<GetTodoResponse> GetTodo(int id) {
+    var todo = await _store.Find(id);
 
     if (todo is null) {
-        return Task.FromResult<GetTodoResponse>(
-            new TodoNotFoundError(new TodoNotFound($"No todo has id {id}.")));
+        return new NotFound("todo", $"No todo has id {id}.");
     }
 
-    return Task.FromResult<GetTodoResponse>(todo);
+    return todo;
 }
 ```
 
@@ -360,6 +359,12 @@ The error case is named for the shape as well, so `GetTodo` and `RemoveTodo` sha
 `TodoNotFoundError` rather than getting one case each. The suffix is there because the payload
 record already holds the shape's own name. A success case is still named for the operation, since
 it carries the operation's own payload and has nothing to share.
+
+The handler returns the framework's bare `NotFound`, and the container converts it into
+`TodoNotFoundError` with the detail as the shape's `message`. The build writes that conversion for
+an `@error` shape whose required members it can fill: `message`, and the RFC 7807 members when the
+shape declares `title` and `status`. A shape requiring anything else is constructed by hand, as
+`new TodoNotFoundError(new TodoNotFound(...))`.
 
 `Throws`, `Response` or `Union`; absent means `Throws`. See
 [Declared responses](/guide/responses).

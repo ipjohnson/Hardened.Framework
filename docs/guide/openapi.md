@@ -296,17 +296,20 @@ container, which the compiler checks you handled:
 ```
 
 ```csharp
-public Task<GetPetResponse> GetPet(string petId) {
-    var pet = _store.Find(petId);
+public async Task<GetPetResponse> GetPet(string petId) {
+    var pet = await _store.Find(petId);
 
     if (pet is null) {
-        return Task.FromResult<GetPetResponse>(
-            new NotFound<Problem>(new Problem(Detail: $"No pet has id {petId}.")));
+        return new NotFound("pet", $"No pet has id {petId}.");
     }
 
-    return Task.FromResult<GetPetResponse>(pet);
+    return pet;
 }
 ```
+
+The 404 is the framework's own `NotFound`. The container converts it into the `NotFound<Problem>`
+the document declares, filling the `Problem` from the record and its detail from the handler; the
+rule is under [declared responses](/guide/responses#specification-first).
 
 `Throws`, `Response` or `Union`; absent means `Throws`. [Declared responses](/guide/responses)
 covers the three modes. Two rules hold in every mode: a non-200 success is honoured, so a `201` in

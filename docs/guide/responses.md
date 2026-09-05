@@ -19,8 +19,8 @@ The signature names the success type. Every other status is thrown:
 
 ```csharp
 [Get("/todos/{id}")]
-public Todo ById(ITodoStore store, int id) {
-    var todo = store.Find(id);
+public async Task<Todo> ById(ITodoStore store, int id) {
+    var todo = await store.Find(id);
 
     if (todo is null) {
         throw new NotFound("todo", $"No todo has id {id}.").AsException();
@@ -77,8 +77,8 @@ The return type is the whole set:
 
 ```csharp
 [Get("/todos/{id}")]
-public Response<Todo, NotFound> ById(ITodoStore store, int id) {
-    var todo = store.Find(id);
+public async Task<Response<Todo, NotFound>> ById(ITodoStore store, int id) {
+    var todo = await store.Find(id);
 
     if (todo is null) {
         return new NotFound("todo", $"No todo has id {id}.");
@@ -166,7 +166,7 @@ The same declared set, as a C# 15 language union:
 public union TodoResult(Todo, NotFound);
 
 [Get("/todos/{id}")]
-public TodoResult ById(ITodoStore store, int id) { ... }
+public async Task<TodoResult> ById(ITodoStore store, int id) { ... }
 ```
 
 The handler body is identical to the `Response` version. Hardened matches both **structurally** — a
@@ -229,7 +229,7 @@ that can answer one whatever mode you are in.
 In `Throws`, an operation declaring a 404 generates a nullable return, and `null` is the 404:
 
 ```csharp
-public Task<Todo?> GetTodo(int id) => Task.FromResult(_store.Find(id));
+public Task<Todo?> GetTodo(int id) => _store.Find(id);
 ```
 
 To explain the refusal instead, throw the response the status resolves to:
@@ -246,20 +246,32 @@ case is the operation's own payload type, and every other status is the shipped 
 status over the payload the contract declared:
 
 ```csharp
-public Task<GetTodoResponse> GetTodo(int id) {
-    var todo = _store.Find(id);
+public async Task<GetTodoResponse> GetTodo(int id) {
+    var todo = await _store.Find(id);
 
     if (todo is null) {
-        return Task.FromResult<GetTodoResponse>(
-            new NotFound<Problem>(new Problem { Detail = $"No todo has id {id}." }));
+        return new NotFound("todo", $"No todo has id {id}.");
     }
 
-    return Task.FromResult<GetTodoResponse>(todo);
+    return todo;
 }
 ```
 
 A 404 carrying a `Problem` is `NotFound<Problem>`, whatever operation declared it. Two operations
 declaring one 404 over one schema share the one type, where before they got two.
+
+The handler never builds that `Problem`. It returns the framework's bare `NotFound`, and the
+container converts it: the build writes an implicit conversion from the bare record for every
+declared error whose body is RFC 7807 shaped, filling `type`, `title` and `status` from what the
+record knows about its own status and `detail` from the handler. A Smithy `@error` shape converts
+the same way when the record can fill every member it requires: `message` takes the detail, and the
+7807 members fill when the shape declares `title` and `status`. The conversion exists only for the
+statuses the operation declares, so returning a `Conflict` from an operation that declares none is
+still a compile error. `NotFound.Default` is the same answer with a generic detail, shared, so a
+handler with nothing to add returns it and allocates nothing.
+
+A `return` hands back the case and the compiler applies the conversion. An implementation with
+nothing to await writes `Task.FromResult<GetTodoResponse>(...)` around each return instead.
 
 **The success side is unchanged.** A success case carries the operation's own payload, so two
 operations declaring a 200 have nothing to share, and each keeps a case named `{Operation}{Status}`.
