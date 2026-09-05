@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(404)]
 public sealed record NotFound<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<NotFound<T>> {
 
     public string Type => ProblemTypes.NotFound;
 
     public string Title => "Not Found";
 
-    public int Status => 404;
+    public static int StatusCode => 404;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static NotFound<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(415)]
 public sealed record UnsupportedMediaType<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<UnsupportedMediaType<T>> {
 
     public string Type => ProblemTypes.UnsupportedMediaType;
 
     public string Title => "Unsupported Media Type";
 
-    public int Status => 415;
+    public static int StatusCode => 415;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static UnsupportedMediaType<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

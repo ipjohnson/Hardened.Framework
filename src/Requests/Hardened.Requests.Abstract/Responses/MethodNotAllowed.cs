@@ -22,13 +22,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(405)]
 public sealed record MethodNotAllowed(string Allow)
-    : IHttpStatusResponse, IProvidesResponseHeaders {
+    : IHttpStatusResponse, IProvidesResponseHeaders, IResponseExpectation<MethodNotAllowed> {
 
-    public int Status => 405;
+    public static int StatusCode => 405;
+
+    public int Status => StatusCode;
 
     public bool HasBody => false;
 
     public void ApplyHeaders(IDictionary<string, StringValues> headers) {
         headers[KnownHeaders.Allow] = Allow;
     }
+
+    public static MethodNotAllowed FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.RequiredHeader(headers, KnownHeaders.Allow));
 }

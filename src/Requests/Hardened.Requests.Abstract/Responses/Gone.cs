@@ -9,11 +9,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// the reference. Caches and crawlers act on the difference.
 /// </remarks>
 [HttpStatus(410)]
-public sealed record Gone(string? Detail = null) : IHttpStatusResponse {
+public sealed record Gone(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.Gone;
 
     public string Title => "Gone";
 
-    public int Status => 410;
+    public static int StatusCode => 410;
+
+    public int Status => StatusCode;
 }

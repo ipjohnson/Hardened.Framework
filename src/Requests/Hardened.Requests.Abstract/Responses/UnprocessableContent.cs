@@ -19,11 +19,14 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(422)]
-public sealed record UnprocessableContent(string? Detail = null) : IHttpStatusResponse {
+public sealed record UnprocessableContent(string? Detail = null)
+    : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.UnprocessableContent;
 
     public string Title => "Unprocessable Content";
 
-    public int Status => 422;
+    public static int StatusCode => 422;
+
+    public int Status => StatusCode;
 }

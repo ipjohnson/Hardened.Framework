@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(409)]
 public sealed record Conflict<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<Conflict<T>> {
 
     public string Type => ProblemTypes.Conflict;
 
     public string Title => "Conflict";
 
-    public int Status => 409;
+    public static int StatusCode => 409;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static Conflict<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

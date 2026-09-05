@@ -32,12 +32,18 @@ namespace Hardened.Requests.Abstract.Responses;
 /// <typeparam name="TCode">The status, as a marker type. See <see cref="Http"/>.</typeparam>
 /// <typeparam name="TBody">What the response carries.</typeparam>
 public sealed record Status<TCode, TBody>(TBody Body)
-    : IHttpStatusResponse, ICarriesResponseBody
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<Status<TCode, TBody>>
     where TCode : IStatusCode {
 
-    int IHttpStatusResponse.Status => TCode.Status;
+    public static int StatusCode => TCode.Status;
+
+    int IHttpStatusResponse.Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static Status<TCode, TBody> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<TBody>(body));
 }
 
 /// <summary>
@@ -54,10 +60,15 @@ public sealed record Status<TCode, TBody>(TBody Body)
 /// </para>
 /// </remarks>
 /// <typeparam name="TCode">The status, as a marker type. See <see cref="Http"/>.</typeparam>
-public sealed record Status<TCode> : IHttpStatusResponse
+public sealed record Status<TCode> : IHttpStatusResponse, IResponseExpectation<Status<TCode>>
     where TCode : IStatusCode {
 
-    int IHttpStatusResponse.Status => TCode.Status;
+    public static int StatusCode => TCode.Status;
+
+    int IHttpStatusResponse.Status => StatusCode;
 
     public bool HasBody => false;
+
+    public static Status<TCode> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) => new();
 }

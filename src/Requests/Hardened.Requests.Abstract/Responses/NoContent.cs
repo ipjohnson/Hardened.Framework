@@ -17,9 +17,14 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(204)]
-public sealed record NoContent : IHttpStatusResponse {
+public sealed record NoContent : IHttpStatusResponse, IResponseExpectation<NoContent> {
 
-    public int Status => 204;
+    public static int StatusCode => 204;
+
+    public int Status => StatusCode;
 
     public bool HasBody => false;
+
+    public static NoContent FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) => new();
 }

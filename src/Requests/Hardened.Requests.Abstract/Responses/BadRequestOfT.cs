@@ -17,13 +17,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(400)]
 public sealed record BadRequest<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<BadRequest<T>> {
 
     public string Type => ProblemTypes.BadRequest;
 
     public string Title => "Bad Request";
 
-    public int Status => 400;
+    public static int StatusCode => 400;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static BadRequest<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

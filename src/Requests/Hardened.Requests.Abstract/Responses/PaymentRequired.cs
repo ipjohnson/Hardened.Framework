@@ -16,11 +16,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(402)]
-public sealed record PaymentRequired(string? Detail = null) : IHttpStatusResponse {
+public sealed record PaymentRequired(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.PaymentRequired;
 
     public string Title => "Payment Required";
 
-    public int Status => 402;
+    public static int StatusCode => 402;
+
+    public int Status => StatusCode;
 }

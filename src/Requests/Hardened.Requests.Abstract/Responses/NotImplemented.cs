@@ -15,11 +15,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(501)]
-public sealed record NotImplemented(string? Detail = null) : IHttpStatusResponse {
+public sealed record NotImplemented(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.NotImplemented;
 
     public string Title => "Not Implemented";
 
-    public int Status => 501;
+    public static int StatusCode => 501;
+
+    public int Status => StatusCode;
 }

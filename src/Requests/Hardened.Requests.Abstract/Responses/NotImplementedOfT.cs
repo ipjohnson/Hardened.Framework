@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(501)]
 public sealed record NotImplemented<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<NotImplemented<T>> {
 
     public string Type => ProblemTypes.NotImplemented;
 
     public string Title => "Not Implemented";
 
-    public int Status => 501;
+    public static int StatusCode => 501;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static NotImplemented<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

@@ -11,13 +11,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(428)]
 public sealed record PreconditionRequired<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<PreconditionRequired<T>> {
 
     public string Type => ProblemTypes.PreconditionRequired;
 
     public string Title => "Precondition Required";
 
-    public int Status => 428;
+    public static int StatusCode => 428;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static PreconditionRequired<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

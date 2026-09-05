@@ -23,9 +23,11 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(304)]
 public sealed record NotModified(string? ETag = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders {
+    : IHttpStatusResponse, IProvidesResponseHeaders, IResponseExpectation<NotModified> {
 
-    public int Status => 304;
+    public static int StatusCode => 304;
+
+    public int Status => StatusCode;
 
     public bool HasBody => false;
 
@@ -34,4 +36,8 @@ public sealed record NotModified(string? ETag = null)
             headers[KnownHeaders.ETag] = ETag!;
         }
     }
+
+    public static NotModified FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.OptionalHeader(headers, KnownHeaders.ETag));
 }

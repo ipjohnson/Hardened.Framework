@@ -16,11 +16,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(504)]
-public sealed record GatewayTimeout(string? Detail = null) : IHttpStatusResponse {
+public sealed record GatewayTimeout(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.GatewayTimeout;
 
     public string Title => "Gateway Timeout";
 
-    public int Status => 504;
+    public static int StatusCode => 504;
+
+    public int Status => StatusCode;
 }

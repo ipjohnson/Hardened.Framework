@@ -11,11 +11,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// made.
 /// </remarks>
 [HttpStatus(403)]
-public sealed record Forbidden(string? Detail = null) : IHttpStatusResponse {
+public sealed record Forbidden(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.Forbidden;
 
     public string Title => "Forbidden";
 
-    public int Status => 403;
+    public static int StatusCode => 403;
+
+    public int Status => StatusCode;
 }

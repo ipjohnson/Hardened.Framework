@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(402)]
 public sealed record PaymentRequired<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<PaymentRequired<T>> {
 
     public string Type => ProblemTypes.PaymentRequired;
 
     public string Title => "Payment Required";
 
-    public int Status => 402;
+    public static int StatusCode => 402;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static PaymentRequired<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

@@ -16,11 +16,14 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(415)]
-public sealed record UnsupportedMediaType(string? Detail = null) : IHttpStatusResponse {
+public sealed record UnsupportedMediaType(string? Detail = null)
+    : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.UnsupportedMediaType;
 
     public string Title => "Unsupported Media Type";
 
-    public int Status => 415;
+    public static int StatusCode => 415;
+
+    public int Status => StatusCode;
 }

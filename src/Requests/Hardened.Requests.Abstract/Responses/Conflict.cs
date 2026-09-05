@@ -9,11 +9,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// unchanged is reasonable once the caller has re-read the resource, and is not otherwise.
 /// </remarks>
 [HttpStatus(409)]
-public sealed record Conflict(string? Detail = null) : IHttpStatusResponse {
+public sealed record Conflict(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.Conflict;
 
     public string Title => "Conflict";
 
-    public int Status => 409;
+    public static int StatusCode => 409;
+
+    public int Status => StatusCode;
 }

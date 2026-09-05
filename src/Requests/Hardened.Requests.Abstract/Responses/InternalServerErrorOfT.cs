@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(500)]
 public sealed record InternalServerError<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<InternalServerError<T>> {
 
     public string Type => ProblemTypes.InternalServerError;
 
     public string Title => "Internal Server Error";
 
-    public int Status => 500;
+    public static int StatusCode => 500;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static InternalServerError<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

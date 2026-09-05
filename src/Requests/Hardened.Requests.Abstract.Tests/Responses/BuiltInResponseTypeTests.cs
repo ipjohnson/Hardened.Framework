@@ -104,6 +104,77 @@ public class BuiltInResponseTypeTests {
 
     #endregion
 
+    #region declared status
+
+    /// <summary>
+    /// The third place a status is written, and the one a test reads.
+    /// </summary>
+    /// <remarks>
+    /// <c>IDeclaresStatus</c> is opt-in on a user's own response type and mandatory on a built-in
+    /// one, because the testing libraries reach every built-in through it. Its value is not asserted
+    /// against the attribute here: each record reads <c>Status =&gt; StatusCode</c>, so the
+    /// agreement test above already covers it, and asserting it twice would only prove the record
+    /// still says what it says.
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(BuiltInResponseTypes))]
+    public void BuiltInResponseType_DeclaresItsStatusOnTheType(Type type) {
+        Assert.True(
+            typeof(IDeclaresStatus).IsAssignableFrom(type),
+            type.Name + " must implement IDeclaresStatus.");
+
+        var property = (type.IsGenericTypeDefinition ? type.MakeGenericType(typeof(string)) : type)
+            .GetProperty(nameof(IDeclaresStatus.StatusCode), BindingFlags.Public | BindingFlags.Static);
+
+        Assert.NotNull(property);
+        Assert.Equal(type.GetCustomAttribute<HttpStatusAttribute>()!.StatusCode, property!.GetValue(null));
+    }
+
+    /// <summary>
+    /// A response carrying a caller's own body can be read back, so a test can name it.
+    /// </summary>
+    /// <remarks>
+    /// The generic forms are the ones a test asserts through - <c>Returns&lt;NotFound&lt;Problem&gt;&gt;()</c>
+    /// - and each one has to be reachable that way. A new one that forgot <c>IResponseExpectation</c>
+    /// would compile, ship, and only be found by whoever first tried to assert on it.
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(BuiltInResponseTypes))]
+    public void AGenericResponseType_CanBeReadBackFromAResponse(Type type) {
+        if (!type.IsGenericTypeDefinition) {
+            return;
+        }
+
+        var closed = type.MakeGenericType(typeof(string));
+
+        Assert.Contains(
+            closed.GetInterfaces(),
+            contract => contract.IsGenericType &&
+                        contract.GetGenericTypeDefinition() == typeof(IResponseExpectation<>) &&
+                        contract.GenericTypeArguments[0] == closed);
+    }
+
+    /// <summary>
+    /// The deliberate exclusion, pinned so it stays deliberate.
+    /// </summary>
+    /// <remarks>
+    /// Each of these states something the handler knew and no client can recover: the resource that
+    /// was looked for, the detail line, the challenge. Making one an expectation would mean
+    /// inventing those values on the way back, so naming one in a test is a compile error that
+    /// points at the generic form instead.
+    /// </remarks>
+    [Fact]
+    public void AResponseStatingWhatTheWireDoesNotCarry_IsNotAnExpectation() {
+        Assert.All(
+            new[] { typeof(NotFound), typeof(Conflict), typeof(Unauthorized), typeof(RateLimited) },
+            type => Assert.DoesNotContain(
+                type.GetInterfaces(),
+                contract => contract.IsGenericType &&
+                            contract.GetGenericTypeDefinition() == typeof(IResponseExpectation<>)));
+    }
+
+    #endregion
+
     #region status markers
 
     /// <summary>

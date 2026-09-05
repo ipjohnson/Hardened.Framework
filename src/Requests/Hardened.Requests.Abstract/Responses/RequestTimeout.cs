@@ -17,11 +17,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(408)]
-public sealed record RequestTimeout(string? Detail = null) : IHttpStatusResponse {
+public sealed record RequestTimeout(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.RequestTimeout;
 
     public string Title => "Request Timeout";
 
-    public int Status => 408;
+    public static int StatusCode => 408;
+
+    public int Status => StatusCode;
 }
