@@ -31,6 +31,13 @@ namespace Hardened.Web.Runtime.Conditional;
 /// conditionals mean a 412, which this does not answer - so a class-level declaration on a
 /// controller that also writes installs nothing on the writes.
 /// </para>
+/// <para>
+/// Nothing on a handler that streams either. Tagging a response means holding it back to hash
+/// it, which turns an <c>IAsyncEnumerable&lt;T&gt;</c> answered item by item into one buffered
+/// body sent after the last item - so a declaration reaching such a handler, from its class or
+/// from <c>[Enable&lt;ConditionalGet&gt;]</c>, installs nothing, the way it installs nothing on
+/// a write.
+/// </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
 public sealed class ConditionalGetAttribute : Attribute, IRequestFilterProvider {
@@ -41,7 +48,7 @@ public sealed class ConditionalGetAttribute : Attribute, IRequestFilterProvider 
     /// <see cref="FilterOrder.Conditional"/>.
     /// </summary>
     public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
-        if (!ConditionalGetFilter.IsGetOrHead(handlerInfo.Method)) {
+        if (!ConditionalGetFilter.IsGetOrHead(handlerInfo.Method) || handlerInfo.StreamsResponse) {
             yield break;
         }
 

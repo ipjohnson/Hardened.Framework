@@ -69,6 +69,7 @@ public class RequestHandlerModel {
             DeclaredSecuritySchemes = DeclaredSecuritySchemes,
             ParameterEnums = ParameterEnums,
             MisplacedSchemeAttributes = MisplacedSchemeAttributes,
+            AdditionalBodyParameters = AdditionalBodyParameters,
             HasGeneratedValidation = HasGeneratedValidation
         };
 
@@ -260,6 +261,18 @@ public class RequestHandlerModel {
     public IReadOnlyList<string> MisplacedSchemeAttributes { get; set; } =
         System.Array.Empty<string>();
 
+    /// <summary>
+    /// The parameters after the first that fell to the request body, by name, for <c>HRDR009</c>.
+    /// </summary>
+    /// <remarks>
+    /// A request carries one body, so the bridge that rebuilds the parameter list keeps the first
+    /// body parameter and this remembers the rest. Without it the second was dropped from the
+    /// generated invocation, which reads as a CS7036 in <c>obj/**/generated/**</c> naming neither
+    /// the parameter nor the convention that discarded it.
+    /// </remarks>
+    public IReadOnlyList<string> AdditionalBodyParameters { get; set; } =
+        System.Array.Empty<string>();
+
     public override bool Equals(object obj) {
         if (obj is not RequestHandlerModel requestHandlerModel) {
             return false;
@@ -373,6 +386,11 @@ public class RequestHandlerModel {
             return false;
         }
 
+        if (!AdditionalBodyParameters.SequenceEqual(
+                requestHandlerModel.AdditionalBodyParameters, StringComparer.Ordinal)) {
+            return false;
+        }
+
         for (var i = 0; i < MisplacedSchemeAttributes.Count; i++) {
             if (!string.Equals(
                     MisplacedSchemeAttributes[i], requestHandlerModel.MisplacedSchemeAttributes[i],
@@ -416,6 +434,7 @@ public class RequestHandlerModel {
             hashCode = (hashCode * 397) ^ HandlerMethod.GetHashCode();
             hashCode = (hashCode * 397) ^ InvokeHandlerType.GetHashCode();
             hashCode = (hashCode * 397) ^ RequestParameterInformationList.GetHashCodeAggregation();
+            hashCode = (hashCode * 397) ^ AdditionalBodyParameters.Count;
             hashCode = (hashCode * 397) ^ ResponseInformation.GetHashCode();
             hashCode = (hashCode * 397) ^ ResponseSchemas.GetHashCodeAggregation();
             hashCode = (hashCode * 397) ^ Filters.GetHashCodeAggregation();

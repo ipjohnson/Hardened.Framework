@@ -6,7 +6,6 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Serializer;
@@ -35,7 +34,6 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
         "AOT-published application, which registers the source-generated serializers instead.";
 
     private readonly JsonSerializerOptions _serializerOptions;
-    private readonly ILogger<SystemTextJsonRequestDeserializer> _logger;
 
     /// <param name="resolvers">
     /// Every <c>IJsonTypeInfoResolver</c> the application registered, ahead of reflection. The
@@ -43,9 +41,7 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
     /// to govern how it is read, or the application answers 400 to its own output.
     /// </param>
     public SystemTextJsonRequestDeserializer(IOptions<IJsonSerializerConfiguration> configuration,
-        ILogger<SystemTextJsonRequestDeserializer> logger,
         IEnumerable<IJsonTypeInfoResolver> resolvers) {
-        _logger = logger;
         _serializerOptions =
             Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
                 configuration.Value.DeSerializerOptions ??
@@ -63,8 +59,6 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
     /// Reads the body as it is. A compressed body was decoded by <c>RequestDecompressionFilter</c>
     /// before the bind, which is why this no longer looks at <c>Content-Encoding</c>.
     /// </summary>
-    public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) {
-        _logger.LogInformation($"Deserialize with option convert count {_serializerOptions.Converters.Count}");
-        return await System.Text.Json.JsonSerializer.DeserializeAsync<T>(context.Request.Body, _serializerOptions);
-    }
+    public ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) =>
+        System.Text.Json.JsonSerializer.DeserializeAsync<T>(context.Request.Body, _serializerOptions);
 }

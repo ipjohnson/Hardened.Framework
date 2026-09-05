@@ -144,4 +144,25 @@ public class CollidingRoutingGeneratorsTests {
 
         Assert.True(errors.Count == 0, string.Join(" | ", errors));
     }
+
+    /// <summary>
+    /// The generator's name is the third path segment from the end, never the first. With
+    /// <c>EmitCompilerGeneratedFiles</c> on - the templates turn it on - a generated tree's path is
+    /// absolute, so reading the first segment made every generator <c>Users</c> and a
+    /// distinct-count of one reported nothing. That is how this diagnostic sat silent through the
+    /// 0.20 trial's two-generator build.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        "/Users/someone/app/obj/Debug/net8.0/generated/Hardened.Idl.SourceGenerator/Hardened.Idl.SourceGenerator.SpecSourceGenerator/Hardened.Web.Marker.g.cs",
+        "Hardened.Idl.SourceGenerator")]
+    [InlineData(
+        "C:\\app\\obj\\Debug\\net8.0\\generated\\Hardened.Web.SourceGenerator\\Hardened.Web.SourceGenerator.WebLibrarySourceGenerator\\Hardened.Web.Marker.g.cs",
+        "Hardened.Web.SourceGenerator")]
+    [InlineData(
+        "Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.WebLibrarySourceGenerator/Hardened.Web.Marker.g.cs",
+        "Hardened.Web.SourceGenerator")]
+    [InlineData("Hardened.Web.Marker.g.cs", "an unnamed generator")]
+    public void TheGeneratorIsNamedFromTheEndOfThePath(string path, string expected) =>
+        Assert.Equal(expected, CollidingRoutingGenerators.GeneratorName(path));
 }

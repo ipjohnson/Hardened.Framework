@@ -118,6 +118,26 @@ public interface IExecutionRequestHandlerInfo {
     IReadOnlyList<object> Metadata => Array.Empty<object>();
 
     /// <summary>
+    /// Whether the handler answers with a stream - an <c>IAsyncEnumerable&lt;T&gt;</c> written
+    /// item by item - rather than a value serialized once.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Set by the generator from the return type, which is the only place the answer is known: at
+    /// run time the choice between the buffered and the streaming IO filter has already been
+    /// made, and nothing downstream can read it back. A filter that would buffer the response -
+    /// the conditional-GET stage holding a body back to hash it - reads this to stand down, because
+    /// holding a stream back is the one thing a stream exists not to have done to it.
+    /// </para>
+    /// <para>
+    /// A default rather than an abstract member, so an implementation compiled before it existed
+    /// keeps loading and reads as buffered, which is what every handler was before streaming had a
+    /// flag.
+    /// </para>
+    /// </remarks>
+    bool StreamsResponse => false;
+
+    /// <summary>
     /// What this handler requires of its caller, or null if nothing does.
     /// </summary>
     /// <remarks>

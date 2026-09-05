@@ -121,6 +121,13 @@ public static class HandlerInfoCodeGenerator {
             declaredArgs += $", validationErrorStatus: {validationStatus}";
         }
 
+        // Whether the handler streams, which only the return type knows. The conditional-GET stage
+        // reads it to stand down rather than buffer an event stream; nothing at run time could
+        // otherwise tell a streamed handler from a buffered one before the first item is written.
+        if (handlerModel.ResponseInformation.IsAsyncEnumerable) {
+            declaredArgs += ", streamsResponse: true";
+        }
+
         // The type is handed over rather than named, so it is still a type when the file is
         // serialized: written qualified in a file that qualifies, and counted in the using list.
         // Spelled into the string it was neither, and resolved only while some other part of the

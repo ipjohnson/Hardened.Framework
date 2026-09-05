@@ -27,6 +27,21 @@ module is `HRDW005`, a warning naming every handler that would fail. A store reg
 `ConfigureServices` is invisible to that check, so it is a warning rather than an error and
 `<NoWarn>HRDW005</NoWarn>` turns it off.
 
+The check is asked of the application: the compilation whose entry point applies a web runtime.
+In the layout the template scaffolds - a library that declares the handlers, a host that applies
+`[KestrelRuntime]` - the host is where the warning is reported, naming the library's handlers,
+because the host is where the store goes. The library itself is not asked, since it cannot see
+what its host registered. There is one reason to put the store on the library module anyway: the
+test harness boots the library, not the host, so a cached handler driven through `ITestWebApp`
+finds a store only if the library applies one.
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+[HardenedMemoryResponseCache]      // the tests see this; the host would see one of its own
+public partial class TodosLibrary;
+```
+
 Past the build, a request to such a handler fails with `ResponseCacheStoreMissingException` naming
 the handler, the package to reference and the attribute to add. The attribute never silently does
 nothing.
@@ -245,8 +260,10 @@ The tag covers the bytes as sent. Behind the compression filter a gzip client an
 client hold different tags for one resource, as they do for a compressed static file, and each
 is revalidated against its own.
 
-Do not declare it on a handler returning `IAsyncEnumerable<T>`, for the reason given for the
-cache below: holding a stream back is buffering it.
+A handler returning `IAsyncEnumerable<T>` gets nothing from it, from the attribute or from
+`[Enable<ConditionalGet>]`: holding a stream back is buffering it, and an event stream enabled
+application-wide arrived as one packet after the last event, with an `ETag` on it, before the
+filter learned to stand down. `IExecutionRequestHandlerInfo.StreamsResponse` is what it reads.
 
 ### A handler's own validator
 
@@ -393,6 +410,7 @@ decides when the memory is freed, not what a request is answered with.
 
 Do not put `[CacheResponse]` on a handler returning `IAsyncEnumerable<T>`. Capturing a response
 means buffering it, and buffering a stream defeats the point of streaming it and holds the whole
-sequence in memory first. Nothing refuses this yet: whether a handler streams is decided by the
-generator picking `AsyncEnumerableIoFilter`, and it is not on
-`IExecutionRequestHandlerInfo`, so the filter cannot read it the way it reads `Requirement`.
+sequence in memory first. Nothing refuses this: it works, as a cache of the whole sequence, and a
+handler that wants exactly that can have it. The conditional-GET stage is the one that stands
+down, reading `IExecutionRequestHandlerInfo.StreamsResponse`, because a 304 buys nothing on a
+stream and the buffering it costs is the whole of what a stream exists to avoid.

@@ -40,7 +40,6 @@ public class JsonRequestDeserializerTests {
         nameof(SystemTextJsonRequestDeserializer) =>
             new SystemTextJsonRequestDeserializer(
                 Config(),
-                NullLogger<SystemTextJsonRequestDeserializer>.Instance,
                 Array.Empty<IJsonTypeInfoResolver>()),
         nameof(AotRequestDeserializer) =>
             new AotRequestDeserializer(

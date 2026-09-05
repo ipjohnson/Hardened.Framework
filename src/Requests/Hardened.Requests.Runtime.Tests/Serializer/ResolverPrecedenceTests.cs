@@ -11,7 +11,6 @@ using Hardened.Requests.Runtime.Tests.Support;
 using Hardened.Shared.Runtime.Json;
 using IRequestsJsonConfiguration = Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration;
 using RequestsJsonConfiguration = Hardened.Requests.Runtime.Configuration.JsonSerializerConfiguration;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
@@ -127,7 +126,6 @@ public class ResolverPrecedenceTests {
     public async Task DeserializeRequestBody_HonoursTheRegisteredContextForAnEnum() {
         var deserializer = new SystemTextJsonRequestDeserializer(
             Config(),
-            NullLogger<SystemTextJsonRequestDeserializer>.Instance,
             new IJsonTypeInfoResolver[] { CatalogContext.Default });
 
         var listing = await deserializer.DeserializeRequestBody<Listing>(

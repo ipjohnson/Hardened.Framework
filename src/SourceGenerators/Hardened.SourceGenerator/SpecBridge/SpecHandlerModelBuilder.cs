@@ -339,7 +339,8 @@ internal static class SpecHandlerModelBuilder {
                 ParameterBindType.Body,
                 "",
                 index++,
-                constructorRequiresServices: symbols?.RequestBodyRequiresServices ?? false));
+                constructorRequiresServices: symbols?.RequestBodyRequiresServices ?? false,
+                registeredAsService: symbols?.RequestBodyRegisteredAsService ?? false));
         } else if (operation.RequestBodyRef != null) {
             var bodyTypeName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.RequestBodyRef));
             var bodyType = TypeDefinition.Get(modelsNamespace, bodyTypeName);

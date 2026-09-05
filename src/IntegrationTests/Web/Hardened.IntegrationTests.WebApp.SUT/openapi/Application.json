@@ -1146,7 +1146,7 @@
           "Binding"
         ],
         "operationId": "queryList",
-        "summary": "A list query parameter, which is how OpenAPI's default array style arrives: ?symbols=EUR&amp;symbols=GBP. The joined form, ?symbols=EUR,GBP, is the same parameter written with explode: false and binds to the same list.",
+        "summary": "A list query parameter, which is how OpenAPI's default array style arrives: ?symbols=EUR&symbols=GBP. The joined form, ?symbols=EUR,GBP, is the same parameter written with explode: false and binds to the same list.",
         "parameters": [
           {
             "name": "symbols",
@@ -3388,7 +3388,7 @@
         ],
         "operationId": "registerDeclaring422",
         "summary": "The same model on an operation that says what a validation refusal answers.",
-        "description": "[Throws&lt;RequestValidationError&gt;(422)] puts the 422 in the published document, and the same declaration is what the runtime reads: one vocabulary carrying both, rather than an assertion on a verb attribute that the document would have to be told about separately. A specification-first operation declaring 422 has answered it since 0.18; this is how a hand-written one says the same thing.",
+        "description": "[Throws<RequestValidationError>(422)] puts the 422 in the published document, and the same declaration is what the runtime reads: one vocabulary carrying both, rather than an assertion on a verb attribute that the document would have to be told about separately. A specification-first operation declaring 422 has answered it since 0.18; this is how a hand-written one says the same thing.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4995,7 +4995,7 @@
           "HttpMethod"
         ],
         "operationId": "createLocated",
-        "summary": "A 201 that says where the thing now lives, as a case in a response set rather than a status on the attribute: carries the Location beside the body, so a client can be held to having received both. The 400 is what makes it a set - code-first, the return type alone decides, and a lone Created&lt;T&gt; is an ordinary body at 200.",
+        "summary": "A 201 that says where the thing now lives, as a case in a response set rather than a status on the attribute: carries the Location beside the body, so a client can be held to having received both. The 400 is what makes it a set - code-first, the return type alone decides, and a lone Created<T> is an ordinary body at 200.",
         "requestBody": {
           "required": true,
           "content": {

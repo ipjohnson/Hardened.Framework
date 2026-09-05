@@ -17,13 +17,19 @@ public class NdjsonFraming : IStreamFraming {
     /// <summary>The one instance, because it holds nothing.</summary>
     public static readonly NdjsonFraming Instance = new();
 
+    /// <summary>
+    /// The line terminator, written asynchronously for the reason <see cref="SseFraming"/>
+    /// gives: a synchronous <c>WriteByte</c> is refused by Kestrel's response body.
+    /// </summary>
+    private static readonly byte[] Newline = "\n"u8.ToArray();
+
     public string ContentType => KnownContentType.NdJson;
 
     public async ValueTask WriteItem(
         IExecutionContext context, Func<IExecutionContext, Task> serialize) {
         await serialize(context);
 
-        context.Response.Body.WriteByte((byte)'\n');
+        await context.Response.Body.WriteAsync(Newline, 0, Newline.Length, context.CancellationToken);
     }
 
     /// <summary>
@@ -34,10 +40,8 @@ public class NdjsonFraming : IStreamFraming {
     /// downstream reader waiting on one hangs. It costs a byte on a stream that produced nothing
     /// and it is what stops an empty result being indistinguishable from a hung one.
     /// </remarks>
-    public ValueTask WriteCompletion(IExecutionContext context) {
-        context.Response.Body.WriteByte((byte)'\n');
-
-        return default;
+    public async ValueTask WriteCompletion(IExecutionContext context) {
+        await context.Response.Body.WriteAsync(Newline, 0, Newline.Length, context.CancellationToken);
     }
 
     /// <summary>

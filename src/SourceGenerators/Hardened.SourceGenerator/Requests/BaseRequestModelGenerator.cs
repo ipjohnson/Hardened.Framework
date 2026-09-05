@@ -63,6 +63,11 @@ public abstract class BaseRequestModelGenerator {
         // assembling it: what the attributes declare for the published document.
         SecurityDeclarationSelector.Apply(context, methodDeclaration, model, cancellationToken);
 
+        // And what Compose set aside. A request has one body, so the bridge keeps the first
+        // parameter that fell to it; the rest are remembered here for HRDR009, because a
+        // parameter silently dropped from the invocation is a CS7036 in a file nobody wrote.
+        model.AdditionalBodyParameters = AdditionalBodyParameters(parameters);
+
         model.DeclaredTimeout = DeclaredTimeoutSelector.Read(context, methodDeclaration);
 
         model.ParameterEnums = ParameterEnums(context, methodDeclaration);
@@ -326,6 +331,27 @@ public abstract class BaseRequestModelGenerator {
         MethodDeclarationSyntax methodDeclaration,
         CancellationToken cancellation);
 
+    /// <summary>The names of every body parameter after the first, in declaration order.</summary>
+    private static IReadOnlyList<string> AdditionalBodyParameters(
+        IReadOnlyList<RequestParameterInformation> parameters) {
+        List<string>? additional = null;
+        var seen = false;
+
+        foreach (var parameter in parameters) {
+            if (parameter.BindingType != ParameterBindType.Body) {
+                continue;
+            }
+
+            if (seen) {
+                (additional ??= new List<string>()).Add(parameter.Name);
+            }
+
+            seen = true;
+        }
+
+        return (IReadOnlyList<string>?)additional ?? Array.Empty<string>();
+    }
+
     protected abstract ITypeDefinition GetInvokeHandlerType(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
@@ -490,7 +516,57 @@ public abstract class BaseRequestModelGenerator {
 
         return CreateRequestParameterInformation(
             parameter, parameterType, ParameterBindType.Body, parameterIndex,
-            constructorRequiresServices: ConstructorRequiresServices(generatorSyntaxContext, parameter));
+            constructorRequiresServices: ConstructorRequiresServices(generatorSyntaxContext, parameter),
+            registeredAsService: RegisteredAsService(generatorSyntaxContext, parameter));
+    }
+
+    /// <summary>
+    /// The DependencyModules registration attributes, which settle what a concrete class is where
+    /// the constructor test cannot: a body model is never registered, and a service registered
+    /// this way is one whatever its constructors take.
+    /// </summary>
+    private static readonly string[] RegistrationAttributes = {
+        "SingletonServiceAttribute", "ScopedServiceAttribute", "TransientServiceAttribute"
+    };
+
+    private const string RegistrationNamespace = "DependencyModules.Runtime.Attributes";
+
+    /// <summary>
+    /// Whether the type is registered as a service by attribute.
+    /// </summary>
+    /// <remarks>
+    /// Asked only of a parameter that has fallen to the body, and answered from the semantic model
+    /// because the attribute sits on the type's declaration rather than on the parameter. The
+    /// trial's <c>TodoStore</c> - a parameterless class with <c>[SingletonService]</c> - passed
+    /// the constructor test above, so it bound from the body, answered 400 on every request, and
+    /// reached the published document as a request body on a GET.
+    /// </remarks>
+    private static bool RegisteredAsService(
+        GeneratorSyntaxContext generatorSyntaxContext,
+        ParameterSyntax parameter) {
+        if (parameter.Type == null) {
+            return false;
+        }
+
+        if (generatorSyntaxContext.SemanticModel.GetTypeInfo(parameter.Type).Type
+            is not INamedTypeSymbol type) {
+            return false;
+        }
+
+        foreach (var attribute in type.GetAttributes()) {
+            var attributeClass = attribute.AttributeClass;
+
+            if (attributeClass == null ||
+                Array.IndexOf(RegistrationAttributes, attributeClass.Name) < 0) {
+                continue;
+            }
+
+            if (attributeClass.ContainingNamespace?.ToDisplayString() == RegistrationNamespace) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -554,7 +630,8 @@ public abstract class BaseRequestModelGenerator {
         bool? required = null,
         string? bindingName = null,
         AttributeModel? customAttribute = null,
-        bool constructorRequiresServices = false) {
+        bool constructorRequiresServices = false,
+        bool registeredAsService = false) {
         if (!parameterType.IsNullable && parameter.ToFullString().Contains("?")) {
             parameterType = parameterType.MakeNullable();
         }
@@ -574,7 +651,8 @@ public abstract class BaseRequestModelGenerator {
             bindingName ?? string.Empty,
             parameterIndex,
             customAttribute,
-            constructorRequiresServices);
+            constructorRequiresServices,
+            registeredAsService);
     }
 
     protected abstract RequestParameterInformation? GetParameterInfoFromAttributes(

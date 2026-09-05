@@ -23,6 +23,12 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// not choose its host's parse options, so relying on that would make the document depend on
 /// whether the project happens to emit an XML documentation file.
 /// </para>
+/// <para>
+/// An entity is the character it stands for. A doc comment has to write <c>Created&amp;lt;T&amp;gt;</c>
+/// to say <c>Created&lt;T&gt;</c>, and the template's own exported document carried the entities
+/// through as text; both paths decode them, the structured one through the entity token Roslyn
+/// already produces and the raw one by hand.
+/// </para>
 /// </remarks>
 internal static class XmlDocumentation {
 
@@ -177,7 +183,70 @@ internal static class XmlDocumentation {
             }
         }
 
-        return Collapse(builder.ToString());
+        return Collapse(DecodeEntities(builder.ToString()));
+    }
+
+    /// <summary>
+    /// The five named entities XML defines and the numeric forms, as their characters. Anything
+    /// else is left as written: a stray <c>&amp;</c> in prose is prose.
+    /// </summary>
+    private static string DecodeEntities(string text) {
+        if (text.IndexOf('&') < 0) {
+            return text;
+        }
+
+        var builder = new StringBuilder(text.Length);
+        var index = 0;
+
+        while (index < text.Length) {
+            var ampersand = text.IndexOf('&', index);
+
+            if (ampersand < 0) {
+                builder.Append(text, index, text.Length - index);
+
+                break;
+            }
+
+            builder.Append(text, index, ampersand - index);
+
+            var semicolon = text.IndexOf(';', ampersand);
+
+            if (semicolon > ampersand && Decode(text.Substring(ampersand + 1, semicolon - ampersand - 1)) is { } decoded) {
+                builder.Append(decoded);
+                index = semicolon + 1;
+            }
+            else {
+                builder.Append('&');
+                index = ampersand + 1;
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static string? Decode(string entity) {
+        switch (entity) {
+            case "lt": return "<";
+            case "gt": return ">";
+            case "amp": return "&";
+            case "quot": return "\"";
+            case "apos": return "'";
+        }
+
+        if (entity.Length < 2 || entity[0] != '#') {
+            return null;
+        }
+
+        var hex = entity[1] == 'x' || entity[1] == 'X';
+        var digits = entity.Substring(hex ? 2 : 1);
+
+        return int.TryParse(
+            digits,
+            hex ? System.Globalization.NumberStyles.HexNumber : System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var codePoint) && codePoint > 0 && codePoint <= 0x10FFFF
+            ? char.ConvertFromUtf32(codePoint)
+            : null;
     }
 
     private static string? Element(DocumentationCommentTriviaSyntax comment, string name) {
@@ -208,6 +277,7 @@ internal static class XmlDocumentation {
         foreach (var token in element.Content.SelectMany(node => node.DescendantTokens())) {
             switch (token.Kind()) {
                 case SyntaxKind.XmlTextLiteralToken:
+                case SyntaxKind.XmlEntityLiteralToken:
                     builder.Append(token.ValueText);
                     break;
 

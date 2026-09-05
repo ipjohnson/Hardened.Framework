@@ -5,6 +5,7 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Hardened.SourceGenerator.Links;
 
@@ -135,7 +136,12 @@ public static class LinkGenerator {
 
         foreach (var handler in handlers.OrderBy(h => h.Name.Path, StringComparer.Ordinal)
                      .ThenBy(h => h.Name.Method, StringComparer.Ordinal)) {
-            var link = Build(handler, basePath);
+            // A route HRDR002 has already refused - {id?}, {id=5}, {} - has no link. Its handler is
+            // still emitted so that diagnostic stands alone, and a link method declaring a
+            // parameter named `id?` would bury it under a dozen CS1003s instead.
+            if (Build(handler, basePath) is not { } link) {
+                continue;
+            }
 
             // Two handlers whose links would have the same signature - the same group, name and
             // parameter types - cannot both be declared. C# forbids it, and emitting both would
@@ -155,12 +161,13 @@ public static class LinkGenerator {
 
     /// <summary>
     /// One handler as a link: the route template with its tokens replaced by the parameters that
-    /// bind to them.
+    /// bind to them. Null for a route whose tokens cannot be parameters.
     /// </summary>
-    private static Link Build(RequestHandlerModel handler, string basePath) {
+    private static Link? Build(RequestHandlerModel handler, string basePath) {
         var template = RoutePath.Combine(basePath, handler.Name.Path);
         var body = new StringBuilder();
         var parameters = new List<Parameter>();
+        var names = new HashSet<string>(StringComparer.Ordinal);
         var literal = new StringBuilder();
 
         var index = 0;
@@ -186,6 +193,13 @@ public static class LinkGenerator {
 
             var token = template.Substring(open + 1, close - open - 1);
             var name = RouteTokens.Name(token);
+
+            // A token that is not an identifier, or one the route declares twice, is a link method
+            // that does not compile. The route itself is reported by HRDR002.
+            if (!SyntaxFacts.IsValidIdentifier(name) || !names.Add(name)) {
+                return null;
+            }
+
             var parameter = Bound(handler, name);
 
             if (literal.Length > 0) {

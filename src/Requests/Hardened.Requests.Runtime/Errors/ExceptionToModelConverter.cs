@@ -139,8 +139,8 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         // logs, not for whoever made the request, and it is the one message here nobody chose with a
         // caller in mind.
         //
-        // Nothing is lost: IRequestLogger.RequestFailed already logs the exception with its stack,
-        // method and path at Error, which is where it belongs.
+        // Nothing is lost: IRequestLogger.RequestFailed logs a server fault with its stack, method
+        // and path at Error, which is where it belongs.
         return (500, ServerError);
     }
 
