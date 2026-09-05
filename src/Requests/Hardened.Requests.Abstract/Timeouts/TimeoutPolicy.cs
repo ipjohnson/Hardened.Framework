@@ -30,10 +30,17 @@ namespace Hardened.Requests.Abstract.Timeouts;
 /// <see cref="Status"/> 503: a deadline out at a dependency knows nothing about when that
 /// dependency recovers.
 /// </param>
+/// <param name="Deadline">
+/// Whether the budget is published as an <see cref="IRequestDeadline"/> the handler can read. On,
+/// because a declared budget the handler cannot see is the gap this closes. Off for a handler that
+/// will not read it and would rather not pay for the publication, which is an <c>AsyncLocal</c>
+/// write and therefore an execution-context copy on every continuation after it.
+/// </param>
 public sealed record TimeoutPolicy(
     int Milliseconds,
     int Status = TimeoutPolicy.DefaultStatus,
-    int RetryAfterSeconds = 0) {
+    int RetryAfterSeconds = 0,
+    bool Deadline = true) {
 
     /// <summary>
     /// The budget an application-wide default takes when nothing states one. A bound rather than a
@@ -52,6 +59,11 @@ public sealed record TimeoutPolicy(
     /// <c>IAuthorizationConvention</c> follows, for the same reason: a convention standing between
     /// an unannotated handler and the world must not be defeatable by the handler, and must not
     /// quietly undo what the handler asked for either.
+    /// </remarks>
+    /// <remarks>
+    /// One whole policy wins, <see cref="Deadline"/> included, on the same terms as
+    /// <see cref="Status"/> and <see cref="RetryAfterSeconds"/>: a convention that shortens a budget
+    /// states all four, and a flag picked from the loser would be a pairing nothing declared.
     /// </remarks>
     public static TimeoutPolicy? Tighter(TimeoutPolicy? left, TimeoutPolicy? right) {
         if (left == null) {

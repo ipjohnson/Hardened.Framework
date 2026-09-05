@@ -106,6 +106,31 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public SpecResponseModel ResponseModel { get; set; } = SpecResponseModel.Throws;
 
     /// <summary>
+    /// Whether every generated service method takes a <c>CancellationToken</c>, and the dispatch
+    /// binds one to it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// From <c>$(HardenedBindCancellationToken)</c>, and stamped here for the reason
+    /// <see cref="ResponseModel"/> is: the interface signature and the dispatch that calls it are
+    /// written by two halves of the build, and the second reads only this model. A flag that
+    /// reached one and not the other would emit a call whose argument list does not match the
+    /// interface it calls through.
+    /// </para>
+    /// <para>
+    /// Off, because turning it on adds a parameter to every method of every generated interface and
+    /// so stops an existing implementation compiling. That break is the point of the flag: it is
+    /// taken deliberately, once, with the compiler naming every method to change.
+    /// </para>
+    /// <para>
+    /// A whole-spec answer rather than a per-operation one. One interface with some methods taking
+    /// a token and some not is worse to read and worse to migrate than one that is consistent, and
+    /// a token costs nothing where it is not used.
+    /// </para>
+    /// </remarks>
+    public bool BindCancellationToken { get; set; }
+
+    /// <summary>
     /// Keywords the description declared that the parser did not map, in the order they were met.
     /// </summary>
     /// <remarks>
@@ -132,6 +157,7 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public bool Equals(ServiceSpecModel? other) {
         if (other is not null && ContentNegotiation != other.ContentNegotiation) return false;
         if (other is not null && ResponseModel != other.ResponseModel) return false;
+        if (other is not null && BindCancellationToken != other.BindCancellationToken) return false;
 
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;

@@ -64,6 +64,16 @@ public sealed class TimeoutAttribute : Attribute, IDeclaresTimeout {
     /// </summary>
     public int RetryAfterSeconds { get; set; }
 
+    /// <summary>
+    /// Whether the handler can read this budget as an <see cref="IRequestDeadline"/>. On.
+    /// </summary>
+    /// <remarks>
+    /// Worth turning off for a bounded handler known not to read it. Publishing the deadline sets
+    /// an <c>AsyncLocal</c>, so every continuation for the rest of the request copies an execution
+    /// context. Nothing else changes: the budget still fires and the token still carries it.
+    /// </remarks>
+    public bool Deadline { get; set; } = true;
+
     /// <inheritdoc />
-    public TimeoutPolicy Timeout => new(Milliseconds, Status, RetryAfterSeconds);
+    public TimeoutPolicy Timeout => new(Milliseconds, Status, RetryAfterSeconds, Deadline);
 }

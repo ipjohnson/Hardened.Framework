@@ -1,3 +1,4 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Requests.Runtime.Tests")]
 namespace Hardened.Requests.Runtime
 {
     public class AotSerializerModule : DependencyModules.Runtime.Interfaces.IDependencyModule
@@ -521,6 +522,7 @@ namespace Hardened.Requests.Runtime.Filters
     public sealed class TimeoutAttribute : System.Attribute, Hardened.Requests.Abstract.Timeouts.IDeclaresTimeout
     {
         public TimeoutAttribute() { }
+        public bool Deadline { get; set; }
         public int Milliseconds { get; set; }
         public int RetryAfterSeconds { get; set; }
         public int Status { get; set; }
@@ -528,7 +530,7 @@ namespace Hardened.Requests.Runtime.Filters
     }
     public class TimeoutFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
-        public TimeoutFilter(int milliseconds) { }
+        public TimeoutFilter(int milliseconds, bool publishDeadline = true) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }

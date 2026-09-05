@@ -340,7 +340,7 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
             return;
         }
 
-        var filter = new TimeoutFilter(timeout.Milliseconds);
+        var filter = new TimeoutFilter(timeout.Milliseconds, timeout.Deadline);
 
         filterList.Add(new RequestFilterInfo(
             _ => filter,

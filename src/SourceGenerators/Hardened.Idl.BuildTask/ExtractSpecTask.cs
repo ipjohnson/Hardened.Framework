@@ -119,6 +119,25 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// </remarks>
     public bool EmitUnreferencedSchemas { get; set; }
 
+    /// <summary>
+    /// Whether every generated service method takes a <c>CancellationToken</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Off. A described handler implements a signature it did not write, so the only way it can
+    /// take the request's token is for the generated interface to declare one - and declaring one
+    /// unconditionally would stop every existing implementation compiling. From
+    /// <c>$(HardenedBindCancellationToken)</c>, so the break is taken deliberately and once, with
+    /// the compiler naming every method that has to change.
+    /// </para>
+    /// <para>
+    /// Stamped onto the model rather than only handed to the emitters, for the reason
+    /// <c>ResponseModel</c> is: the generator that writes the dispatch never sees an MSBuild
+    /// property.
+    /// </para>
+    /// </remarks>
+    public bool BindCancellationToken { get; set; }
+
     /// <summary>The written models, for the caller to add to <c>@(AdditionalFiles)</c>.</summary>
     [Output]
     public ITaskItem[] ModelFiles { get; set; } = System.Array.Empty<ITaskItem>();
@@ -456,6 +475,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             // property - so a mode that reached one and not the other produced a handler assigning a
             // response set as though it were a single value.
             model.ResponseModel = SelectedResponseModel();
+            model.BindCancellationToken = BindCancellationToken;
 
             if (!Published(spec, path, model)) {
                 continue;

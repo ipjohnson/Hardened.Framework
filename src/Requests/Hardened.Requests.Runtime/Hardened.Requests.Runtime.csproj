@@ -53,4 +53,10 @@
         <PackageReference Condition="'$(UseLocalValidationModules)' != 'true'" Include="ValidationModules.Runtime" Version="$(ValidationModulesVersion)"/>
     </ItemGroup>
 
+    <!-- RequestDeadline reads a static AsyncLocal that TimeoutFilter writes, and the tests for
+         what the filter publishes and restores have to read it back through the same accessor. -->
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Requests.Runtime.Tests"/>
+    </ItemGroup>
+
 </Project>
