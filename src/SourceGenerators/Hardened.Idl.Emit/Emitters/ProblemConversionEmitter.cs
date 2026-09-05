@@ -25,9 +25,8 @@ namespace Hardened.Idl.Emitters;
 /// </para>
 /// <para>
 /// Which cases convert is <see cref="ProblemConversion"/>'s decision, taken once for this and for
-/// the operator <see cref="UnionResponseEmitter"/> writes on the set. In union mode the set is a
-/// <c>union</c> declaration with no body for an operator, so a handler calls the method here
-/// itself; the holder is public for that reason.
+/// the operator <see cref="UnionResponseEmitter"/> writes on the set - a member of the struct, or
+/// of the body a <c>union</c> declaration is given for it - so the two cannot disagree.
 /// </para>
 /// </remarks>
 internal static class ProblemConversionEmitter {

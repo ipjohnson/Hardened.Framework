@@ -30,6 +30,9 @@ public union RemovedTodoResult(NoContent, NotFound);
 /// <remarks>
 /// Services arrive as method parameters, alongside the route and body values. Anything the
 /// container knows about can be asked for here, and nothing has to be stored on the class.
+///
+/// Every handler awaits the store and returns its answer directly. The generator reads a return
+/// type through Task&lt;T&gt;, so an async handler declares the same thing a synchronous one would.
 /// </remarks>
 public class TodoController {
 
@@ -40,7 +43,7 @@ public class TodoController {
     /// generated document without anything here describing it.
     /// </remarks>
     [Get("/")]
-    public IReadOnlyList<Todo> All(ITodoStore store) => store.All();
+    public Task<IReadOnlyList<Todo>> All(ITodoStore store) => store.All();
 
 #if (throwsMode)
     /// <summary>One todo, or 404.</summary>
@@ -50,8 +53,8 @@ public class TodoController {
     /// identical either way - what differs is whether the compiler knows the route can answer it.
     /// </remarks>
     [Get("/{id}")]
-    public Todo ById(ITodoStore store, int id) {
-        var todo = store.Find(id);
+    public async Task<Todo> ById(ITodoStore store, int id) {
+        var todo = await store.Find(id);
 
         if (todo is null) {
             throw new NotFound("todo", $"No todo has id {id}.").AsException();
@@ -68,20 +71,20 @@ public class TodoController {
     /// value. Compare the same method under --response-model response, where 201 is in the type.
     /// </remarks>
     [Post("/")]
-    public Todo Create(ITodoStore store, NewTodo request) {
-        if (store.TitleExists(request.Title)) {
+    public async Task<Todo> Create(ITodoStore store, NewTodo request) {
+        if (await store.TitleExists(request.Title)) {
             throw new Conflict($"A todo titled '{request.Title}' already exists.").AsException();
         }
 
-        return store.Add(request.Title);
+        return await store.Add(request.Title);
     }
 
     /// <summary>Removes one, or 404. Answers 200 with the removed todo, for the reason above.</summary>
     [Delete("/{id}")]
-    public Todo Remove(ITodoStore store, int id) {
-        var todo = store.Find(id);
+    public async Task<Todo> Remove(ITodoStore store, int id) {
+        var todo = await store.Find(id);
 
-        if (todo is null || !store.Remove(id)) {
+        if (todo is null || !await store.Remove(id)) {
             throw new NotFound("todo", $"No todo has id {id}.").AsException();
         }
 
@@ -97,8 +100,8 @@ public class TodoController {
     /// signature rather than in a throw somewhere down the call stack.
     /// </remarks>
     [Get("/{id}")]
-    public Response<Todo, NotFound> ById(ITodoStore store, int id) {
-        var todo = store.Find(id);
+    public async Task<Response<Todo, NotFound>> ById(ITodoStore store, int id) {
+        var todo = await store.Find(id);
 
         if (todo is null) {
             return new NotFound("todo", $"No todo has id {id}.");
@@ -113,12 +116,12 @@ public class TodoController {
     /// the case rather than from anything this method does.
     /// </remarks>
     [Post("/")]
-    public Response<Created<Todo>, Conflict> Create(ITodoStore store, NewTodo request) {
-        if (store.TitleExists(request.Title)) {
+    public async Task<Response<Created<Todo>, Conflict>> Create(ITodoStore store, NewTodo request) {
+        if (await store.TitleExists(request.Title)) {
             return new Conflict($"A todo titled '{request.Title}' already exists.");
         }
 
-        var todo = store.Add(request.Title);
+        var todo = await store.Add(request.Title);
 
         return new Created<Todo>(todo, $"/todos/{todo.Id}");
     }
@@ -129,8 +132,8 @@ public class TodoController {
     /// answers 204 with an empty body rather than 200 with "null" in it.
     /// </remarks>
     [Delete("/{id}")]
-    public Response<NoContent, NotFound> Remove(ITodoStore store, int id) {
-        if (store.Find(id) is null || !store.Remove(id)) {
+    public async Task<Response<NoContent, NotFound>> Remove(ITodoStore store, int id) {
+        if (await store.Find(id) is null || !await store.Remove(id)) {
             return new NotFound("todo", $"No todo has id {id}.");
         }
 
@@ -145,8 +148,8 @@ public class TodoController {
     /// so moving between the two rewrites no handler body and changes no generated dispatch.
     /// </remarks>
     [Get("/{id}")]
-    public TodoResult ById(ITodoStore store, int id) {
-        var todo = store.Find(id);
+    public async Task<TodoResult> ById(ITodoStore store, int id) {
+        var todo = await store.Find(id);
 
         if (todo is null) {
             return new NotFound("todo", $"No todo has id {id}.");
@@ -157,20 +160,20 @@ public class TodoController {
 
     /// <summary>Creates one at 201 with a Location header, or 409 when the title is taken.</summary>
     [Post("/")]
-    public NewTodoResult Create(ITodoStore store, NewTodo request) {
-        if (store.TitleExists(request.Title)) {
+    public async Task<NewTodoResult> Create(ITodoStore store, NewTodo request) {
+        if (await store.TitleExists(request.Title)) {
             return new Conflict($"A todo titled '{request.Title}' already exists.");
         }
 
-        var todo = store.Add(request.Title);
+        var todo = await store.Add(request.Title);
 
         return new Created<Todo>(todo, $"/todos/{todo.Id}");
     }
 
     /// <summary>Removes one at 204, or 404.</summary>
     [Delete("/{id}")]
-    public RemovedTodoResult Remove(ITodoStore store, int id) {
-        if (store.Find(id) is null || !store.Remove(id)) {
+    public async Task<RemovedTodoResult> Remove(ITodoStore store, int id) {
+        if (await store.Find(id) is null || !await store.Remove(id)) {
             return new NotFound("todo", $"No todo has id {id}.");
         }
 

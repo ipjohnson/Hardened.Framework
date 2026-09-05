@@ -89,7 +89,7 @@ A route is an attribute on a method of a plain class - no base type, no interfac
 
 ```csharp
 [Get("/{id}")]
-public #if (throwsMode)Todo#endif#if (responseMode)Response<Todo, NotFound>#endif#if (unionMode)TodoResult#endif ById(ITodoStore store, int id)
+public async Task<#if (throwsMode)Todo#endif#if (responseMode)Response<Todo, NotFound>#endif#if (unionMode)TodoResult#endif> ById(ITodoStore store, int id)
 ```
 
 `[BasePath]` on `TemplateModuleNameLibrary` prefixes every route in the assembly, so that one is
@@ -158,8 +158,8 @@ Generate with `--response-model response` to put the whole set in the return typ
 This application is in **response** mode. A handler returns everything it can answer with:
 
 ```csharp
-public Response<Todo, NotFound> ById(ITodoStore store, int id) {
-    var todo = store.Find(id);
+public async Task<Response<Todo, NotFound>> ById(ITodoStore store, int id) {
+    var todo = await store.Find(id);
 
     if (todo is null) {
         return new NotFound("todo", $"No todo has id {id}.");
@@ -176,7 +176,7 @@ answer with:
 ```csharp
 public union TodoResult(Todo, NotFound);
 
-public TodoResult ById(ITodoStore store, int id) { ... }
+public async Task<TodoResult> ById(ITodoStore store, int id) { ... }
 ```
 
 That needs the .NET 11 SDK, pinned in `global.json`, and `LangVersion preview` on the library -

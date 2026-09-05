@@ -72,10 +72,15 @@ public class UnionResponseEmitterTests {
 
     /// <summary>The same, with the schemas the errors' bodies resolve against, which is what the shorthand needs.</summary>
     private static string EmitWithSchemas(IReadOnlyList<SchemaModel> schemas, params OperationModel[] operations) =>
+        EmitWithSchemas(schemas, asLanguageUnion: false, operations);
+
+    private static string EmitWithSchemas(
+        IReadOnlyList<SchemaModel> schemas, bool asLanguageUnion, params OperationModel[] operations) =>
         EmitterHarness.Write(ns => UnionResponseEmitter.Emit(
             ns,
             new ServiceModel { Tag = "pets", Operations = new List<OperationModel>(operations) },
             EmitterHarness.ModelsNamespace,
+            asLanguageUnion,
             schemas: schemas,
             specFileName: "petstore"));
 
@@ -327,7 +332,7 @@ public class UnionResponseEmitterTests {
     /// <summary>
     /// Union mode declares the container with the keyword. Every member the struct spells out - the
     /// constructors, the conversions, Value - the compiler synthesises from the case list, which is
-    /// why the declaration is the whole of it.
+    /// why the declaration is the whole of it where there is no shorthand to write.
     /// </summary>
     [Fact]
     public void UnionModeDeclaresTheContainerWithTheKeyword() {
@@ -339,6 +344,38 @@ public class UnionResponseEmitterTests {
             "public union GetPetResponse(Pet, NotFound<ApiError>, ServiceUnavailable);", emitted);
 
         Assert.DoesNotContain("public struct GetPetResponse", emitted);
+        Assert.DoesNotContain("implicit operator GetPetResponse", emitted);
+    }
+
+    /// <summary>
+    /// The shorthand from the bare record is written in union mode too, as the one kind of member
+    /// in a body the declaration otherwise does without - so a handler returns
+    /// <c>new NotFound("pet", "...")</c> whichever container the module chose.
+    /// </summary>
+    [Fact]
+    public void UnionModeWritesTheShorthandInABody() {
+        var emitted = EmitWithSchemas(
+            [ProblemSchema("ApiError")], asLanguageUnion: true,
+            Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+
+        Assert.Contains("public union GetPetResponse(Pet, NotFound<ApiError>)", emitted);
+        Assert.DoesNotContain("public union GetPetResponse(Pet, NotFound<ApiError>);", emitted);
+        Assert.Contains(
+            $"public static implicit operator GetPetResponse({Shipped("NotFound")} value) => " +
+            "new(global::Test.Api.Models.PetstoreProblems.NotFoundApiError(value));",
+            emitted);
+    }
+
+    /// <summary>A body the shorthand cannot fill leaves the union on one line.</summary>
+    [Fact]
+    public void UnionModeStaysOnOneLineWithoutAShorthandToWrite() {
+        var plain = new SchemaModel { Name = "ApiError", Kind = SchemaKind.Object };
+        plain.Properties.Add(new PropertyModel { Name = "message", Type = "string" });
+
+        var emitted = EmitWithSchemas(
+            [plain], asLanguageUnion: true, Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+
+        Assert.Contains("public union GetPetResponse(Pet, NotFound<ApiError>);", emitted);
         Assert.DoesNotContain("implicit operator GetPetResponse", emitted);
     }
 

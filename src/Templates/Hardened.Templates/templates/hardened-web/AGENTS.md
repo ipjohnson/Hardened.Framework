@@ -152,7 +152,7 @@ To add an error path: throw. To make it part of the contract, move to `--respons
 **Response.** Each handler returns the whole set it can answer with:
 
 ```csharp
-public Response<Todo, NotFound> ById(ITodoStore store, int id)
+public async Task<Response<Todo, NotFound>> ById(ITodoStore store, int id)
 ```
 #endif
 #if (unionMode)
@@ -161,7 +161,7 @@ public Response<Todo, NotFound> ById(ITodoStore store, int id)
 ```csharp
 public union TodoResult(Todo, NotFound);
 
-public TodoResult ById(ITodoStore store, int id)
+public async Task<TodoResult> ById(ITodoStore store, int id)
 ```
 
 This needs the .NET 11 SDK and `LangVersion preview`, both pinned — `global.json` and
