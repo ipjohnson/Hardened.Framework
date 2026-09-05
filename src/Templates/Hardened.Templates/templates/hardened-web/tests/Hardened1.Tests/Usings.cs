@@ -1,7 +1,7 @@
 global using Hardened.Shared.Testing.Attributes;
 global using Hardened.Web.Testing;
 global using Xunit;
-#if (kiotaClient)
+#if (hasClient)
 global using Hardened.Requests.Abstract.Responses;
 global using Hardened1.Client;
 // Aliased, because the generated models are named after the schemas and the schemas are named

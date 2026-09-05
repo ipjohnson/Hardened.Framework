@@ -52,6 +52,13 @@ Change the thing it was generated from.
 | `src/Hardened1.Client` shows no source files | Never built. The client is generated into `obj/kiota/` by the first real build; a design-time build does not run Kiota. |
 | `HTPL002`, or `RestoreKiota` fails on a fresh machine | `dotnet tool restore` needs network the first time. The pin is `microsoft.openapi.kiota` in `.config/dotnet-tools.json`. |
 | `HTPL003` | The Kiota tool and `KiotaBundleVersion` in `Directory.Packages.props` disagree. Bump both to one Kiota release. |
+#endif
+#if (refitClient)
+| `src/Hardened1.Client` shows no source files | Never built. The client is generated into `obj/refitter/` by the first real build; a design-time build does not run Refitter. |
+| `HTPL004`, or `RestoreRefitter` fails on a fresh machine | `dotnet tool restore` needs network the first time. The pin is `refitter` in `.config/dotnet-tools.json`. |
+| The generated interface no longer compiles after a bump | The Refitter tool in `.config/dotnet-tools.json` and `Refit` in `Directory.Packages.props` disagree. Nothing checks this pair at build; bump both to a matching pair. |
+#endif
+#if (hasClient)
 | A route exists on the server and the client has no method for it | `src/Hardened1/openapi/Hardened1.json` is stale. Rebuild the library; the client regenerates from the new document. |
 #endif
 
@@ -177,9 +184,10 @@ conversions and the compiler rejects the use site — which is why `NotFound` ap
 different response sets is fine and appearing twice in one is not.
 #endif
 
-#if (kiotaClient)
+#if (hasClient)
 ## The client is generated, not written
 
+#if (kiotaClient)
 `src/Hardened1.Client` has no source of its own. Its csproj restores the pinned Kiota tool and runs
 it over `src/Hardened1/openapi/Hardened1.json`, which the library's build writes from the compiled
 assembly after every compile. **Never edit anything under `src/Hardened1.Client/obj/`, and never
@@ -192,6 +200,25 @@ a test parameter, built over the pipeline with the test's credential on it, and 
 how a call is asserted. A client that has to be built some other way - its own authentication
 provider, a middleware handler - gets an `ITestClientFactory<T>` in the test project, which wins
 over the package's route for that one client.
+#else
+`src/Hardened1.Client` has one hand-written file, `.refitter`, which says what Refitter writes.
+Its csproj restores the pinned Refitter tool and runs it over `src/Hardened1/openapi/Hardened1.json`,
+which the library's build writes from the compiled assembly after every compile. **Never edit
+anything under `src/Hardened1.Client/obj/`, and never commit it.** The document is committed and the
+client is not; CI checks the document with `git diff --exit-code src/Hardened1/openapi`.
+
+**Every operation returns an `IApiResponse<T>`**, set by `returnIApiResponse` in `.refitter`. That is
+what carries the status and the headers back beside the body, so nothing throws and the tests can
+name a response type. Turn it off and `Returns<T>()` refuses every success, because a method
+declared `Task<T>` has dropped the status by the time it returns.
+
+The framework knows nothing about Refit. The test project reaches the client through
+`Hardened.Refit.Testing`: `[assembly: RefitTesting]` in `Bootstrap.cs` is what makes a Refit
+interface a test parameter, built over the pipeline with the test's credential on it, and
+`Returns<T>()` is how a call is asserted. A client that has to be built some other way - its own
+`RefitSettings`, a handler of its own in front of the pipeline - gets an `ITestClientFactory<T>` in
+the test project, which wins over the package's route for that one client.
+#endif
 
 #endif
 ## The one structural rule

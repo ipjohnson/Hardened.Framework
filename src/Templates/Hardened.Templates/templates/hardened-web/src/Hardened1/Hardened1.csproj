@@ -50,7 +50,7 @@
   </PropertyGroup>
 <!--#endif -->
 
-<!--#if (kiotaClient) -->
+<!--#if (hasClient) -->
   <!--
     The OpenAPI document this library serves, written to a file after every compile - read out of
     the compiled assembly by the generator package's export task, so it is the document the server

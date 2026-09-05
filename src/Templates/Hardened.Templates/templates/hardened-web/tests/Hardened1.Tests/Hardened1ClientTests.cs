@@ -127,16 +127,18 @@ public class TemplateModuleNameClientTests {
     }
 #endif
 
+#if (codeFirst && throwsMode)
+    /// <summary>200 with the removed todo, for the same reason the create answers 200.</summary>
     [HardenedTest]
     public async Task RemoveTodo_ThroughTheGeneratedClient(TemplateModuleNameClient client) {
-#if (codeFirst && throwsMode)
-        // A void handler answers 200 with nothing, which no response type names: the transport
-        // keeps the status.
-        await client.Todos[2].DeleteAsync();
+        var removed = await client.Todos[2].DeleteAsync().Returns<Ok<ClientModels.Todo>>();
 
-        Assert.Equal(200, LastResponse.Status);
-#else
-        await client.Todos[2].DeleteAsync().Returns<NoContent>();
-#endif
+        Assert.Equal(2, removed.Value.Id);
     }
+#else
+    [HardenedTest]
+    public async Task RemoveTodo_ThroughTheGeneratedClient(TemplateModuleNameClient client) {
+        await client.Todos[2].DeleteAsync().Returns<NoContent>();
+    }
+#endif
 }

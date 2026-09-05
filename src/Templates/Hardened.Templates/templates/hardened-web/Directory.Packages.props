@@ -59,6 +59,22 @@
     <PackageVersion Include="Hardened.Kiota.Testing" Version="$(HardenedVersion)" />
   </ItemGroup>
 <!--#endif -->
+<!--#if (refitClient) -->
+
+  <ItemGroup Label="Client">
+    <!--
+      The Refit runtime the generated interface compiles against. Refitter - the tool pinned in
+      .config/dotnet-tools.json that writes the interface - targets Refit's current major, and the
+      two are bumped together by hand: unlike Kiota, Refitter does not report the version it
+      writes for, so nothing checks this pair at build. They follow Refit's release line rather
+      than Hardened's.
+    -->
+    <PackageVersion Include="Refit" Version="8.0.0" />
+    <!-- The test side of the client: builds it over the pipeline and asserts through it. A
+         Hardened package, so it moves with the framework rather than with Refit. -->
+    <PackageVersion Include="Hardened.Refit.Testing" Version="$(HardenedVersion)" />
+  </ItemGroup>
+<!--#endif -->
 
   <ItemGroup Label="AWS Lambda">
     <!--

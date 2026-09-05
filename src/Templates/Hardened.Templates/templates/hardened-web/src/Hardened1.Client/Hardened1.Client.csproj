@@ -44,6 +44,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+      The generated client, so it is visible in the IDE and compiled on every build after the
+      first. obj/ is outside the SDK's default glob, so nothing here is a duplicate of it.
+
+      On a clean tree this matches nothing, because item globs are evaluated before any target
+      runs and the files do not exist yet - IncludeClient below covers that one build, adding only
+      what this missed.
+    -->
+    <Compile Include="$(KiotaOutput)**/*.cs" />
+
     <!-- Version from Directory.Packages.props, where it is pinned beside the tool's. -->
     <PackageReference Include="Microsoft.Kiota.Bundle" />
 
@@ -126,12 +136,15 @@
   </Target>
 
   <!--
-    Added inside a target, after generation, for the glob reason above. Runs after GenerateClient
-    whether or not that target had anything to do, so an up-to-date client is still compiled.
+    The first build only. The item glob above runs before any target, so on a clean tree it sees
+    nothing and this is what compiles the freshly generated client; on every build after that the
+    glob has already matched and Exclude keeps the same file from being compiled twice, which is
+    CS2002 and an error in a warning-free build.
   -->
   <Target Name="IncludeClient" AfterTargets="GenerateClient" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <Compile Include="$(KiotaOutput)**/*.cs" />
+      <_KiotaGenerated Include="$(KiotaOutput)**/*.cs" />
+      <Compile Include="@(_KiotaGenerated)" Exclude="@(Compile)" />
     </ItemGroup>
   </Target>
 
