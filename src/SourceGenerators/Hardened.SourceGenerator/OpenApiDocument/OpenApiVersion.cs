@@ -34,8 +34,8 @@ public enum OpenApiVersion {
     V3_1,
 
     /// <summary>
-    /// Adds <c>itemSchema</c>, the only spelling in any version that can describe a streamed
-    /// response. The default.
+    /// Adds <c>itemSchema</c>, the only spelling in any version that says a response's items arrive
+    /// one after another. The default.
     /// </summary>
     V3_2
 }
@@ -108,12 +108,13 @@ public static class OpenApiVersionFacts {
         version != OpenApiVersion.V3_0;
 
     /// <summary>
-    /// Whether the version can describe a streamed response at all.
+    /// Whether the version can say that a response streams.
     /// </summary>
     /// <remarks>
-    /// <c>itemSchema</c> arrived in 3.2. Before it there is no way to say "many of these, one after
-    /// another" - putting the item's schema under <c>schema</c> claims the response is one of them,
-    /// which is what the document said before any of this and is a lie rather than an omission.
+    /// <c>itemSchema</c> arrived in 3.2. Below it the document can still say "many of these", as an
+    /// array of the item under <c>schema</c>, but not "one after another". Putting the item's schema
+    /// alone under <c>schema</c> claims the response is one of them, which is what the document said
+    /// before any of this and is a lie rather than an omission.
     /// </remarks>
     public static bool SupportsItemSchema(OpenApiVersion version) =>
         version == OpenApiVersion.V3_2;

@@ -19,7 +19,10 @@ namespace Hardened.Generation.Document;
 /// <para>
 /// What changes, and only when the target version needs it. The <c>openapi</c> banner. Every
 /// <c>itemSchema</c>, which arrived in 3.2 and is what <c>scripts/extract-openapi.py</c> removed
-/// for the same reason; each operation that loses one is returned so the caller can name it. And,
+/// for the same reason; each operation that loses one is returned so the caller can name it. The
+/// array of the item the generator writes beside it under <c>schema</c> stays, so the lowered file
+/// still names the item type and says there are many; what it can no longer say is that they
+/// arrive one after another. And,
 /// for 3.0.0 only, the two spellings the generator itself writes differently under a 3.0 banner:
 /// a numeric <c>exclusiveMinimum</c> or <c>exclusiveMaximum</c> becomes the bound plus a boolean,
 /// and a <c>type</c> array of one type and <c>"null"</c> becomes the type with

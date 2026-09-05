@@ -140,8 +140,9 @@ public static class RoutingTableGenerator {
                     context, models.Left.EntryPointType.Name, documentPath);
             }
 
-            // A streamed response has no spelling before 3.2, so the document is emitted without one
-            // and the handler is named rather than the omission being silent.
+            // Before 3.2 the document can say a streamed response is many of the item, as an array
+            // under schema, but not that they arrive one after another. The handler is named so the
+            // trade is not silent.
             if (!OpenApiVersionFacts.SupportsItemSchema(documentVersion)) {
                 foreach (var handler in routable) {
                     if (handler.ResponseInformation.IsAsyncEnumerable) {

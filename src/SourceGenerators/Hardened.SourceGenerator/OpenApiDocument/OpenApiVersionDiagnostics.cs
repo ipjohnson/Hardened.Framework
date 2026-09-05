@@ -37,12 +37,12 @@ public static class OpenApiVersionDiagnostics {
 
     internal static DiagnosticDescriptor StreamNeedsItemSchemaDescriptor() => new(
         id: StreamNeedsItemSchemaId,
-        title: "Streamed response cannot be described at this document version",
+        title: "Streamed response is described as an array at this document version",
         messageFormat:
-        "'{0}' streams its response, and OpenAPI {1} has no way to describe one - itemSchema " +
-        "arrived in 3.2. The operation is emitted with its media type and no schema, so the " +
-        "document says a body of that type without saying what is in it. Set " +
-        "<{2}>3.2.0</{2}> to describe it.",
+        "'{0}' streams its response, and OpenAPI {1} has no itemSchema - it arrived in 3.2. The " +
+        "operation is emitted with its media type and the item type as an array under schema, so " +
+        "a client generated from the document reads a list rather than a stream. Set " +
+        "<{2}>3.2.0</{2}> to describe the stream.",
         category: "Hardened.OpenApi",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

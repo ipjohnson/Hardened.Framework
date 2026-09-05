@@ -867,20 +867,28 @@ public static class OpenApiDocumentGenerator {
                 : "application/json";
 
     /// <summary>
-    /// A streamed response: the media type it is framed as, and the shape of one item.
+    /// A streamed response: the media type it is framed as, the shape of one item, and the whole
+    /// body as an array of them.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>itemSchema</c> rather than <c>schema</c>, which is the distinction OpenAPI 3.2 added for
-    /// exactly this: <c>schema</c> describes the whole body, and the body here is many documents one
-    /// after another. Putting the item under <c>schema</c> - which is what this emitted before -
-    /// tells a client the response is a single one of them, and a generator built from that document
-    /// produces a client that reads one and stops.
+    /// Two keys, because they answer different questions and OpenAPI 3.2 says both may be written.
+    /// <c>itemSchema</c> describes each item as it is read off the stream, and is the only spelling
+    /// that says the items arrive one after another. <c>schema</c> describes the complete content,
+    /// which the specification defines for a sequential media type as the items treated as an
+    /// array in the order they were sent - so it is written as exactly that, an array of the item.
+    /// The item alone under <c>schema</c>, which is what this emitted before <c>itemSchema</c>
+    /// existed, claims the response is a single one of them, and a generator built from that
+    /// document produces a client that reads one and stops.
     /// </para>
     /// <para>
-    /// Below 3.2 the media type is written and the schema is not. That says "a body of this type,
-    /// contents unspecified", which is true where the alternative is false; the handler is named in
-    /// a build warning by <c>RoutingTableGenerator</c> so the omission is not silent.
+    /// <c>schema</c> is written at every version and is what a reader without 3.2 sees. Refitter
+    /// takes a stream's element type from it and reads nothing from <c>itemSchema</c>, and a 3.0 or
+    /// 3.1 reader that would otherwise be told nothing is told the item type and that there are
+    /// many. What such a reader cannot be told is that they stream, so a client generated below 3.2
+    /// reads a list; the handler is named in a build warning by <c>RoutingTableGenerator</c> so the
+    /// trade is not silent. Kiota ignores both keys for a streaming media type and hands back the
+    /// raw stream either way.
     /// </para>
     /// </remarks>
     private static void WriteStreamedResponse(
@@ -890,10 +898,16 @@ public static class OpenApiDocumentGenerator {
 
         builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(contentType)).Append("\":{");
 
-        if (handler.ResponseSchema != null && OpenApiVersionFacts.SupportsItemSchema(version)) {
+        if (handler.ResponseSchema != null) {
             Merge(components, handler.ResponseSchema);
 
-            builder.Append("\"itemSchema\":").Append(handler.ResponseSchema.Schema);
+            builder.Append("\"schema\":{\"type\":\"array\",\"items\":")
+                .Append(handler.ResponseSchema.Schema)
+                .Append('}');
+
+            if (OpenApiVersionFacts.SupportsItemSchema(version)) {
+                builder.Append(",\"itemSchema\":").Append(handler.ResponseSchema.Schema);
+            }
         }
 
         builder.Append("}}");
