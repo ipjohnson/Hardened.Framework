@@ -15,13 +15,13 @@ namespace Hardened.SourceGenerator.Templates;
 /// marker's <c>[TemplateBase]</c> points at:
 /// </para>
 /// <code>
-/// public abstract class ApplicationRazorTemplate&lt;TModel&gt; : HardenedHtmlTemplate&lt;TModel&gt; {
+/// public abstract class ApplicationRazorTemplates&lt;TModel&gt; : HardenedHtmlTemplate&lt;TModel&gt; {
 ///     public override string ContentType => "text/html; charset=utf-8";
 /// }
 /// </code>
 /// <para>
 /// <b>The name derives from the marker</b>, so two markers on one module produce
-/// <c>ApplicationRazorTemplate&lt;T&gt;</c> and <c>ApplicationFluidTemplate&lt;T&gt;</c> -
+/// <c>ApplicationRazorTemplates&lt;T&gt;</c> and <c>ApplicationFluidTemplate&lt;T&gt;</c> -
 /// multi-engine by design rather than retrofitted. The entry point supplies the prefix, which is
 /// what scopes the type to a module: an assembly with two entry points would otherwise have two
 /// generators racing for one name.
@@ -38,14 +38,6 @@ public static class TemplateBaseGenerator {
 
     /// <summary>The facet naming what templates on that base produce.</summary>
     public const string ContentTypeFacet = "TemplateContentType";
-
-    /// <summary>
-    /// Markers stripped of this prefix when the generated name is derived, so Hardened's own
-    /// <c>HardenedRazorTemplate</c> produces <c>ApplicationRazorTemplate</c> rather than
-    /// <c>ApplicationHardenedRazorTemplate</c>. A third-party marker names itself and keeps its
-    /// name.
-    /// </summary>
-    private const string MarkerPrefix = "Hardened";
 
     private const string ModelParameter = "TModel";
 
@@ -67,17 +59,11 @@ public static class TemplateBaseGenerator {
     }
 
     /// <summary>
-    /// What a view names in its <c>@inherits</c> directive.
+    /// What a view names in its <c>@inherits</c> directive: the entry point's name followed by the
+    /// marker's.
     /// </summary>
-    public static string TypeName(EntryPointSelector.Model appModel, EnabledFeatureModel feature) {
-        var marker = feature.MarkerType.Name;
-
-        if (marker.StartsWith(MarkerPrefix, StringComparison.Ordinal) && marker.Length > MarkerPrefix.Length) {
-            marker = marker.Substring(MarkerPrefix.Length);
-        }
-
-        return appModel.EntryPointType.Name + marker;
-    }
+    public static string TypeName(EntryPointSelector.Model appModel, EnabledFeatureModel feature) =>
+        appModel.EntryPointType.Name + feature.MarkerType.Name;
 
     private static string Write(
         EntryPointSelector.Model appModel, EnabledFeatureModel feature, ITypeDefinition baseType) {
@@ -92,7 +78,7 @@ public static class TemplateBaseGenerator {
             $"Generated from [Enable<{feature.MarkerType.Name}>].";
 
         // Closed over this class's own parameter, so a view writing
-        // @inherits ApplicationRazorTemplate<FortunePage> gets HardenedHtmlTemplate<FortunePage>
+        // @inherits ApplicationRazorTemplates<FortunePage> gets HardenedHtmlTemplate<FortunePage>
         // and its typed Model.
         definition.AddBaseType(new GenericTypeDefinition(
             TypeDefinitionEnum.ClassDefinition,

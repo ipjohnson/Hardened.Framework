@@ -28,7 +28,7 @@ namespace Hardened.Web.Runtime.Compression;
 /// </para>
 /// <para>
 /// Installed by <c>[Compress]</c> on an operation or a class, or on every handler by
-/// <c>[Enable&lt;HardenedCompression&gt;]</c>. A second registration on the same handler finds the
+/// <c>[Enable&lt;ResponseCompression&gt;]</c>. A second registration on the same handler finds the
 /// body already wrapped and stands down, so a slip cannot produce two encoders.
 /// </para>
 /// </remarks>

@@ -21,7 +21,7 @@ public static class CompressionServiceCollectionExtensions {
     /// </example>
     /// <remarks>
     /// An amender rather than a replacement value, so this composes with the defaults the request
-    /// module registers and runs whether or not <c>[Enable&lt;HardenedCompression&gt;]</c> is written:
+    /// module registers and runs whether or not <c>[Enable&lt;ResponseCompression&gt;]</c> is written:
     /// the request-side cap applies to every application.
     /// </remarks>
     public static IServiceCollection ConfigureCompression(

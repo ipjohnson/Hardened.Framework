@@ -9,7 +9,7 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// End to end this covers the whole template path: <c>[Template&lt;Views.Fortunes&gt;]</c> on the
 /// implementation reaches the generated handler as an assignment to
 /// <c>Response.TemplateFactory</c>, <c>TemplateResponseSerializer</c> claims the response ahead of
-/// JSON, and the view - which inherits the base <c>[Enable&lt;HardenedRazorTemplate&gt;]</c>
+/// JSON, and the view - which inherits the base <c>[Enable&lt;RazorTemplates&gt;]</c>
 /// generated - renders the model to the body.
 ///
 /// <para>

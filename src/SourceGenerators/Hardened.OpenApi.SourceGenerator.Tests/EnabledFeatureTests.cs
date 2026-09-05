@@ -52,7 +52,7 @@ public class EnabledFeatureTests {
               namespace Other.Engine {
                   [TemplateBase(typeof(EngineHtmlTemplate<>))]
                   [TemplateContentType("text/html")]
-                  public sealed class HardenedRazorTemplate { }
+                  public sealed class RazorTemplates { }
 
                   [TemplateBase(typeof(EngineTextTemplate<>))]
                   [TemplateContentType("text/plain")]
@@ -94,14 +94,13 @@ public class EnabledFeatureTests {
 
     /// <summary>
     /// The base is named from the marker and the entry point together — the entry point supplies
-    /// the prefix that scopes it to a module, and the marker supplies the rest with a leading
-    /// <c>Hardened</c> stripped.
+    /// the prefix that scopes it to a module, and the marker supplies the rest as written.
     /// </summary>
     [Fact]
     public void ATemplateBaseIsNamedFromTheEntryPointAndTheMarker() {
-        var result = Generate("[Enable<HardenedRazorTemplate>]").AssertNoErrors();
+        var result = Generate("[Enable<RazorTemplates>]").AssertNoErrors();
 
-        Assert.Contains(result.GeneratedSources.Keys, name => name.Contains("TestAppRazorTemplate"));
+        Assert.Contains(result.GeneratedSources.Keys, name => name.Contains("TestAppRazorTemplates"));
     }
 
     /// <summary>
@@ -111,7 +110,7 @@ public class EnabledFeatureTests {
     /// </summary>
     [Fact]
     public void ATemplateBaseDerivesFromTheMarkersBaseAndCarriesItsContentType() {
-        var source = Generate("[Enable<HardenedRazorTemplate>]")
+        var source = Generate("[Enable<RazorTemplates>]")
             .AssertNoErrors()
             .SourceContaining("RazorTemplate");
 
@@ -125,10 +124,10 @@ public class EnabledFeatureTests {
     /// </summary>
     [Fact]
     public void TwoMarkersProduceTwoDistinctlyNamedBases() {
-        var result = Generate("[Enable<HardenedRazorTemplate>]\n    [Enable<FluidTemplate>]")
+        var result = Generate("[Enable<RazorTemplates>]\n    [Enable<FluidTemplate>]")
             .AssertNoErrors();
 
-        Assert.Contains(result.GeneratedSources.Keys, name => name.Contains("TestAppRazorTemplate"));
+        Assert.Contains(result.GeneratedSources.Keys, name => name.Contains("TestAppRazorTemplates"));
         Assert.Contains(result.GeneratedSources.Keys, name => name.Contains("TestAppFluidTemplate"));
     }
 
@@ -148,9 +147,9 @@ public class EnabledFeatureTests {
     /// no views would have nothing to look at — no diagnostic, and a base that simply never appears.
     /// </summary>
     [Theory]
-    [InlineData("[Enable<HardenedRazorTemplate>]")]
-    [InlineData("[EnableAttribute<HardenedRazorTemplate>]")]
-    [InlineData("[Hardened.Shared.Runtime.Attributes.Enable<HardenedRazorTemplate>]")]
+    [InlineData("[Enable<RazorTemplates>]")]
+    [InlineData("[EnableAttribute<RazorTemplates>]")]
+    [InlineData("[Hardened.Shared.Runtime.Attributes.Enable<RazorTemplates>]")]
     public void EverySpellingOfEnableProducesTheBase(string enables) {
         var result = Generate(enables).AssertNoErrors();
 

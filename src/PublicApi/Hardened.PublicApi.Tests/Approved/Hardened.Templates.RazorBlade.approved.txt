@@ -11,8 +11,8 @@ namespace Hardened.Templates.RazorBlade
     }
     [Hardened.Requests.Abstract.Templates.TemplateBase(typeof(Hardened.Templates.RazorBlade.HardenedHtmlTemplate<TModel>))]
     [Hardened.Requests.Abstract.Templates.TemplateContentType("text/html; charset=utf-8")]
-    public sealed class HardenedRazorTemplates
+    public sealed class RazorTemplates
     {
-        public HardenedRazorTemplates() { }
+        public RazorTemplates() { }
     }
 }

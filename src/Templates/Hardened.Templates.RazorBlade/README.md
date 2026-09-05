@@ -14,7 +14,7 @@ Turn it on by naming the marker, which is what references the package:
 [HardenedModule]
 [HardenedWebModule]
 [KestrelRuntime]
-[Enable<HardenedRazorTemplates>]
+[Enable<RazorTemplates>]
 public partial class Application { }
 ```
 
@@ -81,7 +81,7 @@ From the marker, which is to say from the base class:
 
 | Marker | Base | Content type |
 |---|---|---|
-| `HardenedRazorTemplates` | `HardenedHtmlTemplate<T>` | `text/html; charset=utf-8` |
+| `RazorTemplates` | `HardenedHtmlTemplate<T>` | `text/html; charset=utf-8` |
 
 A handler that sets `Response.ContentType` itself keeps it — rendering only fills in a blank.
 
