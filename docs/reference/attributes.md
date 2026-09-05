@@ -15,7 +15,7 @@ Every attribute in the framework, by the package it comes from.
 | `[ConfigurationProvider]` | Class | Marks a configuration provider |
 
 Every `[HardenedModule]` class also produces `<Name>Attribute`, which is how one module imports
-another — `[AspNetCoreRuntime]`, `[HardenedWebModule]`, `[DynamoDbModule]` and the rest are all
+another. `[AspNetCoreRuntime]`, `[HardenedWebModule]`, `[DynamoDbModule]` and the rest are all
 generated this way. See [Modules](/guide/modules#declaring-a-module).
 
 ## Service registration
@@ -52,7 +52,7 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[RawResponse(contentType?)]` | Method | [Commits](/guide/content-negotiation#forcing-a-content-type) the response to a content type and writes the value unstructured. Defaults to `text/plain` |
 | `[Throws<T>(status?)]` | Method | [Declares a thrown response](/guide/responses#declaring-what-a-handler-throws) for the document. The status comes from `T`'s `[HttpStatus]`, or from the argument |
 
-`ICustomBindingAttribute` is the interface an attribute implements to bind a parameter itself — see
+`ICustomBindingAttribute` is the interface an attribute implements to bind a parameter itself. See
 [Parameter binding](/guide/parameter-binding#custom-binding).
 
 `Hardened.Requests.Runtime.Filters`
@@ -92,7 +92,7 @@ attributes inherited from a base attribute and requirements added by an
 [`IAuthorizationConvention`](/guide/authorization#conventions) are all conjoined into the single
 `Requirement` the pipeline reads. Alternatives are expressible only inside a single policy.
 
-`[AuthorizeGrants]` is not sealed — deriving from it is
+`[AuthorizeGrants]` is not sealed. Deriving from it is
 [one of the two ways](/guide/authorization#named-attributes) to require grants without writing
 strings. `IAuthorizeAttribute` is the interface anything the pipeline honours implements, including
 attributes of your own, and it is what the `HAUTH001` diagnostic tests.

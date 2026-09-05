@@ -43,8 +43,8 @@ features:
   - title: The same application on Lambda
     details: >-
       Swap the runtime module and the handlers you already wrote run behind API Gateway, on a
-      DynamoDB stream, or over an SQS batch — with partial batch responses and structured
-      CloudWatch logging wired in.
+      DynamoDB stream, or over an SQS batch. Partial batch responses and structured CloudWatch
+      logging are wired in.
     link: /aws/
     linkText: AWS runtimes
 
@@ -96,7 +96,7 @@ await using var app = HardenedKestrelApplication.Create(
 await app.RunAsync();
 ```
 
-Or skip the wiring — `dotnet new hardened-web` writes all of it, with tests:
+Or skip the wiring. `dotnet new hardened-web` writes all of it, with tests:
 
 ```bash
 dotnet new install Hardened.Templates
@@ -105,6 +105,26 @@ dotnet new hardened-web -n Greeter
 
 Set `EmitCompilerGeneratedFiles` in the project file and the routing table, the handler and the
 binding code are all under `obj/` as ordinary C#.
+
+## A test
+
+A test takes the generated client and a mock as parameters. The application is booted around
+them, and the call is asserted by naming the response the contract declares.
+
+```csharp
+[HardenedTest]
+public async Task CreateTodo_AnswersCreated(TodosClient client, [Mock] ITodoStore store) {
+    store.Add("ship it").Returns(new Todo(7, "ship it", false));
+
+    var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+        .Returns<Created<ClientModels.Todo>>();
+
+    Assert.Equal("/todos/7", created.Location);
+}
+```
+
+No port, no host and no serializer is named. [Writing a test](/guide/testing) covers the
+parameters a test can take.
 
 ## Two repositories, one framework
 

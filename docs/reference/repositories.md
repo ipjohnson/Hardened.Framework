@@ -61,7 +61,7 @@ Every page has an "Edit this page on GitHub" link at the bottom.
 
 ## Related
 
-**[DependencyModules](https://ipjohnson.github.io/DependencyModules/)** —
+**[DependencyModules](https://ipjohnson.github.io/DependencyModules/)**,
 [github.com/ipjohnson/DependencyModules](https://github.com/ipjohnson/DependencyModules)
 
 Compile-time dependency injection for .NET, and the foundation Hardened's module system is built on.
