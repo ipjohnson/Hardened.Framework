@@ -185,7 +185,7 @@ public class ClientAssertionsTests {
     public async Task OutsideARunningTestItSaysSo() {
         Task<Exception?> probe;
 
-        // A thread with no execution context flowed into it has no xUnit test context either.
+        // A thread with no execution context flowed into it has no running test in the seam either.
         using (ExecutionContext.SuppressFlow()) {
             probe = Task.Run(
                 async () => await Record.ExceptionAsync(() => Task.FromResult("x").Returns<Ok<string>>()),
@@ -194,7 +194,7 @@ public class ClientAssertionsTests {
 
         var failure = Assert.IsType<InvalidOperationException>(await probe);
 
-        Assert.Contains("needs a running xUnit test, and there is none", failure.Message);
+        Assert.Contains("needs a running test, and there is none", failure.Message);
     }
 
     /// <summary>An assembly that names no reader is told which attribute to declare.</summary>

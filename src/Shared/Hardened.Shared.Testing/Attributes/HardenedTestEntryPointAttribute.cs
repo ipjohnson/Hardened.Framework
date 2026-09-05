@@ -4,12 +4,10 @@ using DependencyModules.Testing.Attributes.Interfaces;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing.Impl;
-using Hardened.Shared.Testing.Logging;
 using Hardened.Shared.Testing.Utilties;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Xunit.v3;
 
 namespace Hardened.Shared.Testing.Attributes;
 
@@ -84,7 +82,13 @@ public class HardenedTestEntryPointAttribute
         serviceCollection.AddSingleton<IConfigurationPackage>(appConfig);
 
         serviceCollection.RemoveAll<ILoggerProvider>();
-        serviceCollection.AddSingleton<ILoggerProvider, XunitLoggerProvider>();
+
+        // The runner package's provider, which writes where the runner shows a test's output. A
+        // container built with no runner package loaded - this attribute driven directly from a
+        // test of its own - keeps no provider, rather than a console one nobody reads.
+        if (CurrentTest.Provider is { } runner) {
+            serviceCollection.AddSingleton<ILoggerProvider>(_ => runner.CreateLoggerProvider());
+        }
     }
 
     public async Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider) {

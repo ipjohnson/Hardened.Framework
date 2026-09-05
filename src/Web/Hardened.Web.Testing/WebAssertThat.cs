@@ -1,5 +1,3 @@
-﻿using Xunit;
-
 namespace Hardened.Web.Testing;
 
 public class WebAssertThat : IWebAssertThat {
@@ -13,34 +11,36 @@ public class WebAssertThat : IWebAssertThat {
     /// Assert status is 200 - 299
     /// </summary>
     public void Ok() {
-        Assert.InRange(_response.StatusCode, 200, 299);
+        var status = _response.StatusCode;
+
+        if (status is < 200 or > 299) {
+            throw new WebAssertionException($"Expected a 2xx status, the response was {status}.");
+        }
     }
 
     /// <summary>
     /// Assert status is 404
     /// </summary>
-    public void NotFound() {
-        Assert.Equal(404, _response.StatusCode);
-    }
+    public void NotFound() => Expect(404);
 
     /// <summary>
     /// Assert status code is 400
     /// </summary>
-    public void BadRequest() {
-        Assert.Equal(400, _response.StatusCode);
-    }
+    public void BadRequest() => Expect(400);
 
     /// <summary>
     /// Assert status is 401
     /// </summary>
-    public void Unauthorized() {
-        Assert.Equal(401, _response.StatusCode);
-    }
+    public void Unauthorized() => Expect(401);
 
     /// <summary>
     /// Assert status is 403
     /// </summary>
-    public void Forbidden() {
-        Assert.Equal(403, _response.StatusCode);
+    public void Forbidden() => Expect(403);
+
+    private void Expect(int status) {
+        if (_response.StatusCode != status) {
+            throw new WebAssertionException($"Expected status {status}, the response was {_response.StatusCode}.");
+        }
     }
 }

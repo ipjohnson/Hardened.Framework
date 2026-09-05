@@ -1,0 +1,55 @@
+namespace Hardened.Shared.Testing.Attributes
+{
+    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false)]
+    public class HardenedTestAttribute : DependencyModules.NUnit.Attributes.ModuleTestAttribute
+    {
+        public HardenedTestAttribute() { }
+    }
+}
+namespace Hardened.Shared.Testing.Logging
+{
+    public class NUnitLogger : Microsoft.Extensions.Logging.ILogger
+    {
+        public NUnitLogger(string loggerName) { }
+        public System.IDisposable? BeginScope<TState>(TState state)
+            where TState :  notnull { }
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) { }
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, System.Exception? exception, System.Func<TState, System.Exception?, string> formatter) { }
+        public class ExceptionRecord : System.IEquatable<Hardened.Shared.Testing.Logging.NUnitLogger.ExceptionRecord>
+        {
+            public ExceptionRecord(string Type, string Message, string StackTrace) { }
+            public string Message { get; init; }
+            public string StackTrace { get; init; }
+            public string Type { get; init; }
+        }
+        public class StructuredLogEntry<TState> : System.IEquatable<Hardened.Shared.Testing.Logging.NUnitLogger.StructuredLogEntry<TState>>
+        {
+            public StructuredLogEntry(System.DateTime Timestamp, string Logger, Microsoft.Extensions.Logging.LogLevel LogLevel, Microsoft.Extensions.Logging.EventId EventId, string Message, TState Data, Hardened.Shared.Testing.Logging.NUnitLogger.ExceptionRecord? Exception) { }
+            public TState Data { get; init; }
+            public Microsoft.Extensions.Logging.EventId EventId { get; init; }
+            public Hardened.Shared.Testing.Logging.NUnitLogger.ExceptionRecord? Exception { get; init; }
+            public Microsoft.Extensions.Logging.LogLevel LogLevel { get; init; }
+            public string Logger { get; init; }
+            public string Message { get; init; }
+            public System.DateTime Timestamp { get; init; }
+        }
+    }
+    public class NUnitLoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider, System.IDisposable
+    {
+        public NUnitLoggerProvider() { }
+        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) { }
+        public void Dispose() { }
+    }
+}
+namespace Hardened.Shared.Testing
+{
+    public sealed class NUnitCurrentTestProvider : Hardened.Shared.Testing.ICurrentTestProvider
+    {
+        public NUnitCurrentTestProvider() { }
+        public System.Reflection.Assembly? Assembly { get; }
+        public string? DisplayName { get; }
+        public object? Key { get; }
+        public Microsoft.Extensions.Logging.ILoggerProvider CreateLoggerProvider() { }
+        public static void Install() { }
+    }
+}

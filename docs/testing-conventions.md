@@ -180,14 +180,26 @@ Every test project is already created and registered in the solution. If you fin
 editing them conflict. `coverage-baseline.json` is the one shared file you are expected to touch,
 and only to raise your own assembly's floor.
 
-## 12. xunit version
+## 12. xunit version, and the runner packages
 
-New test projects use **xunit.v3**.
+New test projects use **xunit.v3**, and reference `Hardened.Shared.Testing.xUnit` for
+`[HardenedTest]`.
 
-Not a style preference. `Hardened.Shared.Testing` depends on `DependencyModules.xUnit`, which
-brings xunit.v3; referencing it alongside xunit 2.9 makes every `Fact` and `Assert` ambiguous
-(CS0433). Two older `Hardened.Amz` projects still use 2.9 and are fine as long as they never touch
-`Hardened.Shared.Testing`.
+Not a style preference. `Hardened.Shared.Testing.xUnit` depends on `DependencyModules.xUnit`,
+which brings xunit.v3; referencing it alongside xunit 2.9 makes every `Fact` and `Assert`
+ambiguous (CS0433). Two older `Hardened.Amz` projects still use 2.9 and are fine as long as they
+never touch the runner package.
+
+`Hardened.Shared.Testing` itself names no runner, and neither do `Hardened.Web.Testing`,
+`Hardened.Kiota.Testing` and `Hardened.Refit.Testing`: they read the running test through
+`CurrentTest`, which the runner package installs when it loads. An NUnit project references
+`Hardened.Shared.Testing.NUnit` instead, and its `[HardenedTest]` is the same name in the same
+namespace over `DependencyModules.NUnit`. `Hardened.Shared.Testing.NUnit.Tests` and
+`Hardened.IntegrationTests.WebApp.SUT.NUnitTests` are the two NUnit projects in this repository,
+and the only ones: they exist to hold the harness to reading the same under both runners, not as a
+second place to put tests. `Hardened.Requests.Testing` still carries xunit for its conformance
+suites, which are xUnit test classes by design, so an NUnit project referencing the web harness
+sees xunit assemblies it never uses.
 
 A shipped library must never depend on `Microsoft.NET.Test.Sdk`. `Hardened.Amz.Function.Lambda.Testing`
 did, alongside both xunit generations, which made the package impossible for a consumer to use.

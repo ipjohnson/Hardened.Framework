@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <!--
+        The web harness under NUnit. The xUnit project next door holds the application to its
+        behaviour; this holds the harness to reading the same under the other runner - a
+        [HardenedTest] with ITestWebApp, a mock behind a route, a generated client as a parameter,
+        Returns<T>(), LastResponse and the credential attributes - and nothing else. A test of the
+        application goes next door.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="NUnit" Version="4.2.2" />
+        <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.NUnit\Hardened.Shared.Testing.NUnit.csproj" />
+      <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
+      <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT\Hardened.IntegrationTests.WebApp.SUT.csproj" />
+      <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT.Client\Hardened.IntegrationTests.WebApp.SUT.Client.csproj" />
+      <ProjectReference Include="..\..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj" />
+      <ProjectReference Include="..\..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj" />
+    </ItemGroup>
+
+</Project>

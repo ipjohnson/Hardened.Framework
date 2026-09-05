@@ -1,5 +1,4 @@
 using Xunit;
-using Xunit.Sdk;
 
 namespace Hardened.Web.Testing.Tests;
 
@@ -29,7 +28,7 @@ public class WebAssertThatTests {
     [InlineData(404)]
     [InlineData(500)]
     public void OkRejectsOutsideSuccessRange(int status) {
-        Assert.ThrowsAny<XunitException>(() => AssertFor(status).Ok());
+        Assert.Throws<WebAssertionException>(() => AssertFor(status).Ok());
     }
 
     [Fact]
@@ -43,7 +42,7 @@ public class WebAssertThatTests {
     [InlineData(403)]
     [InlineData(500)]
     public void NotFoundRejectsOtherStatuses(int status) {
-        Assert.ThrowsAny<XunitException>(() => AssertFor(status).NotFound());
+        Assert.Throws<WebAssertionException>(() => AssertFor(status).NotFound());
     }
 
     [Fact]
@@ -56,7 +55,7 @@ public class WebAssertThatTests {
     [InlineData(401)]
     [InlineData(404)]
     public void BadRequestRejectsOtherStatuses(int status) {
-        Assert.ThrowsAny<XunitException>(() => AssertFor(status).BadRequest());
+        Assert.Throws<WebAssertionException>(() => AssertFor(status).BadRequest());
     }
 
     [Fact]
@@ -69,7 +68,7 @@ public class WebAssertThatTests {
     [InlineData(400)]
     [InlineData(403)]
     public void UnauthorizedRejectsOtherStatuses(int status) {
-        Assert.ThrowsAny<XunitException>(() => AssertFor(status).Unauthorized());
+        Assert.Throws<WebAssertionException>(() => AssertFor(status).Unauthorized());
     }
 
     [Fact]
@@ -82,7 +81,7 @@ public class WebAssertThatTests {
     [InlineData(401)]
     [InlineData(404)]
     public void ForbiddenRejectsOtherStatuses(int status) {
-        Assert.ThrowsAny<XunitException>(() => AssertFor(status).Forbidden());
+        Assert.Throws<WebAssertionException>(() => AssertFor(status).Forbidden());
     }
 
     /// <summary>
@@ -91,7 +90,7 @@ public class WebAssertThatTests {
     /// </summary>
     [Fact]
     public void UnauthorizedAndForbiddenAreNotInterchangeable() {
-        Assert.ThrowsAny<XunitException>(() => AssertFor(401).Forbidden());
-        Assert.ThrowsAny<XunitException>(() => AssertFor(403).Unauthorized());
+        Assert.Throws<WebAssertionException>(() => AssertFor(401).Forbidden());
+        Assert.Throws<WebAssertionException>(() => AssertFor(403).Unauthorized());
     }
 }

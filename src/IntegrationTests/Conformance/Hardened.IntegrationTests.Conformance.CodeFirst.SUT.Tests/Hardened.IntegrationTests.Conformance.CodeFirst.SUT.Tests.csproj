@@ -19,6 +19,8 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
         <ProjectReference Include="..\Hardened.IntegrationTests.Conformance.CodeFirst.SUT\Hardened.IntegrationTests.Conformance.CodeFirst.SUT.csproj"/>
+          <!-- The runner: [HardenedTest] and the running-test seam, for xUnit. -->
+      <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
     </ItemGroup>
 
     <!-- See the remarks on PetstoreConformanceTests for why this is linked source and not a

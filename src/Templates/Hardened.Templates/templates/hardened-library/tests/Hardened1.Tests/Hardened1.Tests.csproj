@@ -9,6 +9,8 @@
   <ItemGroup>
     <!-- Brings NSubstitute with it, which is what [Mock] builds its substitutes from. -->
     <PackageReference Include="Hardened.Shared.Testing" />
+    <!-- The runner: [HardenedTest] for xUnit. Hardened.Shared.Testing.NUnit is the other one. -->
+    <PackageReference Include="Hardened.Shared.Testing.xUnit" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

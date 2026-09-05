@@ -157,6 +157,10 @@ namespace Hardened.Web.Testing
         public void Ok() { }
         public void Unauthorized() { }
     }
+    public sealed class WebAssertionException : System.Exception
+    {
+        public WebAssertionException(string message) { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Assembly)]
     public class WebTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute, DependencyModules.Testing.Attributes.Interfaces.ITestStartupAttribute
     {

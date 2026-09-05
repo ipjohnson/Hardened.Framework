@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>The xUnit v3 runner for Hardened tests: [HardenedTest], the logger that writes to a test's output, and the running-test seam Hardened.Shared.Testing reads. A test project references this beside Hardened.Shared.Testing, or Hardened.Shared.Testing.NUnit instead of it.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Shared.Testing.xUnit</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
+        <!--
+             The extensibility surface only. This is a shipped library that other people's test
+             projects reference, not a test project itself, and xunit.v3 pulls in
+             xunit.v3.core.mtp-v1, whose targets hard-error unless the project is an executable
+             test project.
+        -->
+        <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"
+                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
+        <PackageReference Include="DependencyModules.xUnit" Version="$(DependencyModulesVersion)"
+                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
+    </ItemGroup>
+
+</Project>

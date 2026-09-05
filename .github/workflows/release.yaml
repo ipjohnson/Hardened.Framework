@@ -232,6 +232,8 @@ jobs:
             src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj \
             src/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj \
             src/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj \
+            src/Shared/Hardened.Shared.Testing.NUnit/Hardened.Shared.Testing.NUnit.csproj \
+            src/Shared/Hardened.Shared.Testing.xUnit/Hardened.Shared.Testing.xUnit.csproj \
             src/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj \
             src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj \
@@ -285,7 +287,9 @@ jobs:
           # response caching.
           # 25 after the two client testing packages, Hardened.Kiota.Testing and
           # Hardened.Refit.Testing.
-          EXPECTED=25
+          # 27 after the runner split: Hardened.Shared.Testing.xUnit and
+          # Hardened.Shared.Testing.NUnit, with Hardened.Shared.Testing left runner-neutral.
+          EXPECTED=27
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

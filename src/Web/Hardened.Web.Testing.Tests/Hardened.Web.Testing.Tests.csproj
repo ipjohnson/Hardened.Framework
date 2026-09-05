@@ -30,5 +30,7 @@
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
         <ProjectReference Include="..\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
         <ProjectReference Include="..\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
+          <!-- The runner: [HardenedTest] and the running-test seam, for xUnit. -->
+      <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
     </ItemGroup>
 </Project>

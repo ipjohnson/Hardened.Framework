@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Testing" />
+    <!-- The runner: [HardenedTest] for xUnit. Hardened.Shared.Testing.NUnit is the other one. -->
+    <PackageReference Include="Hardened.Shared.Testing.xUnit" />
 <!--#if (unionMode) -->
     <!-- See Directory.Packages.props: the two testing packages floor this differently, and only on
          net11.0 does the difference become a downgrade rather than a resolution. -->

@@ -9,6 +9,7 @@
   <ItemGroup Label="Hardened">
     <PackageVersion Include="Hardened.Shared.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Shared.Testing" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Shared.Testing.xUnit" Version="$(HardenedVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Hardened source generators">
@@ -18,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup Label="Testing">
-    <!-- xUnit v3. Hardened.Shared.Testing builds on xunit.v3.extensibility.core, so a test
+    <!-- xUnit v3. Hardened.Shared.Testing.xUnit builds on xunit.v3.extensibility.core, so a test
          project on xunit 2.x fails with CS0433 on Assert. -->
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />

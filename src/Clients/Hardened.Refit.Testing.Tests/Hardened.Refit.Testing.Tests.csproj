@@ -18,6 +18,8 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj" />
+          <!-- The runner: [HardenedTest] and the running-test seam, for xUnit. -->
+      <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
     </ItemGroup>
 
 </Project>
