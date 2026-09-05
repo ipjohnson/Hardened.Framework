@@ -215,7 +215,11 @@ public async Task GetTodo_ReturnsTheTodo(ITemplateModuleNameClient client) {
 #endif
 #endif
 
+#if (xunit)
     Assert.Equal("Read the generated code", todo.Value.Title);
+#else
+    Assert.That(todo.Value.Title, Is.EqualTo("Read the generated code"));
+#endif
 }
 ```
 
@@ -234,8 +238,23 @@ public async Task GetTodo_UnknownId_IsNotFound(ITestWebApp app) {
 ```
 #endif
 
+#if (moq)
+Take a `Mock<T>` parameter and that service is substituted for the whole graph, including behind a
+route; `tests/Hardened1.Tests/TodoStoreMockTests.cs` does. The mock is Moq's, through
+`[assembly: MoqSupport]` in `Bootstrap.cs`. Note the argument order on a body: `app.Post(value, path)`.
+#endif
+#if (nsubstitute)
 Mark a parameter `[Mock]` and that service is substituted for the whole graph, including behind a
-route. Note the argument order on a body: `app.Post(value, path)`.
+route; `tests/Hardened1.Tests/TodoStoreMockTests.cs` does. The substitute is NSubstitute's, through
+`[assembly: NSubstituteSupport]` in `Bootstrap.cs`. Note the argument order on a body:
+`app.Post(value, path)`.
+#endif
+#if (fakeiteasy)
+Mark a parameter `[Mock]` and that service is substituted for the whole graph, including behind a
+route; `tests/Hardened1.Tests/TodoStoreMockTests.cs` does. The fake is FakeItEasy's, through
+`[assembly: FakeItEasySupport]` in `Bootstrap.cs`. Note the argument order on a body:
+`app.Post(value, path)`.
+#endif
 
 Every declared status has a test, not only the happy one - a response set exercised only at 200 is
 indistinguishable from having none.
@@ -287,11 +306,19 @@ with `Returns<T>()`, naming the response type the contract declares:
 var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
     .Returns<Created<ClientModels.Todo>>();
 
+#if (xunit)
 Assert.Equal($"/todos/{created.Value.Id}", created.Location);
+#else
+Assert.That(created.Location, Is.EqualTo($"/todos/{created.Value.Id}"));
+#endif
 
 var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.Problem>>();
 
+#if (xunit)
 Assert.Contains("9999", missing.Body.Detail);
+#else
+Assert.That(missing.Body.Detail, Does.Contain("9999"));
+#endif
 ```
 
 That is the status, the body type and the headers the status carries in one word, for a success
@@ -316,22 +343,38 @@ with `Returns<T>()`, naming the response type the contract declares:
 var created = await client.Create(new ClientModels.NewTodo { Title = "ship it" })
     .Returns<Created<ClientModels.Todo>>();
 
+#if (xunit)
 Assert.Equal($"/todos/{created.Value.Id}", created.Location);
+#else
+Assert.That(created.Location, Is.EqualTo($"/todos/{created.Value.Id}"));
+#endif
 
 var missing = await client.ById(9999).Returns<NotFound<ClientModels.NotFound>>();
 
+#if (xunit)
 Assert.Contains("9999", missing.Body.Detail);
+#else
+Assert.That(missing.Body.Detail, Does.Contain("9999"));
+#endif
 ```
 #else
 ```csharp
 var created = await client.CreateTodo(new ClientModels.NewTodo { Title = "ship it" })
     .Returns<Created<ClientModels.Todo>>();
 
+#if (xunit)
 Assert.Equal($"/todos/{created.Value.Id}", created.Location);
+#else
+Assert.That(created.Location, Is.EqualTo($"/todos/{created.Value.Id}"));
+#endif
 
 var missing = await client.GetTodo(9999).Returns<NotFound<ClientModels.Problem>>();
 
+#if (xunit)
 Assert.Contains("9999", missing.Body.Detail);
+#else
+Assert.That(missing.Body.Detail, Does.Contain("9999"));
+#endif
 ```
 #endif
 

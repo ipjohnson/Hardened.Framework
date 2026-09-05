@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <Description>Test support for Hardened applications: the entry point attribute that builds a test's container from the real module graph, [Mock] parameter injection, ITestContext, and the running-test seam a runner package fills. Reference Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit beside it for [HardenedTest].</Description>
+        <Description>Test support for Hardened applications: the entry point attribute that builds a test's container from the real module graph, ITestContext, and the running-test seam a runner package fills. Reference Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit beside it for [HardenedTest], and DependencyModules.NSubstitute, DependencyModules.Moq or DependencyModules.FakeItEasy for [Mock].</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
@@ -14,7 +14,6 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
-        <PackageReference Include="NSubstitute" Version="5.1.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -24,6 +23,11 @@
              both of its runner integrations call the same way; the runner arrives with
              Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit, which is what carries
              [HardenedTest].
+
+             No mock library either. [Mock] is DependencyModules.Testing's, and it asks the
+             IMockSupportAttribute in scope for the double - [NSubstituteSupport], [MoqSupport] or
+             [FakeItEasySupport], from the DependencyModules package of the same name. The test
+             project chooses that package, so this one does not pull NSubstitute into a Moq project.
         -->
         <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj"
                           Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj')"/>

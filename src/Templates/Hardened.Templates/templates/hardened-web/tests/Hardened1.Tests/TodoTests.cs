@@ -22,14 +22,22 @@ public class TodoTests {
     public async Task ListTodos_ReturnsEveryTodo(TemplateModuleNameClient client) {
         var todos = await client.Todos.GetAsync().Returns<Ok<List<ClientModels.Todo>>>();
 
+#if (xunit)
         Assert.Equal([1, 2], todos.Value.Select(todo => todo.Id!.Value));
+#else
+        Assert.That(todos.Value.Select(todo => todo.Id!.Value), Is.EqualTo(new[] { 1, 2 }));
+#endif
     }
 
     [HardenedTest]
     public async Task GetTodo_ReturnsTheTodo(TemplateModuleNameClient client) {
         var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
 
+#if (xunit)
         Assert.Equal("Read the generated code", todo.Value.Title);
+#else
+        Assert.That(todo.Value.Title, Is.EqualTo("Read the generated code"));
+#endif
     }
 
 #if (codeFirst && throwsMode)
@@ -65,14 +73,22 @@ public class TodoTests {
     public async Task GetTodo_UnknownId_IsATypedNotFound(TemplateModuleNameClient client) {
         var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.NotFound>>();
 
+#if (xunit)
         Assert.Contains("9999", missing.Body.Detail);
+#else
+        Assert.That(missing.Body.Detail, Does.Contain("9999"));
+#endif
     }
 
     [HardenedTest]
     public async Task RemoveTodo_UnknownId_IsATypedNotFound(TemplateModuleNameClient client) {
         var missing = await client.Todos[9999].DeleteAsync().Returns<NotFound<ClientModels.NotFound>>();
 
+#if (xunit)
         Assert.Contains("9999", missing.Body.Detail);
+#else
+        Assert.That(missing.Body.Detail, Does.Contain("9999"));
+#endif
     }
 
     /// <summary>Titles are unique, which is what gives the sample a real 409 - typed, like the 404.</summary>
@@ -81,7 +97,11 @@ public class TodoTests {
         var taken = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
             .Returns<Conflict<ClientModels.Conflict>>();
 
+#if (xunit)
         Assert.Contains("Add an endpoint", taken.Body.Detail);
+#else
+        Assert.That(taken.Body.Detail, Does.Contain("Add an endpoint"));
+#endif
     }
 #endif
 #if (openapi)
@@ -96,7 +116,11 @@ public class TodoTests {
 
         // The declared case carries the detail the service wrote. Throws mode answers this 404 by
         // returning null, which is the document's body with nothing in it to say why.
+#if (xunit)
         Assert.Contains("9999", missing.Body.Detail);
+#else
+        Assert.That(missing.Body.Detail, Does.Contain("9999"));
+#endif
 #else
         await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.Problem>>();
 #endif
@@ -107,7 +131,11 @@ public class TodoTests {
     public async Task RemoveTodo_UnknownId_IsATypedProblem(TemplateModuleNameClient client) {
         var missing = await client.Todos[9999].DeleteAsync().Returns<NotFound<ClientModels.Problem>>();
 
+#if (xunit)
         Assert.Contains("9999", missing.Body.Detail);
+#else
+        Assert.That(missing.Body.Detail, Does.Contain("9999"));
+#endif
     }
 
     /// <summary>Titles are unique, which is what gives the sample a real 409, carrying the same Problem.</summary>
@@ -116,7 +144,11 @@ public class TodoTests {
         var taken = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
             .Returns<Conflict<ClientModels.Problem>>();
 
+#if (xunit)
         Assert.Contains("Add an endpoint", taken.Body.Detail);
+#else
+        Assert.That(taken.Body.Detail, Does.Contain("Add an endpoint"));
+#endif
     }
 #endif
 #if (smithy)
@@ -143,7 +175,11 @@ public class TodoTests {
     public async Task RemoveTodo_UnknownId_IsATypedError(TemplateModuleNameClient client) {
         var missing = await client.Todos[9999].DeleteAsync().Returns<NotFound<ClientModels.TodoNotFound>>();
 
+#if (xunit)
         Assert.Contains("9999", missing.Body.Message);
+#else
+        Assert.That(missing.Body.Message, Does.Contain("9999"));
+#endif
     }
 
     /// <summary>Titles are unique, which is what gives the sample a real 409, as the shape the model names for it.</summary>
@@ -152,7 +188,11 @@ public class TodoTests {
         var taken = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
             .Returns<Conflict<ClientModels.TodoTitleTaken>>();
 
+#if (xunit)
         Assert.Contains("Add an endpoint", taken.Body.Message);
+#else
+        Assert.That(taken.Body.Message, Does.Contain("Add an endpoint"));
+#endif
     }
 #endif
 
@@ -171,7 +211,11 @@ public class TodoTests {
         var answer = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
             .Returns<Ok<ClientModels.Todo>>();
 
+#if (xunit)
         Assert.Equal("ship it", answer.Value.Title);
+#else
+        Assert.That(answer.Value.Title, Is.EqualTo("ship it"));
+#endif
     }
 
     /// <summary>200 with the removed todo, for the same reason.</summary>
@@ -179,7 +223,11 @@ public class TodoTests {
     public async Task RemoveTodo_AnswersTwoHundred(TemplateModuleNameClient client) {
         var removed = await client.Todos[2].DeleteAsync().Returns<Ok<ClientModels.Todo>>();
 
+#if (xunit)
         Assert.Equal(2, removed.Value.Id);
+#else
+        Assert.That(removed.Value.Id, Is.EqualTo(2));
+#endif
     }
 #else
 #if (smithy)
@@ -203,8 +251,13 @@ public class TodoTests {
         var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
             .Returns<Created<ClientModels.Todo>>();
 
+#if (xunit)
         Assert.Equal("ship it", created.Value.Title);
         Assert.Equal($"/todos/{created.Value.Id}", created.Location);
+#else
+        Assert.That(created.Value.Title, Is.EqualTo("ship it"));
+        Assert.That(created.Location, Is.EqualTo($"/todos/{created.Value.Id}"));
+#endif
     }
 #endif
 
@@ -237,9 +290,13 @@ public class TodoTests {
         var refused = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = new string('x', 100) })
             .Returns<BadRequest<ClientModels.RequestValidationError>>();
 
+#if (xunit)
         Assert.Contains(
             refused.Body.Errors!,
             error => error.Field?.Contains("title", StringComparison.OrdinalIgnoreCase) == true);
+#else
+        Assert.That(refused.Body.Errors!.Select(error => error.Field), Has.Some.Contains("title").IgnoreCase);
+#endif
     }
 
     /// <summary>

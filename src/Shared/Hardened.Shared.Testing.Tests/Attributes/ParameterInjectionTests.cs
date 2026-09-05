@@ -1,3 +1,4 @@
+using DependencyModules.Testing.Attributes;
 using DependencyModules.Testing.Impl;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Shared.Testing.Impl;

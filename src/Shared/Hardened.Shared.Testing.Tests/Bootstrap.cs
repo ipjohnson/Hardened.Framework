@@ -1,3 +1,4 @@
+using DependencyModules.NSubstitute;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Shared.Testing.Tests.Infrastructure;
 
@@ -12,3 +13,7 @@ using Hardened.Shared.Testing.Tests.Infrastructure;
 [assembly: HardenedTestEntryPoint(typeof(AssemblyEntryPointModule))]
 [assembly: EnvironmentName("assembly-environment")]
 [assembly: EnvironmentValue("assembly-scoped-value", "from-assembly")]
+
+// The mock library. [Mock] is DependencyModules.Testing's and builds nothing itself: it asks the
+// support attribute in scope, and without one a [Mock] parameter fails with "Mock library not found".
+[assembly: NSubstituteSupport]

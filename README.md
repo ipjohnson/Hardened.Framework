@@ -38,9 +38,9 @@ can be swapped without touching the code.
 
 | Template | What you get |
 |---|---|
-| `hardened-web` | The todo API above: an implementation library, a host, and tests. `--host kestrel\|aspnet\|aws-lambda`, `--contract code\|openapi\|smithy`, `--response-model response\|throws\|union` |
-| `hardened-function` | A serverless function and tests, on AWS Lambda today. `--trigger invoke\|sqs` |
-| `hardened-library` | A reusable module an application picks up with one attribute |
+| `hardened-web` | The todo API above: an implementation library, a host, and tests. `--host kestrel\|aspnet\|aws-lambda`, `--contract code\|openapi\|smithy`, `--response-model response\|throws\|union`, `--client kiota\|refit\|none`, `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
+| `hardened-function` | A serverless function and tests, on AWS Lambda today. `--trigger invoke\|sqs`, `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
+| `hardened-library` | A reusable module an application picks up with one attribute, and tests. `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
 
 See the [templates guide](https://ipjohnson.github.io/Hardened.Docs/guide/project-templates) for
 every option, and [getting started](https://ipjohnson.github.io/Hardened.Docs/guide/getting-started)

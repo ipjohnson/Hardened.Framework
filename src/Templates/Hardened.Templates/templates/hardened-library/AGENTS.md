@@ -35,14 +35,50 @@ adding one is the mistake, not the fix.
 `'TemplateModuleNameLibrary' does not contain a definition for 'PopulateServiceCollection'`, and consumers
 lose the attribute entirely. Versions are pinned in one place, `Directory.Packages.props`.
 
-**Tests are xUnit v3.** `Hardened.Shared.Testing` builds on `xunit.v3.extensibility.core`; a test
-project on xunit 2.x fails with `CS0433` on `Assert`. v3 test projects are also self-executing,
-hence `<OutputType>Exe</OutputType>`.
+#if (xunit)
+**Tests are xUnit v3.** `Hardened.Shared.Testing.xUnit` builds on `xunit.v3.extensibility.core`; a
+test project on xunit 2.x fails with `CS0433` on `Assert`. v3 test projects are also self-executing,
+hence `<OutputType>Exe</OutputType>`. `Hardened.Shared.Testing.NUnit` is the other runner, and
+`--test-framework nunit` scaffolds for it.
+#endif
+#if (nunit)
+**Tests are NUnit 4.** `Hardened.Shared.Testing.NUnit` takes NUnit as `[4.2.2, 5.0.0)`, and
+`[HardenedTest]` is NUnit's own test attribute underneath, so the adapter discovers it with no
+`[Test]` beside it. `Hardened.Shared.Testing.xUnit` is the other runner, and `--test-framework xunit`
+scaffolds for it.
+#endif
+
+#if (nsubstitute)
+**`[Mock]` is DependencyModules' attribute, and NSubstitute answers it.** The attribute builds
+nothing itself: `[assembly: NSubstituteSupport]` in `tests/Hardened1.Tests/Bootstrap.cs` supplies the
+double, and `DependencyModules.NSubstitute` is the package that carries both the attribute and
+NSubstitute. Remove either and a `[Mock]` parameter fails with "Mock library not found".
+`--mocks moq` and `--mocks fakeiteasy` scaffold the other two libraries.
+#endif
+#if (moq)
+**`[Mock]` is DependencyModules' attribute, and Moq answers it.** `[assembly: MoqSupport]` in
+`tests/Hardened1.Tests/Bootstrap.cs` supplies the double, and `DependencyModules.Moq` is the package
+that carries both the attribute and Moq. A `Mock<T>` parameter is the mock to configure, and the
+container is given its `Object`; a parameter typed as the service and marked `[Mock]` receives that
+`Object`. Remove the attribute and a `[Mock]` parameter fails with "Mock library not found".
+`--mocks nsubstitute` and `--mocks fakeiteasy` scaffold the other two libraries.
+#endif
+#if (fakeiteasy)
+**`[Mock]` is DependencyModules' attribute, and FakeItEasy answers it.** The attribute builds
+nothing itself: `[assembly: FakeItEasySupport]` in `tests/Hardened1.Tests/Bootstrap.cs` supplies the
+fake, and `DependencyModules.FakeItEasy` is the package that carries both the attribute and
+FakeItEasy. Remove either and a `[Mock]` parameter fails with "Mock library not found".
+`--mocks nsubstitute` and `--mocks moq` scaffold the other two libraries.
+#endif
 
 **`[HardenedTest]` boots the real module.** Test method parameters are resolved from its container.
+#if (moq)
+A `Mock<T>` parameter substitutes a service there rather than in the test, which is why a
+substituted dependency is still used by the real service resolved alongside it.
+#else
 `[Mock]` substitutes a service there rather than in the test, which is why a substituted dependency
-is still used by the real service resolved alongside it — `NSubstitute` arrives with
-`Hardened.Shared.Testing`.
+is still used by the real service resolved alongside it.
+#endif
 
 ## Commands
 

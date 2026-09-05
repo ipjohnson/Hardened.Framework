@@ -2,20 +2,45 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+<!--#if (xunit) -->
     <!-- xUnit v3 test projects are self-executing. -->
     <OutputType>Exe</OutputType>
+<!--#endif -->
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Testing" />
+<!--#if (xunit) -->
     <!-- The runner: [HardenedTest] for xUnit. Hardened.Shared.Testing.NUnit is the other one. -->
     <PackageReference Include="Hardened.Shared.Testing.xUnit" />
+<!--#endif -->
+<!--#if (nunit) -->
+    <!-- The runner: [HardenedTest] for NUnit. Hardened.Shared.Testing.xUnit is the other one. -->
+    <PackageReference Include="Hardened.Shared.Testing.NUnit" />
+<!--#endif -->
+    <!-- The mock library behind [Mock]: the support attribute Bootstrap.cs declares, and the
+         library itself. -->
+<!--#if (nsubstitute) -->
+    <PackageReference Include="DependencyModules.NSubstitute" />
+<!--#endif -->
+<!--#if (moq) -->
+    <PackageReference Include="DependencyModules.Moq" />
+<!--#endif -->
+<!--#if (fakeiteasy) -->
+    <PackageReference Include="DependencyModules.FakeItEasy" />
+<!--#endif -->
     <PackageReference Include="Hardened.Amz.Function.Lambda.Testing" />
 <!--#if (sqs) -->
     <PackageReference Include="Hardened.Amz.Function.Sqs.Testing" />
 <!--#endif -->
+<!--#if (xunit) -->
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
+<!--#endif -->
+<!--#if (nunit) -->
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+<!--#endif -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
 

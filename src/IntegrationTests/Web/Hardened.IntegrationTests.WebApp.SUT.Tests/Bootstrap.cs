@@ -1,3 +1,4 @@
+using DependencyModules.NSubstitute;
 using Hardened.IntegrationTests.WebApp.SUT;
 using Hardened.Kiota.Testing;
 using Hardened.Refit.Testing;
@@ -8,6 +9,10 @@ using Hardened.Web.Testing;
 
 [assembly: WebTesting]
 [assembly: HardenedTestEntryPoint(typeof(Application))]
+
+// The mock library [Mock] asks for its double. The attribute is DependencyModules.Testing's, the
+// same under either runner; only this line says which library answers.
+[assembly: NSubstituteSupport]
 
 // The two client routes. Every Kiota client and every Refit interface in this assembly is a test
 // parameter after these, built over the pipeline with nothing written per client; a factory in

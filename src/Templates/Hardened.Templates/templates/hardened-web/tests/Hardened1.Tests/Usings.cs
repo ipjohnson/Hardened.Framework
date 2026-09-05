@@ -1,6 +1,12 @@
+global using DependencyModules.Testing.Attributes;
 global using Hardened.Shared.Testing.Attributes;
 global using Hardened.Web.Testing;
+#if (xunit)
 global using Xunit;
+#endif
+#if (nunit)
+global using NUnit.Framework;
+#endif
 #if (hasClient)
 global using Hardened.Requests.Abstract.Responses;
 global using Hardened1.Client;

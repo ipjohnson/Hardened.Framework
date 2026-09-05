@@ -12,7 +12,6 @@
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-        <PackageReference Include="NSubstitute" Version="5.1.0" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -25,6 +24,11 @@
         <ProjectReference Include="..\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
           <!-- The runner: [HardenedTest] and the running-test seam, for xUnit. -->
       <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+        <!-- The mock library behind [Mock]: [NSubstituteSupport] in Bootstrap.cs, and NSubstitute with it. -->
+        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj"
+                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
+        <PackageReference Include="DependencyModules.NSubstitute" Version="$(DependencyModulesVersion)"
+                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
     </ItemGroup>
 
 </Project>

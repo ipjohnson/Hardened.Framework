@@ -1,3 +1,12 @@
+#if (nsubstitute)
+using DependencyModules.NSubstitute;
+#endif
+#if (moq)
+using DependencyModules.Moq;
+#endif
+#if (fakeiteasy)
+using DependencyModules.FakeItEasy;
+#endif
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Hardened1;
@@ -18,6 +27,19 @@ using Hardened.Refit.Testing;
 // applied and startup services run, so there is no separate test wiring to keep in step.
 [assembly: WebTesting]
 [assembly: HardenedTestEntryPoint(typeof(TemplateModuleNameLibrary))]
+
+// The mock library. [Mock] on a parameter asks this attribute for the double and builds nothing
+// itself, so without it a [Mock] parameter fails with "Mock library not found". The package that
+// carries it is in Hardened1.Tests.csproj.
+#if (nsubstitute)
+[assembly: NSubstituteSupport]
+#endif
+#if (moq)
+[assembly: MoqSupport]
+#endif
+#if (fakeiteasy)
+[assembly: FakeItEasySupport]
+#endif
 #if (kestrel || aspnet)
 
 // The host. After this, the attribute the application names its host with - [KestrelRuntime] or

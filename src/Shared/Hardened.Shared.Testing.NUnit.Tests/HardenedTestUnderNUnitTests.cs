@@ -1,4 +1,5 @@
 using System.Reflection;
+using DependencyModules.Testing.Attributes;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Shared.Testing.Logging;

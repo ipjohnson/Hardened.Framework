@@ -18,6 +18,14 @@
       "longName": "client",
       "shortName": "cl"
     },
+    "testFramework": {
+      "longName": "test-framework",
+      "shortName": "tf"
+    },
+    "mocks": {
+      "longName": "mocks",
+      "shortName": "mo"
+    },
     "OpenApiUi": {
       "longName": "openapi-ui",
       "shortName": ""

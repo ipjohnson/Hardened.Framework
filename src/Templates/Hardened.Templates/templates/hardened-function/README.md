@@ -91,7 +91,11 @@ and injects what the test asks for:
 public async Task ARecordReachesTheHandler(TestSqsApp app, OrderLog log) {
     var response = await app.SendMessage(new Order { Id = "A-1", Quantity = 2 });
 
+#if (xunit)
     Assert.Empty(response.BatchItemFailures);
+#else
+    Assert.That(response.BatchItemFailures, Is.Empty);
+#endif
 }
 #endif
 #if (invoke)
@@ -99,13 +103,29 @@ public async Task ARecordReachesTheHandler(TestSqsApp app, OrderLog log) {
 public async Task ThePayloadReachesTheHandler(LambdaTestApp app, OrderLog log) {
     var accepted = await app.Invoke<OrderAccepted>("Process", new Order { Id = "A-1" });
 
+#if (xunit)
     Assert.Equal("A-1", accepted.Id);
+#else
+    Assert.That(accepted.Id, Is.EqualTo("A-1"));
+#endif
 }
 #endif
 ```
 
 That is the real pipeline — deserialisation, the filter chain, the handler — rather than a method
-call. Mark a parameter `[Mock]` and that service is substituted for the whole container.
+call.
+#if (moq)
+Take a `Mock<T>` parameter and that service is substituted for the whole container: the mock is Moq's,
+through `[assembly: MoqSupport]` in `Bootstrap.cs`.
+#endif
+#if (nsubstitute)
+Mark a parameter `[Mock]` and that service is substituted for the whole container: the substitute is
+NSubstitute's, through `[assembly: NSubstituteSupport]` in `Bootstrap.cs`.
+#endif
+#if (fakeiteasy)
+Mark a parameter `[Mock]` and that service is substituted for the whole container: the fake is
+FakeItEasy's, through `[assembly: FakeItEasySupport]` in `Bootstrap.cs`.
+#endif
 
 ## Reading the generated code
 

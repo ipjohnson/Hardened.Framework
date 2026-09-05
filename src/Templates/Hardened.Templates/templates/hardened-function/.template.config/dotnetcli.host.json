@@ -4,6 +4,12 @@
     "trigger": {
       "longName": "trigger"
     },
+    "testFramework": {
+      "longName": "test-framework"
+    },
+    "mocks": {
+      "longName": "mocks"
+    },
     "HardenedVersion": {
       "longName": "hardened-version"
     },
