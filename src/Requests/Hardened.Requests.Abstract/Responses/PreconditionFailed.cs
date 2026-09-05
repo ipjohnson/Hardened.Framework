@@ -10,11 +10,14 @@ namespace Hardened.Requests.Abstract.Responses;
 /// its validator is stale, and that is the one thing 412 means.
 /// </remarks>
 [HttpStatus(412)]
-public sealed record PreconditionFailed(string? Detail = null) : IHttpStatusResponse {
+public sealed record PreconditionFailed(string? Detail = null)
+    : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.PreconditionFailed;
 
     public string Title => "Precondition Failed";
 
-    public int Status => 412;
+    public static int StatusCode => 412;
+
+    public int Status => StatusCode;
 }

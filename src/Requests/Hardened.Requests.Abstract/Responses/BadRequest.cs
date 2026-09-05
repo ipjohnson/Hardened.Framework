@@ -18,11 +18,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(400)]
-public sealed record BadRequest(string? Detail = null) : IHttpStatusResponse {
+public sealed record BadRequest(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.BadRequest;
 
     public string Title => "Bad Request";
 
-    public int Status => 400;
+    public static int StatusCode => 400;
+
+    public int Status => StatusCode;
 }

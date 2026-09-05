@@ -17,11 +17,14 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(428)]
-public sealed record PreconditionRequired(string? Detail = null) : IHttpStatusResponse {
+public sealed record PreconditionRequired(string? Detail = null)
+    : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.PreconditionRequired;
 
     public string Title => "Precondition Required";
 
-    public int Status => 428;
+    public static int StatusCode => 428;
+
+    public int Status => StatusCode;
 }

@@ -113,6 +113,7 @@ namespace Hardened.Requests.Abstract.Authorization
         public static Hardened.Requests.Abstract.Authorization.AuthorizationChallenge InsufficientAuthentication(string? realm = null, string? description = null) { }
         public static Hardened.Requests.Abstract.Authorization.AuthorizationChallenge InsufficientScope(System.Collections.Generic.IEnumerable<string> requiredGrants, string? realm = null) { }
         public static Hardened.Requests.Abstract.Authorization.AuthorizationChallenge InvalidToken(string? realm = null, string? description = null) { }
+        public static Hardened.Requests.Abstract.Authorization.AuthorizationChallenge Parse(string headerValue, int statusCode = 401) { }
     }
     public enum AuthorizationDecision
     {
@@ -779,13 +780,15 @@ namespace Hardened.Requests.Abstract.RequestFilter
 namespace Hardened.Requests.Abstract.Responses
 {
     [Hardened.Requests.Abstract.Responses.HttpStatus(202)]
-    public sealed class Accepted : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Accepted>
+    public sealed class Accepted : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.Accepted>, System.IEquatable<Hardened.Requests.Abstract.Responses.Accepted>
     {
         public Accepted(string? Location = null) { }
         public bool HasBody { get; }
         public string? Location { get; init; }
         public int Status { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Requests.Abstract.Responses.Accepted FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Interface, AllowMultiple=true, Inherited=true)]
     public sealed class AnswersStatusAttribute : System.Attribute
@@ -797,139 +800,162 @@ namespace Hardened.Requests.Abstract.Responses
         public string? StatusFrom { get; set; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(502)]
-    public sealed class BadGateway : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadGateway>
+    public sealed class BadGateway : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadGateway>
     {
         public BadGateway(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(502)]
-    public sealed class BadGateway<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadGateway<T>>
+    public sealed class BadGateway<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.BadGateway<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.BadGateway<T>>
     {
         public BadGateway(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.BadGateway<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(400)]
-    public sealed class BadRequest : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadRequest>
+    public sealed class BadRequest : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadRequest>
     {
         public BadRequest(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(400)]
-    public sealed class BadRequest<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.BadRequest<T>>
+    public sealed class BadRequest<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.BadRequest<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.BadRequest<T>>
     {
         public BadRequest(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.BadRequest<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(409)]
-    public sealed class Conflict : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Conflict>
+    public sealed class Conflict : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Conflict>
     {
         public Conflict(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(409)]
-    public sealed class Conflict<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Conflict<T>>
+    public sealed class Conflict<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.Conflict<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.Conflict<T>>
     {
         public Conflict(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.Conflict<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(413)]
-    public sealed class ContentTooLarge : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.ContentTooLarge>
+    public sealed class ContentTooLarge : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.ContentTooLarge>
     {
         public ContentTooLarge(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(413)]
-    public sealed class ContentTooLarge<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.ContentTooLarge<T>>
+    public sealed class ContentTooLarge<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.ContentTooLarge<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.ContentTooLarge<T>>
     {
         public ContentTooLarge(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.ContentTooLarge<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(201)]
-    public sealed class Created<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Created<T>>
+    public sealed class Created<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.Created<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.Created<T>>
     {
         public Created(T Value, string Location) { }
         public string Location { get; init; }
         public int Status { get; }
         public T Value { get; init; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Requests.Abstract.Responses.Created<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(403)]
-    public sealed class Forbidden : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Forbidden>
+    public sealed class Forbidden : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Forbidden>
     {
         public Forbidden(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(403)]
-    public sealed class Forbidden<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Forbidden<T>>
+    public sealed class Forbidden<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.Forbidden<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.Forbidden<T>>
     {
         public Forbidden(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.Forbidden<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(504)]
-    public sealed class GatewayTimeout : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.GatewayTimeout>
+    public sealed class GatewayTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.GatewayTimeout>
     {
         public GatewayTimeout(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(504)]
-    public sealed class GatewayTimeout<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.GatewayTimeout<T>>
+    public sealed class GatewayTimeout<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.GatewayTimeout<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.GatewayTimeout<T>>
     {
         public GatewayTimeout(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.GatewayTimeout<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(410)]
-    public sealed class Gone : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Gone>
+    public sealed class Gone : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Gone>
     {
         public Gone(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(410)]
-    public sealed class Gone<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Gone<T>>
+    public sealed class Gone<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.Gone<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.Gone<T>>
     {
         public Gone(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.Gone<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     public static class Http
     {
@@ -1104,6 +1130,10 @@ namespace Hardened.Requests.Abstract.Responses
     {
         object? Body { get; }
     }
+    public interface IDeclaresStatus
+    {
+        int StatusCode { get; }
+    }
     public interface IHttpStatusResponse
     {
         bool HasBody { get; }
@@ -1113,62 +1143,78 @@ namespace Hardened.Requests.Abstract.Responses
     {
         void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers);
     }
+    public interface IResponseExpectation<TSelf> : Hardened.Requests.Abstract.Responses.IDeclaresStatus
+        where TSelf : Hardened.Requests.Abstract.Responses.IResponseExpectation<TSelf>
+    {
+        TSelf FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers);
+    }
     public interface IStatusCode
     {
         int Status { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(500)]
-    public sealed class InternalServerError : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.InternalServerError>
+    public sealed class InternalServerError : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.InternalServerError>
     {
         public InternalServerError(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(500)]
-    public sealed class InternalServerError<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.InternalServerError<T>>
+    public sealed class InternalServerError<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.InternalServerError<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.InternalServerError<T>>
     {
         public InternalServerError(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.InternalServerError<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(405)]
-    public sealed class MethodNotAllowed : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.MethodNotAllowed>
+    public sealed class MethodNotAllowed : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.MethodNotAllowed>, System.IEquatable<Hardened.Requests.Abstract.Responses.MethodNotAllowed>
     {
         public MethodNotAllowed(string Allow) { }
         public string Allow { get; init; }
         public bool HasBody { get; }
         public int Status { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Requests.Abstract.Responses.MethodNotAllowed FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(405)]
-    public sealed class MethodNotAllowed<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.MethodNotAllowed<T>>
+    public sealed class MethodNotAllowed<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.MethodNotAllowed<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.MethodNotAllowed<T>>
     {
         public MethodNotAllowed(T Body, string Allow) { }
         public string Allow { get; init; }
         public T Body { get; init; }
         public int Status { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Requests.Abstract.Responses.MethodNotAllowed<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(204)]
-    public sealed class NoContent : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NoContent>
+    public sealed class NoContent : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.NoContent>, System.IEquatable<Hardened.Requests.Abstract.Responses.NoContent>
     {
         public NoContent() { }
         public bool HasBody { get; }
         public int Status { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.NoContent FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(406)]
-    public sealed class NotAcceptable : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotAcceptable>
+    public sealed class NotAcceptable : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.NotAcceptable>, System.IEquatable<Hardened.Requests.Abstract.Responses.NotAcceptable>
     {
         public NotAcceptable() { }
         public bool HasBody { get; }
         public int Status { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.NotAcceptable FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(404)]
-    public sealed class NotFound : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotFound>
+    public sealed class NotFound : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotFound>
     {
         public NotFound(string Resource, string? Detail = null) { }
         public string? Detail { get; init; }
@@ -1176,106 +1222,125 @@ namespace Hardened.Requests.Abstract.Responses
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(404)]
-    public sealed class NotFound<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotFound<T>>
+    public sealed class NotFound<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.NotFound<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.NotFound<T>>
     {
         public NotFound(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.NotFound<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(501)]
-    public sealed class NotImplemented : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotImplemented>
+    public sealed class NotImplemented : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotImplemented>
     {
         public NotImplemented(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(501)]
-    public sealed class NotImplemented<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.NotImplemented<T>>
+    public sealed class NotImplemented<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.NotImplemented<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.NotImplemented<T>>
     {
         public NotImplemented(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.NotImplemented<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(304)]
-    public sealed class NotModified : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.NotModified>
+    public sealed class NotModified : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.NotModified>, System.IEquatable<Hardened.Requests.Abstract.Responses.NotModified>
     {
         public NotModified(string? ETag = null) { }
         public string? ETag { get; init; }
         public bool HasBody { get; }
         public int Status { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Requests.Abstract.Responses.NotModified FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(200)]
-    public sealed class Ok<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Ok<T>>
+    public sealed class Ok<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.Ok<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.Ok<T>>
     {
         public Ok(T Value, System.Collections.Generic.IReadOnlyDictionary<string, string>? Headers = null) { }
         public Ok(T value, string headerName, string headerValue) { }
         public System.Collections.Generic.IReadOnlyDictionary<string, string>? Headers { get; init; }
         public int Status { get; }
         public T Value { get; init; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Requests.Abstract.Responses.Ok<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(402)]
-    public sealed class PaymentRequired : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PaymentRequired>
+    public sealed class PaymentRequired : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PaymentRequired>
     {
         public PaymentRequired(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(402)]
-    public sealed class PaymentRequired<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PaymentRequired<T>>
+    public sealed class PaymentRequired<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.PaymentRequired<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.PaymentRequired<T>>
     {
         public PaymentRequired(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.PaymentRequired<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(412)]
-    public sealed class PreconditionFailed : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionFailed>
+    public sealed class PreconditionFailed : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionFailed>
     {
         public PreconditionFailed(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(412)]
-    public sealed class PreconditionFailed<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionFailed<T>>
+    public sealed class PreconditionFailed<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.PreconditionFailed<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionFailed<T>>
     {
         public PreconditionFailed(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.PreconditionFailed<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(428)]
-    public sealed class PreconditionRequired : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionRequired>
+    public sealed class PreconditionRequired : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionRequired>
     {
         public PreconditionRequired(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(428)]
-    public sealed class PreconditionRequired<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionRequired<T>>
+    public sealed class PreconditionRequired<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.PreconditionRequired<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.PreconditionRequired<T>>
     {
         public PreconditionRequired(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.PreconditionRequired<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     public static class ProblemTypes
     {
@@ -1301,7 +1366,7 @@ namespace Hardened.Requests.Abstract.Responses
         public const string UnsupportedMediaType = "urn:hardened:problem:unsupported-media-type";
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(429)]
-    public sealed class RateLimited : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.RateLimited>
+    public sealed class RateLimited : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.RateLimited>
     {
         public RateLimited(System.TimeSpan RetryAfter, string? Detail = null) { }
         public string? Detail { get; init; }
@@ -1309,10 +1374,11 @@ namespace Hardened.Requests.Abstract.Responses
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(429)]
-    public sealed class RateLimited<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.RateLimited<T>>
+    public sealed class RateLimited<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.RateLimited<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.RateLimited<T>>
     {
         public RateLimited(System.TimeSpan RetryAfter, T Body) { }
         public T Body { get; init; }
@@ -1320,25 +1386,30 @@ namespace Hardened.Requests.Abstract.Responses
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Requests.Abstract.Responses.RateLimited<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(408)]
-    public sealed class RequestTimeout : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.RequestTimeout>
+    public sealed class RequestTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.RequestTimeout>
     {
         public RequestTimeout(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(408)]
-    public sealed class RequestTimeout<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.RequestTimeout<T>>
+    public sealed class RequestTimeout<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.RequestTimeout<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.RequestTimeout<T>>
     {
         public RequestTimeout(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.RequestTimeout<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     public class ResponseException : Hardened.Requests.Abstract.Errors.StatusCodeException
     {
@@ -1356,6 +1427,14 @@ namespace Hardened.Requests.Abstract.Responses
     {
         public ResponseException(T response, string? message = null) { }
         public new T Response { get; }
+    }
+    public static class ResponseExpectation
+    {
+        public static T Body<T>(object? body) { }
+        public static string? OptionalHeader(System.Collections.Generic.IReadOnlyDictionary<string, string> headers, string name) { }
+        public static System.TimeSpan? OptionalRetryAfter(System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
+        public static string RequiredHeader(System.Collections.Generic.IReadOnlyDictionary<string, string> headers, string name) { }
+        public static System.TimeSpan RequiredRetryAfter(System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     public enum ResponseModel
     {
@@ -1483,7 +1562,7 @@ namespace Hardened.Requests.Abstract.Responses
         public static int Seconds(System.TimeSpan delay) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(503)]
-    public sealed class ServiceUnavailable : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.ServiceUnavailable>
+    public sealed class ServiceUnavailable : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.ServiceUnavailable>
     {
         public ServiceUnavailable(System.TimeSpan? After = default, string? Detail = null) { }
         public System.TimeSpan? After { get; init; }
@@ -1491,10 +1570,11 @@ namespace Hardened.Requests.Abstract.Responses
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(503)]
-    public sealed class ServiceUnavailable<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.ServiceUnavailable<T>>
+    public sealed class ServiceUnavailable<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.ServiceUnavailable<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.ServiceUnavailable<T>>
     {
         public ServiceUnavailable(T Body, System.TimeSpan? After = default) { }
         public System.TimeSpan? After { get; init; }
@@ -1502,19 +1582,25 @@ namespace Hardened.Requests.Abstract.Responses
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Requests.Abstract.Responses.ServiceUnavailable<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
-    public sealed class Status<TCode> : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Status<TCode>>
+    public sealed class Status<TCode> : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.Status<TCode>>, System.IEquatable<Hardened.Requests.Abstract.Responses.Status<TCode>>
         where TCode : Hardened.Requests.Abstract.Responses.IStatusCode
     {
         public Status() { }
         public bool HasBody { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.Status<TCode> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
-    public sealed class Status<TCode, TBody> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.Status<TCode, TBody>>
+    public sealed class Status<TCode, TBody> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.Status<TCode, TBody>>, System.IEquatable<Hardened.Requests.Abstract.Responses.Status<TCode, TBody>>
         where TCode : Hardened.Requests.Abstract.Responses.IStatusCode
     {
         public Status(TBody Body) { }
         public TBody Body { get; init; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.Status<TCode, TBody> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=true, Inherited=false)]
     public sealed class ThrowsAttribute<TError> : System.Attribute
@@ -1525,7 +1611,7 @@ namespace Hardened.Requests.Abstract.Responses
         public int? StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(401)]
-    public sealed class Unauthorized : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Unauthorized>
+    public sealed class Unauthorized : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Unauthorized>
     {
         public Unauthorized(string? Detail = null, Hardened.Requests.Abstract.Authorization.AuthorizationChallenge? Challenge = null) { }
         public Hardened.Requests.Abstract.Authorization.AuthorizationChallenge? Challenge { get; init; }
@@ -1533,10 +1619,11 @@ namespace Hardened.Requests.Abstract.Responses
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(401)]
-    public sealed class Unauthorized<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Requests.Abstract.Responses.Unauthorized<T>>
+    public sealed class Unauthorized<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.Unauthorized<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.Unauthorized<T>>
     {
         public Unauthorized(T Body, Hardened.Requests.Abstract.Authorization.AuthorizationChallenge? Challenge = null) { }
         public T Body { get; init; }
@@ -1544,43 +1631,51 @@ namespace Hardened.Requests.Abstract.Responses
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Requests.Abstract.Responses.Unauthorized<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(422)]
-    public sealed class UnprocessableContent : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.UnprocessableContent>
+    public sealed class UnprocessableContent : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.UnprocessableContent>
     {
         public UnprocessableContent(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(422)]
-    public sealed class UnprocessableContent<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.UnprocessableContent<T>>
+    public sealed class UnprocessableContent<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.UnprocessableContent<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.UnprocessableContent<T>>
     {
         public UnprocessableContent(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.UnprocessableContent<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(415)]
-    public sealed class UnsupportedMediaType : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.UnsupportedMediaType>
+    public sealed class UnsupportedMediaType : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.UnsupportedMediaType>
     {
         public UnsupportedMediaType(string? Detail = null) { }
         public string? Detail { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(415)]
-    public sealed class UnsupportedMediaType<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.UnsupportedMediaType<T>>
+    public sealed class UnsupportedMediaType<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IResponseExpectation<Hardened.Requests.Abstract.Responses.UnsupportedMediaType<T>>, System.IEquatable<Hardened.Requests.Abstract.Responses.UnsupportedMediaType<T>>
     {
         public UnsupportedMediaType(T Body) { }
         public T Body { get; init; }
         public int Status { get; }
         public string Title { get; }
         public string Type { get; }
+        public static int StatusCode { get; }
+        public static Hardened.Requests.Abstract.Responses.UnsupportedMediaType<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
 }
 namespace Hardened.Requests.Abstract.Serializer

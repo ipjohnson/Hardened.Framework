@@ -19,11 +19,14 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(404)]
-public sealed record NotFound(string Resource, string? Detail = null) : IHttpStatusResponse {
+public sealed record NotFound(string Resource, string? Detail = null)
+    : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.NotFound;
 
     public string Title => "Not Found";
 
-    public int Status => 404;
+    public static int StatusCode => 404;
+
+    public int Status => StatusCode;
 }

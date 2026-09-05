@@ -27,13 +27,21 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(201)]
 public sealed record Created<T>(T Value, string Location)
-    : IHttpStatusResponse, IProvidesResponseHeaders, ICarriesResponseBody {
+    : IHttpStatusResponse, IProvidesResponseHeaders, ICarriesResponseBody,
+        IResponseExpectation<Created<T>> {
 
-    public int Status => 201;
+    public static int StatusCode => 201;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Value;
 
     public void ApplyHeaders(IDictionary<string, StringValues> headers) {
         headers[KnownHeaders.Location] = Location;
     }
+
+    public static Created<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body),
+            ResponseExpectation.RequiredHeader(headers, KnownHeaders.Location));
 }

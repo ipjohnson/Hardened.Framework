@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(422)]
 public sealed record UnprocessableContent<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<UnprocessableContent<T>> {
 
     public string Type => ProblemTypes.UnprocessableContent;
 
     public string Title => "Unprocessable Content";
 
-    public int Status => 422;
+    public static int StatusCode => 422;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static UnprocessableContent<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

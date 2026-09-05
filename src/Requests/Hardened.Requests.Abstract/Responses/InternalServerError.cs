@@ -18,11 +18,14 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(500)]
-public sealed record InternalServerError(string? Detail = null) : IHttpStatusResponse {
+public sealed record InternalServerError(string? Detail = null)
+    : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.InternalServerError;
 
     public string Title => "Internal Server Error";
 
-    public int Status => 500;
+    public static int StatusCode => 500;
+
+    public int Status => StatusCode;
 }

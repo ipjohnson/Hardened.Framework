@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(504)]
 public sealed record GatewayTimeout<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<GatewayTimeout<T>> {
 
     public string Type => ProblemTypes.GatewayTimeout;
 
     public string Title => "Gateway Timeout";
 
-    public int Status => 504;
+    public static int StatusCode => 504;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static GatewayTimeout<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(413)]
 public sealed record ContentTooLarge<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<ContentTooLarge<T>> {
 
     public string Type => ProblemTypes.ContentTooLarge;
 
     public string Title => "Content Too Large";
 
-    public int Status => 413;
+    public static int StatusCode => 413;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static ContentTooLarge<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

@@ -115,6 +115,101 @@ public sealed class AuthorizationChallenge {
 
     public override string ToString() => HeaderValue;
 
+    /// <summary>
+    /// The challenge a <c>WWW-Authenticate</c> header describes.
+    /// </summary>
+    /// <remarks>
+    /// The other direction of <see cref="HeaderValue"/>, so a test can assert on a challenge it
+    /// received rather than on the string it was written as. Parameters this type does not model
+    /// are ignored, and an unquoted value is read as far as the next comma.
+    /// </remarks>
+    /// <param name="headerValue">The header, scheme first.</param>
+    /// <param name="statusCode">
+    /// The status the challenge was sent with. Not recoverable from the header, and 401 for every
+    /// challenge but <see cref="InsufficientScope"/>.
+    /// </param>
+    public static AuthorizationChallenge Parse(string headerValue, int statusCode = 401) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(headerValue);
+
+        var text = headerValue.Trim();
+        var space = text.IndexOf(' ');
+        string? error = null, realm = null, description = null;
+        IReadOnlyList<string> scope = [];
+
+        if (space >= 0) {
+            foreach (var (name, value) in Parameters(text[(space + 1)..])) {
+                switch (name.ToLowerInvariant()) {
+                    case "realm":
+                        realm = value;
+                        break;
+                    case "error":
+                        error = value;
+                        break;
+                    case "error_description":
+                        description = value;
+                        break;
+                    case "scope":
+                        scope = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        break;
+                }
+            }
+        }
+
+        return new(statusCode, space < 0 ? text : text[..space], error, realm, scope, description);
+    }
+
+    // A quoted value can hold the comma that separates parameters and the quote that ends one, so
+    // this walks the header rather than splitting it.
+    private static IEnumerable<(string Name, string Value)> Parameters(string text) {
+        var index = 0;
+
+        while (index < text.Length) {
+            while (index < text.Length && (text[index] == ',' || char.IsWhiteSpace(text[index]))) {
+                index++;
+            }
+
+            var nameStart = index;
+
+            while (index < text.Length && text[index] != '=' && text[index] != ',') {
+                index++;
+            }
+
+            if (index == text.Length || text[index] != '=') {
+                yield break;
+            }
+
+            var name = text[nameStart..index].Trim();
+            string value;
+            index++;
+
+            if (index < text.Length && text[index] == '"') {
+                var builder = new StringBuilder();
+                index++;
+
+                while (index < text.Length && text[index] != '"') {
+                    if (text[index] == '\\' && index + 1 < text.Length) {
+                        index++;
+                    }
+
+                    builder.Append(text[index++]);
+                }
+
+                index++;
+                value = builder.ToString();
+            } else {
+                var valueStart = index;
+
+                while (index < text.Length && text[index] != ',') {
+                    index++;
+                }
+
+                value = text[valueStart..index].Trim();
+            }
+
+            yield return (name, value);
+        }
+    }
+
     private static string Format(
         string scheme, string? error, string? realm, IReadOnlyList<string> scope, string? description) {
         var builder = new StringBuilder(scheme);

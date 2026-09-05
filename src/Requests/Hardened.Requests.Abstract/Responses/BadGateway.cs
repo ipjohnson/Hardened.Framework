@@ -16,11 +16,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(502)]
-public sealed record BadGateway(string? Detail = null) : IHttpStatusResponse {
+public sealed record BadGateway(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.BadGateway;
 
     public string Title => "Bad Gateway";
 
-    public int Status => 502;
+    public static int StatusCode => 502;
+
+    public int Status => StatusCode;
 }

@@ -26,13 +26,16 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(401)]
 public sealed record Unauthorized<T>(T Body, AuthorizationChallenge? Challenge = null)
-    : IHttpStatusResponse, ICarriesResponseBody, IProvidesResponseHeaders {
+    : IHttpStatusResponse, ICarriesResponseBody, IProvidesResponseHeaders,
+        IResponseExpectation<Unauthorized<T>> {
 
     public string Type => ProblemTypes.Unauthorized;
 
     public string Title => "Unauthorized";
 
-    public int Status => 401;
+    public static int StatusCode => 401;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
     public void ApplyHeaders(IDictionary<string, StringValues> headers) {
@@ -40,4 +43,10 @@ public sealed record Unauthorized<T>(T Body, AuthorizationChallenge? Challenge =
 
         headers[AuthorizationChallenge.HeaderName] = challenge.HeaderValue;
     }
+
+    public static Unauthorized<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body),
+            ResponseExpectation.OptionalHeader(headers, AuthorizationChallenge.HeaderName)
+                is { } challenge ? AuthorizationChallenge.Parse(challenge) : null);
 }

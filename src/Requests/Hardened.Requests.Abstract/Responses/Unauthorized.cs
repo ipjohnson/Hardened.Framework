@@ -24,13 +24,15 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(401)]
 public sealed record Unauthorized(string? Detail = null, AuthorizationChallenge? Challenge = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders {
+    : IHttpStatusResponse, IProvidesResponseHeaders, IDeclaresStatus {
 
     public string Type => ProblemTypes.Unauthorized;
 
     public string Title => "Unauthorized";
 
-    public int Status => 401;
+    public static int StatusCode => 401;
+
+    public int Status => StatusCode;
 
     public void ApplyHeaders(IDictionary<string, StringValues> headers) {
         var challenge = Challenge ?? AuthorizationChallenge.AuthenticationRequired();

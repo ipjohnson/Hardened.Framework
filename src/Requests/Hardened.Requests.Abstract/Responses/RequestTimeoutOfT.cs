@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(408)]
 public sealed record RequestTimeout<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<RequestTimeout<T>> {
 
     public string Type => ProblemTypes.RequestTimeout;
 
     public string Title => "Request Timeout";
 
-    public int Status => 408;
+    public static int StatusCode => 408;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static RequestTimeout<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

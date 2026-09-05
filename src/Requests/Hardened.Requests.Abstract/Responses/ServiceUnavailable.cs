@@ -22,13 +22,15 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(503)]
 public sealed record ServiceUnavailable(TimeSpan? After = null, string? Detail = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders {
+    : IHttpStatusResponse, IProvidesResponseHeaders, IDeclaresStatus {
 
     public string Type => ProblemTypes.ServiceUnavailable;
 
     public string Title => "Service Unavailable";
 
-    public int Status => 503;
+    public static int StatusCode => 503;
+
+    public int Status => StatusCode;
 
     public void ApplyHeaders(IDictionary<string, StringValues> headers) {
         if (After is { } after) {

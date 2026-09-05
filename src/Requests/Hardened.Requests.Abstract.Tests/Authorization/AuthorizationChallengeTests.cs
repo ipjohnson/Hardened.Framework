@@ -201,4 +201,103 @@ public class AuthorizationChallengeTests {
     }
 
     #endregion
+
+    #region reading one back
+
+    /// <summary>
+    /// Every challenge this type can produce, read back from the header it produced.
+    /// </summary>
+    /// <remarks>
+    /// A round trip rather than four assertions on four parsed strings, because the format is
+    /// written in one place and read in another and the only thing that matters is that they are
+    /// the same format. A parameter added to <c>Format</c> and not to the parser fails here.
+    /// </remarks>
+    public static TheoryData<AuthorizationChallenge> EveryChallenge => new() {
+        AuthorizationChallenge.AuthenticationRequired(),
+        AuthorizationChallenge.AuthenticationRequired("api"),
+        AuthorizationChallenge.InvalidToken(),
+        AuthorizationChallenge.InvalidToken("api", "the token expired"),
+        AuthorizationChallenge.InsufficientAuthentication("api", "a second factor is required"),
+        AuthorizationChallenge.InsufficientScope(["todos:read", "todos:write"], "api"),
+    };
+
+    [Theory]
+    [MemberData(nameof(EveryChallenge))]
+    public void AChallenge_ReadsBackAsTheHeaderItWrote(AuthorizationChallenge challenge) {
+        var parsed = AuthorizationChallenge.Parse(challenge.HeaderValue, challenge.StatusCode);
+
+        Assert.Equal(challenge.HeaderValue, parsed.HeaderValue);
+        Assert.Equal(challenge.Scheme, parsed.Scheme);
+        Assert.Equal(challenge.Error, parsed.Error);
+        Assert.Equal(challenge.Realm, parsed.Realm);
+        Assert.Equal(challenge.Description, parsed.Description);
+        Assert.Equal(challenge.Scope, parsed.Scope);
+        Assert.Equal(challenge.StatusCode, parsed.StatusCode);
+    }
+
+    /// <summary>
+    /// A quoted value holds both characters that would otherwise end a parameter, and a realm is
+    /// the one an application chooses, so both reach the parser in practice.
+    /// </summary>
+    [Fact]
+    public void AQuotedValue_MayHoldACommaAndAQuote() {
+        var parsed = AuthorizationChallenge.Parse(
+            AuthorizationChallenge.InvalidToken("a \"realm\", quoted").HeaderValue);
+
+        Assert.Equal("a \"realm\", quoted", parsed.Realm);
+        Assert.Equal("invalid_token", parsed.Error);
+    }
+
+    [Fact]
+    public void AChallengeThatIsOnlyAScheme_ReadsBackAsThatScheme() {
+        var parsed = AuthorizationChallenge.Parse("Bearer");
+
+        Assert.Equal("Bearer", parsed.Scheme);
+        Assert.Null(parsed.Error);
+        Assert.Empty(parsed.Scope);
+    }
+
+    /// <summary>
+    /// The parameters another server sends. RFC 6750 is a floor rather than a list, so one this
+    /// type does not model is skipped rather than refused.
+    /// </summary>
+    [Fact]
+    public void AParameterThisTypeDoesNotModel_IsIgnored() {
+        var parsed = AuthorizationChallenge.Parse(
+            "Bearer realm=\"api\", error=invalid_token, max_age=60");
+
+        Assert.Equal("api", parsed.Realm);
+        Assert.Equal("invalid_token", parsed.Error);
+    }
+
+    /// <summary>
+    /// 403 is the one challenge that is not a 401, and the header does not say which it was, so
+    /// the caller does.
+    /// </summary>
+    [Fact]
+    public void TheStatusIsTheCallersToState() {
+        Assert.Equal(
+            403,
+            AuthorizationChallenge.Parse(
+                AuthorizationChallenge.InsufficientScope(["todos:read"]).HeaderValue, 403).StatusCode);
+    }
+
+    /// <summary>
+    /// A parameter with no value ends the header rather than being read as an empty one, because a
+    /// challenge this malformed says nothing about what the client should do next.
+    /// </summary>
+    [Fact]
+    public void AParameterWithNoValue_EndsTheHeader() {
+        var parsed = AuthorizationChallenge.Parse("Bearer realm=\"api\", error");
+
+        Assert.Equal("api", parsed.Realm);
+        Assert.Null(parsed.Error);
+    }
+
+    [Fact]
+    public void AnEmptyHeader_IsRefused() {
+        Assert.Throws<ArgumentException>(() => AuthorizationChallenge.Parse("  "));
+    }
+
+    #endregion
 }

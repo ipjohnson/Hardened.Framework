@@ -18,9 +18,14 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(406)]
-public sealed record NotAcceptable : IHttpStatusResponse {
+public sealed record NotAcceptable : IHttpStatusResponse, IResponseExpectation<NotAcceptable> {
 
-    public int Status => 406;
+    public static int StatusCode => 406;
+
+    public int Status => StatusCode;
 
     public bool HasBody => false;
+
+    public static NotAcceptable FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) => new();
 }

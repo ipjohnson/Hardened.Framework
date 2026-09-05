@@ -33,7 +33,8 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(200)]
 public sealed record Ok<T>(T Value, IReadOnlyDictionary<string, string>? Headers = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders, ICarriesResponseBody {
+    : IHttpStatusResponse, IProvidesResponseHeaders, ICarriesResponseBody,
+        IResponseExpectation<Ok<T>> {
 
     /// <summary>
     /// A 200 carrying one header, which is the common case - an <c>ETag</c>.
@@ -41,7 +42,9 @@ public sealed record Ok<T>(T Value, IReadOnlyDictionary<string, string>? Headers
     public Ok(T value, string headerName, string headerValue)
         : this(value, new Dictionary<string, string> { [headerName] = headerValue }) { }
 
-    public int Status => 200;
+    public static int StatusCode => 200;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Value;
 
@@ -54,4 +57,11 @@ public sealed record Ok<T>(T Value, IReadOnlyDictionary<string, string>? Headers
             headers[header.Key] = header.Value;
         }
     }
+
+    // Every response header, not only the ones this record was constructed with: the read side
+    // cannot tell a header a handler added from one the pipeline did, and a test asking for one
+    // wants it either way.
+    public static Ok<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body), headers);
 }

@@ -21,13 +21,15 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(429)]
 public sealed record RateLimited(TimeSpan RetryAfter, string? Detail = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders {
+    : IHttpStatusResponse, IProvidesResponseHeaders, IDeclaresStatus {
 
     public string Type => ProblemTypes.RateLimited;
 
     public string Title => "Too Many Requests";
 
-    public int Status => 429;
+    public static int StatusCode => 429;
+
+    public int Status => StatusCode;
 
     public void ApplyHeaders(IDictionary<string, StringValues> headers) {
         headers[KnownHeaders.RetryAfter] = Responses.RetryAfter.HeaderValue(RetryAfter);

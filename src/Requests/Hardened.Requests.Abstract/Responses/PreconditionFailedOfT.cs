@@ -23,13 +23,19 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(412)]
 public sealed record PreconditionFailed<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody {
+    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<PreconditionFailed<T>> {
 
     public string Type => ProblemTypes.PreconditionFailed;
 
     public string Title => "Precondition Failed";
 
-    public int Status => 412;
+    public static int StatusCode => 412;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
+
+    public static PreconditionFailed<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body));
 }

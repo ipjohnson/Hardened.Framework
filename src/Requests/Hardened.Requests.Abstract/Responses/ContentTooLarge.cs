@@ -16,11 +16,13 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(413)]
-public sealed record ContentTooLarge(string? Detail = null) : IHttpStatusResponse {
+public sealed record ContentTooLarge(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
     public string Type => ProblemTypes.ContentTooLarge;
 
     public string Title => "Content Too Large";
 
-    public int Status => 413;
+    public static int StatusCode => 413;
+
+    public int Status => StatusCode;
 }

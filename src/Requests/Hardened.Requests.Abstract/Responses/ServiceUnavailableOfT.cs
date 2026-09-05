@@ -26,13 +26,16 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 [HttpStatus(503)]
 public sealed record ServiceUnavailable<T>(T Body, TimeSpan? After = null)
-    : IHttpStatusResponse, ICarriesResponseBody, IProvidesResponseHeaders {
+    : IHttpStatusResponse, ICarriesResponseBody, IProvidesResponseHeaders,
+        IResponseExpectation<ServiceUnavailable<T>> {
 
     public string Type => ProblemTypes.ServiceUnavailable;
 
     public string Title => "Service Unavailable";
 
-    public int Status => 503;
+    public static int StatusCode => 503;
+
+    public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
     public void ApplyHeaders(IDictionary<string, StringValues> headers) {
@@ -40,4 +43,8 @@ public sealed record ServiceUnavailable<T>(T Body, TimeSpan? After = null)
             headers[KnownHeaders.RetryAfter] = RetryAfter.HeaderValue(after);
         }
     }
+
+    public static ServiceUnavailable<T> FromResponse(
+        object? body, IReadOnlyDictionary<string, string> headers) =>
+        new(ResponseExpectation.Body<T>(body), ResponseExpectation.OptionalRetryAfter(headers));
 }
