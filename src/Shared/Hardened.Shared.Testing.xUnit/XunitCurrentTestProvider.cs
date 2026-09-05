@@ -10,10 +10,12 @@ namespace Hardened.Shared.Testing;
 /// <see cref="CurrentTest"/> for xUnit v3, over <see cref="TestContext.Current"/>.
 /// </summary>
 /// <remarks>
-/// Installed by the static constructor of <c>[HardenedTest]</c>, which the runner instantiates
-/// while it discovers tests and so before any test runs. A test project that drives the harness
-/// directly and declares no <c>[HardenedTest]</c> calls <see cref="Install"/> itself. Installing is
-/// idempotent and never replaces a provider another package put there.
+/// Installed by the static constructor of <c>[HardenedTest]</c>, which the runner reads before it
+/// builds that test's container - so every <c>[HardenedTest]</c> has the seam in place. A plain
+/// test in the same assembly can run before any <c>[HardenedTest]</c> has been read, and a test
+/// project that drives the harness directly declares none, so a test that reads the seam
+/// outside a <c>[HardenedTest]</c> calls <see cref="Install"/> itself. Installing is idempotent
+/// and never replaces a provider another package put there.
 /// </remarks>
 public sealed class XunitCurrentTestProvider : ICurrentTestProvider {
 

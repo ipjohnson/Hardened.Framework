@@ -18,9 +18,10 @@ namespace Hardened.Shared.Testing;
 /// key because it is a fresh wrapper on every read.
 /// </para>
 /// <para>
-/// Installed by the static constructor of <c>[HardenedTest]</c>, which NUnit instantiates while it
-/// discovers tests and so before any test runs. A test project that drives the harness directly
-/// and declares no <c>[HardenedTest]</c> calls <see cref="Install"/> itself. Installing is
+/// Installed by the static constructor of <c>[HardenedTest]</c>, which the runner reads before it
+/// builds that test's container - so every <c>[HardenedTest]</c> has the seam in place. A plain
+/// test that reads the seam outside a <c>[HardenedTest]</c>, or a test project that drives the
+/// harness directly and declares none, calls <see cref="Install"/> itself. Installing is
 /// idempotent and never replaces a provider another package put there.
 /// </para>
 /// </remarks>

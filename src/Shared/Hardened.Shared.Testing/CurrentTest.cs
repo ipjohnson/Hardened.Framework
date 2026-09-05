@@ -19,10 +19,11 @@ namespace Hardened.Shared.Testing;
 /// <para>
 /// The runner package installs its <see cref="ICurrentTestProvider"/> from the static constructor
 /// of its <c>[HardenedTest]</c> - <c>Hardened.Shared.Testing.xUnit</c> for xUnit,
-/// <c>Hardened.Shared.Testing.NUnit</c> for NUnit - which the runner instantiates while it
-/// discovers tests, before any test runs. A test project references exactly one of the two; one
-/// that drives the harness directly and declares no <c>[HardenedTest]</c> calls the provider's
-/// <c>Install()</c> itself.
+/// <c>Hardened.Shared.Testing.NUnit</c> for NUnit - which the runner reads before it builds that
+/// test's container, so the seam is in place for every <c>[HardenedTest]</c>. A test project
+/// references exactly one of the two. A plain test that reads the seam outside a
+/// <c>[HardenedTest]</c>, or a test project that drives the harness directly and declares none,
+/// calls the provider's <c>Install()</c> itself.
 /// </para>
 /// </remarks>
 public static class CurrentTest {
