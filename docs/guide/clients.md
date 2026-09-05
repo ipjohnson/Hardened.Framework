@@ -40,8 +40,8 @@ the document.
 
 `HardenedOpenApiOutputVersion` lowers the written file to `3.0.0` or `3.1.0` for a reader that
 refuses the 3.2 banner Hardened emits by default. NSwag's reader is 3.0-first, and Spectral's
-`oas` ruleset stops at 3.1. A streaming operation loses its `itemSchema` on the way down, and the
-build names each one (`030`). [The OpenAPI document](/guide/openapi-document#the-export) has the
+`oas` ruleset stops at 3.1. A streaming operation loses its `itemSchema` on the way down and keeps the array under `schema`,
+and the build names each one (`030`). [The OpenAPI document](/guide/openapi-document#the-export) has the
 whole vocabulary.
 
 ## The client project
@@ -200,8 +200,9 @@ when picking a parser, so the error mapping keeps working if the error envelope 
 Three things no scaffold gets from Kiota:
 
 - A client signature that mirrors `Response<Todo, NotFound>`. Kiota's model is exceptions.
-- A typed method for a streaming operation. Kiota ignores `text/event-stream` and does not read
-  `itemSchema`, so an application that adds one gets a client without it.
+- Typed events for a streaming operation. Kiota reads neither `itemSchema` nor `schema` for
+  `text/event-stream` and generates a method returning a raw `Stream`, with the declared error
+  statuses mapped; the `data:` lines are yours to parse.
 - A composed type for two success cases at one status without a discriminator, which `HOAT022`
   already warns about on the server side.
 
@@ -255,6 +256,11 @@ run time. `returnIApiResponse` in that file declares every operation `Task<IApiR
 envelope that carries the status and the headers back beside the body, which is what
 `Returns<T>()` reads. The Refitter tool and the `Refit` package are pinned separately and bumped
 together by hand; nothing checks the pair the way `HTPL003` checks Kiota's.
+
+For a streamed operation, Refitter 2.1.3 reads the array the export writes under `schema` and
+declares `Task<IApiResponse<ICollection<T>>>`, a list. Refitter's `main` branch, unreleased at the
+time of writing, declares `IAsyncEnumerable<T>` from the same file, which Refit 14.0.0 and later
+consume as the events arrive; both pins move together when that release lands.
 
 **openapi-generator.** `openapi-generator-cli generate -g csharp -i src/Todos/openapi/Todos.json
 -o clients/csharp`. It needs a Java runtime, and its generated project is a solution of its own

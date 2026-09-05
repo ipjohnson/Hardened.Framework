@@ -254,6 +254,7 @@ public async Task<CreatePetOutput> CreatePet(CreatePetInput body) {
 | `map` | `Dictionary<string, T>` |
 | `enum` | a C# `enum`, with the declared string values as its wire vocabulary |
 | `union` | a struct with one implicit conversion per member and an `object? Value` |
+| `@streaming union`, bound as an `@httpPayload` output | the same struct, and `IAsyncEnumerable<TUnion>` on the interface. The response streams as server-sent events: each item is one member as `data:`, with the member's name as `event:`, and the document describes the item as the choice of its members |
 | `document` | `JsonElement` |
 | `Timestamp` | `DateTimeOffset` |
 | `Blob` | `byte[]` |

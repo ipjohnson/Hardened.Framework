@@ -166,24 +166,40 @@ public async IAsyncEnumerable<Measurement> Live(
 
 ## What the document says
 
-Streaming is described with OpenAPI 3.2's `itemSchema`:
+Streaming is described with OpenAPI 3.2's `itemSchema`, and the complete content as an array of
+the item under `schema`:
 
 ```yaml
 responses:
   '200':
     content:
       text/event-stream:
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Measurement'
         itemSchema:
           $ref: '#/components/schemas/Measurement'
 ```
 
-This works in both directions. A specification declaring `itemSchema` generates a service
-interface returning `IAsyncEnumerable<T>`, so a spec-first application streams by writing the
-spec.
+The two answer different questions, and 3.2 allows both. `itemSchema` says each item is a
+`Measurement` and that they arrive one after another. `schema` says what the complete content is,
+which the specification defines for a sequential media type as the items treated as an array, and
+it is what a reader without 3.2 sees: Refitter takes a stream's element type from it, and Kiota
+reads neither for these media types and hands back a raw `Stream`. The item alone under `schema`
+is never written, because it would say the response is one item.
+
+This works in both directions for an OpenAPI contract. A document declaring `itemSchema`
+generates a service interface returning `IAsyncEnumerable<T>` and a handler that streams it with
+the framing the media type names, so an OpenAPI-first application streams by writing the
+document. A Smithy model streams by binding a `@streaming` union as the output's `@httpPayload`,
+which is Smithy's own event stream: the interface returns `IAsyncEnumerable<TUnion>`, each item
+goes out as one member under `data:` with the member's name as `event:`, and the document
+describes the item as the choice of its members.
 
 `itemSchema` needs a 3.2 document, which is the default. Pin to `3.0.0` or `3.1.0` and you get
-build warning `HRDOA002` naming the handler; the operation is emitted with its media type and no
-schema.
+build warning `HRDOA002` naming the handler; the operation keeps the array under `schema`, so a
+client generated from it reads a list rather than a stream.
 
 ## Where it works
 

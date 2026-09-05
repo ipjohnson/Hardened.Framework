@@ -141,7 +141,7 @@ a build error naming the three. The served document does not change whatever the
 | Property | Values | What it does |
 |---|---|---|
 | `HardenedOpenApiOutput` | a path relative to the project | writes the served document there after every compile. Absent means no file |
-| `HardenedOpenApiOutputVersion` | `3.0.0`, `3.1.0` | lowers the written file for a reader that refuses the 3.2 banner. The banner changes, `itemSchema` is dropped and each streaming operation that lost one is named (`030`), and at `3.0.0` the exclusive-bound and nullable spellings become the 3.0 forms. The served document is untouched |
+| `HardenedOpenApiOutputVersion` | `3.0.0`, `3.1.0` | lowers the written file for a reader that refuses the 3.2 banner. The banner changes; `itemSchema` is dropped while the array under `schema` stays, so the item type survives, and each streaming operation is named (`030`) because a client generated from the lowered file reads a list rather than a stream; and at `3.0.0` the exclusive-bound and nullable spellings become the 3.0 forms. The served document is untouched |
 
 Code-first, the property with no `[Enable<OpenApiDocumentPublishing>]` is `HRDOA018`, naming the
 attribute. Contract-first the same condition reports under `HOAT` or `HSMT`, and means the
