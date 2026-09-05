@@ -127,10 +127,14 @@ public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestS
     public async Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider) {
         var entryPoint = testMethod.Method.GetTestAttribute<HardenedTestEntryPointAttribute>();
 
-        // Run registered startup services (CORS, filters, etc.)
-        foreach (var startupService in serviceProvider.GetServices<IStartupService>()) {
-            await startupService.Startup(serviceProvider);
-        }
+        // Through the guard rather than a loop of this attribute's own. HardenedTestEntryPoint
+        // runs the same services through ApplicationLogic.Start, and the runner awaits both
+        // attributes in an order that is a sort rather than a declaration, so a loop here ran
+        // every startup service a second time per container: the authentication middleware and
+        // the CORS filter were each in the chain twice, behind the handler, and the authorization
+        // filter provider was registered twice. The guard runs them once whichever attribute the
+        // runner reaches first, and still runs them here for a test with no entry point attribute.
+        await ApplicationLogic.Start(serviceProvider, null);
 
         if (entryPoint != null && !typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint)) {
             var handler = serviceProvider.GetRequiredService<IWebExecutionHandlerService>();
