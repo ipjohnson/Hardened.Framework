@@ -546,8 +546,22 @@ if [ -d "$A" ] && [ -d "$B" ]; then
     # reasons that have nothing to do with the host.
     # The client too: it is generated from the library's document and references nothing from
     # the host, so it has no reason to differ.
+    # The socket smoke test names the host it runs on, by design - [KestrelRuntime] or
+    # [AspNetCoreRuntime], the attribute the application names its host with - and Bootstrap.cs
+    # names the testing package that answers for it, so those attributes, their usings, and the
+    # one package line in the test csproj are the whole of what may differ in the test project.
+    # The rest of that project, and everything else, may not: a test project that referenced the
+    # host project would still fail here.
+    same_but_the_host() {
+        local host='Hardened\.Web\.Kestrel\.\|Hardened\.Web\.AspNetCore\.\|^\[KestrelRuntime\]\|^\[AspNetCoreRuntime\]\|^\[assembly: KestrelTesting\]\|^\[assembly: AspNetCoreTesting\]'
+        diff <(grep -v "$host" "$1") <(grep -v "$host" "$2") >/dev/null 2>&1
+    }
     for PART in src/Sample src/Sample.Client tests/Sample.Tests; do
-        if diff -r -x bin -x obj "$A/$PART" "$B/$PART" >/dev/null 2>&1; then
+        if diff -r -x bin -x obj -x SampleSocketTests.cs -x Sample.Tests.csproj -x Bootstrap.cs "$A/$PART" "$B/$PART" >/dev/null 2>&1 \
+           && { [ "$PART" != tests/Sample.Tests ] \
+                || { same_but_the_host "$A/$PART/Sample.Tests.csproj" "$B/$PART/Sample.Tests.csproj" \
+                     && same_but_the_host "$A/$PART/SampleSocketTests.cs" "$B/$PART/SampleSocketTests.cs" \
+                     && same_but_the_host "$A/$PART/Bootstrap.cs" "$B/$PART/Bootstrap.cs"; }; }; then
             echo "   identical across hosts: $PART"
         else
             echo "   FAILED: $PART differs between kestrel and aspnet"

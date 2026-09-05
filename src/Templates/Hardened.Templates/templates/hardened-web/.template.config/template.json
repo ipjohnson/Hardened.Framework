@@ -227,10 +227,12 @@
           ]
         },
         {
+          "comment": "The socket smoke test runs the application on the host it deploys to, and a Lambda application has none to bind.",
           "condition": "(lambda)",
           "exclude": [
             "src/Hardened1.Host/Program.cs",
-            "Hardened1.sln"
+            "Hardened1.sln",
+            "tests/Hardened1.Tests/Hardened1SocketTests.cs"
           ],
           "rename": {
             "Hardened1.Lambda.sln": "Hardened1.sln"

@@ -16,6 +16,14 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 <!--#endif -->
     <PackageReference Include="Hardened.Web.Testing" />
+<!--#if (kestrel) -->
+    <!-- The host Hardened1SocketTests runs the application on: a package, not the host project. -->
+    <PackageReference Include="Hardened.Web.Kestrel.Testing" />
+<!--#endif -->
+<!--#if (aspnet) -->
+    <!-- The host Hardened1SocketTests runs the application on: a package, not the host project. -->
+    <PackageReference Include="Hardened.Web.AspNetCore.Testing" />
+<!--#endif -->
 <!--#if (kiotaClient) -->
     <!-- Builds the generated client for a test parameter; see Bootstrap.cs and Hardened1ClientTests.cs. -->
     <PackageReference Include="Hardened.Kiota.Testing" />
