@@ -143,6 +143,50 @@ public class TestCredentialTests {
         Assert.Equal("someone-else", headers["X-Test-Subject"].ToString());
     }
 
+    /// <summary>
+    /// On a socket host the credential rides in a handler, applied to each request that carries
+    /// neither header: both headers for a subject with grants, the grants alone otherwise.
+    /// </summary>
+    [Fact]
+    public void ASocketRequestCarryingNeitherHeaderGetsBoth() {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/pets");
+
+        new TestCredential(new[] { "pets:read" }, "pia").ApplyTo(request);
+
+        Assert.Equal("pets:read", request.Headers.GetValues(Requests.Testing.TestGrantsPrincipalSource.GrantsHeader).Single());
+        Assert.Equal("pia", request.Headers.GetValues(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader).Single());
+    }
+
+    [Fact]
+    public void ASocketRequestWithNoSubjectGetsTheGrantsAlone() {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/pets");
+
+        new TestCredential(new[] { "pets:read" }).ApplyTo(request);
+
+        Assert.True(request.Headers.Contains(Requests.Testing.TestGrantsPrincipalSource.GrantsHeader));
+        Assert.False(request.Headers.Contains(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader));
+    }
+
+    [Fact]
+    public void ASocketRequestThatSetItsOwnSubjectKeepsIt() {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/pets");
+        request.Headers.Add(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader, "someone-else");
+
+        new TestCredential(new[] { "pets:read" }, "pia").ApplyTo(request);
+
+        Assert.Equal("someone-else", request.Headers.GetValues(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader).Single());
+        Assert.False(request.Headers.Contains(Requests.Testing.TestGrantsPrincipalSource.GrantsHeader));
+    }
+
+    [Fact]
+    public void AnAnonymousCredentialLeavesASocketRequestAlone() {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/pets");
+
+        TestCredential.Anonymous.ApplyTo(request);
+
+        Assert.Empty(request.Headers);
+    }
+
     [Fact]
     public void TheHeadersBecomeTheClientsDefaults() {
         using var client = new HttpClient();
