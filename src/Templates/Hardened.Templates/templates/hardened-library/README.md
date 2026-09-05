@@ -65,12 +65,32 @@ what runs is the registration a consuming application would get:
 ```csharp
 [HardenedTest]
 public void GreetsByName(IGreetingService greeting) {
+#if (xunit)
     Assert.Equal("Hello, world!", greeting.Greet("world"));
+#else
+    Assert.That(greeting.Greet("world"), Is.EqualTo("Hello, world!"));
+#endif
 }
 ```
 
+#if (moq)
+Take a `Mock<T>` parameter and that service is substituted for the whole container, including behind
+another service — so the code under test is still the library's own wiring. The mock is Moq's,
+through `[assembly: MoqSupport]` in `Bootstrap.cs`, and `tests/Hardened1.Tests/GreetingServiceTests.cs`
+shows it.
+#endif
+#if (nsubstitute)
 Mark a parameter `[Mock]` and that service is substituted for the whole container, including behind
-another service — so the code under test is still the library's own wiring.
+another service — so the code under test is still the library's own wiring. The substitute is
+NSubstitute's, through `[assembly: NSubstituteSupport]` in `Bootstrap.cs`, and
+`tests/Hardened1.Tests/GreetingServiceTests.cs` shows it.
+#endif
+#if (fakeiteasy)
+Mark a parameter `[Mock]` and that service is substituted for the whole container, including behind
+another service — so the code under test is still the library's own wiring. The fake is FakeItEasy's,
+through `[assembly: FakeItEasySupport]` in `Bootstrap.cs`, and
+`tests/Hardened1.Tests/GreetingServiceTests.cs` shows it.
+#endif
 
 ## Reading the generated code
 

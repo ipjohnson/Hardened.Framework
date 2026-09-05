@@ -63,6 +63,7 @@ public class DocumentStatusTests {
             }
         }
 
+#if (xunit)
         Assert.Equal(
             Expected.Keys.OrderBy(key => key, StringComparer.Ordinal),
             declared.Keys.OrderBy(key => key, StringComparer.Ordinal));
@@ -70,6 +71,15 @@ public class DocumentStatusTests {
         foreach (var operation in Expected) {
             Assert.Equal(operation.Value, declared[operation.Key]);
         }
+#else
+        Assert.That(
+            declared.Keys.OrderBy(key => key, StringComparer.Ordinal),
+            Is.EqualTo(Expected.Keys.OrderBy(key => key, StringComparer.Ordinal)));
+
+        foreach (var operation in Expected) {
+            Assert.That(declared[operation.Key], Is.EqualTo(operation.Value));
+        }
+#endif
     }
 
     /// <summary>The served document, which is stored and answered gzipped.</summary>

@@ -59,13 +59,6 @@ namespace Hardened.Shared.Testing.Attributes
     {
         System.Threading.Tasks.Task Startup(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.IServiceProvider serviceProvider);
     }
-    [System.AttributeUsage(System.AttributeTargets.Parameter)]
-    public class MockAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestParameterValueProvider
-    {
-        public MockAttribute() { }
-        public System.Threading.Tasks.Task<object?> GetParameterValueAsync(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext context, System.IServiceProvider serviceProvider, System.Reflection.ParameterInfo parameter) { }
-        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testCaseContext, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection, System.Reflection.ParameterInfo parameter) { }
-    }
 }
 namespace Hardened.Shared.Testing
 {

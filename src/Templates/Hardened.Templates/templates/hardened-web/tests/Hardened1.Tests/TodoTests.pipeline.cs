@@ -26,8 +26,13 @@ public class TodoTests {
 
         response.Assert.Ok();
 
+#if (xunit)
         Assert.Equal(
             [1, 2], response.Deserialize<List<TodoResponse>>().Select(todo => todo.Id));
+#else
+        Assert.That(
+            response.Deserialize<List<TodoResponse>>().Select(todo => todo.Id), Is.EqualTo(new[] { 1, 2 }));
+#endif
     }
 
     [HardenedTest]
@@ -36,7 +41,11 @@ public class TodoTests {
 
         response.Assert.Ok();
 
+#if (xunit)
         Assert.Equal(1, response.Deserialize<TodoResponse>().Id);
+#else
+        Assert.That(response.Deserialize<TodoResponse>().Id, Is.EqualTo(1));
+#endif
     }
 
     [HardenedTest]
@@ -48,7 +57,11 @@ public class TodoTests {
     public async Task CreateTodo_DuplicateTitle_IsConflict(ITestWebApp app) {
         var response = await app.Post(new NewTodoRequest("Add an endpoint"), "/todos");
 
+#if (xunit)
         Assert.Equal(409, response.StatusCode);
+#else
+        Assert.That(response.StatusCode, Is.EqualTo(409));
+#endif
     }
 
     [HardenedTest]
@@ -85,7 +98,11 @@ public class TodoTests {
     public async Task CreateTodo_AnswersCreatedWithALocation(ITestWebApp app) {
         var response = await app.Post(new NewTodoRequest("Write a test"), "/todos");
 
+#if (xunit)
         Assert.Equal(201, response.StatusCode);
+#else
+        Assert.That(response.StatusCode, Is.EqualTo(201));
+#endif
     }
 
     /// <summary>
@@ -99,7 +116,11 @@ public class TodoTests {
     public async Task RemoveTodo_AnswersNoContent(ITestWebApp app) {
         var response = await app.Delete("/todos/1");
 
+#if (xunit)
         Assert.Equal(204, response.StatusCode);
+#else
+        Assert.That(response.StatusCode, Is.EqualTo(204));
+#endif
     }
 #endif
 #if (specFirst)
@@ -114,7 +135,11 @@ public class TodoTests {
     public async Task AValueTheContractDisallowsIsRejected(ITestWebApp app) {
         var response = await app.Post(new NewTodoRequest(new string('x', 100)), "/todos");
 
+#if (xunit)
         Assert.Equal(400, response.StatusCode);
+#else
+        Assert.That(response.StatusCode, Is.EqualTo(400));
+#endif
     }
 
     /// <summary>
@@ -123,12 +148,20 @@ public class TodoTests {
     /// </summary>
     [HardenedTest]
     public async Task GetTodo_IdBelowTheContractsMinimum_IsBadRequest(ITestWebApp app) {
+#if (xunit)
         Assert.Equal(400, (await app.Get("/todos/0")).StatusCode);
+#else
+        Assert.That((await app.Get("/todos/0")).StatusCode, Is.EqualTo(400));
+#endif
     }
 
     [HardenedTest]
     public async Task RemoveTodo_IdBelowTheContractsMinimum_IsBadRequest(ITestWebApp app) {
+#if (xunit)
         Assert.Equal(400, (await app.Delete("/todos/0")).StatusCode);
+#else
+        Assert.That((await app.Delete("/todos/0")).StatusCode, Is.EqualTo(400));
+#endif
     }
 #endif
 #if (codeFirst)
@@ -139,12 +172,20 @@ public class TodoTests {
     /// </summary>
     [HardenedTest]
     public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app) {
+#if (xunit)
         Assert.Equal(400, (await app.Get("/todos/not-a-number")).StatusCode);
+#else
+        Assert.That((await app.Get("/todos/not-a-number")).StatusCode, Is.EqualTo(400));
+#endif
     }
 
     [HardenedTest]
     public async Task RemoveTodo_MalformedId_IsBadRequest(ITestWebApp app) {
+#if (xunit)
         Assert.Equal(400, (await app.Delete("/todos/not-a-number")).StatusCode);
+#else
+        Assert.That((await app.Delete("/todos/not-a-number")).StatusCode, Is.EqualTo(400));
+#endif
     }
 #endif
 }

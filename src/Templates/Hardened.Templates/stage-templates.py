@@ -3,7 +3,9 @@
 
 A template pins the Hardened version its generated projects restore, and a hardcoded one goes
 stale exactly the way the RazorBlade install snippet did - four release lines behind, with
-nothing to notice. The version therefore comes from the build rather than the file.
+nothing to notice. The version therefore comes from the build rather than the file. The
+DependencyModules version the test project's mock package pins is stamped the same way, from
+the same property the framework builds against.
 
 Staged into obj/ rather than rewritten in place: pack must not leave the working tree dirty,
 and the token has to survive in source so the next pack can substitute it again.
@@ -12,9 +14,12 @@ import os
 import shutil
 import sys
 
-TOKEN = "0.0.0-DEV"
+TOKENS = {
+    "0.0.0-DEV": sys.argv[3],
+    "0.0.0-DEPENDENCYMODULES-VERSION": sys.argv[4],
+}
 
-source, destination, version = sys.argv[1], sys.argv[2], sys.argv[3]
+source, destination = sys.argv[1], sys.argv[2]
 
 if os.path.isdir(destination):
     shutil.rmtree(destination)
@@ -27,7 +32,7 @@ shutil.copytree(
     ignore=shutil.ignore_patterns("bin", "obj"),
 )
 
-stamped = 0
+stamped = {token: 0 for token in TOKENS}
 
 for root, _, files in os.walk(destination):
     for name in files:
@@ -39,17 +44,21 @@ for root, _, files in os.walk(destination):
         except (UnicodeDecodeError, OSError):
             continue
 
-        if TOKEN not in content:
+        if not any(token in content for token in TOKENS):
             continue
 
+        for token, version in TOKENS.items():
+            if token in content:
+                content = content.replace(token, version)
+                stamped[token] += 1
+
         with open(path, "w", encoding="utf-8") as handle:
-            handle.write(content.replace(TOKEN, version))
+            handle.write(content)
 
-        stamped += 1
+for token, version in TOKENS.items():
+    if stamped[token] == 0:
+        print(f"stage-templates: nothing carried {token}; the version would ship unstamped",
+              file=sys.stderr)
+        sys.exit(1)
 
-if stamped == 0:
-    print(f"stage-templates: nothing carried {TOKEN}; the version would ship unstamped",
-          file=sys.stderr)
-    sys.exit(1)
-
-print(f"stage-templates: stamped {version} into {stamped} file(s)")
+    print(f"stage-templates: stamped {version} into {stamped[token]} file(s)")

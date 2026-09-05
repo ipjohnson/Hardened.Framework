@@ -54,6 +54,62 @@
     "sqs": {
       "type": "computed",
       "value": "(trigger == 'sqs')"
+    },
+    "testFramework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "xunit",
+      "description": "The test framework the test project runs on. [HardenedTest] reads the same on either; the runner package and the assertion style are what change.",
+      "choices": [
+        {
+          "choice": "xunit",
+          "description": "xUnit v3. The default."
+        },
+        {
+          "choice": "nunit",
+          "description": "NUnit 4."
+        }
+      ]
+    },
+    "mocks": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "nsubstitute",
+      "description": "The library a [Mock] parameter's double comes from: one package and one assembly attribute in the test project. [Mock] itself is the same.",
+      "choices": [
+        {
+          "choice": "nsubstitute",
+          "description": "NSubstitute. The default."
+        },
+        {
+          "choice": "moq",
+          "description": "Moq. A Mock<T> parameter is the mock to configure; [Mock] T is the object it produces."
+        },
+        {
+          "choice": "fakeiteasy",
+          "description": "FakeItEasy."
+        }
+      ]
+    },
+    "xunit": {
+      "type": "computed",
+      "value": "(testFramework == 'xunit')"
+    },
+    "nunit": {
+      "type": "computed",
+      "value": "(testFramework == 'nunit')"
+    },
+    "nsubstitute": {
+      "type": "computed",
+      "value": "(mocks == 'nsubstitute')"
+    },
+    "moq": {
+      "type": "computed",
+      "value": "(mocks == 'moq')"
+    },
+    "fakeiteasy": {
+      "type": "computed",
+      "value": "(mocks == 'fakeiteasy')"
     }
   },
   "primaryOutputs": [

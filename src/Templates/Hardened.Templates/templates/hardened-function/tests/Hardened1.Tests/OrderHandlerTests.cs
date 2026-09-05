@@ -19,8 +19,13 @@ public class OrderHandlerTests {
     public async Task ARecordReachesTheHandler(TestSqsApp app, OrderLog log) {
         var response = await app.SendMessage(new Order { Id = "A-1", Quantity = 2 });
 
+#if (xunit)
         Assert.Empty(response.BatchItemFailures);
         Assert.Equal("A-1", Assert.Single(log.Orders).Id);
+#else
+        Assert.That(response.BatchItemFailures, Is.Empty);
+        Assert.That(log.Orders.Select(order => order.Id), Is.EqualTo(new[] { "A-1" }));
+#endif
     }
 
     /// <summary>
@@ -34,8 +39,13 @@ public class OrderHandlerTests {
             new Order { Id = "A-2", Quantity = 2 },
             new Order { Id = "A-3", Quantity = 3 });
 
+#if (xunit)
         Assert.Empty(response.BatchItemFailures);
         Assert.Equal(3, log.Orders.Count);
+#else
+        Assert.That(response.BatchItemFailures, Is.Empty);
+        Assert.That(log.Orders, Has.Count.EqualTo(3));
+#endif
     }
 #endif
 #if (invoke)
@@ -44,8 +54,13 @@ public class OrderHandlerTests {
         var accepted = await app.Invoke<OrderAccepted>(
             "Process", new Order { Id = "A-1", Quantity = 2 });
 
+#if (xunit)
         Assert.Equal("A-1", accepted.Id);
         Assert.Equal("A-1", Assert.Single(log.Orders).Id);
+#else
+        Assert.That(accepted.Id, Is.EqualTo("A-1"));
+        Assert.That(log.Orders.Select(order => order.Id), Is.EqualTo(new[] { "A-1" }));
+#endif
     }
 
     /// <summary>The return value is serialised back to the caller, not discarded.</summary>
@@ -54,7 +69,11 @@ public class OrderHandlerTests {
         var accepted = await app.Invoke<OrderAccepted>(
             "Process", new Order { Id = "A-2", Quantity = 1 });
 
+#if (xunit)
         Assert.Equal(1, accepted.Received);
+#else
+        Assert.That(accepted.Received, Is.EqualTo(1));
+#endif
     }
 #endif
 }

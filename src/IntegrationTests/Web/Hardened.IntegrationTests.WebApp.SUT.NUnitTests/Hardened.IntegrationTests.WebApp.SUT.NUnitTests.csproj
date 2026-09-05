@@ -22,6 +22,11 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.NUnit\Hardened.Shared.Testing.NUnit.csproj" />
+      <!-- The mock library behind [Mock]: [NSubstituteSupport] in Bootstrap.cs, and NSubstitute with it. -->
+      <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj"
+                        Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
+      <PackageReference Include="DependencyModules.NSubstitute" Version="$(DependencyModulesVersion)"
+                        Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
       <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
       <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT\Hardened.IntegrationTests.WebApp.SUT.csproj" />
       <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT.Client\Hardened.IntegrationTests.WebApp.SUT.Client.csproj" />

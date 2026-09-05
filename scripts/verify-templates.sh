@@ -7,10 +7,11 @@
 # The packed nupkg is installed rather than the template folder, deliberately. A template tested
 # from source proves nothing about packaging, which is where the 0.8.0-rc1000 quickstart broke.
 #
-# Usage: scripts/verify-templates.sh [host:contract[:model[:client]] ...]
+# Usage: scripts/verify-templates.sh [host:contract[:model[:client[:tests[:mocks]]]] ...]
 #        default: the template default (response) on three host/contract rows, throws and union
 #        on both spec directions, kestrel:smithy rows when the pinned CLI is present, three rows
-#        with --client refit, and one row with --client none to prove the opt-out
+#        with --client refit, one row with --client none to prove the opt-out, and three rows off
+#        the default test framework or mock library
 #
 # smithy is skipped unless the Smithy CLI is on PATH at the pinned version - a build without it
 # fails by design (HSMT011), and that is the toolchain's problem rather than the template's.
@@ -56,11 +57,19 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
     # other generator on both contract directions and on the throws model, whose client tests are
     # the ones that differ; the last row is the opt-out, spelled with the model it keeps so the
     # fourth field reads as the fourth option.
+    # The last three rows leave the default test framework or mock library, or both. Every
+    # assertion in the test project forks on the framework and the one mock test forks on the
+    # library, so each of NUnit, Moq and FakeItEasy has to compile and pass at least once, on a
+    # client variant that carries the fork: NUnit on the Kiota tests, Moq on the Refit tests, and
+    # NUnit with FakeItEasy on the pipeline tests the opt-out row scaffolds.
     COMBOS=(kestrel:code aspnet:code kestrel:openapi
             kestrel:code:throws kestrel:openapi:throws
             kestrel:code:union kestrel:openapi:union
             kestrel:code:response:refit kestrel:code:throws:refit kestrel:openapi:response:refit
-            kestrel:code:response:none)
+            kestrel:code:response:none
+            kestrel:code:response:kiota:nunit
+            kestrel:openapi:response:refit:xunit:moq
+            kestrel:code:throws:none:nunit:fakeiteasy)
 
     if command -v smithy >/dev/null 2>&1 && [ "$(smithy --version 2>/dev/null)" = "$SMITHY_PIN" ]; then
         # The throws model too, not only the default. Smithy's half of the property had never run:
@@ -92,6 +101,14 @@ check_generated() {
         FAILED=1
     fi
 
+    # Both version tokens are stamped at pack, and a token that reached the output restores nothing:
+    # the framework one fails loudly, but the DependencyModules one sits behind the mock package and
+    # would fail only the test project's restore, in a row that then never runs a test.
+    if grep -rl '0.0.0-HARDENED-VERSION\|0.0.0-DEPENDENCYMODULES-VERSION' "$out" --exclude-dir=bin --exclude-dir=obj >/dev/null 2>&1; then
+        echo "   FAILED: a version token reached the output unstamped in $out"
+        FAILED=1
+    fi
+
     # Every template's README ends with the same section and closing line, so a truncated one is
     # detectable without knowing which options were on.
     if [ -f "$out/README.md" ]; then
@@ -100,6 +117,109 @@ check_generated() {
             echo "   FAILED: $out/README.md does not end where the template's does"
             FAILED=1
         fi
+    fi
+}
+
+# The test project's two options, checked on the files rather than on the build. The wrong runner
+# package, a stray xunit reference beside NUnit, or a support attribute for a library the csproj does
+# not carry each build clean somewhere - and the last one fails only when a [Mock] parameter is
+# resolved, with "Mock library not found".
+#
+# $1 the generated folder, $2 the test project name, $3 tests (default|xunit|nunit), $4 mocks
+# (default|nsubstitute|moq|fakeiteasy).
+check_test_options() {
+    local out="$1" project="$2" tests="$3" mocks="$4"
+    local csproj="$out/tests/$project/$project.csproj"
+    local bootstrap="$out/tests/$project/Bootstrap.cs"
+    local usings="$out/tests/$project/Usings.cs"
+
+    [ "$tests" = default ] && tests=xunit
+    [ "$mocks" = default ] && mocks=nsubstitute
+
+    # The runner package, the framework's own packages, the self-executing output type xUnit v3
+    # needs and NUnit must not have, and the global using - each present for the chosen framework
+    # and absent for the other. Matched on package references and using lines, because the
+    # comments in either project are free to name the other runner.
+    local xunit_refs='Include="\(xunit.v3\|xunit.runner.visualstudio\|Hardened.Shared.Testing.xUnit\)"'
+    local nunit_refs='Include="\(NUnit\|NUnit3TestAdapter\|Hardened.Shared.Testing.NUnit\)"'
+    local runner_ok=1
+    case "$tests" in
+        xunit)
+            grep -q 'Include="Hardened.Shared.Testing.xUnit"' "$csproj" || runner_ok=0
+            grep -q 'Include="xunit.v3"' "$csproj" || runner_ok=0
+            grep -q '<OutputType>Exe</OutputType>' "$csproj" || runner_ok=0
+            grep -q "$nunit_refs" "$csproj" && runner_ok=0
+            grep -q '^global using Xunit;' "$usings" || runner_ok=0
+            grep -q '^global using NUnit' "$usings" && runner_ok=0
+            ;;
+        nunit)
+            grep -q 'Include="Hardened.Shared.Testing.NUnit"' "$csproj" || runner_ok=0
+            grep -q 'Include="NUnit3TestAdapter"' "$csproj" || runner_ok=0
+            grep -q '<OutputType>' "$csproj" && runner_ok=0
+            grep -q "$xunit_refs" "$csproj" && runner_ok=0
+            grep -q '^global using NUnit.Framework;' "$usings" || runner_ok=0
+            grep -q '^global using Xunit' "$usings" && runner_ok=0
+            ;;
+    esac
+
+    if [ "$runner_ok" != 1 ]; then
+        echo "   FAILED: $project is not a $tests project, or carries the other framework as well"
+        FAILED=1
+    fi
+
+    # The mock package and the support attribute for the chosen library, and neither of the other
+    # two anywhere the option writes.
+    local package attribute others
+    case "$mocks" in
+        nsubstitute)
+            package=DependencyModules.NSubstitute
+            attribute=NSubstituteSupport
+            others='DependencyModules.Moq\|DependencyModules.FakeItEasy\|MoqSupport\|FakeItEasySupport'
+            ;;
+        moq)
+            package=DependencyModules.Moq
+            attribute=MoqSupport
+            others='DependencyModules.NSubstitute\|DependencyModules.FakeItEasy\|NSubstituteSupport\|FakeItEasySupport'
+            ;;
+        fakeiteasy)
+            package=DependencyModules.FakeItEasy
+            attribute=FakeItEasySupport
+            others='DependencyModules.NSubstitute\|DependencyModules.Moq\|NSubstituteSupport\|MoqSupport'
+            ;;
+    esac
+
+    if ! grep -q "Include=\"$package\"" "$csproj" || \
+       ! grep -q "^\[assembly: $attribute\]" "$bootstrap" || \
+       grep -q "Include=\"\($others\)\"\|^\[assembly: \($others\)\]" "$csproj" "$bootstrap" "$out/Directory.Packages.props"; then
+        echo "   FAILED: $project does not carry $package and [assembly: $attribute] alone"
+        FAILED=1
+    fi
+}
+
+# dotnet test answers 0 for a project that discovered no tests - an NUnit project without its adapter,
+# say - so a passing run is one that reports tests passed. The named test is the one that resolves a
+# mock, so its passing is what proves the support attribute reached the output and answers [Mock].
+#
+# $1 the generated folder, $2 the test that resolves a mock, or empty for a project without one.
+run_tests() {
+    local out="$1" mock_test="${2:-}" log
+
+    log="$out/test.log"
+
+    if ! ( cd "$out" && dotnet test --no-build -v q --nologo ) >"$log" 2>&1 || ! grep -q 'Passed!' "$log"; then
+        echo "   FAILED: the test run did not pass, or ran nothing"
+        tail -30 "$log"
+        FAILED=1
+        return
+    fi
+
+    [ -z "$mock_test" ] && return
+
+    if ! ( cd "$out" && dotnet test --no-build -v q --nologo --filter "FullyQualifiedName~$mock_test" ) >"$log.mock" 2>&1 || \
+       ! grep -q 'Passed!' "$log.mock"; then
+        echo "   FAILED: $mock_test did not run and pass"
+        tail -30 "$log.mock"
+        FAILED=1
     fi
 }
 
@@ -189,29 +309,23 @@ dotnet new install "$FEED/Hardened.Templates.$VERSION.nupkg"
 FAILED=0
 
 for COMBO in "${COMBOS[@]}"; do
-    HOST="${COMBO%%:*}"
-    REST="${COMBO#*:}"
-    CONTRACT="${REST%%:*}"
+    # host:contract, then optionally model, client, test framework and mock library, in that
+    # order. A field left off scaffolds without its flag at all, for the same reason
+    # --HardenedVersion is not passed below: the default is what a real user gets, so the default
+    # is what needs testing - and since 0.19.0 the default model is response, since 0.20.0 the
+    # default client is kiota, and the test project defaults to xUnit and NSubstitute. Naming a
+    # field exercises its flag.
+    IFS=: read -r HOST CONTRACT MODEL CLIENT TESTS MOCKS <<<"$COMBO"
+    MODEL="${MODEL:-default}"
+    CLIENT="${CLIENT:-default}"
+    TESTS="${TESTS:-default}"
+    MOCKS="${MOCKS:-default}"
 
-    # host:contract, host:contract:model, or host:contract:model:client. A bare combo scaffolds
-    # with no --response-model and no --client at all, for the same reason --HardenedVersion is
-    # not passed below: the default is what a real user gets, so the default is what needs
-    # testing - and since 0.19.0 the default model is response, since 0.20.0 the default client
-    # is kiota. Naming either exercises the flag.
-    CLIENT=default
-    if [ "$REST" = "$CONTRACT" ]; then
-        MODEL=default
-    else
-        MODEL="${REST#*:}"
-        if [ "$MODEL" != "${MODEL%%:*}" ]; then
-            CLIENT="${MODEL#*:}"
-            MODEL="${MODEL%%:*}"
-        fi
-    fi
-
-    say "host: $HOST   contract: $CONTRACT   response model: $MODEL   client: $CLIENT"
+    say "host: $HOST   contract: $CONTRACT   response model: $MODEL   client: $CLIENT   tests: $TESTS   mocks: $MOCKS"
     OUT="$WORK/$HOST-$CONTRACT-$MODEL"
     [ "$CLIENT" != "default" ] && OUT="$OUT-$CLIENT"
+    [ "$TESTS" != "default" ] && OUT="$OUT-$TESTS"
+    [ "$MOCKS" != "default" ] && OUT="$OUT-$MOCKS"
 
     # --HardenedVersion is deliberately NOT passed. The template stamps the version it was
     # packed with as the default, and that default is what a real user gets - so it is what
@@ -219,17 +333,20 @@ for COMBO in "${COMBOS[@]}"; do
     ARGS=(--host "$HOST" --contract "$CONTRACT" --skip-restore)
     [ "$MODEL" != "default" ] && ARGS+=(--response-model "$MODEL")
     [ "$CLIENT" != "default" ] && ARGS+=(--client "$CLIENT")
+    [ "$TESTS" != "default" ] && ARGS+=(--test-framework "$TESTS")
+    [ "$MOCKS" != "default" ] && ARGS+=(--mocks "$MOCKS")
 
     dotnet new hardened-web -n Sample -o "$OUT" "${ARGS[@]}"
 
     check_generated "$OUT"
+    check_test_options "$OUT" Sample.Tests "$TESTS" "$MOCKS"
 
     # The generated nuget.config names nuget.org only, which is what a real user wants. The
     # verification run also needs the framework build that has not been published yet.
     dotnet nuget add source "$FEED" --name template-verify-local --configfile "$OUT/nuget.config" >/dev/null
 
     ( cd "$OUT" && dotnet build -v q --nologo )
-    ( cd "$OUT" && dotnet test --no-build -v q --nologo )
+    run_tests "$OUT" GetTodo_ReadsTheMockedStore
 
     # The client rows: the document the library's build wrote is what the client generated from,
     # and it is the file a consumer commits - so it has to exist, and it has to be the served
@@ -493,16 +610,27 @@ done
 
 say "hardened-library"
 # Framework packages only, so this one is verified against the build under test like hardened-web.
-LIB="$WORK/library"
-dotnet new hardened-library -n Sample -o "$LIB" --skip-restore
-check_generated "$LIB"
-dotnet nuget add source "$FEED" --name template-verify-local --configfile "$LIB/nuget.config" >/dev/null
-if ( cd "$LIB" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
-    echo "   builds and tests"
-else
-    echo "   FAILED: hardened-library"
-    FAILED=1
-fi
+# The default first, then each of NUnit, Moq and FakeItEasy once: the library's one [Mock] test is
+# written three ways, and the row that fails is the one that names its library.
+for LIB_OPTIONS in "default:default" "nunit:default" "default:moq" "nunit:fakeiteasy"; do
+    IFS=: read -r TESTS MOCKS <<<"$LIB_OPTIONS"
+    LIB="$WORK/library"
+    ARGS=(--skip-restore)
+    [ "$TESTS" != "default" ] && { LIB="$LIB-$TESTS"; ARGS+=(--test-framework "$TESTS"); }
+    [ "$MOCKS" != "default" ] && { LIB="$LIB-$MOCKS"; ARGS+=(--mocks "$MOCKS"); }
+
+    dotnet new hardened-library -n Sample -o "$LIB" "${ARGS[@]}"
+    check_generated "$LIB"
+    check_test_options "$LIB" Sample.Tests "$TESTS" "$MOCKS"
+    dotnet nuget add source "$FEED" --name template-verify-local --configfile "$LIB/nuget.config" >/dev/null
+    if ( cd "$LIB" && dotnet build -v q --nologo ); then
+        run_tests "$LIB" ASubstitutedDependencyIsUsedByTheRealService
+        echo "   tests: $TESTS   mocks: $MOCKS   builds and tests"
+    else
+        echo "   FAILED: hardened-library with tests: $TESTS   mocks: $MOCKS"
+        FAILED=1
+    fi
+done
 
 # A dotted project name is the .NET norm and it is not merely cosmetic here: the module class is
 # named after the project, and an unfiltered substitution produced "public partial class
@@ -529,16 +657,32 @@ done
 # published release - which is precisely the state a release leaves the world in, so verifying it
 # is verifying the thing that actually ships.
 say "AWS Lambda templates"
-for AMZ in "hardened-function --trigger invoke" "hardened-function --trigger sqs" "hardened-web --host aws-lambda"; do
-    set -- $AMZ
+# The function template has no seam to mock, so its two option rows prove the other runner and the
+# other libraries restore, build and run the handler tests beside the Amz testing packages.
+# Each row is the template and its flags, then the test framework and mock library the flags
+# named, so the generated test project can be checked against what was asked for.
+for AMZ in "hardened-function --trigger invoke|default|default" \
+           "hardened-function --trigger sqs|default|default" \
+           "hardened-web --host aws-lambda|default|default" \
+           "hardened-function --trigger invoke --test-framework nunit --mocks moq|nunit|moq" \
+           "hardened-function --trigger sqs --mocks fakeiteasy|default|fakeiteasy"; do
+    IFS='|' read -r AMZ_COMMAND TESTS MOCKS <<<"$AMZ"
+    set -- $AMZ_COMMAND
     AMZ_TEMPLATE="$1"; shift
     AMZ_OUT="$WORK/amz-$AMZ_TEMPLATE-$(echo "$*" | tr -cd 'a-z')"
 
     dotnet new "$AMZ_TEMPLATE" -n Sample -o "$AMZ_OUT" "$@" --skip-restore
     check_generated "$AMZ_OUT"
+    check_test_options "$AMZ_OUT" Sample.Tests "$TESTS" "$MOCKS"
     dotnet nuget add source "$FEED" --name template-verify-local --configfile "$AMZ_OUT/nuget.config" >/dev/null
 
-    if ( cd "$AMZ_OUT" && dotnet build -v q --nologo && dotnet test --no-build -v q --nologo ); then
+    # The web row carries the mock test; the function has no seam to mock, so its rows prove the
+    # runner ran the handler tests and nothing more.
+    MOCK_TEST=""
+    [ "$AMZ_TEMPLATE" = hardened-web ] && MOCK_TEST=GetTodo_ReadsTheMockedStore
+
+    if ( cd "$AMZ_OUT" && dotnet build -v q --nologo ); then
+        run_tests "$AMZ_OUT" "$MOCK_TEST"
         echo "   $AMZ_TEMPLATE $*: builds and tests"
         # Worth printing: a float that silently stopped resolving would otherwise look identical
         # to one that resolved to the right thing.

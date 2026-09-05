@@ -32,6 +32,10 @@ public class TemplateModuleNameSocketTests {
         var response = await app.Get("/todos");
 
         response.Assert.Ok();
+#if (xunit)
         Assert.True(response.Headers.ContainsKey("Date"), "a header only a server writes");
+#else
+        Assert.That(response.Headers.ContainsKey("Date"), Is.True, "a header only a server writes");
+#endif
     }
 }
