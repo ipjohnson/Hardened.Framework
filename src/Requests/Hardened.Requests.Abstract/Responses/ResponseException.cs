@@ -23,6 +23,14 @@ namespace Hardened.Requests.Abstract.Responses;
 /// discarded at the last step, silently.
 /// </para>
 /// <para>
+/// The body is what the response says it is. A record that carries one - <c>NotFound&lt;T&gt;</c>,
+/// <c>Created&lt;T&gt;</c>, every <see cref="ICarriesResponseBody"/> - puts that payload on the
+/// wire, the same one the generated dispatch sends when the record is returned; the rest send
+/// themselves. Before this a thrown <c>NotFound&lt;Problem&gt;</c> went out as the wrapper with the
+/// problem nested under a <c>body</c> member, so the one answer had two shapes depending on whether
+/// the handler returned it or threw it.
+/// </para>
+/// <para>
 /// The status comes from the response rather than from a parameter, so there is no way to throw a
 /// <c>NotFound</c> as a 409. That is the point of the type carrying its own status; letting a call
 /// site override it here would reintroduce exactly the drift the four-layer resolution exists to
@@ -36,10 +44,13 @@ public class ResponseException : StatusCodeException {
     public ResponseException(IHttpStatusResponse response, string? message = null)
         : base(
             (response ?? throw new ArgumentNullException(nameof(response))).Status,
-            value: response.HasBody ? response : null,
+            value: response.HasBody ? Body(response) : null,
             message: message ?? "The request produced status " + response.Status + ".") {
         _response = response;
     }
+
+    private static object? Body(IHttpStatusResponse response) =>
+        response is ICarriesResponseBody carrier ? carrier.Body : response;
 
     /// <summary>The response this was thrown for.</summary>
     public IHttpStatusResponse Response => _response;

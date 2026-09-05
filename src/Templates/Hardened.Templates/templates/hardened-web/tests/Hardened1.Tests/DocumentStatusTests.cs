@@ -5,7 +5,7 @@ namespace Hardened1.Tests;
 
 /// <summary>
 /// The published document's status set, operation by operation, against what this suite
-/// exercises through the pipeline.
+/// exercises.
 /// </summary>
 /// <remarks>
 /// A declared status nothing answers - or an answered status the document never mentions - is the
