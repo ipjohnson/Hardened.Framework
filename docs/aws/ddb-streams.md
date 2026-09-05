@@ -1,32 +1,20 @@
 # DynamoDB Streams
 
-A stream handler is a `[HardenedFunction]` that receives one record at a time. The runtime unpacks
-the batch, forks the pipeline per record, and reports which records failed.
-
-**Source:** [`src/Lambda/DynamoDbStream`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/DynamoDbStream)
-in [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
-
-## An application
+A stream handler is a `[HardenedFunction]` that receives one record at a time. The runtime
+unpacks the batch, forks the pipeline per record, and reports which records failed.
 
 ```csharp
+using Amazon.DynamoDBv2.Model;
 using Hardened.Amz.Function.DDB.Runtime;
+using Hardened.Amz.Function.DDB.Runtime.Attributes;
 using Hardened.Amz.Function.Lambda.Runtime.DependencyInjection;
+using Hardened.Requests.Abstract.Attributes;
 using Hardened.Shared.Runtime.Attributes;
 
 [HardenedModule]
 [LambdaFunctionModule]
 [DynamoStreamLambda]
 public partial class Application { }
-```
-
-## A handler
-
-`[NewImage]` and `[OldImage]` bind the record's images:
-
-```csharp
-using Amazon.DynamoDBv2.Model;
-using Hardened.Amz.Function.DDB.Runtime.Attributes;
-using Hardened.Requests.Abstract.Attributes;
 
 public class OrderProjection {
     [HardenedFunction("project-orders")]
@@ -40,20 +28,42 @@ public class OrderProjection {
 }
 ```
 
-Both bind as `Dictionary<string, AttributeValue>` and throw an `InvalidCastException` for any other
-type — the attributes hand back exactly what the stream record carries.
+```csharp
+[HardenedTest]
+public async Task ProjectsAnInsert(TestDynamoDbStream stream, IProjectionStore store) {
+    var response = await stream.ProcessUpdates(
+        new DynamoDBEvent.DynamodbStreamRecord {
+            EventName = "INSERT",
+            Dynamodb = new StreamRecord {
+                NewImage = new Dictionary<string, AttributeValue> {
+                    ["pk"] = new() { S = "ORDER#1" },
+                    ["total"] = new() { N = "42" }
+                }
+            }
+        });
 
-Both are ordinary [`ICustomBindingAttribute`](/guide/parameter-binding#custom-binding)
-implementations reading a record the pipeline put into the request scope.
+    Assert.Empty(response.BatchItemFailures);
+    Assert.Equal(42, (await store.Find("ORDER#1")).Total);
+}
+```
+
+Source: [`src/Lambda/DynamoDbStream`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/DynamoDbStream)
+in [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
+
+## The images
+
+`[NewImage]` and `[OldImage]` bind the record's images. Both bind as
+`Dictionary<string, AttributeValue>` and throw an `InvalidCastException` for any other type. The
+attributes hand back exactly what the stream record carries. Both are ordinary
+[`ICustomBindingAttribute`](/guide/parameter-binding#custom-binding) implementations reading a
+record the pipeline put into the request scope.
 
 ## Which records failed
 
 Each record is processed on its own forked execution chain with its own request and response. A
-record whose chain completes with a status below 300 — or with no status — succeeded; anything else,
-or an exception, failed.
-
-The runtime writes a `StreamsEventResponse` naming the failed records, so a batch of a hundred with
-one poison record redelivers one record.
+record whose chain completes with a status below 300, or with no status, succeeded. Anything
+else, or an exception, failed. The runtime writes a `StreamsEventResponse` naming the failed
+records, so a batch of a hundred with one poison record redelivers one record.
 
 ::: warning A handler that swallows its own exceptions reports success
 The pipeline decides success from the response, so a `try`/`catch` that logs and returns normally
@@ -61,8 +71,8 @@ tells the runtime the record was processed. If a record should be retried, let t
 propagate.
 :::
 
-To change what happens around a failure, register an `IBatchProcessorExceptionHandler` — it decides
-whether the exception counts as a processed record:
+To change what happens around a failure, register an `IBatchProcessorExceptionHandler`. It
+decides whether the exception counts as a processed record:
 
 ```csharp
 [SingletonService(As = typeof(IBatchProcessorExceptionHandler))]
@@ -90,26 +100,12 @@ public class DeadLetterOnPoison : IBatchProcessorExceptionHandler {
 [assembly: HardenedTestEntryPoint(typeof(Application))]
 ```
 
-`TestDynamoDbStream` takes stream records and returns the response the runtime would have produced:
+`TestDynamoDbStream.ProcessUpdates` takes stream records and returns the response the runtime
+would have produced, as the test at the top shows. `BatchItemFailures` is what determines whether
+the stream redelivers, so assert on it rather than on the handler's side effects alone.
 
-```csharp
-[HardenedTest]
-public async Task ProjectsAnInsert(TestDynamoDbStream stream, IProjectionStore store) {
-    var response = await stream.ProcessUpdates(
-        new DynamoDBEvent.DynamodbStreamRecord {
-            EventName = "INSERT",
-            Dynamodb = new StreamRecord {
-                NewImage = new Dictionary<string, AttributeValue> {
-                    ["pk"] = new() { S = "ORDER#1" },
-                    ["total"] = new() { N = "42" }
-                }
-            }
-        });
+## Next
 
-    Assert.Empty(response.BatchItemFailures);
-    Assert.Equal(42, (await store.Find("ORDER#1")).Total);
-}
-```
-
-`BatchItemFailures` is what determines whether the stream redelivers, so assert on it rather than on
-the handler's own side effects alone.
+- [SQS](/aws/sqs): the same batch shape over messages
+- [DynamoDB client](/aws/dynamodb): reading the table the stream came from
+- [Testing AWS handlers](/aws/testing): the harnesses in full

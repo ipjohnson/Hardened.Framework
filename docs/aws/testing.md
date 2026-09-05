@@ -3,10 +3,18 @@
 Every AWS runtime has a test harness that invokes the real pipeline in-process. There is no
 `sam local`, no emulator for Lambda itself, and no deployment in the loop.
 
-The general shape is the same as [any Hardened test](/guide/testing): an assembly attribute
-installs the harness, another names the application, and the test method takes what it needs.
+```csharp
+[HardenedTest]
+public async Task ProcessesAnOrder(LambdaTestApp app) {
+    var response = await app.Invoke<OrderResponse>(
+        "process-order", new OrderRequest { Sku = "SKU-1" });
 
-**Source:** [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
+    Assert.NotNull(response.OrderId);
+}
+```
+
+The shape is the same as [any Hardened test](/guide/testing): an assembly attribute installs the
+harness, another names the application, and the test method takes what it needs.
 
 ## Setup
 
@@ -20,25 +28,13 @@ using Hardened.Shared.Testing.Attributes;
 ```
 
 `[LambdaFunctionTesting]` registers the test app and swaps in a filter provider that runs the
-function pipeline without the Lambda bootstrap. It is what the function, SQS and stream harnesses all
-sit on.
+function pipeline without the Lambda bootstrap. The function, SQS and stream harnesses all sit on
+it.
 
 ## Functions
 
-`LambdaTestApp.Invoke` serialises the payload, invokes by function name, and deserialises the
-response:
-
-```csharp
-[HardenedTest]
-public async Task ProcessesAnOrder(LambdaTestApp app) {
-    var response = await app.Invoke<OrderResponse>(
-        "process-order", new OrderRequest { Sku = "SKU-1" });
-
-    Assert.NotNull(response.OrderId);
-}
-```
-
-The context is configurable, which is how a test drives timeout-sensitive behaviour:
+`LambdaTestApp.Invoke` serializes the payload, invokes by function name, and deserializes the
+response. The context is configurable, which is how a test drives timeout-sensitive behaviour:
 
 ```csharp
 var response = await app.Invoke<OrderResponse>(
@@ -47,9 +43,7 @@ var response = await app.Invoke<OrderResponse>(
     context => context.RemainingTime = TimeSpan.FromSeconds(2));
 ```
 
-### Raw JSON
-
-`InvokeRaw` takes the payload as a string, bypassing .NET serialisation on the way in:
+`InvokeRaw` takes the payload as a string, bypassing .NET serialization on the way in:
 
 ```csharp
 [HardenedTest]
@@ -61,11 +55,10 @@ public async Task AcceptsTheWireFormat(LambdaTestApp app) {
 }
 ```
 
-`Invoke` serialises your object with the same serialiser that reads it back, so the two agree by
-construction and a gap in an AOT serialiser context stays hidden. `InvokeRaw` starts from the bytes
-the caller will send.
-
-Both have `Stream`-returning overloads for responses you would rather inspect than deserialise.
+`Invoke` serializes your object with the same serializer that reads it back, so the two agree by
+construction and a gap in an AOT serializer context stays hidden. `InvokeRaw` starts from the
+bytes the caller will send. Both have `Stream`-returning overloads for a response you would
+rather inspect than deserialize.
 
 ## SQS batches
 
@@ -80,8 +73,8 @@ public async Task ProcessesTheBatch(TestSqsApp sqs) {
 }
 ```
 
-Messages are identified by position — the first is `"0"`, the second `"1"` — so a failure can be
-traced back to the message that caused it. See [SQS](/aws/sqs#testing).
+Messages are identified by position, so the first is `"0"` and the second `"1"`, and a failure
+can be traced back to the message that caused it. See [SQS](/aws/sqs#testing).
 
 ## Stream records
 
@@ -105,10 +98,9 @@ public async Task ProjectsAnInsert(TestDynamoDbStream stream) {
 ## DynamoDB Local
 
 `[LocalDynamoDb]` points the application's `IDynamoDbClientProvider` at a real DynamoDB in a
-container, so a test hits an engine that rejects a malformed key, enforces a key schema and fails a
-conditional write exactly as the service does.
-
-Derive from it and override `DdbSetup` to create the tables:
+container, so a test hits an engine that rejects a malformed key, enforces a key schema and fails
+a conditional write exactly as the service does. Derive from it and override `DdbSetup` to create
+the tables:
 
 ```csharp
 using Hardened.Amz.DynamoDbClient;
@@ -149,11 +141,9 @@ public async Task StoresAnOrder(IOrderRepository repository) {
 [LocalDynamoDb(Image = "amazon/dynamodb-local:3.3.1")]
 ```
 
-The default is `amazon/dynamodb-local:latest`.
-
-One container is started per image and shared by every test in the process that names it, so tests
-needing isolation from one another should use distinct keys rather than distinct databases. Every
-client name resolves to that same container.
+The default is `amazon/dynamodb-local:latest`. One container is started per image and shared by
+every test in the process that names it, so tests needing isolation from one another should use
+distinct keys rather than distinct databases. Every client name resolves to that same container.
 
 ### Without the rest of the package
 
@@ -171,3 +161,9 @@ Nothing there knows what a table or a key looks like.
 Testcontainers needs a Docker daemon. On a machine without one, these tests fail at container
 startup rather than skipping.
 :::
+
+## Next
+
+- [Writing a test](/guide/testing): what every Hardened test boots
+- [Writing a test attribute](/guide/testing-attributes): the seams `[LocalDynamoDb]` is built on
+- [Steps and retries](/guide/testing-steps): polling an eventually consistent store
