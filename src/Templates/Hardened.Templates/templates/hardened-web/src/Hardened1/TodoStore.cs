@@ -23,6 +23,10 @@ public record NewTodo(string Title);
 /// Where the todos live.
 /// </summary>
 /// <remarks>
+/// Task-based, because a store is where a real implementation waits on I/O. The handlers await it
+/// and return their answers directly; the one in-memory implementation below wraps its answers in
+/// Task.FromResult, so that wrapping is written here once rather than around every return.
+///
 /// An interface, and not only for testability. A handler parameter is bound from the request unless
 /// the generator can tell it is a service, and an unattributed concrete class is taken as the body -
 /// so injecting TodoStore directly generates DeserializeRequestBody&lt;TodoStore&gt;, and on a route
@@ -30,15 +34,15 @@ public record NewTodo(string Title);
 /// </remarks>
 public interface ITodoStore {
 
-    IReadOnlyList<Todo> All();
+    Task<IReadOnlyList<Todo>> All();
 
-    Todo? Find(int id);
+    Task<Todo?> Find(int id);
 
-    bool TitleExists(string title);
+    Task<bool> TitleExists(string title);
 
-    Todo Add(string title);
+    Task<Todo> Add(string title);
 
-    bool Remove(int id);
+    Task<bool> Remove(int id);
 }
 
 /// <summary>
@@ -64,21 +68,24 @@ public class TodoStore : ITodoStore {
 
     private int _nextId = 3;
 
-    public IReadOnlyList<Todo> All() => _todos.Values.ToList();
+    public Task<IReadOnlyList<Todo>> All() =>
+        Task.FromResult<IReadOnlyList<Todo>>(_todos.Values.ToList());
 
-    public Todo? Find(int id) => _todos.TryGetValue(id, out var todo) ? todo : null;
+    public Task<Todo?> Find(int id) =>
+        Task.FromResult(_todos.TryGetValue(id, out var todo) ? todo : null);
 
     /// <summary>Titles are unique, which is what gives the sample a real 409.</summary>
-    public bool TitleExists(string title) =>
-        _todos.Values.Any(todo => string.Equals(todo.Title, title, StringComparison.OrdinalIgnoreCase));
+    public Task<bool> TitleExists(string title) =>
+        Task.FromResult(
+            _todos.Values.Any(todo => string.Equals(todo.Title, title, StringComparison.OrdinalIgnoreCase)));
 
-    public Todo Add(string title) {
+    public Task<Todo> Add(string title) {
         var todo = new Todo(_nextId++, title, false);
 
         _todos[todo.Id] = todo;
 
-        return todo;
+        return Task.FromResult(todo);
     }
 
-    public bool Remove(int id) => _todos.Remove(id);
+    public Task<bool> Remove(int id) => Task.FromResult(_todos.Remove(id));
 }

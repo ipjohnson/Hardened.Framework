@@ -64,8 +64,8 @@ public partial class TodosLibrary;
 
 public class TodoController {
     [Get("/{id}")]
-    public Response<Todo, NotFound> ById(ITodoStore store, int id) {
-        var todo = store.Find(id);
+    public async Task<Response<Todo, NotFound>> ById(ITodoStore store, int id) {
+        var todo = await store.Find(id);
 
         if (todo is null) {
             return new NotFound("todo", $"No todo has id {id}.");
@@ -125,23 +125,20 @@ from the document, so neither is restated in C#.
 
 ```csharp
 [Handler]
-public class TodoService : ITodosService {
-    private readonly ITodoStore _store;
-
-    public TodoService(ITodoStore store) => _store = store;
-
-    // GetTodoResponse, GetTodoOk and GetTodoNotFound are generated from the two declared
-    // statuses, one case each. The set is the return type, so a 404 the contract declares and the
-    // handler never returns is a compiler error rather than a document nothing answers to.
-    public Task<GetTodoResponse> GetTodo(int id) {
-        var todo = _store.Find(id);
+public class TodoService(ITodoStore store) : ITodosService {
+    // GetTodoResponse is generated from the two declared statuses, one case each: the Todo, and the
+    // 404 carrying the document's Problem. The set is the return type, so a 404 the contract
+    // declares and the handler never returns is a compiler error rather than a document nothing
+    // answers to. The 404 itself is the framework's own NotFound; the build wrote the conversion
+    // that fills the Problem from it.
+    public async Task<GetTodoResponse> GetTodo(int id) {
+        var todo = await store.Find(id);
 
         if (todo is null) {
-            return Task.FromResult<GetTodoResponse>(
-                new GetTodoNotFound(new Problem { Detail = $"No todo has id {id}." }));
+            return new NotFound("todo", $"No todo has id {id}.");
         }
 
-        return Task.FromResult<GetTodoResponse>(new GetTodoOk(todo));
+        return todo;
     }
 }
 ```
@@ -231,8 +228,8 @@ implicit conversion per case, so the handler returns payloads and never names th
 
 ```csharp
 [Get("/{id}")]
-public Response<Todo, NotFound> ById(ITodoStore store, int id) {
-    var todo = store.Find(id);
+public async Task<Response<Todo, NotFound>> ById(ITodoStore store, int id) {
+    var todo = await store.Find(id);
 
     if (todo is null) {
         return new NotFound("todo", $"No todo has id {id}.");
@@ -257,8 +254,8 @@ rest with `[Throws<NotFound>]` - the attribute the mode is named for.
 ```csharp
 [Get("/{id}")]
 [Throws<NotFound>]
-public Todo ById(ITodoStore store, int id) {
-    var todo = store.Find(id);
+public async Task<Todo> ById(ITodoStore store, int id) {
+    var todo = await store.Find(id);
 
     if (todo is null) {
         throw new NotFound("todo", $"No todo has id {id}.").AsException();
@@ -275,7 +272,7 @@ pattern-match on the result. The handler body is identical to the `Response` ver
 public union TodoResult(Todo, NotFound);
 
 [Get("/{id}")]
-public TodoResult ById(ITodoStore store, int id) { /* same body */ }
+public async Task<TodoResult> ById(ITodoStore store, int id) { /* same body */ }
 ```
 
 Unions need `net11.0` and `<LangVersion>preview</LangVersion>`, which rules out AWS Lambda's

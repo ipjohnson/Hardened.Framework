@@ -443,9 +443,16 @@ internal static class UnionResponseEmitter {
                 type.AddUnionCase(branchType);
             }
 
-            // No conversion from the bare record here: a union declaration is written without a
-            // body, so it has nowhere to carry one. The holder the conversion would call is still
-            // emitted, and a union-mode handler calls it directly.
+            // The shorthand from the bare record, as the struct gets it, in a body the union
+            // otherwise does without. The compiler synthesises a constructor and a conversion per
+            // case from the header, so the body carries only these - and a set with none to write
+            // stays the one-line declaration.
+            if (problemsHolder != null && conversions.Count > 0) {
+                type.TerminateWithSemicolon = false;
+
+                EmitConversions(type, name, conversions, problemsHolder, modelsNamespace);
+            }
+
             return type;
         }
 

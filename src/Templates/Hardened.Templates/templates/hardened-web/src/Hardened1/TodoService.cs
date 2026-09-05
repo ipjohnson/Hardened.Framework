@@ -17,22 +17,20 @@ namespace Hardened1;
 /// and this class stops satisfying the interface, which is the point: the specification and the
 /// code cannot drift apart without the build saying so.
 ///
+/// Every method awaits the store and returns the value itself - a Todo, a NotFound - which the
+/// compiler converts into the type the signature names. Nothing here wraps a value in a Task; the
+/// store does that, once, for the in-memory case.
+///
 /// Build, then read obj/<configuration>/<tfm>/openapi/generated/ to see the interface, the models, the
 /// routing table and the validation the contract's constraints produced.
 /// </remarks>
 [Handler]
-public class TodoService : ITodosService {
-
-    private readonly ITodoStore _store;
-
-    public TodoService(ITodoStore store) {
-        _store = store;
-    }
+public class TodoService(ITodoStore store) : ITodosService {
 
 #if (throwsMode)
     // The body a thrown error carries. An OpenAPI description declares a shared Problem schema for
-    // every error; a Smithy model declares a named @error structure per failure. Only the throw
-    // below builds one by hand - a returned case is built by the conversion the build writes.
+    // every error; a Smithy model declares a named @error structure per failure. Only a throw builds
+    // one by hand - a returned case is built by the conversion the build writes.
 #if (openapi)
     private static Problem NotFoundBody(string detail) =>
         new() { Type = "about:blank", Title = "Not Found", Status = 404, Detail = detail };
@@ -52,8 +50,7 @@ public class TodoService : ITodosService {
     /// is nothing for a declared set to hold. A named list is not a C# type of its own in either
     /// contract language, so both generate List&lt;Todo&gt; and this method is written once.
     /// </remarks>
-    public Task<List<Todo>> ListTodos() =>
-        Task.FromResult(_store.All().ToList());
+    public async Task<List<Todo>> ListTodos() => (await store.All()).ToList();
 
 #if (throwsMode)
     /// <summary>
@@ -67,8 +64,7 @@ public class TodoService : ITodosService {
     /// A handler that wants to explain the refusal throws the generated exception type instead,
     /// which carries a body it wrote. Null is the "nothing to add" answer.
     /// </remarks>
-    public Task<Todo?> GetTodo(int id) =>
-        Task.FromResult(_store.Find(id));
+    public Task<Todo?> GetTodo(int id) => store.Find(id);
 
 #if (openapi)
     /// <summary>
@@ -84,33 +80,31 @@ public class TodoService : ITodosService {
     /// The 409 is a case rather than a throw for the same reason: once an operation has a set, the
     /// set is where all of its statuses live.
     /// </remarks>
-    public Task<CreateTodoResponse> CreateTodo(NewTodo body) {
-        if (_store.TitleExists(body.Title)) {
+    public async Task<CreateTodoResponse> CreateTodo(NewTodo body) {
+        if (await store.TitleExists(body.Title)) {
             // The framework's own Conflict, converted by the build into the case the contract
             // declares: its Problem, with type, title and status filled from the record and the
             // detail from here.
-            return Task.FromResult<CreateTodoResponse>(
-                new Conflict($"A todo titled '{body.Title}' already exists."));
+            return new Conflict($"A todo titled '{body.Title}' already exists.");
         }
 
-        var created = _store.Add(body.Title);
+        var created = await store.Add(body.Title);
 
         // Routes is generated from the same contract, so this link cannot drift from the route it
         // points at - rename the path in the contract and this stops compiling.
-        return Task.FromResult<CreateTodoResponse>(
-            new CreateTodoCreated(created, TemplateModuleNameLibrary.Routes.Todos.GetTodo(created.Id)));
+        return new CreateTodoCreated(created, TemplateModuleNameLibrary.Routes.Todos.GetTodo(created.Id));
     }
 #endif
 #if (smithy)
     /// <summary>
     /// 409 by throwing, because this operation declares one success and the signature names it.
     /// </summary>
-    public Task<Todo> CreateTodo(NewTodo body) {
-        if (_store.TitleExists(body.Title)) {
+    public async Task<Todo> CreateTodo(NewTodo body) {
+        if (await store.TitleExists(body.Title)) {
             throw ConflictBody($"A todo titled '{body.Title}' already exists.").AsException();
         }
 
-        return Task.FromResult(_store.Add(body.Title));
+        return await store.Add(body.Title);
     }
 #endif
 
@@ -120,8 +114,8 @@ public class TodoService : ITodosService {
     /// turning a response into a thrown one, and the build generates the overload that reaches a
     /// declared error's body - so the type is named once rather than beside the body it carries.
     /// </remarks>
-    public Task RemoveTodo(int id) {
-        if (!_store.Remove(id)) {
+    public async Task RemoveTodo(int id) {
+        if (!await store.Remove(id)) {
 #if (openapi)
             throw new NotFound<Problem>(NotFoundBody($"No todo has id {id}.")).AsException();
 #endif
@@ -129,8 +123,6 @@ public class TodoService : ITodosService {
             throw NotFoundBody($"No todo has id {id}.").AsException();
 #endif
         }
-
-        return Task.CompletedTask;
     }
 #endif
 #if (declaredMode)
@@ -147,54 +139,31 @@ public class TodoService : ITodosService {
     /// the detail from here - so a handler says why and nothing else. NotFound.Default is the same
     /// answer with a generic detail, shared, for a handler with nothing to add.
     /// </remarks>
-#if (responseMode)
-    public Task<GetTodoResponse> GetTodo(int id) =>
-        Task.FromResult<GetTodoResponse>(
-            _store.Find(id) is { } todo ? todo : new NotFound("todo", $"No todo has id {id}."));
-#else
-    // A union is declared without a body, so the conversion the response model gets cannot be
-    // written on it. The Problems holder is the method that conversion calls - named for the
-    // contract file under OpenAPI and for the module under Smithy - and calling it here is the
-    // same one line.
-    public Task<GetTodoResponse> GetTodo(int id) =>
-        Task.FromResult<GetTodoResponse>(
-            _store.Find(id) is { } todo
-                ? todo
-#if (openapi)
-                : TodosProblems.NotFoundProblem(new NotFound("todo", $"No todo has id {id}.")));
-#endif
-#if (smithy)
-                : TemplateModuleNameProblems.NotFoundTodoNotFound(new NotFound("todo", $"No todo has id {id}.")));
-#endif
-#endif
+    public async Task<GetTodoResponse> GetTodo(int id) {
+        var todo = await store.Find(id);
 
-    /// <summary>201 with the new todo, or 409.</summary>
-    public Task<CreateTodoResponse> CreateTodo(NewTodo body) {
-        if (_store.TitleExists(body.Title)) {
-#if (responseMode)
-            return Task.FromResult<CreateTodoResponse>(
-                new Conflict($"A todo titled '{body.Title}' already exists."));
-#endif
-#if (unionMode && openapi)
-            return Task.FromResult<CreateTodoResponse>(
-                TodosProblems.ConflictProblem(new Conflict($"A todo titled '{body.Title}' already exists.")));
-#endif
-#if (unionMode && smithy)
-            return Task.FromResult<CreateTodoResponse>(
-                TemplateModuleNameProblems.ConflictTodoTitleTaken(new Conflict($"A todo titled '{body.Title}' already exists.")));
-#endif
+        if (todo is null) {
+            return new NotFound("todo", $"No todo has id {id}.");
         }
 
-        var created = _store.Add(body.Title);
+        return todo;
+    }
+
+    /// <summary>201 with the new todo, or 409.</summary>
+    public async Task<CreateTodoResponse> CreateTodo(NewTodo body) {
+        if (await store.TitleExists(body.Title)) {
+            return new Conflict($"A todo titled '{body.Title}' already exists.");
+        }
+
+        var created = await store.Add(body.Title);
 
 #if (openapi)
         // The 201 declares a Location, so its case carries one beside the payload. Routes is
         // generated from the same contract, so the link cannot drift from the route it points at.
-        return Task.FromResult<CreateTodoResponse>(
-            new CreateTodoCreated(created, TemplateModuleNameLibrary.Routes.Todos.GetTodo(created.Id)));
+        return new CreateTodoCreated(created, TemplateModuleNameLibrary.Routes.Todos.GetTodo(created.Id));
 #endif
 #if (smithy)
-        return Task.FromResult<CreateTodoResponse>(created);
+        return created;
 #endif
     }
 
@@ -206,18 +175,12 @@ public class TodoService : ITodosService {
     /// nothing. Before that existed this operation's response set held only the 404 and there was
     /// no way to say it had worked.
     /// </remarks>
-    public Task<RemoveTodoResponse> RemoveTodo(int id) =>
-        Task.FromResult<RemoveTodoResponse>(
-            _store.Remove(id)
-                ? new RemoveTodoNoContent()
-#if (responseMode)
-                : new NotFound("todo", $"No todo has id {id}."));
-#endif
-#if (unionMode && openapi)
-                : TodosProblems.NotFoundProblem(new NotFound("todo", $"No todo has id {id}.")));
-#endif
-#if (unionMode && smithy)
-                : TemplateModuleNameProblems.NotFoundTodoNotFound(new NotFound("todo", $"No todo has id {id}.")));
-#endif
+    public async Task<RemoveTodoResponse> RemoveTodo(int id) {
+        if (!await store.Remove(id)) {
+            return new NotFound("todo", $"No todo has id {id}.");
+        }
+
+        return new RemoveTodoNoContent();
+    }
 #endif
 }
