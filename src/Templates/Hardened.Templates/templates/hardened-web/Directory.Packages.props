@@ -50,6 +50,12 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
 <!--#endif -->
     <PackageVersion Include="Hardened.Web.Testing" Version="$(HardenedVersion)" />
+<!--#if (kestrel) -->
+    <PackageVersion Include="Hardened.Web.Kestrel.Testing" Version="$(HardenedVersion)" />
+<!--#endif -->
+<!--#if (aspnet) -->
+    <PackageVersion Include="Hardened.Web.AspNetCore.Testing" Version="$(HardenedVersion)" />
+<!--#endif -->
   </ItemGroup>
 <!--#if (kiotaClient) -->
 
